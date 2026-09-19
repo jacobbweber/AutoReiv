@@ -62,15 +62,15 @@
 
 ---
 
-### Phase 4: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance (In Progress)
-- [ ] **Milestone 18 (v0.18.0 - Autonomic OS & Mechanical Governance [ADR-0054])**:
+### Phase 4: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance (Completed)
+- [x] **Milestone 18 (v0.18.0 - Autonomic OS & Mechanical Governance [ADR-0054])**: **Done**
   - [x] **ADR-0054**: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance accepted.
   - [x] **CARD-340**: Multi-Agent Group Chat Roundtable — **Retired / Superseded** as anti-pattern per Conway's Law and ADR-0054.
   - [x] **CARD-361**: Dual-Engine Front Door: AutoReiv Core & Direct Mode (Retire persona dropdowns & roundtable in Chat Studio).
   - [x] **CARD-362**: Demand-Paged Capability Engine & Progressive Tool Mounting (Prune static 40-tool schema bloat down to skill-bound sets).
   - [x] **CARD-363**: Mechanical Capability Linter & Contract Compiler (Static validation for `SKILL.md`: tool cap <= 6, verification contracts).
   - [x] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
-  - [ ] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
+  - [x] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
 
 
 
