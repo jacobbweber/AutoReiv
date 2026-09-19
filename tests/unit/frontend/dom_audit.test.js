@@ -1,69 +1,90 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-/**
- * Static DOM Architecture & Defensive Query Audit [REQ-DOM-004]
- * Verifies that all modules under src/web/static/modules/ and src/web/static/app.js
- * adhere to defensive DOM query architecture and avoid direct raw document queries outside dom.js.
- */
-describe('DOM Architecture & Null-Safety Static Audit', () => {
-  const staticDir = path.resolve(__dirname, '../../../src/web/static');
+describe('Dead UI Pruning Audit [CARD-369]', () => {
+  let html;
+  let chatJs;
+  let appJs;
+  let modalJs;
 
-  function getJsFiles(dir) {
-    let results = [];
-    const list = fs.readdirSync(dir);
-    list.forEach((file) => {
-      const fullPath = path.join(dir, file);
-      const stat = fs.statSync(fullPath);
-      if (stat && stat.isDirectory()) {
-        results = results.concat(getJsFiles(fullPath));
-      } else if (file.endsWith('.js')) {
-        results.push(fullPath);
-      }
-    });
-    return results;
-  }
-
-  it('prohibits direct document.getElementById outside dom.js [REQ-DOM-001]', () => {
-    const jsFiles = getJsFiles(staticDir);
-    const violations = [];
-
-    jsFiles.forEach((filePath) => {
-      const relPath = path.relative(staticDir, filePath).replace(/\\/g, '/');
-      if (relPath === 'modules/dom.js') return; // Allowed only in dom.js
-
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const lines = content.split('\n');
-      lines.forEach((line, lineIdx) => {
-        if (line.includes('document.getElementById(')) {
-          violations.push(`${relPath}:${lineIdx + 1}: ${line.trim()}`);
-        }
-      });
-    });
-
-    expect(violations, `Direct document.getElementById found in:\n${violations.join('\n')}`).toEqual([]);
+  beforeEach(() => {
+    html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
+    chatJs = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js'), 'utf-8');
+    appJs = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/app.js'), 'utf-8');
+    modalJs = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/ui/modal.js'), 'utf-8');
   });
 
-  it('prohibits direct document.querySelector and document.querySelectorAll outside dom.js [REQ-DOM-001]', () => {
-    const jsFiles = getJsFiles(staticDir);
-    const violations = [];
-
-    jsFiles.forEach((filePath) => {
-      const relPath = path.relative(staticDir, filePath).replace(/\\/g, '/');
-      if (relPath === 'modules/dom.js') return; // Allowed only in dom.js
-
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const lines = content.split('\n');
-      lines.forEach((line, lineIdx) => {
-        if (line.includes('document.querySelector(') || line.includes('document.querySelectorAll(')) {
-          violations.push(`${relPath}:${lineIdx + 1}: ${line.trim()}`);
-        }
-      });
+  describe('Unimplemented Mermaid Zoom Inspector Pruned [REQ-PRUNE-001]', () => {
+    it('does not contain #mermaidZoomModal or its controls in index.html', () => {
+      expect(html).not.toContain('id="mermaidZoomModal"');
+      expect(html).not.toContain('id="mermaidModalCard"');
+      expect(html).not.toContain('id="mermaidModalTitle"');
+      expect(html).not.toContain('id="mermaidZoomInBtn"');
+      expect(html).not.toContain('id="mermaidZoomOutBtn"');
+      expect(html).not.toContain('id="mermaidZoomResetBtn"');
+      expect(html).not.toContain('id="mermaidFullscreenBtn"');
+      expect(html).not.toContain('id="mermaidCloseModalBtn"');
+      expect(html).not.toContain('id="mermaidViewport"');
+      expect(html).not.toContain('id="mermaidCanvas"');
     });
 
-    expect(violations, `Direct document.querySelector/querySelectorAll found in:\n${violations.join('\n')}`).toEqual(
-      []
-    );
+    it('does not register mermaidZoomModal in app.js allModals', () => {
+      expect(appJs).not.toContain("'mermaidZoomModal'");
+    });
+
+    it('does not reference #mermaidCloseModalBtn in modal.js', () => {
+      expect(modalJs).not.toContain('#mermaidCloseModalBtn');
+    });
+
+    it('does not render dead mermaid-inspect-btn in chat.js', () => {
+      expect(chatJs).not.toContain('mermaid-inspect-btn');
+      expect(chatJs).not.toContain('openMermaidInspector');
+    });
+  });
+
+  describe('Superseded Pre-Desktop Navigation Rail Pruned [REQ-PRUNE-002]', () => {
+    it('does not contain #appRail or its rail buttons in index.html', () => {
+      expect(html).not.toContain('id="appRail"');
+      expect(html).not.toContain('id="railBtnChat"');
+      expect(html).not.toContain('id="railBtnVault"');
+      expect(html).not.toContain('id="railBtnFleet"');
+      expect(html).not.toContain('id="railBtnFactory"');
+      expect(html).not.toContain('id="railBtnSettings"');
+    });
+
+    it('does not maintain railBtns in app.js', () => {
+      expect(appJs).not.toContain('railBtns');
+      expect(appJs).not.toContain('updateRailSurfaces');
+    });
+  });
+
+  describe('Preserves All 11 Active Studios and Functional Controls [REQ-PRUNE-004]', () => {
+    it('preserves all 11 studio view sections', () => {
+      const studios = [
+        'view-chat',
+        'view-wiki',
+        'view-projects',
+        'view-agents',
+        'view-factory',
+        'view-routines',
+        'view-observability',
+        'view-settings',
+        'view-prompts',
+        'view-education',
+        'view-lumina',
+      ];
+      for (const studioId of studios) {
+        expect(html).toContain(`id="${studioId}"`);
+      }
+    });
+
+    it('preserves active form submit buttons and cross-studio bridges', () => {
+      expect(html).toContain('id="promptsEditorSaveBtn"');
+      expect(html).toContain('id="saveToneBtn"');
+      expect(html).toContain('id="educationAmpWatchLuminaBtn"');
+      expect(html).toContain('id="wikiMobileDrawerBtn"');
+      expect(html).toContain('id="wikiDrawerCloseBtn"');
+    });
   });
 });

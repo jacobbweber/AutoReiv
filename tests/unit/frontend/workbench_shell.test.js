@@ -6,12 +6,12 @@ describe('App Shell Slim Rail and Dual-Pane Workbench Canvas [CARD-138]', () => 
   const htmlPath = path.resolve(__dirname, '../../../src/web/templates/index.html');
   const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
 
-  it('declares 52px Slim Icon Rail and surface triggers in index.html [REQ-SHELL-001]', () => {
-    expect(htmlContent).toContain('id="appRail"');
-    expect(htmlContent).toContain('id="railBtnChat"');
-    expect(htmlContent).toContain('id="railBtnVault"');
-    expect(htmlContent).toContain('id="railBtnFleet"');
-    expect(htmlContent).toContain('id="railBtnSettings"');
+  it('prunes obsolete 52px Slim Icon Rail in favor of Agent Desktop dock [CARD-369]', () => {
+    expect(htmlContent).not.toContain('id="appRail"');
+    expect(htmlContent).not.toContain('id="railBtnChat"');
+    expect(htmlContent).not.toContain('id="railBtnVault"');
+    expect(htmlContent).not.toContain('id="railBtnFleet"');
+    expect(htmlContent).not.toContain('id="railBtnSettings"');
   });
 
   it('declares Dual-Pane Workbench Canvas elements in index.html [REQ-SHELL-003, REQ-SHELL-004]', () => {

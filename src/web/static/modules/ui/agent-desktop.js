@@ -591,29 +591,7 @@ export function initAgentDesktop(opts = {}) {
       }
     });
 
-    const sessionsWin = windows.get('sessions');
-    root.classList.toggle('desktop-sessions-open', !!(sessionsWin && !sessionsWin.minimized));
-    const sidebar = $('sidebar');
-    if (sidebar && sessionsWin && !sessionsWin.minimized && sessionsWin.bodyEl) {
-      const rect = sessionsWin.bodyEl.getBoundingClientRect();
-      sidebar.style.setProperty('--dw-l', `${Math.round(rect.left)}px`);
-      sidebar.style.setProperty('--dw-t', `${Math.round(rect.top)}px`);
-      sidebar.style.setProperty('--dw-w', `${Math.round(rect.width)}px`);
-      sidebar.style.setProperty('--dw-h', `${Math.round(rect.height)}px`);
-      sidebar.style.zIndex = String(sessionsWin.z + 1);
-      sidebar.style.setProperty('--dw-z', String(sessionsWin.z + 1));
-      if (!sidebar.dataset.desktopFocusBound) {
-        sidebar.dataset.desktopFocusBound = 'true';
-        sidebar.addEventListener('pointerdown', () => focusWindow('sessions'));
-      }
-    } else if (sidebar) {
-      sidebar.style.removeProperty('--dw-l');
-      sidebar.style.removeProperty('--dw-t');
-      sidebar.style.removeProperty('--dw-w');
-      sidebar.style.removeProperty('--dw-h');
-      sidebar.style.removeProperty('--dw-z');
-      sidebar.style.removeProperty('z-index');
-    }
+
   }
 
   function buildTitleExtras(tab, titleRight) {

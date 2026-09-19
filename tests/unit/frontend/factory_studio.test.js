@@ -9,8 +9,8 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
   });
 
-  it('includes Factory Studio in app rail and sidebar navigation [REQ-FACT-034]', () => {
-    expect(html).toContain('id="railBtnFactory"');
+  it('includes Factory Studio in navigation and prunes obsolete rail button [REQ-FACT-034, CARD-369]', () => {
+    expect(html).not.toContain('id="railBtnFactory"');
     expect(html).toContain('id="tab-factory"');
     expect(html).toContain('data-tab="factory"');
   });
