@@ -1,6 +1,20 @@
+---
+id: CARD-285
+title: "Horizon \u2014 plugins / integrations surface"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - horizon
+  - track-d
+  - plugins
+  - mcp
+---
+
 # [CARD-285] Horizon — plugins / integrations surface
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `plugins`, `mcp`
@@ -12,12 +26,15 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. A clear home for plugins/integrations beyond ad-hoc MCP toggles.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. MCP client/settings exist; “plugins” as operator IA is incomplete.
 
 ### Beat 3: What Will Change
+
 1. IA + registry surface; trust/HITL; no second tool protocol.
 2. Coordinate with Homelab MCP (CARD-286) so we don’t double-build.
 

@@ -1,6 +1,19 @@
+---
+id: CARD-279
+title: "UI \u2014 pin / save studio layouts"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - ui
+  - track-b
+  - layout
+---
+
 # [CARD-279] UI — pin / save studio layouts
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:feature`, `ui`, `track-b`, `layout`
@@ -12,12 +25,15 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. Operators want layouts that stick across sessions (pinned panes, saved arrangements).
 
 ### Beat 2: What AutoReiv Does Now
+
 1. Layouts mostly reset; no durable per-operator layout prefs called out as a first-class feature.
 
 ### Beat 3: What Will Change
+
 1. Durable layout prefs (settings or local store) + Studio path to pin/save/restore.
 2. Proof: refresh / restart still restores pin.
 

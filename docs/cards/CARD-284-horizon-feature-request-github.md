@@ -1,6 +1,19 @@
+---
+id: CARD-284
+title: "Horizon \u2014 feature-request \u2192 GitHub issue"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - horizon
+  - track-d
+  - github
+---
+
 # [CARD-284] Horizon — feature-request → GitHub issue
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `github`
@@ -12,12 +25,15 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. From inside AutoReiv, turn a feature ask into a tracked GitHub issue.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. No first-class “file issue from Studio” loop called out as shipped.
 
 ### Beat 3: What Will Change
+
 1. Operator path + auth/credential policy + proof issue created on jacobbweber/AutoReiv (or configured repo).
 2. HITL before publish.
 

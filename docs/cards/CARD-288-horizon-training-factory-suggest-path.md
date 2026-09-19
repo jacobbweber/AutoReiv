@@ -1,6 +1,19 @@
+---
+id: CARD-288
+title: "Horizon \u2014 Training Factory tool-fix suggest path"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - horizon
+  - track-d
+  - training-factory
+---
+
 # [CARD-288] Horizon — Training Factory tool-fix suggest path
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `training-factory`
@@ -12,14 +25,17 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. On-the-fly tool-fix suggest path must be truth vs theatre (gaps → train → real candidate, not toast-only).
 2. Builds on CARD-270 honesty.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. CARD-270 landed Training Factory truth (train→training; empty promote = honest can’t).
 2. Suggest-from-gap → operator-visible candidate path still thin / horizon.
 
 ### Beat 3: What Will Change
+
 1. Durable gap→candidate loop + Forge/Studio path + failing then green proof.
 2. No fake “trained” status.
 

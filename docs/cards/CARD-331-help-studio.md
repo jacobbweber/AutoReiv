@@ -1,6 +1,21 @@
+---
+id: CARD-331
+title: 'Help Studio'
+status: Parked
+created: 2026-09-14
+adr: none
+labels:
+  - type:feature
+  - P1
+  - Help
+  - Studio
+  - UX
+  - OperatorDocs
+---
+
 # [CARD-331] Help Studio
 
-> **Status**: Parked (Holding until studio changes settle)
+> **Status**: Parked
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-studio-finish`
 > **Locked Decisions**: Option A on both — (a) New dock Studio, (b) In-app interactive panels.
@@ -11,16 +26,19 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. Per-feature **“what it is / how to use it”** operator help (brain dump Addition 9).
 2. Help is reachable from the product surface — operators should not need the repo to learn a feature.
 3. Content stays honest and feature-scoped; not a second marketing site.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. CARD-021 system-info hub already covers conceptual / architectural overviews to some degree.
 2. There is no dedicated Help Studio (or locked expansion of system-info) for per-feature operator help.
 3. UI/UX chrome placement for help is undecided (dock Studio vs nested; in-app vs Wiki).
 
 ### Beat 3: What Will Change
+
 1. Deliver per-feature “what it is / how to use it” help once placement is locked.
 2. Wire chrome placement per Needs discussion outcome (new Studio vs expand system-info; dock vs nested; panels vs Wiki).
 3. TDD / smoke as appropriate for chosen surface. **Do not implement until Needs discussion resolves.**

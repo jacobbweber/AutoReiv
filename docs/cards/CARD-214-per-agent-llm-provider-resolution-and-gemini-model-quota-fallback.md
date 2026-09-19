@@ -1,3 +1,16 @@
+---
+id: CARD-214
+title: 'Per-Agent LLM Provider Resolution and Gemini Model Quota Fallback'
+status: Ready
+created: 2026-09-10
+adr: none
+labels:
+  - type:bugfix
+  - domain:gateway
+  - domain:kernel
+  - domain:agents
+---
+
 # [CARD-214] Per-Agent LLM Provider Resolution and Gemini Model Quota Fallback
 
 > **Status**: Ready
@@ -10,6 +23,7 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. **Per-Agent Provider Independence**:
    - When an operator configures an agent in **Agent Studio** (`#view-agents`) to use a specific LLM Provider (e.g. Ollama), chatting with that agent in **Chat Studio** (`#view-chat`) must always route to that agent's provider—even if the agent's model dropdown is left on "Use Global Default" (`default`).
    - If an agent is left on "Platform Default", it continues to use the platform provider selected in **Settings Studio** (e.g. Google Gemini).
@@ -19,6 +33,7 @@
 ---
 
 ### Beat 2: What AutoReiv Does Now
+
 1. **Cascade Bug in `_resolve_model`** (`src/application/kernel/agent_kernel.py`):
    - When an agent has `provider = "ollama"` and `model = "default"`, the resolution logic skips the agent's provider override because `model == "default"`. It falls through to the global platform provider settings, resolving to the platform's default model (e.g. `gemini-3.6-flash`). The agent's custom provider setting is completely ignored.
 2. **Gemini 20 Requests/Day Free Tier Quota Exhaustion**:
@@ -30,6 +45,7 @@
 ---
 
 ### Beat 3: What Will Change
+
 1. **Per-Agent Provider Model Resolution Fix** (`src/application/kernel/agent_kernel.py`):
    - In `_resolve_model(agent)`:
      - When an agent has an explicit provider (e.g. `ollama`) and its model is `default`:
@@ -50,6 +66,7 @@
 ---
 
 ## 2. Acceptance Criteria (Definition of Done)
+
 - [ ] **AC-1 (Per-Agent Resolution)**: When an agent's provider is set to `ollama` (or any non-default provider) and its model is `default`, the kernel resolves the model and provider to that agent's provider, not the platform provider.
 - [ ] **AC-2 (Platform Provider Inheritance)**: When an agent's provider is `default`, it resolves to the platform default provider from Settings Studio.
 - [ ] **AC-3 (Gemini 3.7 Recommendation & Quota Resiliency)**: Preset and active platform settings recommend and use `gemini-3.7-flash`.
@@ -58,6 +75,7 @@
 ---
 
 ## 3. Constraints & Invariants
+
 - Follow the 5 Hard Invariants from AGENTS.md.
 - Feature branch `feat/per-agent-provider-resolution` cut from `qa`.
 - Card stays `Ready` until Jacob says **build**.
