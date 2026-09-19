@@ -1889,6 +1889,25 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                     )
                             return
 
+            if req.agent_id == "direct":
+                # Direct Mode fast-path: zero jobs, zero tools, direct streaming pass-through [CARD-361 / REQ-CHAT-DUAL-002]
+                turn_content = None if resume else effective_content
+                async for event in kernel.stream_turn(
+                    profile,
+                    req.session_id,
+                    turn_content,
+                    approval_mode=req.approval_mode or "ask",
+                    resume=resume,
+                ):
+                    if event.event_type == KernelEventType.TURN_END:
+                        await queue.put(_sse("turn_done", {"content": event.content, "direct_mode": True}))
+                    elif event.event_type == KernelEventType.REACT_STATE:
+                        # Suppress react_state noise for direct mode
+                        pass
+                    else:
+                        await _forward_kernel_event(queue, event, profile)
+                return
+
             standing = route_standing_chat(effective_content)
             # Anti-theatre [CARD-220 / CARD-236]: outcome-shaped Chat uses catalog resolve
             # standing runtime (not plan_engine-only / Observability-panel theatre).

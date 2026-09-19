@@ -7391,6 +7391,83 @@
         "tests/unit/observability/test_friction_api.py",
         "tests/unit/frontend/observe_collapse_agent_kpis_311.test.js"
       ]
+    },
+    {
+      "id": "REQ-CHAT-DUAL-001",
+      "title": "Dual-Engine Front Door Control",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/dual-engine-front-door/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/chat/stream.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/chat_dual_engine_front_door_361.test.js"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-DUAL-002",
+      "title": "Direct Mode Fast-Path Execution Bypass",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/dual-engine-front-door/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_chat_direct_mode.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-DUAL-003",
+      "title": "AutoReiv Core State-Machine Orchestration",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/dual-engine-front-door/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_chat_direct_mode.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-DUAL-004",
+      "title": "Scoped Session Continuity & Engine Switching",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/dual-engine-front-door/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/chat_dual_engine_front_door_361.test.js"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-DUAL-005",
+      "title": "Direct Mode Status & Chrome Suppression",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/dual-engine-front-door/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/chat_dual_engine_front_door_361.test.js"
+      ]
     }
   ]
 }

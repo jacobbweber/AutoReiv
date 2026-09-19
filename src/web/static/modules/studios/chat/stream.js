@@ -140,6 +140,13 @@ export function agentsVisibleInChat(agents) {
   return (agents || []).filter(isAgentVisibleInChat);
 }
 
+// ADR-0054 / CARD-361: Dual-Engine Front Door channels (AutoReiv Core & Direct Mode)
+export const DUAL_ENGINE_IDS = Object.freeze(['autoreiv', 'direct']);
+
+export function dualEngineAgentsVisibleInChat(agents) {
+  return agentsVisibleInChat(agents).filter((a) => DUAL_ENGINE_IDS.includes(a.id));
+}
+
 export async function prepareNewAgentAuthoringSession({
   switchSelectedAgent,
   createNewSession,

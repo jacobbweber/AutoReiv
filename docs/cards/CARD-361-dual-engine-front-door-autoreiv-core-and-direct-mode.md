@@ -1,6 +1,6 @@
 # [CARD-361] Dual-Engine Front Door (AutoReiv Core & Direct Mode)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-19
 > **Spec Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [docs/specs/dual-engine-front-door/](file:///d:/Projects/Active/AutoReiv/docs/specs/dual-engine-front-door/)
 > **Labels**: `type:feature`, `domain:chat`, `domain:orchestration`, `architecture:autonomic-os`
@@ -42,13 +42,13 @@ As mandated by **ADR-0054** (*Autonomic Operating System, Demand-Paged Capabilit
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-CHAT-DUAL-001]**: Chat Studio displays a dual-engine front door in the top bar with **AutoReiv Core** and **Direct Mode**, retiring persona dropdown lists.
-- [ ] **[REQ-CHAT-DUAL-002]**: Direct Mode (`agent_id='direct'`) in `POST /api/chat/stream` bypasses job minting and catalog resolution, streaming tokens directly with zero tool schemas.
-- [ ] **[REQ-CHAT-DUAL-003]**: AutoReiv Core (`agent_id='autoreiv'`) executes through `JobPhaseOrchestrator` with full phase lifecycle and verification.
-- [ ] **[REQ-CHAT-DUAL-004]**: Switching engines cleanly switches active sessions without cross-channel message pollution.
-- [ ] **[REQ-CHAT-DUAL-005]**: While Direct Mode is active, Job/Phase status strip and chrome are suppressed.
-- [ ] Automated unit and frontend tests pass via `pytest` and `npm run test:unit:frontend`.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] **[REQ-CHAT-DUAL-001]**: Chat Studio displays a dual-engine front door in the top bar with **AutoReiv Core** and **Direct Mode**, retiring persona dropdown lists.
+- [x] **[REQ-CHAT-DUAL-002]**: Direct Mode (`agent_id='direct'`) in `POST /api/chat/stream` bypasses job minting and catalog resolution, streaming tokens directly with zero tool schemas.
+- [x] **[REQ-CHAT-DUAL-003]**: AutoReiv Core (`agent_id='autoreiv'`) executes through `JobPhaseOrchestrator` with full phase lifecycle and verification.
+- [x] **[REQ-CHAT-DUAL-004]**: Switching engines cleanly switches active sessions without cross-channel message pollution.
+- [x] **[REQ-CHAT-DUAL-005]**: While Direct Mode is active, Job/Phase status strip and chrome are suppressed.
+- [x] Automated unit and frontend tests pass via `pytest` and `npm run test:unit:frontend`.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Added
+- CARD-361: Dual-Engine Front Door (AutoReiv Core & Direct Mode) — Established a clean dual-engine front door in Chat Studio grounded in ADR-0054, retiring persona dropdowns and roundtable selectors:
+  - Dual-Engine Front Door Controls (`src/web/templates/index.html`, `src/web/static/modules/studios/chat.js`): Replaced Chat Studio's top bar dropdown roster with a segmented front-door toggle (`#chatEngineSelector`) featuring `[ ⚡ AutoReiv Core | 💬 Direct Mode ]` (`#engineBtnCore` and `#engineBtnDirect`). Synchronized state bidirectionally with `#agentSelect` to maintain full backward compatibility with automated Playwright end-to-end tests and unit tests.
+  - Direct Mode Fast-Path Bypass (`src/web/routers/chat.py`): Added dedicated zero-overhead execution pass-through for turns submitted under Direct Mode (`agent_id == 'direct'`). Directly streams provider tokens with `tools=None` (zero tool schema prompt tax), completely bypassing `JobPhaseOrchestrator`, database job/phase record minting, and catalog capability resolution.
+  - Core Orchestration Preservation: Preserved full state-machine orchestration (`JobPhaseOrchestrator`) for AutoReiv Core turns (`agent_id == 'autoreiv'`), including phase tracking, capability resolution, and verification gates.
+  - Scoped Session Isolation & Chrome Suppression (`src/web/static/modules/studios/chat.js`, `src/web/static/modules/studios/chat/stream.js`): Filtered Chat Studio session drawer and agent rosters strictly to the active engine channel (`dualEngineAgentsVisibleInChat`), suppressed `#jobPhaseStatusStrip` and inline job chrome during Direct Mode, and updated active engine badges and stream bubbles.
+  - Traceability & Verification: Registered requirements `REQ-CHAT-DUAL-001` through `REQ-CHAT-DUAL-005` in `docs/rtm.json`. Authored comprehensive unit tests in `tests/unit/web/test_chat_direct_mode.py` and `tests/unit/frontend/chat_dual_engine_front_door_361.test.js`.
+
 ## [0.35.0] - 2026-09-18
 
 ### Added

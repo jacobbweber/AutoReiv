@@ -1520,11 +1520,22 @@
             </button>
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20 ring-offset-1 ring-offset-[#08090c] flex-shrink-0" title="Control Plane Online"></span>
             <div class="min-w-0 flex items-center space-x-2">
+              <!-- Dual-Engine Front Door [ADR-0054, CARD-361] -->
+              <div id="chatEngineSelector" class="flex items-center bg-[#141721] p-0.5 rounded-lg border border-white/[0.08] text-xs font-semibold" role="group" aria-label="Dual-Engine Front Door">
+                <button id="engineBtnCore" type="button" data-engine="autoreiv" class="flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs" title="AutoReiv Core: State-machine orchestrator with demand-paged capabilities and mechanical verification">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i>
+                  <span>AutoReiv Core</span>
+                </button>
+                <button id="engineBtnDirect" type="button" data-engine="direct" class="flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs" title="Direct Mode: Raw zero-overhead conversational LLM stream">
+                  <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>Direct Mode</span>
+                </button>
+              </div>
               <select id="agentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[130px] sm:max-w-[220px] truncate" title="Switch active agent (Show in Chat)" aria-label="Active agent">
                 <!-- Chat JS fills from GET /api/agents (show_in_chat). -->
               </select>
-              <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">Assistant</h2>
-              <span id="activeAgentTone" class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#141721] border border-white/[0.08] text-slate-400 truncate hidden sm:inline">Tone: Default</span>
+              <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">AutoReiv</h2>
+              <span id="activeAgentTone" class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#141721] border border-white/[0.08] text-slate-400 truncate hidden sm:inline">Engine: Core</span>
             </div>
           </div>
           <div class="flex items-center space-x-1.5 flex-shrink-0">

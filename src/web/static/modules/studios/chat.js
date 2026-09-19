@@ -68,6 +68,13 @@ export function agentsVisibleInChat(agents) {
   return (agents || []).filter(isAgentVisibleInChat);
 }
 
+// ADR-0054 / CARD-361: Dual-Engine Front Door channels (AutoReiv Core & Direct Mode)
+export const DUAL_ENGINE_IDS = Object.freeze(['autoreiv', 'direct']);
+
+export function dualEngineAgentsVisibleInChat(agents) {
+  return agentsVisibleInChat(agents).filter((a) => DUAL_ENGINE_IDS.includes(a.id));
+}
+
 export const JOB_PHASE_REACT_STATES = Object.freeze([
   'THINKING',
   'CALLING_TOOLS',
@@ -609,6 +616,8 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
 
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
+  const engineBtnCore = $('engineBtnCore');
+  const engineBtnDirect = $('engineBtnDirect');
   const sessionList = $('sessionList');
   const newChatBtn = $('newChatBtn');
   const activeAgentTitle = $('activeAgentTitle');
@@ -1042,6 +1051,10 @@ export function initChatStudio(state, callbacks = {}) {
 
   function renderJobPhaseStrip() {
     if (!jobPhaseStatusStrip) return;
+    if (state.selectedAgentId === 'direct') {
+      jobPhaseStatusStrip.classList.add('hidden');
+      return;
+    }
     const boundJobId = (jobPhaseState && (jobPhaseState.jobId || jobPhaseState.job_id)) || '';
     if (!boundJobId) {
       jobPhaseStatusStrip.classList.add('hidden');
@@ -1290,7 +1303,7 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.agents = await res.json();
-      const chatAgents = agentsVisibleInChat(state.agents);
+      const chatAgents = dualEngineAgentsVisibleInChat(state.agents);
 
       if (agentSelect) {
         agentSelect.innerHTML = '';
@@ -1344,16 +1357,62 @@ export function initChatStudio(state, callbacks = {}) {
     await refreshPendingHitl();
   }
 
+  function updateEngineSelectorUi(activeId) {
+    const isDirect = activeId === 'direct';
+    if (engineBtnCore) {
+      if (!isDirect) {
+        engineBtnCore.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs';
+        const icon = engineBtnCore.querySelector('i');
+        if (icon) icon.className = 'w-3.5 h-3.5 text-amber-300';
+      } else {
+        engineBtnCore.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs';
+        const icon = engineBtnCore.querySelector('i');
+        if (icon) icon.className = 'w-3.5 h-3.5 text-slate-400';
+      }
+    }
+    if (engineBtnDirect) {
+      if (isDirect) {
+        engineBtnDirect.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs';
+        const icon = engineBtnDirect.querySelector('i');
+        if (icon) icon.className = 'w-3.5 h-3.5 text-emerald-300';
+      } else {
+        engineBtnDirect.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs';
+        const icon = engineBtnDirect.querySelector('i');
+        if (icon) icon.className = 'w-3.5 h-3.5 text-slate-400';
+      }
+    }
+    if (jobPhaseStatusStrip && isDirect) {
+      jobPhaseStatusStrip.classList.add('hidden');
+    }
+  }
+
+  async function switchEngineChannel(engineId) {
+    if (engineId !== 'autoreiv' && engineId !== 'direct') return;
+    await switchSelectedAgent(engineId);
+  }
+
+  if (engineBtnCore) {
+    engineBtnCore.addEventListener('click', () => switchEngineChannel('autoreiv'));
+  }
+  if (engineBtnDirect) {
+    engineBtnDirect.addEventListener('click', () => switchEngineChannel('direct'));
+  }
+
   if (agentSelect) {
     agentSelect.addEventListener('change', (e) => switchSelectedAgent(e.target.value));
   }
 
   function updateActiveAgentHeader() {
+    updateEngineSelectorUi(state.selectedAgentId);
+    const isDirect = state.selectedAgentId === 'direct';
     const agent = state.agents.find((a) => a.id === state.selectedAgentId);
     if (agent) {
       if (activeAgentTitle) activeAgentTitle.textContent = agent.name;
-      if (activeAgentTone)
-        activeAgentTone.textContent = `Tone: ${(agent.tone || 'standard').toUpperCase()} • Tools: ${agent.allowed_tools ? agent.allowed_tools.length : 0}`;
+      if (activeAgentTone) {
+        activeAgentTone.textContent = isDirect
+          ? 'Engine: Direct LLM (Zero Tools)'
+          : 'Engine: AutoReiv Core (Orchestrated)';
+      }
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
     } else {
       const opt = agentSelect ? agentSelect.querySelector(`option[value="${state.selectedAgentId}"]`) : null;
@@ -1415,8 +1474,9 @@ export function initChatStudio(state, callbacks = {}) {
   if (newChatBtn) newChatBtn.addEventListener('click', createNewSession);
 
   async function createNewSession() {
+    const isDirect = state.selectedAgentId === 'direct';
     const agent = state.agents.find((a) => a.id === state.selectedAgentId);
-    const title = `${agent ? agent.name : 'Agent'} Chat`;
+    const title = isDirect ? 'Direct Chat' : `${agent ? agent.name : 'AutoReiv'} Chat`;
     try {
       const res = await fetch('/api/sessions', {
         method: 'POST',
@@ -3949,6 +4009,8 @@ export function initChatStudio(state, callbacks = {}) {
     loadAgents,
     loadSessions,
     switchSelectedAgent,
+    switchEngineChannel,
+    updateEngineSelectorUi,
     startNewAgentAuthoring,
     updateActiveAgentHeader,
     createNewSession,
