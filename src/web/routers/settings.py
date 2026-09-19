@@ -340,7 +340,7 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
 
     # Register provider with gateway using decrypted active_key
     if pid == "ollama" or ":11434" in target_base_url:
-        gateway.register_provider(OllamaProviderAdapter(base_url=target_base_url, timeout=180.0, provider_id="ollama"))
+        gateway.register_provider(OllamaProviderAdapter(base_url=target_base_url, timeout=200.0, provider_id="ollama"))
     elif pid == "anthropic":
         gateway.register_provider(
             AnthropicProviderAdapter(
