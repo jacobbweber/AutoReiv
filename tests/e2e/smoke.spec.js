@@ -61,7 +61,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#artifactModal')).toBeAttached();
   });
 
-  test('TC-2: Studio navigation via dock launches critical window components without error [REQ-SMK-002]', async ({ page }) => {
+  test('TC-2: Studio navigation via dock launches critical window components without error [REQ-SMK-002]', async ({
+    page,
+  }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // 1. Routines Studio
@@ -206,7 +208,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
 
     // 3. Routines & Observability: overflow-y: auto verified
     await page.locator('#dock-routines').click();
-    const routinesOverflow = await page.locator('#view-routines').evaluate((el) => window.getComputedStyle(el).overflowY);
+    const routinesOverflow = await page
+      .locator('#view-routines')
+      .evaluate((el) => window.getComputedStyle(el).overflowY);
     expect(routinesOverflow).toBe('auto');
 
     // 4. Corner resize: bottom-right handle exists, is attached and resizes window
@@ -228,10 +232,13 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         const hy = handleBox.y + handleBox.height / 2;
 
         // Verify handle receives pointer events
-        const topElement = await page.evaluate(({ x, y }) => {
-          const el = document.elementFromPoint(x, y);
-          return el?.classList?.contains('desktop-win-resize-se') || false;
-        }, { x: hx, y: hy });
+        const topElement = await page.evaluate(
+          ({ x, y }) => {
+            const el = document.elementFromPoint(x, y);
+            return el?.classList?.contains('desktop-win-resize-se') || false;
+          },
+          { x: hx, y: hy }
+        );
         expect(topElement).toBe(true);
 
         // Drag handle outwards by 64px width and 64px height (grid aligned)
@@ -304,8 +311,10 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
     expect(persistedHue).toBe(38);
 
-    // 7. Reset to default
-    await page.locator('#dock-settings').click();
+    // 7. Reset to default (Settings is auto-restored after reload under CARD-279)
+    if (!(await page.locator('#desktopWin-settings').isVisible())) {
+      await page.locator('#dock-settings').click();
+    }
     await page.locator('[data-settings-section="preferences"] summary').click();
     await page.locator('#resetThemeBtn').click();
     const resetBrand = await page.evaluate(() => {
@@ -314,7 +323,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     expect(resetBrand).toBe('#6366f1');
   });
 
-  test('TC-7: Deep Desktop & Studio Theme Skinning transforms wallpaper, studio cards, and buttons [CARD-209]', async ({ page }) => {
+  test('TC-7: Deep Desktop & Studio Theme Skinning transforms wallpaper, studio cards, and buttons [CARD-209]', async ({
+    page,
+  }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // Open Settings and select Amber Phosphor (Warm Sand)
@@ -365,11 +376,14 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await emeraldPreset.scrollIntoViewIfNeeded();
     await emeraldPreset.click();
 
-    await page.waitForFunction(() => {
-      const btn = document.getElementById('checkForUpdatesBtn');
-      if (!btn) return false;
-      return window.getComputedStyle(btn).backgroundColor === 'rgb(45, 212, 191)';
-    }, { timeout: 3000 });
+    await page.waitForFunction(
+      () => {
+        const btn = document.getElementById('checkForUpdatesBtn');
+        if (!btn) return false;
+        return window.getComputedStyle(btn).backgroundColor === 'rgb(45, 212, 191)';
+      },
+      { timeout: 3000 }
+    );
 
     const finalBg = await page.locator('#checkForUpdatesBtn').evaluate((el) => {
       return window.getComputedStyle(el).backgroundColor;
@@ -377,5 +391,3 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     expect(finalBg).toBe('rgb(45, 212, 191)');
   });
 });
-
-

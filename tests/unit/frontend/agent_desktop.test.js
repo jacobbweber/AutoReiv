@@ -11,6 +11,10 @@ import {
   computeSnapHalf,
   computeMaximizeRect,
   computeMobileLayout,
+  computeTwoColumnsRects,
+  computeThreeColumnsRects,
+  computeLeftStackedRightFullRects,
+  computeLeftFullRightStackedRects,
   loadDesktopPrefs,
   saveDesktopPrefs,
   GRID_SIZE,
@@ -45,9 +49,17 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
     const tabs = DOCK_LAUNCHERS.map((d) => d.tab);
     expect(tabs).toEqual(
       expect.arrayContaining([
-        'chat', 'wiki', 'projects', 'agents', 'factory', 'routines',
-        'observability', 'settings', 'prompts', 'education',
-      ]),
+        'chat',
+        'wiki',
+        'projects',
+        'agents',
+        'factory',
+        'routines',
+        'observability',
+        'settings',
+        'prompts',
+        'education',
+      ])
     );
     expect(DOCK_LAUNCHERS.every((d) => d.icon && d.label && d.id)).toBe(true);
   });
@@ -61,10 +73,7 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
   });
 
   it('clamps window rects inside the viewport above the dock', () => {
-    const clamped = clampWindowRect(
-      { x: -40, y: -20, w: 5000, h: 4000 },
-      { width: 1200, height: 800, dockH: 72 },
-    );
+    const clamped = clampWindowRect({ x: -40, y: -20, w: 5000, h: 4000 }, { width: 1200, height: 800, dockH: 72 });
     expect(clamped.x).toBe(0);
     expect(clamped.y).toBe(0);
     expect(clamped.w).toBeLessThanOrEqual(1200 - 16);
@@ -100,6 +109,21 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
     const max = computeMaximizeRect(vp);
     expect(max.w).toBeGreaterThan(1000);
     expect(max.h).toBeGreaterThan(600);
+
+    const twoCols = computeTwoColumnsRects(vp);
+    expect(twoCols).toHaveLength(2);
+    expect(twoCols[0].w).toBe(twoCols[1].w);
+
+    const threeCols = computeThreeColumnsRects(vp);
+    expect(threeCols).toHaveLength(3);
+
+    const stackedRight = computeLeftStackedRightFullRects(vp);
+    expect(stackedRight).toHaveLength(3);
+    expect(stackedRight[0].h + stackedRight[1].h).toBeLessThanOrEqual(vp.height - vp.dockH);
+
+    const fullLeft = computeLeftFullRightStackedRects(vp);
+    expect(fullLeft).toHaveLength(3);
+    expect(fullLeft[1].h + fullLeft[2].h).toBeLessThanOrEqual(vp.height - vp.dockH);
   });
 
   it('computes mobile full maximize above the dock for any open count (no 50/50 stack)', () => {
