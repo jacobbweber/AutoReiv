@@ -162,11 +162,17 @@ async def toggle_routine(request: Request, routine_id: str):
 @router.delete("/api/routines/{routine_id}")
 async def delete_routine(request: Request, routine_id: str):
     store = request.app.state.store
+    routine = store.get_routine(routine_id)
+    if not routine:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Routine '{routine_id}' not found.",
+        )
     deleted = store.delete_routine(routine_id)
     if not deleted:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot delete routine '{routine_id}' (protected or not found).",
+            detail=f"Cannot delete routine '{routine_id}'.",
         )
     return {"status": "deleted", "id": routine_id}
 
