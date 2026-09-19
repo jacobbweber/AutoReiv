@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Changed
+
+- Enhanced Work Card Query & Inspection Skill (`.agents/skills/card-status/`, `.agents/skills/sdd-workflow/`):
+  - Token-Efficient Default Filtering (`list_card_status.py`): Defaults to displaying only active/actionable cards (`Ready`, `In Review`, `In Progress`) rather than dumping hundreds of historical `Done` cards into conversation context, reducing default output from ~400 lines to ~10 lines.
+  - Granular Search & Inspection Modes: Added `--search` / `-q` (search across titles, IDs, labels, ADRs, intent), `--label` / `--tag`, `--recent [N]` / `--latest [N]` (latest worked cards), `--card <ID>` (single-card detail inspector), `--parked`, and `--done`.
+  - Native YAML Frontmatter & Markdown Blockquote Support (`list_card_status.py`, `new_card.py`): Fully parses both YAML frontmatter and standard blockquotes, and upgraded `new_card.py` to generate structured YAML frontmatter alongside the Four Beats template.
+  - Automated Skill Test Suite (`tests/unit/skills/test_list_card_status.py`): Added unit test verifying parsing, granular searching, filtering, and inspector modes.
+
 ## [0.36.0] - 2026-09-19
 
 ### Added
