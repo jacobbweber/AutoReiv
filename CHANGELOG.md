@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+### Added
+
+- Dogfooding Telemetry Friction & God Agent Threshold Detectors (`tests/integration/observability/test_dogfood_architectural_governance.py` [CARD-375]):
+  - Authored comprehensive end-to-end integration test validating the closed-loop architectural governance lifecycle across all 5 God-Agent thresholds: Tool Bloat (>8 tools), Context Tax (>4000 characters), Lifecycle Mismatch (unattended polling loops), Security Boundary Collision (untrusted ingestion + mutating tools without HITL), and Cognitive Conflict (mutations without verification).
+  - Validated on-demand scanning (`POST /api/observability/architectural/scan`), typed alert filtering, proposal generation (`POST /api/observability/architectural/proposals/generate`), one-click background Routine promotion (`POST /api/observability/architectural/proposals/{id}/apply`), and proposal dismissal (`POST /api/observability/architectural/proposals/{id}/dismiss`).
+  - Idempotent re-scanning and deduplication with checkout boundary hygiene verification.
+
 ### Changed
 
 - Enhanced Work Card Query & Inspection Skill (`.agents/skills/card-status/`, `.agents/skills/sdd-workflow/`):
@@ -7,6 +14,11 @@
   - Granular Search & Inspection Modes: Added `--search` / `-q` (search across titles, IDs, labels, ADRs, intent), `--label` / `--tag`, `--recent [N]` / `--latest [N]` (latest worked cards), `--card <ID>` (single-card detail inspector), `--parked`, and `--done`.
   - Native YAML Frontmatter & Markdown Blockquote Support (`list_card_status.py`, `new_card.py`): Fully parses both YAML frontmatter and standard blockquotes, and upgraded `new_card.py` to generate structured YAML frontmatter alongside the Four Beats template.
   - Automated Skill Test Suite (`tests/unit/skills/test_list_card_status.py`): Added unit test verifying parsing, granular searching, filtering, and inspector modes.
+
+### Fixed
+
+- Architectural Proposal Deduplication for Dismissed Proposals (`src/application/observability/architectural_proposals.py` [CARD-375]):
+  - Fixed proposal generator to include `ArchitecturalProposalStatus.DISMISSED` in `existing_keys`, preventing previously dismissed proposals from continually respawning on subsequent background scans.
 
 ## [0.36.0] - 2026-09-19
 

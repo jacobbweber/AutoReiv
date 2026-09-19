@@ -1,8 +1,9 @@
 ---
 id: CARD-375
 title: 'Dogfood Telemetry Friction and God Agent Threshold Detectors'
-status: Ready
+status: Done
 created: 2026-09-19
+completed: 2026-09-19
 adr: none
 labels:
   - type:dogfooding
@@ -14,8 +15,9 @@ labels:
 
 # [CARD-375] Dogfood Telemetry Friction and God Agent Threshold Detectors
 
-> **Status**: Ready
+> **Status**: Done  
 > **Created**: 2026-09-19  
+> **Completed**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:dogfooding`, `observability`, `architecture`, `adr-0054`, `verification`
 
@@ -50,14 +52,14 @@ When an agent or routine drifts toward becoming an unmaintainable "God Agent" by
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] Telemetry sessions exceeding threshold limits generate typed `ArchitecturalAlert` items (`TOOL_BLOAT`, `LIFECYCLE_MISMATCH`, etc.).
-- [ ] Scans deduplicate alerts across identical sessions and store them in the durable ledger.
-- [ ] Proposal generator synthesizes concrete `ArchitecturalProposal` items with valid remedy parameters.
-- [ ] Applying a proposal executes the remedy (e.g. routine registration) and marks the proposal `applied`.
-- [ ] Dismissing a proposal updates its status to `dismissed` without mutating state.
-- [ ] Automated regression tests pass via `pytest tests/integration/observability/test_dogfood_architectural_governance.py`.
-- [ ] Zero lint errors via `ruff check src tests`.
-- [ ] All 7 preflight gates pass cleanly.
+- [x] Telemetry sessions exceeding threshold limits generate typed `ArchitecturalAlert` items (`TOOL_BLOAT`, `LIFECYCLE_MISMATCH`, etc.).
+- [x] Scans deduplicate alerts across identical sessions and store them in the durable ledger.
+- [x] Proposal generator synthesizes concrete `ArchitecturalProposal` items with valid remedy parameters.
+- [x] Applying a proposal executes the remedy (e.g. routine registration) and marks the proposal `applied`.
+- [x] Dismissing a proposal updates its status to `dismissed` without mutating state.
+- [x] Automated regression tests pass via `pytest tests/integration/observability/test_dogfood_architectural_governance.py`.
+- [x] Zero lint errors via `ruff check src tests`.
+- [x] All 7 preflight gates pass cleanly.
 
 ---
 
