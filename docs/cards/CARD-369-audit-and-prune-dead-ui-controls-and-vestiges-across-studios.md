@@ -1,6 +1,6 @@
 # [CARD-369] Audit and Prune Dead UI Controls and Vestiges Across Studios
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-19  
 > **Spec Reference**: [docs/specs/audit-dead-ui/](file:///d:/Projects/Active/AutoReiv/docs/specs/audit-dead-ui/)  
 > **Labels**: `type:chore`, `frontend`, `ui-ux`
