@@ -63,6 +63,28 @@ export function buildForgeInitialPrompt(agentId = '') {
 export const LEGACY_GAP_TRIGGER_CLASS = 'btn-train-gap';
 export const LEGACY_GAP_PAYLOAD_FIELD = 'identified_capability';
 
+export function toSnakeCase(text) {
+  return (text || '')
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+const COMMON_STOP_WORDS = new Set([
+  'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'as',
+  'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'could',
+  'did', 'do', 'does', 'doing', 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had',
+  'has', 'have', 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'how',
+  'i', 'if', 'in', 'into', 'is', 'it', 'its', 'itself', 'just', 'me', 'more', 'most', 'my', 'myself',
+  'no', 'nor', 'not', 'now', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours',
+  'ourselves', 'out', 'over', 'own', 'same', 'she', 'should', 'so', 'some', 'such', 'than', 'that',
+  'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'these', 'they', 'this', 'those',
+  'through', 'to', 'too', 'under', 'until', 'up', 'very', 'was', 'we', 'were', 'what', 'when', 'where',
+  'which', 'while', 'who', 'whom', 'why', 'with', 'would', 'you', 'your', 'yours', 'yourself',
+]);
+
 function slugify(text) {
   return (text || '')
     .toString()
@@ -81,7 +103,6 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factoryAgentIdInput = $('factoryAgentIdInput');
   const factoryAgentNameInput = $('factoryAgentNameInput');
   const factoryAgentPromptInput = $('factoryAgentPromptInput');
-  const factoryAgentModelSelect = $('factoryAgentModelSelect');
 
   // DOM Elements - Column 2: Skills & Runbook
   const factoryCurrentSkillsList = $('factoryCurrentSkillsList');
@@ -100,6 +121,9 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   // DOM Elements - Column 3: Capabilities & Grounding
   const factoryToolSearchInput = $('factoryToolSearchInput');
+  const factorySelectAllToolsBtn = $('factorySelectAllToolsBtn');
+  const factoryClearAllToolsBtn = $('factoryClearAllToolsBtn');
+  const factoryAutoSuggestToolsBtn = $('factoryAutoSuggestToolsBtn');
   const factoryCapabilitiesContainer = $('factoryCapabilitiesContainer');
   const factorySelectedToolCountBadge = $('factorySelectedToolCountBadge');
   const factorySourceContextInput = $('factorySourceContextInput');
@@ -183,11 +207,13 @@ export function initFactoryStudio(state, callbacks = {}) {
         factoryIntakeLiveCounts.textContent = 'Skills: 0 | Tools: 0';
       }
       if (factoryAgentIdInput) {
-        factoryAgentIdInput.value = '';
-        factoryAgentIdInput.disabled = false;
-        factoryAgentIdInput.focus();
+        factoryAgentIdInput.value = toSnakeCase(factoryAgentNameInput ? factoryAgentNameInput.value : '');
+        factoryAgentIdInput.readOnly = true;
       }
-      if (factoryAgentNameInput) factoryAgentNameInput.value = '';
+      if (factoryAgentNameInput) {
+        factoryAgentNameInput.value = '';
+        factoryAgentNameInput.focus();
+      }
       if (factoryAgentPromptInput) factoryAgentPromptInput.value = '';
       assignedSkills = [];
     } else {
@@ -212,11 +238,10 @@ export function initFactoryStudio(state, callbacks = {}) {
       if (agent) {
         if (factoryAgentIdInput) {
           factoryAgentIdInput.value = agent.id || '';
-          factoryAgentIdInput.disabled = true;
+          factoryAgentIdInput.readOnly = true;
         }
         if (factoryAgentNameInput) factoryAgentNameInput.value = agent.name || '';
         if (factoryAgentPromptInput) factoryAgentPromptInput.value = agent.system_prompt || agent.description || '';
-        if (factoryAgentModelSelect && agent.model) factoryAgentModelSelect.value = agent.model;
         assignedSkills = agent.allowed_skill ? [...agent.allowed_skill] : (agent.skills ? [...agent.skills] : []);
       }
     }
@@ -333,7 +358,6 @@ export function initFactoryStudio(state, callbacks = {}) {
     const agentId = (factoryAgentIdInput && factoryAgentIdInput.value.trim()) || '';
     const agentName = (factoryAgentNameInput && factoryAgentNameInput.value.trim()) || '';
     const rolePersona = (factoryAgentPromptInput && factoryAgentPromptInput.value.trim()) || '';
-    const model = (factoryAgentModelSelect && factoryAgentModelSelect.value) || 'default';
     const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
     const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || slugify(skillName);
     const content = (factorySkillMarkdownEditor && factorySkillMarkdownEditor.value.trim()) || '';
@@ -367,7 +391,6 @@ export function initFactoryStudio(state, callbacks = {}) {
           agent_id: agentId,
           agent_name: agentName,
           role_persona: rolePersona,
-          model: model,
           skill_id: skillId,
           skill_content: content,
           auto_pin: true,
@@ -496,6 +519,76 @@ export function initFactoryStudio(state, callbacks = {}) {
     safeCreateIcons({ root: factoryCapabilitiesContainer });
   }
 
+  function handleSelectAllVisibleTools() {
+    if (!factoryCapabilitiesContainer) return;
+    const checkboxes = factoryCapabilitiesContainer.querySelectorAll('input[type="checkbox"][data-tool-name]');
+    let count = 0;
+    checkboxes.forEach((cb) => {
+      const toolName = cb.dataset.toolName;
+      if (toolName && !cb.checked) {
+        cb.checked = true;
+        selectedTools.add(toolName);
+        count++;
+      }
+    });
+    updateSelectedToolBadge();
+    showToast(count > 0 ? `Selected ${count} matching tool(s)` : 'All matching tools are already selected', 'info');
+  }
+
+  function handleClearAllVisibleTools() {
+    if (!factoryCapabilitiesContainer) return;
+    const checkboxes = factoryCapabilitiesContainer.querySelectorAll('input[type="checkbox"][data-tool-name]');
+    let count = 0;
+    checkboxes.forEach((cb) => {
+      const toolName = cb.dataset.toolName;
+      if (toolName && cb.checked) {
+        cb.checked = false;
+        selectedTools.delete(toolName);
+        count++;
+      }
+    });
+    updateSelectedToolBadge();
+    showToast(count > 0 ? `Cleared ${count} tool(s)` : 'No tools were selected in current view', 'info');
+  }
+
+  function handleAutoSuggestTools() {
+    const textSources = [
+      (factorySkillNameInput && factorySkillNameInput.value) || '',
+      (factorySkillTriggerInput && factorySkillTriggerInput.value) || '',
+      (factorySkillIntentInput && factorySkillIntentInput.value) || '',
+    ].join(' ').toLowerCase();
+
+    const tokens = textSources
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !COMMON_STOP_WORDS.has(w));
+
+    if (tokens.length === 0) {
+      showToast('Enter a skill name, trigger, or intent notes first to suggest tools', 'warning');
+      return;
+    }
+
+    let addedCount = 0;
+    (currentCapabilities || []).forEach((ns) => {
+      (ns.tools || []).forEach((t) => {
+        const toolText = `${t.name} ${t.description || ''} ${ns.name || ''}`.toLowerCase();
+        const matches = tokens.some((tok) => toolText.includes(tok));
+        if (matches && !selectedTools.has(t.name)) {
+          selectedTools.add(t.name);
+          addedCount++;
+        }
+      });
+    });
+
+    renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
+    updateSelectedToolBadge();
+    if (addedCount > 0) {
+      showToast(`Auto-suggested and selected ${addedCount} tool(s)`, 'success');
+    } else {
+      showToast('No matching tools found in catalog for current intent keywords', 'info');
+    }
+  }
+
   function updateSelectedToolBadge() {
     if (factorySelectedToolCountBadge) {
       factorySelectedToolCountBadge.textContent = `${selectedTools.size} Selected`;
@@ -507,6 +600,19 @@ export function initFactoryStudio(state, callbacks = {}) {
   // ----------------------------------------------------
   if (factoryAgentSelect) {
     factoryAgentSelect.addEventListener('change', onAgentSelectChanged);
+  }
+
+  if (factoryAgentNameInput) {
+    factoryAgentNameInput.addEventListener('input', () => {
+      if (factoryAgentSelect && factoryAgentSelect.value === '__new__') {
+        const slug = toSnakeCase(factoryAgentNameInput.value);
+        if (factoryAgentIdInput) factoryAgentIdInput.value = slug;
+        const badge = $('factoryIntakeAgentIdBadge');
+        const packPath = $('factoryIntakeLivePackPath');
+        if (badge) badge.textContent = slug || 'New Agent';
+        if (packPath) packPath.textContent = slug ? `packs/${slug}` : 'packs/<agent_id>';
+      }
+    });
   }
 
   if (factorySkillNameInput) {
@@ -555,17 +661,18 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
-  if (factoryAgentIdInput) {
-    factoryAgentIdInput.addEventListener('input', () => {
-      if (factoryAgentSelect && factoryAgentSelect.value === '__new__') {
-        const customId = factoryAgentIdInput.value.trim();
-        const badge = $('factoryIntakeAgentIdBadge');
-        const packPath = $('factoryIntakeLivePackPath');
-        if (badge) badge.textContent = customId || 'New Agent';
-        if (packPath) packPath.textContent = customId ? `packs/${customId}` : 'packs/<agent_id>';
-      }
-    });
+  if (factorySelectAllToolsBtn) {
+    factorySelectAllToolsBtn.addEventListener('click', handleSelectAllVisibleTools);
   }
+
+  if (factoryClearAllToolsBtn) {
+    factoryClearAllToolsBtn.addEventListener('click', handleClearAllVisibleTools);
+  }
+
+  if (factoryAutoSuggestToolsBtn) {
+    factoryAutoSuggestToolsBtn.addEventListener('click', handleAutoSuggestTools);
+  }
+
 
   const factoryIntakeTalkToForgeBtn = $('factoryIntakeTalkToForgeBtn');
   if (factoryIntakeTalkToForgeBtn) {

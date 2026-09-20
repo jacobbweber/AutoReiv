@@ -4914,8 +4914,29 @@
           </div>
         </div>
 
-        <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, CARD-386] ==================== -->
+        <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, CARD-386, CARD-387] ==================== -->
         <div id="factoryIntakeView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
+          
+          <!-- Top Horizontal Action Banner [CARD-387] -->
+          <div id="factoryTopActionBar" class="mb-3 p-3 sm:p-4 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-shrink-0">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 min-w-0">
+              <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center space-x-2 shrink-0">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>✨ Generate / Refine Runbook</span>
+              </button>
+              <div class="flex items-center space-x-2">
+                <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
+                <p class="text-[11px] text-slate-400 hidden md:block">Synthesizes agent persona, procedure notes, selected capabilities, and grounding context into a Matt Pocock SKILL.md</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+              <button type="button" id="factoryIntakeTalkToForgeBtn" class="px-3 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center space-x-1.5 transition shrink-0">
+                <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                <span>💬 Talk it out with Forge</span>
+              </button>
+            </div>
+          </div>
+
           <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">
             
             <!-- COLUMN 1: AGENT BRIEF (lg:col-span-3) -->
@@ -4946,10 +4967,10 @@
                 </select>
               </div>
 
-              <!-- Agent ID (Slug) -->
+              <!-- Agent ID (Slug - Auto-derived in snake_case) -->
               <div>
                 <label for="factoryAgentIdInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Agent ID (Slug)</label>
-                <input type="text" id="factoryAgentIdInput" placeholder="e.g. 3d-artist" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                <input type="text" id="factoryAgentIdInput" placeholder="e.g. 3d_artist" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-slate-400 font-mono focus:outline-none cursor-not-allowed">
                 <p class="text-[10px] text-slate-500 mt-1">Directory: packs/&lt;agent_id&gt;/</p>
               </div>
 
@@ -4963,21 +4984,6 @@
               <div class="flex-1 flex flex-col min-h-0">
                 <label for="factoryAgentPromptInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Role Persona / System Instructions</label>
                 <textarea id="factoryAgentPromptInput" rows="6" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
-              </div>
-
-              <!-- Model Selector -->
-              <div>
-                <label for="factoryAgentModelSelect" class="block text-[11px] font-semibold text-slate-400 mb-1">Default Model</label>
-                <select id="factoryAgentModelSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
-                  <option value="default">Default Provider Model</option>
-                </select>
-              </div>
-
-              <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between">
-                <button type="button" id="factoryIntakeTalkToForgeBtn" class="px-3 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center space-x-1.5 transition">
-                  <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
-                  <span>Talk it out with Forge</span>
-                </button>
               </div>
             </div>
 
@@ -5034,15 +5040,6 @@
                   <input type="hidden" id="factoryIntakeDeliverableType" value="skill">
                 </div>
 
-                <!-- Generate Runbook Action -->
-                <div class="flex items-center justify-between pt-1">
-                  <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center space-x-2">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                    <span>✨ Generate / Refine Runbook</span>
-                  </button>
-                  <span id="factoryGenerateStatusText" class="text-[11px] text-slate-400 hidden">Generating...</span>
-                </div>
-
                 <!-- Live SKILL.md Editor -->
                 <div>
                   <div class="flex items-center justify-between mb-1">
@@ -5081,10 +5078,20 @@
                   <span class="text-[10px] text-slate-500">Select to bind to skill</span>
                 </div>
 
-                <!-- Tool Search Input -->
-                <div class="relative">
-                  <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                  <input type="text" id="factoryToolSearchInput" placeholder="Filter capabilities or MCP tools..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500">
+                <!-- Tool Search & Action Bar -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div class="relative flex-1">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    <input type="text" id="factoryToolSearchInput" placeholder="Filter capabilities or MCP tools..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500">
+                  </div>
+                  <div class="flex items-center space-x-1 shrink-0">
+                    <button type="button" id="factorySelectAllToolsBtn" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium rounded-lg border border-white/[0.08] transition" title="Select all matching tools">Select All</button>
+                    <button type="button" id="factoryClearAllToolsBtn" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium rounded-lg border border-white/[0.08] transition" title="Clear matching tools">Clear</button>
+                    <button type="button" id="factoryAutoSuggestToolsBtn" class="px-2 py-1 bg-purple-950/70 hover:bg-purple-900/80 text-purple-300 hover:text-white text-[11px] font-semibold rounded-lg border border-purple-500/30 transition flex items-center space-x-1" title="Auto-suggest tools matching skill intent">
+                      <i data-lucide="wand-2" class="w-3 h-3"></i>
+                      <span>Suggest</span>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Capabilities Accordion Container -->

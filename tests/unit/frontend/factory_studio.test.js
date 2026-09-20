@@ -59,15 +59,21 @@ describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
     expect(html).not.toContain('id="factoryNewAgentBtn"');
   });
 
-  it('renders 3 columns with canonical Scaffolder workshop DOM structure [CARD-386]', () => {
+  it('renders top action banner and 3 columns with canonical Scaffolder workshop DOM structure [CARD-386, CARD-387]', () => {
+    // Top Horizontal Action Banner [CARD-387]
+    expect(html).toContain('id="factoryTopActionBar"');
+    expect(html).toContain('id="factoryGenerateRunbookBtn"');
+    expect(html).toContain('id="factoryGenerateStatusText"');
+    expect(html).toContain('id="factoryIntakeTalkToForgeBtn"');
+
     // Column 1: Agent Brief
     expect(html).toContain('id="factoryIntakeAgentCard"');
     expect(html).toContain('id="factoryAgentSelect"');
     expect(html).toContain('id="factoryAgentIdInput"');
+    expect(html).toMatch(/id="factoryAgentIdInput"[^>]*readonly/);
     expect(html).toContain('id="factoryAgentNameInput"');
     expect(html).toContain('id="factoryAgentPromptInput"');
-    expect(html).toContain('id="factoryAgentModelSelect"');
-    expect(html).toContain('id="factoryIntakeTalkToForgeBtn"');
+    expect(html).not.toContain('id="factoryAgentModelSelect"');
 
     // Column 2: Skills & Runbook
     expect(html).toContain('id="factoryCurrentSkillsList"');
@@ -78,13 +84,15 @@ describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
     expect(html).toContain('id="factorySkillTriggerInput"');
     expect(html).toContain('id="factorySkillTriggerCharCount"');
     expect(html).toContain('id="factorySkillIntentInput"');
-    expect(html).toContain('id="factoryGenerateRunbookBtn"');
     expect(html).toContain('id="factorySkillMarkdownEditor"');
     expect(html).toContain('id="factorySaveSkillBtn"');
 
     // Column 3: Capabilities & Grounding
     expect(html).toContain('id="factorySelectedToolCountBadge"');
     expect(html).toContain('id="factoryToolSearchInput"');
+    expect(html).toContain('id="factorySelectAllToolsBtn"');
+    expect(html).toContain('id="factoryClearAllToolsBtn"');
+    expect(html).toContain('id="factoryAutoSuggestToolsBtn"');
     expect(html).toContain('id="factoryCapabilitiesContainer"');
     expect(html).toContain('id="factorySourceContextInput"');
   });
@@ -198,5 +206,14 @@ describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
 
     const promptDefault = buildForgeInitialPrompt('');
     expect(promptDefault).toMatch(/design a new capability/i);
+  });
+
+  it('converts display names to clean snake_case agent slugs [CARD-387]', async () => {
+    const { toSnakeCase } = await import('../../../src/web/static/modules/studios/factory.js');
+    expect(typeof toSnakeCase).toBe('function');
+    expect(toSnakeCase('3D Scene Artist')).toBe('3d_scene_artist');
+    expect(toSnakeCase('   Blender & Unity Pro!!  ')).toBe('blender_unity_pro');
+    expect(toSnakeCase('my-custom_agent--name')).toBe('my_custom_agent_name');
+    expect(toSnakeCase('')).toBe('');
   });
 });

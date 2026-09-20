@@ -1,7 +1,7 @@
 ---
 id: CARD-387
 title: "Factory Scaffolder UX Top Action Banner Auto Slug and Tool Batch Selection"
-status: Ready
+status: In Review
 created: 2026-09-20
 adr: none
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-387] Factory Scaffolder UX Top Action Banner Auto Slug and Tool Batch Selection
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-20  
 > **ADR Reference**: ADR-0048, ADR-0052  
 > **Labels**: `type:feature`, `domain:factory`, `domain:skills`, `domain:tools`, `domain:agents`

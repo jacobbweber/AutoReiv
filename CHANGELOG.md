@@ -2,6 +2,12 @@
 
 ### Added
 
+- Factory Scaffolder UX Top Action Banner, Auto Slug, and Tool Batch Actions (`src/web/templates/index.html`, `src/web/static/modules/studios/factory.js` [CARD-387]):
+  - **Horizontal Top Action Banner**: Elevated `[✨ Generate / Refine Runbook]` and `[💬 Talk it out with Forge]` to `#factoryTopActionBar` above the 3-column workshop, establishing a natural left-to-right, top-to-bottom sequence across desktop and mobile.
+  - **Automated `snake_case` Agent Slug**: Agent ID (`#factoryAgentIdInput`) is now marked `readonly` when creating new agents and auto-formats from Display Name into lowercase alphanumeric `snake_case`.
+  - **Pruned Redundant Model Dropdown**: Completely deleted `#factoryAgentModelSelect` and the stranded footer from Column 1, delegating model routing canonically to Agent Studio and Settings Studio.
+  - **Tool Batch Selection & Intent Auto-Suggest**: Added `[Select All]` (`#factorySelectAllToolsBtn`) and `[Clear]` (`#factoryClearAllToolsBtn`) to quickly check/uncheck filtered capabilities in Column 3, alongside an `[🪄 Suggest]` button (`#factoryAutoSuggestToolsBtn`) that scans the catalog for tools matching skill trigger and intent keywords.
+
 - 3-Column Agent & Skill Scaffolder and Capabilities Workshop (`src/web/routers/agent_training_factory.py`, `src/web/static/modules/studios/factory.js`, `src/web/templates/index.html` [CARD-386]):
   - **Column 1: Target Agent Brief**: Target specialist dropdown with support for both existing agents and net-new agent scaffolding (`+ Create New Agent`), role persona / system instructions, and model routing.
   - **Column 2: Skills & Runbook**: Matt Pocock standard `SKILL.md` authoring workbench with concise trigger description ($\le 60$ chars), operator intent notes, LLM procedural runbook generator (`POST /api/agent_training_factory/scaffold/runbook`), live Markdown editor, and auto-pinning on save (`POST /api/agent_training_factory/scaffold/save`).
