@@ -4872,7 +4872,7 @@
         </div>
       </section>
 
-      <!-- ==================== VIEW 9: FACTORY STUDIO [CARD-195] ==================== -->
+      <!-- ==================== VIEW 9: CAPABILITIES & SCAFFOLDING WORKSHOP [CARD-386] ==================== -->
       <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full min-h-0 overflow-hidden relative hidden" data-card="314">
         <div id="factoryStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
           <!-- Factory Studio Top Navigation Bar -->
@@ -4933,168 +4933,194 @@
         </div>
 
         <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, REQ-FACT-052] ==================== -->
-        <div id="factoryIntakeView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-6">
-          <!-- Target Agent Identity & Steering Card -->
-          <div id="factoryIntakeAgentCard" class="bg-[#0e1015]/90 border border-emerald-500/30 rounded-2xl p-5 shadow-xl backdrop-blur-sm space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="flex items-center space-x-3.5">
-                <div id="factoryIntakeAgentAvatar" class="w-10 h-10 rounded-xl bg-emerald-950/70 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-md">
-                  <i data-lucide="cpu" class="w-5 h-5"></i>
+                <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, CARD-386] ==================== -->
+        <div id="factoryIntakeView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 md:p-4 flex flex-col">
+          <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden bg-[#08090c]">
+            
+            <!-- COLUMN 1: AGENT BRIEF (lg:col-span-3) -->
+            <div id="factoryIntakeAgentCard" class="lg:col-span-3 flex flex-col min-h-0 bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 shadow-xl overflow-y-auto space-y-4">
+              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
+                  <h3 id="factoryIntakeAgentName" class="text-xs font-bold text-white uppercase tracking-wider">1. Agent Brief</h3>
                 </div>
-                <div>
-                  <div class="flex items-center space-x-2">
-                    <h3 id="factoryIntakeAgentName" class="text-sm md:text-base font-bold text-white tracking-tight">Select an Agent to Train</h3>
-                    <span id="factoryIntakeAgentIdBadge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300">platform_view</span>
-                  </div>
-                  <div class="flex items-center space-x-2 mt-0.5 text-[11px] text-slate-400">
-                    <span id="factoryIntakeLiveCounts" class="font-mono text-slate-300">0 skills · 0 tools</span>
-                    <span>&bull;</span>
-                    <span id="factoryIntakeLivePackPath" class="font-mono text-slate-400 truncate max-w-xs">packs/</span>
-                  </div>
-                </div>
+                <span id="factoryIntakeAgentIdBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/80 text-brand-300 border border-brand-500/30">AutoReiv</span>
+                  <span id="factoryAgentModeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400">Existing</span>
               </div>
-              <div class="flex items-center space-x-2">
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-700/50 flex items-center space-x-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  <span>Active Target Pack</span>
-                </span>
-              </div>
-            </div>
-            <p id="factoryIntakeAgentNotice" class="text-xs text-slate-400 leading-relaxed pt-1 border-t border-white/[0.06]">
-              All manufactured tools, test harnesses, and skill runbooks will be verified in sandbox and packaged directly into this agent's verified pack.
-            </p>
-          </div>
 
-          <!-- Pre-fill from Backlog / Chat Friction Bridge -->
-          <div class="bg-[#0e1015]/70 border border-white/[0.06] rounded-2xl p-4 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
-                <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <!-- Live counts & pack path for inspections -->
+              <div class="flex items-center justify-between text-[11px] text-slate-400">
+                <span id="factoryIntakeLiveCounts" class="font-mono text-[10px] text-slate-500">Skills: 0 | Tools: 0</span>
+                <span id="factoryIntakeLivePackPath" class="font-mono text-[10px] text-slate-500 truncate max-w-[160px]">packs/AutoReiv</span>
               </div>
+              <select id="factoryIntakePreFillSelect" class="hidden"><option value="">Standard Scaffolding</option></select>
+
+              <!-- Agent Selector -->
               <div>
-                <h4 class="text-xs font-semibold text-slate-200">Pre-fill from Recent Chat Friction &amp; Backlog</h4>
-                <p class="text-[11px] text-slate-400">Load intent and objectives from a detected capability gap or friction event.</p>
-              </div>
-            </div>
-            <div class="w-full sm:w-72 lg:w-96">
-              <select id="factoryIntakePreFillSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500 font-medium">
-                <option value="">-- Choose a queued capability gap --</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Main Intake Specification Form -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Left Column: Intent & Objectives -->
-            <div class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-5 space-y-4 shadow-xl backdrop-blur-sm">
-              <div class="border-b border-white/[0.06] pb-3">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-                  <i data-lucide="target" class="w-4 h-4 text-brand-400"></i>
-                  <span>Capability Goals &amp; Specification</span>
-                </h3>
-                <p class="text-xs text-slate-400 mt-1">Specify what the agent needs to achieve and how success will be verified.</p>
-              </div>
-
-              <!-- Training Goal & Intent -->
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <label for="factoryIntakeIntentInput" class="text-xs font-semibold text-slate-200">Training Goal &amp; Intent</label>
-                  <span class="text-[10px] text-slate-500 font-mono">High-level purpose</span>
-                </div>
-                <textarea id="factoryIntakeIntentInput" rows="3" placeholder="e.g. Add Hyper-V management tool to list, inspect, and snapshot virtual machines safely without host disruption." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 leading-relaxed resize-y font-mono"></textarea>
-              </div>
-
-              <!-- Starter Objectives -->
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <label for="factoryIntakeObjectivesInput" class="text-xs font-semibold text-slate-200">Starter Objectives</label>
-                  <span class="text-[10px] text-slate-500 font-mono">1–3 verifiable capabilities (one per line)</span>
-                </div>
-                <textarea id="factoryIntakeObjectivesInput" rows="5" placeholder="e.g.&#10;List virtual machines and their current state&#10;Create and revert named checkpoints with validation&#10;Inspect vCPU and RAM allocations in MB" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 leading-relaxed resize-y font-mono"></textarea>
-              </div>
-
-              <!-- Deliverable Architecture -->
-              <div class="space-y-1.5">
-                <label for="factoryIntakeDeliverableType" class="text-xs font-semibold text-slate-200 block">Deliverable Architecture</label>
-                <select id="factoryIntakeDeliverableType" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
-                  <option value="auto" selected>Auto-detect (Factory recommends tool, skill, or MCP)</option>
-                  <option value="tool">Native Atomic Tool (Python runtime execution)</option>
-                  <option value="mcp">Model Context Protocol (External MCP Server)</option>
-                  <option value="skill">Procedural Skill Runbook Only (SKILL.md)</option>
+                <label for="factoryAgentSelect" class="block text-[11px] font-semibold text-slate-400 mb-1">Target Specialist</label>
+                <select id="factoryAgentSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-medium">
+                  <option value="__new__">+ Create New Agent</option>
                 </select>
-                <p class="text-[11px] text-slate-400">Determines the packaging format produced during the Author and Promote phases.</p>
-              </div>
-            </div>
-
-            <!-- Right Column: Context, Environment & Safety -->
-            <div class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-5 space-y-4 shadow-xl backdrop-blur-sm">
-              <div class="border-b border-white/[0.06] pb-3">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-                  <i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i>
-                  <span>Reference Context &amp; Constraints</span>
-                </h3>
-                <p class="text-xs text-slate-400 mt-1">Provide reference documents, CLI manuals, environment paths, and guardrails.</p>
               </div>
 
-              <!-- Target Location / Project Path -->
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <label for="factoryIntakeLocationInput" class="text-xs font-semibold text-slate-200">Target Workspace / Host Path <span class="text-slate-500 font-normal text-[11px]">(Optional)</span></label>
-                  <span class="text-[10px] text-slate-500 font-mono">Local Machine</span>
-                </div>
-                <input type="text" id="factoryIntakeLocationInput" autocomplete="off" placeholder="e.g. D:/projects/myapp (leave blank for host OS tools)" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
-              </div>
-
-              <!-- Reference Materials & Context -->
-              <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <label for="factoryIntakeContextInput" class="text-xs font-semibold text-slate-200">Reference Materials &amp; API Context</label>
-                  <span class="text-[10px] text-slate-500 font-mono">API docs, CLI snippets, logs</span>
-                </div>
-                <textarea id="factoryIntakeContextInput" rows="5" placeholder="e.g. Paste PowerShell cmdlet documentation, REST endpoint OpenAPI snippets, CLI flags, or schema definitions to ground code generation..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 leading-relaxed resize-y font-mono"></textarea>
-              </div>
-
-              <!-- Safety & Approval Policy -->
-              <div class="space-y-1.5 pt-2">
-                <label class="text-xs font-semibold text-slate-200 block">Safety &amp; Deployment Policy</label>
-                <label class="flex items-center space-x-2.5 p-3 rounded-xl bg-[#08090c] border border-white/[0.08] cursor-pointer hover:border-white/[0.12] transition">
-                  <input type="checkbox" id="factoryIntakeRequireApproval" checked class="rounded text-emerald-500 focus:ring-0">
-                  <span class="text-xs text-slate-300">Require Human Approval before promoting deliverables to agent pack</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bottom Action Bar -->
-          <div class="bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <i data-lucide="shield-check" class="w-4 h-4"></i>
-              </div>
+              <!-- Agent ID (Slug) -->
               <div>
-                <h4 class="text-xs font-semibold text-white">Deterministic 8-Phase Manufacturing</h4>
-                <p class="text-[11px] text-slate-400">Runs sandbox verification, AST validation, and unit tests before promotion.</p>
+                <label for="factoryAgentIdInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Agent ID (Slug)</label>
+                <input type="text" id="factoryAgentIdInput" placeholder="e.g. 3d-artist" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                <p class="text-[10px] text-slate-500 mt-1">Directory: packs/&lt;agent_id&gt;/</p>
+              </div>
+
+              <!-- Agent Display Name -->
+              <div>
+                <label for="factoryAgentNameInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Display Name</label>
+                <input type="text" id="factoryAgentNameInput" placeholder="e.g. 3D Scene Artist" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+              </div>
+
+              <!-- Persona / System Instructions -->
+              <div class="flex-1 flex flex-col min-h-0">
+                <label for="factoryAgentPromptInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Role Persona / System Instructions</label>
+                <textarea id="factoryAgentPromptInput" rows="7" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
+              </div>
+
+              <!-- Model Selector -->
+              <div>
+                <label for="factoryAgentModelSelect" class="block text-[11px] font-semibold text-slate-400 mb-1">Default Model</label>
+                <select id="factoryAgentModelSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                  <option value="default">Default Provider Model</option>
+                </select>
+              </div>
+
+              <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                <button type="button" id="factoryIntakeTalkToForgeBtn" class="px-3 py-1.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center space-x-1.5 transition">
+                  <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                  <span>Talk it out with Forge</span>
+                </button>
               </div>
             </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" id="factoryIntakeTalkToForgeBtn" class="px-4 py-2 bg-[#13161f] hover:bg-amber-500/10 text-amber-300 hover:text-amber-200 border border-amber-500/30 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm" title="Open Chat Studio with Forge to design this capability conversationally">
-                <i data-lucide="message-square" class="w-4 h-4 text-amber-400"></i>
-                <span>Talk it out with Forge</span>
-              </button>
-              <button type="button" id="factoryIntakeResetBtn" class="px-4 py-2 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 hover:text-white border border-white/[0.08] rounded-xl text-xs font-semibold transition">
-                Reset Form
-              </button>
-              <button type="button" id="factoryIntakeLaunchBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center space-x-2">
-                <i data-lucide="rocket" class="w-4 h-4"></i>
-                <span>Launch Capability Manufacturing</span>
-              </button>
+
+            <!-- COLUMN 2: SKILLS & RUNBOOK (lg:col-span-5) -->
+            <div class="lg:col-span-5 flex flex-col min-h-0 bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 shadow-xl overflow-y-auto space-y-4">
+              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
+                  <h3 class="text-xs font-bold text-white uppercase tracking-wider">2. Skills &amp; Runbook</h3>
+                </div>
+                <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
+              </div>
+
+              <!-- Currently Assigned Skills Pills -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-[11px] font-semibold text-slate-400">Assigned Skills (Active on Agent)</label>
+                  <button type="button" id="factoryNewSkillFormBtn" class="text-[10px] text-brand-400 hover:text-brand-300 font-semibold flex items-center space-x-1">
+                    <i data-lucide="plus" class="w-3 h-3"></i>
+                    <span>New Skill Form</span>
+                  </button>
+                </div>
+                <div id="factoryCurrentSkillsList" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-[#08090c]/60 rounded-xl border border-white/[0.04]">
+                  <span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>
+                </div>
+              </div>
+
+              <!-- Author Skill Form -->
+              <div class="space-y-3 pt-2 border-t border-white/[0.04]">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="factorySkillNameInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Skill Name</label>
+                    <input type="text" id="factorySkillNameInput" placeholder="e.g. 3D Scene Builder" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                  </div>
+                  <div>
+                    <label for="factorySkillIdInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Skill ID (Slug)</label>
+                    <input type="text" id="factorySkillIdInput" placeholder="e.g. 3d-scene-builder" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label for="factorySkillTriggerInput" class="text-[11px] font-semibold text-slate-400">Trigger Condition (Matt Pocock Standard &le; 60 chars)</label>
+                    <span id="factorySkillTriggerCharCount" class="text-[10px] font-mono text-slate-500">0/60</span>
+                  </div>
+                  <input type="text" id="factorySkillTriggerInput" maxlength="60" placeholder="When to use this skill: e.g. Create, manipulate, or render 3D scenes in Blender" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div>
+                  <label for="factorySkillIntentInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Operator Intent &amp; Procedure Notes</label>
+                  <textarea id="factorySkillIntentInput"
+                  <input type="hidden" id="factoryIntakeIntentInput" value="">
+                  <input type="hidden" id="factoryIntakeObjectivesInput" value="">
+                  <input type="hidden" id="factoryIntakeDeliverableType" value="skill" rows="2" placeholder="What ordered steps, parameters, or success checks should this runbook specify?" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-brand-500 resize-y"></textarea>
+                </div>
+
+                <!-- Generate Runbook Action -->
+                <div class="flex items-center justify-between pt-1">
+                  <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center space-x-2">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>✨ Generate / Refine Runbook</span>
+                  </button>
+                  <span id="factoryGenerateStatusText" class="text-[11px] text-slate-400 hidden">Generating...</span>
+                </div>
+
+                <!-- Live SKILL.md Editor -->
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label for="factorySkillMarkdownEditor" class="text-[11px] font-semibold text-slate-400">SKILL.md Runbook (Editable)</label>
+                    <span class="text-[10px] text-slate-500 font-mono">Matt Pocock standard</span>
+                  </div>
+                  <textarea id="factorySkillMarkdownEditor" rows="9" placeholder="---&#10;name: My Skill&#10;description: Trigger condition &lt;= 60 chars&#10;requires_tools: []&#10;---&#10;# My Skill&#10;## Procedure&#10;1. Step one..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
+                </div>
+
+                <!-- Save & Pin Action -->
+                <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                  <button type="button" id="factoryIntakeLaunchBtn" class="hidden"></button>
+                <button type="button" id="factorySaveSkillBtn" class="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                    <span>💾 Save &amp; Pin Skill to Agent</span>
+                  </button>
+                  <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
+                </div>
+              </div>
             </div>
 
-          </div>
-        </div>
+            <!-- COLUMN 3: CAPABILITIES & GROUNDING (lg:col-span-4) -->
+            <div class="lg:col-span-4 flex flex-col min-h-0 bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 shadow-xl overflow-y-auto space-y-4">
+              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+                  <h3 class="text-xs font-bold text-white uppercase tracking-wider">3. Capabilities &amp; Grounding</h3>
+                </div>
+                <span id="factorySelectedToolCountBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/50 border border-purple-500/30 text-purple-300">0 Selected</span>
+              </div>
 
-        <!-- ==================== SUB-VIEW 1: PIPELINE & PHASE PROMPTS ==================== -->
-        <div id="factoryPipelineView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-6 hidden">
+              <!-- Capabilities Inspector (Tools / MCP) -->
+              <div class="space-y-2 flex-1 flex flex-col min-h-0">
+                <div class="flex items-center justify-between">
+                  <label class="text-[11px] font-semibold text-slate-400">Dormant Tools &amp; MCP Servers</label>
+                  <span class="text-[10px] text-slate-500">Select to bind to skill</span>
+                </div>
+
+                <!-- Tool Search Input -->
+                <div class="relative">
+                  <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                  <input type="text" id="factoryToolSearchInput" placeholder="Filter capabilities or MCP tools..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <!-- Capabilities Accordion Container -->
+                <div id="factoryCapabilitiesContainer" class="flex-1 overflow-y-auto max-h-[300px] bg-[#08090c]/60 rounded-xl border border-white/[0.04] p-2 space-y-2">
+                  <div class="text-[11px] text-slate-500 italic p-2">Loading capabilities...</div>
+                </div>
+              </div>
+
+              <!-- Source Context Notes (Grounding) -->
+              <div class="space-y-1.5 pt-2 border-t border-white/[0.04]">
+                <label for="factorySourceContextInput" class="block text-[11px] font-semibold text-slate-400">External Source Context &amp; Reference Notes</label>
+                <textarea id="factorySourceContextInput"
+                <input type="hidden" id="factoryIntakeContextInput" value="" rows="5" placeholder="Paste API documentation, cheat sheets, manual notes, or example commands so the runbook generator uses real parameters and accurate commands..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500 leading-relaxed resize-y"></textarea>
+                <p class="text-[10px] text-slate-500">Grounding context prevents the LLM from hallucinating fake tool names or syntax.</p>
+              </div>
+
+            </div>
+        </div>
+<div id="factoryPipelineView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-6 hidden">
           <!-- Flowchart Header & 8-Stage Stepper Container -->
           <div class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-5 space-y-4 shadow-xl backdrop-blur-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
@@ -5322,7 +5348,7 @@
     </section>
 
 
-      <!-- ==================== SESSION ARTIFACT INSPECTOR MODAL [REQ-ART-005] ==================== -->
+      <!-- ===========<!-- ==================== SESSION ARTIFACT INSPECTOR MODAL [REQ-ART-005] ==================== -->
       <div id="artifactModal" role="dialog" aria-modal="true" aria-labelledby="artifactModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
         <div id="artifactModalCard" class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
           

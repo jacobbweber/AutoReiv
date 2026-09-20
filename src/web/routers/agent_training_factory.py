@@ -47,6 +47,26 @@ class PromoteJobRequest(BaseModel):
     allow_overwrite: bool = Field(default=False, description="Allow overwriting existing tools on collision")
 
 
+class ScaffoldRunbookRequest(BaseModel):
+    agent_id: Optional[str] = None
+    skill_id: str
+    skill_name: str
+    trigger_description: str
+    intent_notes: Optional[str] = None
+    selected_tools: List[str] = Field(default_factory=list)
+    source_context: Optional[str] = None
+
+
+class SaveScaffoldRequest(BaseModel):
+    agent_id: str
+    agent_name: Optional[str] = None
+    role_persona: Optional[str] = None
+    model: Optional[str] = None
+    skill_id: str
+    skill_content: str
+    auto_pin: bool = True
+
+
 
 
 
@@ -797,5 +817,289 @@ def delete_phase_instruction(phase_id: str, request: Request) -> Dict[str, Any]:
         return {"success": True, "phase": reset_result}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ==================== CARD-386: 3-Column Scaffolder Endpoints ====================
+
+@router.get("/capabilities")
+async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
+    """List registered tools grouped by namespace/server for live capability inspection."""
+    tool_registry = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
+    tools = tool_registry.list_tools() if tool_registry else []
+
+    from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
+
+    namespaces: Dict[str, Dict[str, Any]] = {}
+
+    for tool in tools:
+        t_name = tool.name
+        t_desc = tool.description or ""
+        t_params = tool.parameters or {}
+
+        if t_name.startswith("mcp_"):
+            parts = t_name.split("_")
+            server_key = parts[1] if len(parts) > 1 else "generic"
+            ns_id = f"mcp:{server_key}"
+            ns_name = f"MCP: {server_key.title()}"
+            ns_source = "mcp"
+        elif any(t_name in t_list for t_list in PLATFORM_SKILL_TOOLS.values()):
+            matched_skill = next((s for s, t_list in PLATFORM_SKILL_TOOLS.items() if t_name in t_list), "platform")
+            ns_id = f"platform:{matched_skill}"
+            ns_name = f"Platform: {matched_skill.title()}"
+            ns_source = "platform"
+        elif any(t_name in t_list for t_list in DYNAMIC_SKILL_TOOLS.values()):
+            matched_skill = next((s for s, t_list in DYNAMIC_SKILL_TOOLS.items() if t_name in t_list), "dynamic")
+            ns_id = f"dynamic:{matched_skill}"
+            ns_name = f"Dynamic: {matched_skill.title()}"
+            ns_source = "dynamic"
+        else:
+            ns_id = "builtin"
+            ns_name = "Built-in Primitives"
+            ns_source = "builtin"
+
+        if ns_id not in namespaces:
+            namespaces[ns_id] = {
+                "id": ns_id,
+                "name": ns_name,
+                "source": ns_source,
+                "tools": [],
+            }
+        namespaces[ns_id]["tools"].append({
+            "name": t_name,
+            "description": t_desc,
+            "parameters": t_params,
+            "is_high_risk": getattr(tool, "is_high_risk", False),
+        })
+
+    return {
+        "total_tools": len(tools),
+        "namespaces": list(namespaces.values()),
+    }
+
+
+@router.post("/scaffold/runbook")
+async def scaffold_skill_runbook(req: ScaffoldRunbookRequest, request: Request) -> Dict[str, Any]:
+    """Generate a Matt Pocock compliant SKILL.md runbook grounded in tools and source context."""
+    tool_registry = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
+    tool_definitions = []
+    if tool_registry and req.selected_tools:
+        for t_name in req.selected_tools:
+            defn = tool_registry.get_tool_definition(t_name)
+            if defn:
+                tool_definitions.append({
+                    "name": defn.name,
+                    "description": defn.description,
+                    "parameters": defn.parameters,
+                })
+
+    system_prompt = (
+        "You are the AutoReiv Principal Skill Architect. You write production-grade, standard Matt Pocock compliant "
+        "SKILL.md runbooks for AI agents.\n"
+        "A skill runbook is a procedural SOP (playbook) that teaches an agent:\n"
+        "1. When to use this skill (trigger description strictly <= 60 characters).\n"
+        "2. The ordered, step-by-step workflow.\n"
+        "3. How to use and sequence the required tools (with exact parameters and expected payloads).\n"
+        "4. Edge cases, failure modes, and recovery steps.\n"
+        "5. Definition of Done and verification checklist.\n\n"
+        "You MUST format the runbook with valid YAML frontmatter at the very top:\n"
+        "---\n"
+        "name: <Skill Name>\n"
+        "description: <Trigger description, strictly <= 60 chars>\n"
+        "requires_tools:\n"
+        "  - <tool_name>\n"
+        "---\n"
+        "Followed by clear markdown sections:\n"
+        "# <Skill Name>\n\n"
+        "## Overview & Trigger\n\n"
+        "## Prerequisites & Tool Schemas\n\n"
+        "## Step-by-Step Procedure\n\n"
+        "## Edge Cases & Pitfalls\n\n"
+        "## Definition of Done\n\n"
+        "CRITICAL: Do NOT write Python classes or synthetic executable code. A skill is a markdown runbook."
+    )
+
+    clean_trigger = (req.trigger_description or "").strip()[:60]
+    tools_summary = json.dumps(tool_definitions, indent=2) if tool_definitions else "None (Pure knowledge / runbook)"
+
+    user_prompt = (
+        f"Skill ID: {req.skill_id}\n"
+        f"Skill Name: {req.skill_name}\n"
+        f"Trigger Description: {clean_trigger}\n"
+        f"Target Agent ID: {req.agent_id or 'general'}\n\n"
+        f"Operator Intent & Procedure Notes:\n{req.intent_notes or 'Follow standard best practices.'}\n\n"
+        f"Available/Selected Tools:\n{tools_summary}\n\n"
+        f"External Source Context / Documentation:\n{req.source_context or 'None provided.'}\n\n"
+        "Please generate the complete, production-ready SKILL.md file."
+    )
+
+    gateway = getattr(request.app.state, "gateway", None)
+    from src.application.agent_training_factory.llm import phase_llm_text
+
+    if req.selected_tools:
+        tools_list = "\n".join(f"  - {t}" for t in req.selected_tools)
+        fallback_tools_yaml = f"requires_tools:\n{tools_list}"
+    else:
+        fallback_tools_yaml = "requires_tools: []"
+
+    tools_line = ", ".join(req.selected_tools) if req.selected_tools else "None (Pure procedural skill)"
+    fallback_runbook = f"""---
+name: {req.skill_name}
+description: {clean_trigger}
+{fallback_tools_yaml}
+---
+
+# {req.skill_name}
+
+## Overview & Trigger
+{clean_trigger}
+
+## Prerequisites & Tools
+- Required tools: {tools_line}
+
+## Step-by-Step Procedure
+1. Initialize task context based on operator intent: {req.intent_notes or 'Execute procedure.'}
+2. Validate required arguments and parameters before invoking tools.
+3. Execute sequential tool operations and record intermediate outcomes.
+4. Verify results against operator expectations.
+
+## Edge Cases & Pitfalls
+- Verify all tool inputs conform to parameter schemas.
+- If a tool fails, capture error message and inspect diagnostics before retrying.
+
+## Definition of Done
+- Task objectives completed with observable success criteria.
+- Clean status reported back to caller.
+"""
+
+    generated = await phase_llm_text(
+        gateway,
+        system=system_prompt,
+        user=user_prompt,
+        fallback=fallback_runbook,
+        timeout=60.0,
+    )
+
+    if not generated or not generated.strip().startswith("---"):
+        generated = fallback_runbook
+
+    return {
+        "skill_id": req.skill_id,
+        "skill_name": req.skill_name,
+        "trigger_description": clean_trigger,
+        "requires_tools": req.selected_tools,
+        "markdown_content": generated.strip(),
+    }
+
+
+@router.post("/scaffold/save")
+async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> Dict[str, Any]:
+    """Persist authored SKILL.md and auto-pin it to target agent pack manifest."""
+    import re
+    if not req.agent_id or not req.skill_id:
+        raise HTTPException(status_code=400, detail="agent_id and skill_id are required")
+
+    clean_agent_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.agent_id.lower().strip())
+    clean_skill_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.skill_id.lower().strip())
+
+    if not clean_agent_id or not clean_skill_id:
+        raise HTTPException(status_code=400, detail="Invalid agent_id or skill_id format")
+
+    from src.infrastructure.data.resolver import DataDirResolver
+    resolver = DataDirResolver()
+    data_root = resolver.resolve().root
+    packs_dir = data_root / "packs"
+    agent_dir = packs_dir / clean_agent_id
+    agent_dir.mkdir(parents=True, exist_ok=True)
+
+    skills_dir = agent_dir / "skills" / clean_skill_id
+    skills_dir.mkdir(parents=True, exist_ok=True)
+    skill_file = skills_dir / "SKILL.md"
+    skill_file.write_text(req.skill_content.strip() + "\n", encoding="utf-8")
+
+    extracted_tools: List[str] = []
+    try:
+        if req.skill_content.strip().startswith("---"):
+            parts = req.skill_content.split("---", 2)
+            if len(parts) >= 3:
+                import yaml
+                meta = yaml.safe_load(parts[1]) or {}
+                if isinstance(meta, dict):
+                    t = meta.get("requires_tools") or meta.get("tools") or []
+                    if isinstance(t, list):
+                        extracted_tools = [str(x).strip() for x in t if str(x).strip()]
+    except Exception:
+        extracted_tools = []
+
+    pack_json_file = agent_dir / "pack.json"
+    if pack_json_file.is_file():
+        try:
+            pack_data = json.loads(pack_json_file.read_text(encoding="utf-8"))
+        except Exception:
+            pack_data = {}
+    else:
+        pack_data = {}
+
+    if not isinstance(pack_data, dict):
+        pack_data = {}
+
+    pack_data.setdefault("schema_version", "1.0")
+    pack_data.setdefault("id", clean_agent_id)
+    if req.agent_name:
+        pack_data["name"] = req.agent_name
+    elif "name" not in pack_data:
+        pack_data["name"] = clean_agent_id.replace("-", " ").replace("_", " ").title()
+
+    if req.role_persona:
+        pack_data["system_prompt"] = req.role_persona
+        pack_data["description"] = req.role_persona[:120]
+    elif "description" not in pack_data:
+        pack_data["description"] = f"Specialist agent {clean_agent_id}"
+
+    if req.model:
+        pack_data["model"] = req.model
+
+    allowed_skills = list(pack_data.get("allowed_skill") or [])
+    if req.auto_pin and clean_skill_id not in allowed_skills:
+        allowed_skills.append(clean_skill_id)
+    pack_data["allowed_skill"] = allowed_skills
+
+    skills_list = list(pack_data.get("skills") or [])
+    existing_skill_entry = next((s for s in skills_list if isinstance(s, dict) and s.get("id") == clean_skill_id), None)
+    if existing_skill_entry:
+        if extracted_tools:
+            existing_skill_entry["tools"] = list(set(existing_skill_entry.get("tools", []) + extracted_tools))
+    else:
+        skills_list.append({
+            "id": clean_skill_id,
+            "name": clean_skill_id.replace("-", " ").replace("_", " ").title(),
+            "tools": extracted_tools,
+        })
+    pack_data["skills"] = skills_list
+
+    pack_json_file.write_text(json.dumps(pack_data, indent=2), encoding="utf-8")
+
+    registry = getattr(request.app.state, "registry", None)
+    if registry:
+        prof = registry.get_agent(clean_agent_id)
+        if prof:
+            cur_skills = list(prof.allowed_skill or [])
+            if req.auto_pin and clean_skill_id not in cur_skills:
+                prof.allowed_skill = cur_skills + [clean_skill_id]
+            if req.agent_name:
+                prof.name = req.agent_name
+            if req.role_persona:
+                prof.system_prompt = req.role_persona
+            if req.model:
+                prof.model = req.model
+            if registry.state_store:
+                registry.state_store.save_agent_profile(prof)
+
+    return {
+        "success": True,
+        "agent_id": clean_agent_id,
+        "skill_id": clean_skill_id,
+        "skill_path": str(skill_file),
+        "pinned": req.auto_pin,
+    }
 
 

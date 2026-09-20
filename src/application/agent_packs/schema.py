@@ -276,6 +276,23 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
             for tool in DYNAMIC_SKILL_TOOLS.get(sid, ()):
                 if tool not in scoped:
                     scoped.append(tool)
+
+        # Check pack-declared skills from agent pack manifest
+        if agent_id:
+            try:
+                from src.infrastructure.data.resolver import DataDirResolver
+                data_root = DataDirResolver().resolve().root
+                pack_json_file = data_root / "packs" / agent_id / "pack.json"
+                if pack_json_file.is_file():
+                    import json
+                    pdata = json.loads(pack_json_file.read_text(encoding="utf-8"))
+                    for sk in pdata.get("skills") or []:
+                        if isinstance(sk, dict) and sk.get("id") in effective_skills:
+                            for t in sk.get("tools") or []:
+                                if t and t not in scoped:
+                                    scoped.append(str(t))
+            except Exception:
+                pass
         return scoped
 
     # Static / unconstrained resolution: include all authorized skills & pack tools

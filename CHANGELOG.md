@@ -1,6 +1,14 @@
 ## [Unreleased]
 
-### Removed
+### Added
+
+- 3-Column Agent & Skill Scaffolder and Capabilities Workshop (`src/web/routers/agent_training_factory.py`, `src/web/static/modules/studios/factory.js`, `src/web/templates/index.html` [CARD-386]):
+  - **Column 1: Target Agent Brief**: Target specialist dropdown with support for both existing agents and net-new agent scaffolding (`+ Create New Agent`), role persona / system instructions, and model routing.
+  - **Column 2: Skills & Runbook**: Matt Pocock standard `SKILL.md` authoring workbench with concise trigger description ($\le 60$ chars), operator intent notes, LLM procedural runbook generator (`POST /api/agent_training_factory/scaffold/runbook`), live Markdown editor, and auto-pinning on save (`POST /api/agent_training_factory/scaffold/save`).
+  - **Column 3: Capabilities & Grounding**: Live capabilities inspector (`GET /api/agent_training_factory/capabilities`) exposing dormant platform tools and connected MCP servers (e.g. Blender MCP with 24 tools) grouped by namespace, paired with an external reference notes textarea for API documentation and cheat sheets.
+  - **Dynamic Pack-Declared Tool Mounting**: Updated `resolve_scoped_tools` and `ScopedToolRegistry.get_tools_for_agent` so agent packs declaring tools in their `skills` definitions automatically mount and resolve them when active.
+  - **Deterministic Test-Locked Delivery**: Added comprehensive unit test suite (`tests/unit/agent_training_factory/test_scaffolder_endpoints.py`) and end-to-end integration lifecycle test (`tests/integration/factory/test_scaffolder_lifecycle.py`), with all 99 Vitest test files passing green.
+
 
 - Orphaned Shims & Dead Compatibility Aliases (`src/web/routers/`, `src/application/orchestration/`, `src/application/agent_training_factory/` [CARD-385]):
   - **Excised Unused Router Shims**: Deleted unreferenced shim `src/web/routers/_card313_import_data_dir_migrate.py` and obsolete router alias `src/web/routers/factory.py`, ensuring all factory endpoints route canonically through `agent_training_factory.py`.
