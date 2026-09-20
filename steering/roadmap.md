@@ -84,5 +84,7 @@
   - [ ] **CARD-389**: Uniform Skill-First Architecture and Agent Forge Realignment (Zero naked tools, editable display names, specialty storage toggle).
   - [ ] **CARD-390**: Standalone Skills Studio Runbook Editor and Mechanical Linter (Direct `SKILL.md` authoring, editing & real-time linter feedback).
   - [ ] **CARD-391**: Developer Agent and Projects Studio Workspace Integration (Active project grounding, DotAgents SDLC cards bridge).
+  - [ ] **CARD-392**: AutoReiv Hosted MCP Server and Cross-Instance Federation (Inbound HTTP/SSE MCP server, multi-instance federation).
+
 
 
