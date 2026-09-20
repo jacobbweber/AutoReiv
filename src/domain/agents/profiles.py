@@ -72,8 +72,6 @@ LEGACY_AGENT_ALIASES: Dict[str, str] = {
     "linux-sysadmin": "autoreiv",
     "sysadmin": "autoreiv",
     "auditor-critic": "autoreiv",
-    "developer": "autoreiv",
-    "tutor": "autoreiv",
     "forge": "autoreiv",
 }
 

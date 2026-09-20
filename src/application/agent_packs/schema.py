@@ -30,9 +30,8 @@ SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".
 FACTORY_PACK_IDS = frozenset()
 RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset({"conductor", "inspector", "coder", "sandbox_runner", "critic"})
 
-# CARD-339 / CARD-341 / CARD-366: Platform agent consolidation.
-# autoreiv (Single Brain) and direct (Raw Model Passthrough) are the platform packs.
-# developer, tutor, forge are absorbed into autoreiv as skills.
+# CARD-339 / CARD-341 / CARD-366 / CARD-388: Platform agent consolidation & restoration.
+# autoreiv, direct, developer, tutor are the platform packs.
 CHAT_HIDDEN_BY_ID = frozenset(
     {
         "agent-builder",
@@ -42,19 +41,17 @@ CHAT_HIDDEN_BY_ID = frozenset(
         "hyperv",
         "assistant",
         "wiki",
-        "developer",
-        "tutor",
         "forge",
         "homelab",
         "finance",
     }
 )
 # Stale hide overrides must not win for these human-facing companions.
-CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct"})
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "developer", "tutor"})
 
 # Always-installed Platform Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
-# autoreiv, direct.
-PLATFORM_PACK_IDS = frozenset({"autoreiv", "direct"})
+# autoreiv, direct, developer, tutor.
+PLATFORM_PACK_IDS = frozenset({"autoreiv", "direct", "developer", "tutor"})
 
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {

@@ -14,14 +14,12 @@ from typing import Any, Iterable, Optional, Union
 logger = logging.getLogger(__name__)
 
 # Platform seeds from repo platform-packs/ into $DATA_DIR/packs/.
-# CARD-341: assistant and wiki retired. CARD-366: developer, tutor, forge absorbed into autoreiv.
-PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct")
+# CARD-341: assistant and wiki retired. CARD-366: forge absorbed. CARD-388: developer & tutor restored.
+PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct", "developer", "tutor")
 ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
 RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
     "assistant",
     "wiki",
-    "developer",
-    "tutor",
     "forge",
     "homelab",
     "homelab-admin",
