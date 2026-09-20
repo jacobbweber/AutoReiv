@@ -30,6 +30,7 @@
 
 ### Removed
 
+- Excised horizontal button-scroll agent picker and button pills (`#engineBtnCore`, `#engineBtnDeveloper`, `#engineBtnTutor`, `#engineBtnDirect`, `renderEngineSelectorPills`) in Chat Studio header in favor of canonical `#agentSelect` dropdown [CARD-388].
 - Pruned binary dual-engine lock in Chat Studio header (`#engineBtnCore` / `#engineBtnDirect` exclusivity) and hardcoded 2-agent chat restrictions [CARD-388].
 - Excised `developer` and `tutor` entries from `RETIRED_PLATFORM_PACK_IDS` and `LEGACY_AGENT_ALIASES` [CARD-388].
 - Pruned `(Platform)` and `(Custom)` labels from Agent Studio dropdowns and select options [CARD-388].

@@ -21,12 +21,14 @@ describe('CARD-388 Chat Studio Agent Selector & Restoration', () => {
     'utf-8'
   );
 
-  it('index.html provides agent selector with pills for AutoReiv, Developer, Tutor, Direct [REQ-388-003]', () => {
+  it('index.html provides dropdown agent selector matching Agent Studio [REQ-388-003]', () => {
     expect(indexHtml).toContain('id="chatEngineSelector"');
-    expect(indexHtml).toContain('id="engineBtnCore"');
-    expect(indexHtml).toContain('id="engineBtnDeveloper"');
-    expect(indexHtml).toContain('id="engineBtnTutor"');
-    expect(indexHtml).toContain('id="engineBtnDirect"');
+    expect(indexHtml).toContain('id="agentSelect"');
+    expect(indexHtml).toMatch(/<select\s+id="agentSelect"[^>]*class="[^"]*min-w-\[150px\]/);
+    expect(indexHtml).not.toContain('id="engineBtnCore"');
+    expect(indexHtml).not.toContain('id="engineBtnDeveloper"');
+    expect(indexHtml).not.toContain('id="engineBtnTutor"');
+    expect(indexHtml).not.toContain('id="engineBtnDirect"');
   });
 
   it('allows Developer and Tutor in isAgentVisibleInChat [REQ-388-002]', () => {
@@ -53,12 +55,10 @@ describe('CARD-388 Chat Studio Agent Selector & Restoration', () => {
     expect(visible.map((a) => a.id)).toEqual(['autoreiv', 'developer', 'tutor', 'direct']);
   });
 
-  it('chat.js defines dynamic pill rendering and button listeners for restored agents [REQ-388-003, REQ-388-005]', () => {
-    expect(chatJs).toMatch(/renderEngineSelectorPills/);
-    expect(chatJs).toMatch(/engineBtnDeveloper/);
-    expect(chatJs).toMatch(/engineBtnTutor/);
-    expect(chatJs).toMatch(/switchEngineChannel\('developer'\)/);
-    expect(chatJs).toMatch(/switchEngineChannel\('tutor'\)/);
+  it('chat.js populates agentSelect dropdown cleanly and handles agent switching [REQ-388-003, REQ-388-005]', () => {
+    expect(chatJs).toMatch(/formatAgentSelectOption\(agent\)/);
+    expect(chatJs).toMatch(/agentSelect\.addEventListener\('change'/);
+    expect(chatJs).not.toMatch(/renderEngineSelectorPills/);
     // Negative assertion: no binary-lock filtering on dualEngineAgentsVisibleInChat in loadAgents
     expect(chatJs).toMatch(/const chatAgents = agentsVisibleInChat\(state\.agents\);/);
   });

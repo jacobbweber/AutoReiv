@@ -61,13 +61,13 @@ In Chat Studio, operators can select between seeded or custom agents using human
      - Remove `developer` and `tutor` from `RETIRED_PLATFORM_PACK_IDS` and `LEGACY_AGENT_ALIASES`.
      - Ensure startup seeder copies missing default packs into `$DATA_DIR/packs/` without overwriting user customizations if already present.
 3. **Chat Studio Agent Selector**:
-   - Update Chat Studio header `#chatEngineSelector` to display agent pills for available agents:
+   - Replace horizontal scrolling button pills in Chat Studio header `#chatEngineSelector` with a clean `<select id="agentSelect">` dropdown matching Agent Studio (`#forgeAgentSelect`):
      - **AutoReiv** (General orchestrator & sysadmin)
      - **Developer** (SDLC, coding & project engineering)
      - **Tutor** (Socratic learning & mastery ledger)
      - **Direct** (Raw zero-overhead LLM stream)
-   - Use `agent.name` for the visible label and `agent.id` for the value.
-   - Switching agents dynamically switches session context, model indicator, and active history thread.
+   - Populate options dynamically using clean display names (`agent.name`) via `formatAgentSelectOption`.
+   - Switching agents dynamically switches session context, model indicator, and active history thread without duplicate levers.
 4. **Demand-Paged Capability Scoping**:
    - Restored agents load only Platform Required primitives + their active skill runbooks, maintaining KV-cache pre-fill efficiency (<2,000 tokens).
 
@@ -80,7 +80,7 @@ In Chat Studio, operators can select between seeded or custom agents using human
 - Prune `(Platform)` and `(Custom)` tags from `formatAgentSelectOption` across all Studio dropdowns.
 - Prune `Platform Agent Pack` vs `Custom Agent` distinction in Agent Studio badges (unify to `Agent Pack`).
 - Prune origin-based automatic pack purging in `DeclarativePackReconciler` (only explicitly retired packs are purged).
-- Prune the binary 2-button lock in Chat Studio header (`#engineBtnCore` / `#engineBtnDirect` exclusivity).
+- Prune horizontal button-scroll agent picker and button pills (`#engineBtnCore`, `#engineBtnDeveloper`, `#engineBtnTutor`, `#engineBtnDirect`, `renderEngineSelectorPills`) in Chat Studio header in favor of canonical `#agentSelect` dropdown.
 - Retire hardcoded assumptions that only `autoreiv` and `direct` can appear in Chat.
 
 ---
@@ -89,7 +89,7 @@ In Chat Studio, operators can select between seeded or custom agents using human
 
 - **[REQ-388-001] (Ubiquitous)**: THE SYSTEM SHALL seed `developer` and `tutor` from factory seeds (`platform-packs/`) into `$DATA_DIR/packs/` on startup if missing.
 - **[REQ-388-002] (Ubiquitous)**: THE API SHALL return `developer` and `tutor` in `GET /api/agents` with `show_in_chat: true`.
-- **[REQ-388-003] (Event-Driven)**: WHEN an operator opens Chat Studio, THE SYSTEM SHALL display selectable agent pills for all chat-visible agents using their display names (`agent.name`).
+- **[REQ-388-003] (Event-Driven)**: WHEN an operator opens Chat Studio, THE SYSTEM SHALL display a dropdown agent picker (`#agentSelect`) matching Agent Studio styling for all chat-visible agents using clean display names (`agent.name`), with zero horizontal scrolling button pills.
 - **[REQ-388-004] (Event-Driven)**: WHEN an operator selects `Developer` or `Tutor`, THE SYSTEM SHALL execute the turn with that agent's distinct system prompt, model preferences, and scoped skill capabilities.
 - **[REQ-388-005] (State-Driven)**: WHILE switching between agents in Chat Studio, THE SYSTEM SHALL preserve and display independent conversation session threads keyed by `agent.id`.
 - **[REQ-388-006] (Negative Assertion)**: Automated tests shall explicitly assert that `developer` and `tutor` requests are NOT redirected or aliased to `autoreiv`, and are NOT deleted by retired pack cleanup routines.

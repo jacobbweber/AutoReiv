@@ -3,7 +3,7 @@
  */
 
 import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
-import { escapeHtml } from '../utils/formatters.js';
+import { escapeHtml, formatAgentSelectOption } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { PRESETS_DEFAULTS } from './settings.js';
@@ -373,10 +373,7 @@ export function renderProposalCardHtml(p) {
 }
 
 /** CARD-202, CARD-367, CARD-388: Format agent display name cleanly without Platform/Custom tags. */
-export function formatAgentSelectOption(agent) {
-  if (!agent) return '';
-  return agent.name || agent.id;
-}
+export { formatAgentSelectOption };
 
 /** CARD-202: Sort agents alphabetically by display name (case-insensitive). */
 export function sortStudioAgentsAlphabetically(agents = []) {

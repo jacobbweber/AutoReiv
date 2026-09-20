@@ -185,3 +185,13 @@ export function formatJsonDeliverableToMarkdown(text) {
     return text;
   }
 }
+
+/**
+ * Format agent display name cleanly without Platform/Custom tags [CARD-202, CARD-388].
+ * @param {object} agent
+ * @returns {string}
+ */
+export function formatAgentSelectOption(agent) {
+  if (!agent) return '';
+  return agent.name || agent.id;
+}

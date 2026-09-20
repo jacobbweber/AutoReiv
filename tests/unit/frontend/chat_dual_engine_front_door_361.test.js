@@ -38,19 +38,15 @@ describe('CARD-361 Dual-Engine Front Door & Visibility', () => {
     expect(dualEngines.map((a) => a.id)).toEqual(['autoreiv', 'direct']);
   });
 
-  it('provides dual-engine segmented toggle controls in index.html and hides duplicate dropdown [REQ-CHAT-DUAL-001]', () => {
+  it('provides single #agentSelect dropdown in index.html inside chatEngineSelector [REQ-CHAT-DUAL-001, CARD-388]', () => {
     expect(indexHtml).toContain('id="chatEngineSelector"');
-    expect(indexHtml).toContain('id="engineBtnCore"');
-    expect(indexHtml).toContain('id="engineBtnDirect"');
-    // Keeps single #agentSelect for test harness compatibility, but hidden to avoid duplicate controls
     const matches = indexHtml.match(/id="agentSelect"/g) || [];
     expect(matches).toHaveLength(1);
-    expect(indexHtml).toMatch(/<select\s+id="agentSelect"\s+class="hidden"/);
+    expect(indexHtml).toMatch(/<select\s+id="agentSelect"[^>]*class="[^"]*min-w-\[150px\]/);
   });
 
-  it('chat.js defines engine toggle handlers and suppresses job phase strip on direct mode [REQ-CHAT-DUAL-005]', () => {
-    expect(chatJs).toMatch(/engineBtnCore/);
-    expect(chatJs).toMatch(/engineBtnDirect/);
+  it('chat.js defines switchEngineChannel and suppresses job phase strip on direct mode [REQ-CHAT-DUAL-005]', () => {
     expect(chatJs).toMatch(/switchEngineChannel/);
+    expect(chatJs).toMatch(/isDirect = activeId === 'direct'/);
   });
 });
