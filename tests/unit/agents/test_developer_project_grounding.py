@@ -134,3 +134,76 @@ def test_developer_agent_kernel_prompt_grounding_with_active_project():
         assert str(proj_root) in assembled
         assert "Governance: AGENTS.md present at project root." in assembled
         assert "Active Work Cards (1 total): Recent: CARD-101-sample-task.md" in assembled
+        assert "Use write_project_file, read_project_file, and list_project_dir" in assembled
+
+
+def test_non_project_agent_excludes_active_project_from_prompt():
+    """Negative assertion: Non-project agents (e.g. Tutor) do NOT receive project paths or cards in system prompt."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        proj_root = Path(tmp_dir) / "isolated_project"
+        proj_root.mkdir(parents=True)
+        (proj_root / "AGENTS.md").write_text("# Project Constitution\n", encoding="utf-8")
+
+        store = SQLiteStateStore(db_path=":memory:")
+        store.initialize_db()
+        proj_svc = ProjectsService(store=store)
+        proj_svc.set_selected(slug="isolated_project", path=str(proj_root))
+
+        registry = ScopedToolRegistry()
+        gateway = MagicMock()
+        telemetry = MagicMock()
+        kernel = AgentKernel(
+            gateway=gateway,
+            tool_registry=registry,
+            telemetry=telemetry,
+            state_store=store,
+        )
+
+        tutor_agent = AgentProfile(
+            id="tutor",
+            name="Tutor",
+            description="Socratic Tutor",
+            system_prompt="You are a patient Socratic tutor.",
+            allowed_tool_names=["read_wiki_document", "search_wiki"],
+        )
+
+        assembled = kernel._build_effective_system_message(tutor_agent).content
+        assert "## Active Selected Project" not in assembled
+        assert "isolated_project" not in assembled
+        assert str(proj_root) not in assembled
+
+
+def test_read_only_project_agent_receives_read_only_guidance():
+    """Agents with read-only project tools receive project context with inspection guidance only."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        proj_root = Path(tmp_dir) / "review_project"
+        proj_root.mkdir(parents=True)
+
+        store = SQLiteStateStore(db_path=":memory:")
+        store.initialize_db()
+        proj_svc = ProjectsService(store=store)
+        proj_svc.set_selected(slug="review_project", path=str(proj_root))
+
+        registry = ScopedToolRegistry()
+        gateway = MagicMock()
+        telemetry = MagicMock()
+        kernel = AgentKernel(
+            gateway=gateway,
+            tool_registry=registry,
+            telemetry=telemetry,
+            state_store=store,
+        )
+
+        reviewer_agent = AgentProfile(
+            id="reviewer",
+            name="Code Reviewer",
+            description="Read-only reviewer",
+            system_prompt="You review code for quality.",
+            allowed_tool_names=["read_project_file", "list_project_dir"],
+        )
+
+        assembled = kernel._build_effective_system_message(reviewer_agent).content
+        assert "## Active Selected Project" in assembled
+        assert "review_project" in assembled
+        assert "Use read_project_file and list_project_dir to inspect and review files inside this project." in assembled
+        assert "write_project_file" not in assembled

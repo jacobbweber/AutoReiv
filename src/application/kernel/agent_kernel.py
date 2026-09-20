@@ -545,38 +545,62 @@ class AgentKernel:
                 logger.debug(f"Per-agent cognitive memory assembly skipped: {e}")
 
         # Active Selected Project Context [Projects Studio / SDLC]
+        # Skill-gated: only agents possessing project tools (or developer) receive workspace grounding.
         if self.state_store:
             try:
                 from pathlib import Path
 
                 from src.application.sdlc.projects_service import ProjectsService
 
-                proj_svc = ProjectsService(store=self.state_store)
-                selected_proj = proj_svc.get_selected()
-                if selected_proj and selected_proj.get("path"):
-                    proj_name = selected_proj.get("name") or selected_proj.get("slug") or "Active Project"
-                    proj_path = selected_proj.get("path")
-                    project_context = (
-                        "## Active Selected Project\n"
-                        f"- Name: {proj_name}\n"
-                        f"- Path: {proj_path}\n"
-                        "All project code, tests, scripts, and CLI commands should target this project directory unless explicitly instructed otherwise. Use write_project_file, read_project_file, and list_project_dir to manage files inside this project, and cli_exec to run tests and scripts directly within this directory."
+                is_developer = getattr(agent, "id", None) == "developer"
+                allowed_tools: set[str] = set(getattr(agent, "allowed_tool_names", None) or [])
+                if not is_developer and hasattr(self, "tool_registry") and hasattr(self.tool_registry, "get_tools_for_agent"):
+                    try:
+                        agent_tools = self.tool_registry.get_tools_for_agent(agent)
+                        allowed_tools.update(t.name for t in agent_tools)
+                    except Exception:
+                        pass
+                has_project_tools = bool(
+                    allowed_tools.intersection(
+                        {"read_project_file", "write_project_file", "list_project_dir", "cli_exec", "git_status", "git_diff"}
                     )
-                    extra_lines = []
-                    root_path = Path(proj_path)
-                    if (root_path / "AGENTS.md").is_file():
-                        extra_lines.append("Governance: AGENTS.md present at project root.")
-                    cards_dir = root_path / ".agents" / "cards"
-                    if not cards_dir.is_dir():
-                        cards_dir = root_path / "docs" / "cards"
-                    if cards_dir.is_dir():
-                        card_files = [p.name for p in cards_dir.glob("CARD-*.md") if p.is_file()]
-                        if card_files:
-                            recent = sorted(card_files)[-5:]
-                            extra_lines.append(f"Active Work Cards ({len(card_files)} total): Recent: {', '.join(recent)}")
-                    if extra_lines:
-                        project_context = project_context + "\n" + "\n".join(f"- {line}" for line in extra_lines)
-                    base_prompt = f"{base_prompt}\n\n{project_context}"
+                )
+
+                if is_developer or has_project_tools:
+                    proj_svc = ProjectsService(store=self.state_store)
+                    selected_proj = proj_svc.get_selected()
+                    if selected_proj and selected_proj.get("path"):
+                        proj_name = selected_proj.get("name") or selected_proj.get("slug") or "Active Project"
+                        proj_path = selected_proj.get("path")
+                        has_write = is_developer or bool(
+                            allowed_tools.intersection({"write_project_file", "cli_exec"})
+                        )
+                        tool_guidance = (
+                            "Use write_project_file, read_project_file, and list_project_dir to manage files inside this project, and cli_exec to run tests and scripts directly within this directory."
+                            if has_write
+                            else "Use read_project_file and list_project_dir to inspect and review files inside this project."
+                        )
+                        project_context = (
+                            "## Active Selected Project\n"
+                            f"- Name: {proj_name}\n"
+                            f"- Path: {proj_path}\n"
+                            f"All project code, tests, scripts, and CLI commands should target this project directory unless explicitly instructed otherwise. {tool_guidance}"
+                        )
+                        extra_lines = []
+                        root_path = Path(proj_path)
+                        if (root_path / "AGENTS.md").is_file():
+                            extra_lines.append("Governance: AGENTS.md present at project root.")
+                        cards_dir = root_path / ".agents" / "cards"
+                        if not cards_dir.is_dir():
+                            cards_dir = root_path / "docs" / "cards"
+                        if cards_dir.is_dir():
+                            card_files = [p.name for p in cards_dir.glob("CARD-*.md") if p.is_file()]
+                            if card_files:
+                                recent = sorted(card_files)[-5:]
+                                extra_lines.append(f"Active Work Cards ({len(card_files)} total): Recent: {', '.join(recent)}")
+                        if extra_lines:
+                            project_context = project_context + "\n" + "\n".join(f"- {line}" for line in extra_lines)
+                        base_prompt = f"{base_prompt}\n\n{project_context}"
             except Exception as e:
                 logger.debug(f"Active project context injection skipped: {e}")
 
