@@ -62,9 +62,14 @@ describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
   it('renders top action banner and 3 columns with canonical Scaffolder workshop DOM structure [CARD-386, CARD-387]', () => {
     // Top Horizontal Action Banner [CARD-387]
     expect(html).toContain('id="factoryTopActionBar"');
-    expect(html).toContain('id="factoryGenerateRunbookBtn"');
-    expect(html).toContain('id="factoryGenerateStatusText"');
     expect(html).toContain('id="factoryIntakeTalkToForgeBtn"');
+    expect(html).toContain('1. Talk it out with Forge');
+    expect(html).toContain('id="factoryGenerateRunbookBtn"');
+    expect(html).toContain('2. ✨ Generate / Refine Runbook');
+    expect(html).toContain('id="factorySaveSkillBtn"');
+    expect(html).toContain('3. 💾 Save &amp; Pin Skill to Agent');
+    expect(html).toContain('id="factoryGenerateStatusText"');
+    expect(html).toContain('id="factorySaveFeedbackMsg"');
 
     // Column 1: Agent Brief
     expect(html).toContain('id="factoryIntakeAgentCard"');
@@ -81,11 +86,11 @@ describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
     expect(html).toContain('id="factoryNewSkillFormBtn"');
     expect(html).toContain('id="factorySkillNameInput"');
     expect(html).toContain('id="factorySkillIdInput"');
+    expect(html).toMatch(/id="factorySkillIdInput"[^>]*readonly/);
     expect(html).toContain('id="factorySkillTriggerInput"');
     expect(html).toContain('id="factorySkillTriggerCharCount"');
     expect(html).toContain('id="factorySkillIntentInput"');
     expect(html).toContain('id="factorySkillMarkdownEditor"');
-    expect(html).toContain('id="factorySaveSkillBtn"');
 
     // Column 3: Capabilities & Grounding
     expect(html).toContain('id="factorySelectedToolCountBadge"');

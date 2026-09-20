@@ -4918,22 +4918,31 @@
         <div id="factoryIntakeView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
           
           <!-- Top Horizontal Action Banner [CARD-387] -->
-          <div id="factoryTopActionBar" class="mb-3 p-3 sm:p-4 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-shrink-0">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 min-w-0">
-              <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center space-x-2 shrink-0">
-                <i data-lucide="sparkles" class="w-4 h-4"></i>
-                <span>✨ Generate / Refine Runbook</span>
-              </button>
-              <div class="flex items-center space-x-2">
-                <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
-                <p class="text-[11px] text-slate-400 hidden md:block">Synthesizes agent persona, procedure notes, selected capabilities, and grounding context into a Matt Pocock SKILL.md</p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
-              <button type="button" id="factoryIntakeTalkToForgeBtn" class="px-3 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center space-x-1.5 transition shrink-0">
+          <div id="factoryTopActionBar" class="mb-3 p-3 sm:p-3.5 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-shrink-0">
+            <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 min-w-0 flex-1">
+              <!-- Step 1: Talk it out with Forge (Optional) -->
+              <button type="button" id="factoryIntakeTalkToForgeBtn" class="px-3.5 py-2 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/30 text-purple-300 hover:text-white text-xs font-semibold flex items-center justify-center space-x-1.5 transition shrink-0">
                 <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
-                <span>💬 Talk it out with Forge</span>
+                <span>1. Talk it out with Forge <span class="text-[10px] text-purple-400/80 font-normal">(Optional)</span></span>
               </button>
+
+              <!-- Step 2: Generate / Refine Runbook -->
+              <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center justify-center space-x-2 shrink-0">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>2. ✨ Generate / Refine Runbook</span>
+              </button>
+
+              <!-- Step 3: Save & Pin Skill to Agent -->
+              <button type="button" id="factorySaveSkillBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 shrink-0">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                <span>3. 💾 Save &amp; Pin Skill to Agent</span>
+              </button>
+            </div>
+
+            <!-- Status & Feedback Area -->
+            <div class="flex items-center space-x-2 shrink-0 justify-end">
+              <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
+              <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
             </div>
           </div>
 
@@ -5020,7 +5029,7 @@
                   </div>
                   <div>
                     <label for="factorySkillIdInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Skill ID (Slug)</label>
-                    <input type="text" id="factorySkillIdInput" placeholder="e.g. 3d-scene-builder" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                    <input type="text" id="factorySkillIdInput" placeholder="e.g. 3d_scene_builder" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-slate-400 font-mono focus:outline-none cursor-not-allowed">
                   </div>
                 </div>
 
@@ -5047,16 +5056,6 @@
                     <span class="text-[10px] text-slate-500 font-mono">Matt Pocock standard</span>
                   </div>
                   <textarea id="factorySkillMarkdownEditor" rows="9" placeholder="---&#10;name: My Skill&#10;description: Trigger condition &lt;= 60 chars&#10;requires_tools: []&#10;---&#10;# My Skill&#10;## Procedure&#10;1. Step one..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
-                </div>
-
-                <!-- Save & Pin Action -->
-                <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between">
-                  <button type="button" id="factoryIntakeLaunchBtn" class="hidden"></button>
-                  <button type="button" id="factorySaveSkillBtn" class="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
-                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                    <span>💾 Save &amp; Pin Skill to Agent</span>
-                  </button>
-                  <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
                 </div>
               </div>
             </div>

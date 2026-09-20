@@ -85,16 +85,6 @@ const COMMON_STOP_WORDS = new Set([
   'which', 'while', 'who', 'whom', 'why', 'with', 'would', 'you', 'your', 'yours', 'yourself',
 ]);
 
-function slugify(text) {
-  return (text || '')
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-_]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
 // ==================== Studio Lifecycle Manager ====================
 export function initFactoryStudio(state, callbacks = {}) {
   // DOM Elements - Column 1: Agent Brief
@@ -110,6 +100,9 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factoryNewSkillFormBtn = $('factoryNewSkillFormBtn');
   const factorySkillNameInput = $('factorySkillNameInput');
   const factorySkillIdInput = $('factorySkillIdInput');
+  if (factorySkillIdInput) {
+    factorySkillIdInput.readOnly = true;
+  }
   const factorySkillTriggerInput = $('factorySkillTriggerInput');
   const factorySkillTriggerCharCount = $('factorySkillTriggerCharCount');
   const factorySkillIntentInput = $('factorySkillIntentInput');
@@ -277,7 +270,10 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   function resetNewSkillForm() {
     if (factorySkillNameInput) factorySkillNameInput.value = '';
-    if (factorySkillIdInput) factorySkillIdInput.value = '';
+    if (factorySkillIdInput) {
+      factorySkillIdInput.value = '';
+      factorySkillIdInput.readOnly = true;
+    }
     if (factorySkillTriggerInput) {
       factorySkillTriggerInput.value = '';
       if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = '0/60';
@@ -289,7 +285,7 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   async function handleGenerateRunbook() {
     const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
-    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || slugify(skillName);
+    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || toSnakeCase(skillName);
     const trigger = (factorySkillTriggerInput && factorySkillTriggerInput.value.trim()) || '';
     const intent = (factorySkillIntentInput && factorySkillIntentInput.value.trim()) || '';
     const sourceContext = (factorySourceContextInput && factorySourceContextInput.value.trim()) || '';
@@ -359,7 +355,7 @@ export function initFactoryStudio(state, callbacks = {}) {
     const agentName = (factoryAgentNameInput && factoryAgentNameInput.value.trim()) || '';
     const rolePersona = (factoryAgentPromptInput && factoryAgentPromptInput.value.trim()) || '';
     const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
-    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || slugify(skillName);
+    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || toSnakeCase(skillName);
     const content = (factorySkillMarkdownEditor && factorySkillMarkdownEditor.value.trim()) || '';
 
     if (!agentId) {
@@ -617,15 +613,9 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   if (factorySkillNameInput) {
     factorySkillNameInput.addEventListener('input', () => {
-      if (factorySkillIdInput && !factorySkillIdInput.dataset.manualEdit) {
-        factorySkillIdInput.value = slugify(factorySkillNameInput.value);
+      if (factorySkillIdInput) {
+        factorySkillIdInput.value = toSnakeCase(factorySkillNameInput.value);
       }
-    });
-  }
-
-  if (factorySkillIdInput) {
-    factorySkillIdInput.addEventListener('input', () => {
-      factorySkillIdInput.dataset.manualEdit = 'true';
     });
   }
 
