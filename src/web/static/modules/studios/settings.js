@@ -713,37 +713,37 @@ export function initSettingsStudio(state, _callbacks = {}) {
     servers.forEach((srv) => {
       const card = document.createElement('div');
       card.className =
-        'p-3.5 rounded-lg bg-slate-800/40 border border-slate-700/60 flex items-center justify-between gap-3 text-xs';
+        'p-3.5 rounded-lg bg-slate-800/40 border border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs overflow-hidden';
       const statusBadge = srv.is_mounted
-        ? '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Connected (' +
+        ? '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Connected (' +
           srv.tool_count +
           ' tools)</span></span>'
-        : '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px]"><span>Configured</span></span>';
+        : '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px] shrink-0"><span>Configured</span></span>';
 
       const isRemote = srv.transport === 'sse' || Boolean(srv.url);
       const transportBadge = isRemote
-        ? '<span class="text-[10px] text-cyan-400 font-mono bg-cyan-950/50 px-1.5 py-0.5 rounded border border-cyan-900/60">HTTP/SSE</span>'
-        : '<span class="text-[10px] text-slate-400 font-mono bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">stdio</span>';
+        ? '<span class="text-[10px] text-cyan-400 font-mono bg-cyan-950/50 px-1.5 py-0.5 rounded border border-cyan-900/60 shrink-0">HTTP/SSE</span>'
+        : '<span class="text-[10px] text-slate-400 font-mono bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 shrink-0">stdio</span>';
 
       const cmdStr = Array.isArray(srv.command) ? srv.command.join(' ') : srv.command || '';
       const targetStr = isRemote ? srv.url || '' : cmdStr;
       const envKeys = srv.env && typeof srv.env === 'object' ? Object.keys(srv.env) : [];
       const envBadge =
         envKeys.length > 0
-          ? `<span class="text-[10px] text-amber-400/90 font-mono bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-900/60">${envKeys.length} secrets</span>`
+          ? `<span class="text-[10px] text-amber-400/90 font-mono bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-900/60 shrink-0">${envKeys.length} secrets</span>`
           : '';
 
       card.innerHTML = `
-        <div class="space-y-1">
-          <div class="flex items-center space-x-2">
-            <span class="font-bold text-white font-mono">${escapeHtml(srv.name)}</span>
+        <div class="space-y-1.5 min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span class="font-bold text-white font-mono shrink-0">${escapeHtml(srv.name)}</span>
             ${transportBadge}
             ${statusBadge}
             ${envBadge}
           </div>
-          <div class="font-mono text-[11px] text-slate-400 truncate max-w-lg">${escapeHtml(targetStr)}</div>
+          <div class="font-mono text-[11px] text-slate-400 break-all sm:truncate max-w-full" title="${escapeHtml(targetStr)}">${escapeHtml(targetStr)}</div>
         </div>
-        <button data-server-name="${escapeHtml(srv.name)}" class="delete-mcp-btn px-2 py-1 rounded bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 transition flex items-center space-x-1">
+        <button data-server-name="${escapeHtml(srv.name)}" class="delete-mcp-btn shrink-0 self-end sm:self-auto px-2.5 py-1 rounded bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 transition flex items-center space-x-1">
           <i data-lucide="trash-2" class="w-3 h-3"></i>
           <span>Remove</span>
         </button>

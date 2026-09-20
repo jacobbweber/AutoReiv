@@ -3368,41 +3368,43 @@
           <div class="settings-section-body">
         <!-- Model Context Protocol (MCP) Servers [REQ-MCP-005] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="min-w-0">
               <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="plug" class="w-4 h-4 text-brand-400"></i>
-                <span>Model Context Protocol (MCP) Servers</span>
+                <i data-lucide="plug" class="w-4 h-4 text-brand-400 shrink-0"></i>
+                <span class="truncate">Model Context Protocol (MCP) Servers</span>
               </h3>
-              <p class="text-xs text-slate-400">Mount external stdio tool servers (GitHub, SQLite, Postgres, Filesystem) with dynamic 3-Tier Tool Resolution.</p>
+              <p class="text-xs text-slate-400 mt-0.5">Mount external stdio tool servers (GitHub, SQLite, Postgres, Filesystem) with dynamic 3-Tier Tool Resolution.</p>
             </div>
-            <button id="addMcpServerBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+            <button id="addMcpServerBtn" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>Add MCP Server</span>
             </button>
           </div>
 
           <!-- Hosted MCP Server Status Banner [CARD-392] -->
-          <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-            <div class="space-y-1">
-              <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] font-semibold">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>Hosted MCP Server Active</span>
-                </span>
-                <span class="text-slate-400 text-[11px]">Port 8000 (HTTP/SSE)</span>
+          <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs flex flex-col gap-2.5 overflow-hidden">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] font-semibold shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Hosted MCP Server Active</span>
+              </span>
+              <span class="text-slate-400 text-[11px] font-mono">Port 8000 (HTTP/SSE)</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-[11px] text-indigo-300/90">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-slate-400">Endpoint:</span>
+                <code class="bg-black/40 px-1.5 py-0.5 rounded border border-white/[0.06] text-indigo-200 break-all select-all">/api/mcp/sse</code>
               </div>
-              <div class="font-mono text-[11px] text-indigo-300/90 flex items-center space-x-2">
-                <span>Endpoint:</span>
-                <code class="bg-black/40 px-2 py-0.5 rounded border border-white/[0.06] text-indigo-200">/api/mcp/sse</code>
-                <span class="text-slate-500">•</span>
-                <span>Messages:</span>
-                <code class="bg-black/40 px-2 py-0.5 rounded border border-white/[0.06] text-indigo-200">/api/mcp/messages</code>
+              <span class="text-slate-600 hidden sm:inline">•</span>
+              <div class="flex items-center space-x-1.5">
+                <span class="text-slate-400">Messages:</span>
+                <code class="bg-black/40 px-1.5 py-0.5 rounded border border-white/[0.06] text-indigo-200 break-all select-all">/api/mcp/messages</code>
               </div>
             </div>
-            <div class="text-[11px] text-slate-400 max-w-sm">
+            <p class="text-[11px] text-slate-400 leading-relaxed max-w-full">
               Connect external AI tools (Claude Desktop, Cursor) or peer AutoReiv instances via cross-instance federation.
-            </div>
+            </p>
           </div>
 
           <!-- Add MCP Server Form (Collapsible) -->
@@ -3453,12 +3455,12 @@
             <!-- Diagnostic Handshake Result Preview Box [REQ-MCP-008, REQ-MCP-009] -->
             <div id="mcpTestResultBox" class="hidden p-3 rounded-xl border border-white/[0.06] bg-[#08090c] text-xs"></div>
 
-            <div class="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-              <button type="button" id="testMcpServerBtn" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-white/[0.06]">
+              <button type="button" id="testMcpServerBtn" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all">
                 <i data-lucide="play" class="w-3.5 h-3.5"></i>
                 <span>Test Handshake &amp; Discover</span>
               </button>
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-2 self-end sm:self-auto">
                 <button type="button" id="cancelMcpServerBtn" class="px-3 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 rounded-lg text-xs font-medium border border-white/[0.08] transition-all">Cancel</button>
                 <button type="button" id="saveMcpServerBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save &amp; Mount</button>
               </div>
@@ -3474,15 +3476,15 @@
 
         <!-- Credential Vault [CARD-168] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="min-w-0">
               <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
-                <span>Credential Vault</span>
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span class="truncate">Credential Vault</span>
               </h3>
-              <p class="text-xs text-slate-400">AES-256-GCM encrypted local vault for API tokens, database passwords, and secrets with per-agent access grants.</p>
+              <p class="text-xs text-slate-400 mt-0.5">AES-256-GCM encrypted local vault for API tokens, database passwords, and secrets with per-agent access grants.</p>
             </div>
-            <button id="addCredentialBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+            <button id="addCredentialBtn" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>Add Credential</span>
             </button>
@@ -3534,7 +3536,7 @@
 
           <!-- Credential Table List -->
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
+            <table class="w-full min-w-[500px] text-left text-xs text-slate-300">
               <thead class="bg-[#13161f]/80 uppercase text-slate-400 font-mono text-[10px] tracking-wider border-b border-white/[0.06]">
                 <tr>
                   <th class="p-2.5">Name / ID</th>
@@ -3554,15 +3556,15 @@
 
         <!-- CARD-160: Remote SSH Hosts [REQ-REMOTE-003] -->
         <div id="settingsRemoteHosts" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
-            <div class="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-              <div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
+              <div class="min-w-0">
                 <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                  <i data-lucide="server" class="w-4 h-4 text-sky-400"></i>
-                  <span>Remote SSH Hosts</span>
+                  <i data-lucide="server" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                  <span class="truncate">Remote SSH Hosts</span>
                 </h3>
-                <p class="text-xs text-slate-400">Configure remote Linux and Windows servers for autonomous agent inspection and management.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Configure remote Linux and Windows servers for autonomous agent inspection and management.</p>
               </div>
-              <button id="addRemoteHostBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+              <button id="addRemoteHostBtn" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Add Remote Host</span>
               </button>
