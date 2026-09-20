@@ -72,3 +72,16 @@
   - [x] **CARD-363**: Mechanical Capability Linter & Contract Compiler (Static validation for `SKILL.md`: tool cap <= 6, verification contracts).
   - [x] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
   - [x] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
+
+---
+
+### Phase 5: Primitive Matrix Realignment & Ecosystem Expansion (In Progress)
+
+- **Milestone 19 (v0.19.0 - Primitive Realignment & Specialized Platform Agents)**:
+  - [x] **CARD-386**: 3-Column Agent & Skill Scaffolder & Capabilities Workshop (Factory Studio overhaul).
+  - [x] **CARD-387**: Factory Scaffolder UX Top Action Banner, Auto Slug & Tool Batch Selection.
+  - [ ] **CARD-388**: Restore Developer and Tutor as First-Class Platform Agents (Re-seed packs, model routing, Chat Studio front door selection).
+  - [ ] **CARD-389**: Agent Forge Studio Realignment and Primitive Permutations (The 4 matrix combinations: no tools/skills, skills-only, tools-only, skills+tools).
+  - [ ] **CARD-390**: Standalone Skills Studio Runbook Editor and Mechanical Linter (Direct `SKILL.md` authoring, editing & real-time linter feedback).
+  - [ ] **CARD-391**: Developer Agent and Projects Studio Workspace Integration (Active project grounding, DotAgents SDLC cards bridge).
+
