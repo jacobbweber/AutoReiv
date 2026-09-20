@@ -1,7 +1,7 @@
 ---
 id: CARD-388
 title: "Restore Developer and Tutor as Unified Agent Packs"
-status: In Review
+status: Done
 created: 2026-09-20
 adr: 0054
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-388] Restore Developer and Tutor as Unified Agent Packs
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-20  
 > **ADR Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
 > **Labels**: `type:feature`, `domain:agents`, `domain:chat`, `area:packs`  
