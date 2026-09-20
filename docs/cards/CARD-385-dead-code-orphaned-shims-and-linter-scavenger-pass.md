@@ -1,7 +1,7 @@
 ---
 id: CARD-385
 title: "Dead Code, Orphaned Shims, and Linter Scavenger Pass"
-status: In Review
+status: Done
 created: 2026-09-20
 adr: none
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-385] Dead Code, Orphaned Shims, and Linter Scavenger Pass
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-20  
 > **Labels**: `type:refactor`, `clean-up`, `domain:backend`, `domain:web`  
 > **Branch**: `feat/card-385-dead-code-orphaned-shims-scavenger` off `qa`  
