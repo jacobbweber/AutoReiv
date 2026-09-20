@@ -284,11 +284,24 @@ export function initFactoryStudio(state, callbacks = {}) {
   function onAgentSelectChanged() {
     if (!factoryAgentSelect) return;
     const val = factoryAgentSelect.value;
+    const factoryIntakeAgentIdBadge = $('factoryIntakeAgentIdBadge');
+    const factoryIntakeLivePackPath = $('factoryIntakeLivePackPath');
+    const factoryIntakeLiveCounts = $('factoryIntakeLiveCounts');
 
     if (val === '__new__') {
       if (factoryAgentModeBadge) {
         factoryAgentModeBadge.textContent = 'New';
         factoryAgentModeBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/60 border border-brand-500/30 text-brand-400';
+      }
+      if (factoryIntakeAgentIdBadge) {
+        factoryIntakeAgentIdBadge.textContent = 'New Agent';
+        factoryIntakeAgentIdBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/80 text-brand-300 border border-brand-500/30';
+      }
+      if (factoryIntakeLivePackPath) {
+        factoryIntakeLivePackPath.textContent = 'packs/<agent_id>';
+      }
+      if (factoryIntakeLiveCounts) {
+        factoryIntakeLiveCounts.textContent = 'Skills: 0 | Tools: 0';
       }
       if (factoryAgentIdInput) {
         factoryAgentIdInput.value = '';
@@ -304,6 +317,19 @@ export function initFactoryStudio(state, callbacks = {}) {
         factoryAgentModeBadge.textContent = 'Existing';
         factoryAgentModeBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400';
       }
+      const agentId = agent ? agent.id : val;
+      if (factoryIntakeAgentIdBadge) {
+        factoryIntakeAgentIdBadge.textContent = agent ? (agent.name || agent.id) : (val || 'AutoReiv');
+        factoryIntakeAgentIdBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300';
+      }
+      if (factoryIntakeLivePackPath) {
+        factoryIntakeLivePackPath.textContent = `packs/${agentId || 'AutoReiv'}`;
+      }
+      const sCount = agent && agent.allowed_skill ? agent.allowed_skill.length : (agent && agent.skills ? agent.skills.length : 0);
+      const tCount = agent && agent.tools ? agent.tools.length : 0;
+      if (factoryIntakeLiveCounts) {
+        factoryIntakeLiveCounts.textContent = `Skills: ${sCount} | Tools: ${tCount}`;
+      }
       if (agent) {
         if (factoryAgentIdInput) {
           factoryAgentIdInput.value = agent.id || '';
@@ -312,7 +338,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         if (factoryAgentNameInput) factoryAgentNameInput.value = agent.name || '';
         if (factoryAgentPromptInput) factoryAgentPromptInput.value = agent.system_prompt || agent.description || '';
         if (factoryAgentModelSelect && agent.model) factoryAgentModelSelect.value = agent.model;
-        assignedSkills = agent.allowed_skill || [];
+        assignedSkills = agent.allowed_skill ? [...agent.allowed_skill] : (agent.skills ? [...agent.skills] : []);
       }
     }
     renderAssignedSkills();
@@ -650,6 +676,26 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
+  if (factoryAgentIdInput) {
+    factoryAgentIdInput.addEventListener('input', () => {
+      if (factoryAgentSelect && factoryAgentSelect.value === '__new__') {
+        const customId = factoryAgentIdInput.value.trim();
+        const badge = $('factoryIntakeAgentIdBadge');
+        const packPath = $('factoryIntakeLivePackPath');
+        if (badge) badge.textContent = customId || 'New Agent';
+        if (packPath) packPath.textContent = customId ? `packs/${customId}` : 'packs/<agent_id>';
+      }
+    });
+  }
+
+  const factoryNewAgentBtn = $('factoryNewAgentBtn');
+  if (factoryNewAgentBtn) {
+    factoryNewAgentBtn.addEventListener('click', () => {
+      setAgentScope('__new__');
+      if (factoryAgentIdInput) factoryAgentIdInput.focus();
+    });
+  }
+
   if (factoryRefreshBtn) {
     factoryRefreshBtn.addEventListener('click', async () => {
       showToast('Refreshing workshop capabilities...', 'info');
@@ -657,6 +703,95 @@ export function initFactoryStudio(state, callbacks = {}) {
       showToast('Workshop refreshed!', 'success');
     });
   }
+
+  // Sub-view tab switching
+  const factoryTabIntakeBtn = $('factoryTabIntakeBtn');
+  const factoryTabRunsBtn = $('factoryTabRunsBtn');
+  const factoryTabPipelineBtn = $('factoryTabPipelineBtn');
+  const factoryIntakeView = $('factoryIntakeView');
+  const factoryRunsView = $('factoryRunsView');
+  const factoryPipelineView = $('factoryPipelineView');
+  const factoryNewRunBtn = $('factoryNewRunBtn');
+
+  function switchSubView(targetView) {
+    if (targetView === 'intake') {
+      if (factoryIntakeView) factoryIntakeView.classList.remove('hidden');
+      if (factoryRunsView) {
+        factoryRunsView.classList.add('hidden');
+        factoryRunsView.classList.remove('flex');
+      }
+      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
+      if (factoryNewRunBtn) {
+        factoryNewRunBtn.classList.add('hidden');
+        factoryNewRunBtn.classList.remove('flex');
+      }
+      if (factoryTabIntakeBtn) {
+        factoryTabIntakeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
+        factoryTabIntakeBtn.setAttribute('aria-selected', 'true');
+      }
+      if (factoryTabRunsBtn) {
+        factoryTabRunsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabRunsBtn.setAttribute('aria-selected', 'false');
+      }
+      if (factoryTabPipelineBtn) {
+        factoryTabPipelineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
+      }
+    } else if (targetView === 'runs') {
+      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
+      if (factoryRunsView) {
+        factoryRunsView.classList.remove('hidden');
+        factoryRunsView.classList.add('flex');
+      }
+      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
+      if (factoryNewRunBtn) {
+        factoryNewRunBtn.classList.remove('hidden');
+        factoryNewRunBtn.classList.add('flex');
+      }
+      if (factoryTabRunsBtn) {
+        factoryTabRunsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
+        factoryTabRunsBtn.setAttribute('aria-selected', 'true');
+      }
+      if (factoryTabIntakeBtn) {
+        factoryTabIntakeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
+      }
+      if (factoryTabPipelineBtn) {
+        factoryTabPipelineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
+      }
+    } else if (targetView === 'pipeline') {
+      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
+      if (factoryRunsView) {
+        factoryRunsView.classList.add('hidden');
+        factoryRunsView.classList.remove('flex');
+      }
+      if (factoryPipelineView) factoryPipelineView.classList.remove('hidden');
+      if (factoryNewRunBtn) {
+        factoryNewRunBtn.classList.add('hidden');
+        factoryNewRunBtn.classList.remove('flex');
+      }
+      if (factoryTabPipelineBtn) {
+        factoryTabPipelineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
+        factoryTabPipelineBtn.setAttribute('aria-selected', 'true');
+      }
+      if (factoryTabIntakeBtn) {
+        factoryTabIntakeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
+      }
+      if (factoryTabRunsBtn) {
+        factoryTabRunsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabRunsBtn.setAttribute('aria-selected', 'false');
+      }
+    }
+  }
+
+  if (factoryTabIntakeBtn) factoryTabIntakeBtn.addEventListener('click', () => switchSubView('intake'));
+  if (factoryTabRunsBtn) factoryTabRunsBtn.addEventListener('click', () => switchSubView('runs'));
+  if (factoryTabPipelineBtn) factoryTabPipelineBtn.addEventListener('click', () => switchSubView('pipeline'));
+
+  // Initialize sub-view to intake
+  switchSubView('intake');
 
   // ----------------------------------------------------
   // Public Controller API
@@ -666,7 +801,7 @@ export function initFactoryStudio(state, callbacks = {}) {
       await Promise.all([loadAgents(preferredAgentId), loadCapabilities()]);
     },
     setAgentScope,
-    switchSubView: () => {},
+    switchSubView,
     stopPolling: () => {},
   };
 }

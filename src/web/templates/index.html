@@ -4910,52 +4910,46 @@
           </div>
 
           <!-- Studio Actions -->
-          <div class="flex items-center space-x-2 flex-wrap sm:flex-nowrap gap-y-2">
-            <!-- Agent Scope Selector [REQ-FACT-040] -->
-            <div class="flex items-center space-x-1.5">
-              <label for="factoryAgentSelect" class="text-xs font-semibold text-slate-400 hidden md:inline">Agent:</label>
-              <select id="factoryAgentSelect" class="bg-[#13161f] border border-white/[0.08] rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
-                <option value="">All Agents (Platform View)</option>
-              </select>
-            </div>
-            <button type="button" id="factoryNewAgentBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm" title="Create New Agent Pack via AutoReiv Chat">
+          <div class="flex items-center space-x-2">
+            <button type="button" id="factoryNewAgentBtn" class="hidden md:flex px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition items-center space-x-1.5 shadow-sm" title="Create New Agent Pack">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>New Agent</span>
             </button>
             <button type="button" id="factoryRefreshBtn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Factory State">
               <i data-lucide="refresh-cw" class="w-4 h-4"></i>
             </button>
-            <button type="button" id="factoryNewRunBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center space-x-1.5">
+            <button type="button" id="factoryNewRunBtn" class="hidden px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition items-center space-x-1.5">
               <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
               <span id="factoryNewRunBtnText">New Training Run</span>
             </button>
           </div>
         </div>
 
-        <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, REQ-FACT-052] ==================== -->
-                <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, CARD-386] ==================== -->
-        <div id="factoryIntakeView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 md:p-4 flex flex-col">
-          <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 overflow-y-auto lg:overflow-hidden bg-[#08090c]">
+        <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, CARD-386] ==================== -->
+        <div id="factoryIntakeView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
+          <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">
             
             <!-- COLUMN 1: AGENT BRIEF (lg:col-span-3) -->
-            <div id="factoryIntakeAgentCard" class="lg:col-span-3 flex flex-col min-h-0 bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 shadow-xl overflow-y-auto space-y-4">
+            <div id="factoryIntakeAgentCard" class="lg:col-span-3 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
                   <h3 id="factoryIntakeAgentName" class="text-xs font-bold text-white uppercase tracking-wider">1. Agent Brief</h3>
                 </div>
-                <span id="factoryIntakeAgentIdBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/80 text-brand-300 border border-brand-500/30">AutoReiv</span>
-                  <span id="factoryAgentModeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400">Existing</span>
+                <div class="flex items-center space-x-1.5">
+                  <span id="factoryIntakeAgentIdBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/80 text-brand-300 border border-brand-500/30">New Agent</span>
+                  <span id="factoryAgentModeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/60 border border-brand-500/30 text-brand-400">New</span>
+                </div>
               </div>
 
               <!-- Live counts & pack path for inspections -->
               <div class="flex items-center justify-between text-[11px] text-slate-400">
                 <span id="factoryIntakeLiveCounts" class="font-mono text-[10px] text-slate-500">Skills: 0 | Tools: 0</span>
-                <span id="factoryIntakeLivePackPath" class="font-mono text-[10px] text-slate-500 truncate max-w-[160px]">packs/AutoReiv</span>
+                <span id="factoryIntakeLivePackPath" class="font-mono text-[10px] text-slate-500 truncate max-w-[160px]">packs/&lt;agent_id&gt;</span>
               </div>
               <select id="factoryIntakePreFillSelect" class="hidden"><option value="">Standard Scaffolding</option></select>
 
-              <!-- Agent Selector -->
+              <!-- Target Specialist Selector (Single Canonical Lever) -->
               <div>
                 <label for="factoryAgentSelect" class="block text-[11px] font-semibold text-slate-400 mb-1">Target Specialist</label>
                 <select id="factoryAgentSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-medium">
@@ -4979,7 +4973,7 @@
               <!-- Persona / System Instructions -->
               <div class="flex-1 flex flex-col min-h-0">
                 <label for="factoryAgentPromptInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Role Persona / System Instructions</label>
-                <textarea id="factoryAgentPromptInput" rows="7" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
+                <textarea id="factoryAgentPromptInput" rows="6" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
               </div>
 
               <!-- Model Selector -->
@@ -4999,7 +4993,7 @@
             </div>
 
             <!-- COLUMN 2: SKILLS & RUNBOOK (lg:col-span-5) -->
-            <div class="lg:col-span-5 flex flex-col min-h-0 bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 shadow-xl overflow-y-auto space-y-4">
+            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
@@ -5045,10 +5039,10 @@
 
                 <div>
                   <label for="factorySkillIntentInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Operator Intent &amp; Procedure Notes</label>
-                  <textarea id="factorySkillIntentInput"
+                  <textarea id="factorySkillIntentInput" rows="2" placeholder="What ordered steps, parameters, or success checks should this runbook specify?" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-brand-500 resize-y"></textarea>
                   <input type="hidden" id="factoryIntakeIntentInput" value="">
                   <input type="hidden" id="factoryIntakeObjectivesInput" value="">
-                  <input type="hidden" id="factoryIntakeDeliverableType" value="skill" rows="2" placeholder="What ordered steps, parameters, or success checks should this runbook specify?" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-brand-500 resize-y"></textarea>
+                  <input type="hidden" id="factoryIntakeDeliverableType" value="skill">
                 </div>
 
                 <!-- Generate Runbook Action -->
@@ -5072,7 +5066,7 @@
                 <!-- Save & Pin Action -->
                 <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between">
                   <button type="button" id="factoryIntakeLaunchBtn" class="hidden"></button>
-                <button type="button" id="factorySaveSkillBtn" class="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
+                  <button type="button" id="factorySaveSkillBtn" class="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
                     <i data-lucide="save" class="w-3.5 h-3.5"></i>
                     <span>💾 Save &amp; Pin Skill to Agent</span>
                   </button>
@@ -5082,7 +5076,7 @@
             </div>
 
             <!-- COLUMN 3: CAPABILITIES & GROUNDING (lg:col-span-4) -->
-            <div class="lg:col-span-4 flex flex-col min-h-0 bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 shadow-xl overflow-y-auto space-y-4">
+            <div class="lg:col-span-4 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
@@ -5105,7 +5099,7 @@
                 </div>
 
                 <!-- Capabilities Accordion Container -->
-                <div id="factoryCapabilitiesContainer" class="flex-1 overflow-y-auto max-h-[300px] bg-[#08090c]/60 rounded-xl border border-white/[0.04] p-2 space-y-2">
+                <div id="factoryCapabilitiesContainer" class="flex-1 overflow-y-auto max-h-[350px] bg-[#08090c]/60 rounded-xl border border-white/[0.04] p-2 space-y-2">
                   <div class="text-[11px] text-slate-500 italic p-2">Loading capabilities...</div>
                 </div>
               </div>
@@ -5113,12 +5107,13 @@
               <!-- Source Context Notes (Grounding) -->
               <div class="space-y-1.5 pt-2 border-t border-white/[0.04]">
                 <label for="factorySourceContextInput" class="block text-[11px] font-semibold text-slate-400">External Source Context &amp; Reference Notes</label>
-                <textarea id="factorySourceContextInput"
-                <input type="hidden" id="factoryIntakeContextInput" value="" rows="5" placeholder="Paste API documentation, cheat sheets, manual notes, or example commands so the runbook generator uses real parameters and accurate commands..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500 leading-relaxed resize-y"></textarea>
+                <textarea id="factorySourceContextInput" rows="5" placeholder="Paste API documentation, cheat sheets, manual notes, or example commands so the runbook generator uses real parameters and accurate commands..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500 leading-relaxed resize-y"></textarea>
+                <input type="hidden" id="factoryIntakeContextInput" value="">
                 <p class="text-[10px] text-slate-500">Grounding context prevents the LLM from hallucinating fake tool names or syntax.</p>
               </div>
 
             </div>
+          </div>
         </div>
 <div id="factoryPipelineView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-6 hidden">
           <!-- Flowchart Header & 8-Stage Stepper Container -->
