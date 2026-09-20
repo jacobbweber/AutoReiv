@@ -60,16 +60,16 @@ def test_reconciler_purges_stale_platform_agent_from_db_and_disk(test_env):
 
     # 3. Seed a retired platform agent (in RETIRED_PLATFORM_PACK_IDS)
     retired_profile = AgentProfile(
-        id="developer",
-        name="Developer",
-        description="Absorbed developer",
-        system_prompt="Developer prompt",
+        id="forge",
+        name="Forge",
+        description="Absorbed forge",
+        system_prompt="Forge prompt",
         origin=AgentOrigin.CUSTOM,  # Legacy row default
     )
     store.save_agent_profile(retired_profile)
-    (packs_dir / "developer").mkdir()
-    (packs_dir / "developer" / "pack.json").write_text(
-        json.dumps({"id": "developer", "name": "Developer"}),
+    (packs_dir / "forge").mkdir()
+    (packs_dir / "forge" / "pack.json").write_text(
+        json.dumps({"id": "forge", "name": "Forge"}),
         encoding="utf-8",
     )
 
@@ -99,9 +99,9 @@ def test_reconciler_purges_stale_platform_agent_from_db_and_disk(test_env):
 
     # Verify report
     assert "old-platform-helper" in report.purged_database_agents
-    assert "developer" in report.purged_database_agents
+    assert "forge" in report.purged_database_agents
     assert "old-platform-helper" in report.purged_pack_directories
-    assert "developer" in report.purged_pack_directories
+    assert "forge" in report.purged_pack_directories
     assert "my-custom-researcher" in report.preserved_custom_agents
     assert "autoreiv" in report.active_platform_agents
 
@@ -109,14 +109,14 @@ def test_reconciler_purges_stale_platform_agent_from_db_and_disk(test_env):
     assert store.get_agent_profile("autoreiv") is not None
     assert store.get_agent_profile("my-custom-researcher") is not None
     assert store.get_agent_profile("old-platform-helper") is None
-    assert store.get_agent_profile("developer") is None
+    assert store.get_agent_profile("forge") is None
 
     # Verify Filesystem state
     assert (packs_dir / "autoreiv").exists()
     assert (packs_dir / "my-custom-researcher").exists()
     assert (custom_pack / "my-custom-researcher_storage.db").exists()
     assert not (packs_dir / "old-platform-helper").exists()
-    assert not (packs_dir / "developer").exists()
+    assert not (packs_dir / "forge").exists()
 
 
 def test_reconciler_strictly_preserves_custom_agents(test_env):

@@ -139,3 +139,5 @@ def test_agent_builder_hidden_from_chat_platform_packs_visible():
     assert AGENT_BUILDER_PROFILE.show_in_chat is False
     assert platform_pack_profile("autoreiv").show_in_chat is True
     assert platform_pack_profile("direct").show_in_chat is True
+    assert platform_pack_profile("developer").show_in_chat is True
+    assert platform_pack_profile("tutor").show_in_chat is True

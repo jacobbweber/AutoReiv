@@ -32,13 +32,17 @@ def test_canonical_agent_id_maps_all_legacy_aliases():
         "linux-sysadmin",
         "sysadmin",
         "auditor-critic",
-        "developer",
-        "tutor",
         "forge",
     ]
     for alias in expected_aliases:
         assert canonical_agent_id(alias) == "autoreiv", f"Alias {alias} should resolve to autoreiv"
         assert alias in LEGACY_AGENT_ALIASES
+
+    # CARD-388: developer and tutor are first-class platform agents, not aliases
+    assert canonical_agent_id("developer") == "developer"
+    assert canonical_agent_id("tutor") == "tutor"
+    assert "developer" not in LEGACY_AGENT_ALIASES
+    assert "tutor" not in LEGACY_AGENT_ALIASES
 
     # Preserves catalog/specialist and unknown custom agents
     assert canonical_agent_id("coding") == "coding"
@@ -75,7 +79,8 @@ def test_specialist_agent_resolution_uses_canonical_agent():
     """Verify resolve_specialist_agent_for_capabilities maps legacy inputs to canonical autoreiv."""
     assert resolve_specialist_agent_for_capabilities([], "assistant") == "autoreiv"
     assert resolve_specialist_agent_for_capabilities([], "wiki") == "autoreiv"
-    assert resolve_specialist_agent_for_capabilities([], "developer") == "autoreiv"
+    assert resolve_specialist_agent_for_capabilities([], "developer") == "developer"
+    assert resolve_specialist_agent_for_capabilities([], "tutor") == "tutor"
     assert resolve_specialist_agent_for_capabilities([], "custom_bot") == "custom_bot"
 
     # Capability matching

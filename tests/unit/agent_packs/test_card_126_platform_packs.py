@@ -33,7 +33,7 @@ def _bootstrap(tmp_path):
 
 
 def test_platform_packs_parse_as_schema_1_1():
-    for pack_id in ("autoreiv", "direct"):
+    for pack_id in ("autoreiv", "direct", "developer", "tutor"):
         manifest = load_platform_manifest(pack_id)
         assert manifest.schema_version == "1.1"
         assert manifest.id == pack_id
@@ -100,19 +100,19 @@ def test_builtins_are_only_hidden_agent_builder():
     assert get_builtin_profile("agent-builder").show_in_chat is False
     assert not is_platform_pack("assistant")
     assert is_platform_pack("autoreiv")
-    assert not is_platform_pack("developer")
+    assert is_platform_pack("developer")
     assert not is_platform_pack("wiki")
-    assert not is_platform_pack("tutor")
+    assert is_platform_pack("tutor")
     assert is_platform_pack("direct")
     assert not is_platform_pack("forge")
     assert not is_platform_pack("conductor")
-    assert PLATFORM_PACK_IDS == {"autoreiv", "direct"}
+    assert PLATFORM_PACK_IDS == {"autoreiv", "direct", "developer", "tutor"}
 
 
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     data_dir, registry, _tool_reg = _bootstrap(tmp_path)
     ids = {a.id for a in registry.list_agents()}
-    assert {"autoreiv", "direct", "agent-builder"} <= ids
+    assert {"autoreiv", "direct", "developer", "tutor", "agent-builder"} <= ids
     assert "assistant" not in ids
     assert "wiki" not in ids
     assert "conductor" not in ids
@@ -120,14 +120,18 @@ def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     assert "review" not in ids
     autoreiv = registry.get_agent("autoreiv")
     direct = registry.get_agent("direct")
+    developer = registry.get_agent("developer")
+    tutor = registry.get_agent("tutor")
     assert autoreiv is not None and autoreiv.is_builtin is False
     assert direct is not None and direct.is_builtin is False
+    assert developer is not None and developer.is_builtin is False
+    assert tutor is not None and tutor.is_builtin is False
     assert (data_dir / "packs" / "autoreiv" / "pack.json").is_file()
     assert (data_dir / "packs" / "direct" / "pack.json").is_file()
+    assert (data_dir / "packs" / "developer" / "pack.json").is_file()
+    assert (data_dir / "packs" / "tutor" / "pack.json").is_file()
     assert not (data_dir / "packs" / "assistant" / "pack.json").is_file()
     assert not (data_dir / "packs" / "wiki" / "pack.json").is_file()
-    assert not (data_dir / "packs" / "developer" / "pack.json").is_file()
-    assert not (data_dir / "packs" / "tutor" / "pack.json").is_file()
     assert not (data_dir / "packs" / "forge" / "pack.json").is_file()
     assert not (data_dir / "packs" / "conductor" / "pack.json").is_file()
     assert "wiki" in autoreiv.allowed_skill
@@ -162,8 +166,8 @@ def test_seed_platform_ids():
     """Platform seed ids are autoreiv and direct."""
     from src.infrastructure.skills import platform_packs as pp
 
-    assert pp.PLATFORM_PACK_IDS == ("autoreiv", "direct")
-    assert pp.ALL_PLATFORM_PACK_IDS == ("autoreiv", "direct")
+    assert pp.PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor")
+    assert pp.ALL_PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor")
 
     assert not hasattr(pp, "HOMELAB_PACK_IDS") or getattr(pp, "HOMELAB_PACK_IDS", ()) == ()
     # Repo platform-packs/ must not ship user-class homelab seeds

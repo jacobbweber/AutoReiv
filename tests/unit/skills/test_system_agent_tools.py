@@ -100,11 +100,11 @@ def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
 
     profiles = agent_reg.list_profiles()
     ids = {p.id for p in profiles}
-    assert {"autoreiv", "direct", "agent-builder"} <= ids
-    assert "developer" not in ids
-    assert "tutor" not in ids
+    assert {"autoreiv", "direct", "agent-builder", "developer", "tutor"} <= ids
     assert "coding" not in ids
     assert "assistant" not in ids
+    assert "wiki" not in ids
+    assert "forge" not in ids
 
     assert tool_reg.get_tool_definition("execute_code") is not None
 

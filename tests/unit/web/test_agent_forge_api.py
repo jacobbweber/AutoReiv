@@ -31,9 +31,7 @@ async def test_agent_forge_crud_api(app):
         assert list_resp.status_code == 200
         agents = list_resp.json()
         ids = {a["id"] for a in agents}
-        assert {"autoreiv", "direct", "agent-builder"} <= ids
-        assert "developer" not in ids
-        assert "tutor" not in ids
+        assert {"autoreiv", "direct", "developer", "tutor", "agent-builder"} <= ids
         assert "assistant" not in ids
         assert "wiki" not in ids
         assert "coding" not in ids
@@ -43,6 +41,10 @@ async def test_agent_forge_crud_api(app):
         assert ab["show_in_chat"] is False
         ar = next(a for a in agents if a["id"] == "autoreiv")
         assert ar["show_in_chat"] is True
+        dev = next(a for a in agents if a["id"] == "developer")
+        assert dev["show_in_chat"] is True
+        tut = next(a for a in agents if a["id"] == "tutor")
+        assert tut["show_in_chat"] is True
 
         # 3. Create Custom Agent
         new_agent = {
@@ -269,9 +271,9 @@ async def test_platform_agents_chat_visibility(app):
         listed = {a["id"]: a for a in (await ac.get("/api/agents")).json()}
         assert listed["autoreiv"]["show_in_chat"] is True
         assert listed["direct"]["show_in_chat"] is True
+        assert listed["developer"]["show_in_chat"] is True
+        assert listed["tutor"]["show_in_chat"] is True
         assert listed["agent-builder"]["show_in_chat"] is False
-        assert "developer" not in listed
-        assert "tutor" not in listed
         assert "assistant" not in listed
         assert "wiki" not in listed
 

@@ -77,8 +77,9 @@ def test_is_visible_in_chat_sdlc_pack_ids():
     # Conductor is retired from active chat along with coding and review [CARD-181]
     assert is_visible_in_chat({"id": "conductor", "show_in_chat": True}) is False
     assert is_visible_in_chat({"id": "conductor", "show_in_chat": False}) is False
-    # CARD-366: Developer is absorbed into autoreiv; developer and wiki are retired/hidden
-    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is False
+    # CARD-388: Developer and Tutor restored as platform packs visible in chat
+    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is True
+    assert is_visible_in_chat({"id": "tutor", "show_in_chat": True}) is True
     assert is_visible_in_chat({"id": "autoreiv", "show_in_chat": True}) is True
     assert is_visible_in_chat({"id": "wiki", "show_in_chat": True}) is False
 
