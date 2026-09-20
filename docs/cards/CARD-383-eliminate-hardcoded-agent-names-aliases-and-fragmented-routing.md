@@ -1,7 +1,7 @@
 ---
 id: CARD-383
 title: "Eliminate Hardcoded Agent Names, Aliases and Fragmented Routing"
-status: In Review
+status: Done
 created: 2026-09-20
 adr: none
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-383] Eliminate Hardcoded Agent Names, Aliases and Fragmented Routing
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-20  
 > **Labels**: `type:refactor`, `domain:agents`, `domain:kernel`, `frontend`, `clean-up`  
 > **Branch**: `feat/card-383-eliminate-hardcoded-agent-names` off `qa`  
