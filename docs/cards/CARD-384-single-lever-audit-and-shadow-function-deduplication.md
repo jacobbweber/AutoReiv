@@ -1,7 +1,7 @@
 ---
 id: CARD-384
 title: "Single Lever Audit and Shadow Function Deduplication"
-status: In Review
+status: Done
 created: 2026-09-20
 adr: none
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-384] Single Lever Audit and Shadow Function Deduplication
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-20  
 > **Labels**: `type:refactor`, `domain:frontend`, `domain:web`, `clean-up`  
 > **Branch**: `feat/card-384-single-lever-shadow-function-dedup` off `qa`  
