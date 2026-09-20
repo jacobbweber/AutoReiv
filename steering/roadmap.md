@@ -83,7 +83,7 @@
   - [x] **CARD-388**: Restore Developer and Tutor as Unified Agent Packs (Re-seed packs, model routing, Chat Studio front door selection).
   - [x] **CARD-389**: Uniform Skill-First Architecture and Agent Forge Realignment (Zero naked tools, editable display names, specialty storage toggle).
   - [x] **CARD-390**: Integrated Runbook Editor and Mechanical Capability Linter (Direct `SKILL.md` authoring, live ADR-0054 validation feedback in Agent Studio, pre-save guard, and canonical blueprint).
-  - [ ] **CARD-391**: Developer Agent and Projects Studio Workspace Integration (Active project grounding, DotAgents SDLC cards bridge).
+  - [x] **CARD-391**: Developer Agent and Projects Studio Workspace Integration (Active project grounding, DotAgents SDLC cards bridge).
   - [ ] **CARD-392**: AutoReiv Hosted MCP Server and Cross-Instance Federation (Inbound HTTP/SSE MCP server, multi-instance federation).
 
 
