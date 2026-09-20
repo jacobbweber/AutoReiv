@@ -603,6 +603,16 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
                 headers=req.headers,
             )
             mounted_tools = [t.name for t in tools]
+            if tools:
+                from src.infrastructure.mcp.companion_author import author_mcp_companion_skill
+
+                data_dir = getattr(request.app.state, "data_dir", None)
+                author_mcp_companion_skill(
+                    server_name=req.name,
+                    tools=tools,
+                    url=req.url,
+                    data_dir=data_dir,
+                )
         except Exception as e:
             return {
                 "status": "saved",

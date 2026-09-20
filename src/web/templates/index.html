@@ -3382,6 +3382,29 @@
             </button>
           </div>
 
+          <!-- Hosted MCP Server Status Banner [CARD-392] -->
+          <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] font-semibold">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Hosted MCP Server Active</span>
+                </span>
+                <span class="text-slate-400 text-[11px]">Port 8000 (HTTP/SSE)</span>
+              </div>
+              <div class="font-mono text-[11px] text-indigo-300/90 flex items-center space-x-2">
+                <span>Endpoint:</span>
+                <code class="bg-black/40 px-2 py-0.5 rounded border border-white/[0.06] text-indigo-200">/api/mcp/sse</code>
+                <span class="text-slate-500">•</span>
+                <span>Messages:</span>
+                <code class="bg-black/40 px-2 py-0.5 rounded border border-white/[0.06] text-indigo-200">/api/mcp/messages</code>
+              </div>
+            </div>
+            <div class="text-[11px] text-slate-400 max-w-sm">
+              Connect external AI tools (Claude Desktop, Cursor) or peer AutoReiv instances via cross-instance federation.
+            </div>
+          </div>
+
           <!-- Add MCP Server Form (Collapsible) -->
           <div id="mcpServerFormContainer" class="hidden p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-4 text-xs">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">

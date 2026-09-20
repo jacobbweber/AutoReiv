@@ -52,6 +52,7 @@ from src.web.routers.education import router as education_router
 from src.web.routers.education_priming import router as education_priming_router
 from src.web.routers.gaps import router as gaps_router
 from src.web.routers.hitl import router as hitl_router
+from src.web.routers.mcp_server import router as mcp_server_router
 from src.web.routers.observability import router as observability_router
 from src.web.routers.projects import router as projects_router
 from src.web.routers.prompts import router as prompts_router
@@ -443,6 +444,7 @@ def create_app(
     app.include_router(prompts_router)
     app.include_router(credentials_router)
     app.include_router(remote_hosts_router)
+    app.include_router(mcp_server_router)
 
     # 11. Static Files & Root Template View
     base_web_dir = Path(__file__).parent
