@@ -655,6 +655,8 @@ export function initChatStudio(state, callbacks = {}) {
   const newChatBtn = $('newChatBtn');
   const activeAgentTitle = $('activeAgentTitle');
   const activeAgentTone = $('activeAgentTone');
+  const chatActiveProjectPill = $('chatActiveProjectPill');
+  const chatActiveProjectName = $('chatActiveProjectName');
   const messagesContainer = $('messagesContainer');
   const chatSessionsDrawer = $('chatSessionsDrawer');
   const chatSessionsDrawerCloseBtn = $('chatSessionsDrawerCloseBtn');
@@ -713,6 +715,20 @@ export function initChatStudio(state, callbacks = {}) {
       } else {
         openChatSessionsDrawer(chatSessionsDrawer, viewChat);
       }
+    });
+  }
+
+  if (chatActiveProjectPill) {
+    chatActiveProjectPill.addEventListener('click', () => {
+      const tabProjects = $('tab-projects');
+      if (tabProjects) tabProjects.click();
+    });
+  }
+
+  const tabChat = $('tab-chat');
+  if (tabChat) {
+    tabChat.addEventListener('click', () => {
+      syncActiveProjectIndicator();
     });
   }
 
@@ -1386,6 +1402,7 @@ export function initChatStudio(state, callbacks = {}) {
       updateActiveAgentHeader();
       await loadSessions();
       await refreshPendingHitl();
+      await syncActiveProjectIndicator();
       safeCreateIcons();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load agents:', err);
@@ -1408,6 +1425,36 @@ export function initChatStudio(state, callbacks = {}) {
 
     await loadSessions();
     await refreshPendingHitl();
+    await syncActiveProjectIndicator();
+  }
+
+  async function syncActiveProjectIndicator() {
+    if (!chatActiveProjectPill || !chatActiveProjectName) return;
+    try {
+      const res = await fetch('/api/projects/selected');
+      if (!res.ok) {
+        chatActiveProjectPill.classList.add('hidden');
+        chatActiveProjectPill.classList.remove('inline-flex');
+        return;
+      }
+      const data = await res.json();
+      const proj = data && data.selected;
+      const isDeveloper = state.selectedAgentId === 'developer';
+      if (isDeveloper && proj && (proj.slug || proj.name || proj.path)) {
+        const displayName = proj.name || proj.slug || (proj.path ? proj.path.split(/[\\/]/).pop() : 'Active Project');
+        chatActiveProjectName.textContent = displayName;
+        chatActiveProjectPill.title = `Active Project: ${displayName} (${proj.path || ''}) — click to open in Projects Studio`;
+        chatActiveProjectPill.classList.remove('hidden');
+        chatActiveProjectPill.classList.add('inline-flex');
+        safeCreateIcons();
+      } else {
+        chatActiveProjectPill.classList.add('hidden');
+        chatActiveProjectPill.classList.remove('inline-flex');
+      }
+    } catch {
+      chatActiveProjectPill.classList.add('hidden');
+      chatActiveProjectPill.classList.remove('inline-flex');
+    }
   }
 
   function updateEngineSelectorUi(activeId) {
@@ -4003,6 +4050,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   startPendingHitlPoll();
   loadAgents();
+  syncActiveProjectIndicator();
 
 
   async function startNewAgentAuthoring() {
@@ -4039,6 +4087,7 @@ export function initChatStudio(state, callbacks = {}) {
     loadSessions,
     switchSelectedAgent,
     switchEngineChannel,
+    syncActiveProjectIndicator,
     updateEngineSelectorUi,
     startNewAgentAuthoring,
     updateActiveAgentHeader,

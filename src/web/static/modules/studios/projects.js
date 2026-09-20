@@ -136,6 +136,7 @@ export function initProjectsStudio(state, callbacks = {}) {
   function updateActiveHeader(project) {
     const activeName = $('projectsActiveName');
     const activeBadge = $('projectsActiveBadge');
+    const pairDevBtn = $('projectsPairDeveloperBtn');
     if (activeName) {
       activeName.textContent = project ? (project.name || project.slug) : 'None';
       activeName.title = project ? (project.path || project.slug) : 'No project selected';
@@ -145,6 +146,13 @@ export function initProjectsStudio(state, callbacks = {}) {
         activeBadge.classList.remove('hidden');
       } else {
         activeBadge.classList.add('hidden');
+      }
+    }
+    if (pairDevBtn) {
+      if (project && project.path) {
+        pairDevBtn.classList.remove('hidden');
+      } else {
+        pairDevBtn.classList.add('hidden');
       }
     }
   }
@@ -646,6 +654,35 @@ export function initProjectsStudio(state, callbacks = {}) {
       } catch (err) {
         toast(String(err.message || err), 'error');
       }
+    });
+  }
+
+  // Pair with Developer Button [CARD-391]
+  const pairDeveloperBtn = $('projectsPairDeveloperBtn');
+  if (pairDeveloperBtn) {
+    pairDeveloperBtn.addEventListener('click', () => {
+      if (!activeProject || !activeProject.path) {
+        toast('No active project selected to pair with.', 'warning');
+        return;
+      }
+      const chatTab = $('tab-chat');
+      if (chatTab) chatTab.click();
+
+      const agentSelect = $('agentSelect');
+      if (agentSelect) {
+        agentSelect.value = 'developer';
+        agentSelect.dispatchEvent(new Event('change'));
+      }
+
+      const promptInput = $('promptInput');
+      if (promptInput) {
+        const projName = activeProject.name || activeProject.slug || 'active project';
+        promptInput.value = `I'm pairing with you on ${projName}. Inspect the workspace structure, read our active work cards, and outline the current status.`;
+        promptInput.dispatchEvent(new Event('input'));
+        promptInput.focus();
+      }
+
+      toast(`Pairing with Developer on ${activeProject.name || activeProject.slug}`, 'success');
     });
   }
 

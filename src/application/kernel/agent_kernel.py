@@ -547,6 +547,8 @@ class AgentKernel:
         # Active Selected Project Context [Projects Studio / SDLC]
         if self.state_store:
             try:
+                from pathlib import Path
+
                 from src.application.sdlc.projects_service import ProjectsService
 
                 proj_svc = ProjectsService(store=self.state_store)
@@ -560,6 +562,20 @@ class AgentKernel:
                         f"- Path: {proj_path}\n"
                         "All project code, tests, scripts, and CLI commands should target this project directory unless explicitly instructed otherwise. Use write_project_file, read_project_file, and list_project_dir to manage files inside this project, and cli_exec to run tests and scripts directly within this directory."
                     )
+                    extra_lines = []
+                    root_path = Path(proj_path)
+                    if (root_path / "AGENTS.md").is_file():
+                        extra_lines.append("Governance: AGENTS.md present at project root.")
+                    cards_dir = root_path / ".agents" / "cards"
+                    if not cards_dir.is_dir():
+                        cards_dir = root_path / "docs" / "cards"
+                    if cards_dir.is_dir():
+                        card_files = [p.name for p in cards_dir.glob("CARD-*.md") if p.is_file()]
+                        if card_files:
+                            recent = sorted(card_files)[-5:]
+                            extra_lines.append(f"Active Work Cards ({len(card_files)} total): Recent: {', '.join(recent)}")
+                    if extra_lines:
+                        project_context = project_context + "\n" + "\n".join(f"- {line}" for line in extra_lines)
                     base_prompt = f"{base_prompt}\n\n{project_context}"
             except Exception as e:
                 logger.debug(f"Active project context injection skipped: {e}")

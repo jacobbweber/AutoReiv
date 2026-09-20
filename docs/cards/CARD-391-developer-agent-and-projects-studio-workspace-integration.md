@@ -1,7 +1,7 @@
 ---
 id: CARD-391
 title: "Developer Agent and Projects Studio Workspace Integration"
-status: Ready
+status: In Review
 created: 2026-09-20
 adr: 0054
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-391] Developer Agent and Projects Studio Workspace Integration
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-20  
 > **ADR Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md), [ADR-0051](file:///d:/Projects/Active/AutoReiv/docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md)  
 > **Labels**: `type:feature`, `domain:developer`, `domain:projects`, `area:sdlc`  
