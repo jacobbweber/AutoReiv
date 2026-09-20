@@ -65,7 +65,7 @@ export const RETIRED_LEGACY_AGENT_IDS = Object.freeze(
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
   if (agent.visibility === 'internal') return false;
-  if (agent.origin === 'system' && agent.id !== 'autoreiv' && agent.id !== 'direct') return false;
+  if (agent.origin === 'system' && agent.id !== 'autoreiv' && agent.id !== 'direct' && agent.id !== 'developer' && agent.id !== 'tutor') return false;
   if (RETIRED_LEGACY_AGENT_IDS.has(agent.id)) return false;
   return agent.show_in_chat !== false;
 }
@@ -652,7 +652,10 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
 
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
+  const chatEngineSelector = $('chatEngineSelector');
   const engineBtnCore = $('engineBtnCore');
+  const engineBtnDeveloper = $('engineBtnDeveloper');
+  const engineBtnTutor = $('engineBtnTutor');
   const engineBtnDirect = $('engineBtnDirect');
   const sessionList = $('sessionList');
   const newChatBtn = $('newChatBtn');
@@ -1356,12 +1359,71 @@ export function initChatStudio(state, callbacks = {}) {
     }, PENDING_HITL_POLL_MS);
   }
 
+  function renderEngineSelectorPills(chatAgents) {
+    if (!chatEngineSelector) return;
+    chatEngineSelector.innerHTML = '';
+    (chatAgents || []).forEach((agent) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.engine = agent.id;
+      btn.dataset.agentId = agent.id;
+      if (agent.id === 'autoreiv') {
+        btn.id = 'engineBtnCore';
+      } else if (agent.id === 'direct') {
+        btn.id = 'engineBtnDirect';
+      } else if (agent.id === 'developer') {
+        btn.id = 'engineBtnDeveloper';
+      } else if (agent.id === 'tutor') {
+        btn.id = 'engineBtnTutor';
+      } else {
+        btn.id = `engineBtn_${agent.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      }
+
+      let iconName = 'user';
+      let iconColorClass = 'text-slate-400';
+      if (agent.id === 'autoreiv') {
+        iconName = 'zap';
+        iconColorClass = 'text-amber-300';
+      } else if (agent.id === 'direct') {
+        iconName = 'message-square';
+        iconColorClass = 'text-emerald-300';
+      } else if (agent.id === 'developer') {
+        iconName = 'code';
+        iconColorClass = 'text-sky-300';
+      } else if (agent.id === 'tutor') {
+        iconName = 'graduation-cap';
+        iconColorClass = 'text-violet-300';
+      } else if (agent.avatar_icon) {
+        iconName = agent.avatar_icon;
+      }
+
+      btn.title = `${agent.name}: ${agent.description || agent.id}`;
+      const isActive = agent.id === state.selectedAgentId;
+      btn.className = isActive
+        ? 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs flex-shrink-0'
+        : 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs flex-shrink-0';
+
+      const iconEl = document.createElement('i');
+      iconEl.setAttribute('data-lucide', iconName);
+      iconEl.className = `w-3.5 h-3.5 ${isActive ? iconColorClass : 'text-slate-400'}`;
+      btn.appendChild(iconEl);
+
+      const spanEl = document.createElement('span');
+      spanEl.textContent = agent.name;
+      btn.appendChild(spanEl);
+
+      btn.addEventListener('click', () => switchSelectedAgent(agent.id));
+      chatEngineSelector.appendChild(btn);
+    });
+    safeCreateIcons();
+  }
+
   async function loadAgents() {
     try {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.agents = await res.json();
-      const chatAgents = dualEngineAgentsVisibleInChat(state.agents);
+      const chatAgents = agentsVisibleInChat(state.agents);
 
       if (agentSelect) {
         agentSelect.innerHTML = '';
@@ -1373,16 +1435,17 @@ export function initChatStudio(state, callbacks = {}) {
         });
       }
 
-
       const savedAgentId = storageGet('autoreiv_active_agent_id');
       const visibleIds = chatAgents.map((a) => a.id);
       if (savedAgentId && visibleIds.includes(savedAgentId)) {
         state.selectedAgentId = savedAgentId;
       } else if (!state.selectedAgentId || !visibleIds.includes(state.selectedAgentId)) {
-        state.selectedAgentId = chatAgents.length > 0 ? chatAgents[0].id : 'autoreiv';
+        state.selectedAgentId = visibleIds.includes('autoreiv') ? 'autoreiv' : (chatAgents.length > 0 ? chatAgents[0].id : 'autoreiv');
       }
 
       if (agentSelect) agentSelect.value = state.selectedAgentId;
+
+      renderEngineSelectorPills(chatAgents);
 
       if (trainAgentTargetSelect) {
         populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, state.selectedAgentId || 'autoreiv');
@@ -1417,27 +1480,27 @@ export function initChatStudio(state, callbacks = {}) {
 
   function updateEngineSelectorUi(activeId) {
     const isDirect = activeId === 'direct';
-    if (engineBtnCore) {
-      if (!isDirect) {
-        engineBtnCore.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs';
-        const icon = engineBtnCore.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-amber-300';
-      } else {
-        engineBtnCore.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs';
-        const icon = engineBtnCore.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-slate-400';
-      }
-    }
-    if (engineBtnDirect) {
-      if (isDirect) {
-        engineBtnDirect.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs';
-        const icon = engineBtnDirect.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-emerald-300';
-      } else {
-        engineBtnDirect.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs';
-        const icon = engineBtnDirect.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-slate-400';
-      }
+    if (chatEngineSelector) {
+      const buttons = chatEngineSelector.querySelectorAll('button[data-agent-id], button[data-engine]');
+      buttons.forEach((btn) => {
+        const btnId = btn.dataset.agentId || btn.dataset.engine;
+        const isActive = btnId === activeId;
+        const icon = btn.querySelector('i');
+        if (isActive) {
+          btn.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs flex-shrink-0';
+          if (icon) {
+            let color = 'text-white';
+            if (btnId === 'autoreiv') color = 'text-amber-300';
+            else if (btnId === 'direct') color = 'text-emerald-300';
+            else if (btnId === 'developer') color = 'text-sky-300';
+            else if (btnId === 'tutor') color = 'text-violet-300';
+            icon.className = `w-3.5 h-3.5 ${color}`;
+          }
+        } else {
+          btn.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs flex-shrink-0';
+          if (icon) icon.className = 'w-3.5 h-3.5 text-slate-400';
+        }
+      });
     }
     if (jobPhaseStatusStrip && isDirect) {
       jobPhaseStatusStrip.classList.add('hidden');
@@ -1445,12 +1508,18 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   async function switchEngineChannel(engineId) {
-    if (engineId !== 'autoreiv' && engineId !== 'direct') return;
+    if (!engineId) return;
     await switchSelectedAgent(engineId);
   }
 
   if (engineBtnCore) {
     engineBtnCore.addEventListener('click', () => switchEngineChannel('autoreiv'));
+  }
+  if (engineBtnDeveloper) {
+    engineBtnDeveloper.addEventListener('click', () => switchEngineChannel('developer'));
+  }
+  if (engineBtnTutor) {
+    engineBtnTutor.addEventListener('click', () => switchEngineChannel('tutor'));
   }
   if (engineBtnDirect) {
     engineBtnDirect.addEventListener('click', () => switchEngineChannel('direct'));
@@ -1469,7 +1538,7 @@ export function initChatStudio(state, callbacks = {}) {
       if (activeAgentTone) {
         activeAgentTone.textContent = isDirect
           ? 'Engine: Direct LLM (Zero Tools)'
-          : 'Engine: AutoReiv Core (Orchestrated)';
+          : `Engine: ${agent.name}`;
       }
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
     } else {
