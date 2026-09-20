@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
+describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
   let html;
 
   beforeEach(() => {
@@ -15,118 +15,78 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(html).toContain('data-tab="factory"');
   });
 
-  it('declares dedicated Factory Studio view container with two sub-view switchers [REQ-FACT-035]', () => {
+  it('declares dedicated Factory Studio view container with 3-column scaffolder workshop [CARD-386]', () => {
     expect(html).toContain('id="view-factory"');
-    expect(html).toContain('id="factoryTabPipelineBtn"');
-    expect(html).toContain('id="factoryTabRunsBtn"');
-    expect(html).toContain('id="factoryPipelineView"');
-    expect(html).toContain('id="factoryRunsView"');
+    expect(html).toContain('id="factoryStudio"');
+    expect(html).toContain('id="factoryIntakeView"');
+    expect(html).not.toContain('id="factoryTabPipelineBtn"');
+    expect(html).not.toContain('id="factoryTabRunsBtn"');
+    expect(html).not.toContain('id="factoryTabIntakeBtn"');
+    expect(html).not.toContain('id="factoryPipelineView"');
+    expect(html).not.toContain('id="factoryRunsView"');
   });
 
-  it('renders 8-stage visual flowchart and Phase Prompt Inspector [REQ-FACT-036]', () => {
-    expect(html).toContain('id="factoryFlowchartContainer"');
-    expect(html).toContain('id="factoryPhaseInspector"');
-    expect(html).toContain('id="factoryInspectorStageTitle"');
-    expect(html).toContain('id="factoryInspectorStageDesc"');
-    expect(html).toContain('id="factoryInspectorStatusBadge"');
-    expect(html).toContain('id="factoryContextVarPills"');
-    expect(html).toContain('id="factoryPhasePromptInput"');
-    expect(html).toContain('id="factorySavePromptBtn"');
-    expect(html).toContain('id="factoryResetPromptBtn"');
+  it('prunes legacy 8-stage visual flowchart and Phase Prompt Inspector [CARD-386]', () => {
+    expect(html).not.toContain('id="factoryFlowchartContainer"');
+    expect(html).not.toContain('id="factoryPhaseInspector"');
+    expect(html).not.toContain('id="factoryPhasePromptInput"');
+    expect(html).not.toContain('id="factoryInspectorStageTitle"');
+    expect(html).not.toContain('id="factorySavePromptBtn"');
+    expect(html).not.toContain('id="factoryResetPromptBtn"');
   });
 
-  it('renders two-pane workspace for training runs, HITL gate, and live packet feed [REQ-FACT-037]', () => {
-    expect(html).toContain('id="factoryRunsListPane"');
-    expect(html).toContain('id="factoryRunSearchInput"');
-    expect(html).toContain('id="factoryRunsList"');
-    expect(html).toContain('id="factoryRunDetailPane"');
-    expect(html).toContain('id="factoryDetailJobBadge"');
-    expect(html).toContain('id="factoryDetailStatusPill"');
-    expect(html).toContain('id="factoryDetailRetryBtn"');
-    expect(html).toContain('id="factoryDetailCopyFeedBtn"');
-    expect(html).toContain('id="factoryDetailStepper"');
-    expect(html).toContain('id="factoryDetailHitlCard"');
-    expect(html).toContain('id="factoryDetailApproveBtn"');
-    expect(html).toContain('id="factoryDetailRejectBtn"');
-    expect(html).toContain('id="factoryDetailArtifactPills"');
-    expect(html).toContain('id="factoryDetailPacketsFeed"');
-    expect(html).toContain('id="factoryDetailPacketCount"');
+  it('prunes legacy training runs pane, HITL card, and live packet feed [CARD-386]', () => {
+    expect(html).not.toContain('id="factoryRunsListPane"');
+    expect(html).not.toContain('id="factoryRunSearchInput"');
+    expect(html).not.toContain('id="factoryRunsList"');
+    expect(html).not.toContain('id="factoryRunDetailPane"');
+    expect(html).not.toContain('id="factoryDetailHitlCard"');
+    expect(html).not.toContain('id="factoryDetailPacketsFeed"');
+    expect(html).not.toContain('id="factoryDetailStepper"');
+    expect(html).not.toContain('id="factoryDetailApproveBtn"');
+    expect(html).not.toContain('id="factoryDetailRejectBtn"');
   });
 
-  it('provides new training run launcher button in studio header [REQ-FACT-038]', () => {
-    expect(html).toContain('id="factoryNewRunBtn"');
+  it('prunes obsolete new training run button and mobile back button [CARD-386]', () => {
+    expect(html).not.toContain('id="factoryNewRunBtn"');
+    expect(html).not.toContain('id="factoryNewRunBtnText"');
+    expect(html).not.toContain('id="factoryMobileBackToRunsBtn"');
   });
 
-  it('includes mobile responsiveness back navigation button for run details [REQ-FACT-039]', () => {
-    expect(html).toContain('id="factoryMobileBackToRunsBtn"');
-  });
-
-  it('exports 8-stage pipeline metadata and ordering [REQ-FACT-036]', async () => {
-    const { PHASE_METADATA, PHASE_ORDER } = await import('../../../src/web/static/modules/studios/factory.js');
-    expect(PHASE_METADATA).toHaveLength(8);
-    expect(PHASE_ORDER).toEqual([
-      'intent_distill',
-      'ground',
-      'blueprint',
-      'author',
-      'scenario_verify',
-      'verify',
-      'optimize',
-      'promote',
-    ]);
-    expect(PHASE_METADATA[0].id).toBe('intent_distill');
-    expect(PHASE_METADATA[7].id).toBe('promote');
-  });
-
-  it('calculates progress index for active and legacy nodes [REQ-FACT-037]', async () => {
-    const { calculateProgressIndex } = await import('../../../src/web/static/modules/studios/factory.js');
-    expect(calculateProgressIndex('intent_distill', 'running')).toBe(0);
-    expect(calculateProgressIndex('blueprint', 'running')).toBe(2);
-    expect(calculateProgressIndex('author', 'running')).toBe(3);
-    expect(calculateProgressIndex('coder_node', 'running')).toBe(3); // legacy mapping
-    expect(calculateProgressIndex('promote', 'waiting_approval')).toBe(7);
-    expect(calculateProgressIndex('done', 'done')).toBe(8);
-    expect(calculateProgressIndex('nonexistent_phase', 'idle')).toBe(-1);
-  });
-
-  it('filters factory jobs by search query and status pill [REQ-FACT-037]', async () => {
-    const { filterJobs } = await import('../../../src/web/static/modules/studios/factory.js');
-    const sampleJobs = [
-      { id: 'fjob_1111', target_agent_id: 'hyperv-admin', status: 'running' },
-      { id: 'fjob_2222', target_agent_id: 'linux-host', status: 'done' },
-      { id: 'fjob_3333', target_agent_id: 'hyperv-admin', status: 'waiting_approval' },
-      { id: 'fjob_4444', target_agent_id: 'finance-advisor', status: 'failed' },
-    ];
-
-    expect(filterJobs(sampleJobs, '', 'all')).toHaveLength(4);
-    expect(filterJobs(sampleJobs, 'hyperv', 'all')).toHaveLength(2);
-    expect(filterJobs(sampleJobs, '1111', 'all')).toHaveLength(1);
-    expect(filterJobs(sampleJobs, '', 'running')).toHaveLength(1);
-    expect(filterJobs(sampleJobs, '', 'done')).toHaveLength(1);
-    expect(filterJobs(sampleJobs, '', 'waiting_approval')).toHaveLength(1);
-    expect(filterJobs(sampleJobs, '', 'failed')).toHaveLength(1);
-    expect(filterJobs(sampleJobs, 'nonexistent', 'all')).toHaveLength(0);
-  });
-
-  it('renders Agent Context Dropdown selector in Factory Studio header [REQ-FACT-040]', () => {
+  it('renders Target Specialist Selector in Column 1 with New Agent option [CARD-386]', () => {
     expect(html).toContain('id="factoryAgentSelect"');
-    expect(html).toContain('id="factoryNewRunBtnText"');
+    expect(html).toContain('+ Create New Agent');
+    expect(html).not.toContain('id="factoryNewAgentBtn"');
   });
 
-  it('filters factory jobs by selected agent scope in addition to query and status [REQ-FACT-041]', async () => {
-    const { filterJobs } = await import('../../../src/web/static/modules/studios/factory.js');
-    const sampleJobs = [
-      { id: 'fjob_1111', target_agent_id: 'hyperv-admin', status: 'running' },
-      { id: 'fjob_2222', target_agent_id: 'linux-host', status: 'done' },
-      { id: 'fjob_3333', target_agent_id: 'hyperv-admin', status: 'waiting_approval' },
-      { id: 'fjob_4444', target_agent_id: 'finance-advisor', status: 'failed' },
-    ];
+  it('renders 3 columns with canonical Scaffolder workshop DOM structure [CARD-386]', () => {
+    // Column 1: Agent Brief
+    expect(html).toContain('id="factoryIntakeAgentCard"');
+    expect(html).toContain('id="factoryAgentSelect"');
+    expect(html).toContain('id="factoryAgentIdInput"');
+    expect(html).toContain('id="factoryAgentNameInput"');
+    expect(html).toContain('id="factoryAgentPromptInput"');
+    expect(html).toContain('id="factoryAgentModelSelect"');
+    expect(html).toContain('id="factoryIntakeTalkToForgeBtn"');
 
-    expect(filterJobs(sampleJobs, '', 'all', 'hyperv-admin')).toHaveLength(2);
-    expect(filterJobs(sampleJobs, '', 'running', 'hyperv-admin')).toHaveLength(1);
-    expect(filterJobs(sampleJobs, '', 'all', 'linux-host')).toHaveLength(1);
-    expect(filterJobs(sampleJobs, '', 'all', '')).toHaveLength(4);
-    expect(filterJobs(sampleJobs, '', 'all', 'nonexistent-agent')).toHaveLength(0);
+    // Column 2: Skills & Runbook
+    expect(html).toContain('id="factoryCurrentSkillsList"');
+    expect(html).toContain('id="factoryAssignedSkillsCount"');
+    expect(html).toContain('id="factoryNewSkillFormBtn"');
+    expect(html).toContain('id="factorySkillNameInput"');
+    expect(html).toContain('id="factorySkillIdInput"');
+    expect(html).toContain('id="factorySkillTriggerInput"');
+    expect(html).toContain('id="factorySkillTriggerCharCount"');
+    expect(html).toContain('id="factorySkillIntentInput"');
+    expect(html).toContain('id="factoryGenerateRunbookBtn"');
+    expect(html).toContain('id="factorySkillMarkdownEditor"');
+    expect(html).toContain('id="factorySaveSkillBtn"');
+
+    // Column 3: Capabilities & Grounding
+    expect(html).toContain('id="factorySelectedToolCountBadge"');
+    expect(html).toContain('id="factoryToolSearchInput"');
+    expect(html).toContain('id="factoryCapabilitiesContainer"');
+    expect(html).toContain('id="factorySourceContextInput"');
   });
 
   it('populates agent options into #factoryAgentSelect dynamically [REQ-FACT-040]', async () => {
@@ -159,6 +119,8 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     const { initFactoryStudio } = await import('../../../src/web/static/modules/studios/factory.js');
     const ctrl = initFactoryStudio({ activeTab: 'factory' }, {});
     expect(typeof ctrl.setAgentScope).toBe('function');
+    expect(typeof ctrl.loadFactoryStudio).toBe('function');
+    expect(typeof ctrl.stopPolling).toBe('function');
   });
 
   it('excludes internal agent_builder and agent-builder from agent options [REQ-FACT-040]', async () => {
@@ -187,21 +149,15 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(ids).not.toContain('agent-builder');
   });
 
-  it('renders [ + New Agent ] button in Factory Studio header [REQ-FACT-044]', () => {
-    expect(html).toContain('id="factoryNewAgentBtn"');
-    expect(html).toContain('New Agent');
-  });
-
   it('retires redundant training buttons from Agent Studio [REQ-FACT-042]', () => {
     expect(html).not.toContain('id="forgeTrainAgentBtn"');
     expect(html).not.toContain('id="forgeLabMonitorBtn"');
   });
 
-  it('relocates Needs Training Backlog inside Factory Studio Runs view [REQ-FACT-045]', () => {
-    const runsViewSlice = html.slice(html.indexOf('id="factoryRunsView"'), html.indexOf('id="trainAgentHandshakeModal"'));
-    expect(runsViewSlice).toContain('id="agentTrainingBacklogCard"');
-    expect(runsViewSlice).toContain('id="agentBacklogCountBadge"');
-    expect(runsViewSlice).toContain('id="agentBacklogList"');
+  it('preserves Needs Training Backlog inside Agent Studio character sheet [CARD-195, CARD-386]', () => {
+    expect(html).toContain('id="agentTrainingBacklogCard"');
+    expect(html).toContain('id="agentBacklogCountBadge"');
+    expect(html).toContain('id="agentBacklogList"');
   });
 
   it('locks training modal to selected agent and omits secondary target dropdown [REQ-FACT-043]', () => {
@@ -211,78 +167,6 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(modalSlice).toContain('id="trainAgentTargetIdBadge"');
     expect(modalSlice).not.toContain('id="trainAgentTargetSelect"');
     expect(modalSlice).not.toContain('id="trainAgentNameGroup"');
-  });
-
-  it('formats phase execution duration into badge string [REQ-FACT-051]', async () => {
-    const { formatPhaseDurationMs } = await import('../../../src/web/static/modules/studios/factory.js');
-    expect(formatPhaseDurationMs(450)).toBe('450ms');
-    expect(formatPhaseDurationMs(1500)).toBe('1.5s');
-    expect(formatPhaseDurationMs(12000)).toBe('12s');
-    expect(formatPhaseDurationMs(null)).toBe('');
-  });
-
-  it('renders 3-way sub-view switcher in Factory Studio header [REQ-FACT-057]', () => {
-    expect(html).toContain('id="factoryTabIntakeBtn"');
-    expect(html).toContain('id="factoryTabRunsBtn"');
-    expect(html).toContain('id="factoryTabPipelineBtn"');
-    expect(html).toContain('id="factoryIntakeView"');
-    expect(html).toContain('id="factoryRunsView"');
-    expect(html).toContain('id="factoryPipelineView"');
-  });
-
-  it('renders Capability Intake Workbench as default landing canvas with core controls [REQ-FACT-056]', () => {
-    const intakeViewSlice = html.slice(
-      html.indexOf('id="factoryIntakeView"'),
-      html.indexOf('id="factoryRunsView"') !== -1 ? html.indexOf('id="factoryRunsView"') : undefined
-    );
-    expect(intakeViewSlice).toContain('id="factoryIntakeAgentCard"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeAgentName"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeAgentIdBadge"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeLiveCounts"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeLivePackPath"');
-    expect(intakeViewSlice).toContain('id="factoryIntakePreFillSelect"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeIntentInput"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeObjectivesInput"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeDeliverableType"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeContextInput"');
-    expect(intakeViewSlice).toContain('id="factoryIntakeLaunchBtn"');
-  });
-
-  it('validates intake form and constructs training factory job payload [REQ-FACT-058]', async () => {
-    const { validateIntakeForm, buildFactoryJobPayload } = await import('../../../src/web/static/modules/studios/factory.js');
-
-    // Missing target agent
-    const resNoAgent = validateIntakeForm({ targetAgentId: '', seedIntent: 'Add tool', objectives: ['Test'] });
-    expect(resNoAgent.valid).toBe(false);
-    expect(resNoAgent.error).toMatch(/target agent/i);
-
-    // Missing intent and objectives
-    const resNoIntent = validateIntakeForm({ targetAgentId: 'hyperv-admin', seedIntent: '', objectives: [] });
-    expect(resNoIntent.valid).toBe(false);
-    expect(resNoIntent.error).toMatch(/intent or at least one objective/i);
-
-    // Valid inputs
-    const resValid = validateIntakeForm({
-      targetAgentId: 'hyperv-admin',
-      seedIntent: 'Manage virtual switches',
-      objectives: ['Create virtual switch', 'Remove virtual switch'],
-      deliverableType: 'tool',
-      referenceDocs: 'Get-VMSwitch documentation',
-    });
-    expect(resValid.valid).toBe(true);
-
-    const payload = buildFactoryJobPayload({
-      targetAgentId: 'hyperv-admin',
-      seedIntent: 'Manage virtual switches',
-      objectives: ['Create virtual switch', 'Remove virtual switch'],
-      deliverableType: 'tool',
-      referenceDocs: 'Get-VMSwitch documentation',
-    });
-    expect(payload.target_agent_id).toBe('hyperv-admin');
-    expect(payload.seed_intent).toBe('Manage virtual switches');
-    expect(payload.seed_objectives).toEqual(['Create virtual switch', 'Remove virtual switch']);
-    expect(payload.deliverable_type).toBe('tool');
-    expect(payload.reference_docs).toBe('Get-VMSwitch documentation');
   });
 
   it('transforms backlog gap item into intake pre-fill values [REQ-FACT-059]', async () => {
@@ -316,5 +200,3 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(promptDefault).toMatch(/design a new capability/i);
   });
 });
-
-

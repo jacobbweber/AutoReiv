@@ -128,7 +128,7 @@ const MIN_H = 240;
 export const GRID_SIZE = 16;
 /** Dock + Organize Windows stay above every studio window. */
 export const DESKTOP_DOCK_Z = 10000;
-/** Modal dialogs (routineModal, factoryDeliverableModal, etc.) sit above all windows and dock [CARD-344]. */
+/** Modal dialogs (routineModal, chatToolsModal, etc.) sit above all windows and dock [CARD-344]. */
 export const DESKTOP_MODAL_Z = 11000;
 export const DESKTOP_WINDOW_Z_CAP = 9000;
 
@@ -1657,7 +1657,7 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function enhanceHitlDialogs() {
-    ['factoryDeliverableModal', 'chatToolsModal', 'routineModal'].forEach((id) => {
+    ['chatToolsModal', 'routineModal'].forEach((id) => {
       const modal = $(id);
       if (!modal) return;
       modal.classList.add('desktop-dialog-host');

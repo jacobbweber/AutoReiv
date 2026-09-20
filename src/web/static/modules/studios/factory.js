@@ -10,61 +10,7 @@
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
 
-// ==================== Backward-Compatibility Exports ====================
-export const PHASE_METADATA = [
-  { id: 'intent_distill', num: '01', name: 'Intent Distill', defaultDesc: 'Distill intent' },
-  { id: 'ground', num: '02', name: 'Ground', defaultDesc: 'Environment discovery' },
-  { id: 'blueprint', num: '03', name: 'Blueprint', defaultDesc: 'Capability taxonomy' },
-  { id: 'author', num: '04', name: 'Author', defaultDesc: 'Synthesize runbooks and tools' },
-  { id: 'scenario_verify', num: '05', name: 'Scenario Verify', defaultDesc: 'Sandbox evaluation' },
-  { id: 'verify', num: '06', name: 'Code Verify', defaultDesc: 'Syntax and safety validation' },
-  { id: 'optimize', num: '07', name: 'Optimize', defaultDesc: 'Structure refinement' },
-  { id: 'promote', num: '08', name: 'Promote', defaultDesc: 'Package into agent pack' },
-];
-export const PHASE_ORDER = PHASE_METADATA.map((p) => p.id);
-
-export function calculateProgressIndex(nodeId, status) {
-  const legacyMap = {
-    socratic_handshake: 'intent_distill',
-    discovery_probe: 'ground',
-    architecture_blueprint: 'blueprint',
-    attempt_node: 'author',
-    conduct_node: 'author',
-    coder_node: 'author',
-    sandbox_battery_node: 'verify',
-    critic_signoff_node: 'optimize',
-    hitl_deploy_gate_node: 'promote',
-    pack_finalized_node: 'done',
-  };
-  const phase = legacyMap[nodeId] || nodeId;
-  const idx = PHASE_ORDER.indexOf(phase);
-  if (phase === 'done' || status === 'done') return PHASE_ORDER.length;
-  return idx;
-}
-
-export function formatPhaseDurationMs(ms) {
-  if (!ms || ms < 0) return '';
-  if (ms < 1000) return `${ms}ms`;
-  const sec = ms / 1000;
-  if (sec < 10) return `${sec.toFixed(1).replace('.0', '')}s`;
-  return `${Math.round(sec)}s`;
-}
-
-export function filterJobs(jobs = [], searchQuery = '', statusFilter = 'all', agentFilter = '') {
-  return (jobs || []).filter((j) => {
-    if (statusFilter !== 'all' && j.status !== statusFilter) return false;
-    if (agentFilter && (j.target_agent_id || j.agent_id) !== agentFilter) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchId = (j.id || '').toLowerCase().includes(q);
-      const matchIntent = (j.seed_intent || '').toLowerCase().includes(q);
-      const matchAgent = (j.target_agent_id || '').toLowerCase().includes(q);
-      if (!matchId && !matchIntent && !matchAgent) return false;
-    }
-    return true;
-  });
-}
-
+// ==================== Scaffolder Helpers & Gap Bindings ====================
 export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgentId = '') {
   if (!selectEl) return;
   selectEl.innerHTML = '';
@@ -91,73 +37,6 @@ export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgent
   if (selectedAgentId) {
     selectEl.value = selectedAgentId;
   }
-}
-
-export function extractJobDeliverables(job = {}, packets = []) {
-  let runbookPath = '';
-  let runbookContent = '';
-  let toolPath = '';
-  let toolCode = '';
-  const agentId = job.target_agent_id || job.agent_id || 'custom-agent';
-
-  packets.forEach((p) => {
-    const files = (p.payload && p.payload.files_map) || {};
-    Object.entries(files).forEach(([fpath, content]) => {
-      const norm = fpath.replace(/\\/g, '/');
-      if (norm.endsWith('SKILL.md')) {
-        runbookPath = norm;
-        runbookContent = content;
-      } else if (norm.endsWith('.py')) {
-        toolPath = norm;
-        toolCode = content;
-      }
-    });
-  });
-
-  return {
-    runbookPath,
-    runbookContent,
-    toolPath,
-    toolCode,
-    manifestDiff: JSON.stringify({ id: agentId }, null, 2),
-  };
-}
-
-export function validateIntakeForm(data = {}) {
-  const targetAgentId = data.targetAgentId || '';
-  const seedIntent = data.seedIntent || '';
-  const objectives = data.objectives || [];
-
-  if (!targetAgentId) {
-    return {
-      valid: false,
-      error: 'Please select a target agent.',
-      errors: ['Target agent is required'],
-    };
-  }
-  const validObjs = objectives.filter((o) => typeof o === 'string' && o.trim().length > 0);
-  if (!seedIntent.trim() && validObjs.length === 0) {
-    return {
-      valid: false,
-      error: 'Please provide either a seed intent or at least one objective.',
-      errors: ['Capability intent or at least one objective is required'],
-    };
-  }
-  return {
-    valid: true,
-    error: null,
-    errors: [],
-  };
-}
-
-export function buildFactoryJobPayload(data = {}) {
-  return {
-    target_agent_id: data.targetAgentId || '',
-    seed_intent: data.seedIntent || '',
-    seed_objectives: data.objectives || [],
-    deliverable_type: data.deliverableType || 'tool',
-    reference_docs: data.referenceDocs || '',
-  };
 }
 
 export function applyBacklogGapToIntake(gap = {}) {
@@ -688,11 +567,19 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
-  const factoryNewAgentBtn = $('factoryNewAgentBtn');
-  if (factoryNewAgentBtn) {
-    factoryNewAgentBtn.addEventListener('click', () => {
-      setAgentScope('__new__');
-      if (factoryAgentIdInput) factoryAgentIdInput.focus();
+  const factoryIntakeTalkToForgeBtn = $('factoryIntakeTalkToForgeBtn');
+  if (factoryIntakeTalkToForgeBtn) {
+    factoryIntakeTalkToForgeBtn.addEventListener('click', () => {
+      const agentId = (factoryAgentSelect && factoryAgentSelect.value !== '__new__') ? factoryAgentSelect.value : '';
+      const prompt = buildForgeInitialPrompt(agentId);
+      if (typeof callbacks.switchTab === 'function') {
+        callbacks.switchTab('chat');
+      }
+      const chatInput = $('chatInput');
+      if (chatInput) {
+        chatInput.value = prompt;
+        chatInput.focus();
+      }
     });
   }
 
@@ -704,95 +591,6 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
-  // Sub-view tab switching
-  const factoryTabIntakeBtn = $('factoryTabIntakeBtn');
-  const factoryTabRunsBtn = $('factoryTabRunsBtn');
-  const factoryTabPipelineBtn = $('factoryTabPipelineBtn');
-  const factoryIntakeView = $('factoryIntakeView');
-  const factoryRunsView = $('factoryRunsView');
-  const factoryPipelineView = $('factoryPipelineView');
-  const factoryNewRunBtn = $('factoryNewRunBtn');
-
-  function switchSubView(targetView) {
-    if (targetView === 'intake') {
-      if (factoryIntakeView) factoryIntakeView.classList.remove('hidden');
-      if (factoryRunsView) {
-        factoryRunsView.classList.add('hidden');
-        factoryRunsView.classList.remove('flex');
-      }
-      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
-      if (factoryNewRunBtn) {
-        factoryNewRunBtn.classList.add('hidden');
-        factoryNewRunBtn.classList.remove('flex');
-      }
-      if (factoryTabIntakeBtn) {
-        factoryTabIntakeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
-        factoryTabIntakeBtn.setAttribute('aria-selected', 'true');
-      }
-      if (factoryTabRunsBtn) {
-        factoryTabRunsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabRunsBtn.setAttribute('aria-selected', 'false');
-      }
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
-      }
-    } else if (targetView === 'runs') {
-      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
-      if (factoryRunsView) {
-        factoryRunsView.classList.remove('hidden');
-        factoryRunsView.classList.add('flex');
-      }
-      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
-      if (factoryNewRunBtn) {
-        factoryNewRunBtn.classList.remove('hidden');
-        factoryNewRunBtn.classList.add('flex');
-      }
-      if (factoryTabRunsBtn) {
-        factoryTabRunsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
-        factoryTabRunsBtn.setAttribute('aria-selected', 'true');
-      }
-      if (factoryTabIntakeBtn) {
-        factoryTabIntakeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
-      }
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
-      }
-    } else if (targetView === 'pipeline') {
-      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
-      if (factoryRunsView) {
-        factoryRunsView.classList.add('hidden');
-        factoryRunsView.classList.remove('flex');
-      }
-      if (factoryPipelineView) factoryPipelineView.classList.remove('hidden');
-      if (factoryNewRunBtn) {
-        factoryNewRunBtn.classList.add('hidden');
-        factoryNewRunBtn.classList.remove('flex');
-      }
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'true');
-      }
-      if (factoryTabIntakeBtn) {
-        factoryTabIntakeBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
-      }
-      if (factoryTabRunsBtn) {
-        factoryTabRunsBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabRunsBtn.setAttribute('aria-selected', 'false');
-      }
-    }
-  }
-
-  if (factoryTabIntakeBtn) factoryTabIntakeBtn.addEventListener('click', () => switchSubView('intake'));
-  if (factoryTabRunsBtn) factoryTabRunsBtn.addEventListener('click', () => switchSubView('runs'));
-  if (factoryTabPipelineBtn) factoryTabPipelineBtn.addEventListener('click', () => switchSubView('pipeline'));
-
-  // Initialize sub-view to intake
-  switchSubView('intake');
-
   // ----------------------------------------------------
   // Public Controller API
   // ----------------------------------------------------
@@ -801,7 +599,6 @@ export function initFactoryStudio(state, callbacks = {}) {
       await Promise.all([loadAgents(preferredAgentId), loadCapabilities()]);
     },
     setAgentScope,
-    switchSubView,
     stopPolling: () => {},
   };
 }

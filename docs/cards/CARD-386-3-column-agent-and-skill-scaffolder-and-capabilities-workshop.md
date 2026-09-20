@@ -1,7 +1,7 @@
 ---
 id: CARD-386
 title: "3-Column Agent and Skill Scaffolder and Capabilities Workshop"
-status: In Review
+status: Done
 created: 2026-09-20
 adr: none
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-386] 3-Column Agent and Skill Scaffolder and Capabilities Workshop
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-20  
 > **ADR Reference**: ADR-0048, ADR-0052  
 > **Labels**: `type:feature`, `domain:factory`, `domain:skills`, `domain:tools`, `domain:agents`

@@ -16,6 +16,14 @@
   - **Stale Root Bytecode Cleanup**: Purged historical compiled bytecode from root `__pycache__`.
   - **Negative Assertion Regression Suite**: Added `tests/unit/core/test_dead_code_shims_scavenger_385.py` asserting that excised shims cannot be imported and obsolete aliases remain absent.
 
+### Removed
+
+- Subtractive Pruning of Legacy 8-Phase Factory Compiler & Sub-Views (`src/web/templates/index.html`, `src/web/static/modules/studios/factory.js`, `src/web/static/modules/ui/agent-desktop.js` [CARD-386]):
+  - **Excised Obsolete Factory Sub-Views**: Completely deleted the dead 8-phase pipeline view (`#factoryPipelineView`), the training runs & live monitor two-pane view (`#factoryRunsView`), and the sub-tab bar (`#factoryTabIntakeBtn`, `#factoryTabRunsBtn`, `#factoryTabPipelineBtn`).
+  - **Excised Obsolete Deliverable Inspector Modal**: Removed the legacy HITL deliverable modal (`#factoryDeliverableModal`) and its diff tabs (`#factoryTabDiffBtn`, `#factoryTabToolBtn`, `#factoryTabRunbookBtn`) in favor of direct, in-place Matt Pocock `SKILL.md` runbook authoring in Column 2.
+  - **Relocated Capability Gap Backlog**: Preserved the Needs Training Backlog (`#agentTrainingBacklogCard`) in Agent Studio (`view-agents`), where it is canonically updated by `forge.js` during agent inspection.
+  - **Pruned Dead CSS & Event Listeners**: Excised orphaned CSS rules for `#factoryRunsView` and `#factoryPipelineView`, pruned `switchSubView` and tab-switching event handlers, and removed dead modal enhancement hooks from `agent-desktop.js`.
+
 ### Changed
 
 - Single Lever Audit & Shadow Function Deduplication (`src/web/static/modules/`, `src/web/routers/` [CARD-384]):

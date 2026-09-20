@@ -1115,15 +1115,11 @@
       overscroll-behavior: contain;
       touch-action: pan-y !important;
     }
-    #factoryIntakeView,
-    #factoryPipelineView {
+    #factoryIntakeView {
       min-height: 0;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       touch-action: pan-y;
-    }
-    #factoryRunsView {
-      min-height: 0;
     }
     #view-settings details.settings-section {
       border-radius: 0.75rem;
@@ -2396,6 +2392,24 @@
                     <div class="p-3 text-xs text-slate-500 italic bg-white/[0.02] border border-white/[0.04] rounded-lg text-center">
                       No active architectural proposals. Click "Scan &amp; Synthesize" to audit recent telemetry.
                     </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- CARD-165 / CARD-195: Needs Training Backlog Queue [REQ-FACT-045] -->
+            <details id="agentTrainingBacklogCard" class="forge-section" data-card="195" data-section="needs-training-backlog">
+              <summary class="flex items-center justify-between">
+                <span class="flex items-center space-x-2">
+                  <span>⚡ Needs Training Backlog</span>
+                  <span id="agentBacklogCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+                </span>
+                <span class="text-[10px] text-slate-500">Capability Gaps</span>
+              </summary>
+              <div class="forge-section-body space-y-3">
+                <div class="p-4 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 shadow-sm">
+                  <div id="agentBacklogList" class="space-y-1.5">
+                    <p class="text-[11px] text-slate-500">No capability gaps queued.</p>
                   </div>
                 </div>
               </div>
@@ -4883,44 +4897,19 @@
             </div>
             <div>
               <div class="flex items-center space-x-2">
-                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Factory Studio</h2>
+                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Agent &amp; Skill Scaffolder</h2>
                 <span id="factoryActiveStatusPill" class="px-2 py-0.5 rounded-full text-[10px] font-mono border bg-[#13161f] border-white/[0.08] text-slate-300">
                   Ready
                 </span>
               </div>
-              <p class="text-[11px] text-slate-400 hidden sm:block">Industrial capability manufacturing, 8-phase pipeline &amp; prompt registry</p>
+              <p class="text-[11px] text-slate-400 hidden sm:block">Scaffold agent packs, bind capabilities, and author Matt Pocock SKILL.md runbooks</p>
             </div>
-          </div>
-
-          <!-- Sub-View Switcher -->
-          <div class="flex items-center bg-[#08090c] border border-white/[0.06] rounded-xl p-1 space-x-1" role="tablist" aria-label="Factory Views">
-            <button type="button" id="factoryTabIntakeBtn" role="tab" aria-selected="true" aria-controls="factoryIntakeView" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm">
-              <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
-              <span>Capability Intake</span>
-            </button>
-            <button type="button" id="factoryTabRunsBtn" role="tab" aria-selected="false" aria-controls="factoryRunsView" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]">
-              <i data-lucide="activity" class="w-3.5 h-3.5"></i>
-              <span>Training Runs &amp; Live Monitor</span>
-              <span id="factoryActiveRunsBadge" class="hidden px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-emerald-900/60 text-emerald-300 border border-emerald-700/50">0</span>
-            </button>
-            <button type="button" id="factoryTabPipelineBtn" role="tab" aria-selected="false" aria-controls="factoryPipelineView" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]">
-              <i data-lucide="compass" class="w-3.5 h-3.5"></i>
-              <span>Pipeline Prompts</span>
-            </button>
           </div>
 
           <!-- Studio Actions -->
           <div class="flex items-center space-x-2">
-            <button type="button" id="factoryNewAgentBtn" class="hidden md:flex px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition items-center space-x-1.5 shadow-sm" title="Create New Agent Pack">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>New Agent</span>
-            </button>
             <button type="button" id="factoryRefreshBtn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Factory State">
               <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-            </button>
-            <button type="button" id="factoryNewRunBtn" class="hidden px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition items-center space-x-1.5">
-              <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
-              <span id="factoryNewRunBtnText">New Training Run</span>
             </button>
           </div>
         </div>
@@ -5112,230 +5101,6 @@
                 <p class="text-[10px] text-slate-500">Grounding context prevents the LLM from hallucinating fake tool names or syntax.</p>
               </div>
 
-            </div>
-          </div>
-        </div>
-<div id="factoryPipelineView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-6 hidden">
-          <!-- Flowchart Header & 8-Stage Stepper Container -->
-          <div class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-5 space-y-4 shadow-xl backdrop-blur-sm">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
-              <div>
-                <div class="flex items-center space-x-2">
-                  <span class="w-2 h-2 rounded-full bg-brand-400"></span>
-                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Capability Manufacturing Pipeline</h3>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-brand-950/60 text-brand-300 border border-brand-800/60">8 Deterministic Phases</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-1">Select any stage below to inspect its prompt rubric and configure custom instructions at the platform level.</p>
-              </div>
-              <div class="text-[11px] font-mono text-slate-500 flex items-center space-x-3">
-                <span class="flex items-center space-x-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>Default</span></span>
-                <span class="flex items-center space-x-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span>Custom</span></span>
-              </div>
-            </div>
-
-            <!-- Flowchart 8 Tiles -->
-            <div id="factoryFlowchartContainer" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
-              <!-- Dynamically populated / hydrated with stage buttons -->
-            </div>
-          </div>
-
-          <!-- Phase Instruction Inspector Card -->
-          <div id="factoryPhaseInspector" class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-5 md:p-6 space-y-5 shadow-2xl backdrop-blur-sm">
-            <!-- Inspector Header -->
-            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-white/[0.06] pb-4">
-              <div class="space-y-1">
-                <div class="flex items-center space-x-2">
-                  <h3 id="factoryInspectorStageTitle" class="text-sm md:text-base font-bold text-white tracking-tight">Stage 1: Intent Distill</h3>
-                  <span id="factoryInspectorStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-emerald-950/50 border-emerald-700/60 text-emerald-300">
-                    Platform Default
-                  </span>
-                </div>
-                <p id="factoryInspectorStageDesc" class="text-xs text-slate-400 leading-relaxed max-w-3xl">
-                  Distills high-level operator brief into structured starter objectives, constraints, prerequisites, and Reflexion lessons.
-                </p>
-              </div>
-
-              <div class="flex items-center space-x-2 flex-shrink-0">
-                <button type="button" id="factoryResetPromptBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 hover:text-white border border-white/[0.08] rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm">
-                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                  <span>Reset to Default</span>
-                </button>
-                <button type="button" id="factorySavePromptBtn" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5">
-                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                  <span>Save Instructions</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Available Runtime Context Variables (Read-Only) -->
-            <div class="rounded-xl border border-white/[0.06] bg-[#08090c] p-3.5 space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                  <i data-lucide="variable" class="w-3.5 h-3.5 text-cyan-400"></i>
-                  <span>Available Runtime Context Variables (Click to Insert)</span>
-                </span>
-                <span class="text-[10px] font-mono text-slate-500">Injected dynamically during execution</span>
-              </div>
-              <div id="factoryContextVarPills" class="flex flex-wrap gap-1.5">
-                <!-- Populated dynamically: {{seed_intent}}, {{objectives}}, etc. -->
-              </div>
-            </div>
-
-            <!-- System Prompt Textarea -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <label for="factoryPhasePromptInput" class="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
-                  <i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i>
-                  <span>Phase System Prompt &amp; Guidance Rubric</span>
-                </label>
-                <div class="flex items-center space-x-3 text-[11px] font-mono text-slate-500">
-                  <span id="factoryPromptLastUpdated">Built-in default</span>
-                  <span id="factoryPromptCharCount">0 chars</span>
-                </div>
-              </div>
-              <textarea id="factoryPhasePromptInput" rows="14" class="w-full bg-[#08090c] border border-white/[0.08] focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl p-4 text-xs font-mono text-slate-200 leading-relaxed resize-y focus:outline-none transition shadow-inner" placeholder="Enter custom prompt guidance for this factory phase..."></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- ==================== SUB-VIEW 2: TRAINING RUNS & LIVE MONITOR ==================== -->
-        <div id="factoryRunsView" class="flex-1 flex flex-col lg:flex-row h-full min-h-0 overflow-hidden hidden">
-          <!-- Left Pane: Runs List & Filter -->
-          <div id="factoryRunsListPane" class="w-full lg:w-80 xl:w-96 bg-[#0e1015]/70 border-b lg:border-b-0 lg:border-r border-white/[0.06] flex flex-col flex-shrink-0 h-full overflow-hidden">
-            <!-- Filter Header -->
-            <div class="p-3.5 border-b border-white/[0.06] bg-[#08090c]/80 space-y-2.5">
-              <div class="relative">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                <input type="text" id="factoryRunSearchInput" placeholder="Filter by agent ID or run ID..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
-              </div>
-              <div class="flex items-center space-x-1 overflow-x-auto pb-1 text-[11px]">
-                <button type="button" data-filter="all" class="factory-status-filter active px-2.5 py-1 rounded-lg font-semibold bg-brand-600 text-white transition">All</button>
-                <button type="button" data-filter="running" class="factory-status-filter px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-white/[0.04] transition">Running</button>
-                <button type="button" data-filter="waiting_approval" class="factory-status-filter px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-white/[0.04] transition">Waiting</button>
-                <button type="button" data-filter="done" class="factory-status-filter px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-white/[0.04] transition">Done</button>
-                <button type="button" data-filter="failed" class="factory-status-filter px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-white/[0.04] transition">Failed</button>
-              </div>
-            </div>
-
-            <!-- Runs Cards List -->
-            <div id="factoryRunsList" class="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
-              <!-- Dynamically populated with training run items -->
-            </div>
-
-            <!-- CARD-165 / CARD-195: Needs Training Backlog Queue [REQ-FACT-045] -->
-            <div id="agentTrainingBacklogCard" class="p-3.5 border-t border-white/[0.06] bg-[#08090c]/90 space-y-2.5 flex-shrink-0 max-h-64 overflow-y-auto">
-              <div class="flex items-center justify-between">
-                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
-                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-                  <span>Needs Training Backlog</span>
-                  <span id="agentBacklogCountBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
-                </h3>
-                <span class="text-[10px] text-slate-500">Capability Gaps</span>
-              </div>
-              <div id="agentBacklogList" class="space-y-1.5">
-                <p class="text-[11px] text-slate-500">No capability gaps queued.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Pane: Active Run Details & Telemetry -->
-          <div id="factoryRunDetailPane" class="flex-1 flex flex-col h-full overflow-y-auto bg-[#08090c]/40 p-4 md:p-6 space-y-5">
-            <!-- Mobile Back Button -->
-            <button type="button" id="factoryMobileBackToRunsBtn" class="lg:hidden flex items-center space-x-1.5 text-xs font-semibold text-brand-400 hover:text-brand-300 mb-1">
-              <i data-lucide="arrow-left" class="w-4 h-4"></i>
-              <span>Back to Runs List</span>
-            </button>
-
-            <!-- Active Run Header -->
-            <div class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
-              <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 rounded-xl bg-[#13161f] border border-white/[0.08] flex items-center justify-center text-slate-300 font-mono text-xs">
-                  #
-                </div>
-                <div>
-                  <div class="flex items-center space-x-2">
-                    <h3 id="factoryDetailJobBadge" class="font-mono font-bold text-sm text-white">Select a training run</h3>
-                    <div id="factoryDetailStatusPill" class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold border flex items-center space-x-1.5 border-white/[0.08] bg-[#13161f] text-slate-400">
-                      <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      <span class="status-text">NO RUN SELECTED</span>
-                    </div>
-                  </div>
-                  <p class="text-[11px] text-slate-400">Phase telemetry, sandbox verification, and deployment</p>
-                </div>
-              </div>
-
-              <div class="flex items-center space-x-2">
-                <button type="button" id="factoryDetailRetryBtn" class="hidden px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" title="Retry this training attempt with preserved inputs">
-                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                  <span>Retry Training</span>
-                </button>
-                <button type="button" id="factoryDetailCopyFeedBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 hover:text-white border border-white/[0.08] rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" title="Copy live activity feed">
-                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                  <span id="factoryDetailCopyFeedText">Copy Feed</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- 8-Stage Visual Progress Stepper for Selected Run -->
-            <div class="bg-[#0e1015]/80 border border-white/[0.06] rounded-2xl p-4 space-y-2 shadow-md">
-              <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                <i data-lucide="git-commit" class="w-3.5 h-3.5 text-brand-400"></i>
-                <span>Execution Progress</span>
-              </h4>
-              <div id="factoryDetailStepper" class="grid grid-cols-4 md:grid-cols-8 gap-2 text-center text-[10px] md:text-[11px]">
-                <!-- 8 stages populated via factory.js -->
-              </div>
-            </div>
-
-            <!-- HITL Deployment Action Card -->
-            <div id="factoryDetailHitlCard" class="hidden rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-5 space-y-3.5 shadow-xl">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs md:text-sm">
-                  <i data-lucide="award" class="w-4 h-4"></i>
-                  <span>Ready for Operator Deployment</span>
-                </div>
-                <span class="px-2.5 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 font-mono text-[10px] border border-emerald-700/40">Sandbox Verified</span>
-              </div>
-              <p id="factoryDetailHitlDesc" class="text-xs text-slate-300">All automated safety, idempotency, and syntax tests passed. Ready to promote pack to fleet.</p>
-              <div id="factoryDetailHitlToolsList" class="flex flex-wrap gap-1.5 py-1"></div>
-              <div class="flex items-center space-x-2 pt-2 border-t border-emerald-800/40">
-                <button type="button" id="factoryInspectDeliverablesBtn" class="px-3.5 py-2 bg-[#13161f] hover:bg-white/[0.06] text-slate-200 border border-white/[0.08] rounded-xl text-xs font-semibold transition flex items-center space-x-1.5">
-                  <i data-lucide="eye" class="w-4 h-4 text-brand-400"></i>
-                  <span>Inspect Deliverables</span>
-                </button>
-                <button type="button" id="factoryDetailApproveBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center space-x-1.5">
-                  <i data-lucide="check" class="w-4 h-4"></i>
-                  <span>Approve &amp; Deploy to Fleet</span>
-                </button>
-                <button type="button" id="factoryDetailRejectBtn" class="px-3.5 py-2 bg-[#13161f] hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 border border-white/[0.08] rounded-xl text-xs font-medium transition">
-                  <span>Reject</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Authored Artifacts Section -->
-            <div id="factoryDetailArtifactsSection" class="bg-[#0e1015]/80 border border-white/[0.06] rounded-2xl p-4 space-y-2 shadow-md">
-              <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                <i data-lucide="file-code" class="w-3.5 h-3.5 text-amber-400"></i>
-                <span>Authored Artifacts</span>
-              </h4>
-              <div id="factoryDetailArtifactPills" class="flex flex-wrap gap-1.5 min-h-[1.5rem]">
-                <span class="text-slate-500 text-[11px] italic">No authored artifacts yet.</span>
-              </div>
-            </div>
-
-            <!-- Live Activity Feed -->
-            <div id="factoryDetailFeedSection" class="bg-[#0e1015]/80 border border-white/[0.06] rounded-2xl p-4 space-y-2 flex-1 flex flex-col min-h-[250px] shadow-md">
-              <div class="flex items-center justify-between flex-shrink-0">
-                <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                  <i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i>
-                  <span>Live Activity Feed</span>
-                </h4>
-                <span id="factoryDetailPacketCount" class="text-[10px] font-mono text-slate-500">0 packets</span>
-              </div>
-              <div id="factoryDetailPacketsFeed" class="flex-1 bg-[#08090c] border border-white/[0.06] rounded-xl p-3 font-mono text-[11px] space-y-2 text-slate-300 overflow-y-auto max-h-96 min-h-[180px]">
-                <div class="text-slate-500 italic py-2">No activity recorded for this job yet.</div>
-              </div>
             </div>
           </div>
         </div>
@@ -5991,79 +5756,6 @@
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
           <span>Create Agent Pack</span>
         </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tabbed HITL Deliverable Inspection Modal [CARD-197, REQ-FACT-055] -->
-  <div id="factoryDeliverableModal" data-testid="factory-deliverable-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#08090c]/85 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="factoryDeliverableModalTitle">
-    <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl max-w-4xl w-full max-h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Modal Header -->
-      <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
-        <div class="flex items-center space-x-2.5 min-w-0">
-          <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-            <i data-lucide="package-check" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <h3 id="factoryDeliverableModalTitle" class="text-sm font-semibold text-white truncate">Inspect Deliverables</h3>
-            <p id="factoryDeliverableModalSubtitle" class="text-[10px] text-slate-400 font-mono">Pre-promotion package inspection</p>
-          </div>
-        </div>
-        <button type="button" id="closeFactoryDeliverableModalBtn" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/[0.06] transition" title="Close">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </div>
-
-      <!-- Tab Buttons -->
-      <div class="flex items-center space-x-1 px-5 pt-3 pb-2 border-b border-white/[0.06] bg-[#08090c]/50">
-        <button type="button" id="factoryTabRunbookBtn" data-tab="runbook" class="factory-deliverable-tab active px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white flex items-center space-x-1.5 transition">
-          <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-          <span>Runbook (SKILL.md)</span>
-        </button>
-        <button type="button" id="factoryTabToolBtn" data-tab="tool" class="factory-deliverable-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/[0.04] flex items-center space-x-1.5 transition">
-          <i data-lucide="code" class="w-3.5 h-3.5"></i>
-          <span>Python Code</span>
-        </button>
-        <button type="button" id="factoryTabDiffBtn" data-tab="diff" class="factory-deliverable-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/[0.04] flex items-center space-x-1.5 transition">
-          <i data-lucide="file-diff" class="w-3.5 h-3.5"></i>
-          <span>Manifest Diff (pack.json)</span>
-        </button>
-      </div>
-
-      <!-- Tab Contents -->
-      <div class="flex-1 overflow-auto p-5 bg-[#08090c]">
-        <!-- Tab 1: Runbook -->
-        <div id="factoryTabContentRunbook" class="space-y-3">
-          <div class="flex items-center justify-between text-[11px] text-slate-400">
-            <span id="factoryDeliverableRunbookPath" class="font-mono text-emerald-400">skills/&lt;skill_id&gt;/SKILL.md</span>
-            <span class="text-[10px] text-slate-500">Matt Pocock 5-Section Progressive Runbook</span>
-          </div>
-          <pre id="factoryDeliverableRunbookPreview" class="text-xs font-mono text-slate-200 whitespace-pre-wrap break-words bg-[#08090c] border border-white/[0.06] rounded-xl p-4 max-h-[52vh] overflow-auto"></pre>
-        </div>
-
-        <!-- Tab 2: Python Code -->
-        <div id="factoryTabContentTool" class="space-y-3 hidden">
-          <div class="flex items-center justify-between text-[11px] text-slate-400">
-            <span id="factoryDeliverableToolPath" class="font-mono text-brand-400">tools/&lt;tool_name&gt;.py</span>
-            <span class="text-[10px] text-slate-500">Atomic Callable with Google Docstrings &amp; Return Envelope</span>
-          </div>
-          <pre id="factoryDeliverableToolCode" class="text-xs font-mono text-slate-200 whitespace-pre-wrap break-words bg-[#08090c] border border-white/[0.06] rounded-xl p-4 max-h-[52vh] overflow-auto"></pre>
-        </div>
-
-        <!-- Tab 3: Manifest Diff -->
-        <div id="factoryTabContentDiff" class="space-y-3 hidden">
-          <div class="flex items-center justify-between text-[11px] text-slate-400">
-            <span class="font-mono text-amber-400">packs/&lt;agent_id&gt;/pack.json</span>
-            <span class="text-[10px] text-slate-500">Manifest Update / Delta</span>
-          </div>
-          <pre id="factoryDeliverableManifestDiff" class="text-xs font-mono text-slate-200 whitespace-pre-wrap break-words bg-[#08090c] border border-white/[0.06] rounded-xl p-4 max-h-[52vh] overflow-auto"></pre>
-        </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="px-5 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-between">
-        <span id="factoryDeliverableCollisionNotice" class="text-[11px] text-slate-400 font-mono"></span>
-        <button type="button" id="closeFactoryDeliverableFooterBtn" class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
       </div>
     </div>
   </div>
