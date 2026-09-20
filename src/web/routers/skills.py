@@ -188,6 +188,63 @@ async def put_user_pack(request: Request, pack_id: str, payload: UserPackWrite):
     return result
 
 
+class SkillLintRequest(BaseModel):
+    text: Optional[str] = None
+    content: Optional[str] = None
+    path: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    instructions: Optional[str] = None
+
+
+@router.post("/api/skills/lint")
+async def lint_skill_content(payload: SkillLintRequest):
+    """Mechanically lint draft SKILL.md content against ADR-0054 capability contracts [REQ-390-001]."""
+    from src.application.skills.linter import CapabilityLinter, SkillContractCompiler
+    from src.domain.skills.contract import LintSeverity
+
+    raw_text = payload.text if payload.text is not None else payload.content
+    if raw_text is None and not payload.path and not (payload.name or payload.description or payload.instructions):
+        raise HTTPException(status_code=400, detail="Either 'content' or 'path' must be provided.")
+
+    if payload.path and raw_text is None and not (payload.name or payload.instructions):
+        linter = CapabilityLinter()
+        contract, violations = linter.lint_file(payload.path)
+    else:
+        compiler = SkillContractCompiler()
+        if raw_text is None:
+            name = (payload.name or "").strip()
+            desc = (payload.description or "").strip()
+            body = (payload.instructions or "").strip()
+            raw_text = f"---\nname: {name}\ndescription: {desc}\n---\n\n{body}\n"
+        contract, violations = compiler.compile(raw_text, path=payload.path)
+
+    errors = [v for v in violations if v.severity == LintSeverity.ERROR or v.severity.value == "error"]
+    warnings = [v for v in violations if v.severity == LintSeverity.WARNING or v.severity.value == "warning"]
+
+    contract_dict = contract.model_dump(mode="json") if contract else None
+    if contract_dict:
+        contract_dict["tools_count"] = len(contract.requires_tools)
+
+    return {
+        "valid": len(errors) == 0,
+        "error_count": len(errors),
+        "warning_count": len(warnings),
+        "violations": [
+            {
+                "rule_id": v.rule_id,
+                "rule": v.rule_id,
+                "rule_name": v.rule_name,
+                "severity": v.severity.value if hasattr(v.severity, "value") else str(v.severity),
+                "message": v.message,
+                "line_number": v.line_number,
+            }
+            for v in violations
+        ],
+        "contract": contract_dict,
+    }
+
+
 class DistillSkillRequest(BaseModel):
     session_id: str = Field(..., min_length=1)
     message_id: str = Field(..., min_length=1)
@@ -277,42 +334,3 @@ async def post_adopt_skill(request: Request, payload: AdoptSkillRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to adopt skill: {exc}") from exc
-
-
-class SkillLintRequest(BaseModel):
-    content: Optional[str] = None
-    path: Optional[str] = None
-
-
-@router.post("/api/skills/lint")
-async def post_lint_skill(payload: SkillLintRequest):
-    """[REQ-CAP-LINT-005] Compile skill runbook and mechanically validate contract rules."""
-    from src.application.skills.linter import CapabilityLinter, SkillContractCompiler
-    from src.domain.skills.contract import LintSeverity
-
-    if payload.content is None and not payload.path:
-        raise HTTPException(status_code=400, detail="Either 'content' or 'path' must be provided.")
-
-    if payload.content is not None:
-        compiler = SkillContractCompiler()
-        contract, violations = compiler.compile(payload.content, path=payload.path)
-    else:
-        linter = CapabilityLinter()
-        contract, violations = linter.lint_file(payload.path)  # type: ignore[arg-type]
-
-    is_valid = not any(v.severity == LintSeverity.ERROR for v in violations)
-    violation_dicts = []
-    for v in violations:
-        vd = v.model_dump(mode="json")
-        vd["rule"] = v.rule_id
-        violation_dicts.append(vd)
-
-    return {
-        "valid": is_valid,
-        "contract": contract.model_dump(mode="json") if contract else None,
-        "violations": violation_dicts,
-        "error_count": sum(1 for v in violations if v.severity == LintSeverity.ERROR),
-        "warning_count": sum(1 for v in violations if v.severity == LintSeverity.WARNING),
-    }
-
-
