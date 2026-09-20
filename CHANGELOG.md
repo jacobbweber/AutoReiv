@@ -2,6 +2,12 @@
 
 ### Added
 
+- Restore Developer and Tutor as Unified Agent Packs (`platform-packs/`, `src/application/agent_packs/schema.py`, `src/infrastructure/skills/platform_packs.py`, `src/domain/agents/profiles.py`, `src/web/templates/index.html`, `src/web/static/modules/studios/chat.js` [CARD-388]):
+  - **Restored Factory Seed Packs**: Added `platform-packs/developer/` with `sdlc-engineering` skill and full SDLC tooling (`read_project_file`, `write_project_file`, `list_project_dir`, `cli_exec`, `execute_code`, `propose_followup`), and `platform-packs/tutor/` with `socratic-tutoring` skill and educational wiki tools. Both packs strictly adhere to the Rule-of-7 tool budget with zero naked tools.
+  - **Eliminated Retired Status and Aliases**: Removed `developer` and `tutor` from `RETIRED_PLATFORM_PACK_IDS` and `LEGACY_AGENT_ALIASES`, restoring them to `PLATFORM_PACK_IDS` and `CHAT_SHOWN_BY_ID` so queries resolve canonically without redirecting to `autoreiv`.
+  - **Dynamic Multi-Agent Chat Studio Header**: Upgraded `#chatEngineSelector` from a binary toggle to dynamic selectable pills for all chat-visible agents (`AutoReiv`, `Developer`, `Tutor`, `Direct`, and user packs) displaying `agent.name`, supporting independent session contexts and model routing.
+  - **Test-Locked Delivery & Negative Assertions**: Authoritative regression tests asserting that `developer` and `tutor` are not redirected to `autoreiv`, not deleted during startup reconciliation, and render interactive selector pills.
+
 - Factory Scaffolder UX Top Action Banner, Auto Slug, and Tool Batch Actions (`src/web/templates/index.html`, `src/web/static/modules/studios/factory.js` [CARD-387]):
   - **Horizontal Top Action Banner**: Elevated `[✨ Generate / Refine Runbook]` and `[💬 Talk it out with Forge]` to `#factoryTopActionBar` above the 3-column workshop, establishing a natural left-to-right, top-to-bottom sequence across desktop and mobile.
   - **Automated `snake_case` Agent Slug**: Agent ID (`#factoryAgentIdInput`) is now marked `readonly` when creating new agents and auto-formats from Display Name into lowercase alphanumeric `snake_case`.
@@ -23,6 +29,9 @@
   - **Negative Assertion Regression Suite**: Added `tests/unit/core/test_dead_code_shims_scavenger_385.py` asserting that excised shims cannot be imported and obsolete aliases remain absent.
 
 ### Removed
+
+- Pruned binary dual-engine lock in Chat Studio header (`#engineBtnCore` / `#engineBtnDirect` exclusivity) and hardcoded 2-agent chat restrictions [CARD-388].
+- Excised `developer` and `tutor` entries from `RETIRED_PLATFORM_PACK_IDS` and `LEGACY_AGENT_ALIASES` [CARD-388].
 
 - Subtractive Pruning of Legacy 8-Phase Factory Compiler & Sub-Views (`src/web/templates/index.html`, `src/web/static/modules/studios/factory.js`, `src/web/static/modules/ui/agent-desktop.js` [CARD-386]):
   - **Excised Obsolete Factory Sub-Views**: Completely deleted the dead 8-phase pipeline view (`#factoryPipelineView`), the training runs & live monitor two-pane view (`#factoryRunsView`), and the sub-tab bar (`#factoryTabIntakeBtn`, `#factoryTabRunsBtn`, `#factoryTabPipelineBtn`).
