@@ -1,6 +1,6 @@
 ---
 id: CARD-388
-title: "Restore Developer and Tutor as First-Class Platform Agents"
+title: "Restore Developer and Tutor as Unified Agent Packs"
 status: Ready
 created: 2026-09-20
 adr: 0054
@@ -11,7 +11,7 @@ labels:
   - area:packs
 ---
 
-# [CARD-388] Restore Developer and Tutor as First-Class Platform Agents
+# [CARD-388] Restore Developer and Tutor as Unified Agent Packs
 
 > **Status**: Ready  
 > **Created**: 2026-09-20  
@@ -22,66 +22,74 @@ labels:
 
 ## 1. Why / Intent (Beat 1)
 
-In our architectural realignment discussions (archived in `D:\Projects\research\autoreiv-architecture-realignment-conways-law-and-autonomic-os.md`), we resolved that while multi-agent chat roundtables are an anti-pattern, **specialized platform agents** representing distinct security scopes, dedicated models, and separate working memories are essential.
+In our architectural realignment, we resolved that while conversational roundtables are an anti-pattern, **specialized agent packs** with distinct security scopes, dedicated models, and separate working memories are essential:
+1. **Developer**: Paired software engineer with high-capacity coding model routing, SDLC runbooks (`sdlc-engineering`), and project workspace tools.
+2. **Tutor**: Socratic learning partner with pedagogical guidance, adaptive depth, and educational mastery ledger access (`socratic-tutoring`).
 
-Specifically:
-1. **Developer Agent**: Dedicated to software engineering, SDLC workflows, project workspace inspection, git operations, testing, and paired coding with its own model routing (e.g. high-capacity coding models).
-2. **Tutor Agent**: Dedicated to education, Socratic dialogue, adaptive depth, and the learning ledger (mastery model, quiz/retrieval) without polluting general sysadmin or engineering logs.
+Furthermore, we are eliminating the artificial "Platform Pack vs. Custom Pack" hierarchy. **Everything is simply an Agent Pack.** The repository directory `platform-packs/` is strictly **Factory Seeds** that populate `$DATA_DIR/packs/` on first startup. Operators maintain full sovereignty over their agents (including editing display names, modifying skills, or deleting packs).
 
-In CARD-366, these agents were temporarily collapsed into skills under `autoreiv` (`sdlc-engineering`, `socratic-tutoring`), and Chat Studio was locked to a binary `[Core | Direct]` engine selector (CARD-361). Jacob wants Developer and Tutor brought back as first-class, selectable platform agents with their own identities, prompts, default model routing, and persistent session histories.
+In Chat Studio, operators can select between seeded or custom agents using human-friendly display names (`agent.name`) while the runtime deterministically routes by immutable slug (`agent.id`).
 
 ---
 
 ## 2. What AutoReiv Does Now (Beat 2)
 
-1. `platform-packs/` only contains `autoreiv` and `direct`. `platform-packs/developer` and `platform-packs/tutor` were deleted.
+1. `platform-packs/` only contains `autoreiv` and `direct`. `developer` and `tutor` packs are missing from factory seeds.
 2. In `src/application/agent_packs/schema.py` and `src/infrastructure/skills/platform_packs.py`:
    - `PLATFORM_PACK_IDS` is restricted to `("autoreiv", "direct")`.
-   - `RETIRED_PLATFORM_PACK_IDS` includes `developer` and `tutor`, actively deleting or retiring them if encountered.
-   - `LEGACY_AGENT_ALIASES` maps `developer` and `tutor` to `autoreiv`.
-3. In `src/web/templates/index.html` (lines 1543–1552), Chat Studio header `#chatEngineSelector` only offers two buttons: `#engineBtnCore` (`data-engine="autoreiv"`) and `#engineBtnDirect` (`data-engine="direct"`).
-4. An operator cannot select Developer or Tutor to start dedicated paired coding or tutoring sessions.
+   - `RETIRED_PLATFORM_PACK_IDS` includes `developer` and `tutor`, causing any on-disk packs for them to be cleaned up or deleted.
+   - `LEGACY_AGENT_ALIASES` redirects `developer` and `tutor` to `autoreiv`.
+3. In `src/web/templates/index.html` (lines 1543–1552), Chat Studio's header `#chatEngineSelector` is locked to a binary two-button toggle (`#engineBtnCore` / `#engineBtnDirect`).
+4. Operators cannot select Developer or Tutor to run dedicated engineering or tutoring sessions.
 
 ---
 
 ## 3. What Will Change (Beat 3)
 
-1. **Platform Pack Seed Templates**:
-   - Restore `platform-packs/developer/pack.json` with dedicated SDLC system prompt, skills (`sdlc-engineering`), engineering tools, and purpose `code`.
-   - Restore `platform-packs/tutor/pack.json` with dedicated pedagogical Socratic prompt, skills (`socratic-tutoring`), learning ledger tools, and purpose `reasoning`.
-2. **Platform Schema & Lifecycle**:
-   - In `src/application/agent_packs/schema.py` and `src/infrastructure/skills/platform_packs.py`:
-     - Update `PLATFORM_PACK_IDS` to `("autoreiv", "developer", "tutor", "direct")`.
+1. **Restore Factory Seed Packs**:
+   - Re-seed `platform-packs/developer/pack.json` with:
+     - Display name: `"Developer"`, slug: `"developer"`
+     - Purpose: `"code"`, system prompt for full-lifecycle engineering
+     - Assigned skill: `"sdlc-engineering"` (which declares git and project tools; zero naked tools)
+   - Re-seed `platform-packs/tutor/pack.json` with:
+     - Display name: `"Tutor"`, slug: `"tutor"`
+     - Purpose: `"reasoning"`, system prompt for Socratic tutoring
+     - Assigned skill: `"socratic-tutoring"` (which declares wiki and mastery ledger tools; zero naked tools)
+2. **Unified Agent Pack Seeding & Un-retire**:
+   - In `schema.py` and `platform_packs.py`:
+     - Update factory seeds to include `developer` and `tutor`.
      - Remove `developer` and `tutor` from `RETIRED_PLATFORM_PACK_IDS` and `LEGACY_AGENT_ALIASES`.
-     - Ensure pack seeder cleanly installs/upgrades both packs in `$DATA_DIR/packs/`.
-3. **Chat Studio Front Door Selection**:
-   - Update Chat Studio header `#chatEngineSelector` (or agent pill selector) to present the primary platform agents:
+     - Ensure startup seeder copies missing default packs into `$DATA_DIR/packs/` without overwriting user customizations if already present.
+3. **Chat Studio Agent Selector**:
+   - Update Chat Studio header `#chatEngineSelector` to display agent pills for available agents:
      - **AutoReiv** (General orchestrator & sysadmin)
      - **Developer** (SDLC, coding & project engineering)
      - **Tutor** (Socratic learning & mastery ledger)
      - **Direct** (Raw zero-overhead LLM stream)
-   - Selecting an agent updates the active session scope, model indicator, and loads the conversation history specific to that agent.
+   - Use `agent.name` for the visible label and `agent.id` for the value.
+   - Switching agents dynamically switches session context, model indicator, and active history thread.
 4. **Demand-Paged Capability Scoping**:
-   - Developer and Tutor dynamically demand-page their assigned skills and tools on turn execution, keeping active KV context lean (<2,000 tokens).
+   - Restored agents load only Platform Required primitives + their active skill runbooks, maintaining KV-cache pre-fill efficiency (<2,000 tokens).
 
 ---
 
 ## 4. What Dies Today (The Prune List - Beat 4)
 
-- Retire `developer` and `tutor` entries from `RETIRED_PLATFORM_PACK_IDS`.
-- Delete `developer` and `tutor` redirects from `LEGACY_AGENT_ALIASES`.
-- Prune the hardcoded binary 2-button restriction (`Core` vs `Direct` only) in Chat Studio's engine bar.
+- Delete `developer` and `tutor` entries from `RETIRED_PLATFORM_PACK_IDS`.
+- Delete `developer` and `tutor` redirect entries from `LEGACY_AGENT_ALIASES`.
+- Prune the binary 2-button lock in Chat Studio header (`#engineBtnCore` / `#engineBtnDirect` exclusivity).
+- Retire hardcoded assumptions that only `autoreiv` and `direct` can appear in Chat.
 
 ---
 
 ## 5. Acceptance Criteria (EARS Syntax)
 
-- **[REQ-388-001] (Ubiquitous)**: THE SYSTEM SHALL maintain `developer` and `tutor` as active built-in platform packs in `PLATFORM_PACK_IDS` seeded into `$DATA_DIR/packs/` on application startup.
-- **[REQ-388-002] (Ubiquitous)**: THE API SHALL return `developer` and `tutor` in `GET /api/agents` with `is_platform_pack: true` and `show_in_chat: true`.
-- **[REQ-388-003] (Event-Driven)**: WHEN an operator clicks the agent selector in Chat Studio, THE SYSTEM SHALL display `AutoReiv`, `Developer`, `Tutor`, and `Direct` as selectable options.
-- **[REQ-388-004] (Event-Driven)**: WHEN an operator selects `Developer` or `Tutor` and sends a message, THE SYSTEM SHALL execute the turn with that agent's distinct system prompt, model preferences, and scoped capabilities.
-- **[REQ-388-005] (State-Driven)**: WHILE switching between agents in Chat Studio, THE SYSTEM SHALL preserve and display independent conversation session threads for each agent.
-- **[REQ-388-006] (Negative Assertion)**: Automated tests shall explicitly assert that `developer` and `tutor` are NOT cleaned up by `RETIRED_PLATFORM_PACK_IDS` and that their requests are NOT aliased or redirected to `autoreiv`.
+- **[REQ-388-001] (Ubiquitous)**: THE SYSTEM SHALL seed `developer` and `tutor` from factory seeds (`platform-packs/`) into `$DATA_DIR/packs/` on startup if missing.
+- **[REQ-388-002] (Ubiquitous)**: THE API SHALL return `developer` and `tutor` in `GET /api/agents` with `show_in_chat: true`.
+- **[REQ-388-003] (Event-Driven)**: WHEN an operator opens Chat Studio, THE SYSTEM SHALL display selectable agent pills for all chat-visible agents using their display names (`agent.name`).
+- **[REQ-388-004] (Event-Driven)**: WHEN an operator selects `Developer` or `Tutor`, THE SYSTEM SHALL execute the turn with that agent's distinct system prompt, model preferences, and scoped skill capabilities.
+- **[REQ-388-005] (State-Driven)**: WHILE switching between agents in Chat Studio, THE SYSTEM SHALL preserve and display independent conversation session threads keyed by `agent.id`.
+- **[REQ-388-006] (Negative Assertion)**: Automated tests shall explicitly assert that `developer` and `tutor` requests are NOT redirected or aliased to `autoreiv`, and are NOT deleted by retired pack cleanup routines.
 
 ---
 
@@ -90,7 +98,7 @@ In CARD-366, these agents were temporarily collapsed into skills under `autoreiv
 - Feature branch: `feat/CARD-388-restore-developer-and-tutor-agents` cut from `qa`.
 - Live user data packs stay in `%LOCALAPPDATA%\AutoReiv\packs\`, never in git checkout.
 - Automated tests:
-  - `pytest tests/unit/agent_packs/` (platform packs schema, lifecycle seeding, alias checks).
+  - `pytest tests/unit/agent_packs/` (seeding, pack schema, alias elimination).
   - `npm run test:frontend` (Vitest for Chat Studio agent selector and stream handling).
 - Linting: `ruff check .` and `npm run lint:frontend` with 0 errors.
 - Preflight: `python .agents/skills/sdd-workflow/scripts/preflight.py`.
