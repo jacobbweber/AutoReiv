@@ -19,6 +19,8 @@ import {
 import {
   updateTrainAgentLiveIndicator,
 } from './chat.js';
+import { showToast as toastLib } from '../ui/toast.js';
+import { copyToClipboard } from '../utils/clipboard.js';
 
 export const PHASE_METADATA = [
   {
@@ -405,6 +407,8 @@ export function initFactoryStudio(state, callbacks = {}) {
   function showToast(msg, type = 'info') {
     if (typeof callbacks.showToast === 'function') {
       callbacks.showToast(msg, type);
+    } else {
+      toastLib(msg, type);
     }
   }
 
@@ -1390,16 +1394,7 @@ export function initFactoryStudio(state, callbacks = {}) {
       }
       const textToCopy = formatLabActivityFeedText(packets);
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(textToCopy);
-        } else {
-          const ta = document.createElement('textarea');
-          ta.value = textToCopy;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-        }
+        await copyToClipboard(textToCopy);
         if (factoryDetailCopyFeedText) {
           const original = factoryDetailCopyFeedText.textContent;
           factoryDetailCopyFeedText.textContent = 'Copied!';

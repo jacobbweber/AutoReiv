@@ -10,19 +10,13 @@ from src.infrastructure.data.migrate import (
     migrate_data_dir,
     resolve_paths_for_root,
 )
+from src.web.routers.settings import _data_dir_paths
 
 router = APIRouter(tags=["Settings"])
 
 
 class DataDirMigrateRequest(BaseModel):
     destination: str
-
-
-def _data_dir_paths(request: Request):
-    paths = getattr(request.app.state, "data_dir_paths", None)
-    if paths is None:
-        raise HTTPException(status_code=500, detail="Data directory is not resolved")
-    return paths
 
 
 @router.post("/api/data-dir/migrate")

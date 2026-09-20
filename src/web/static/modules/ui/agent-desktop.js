@@ -13,7 +13,7 @@
  * HITL approvals surface as modal dialog windows.
  */
 
-import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
+import { $, $query, $queryAll, escapeHtml, isMobile, safeCreateIcons } from '../dom.js';
 
 /** @typedef {{ id: string, tab: string, label: string, icon: string, subtitle?: string, defaultSize?: { w: number, h: number } }} DockLauncher */
 
@@ -560,10 +560,6 @@ export function initAgentDesktop(opts = {}) {
     };
   }
 
-  function isMobile() {
-    return window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-  }
-
   function nextZ() {
     zTop = nextDesktopStackZ(zTop);
     return zTop;
@@ -819,8 +815,8 @@ export function initAgentDesktop(opts = {}) {
       <div class="desktop-win-titlebar" data-drag-handle="1">
         <div class="desktop-win-title-left">
           <span class="desktop-win-icon"><i data-lucide="${escapeAttr(launcher.icon)}" class="w-3.5 h-3.5"></i></span>
-          <span class="desktop-win-title">${escapeHtmlLite(launcher.label)}</span>
-          <span class="desktop-win-sub">${escapeHtmlLite(launcher.subtitle || '')}</span>
+          <span class="desktop-win-title">${escapeHtml(launcher.label)}</span>
+          <span class="desktop-win-sub">${escapeHtml(launcher.subtitle || '')}</span>
         </div>
         <div class="desktop-win-title-right" data-title-right="1"></div>
         <div class="desktop-win-controls">
@@ -1296,7 +1292,7 @@ export function initAgentDesktop(opts = {}) {
       (d) => `
       <button type="button" id="${escapeAttr(d.id)}" class="desktop-dock-btn" data-dock-tab="${escapeAttr(d.tab)}" data-dock-id="${escapeAttr(d.id)}" title="${escapeAttr(d.label)}" aria-label="${escapeAttr(d.label)}" aria-pressed="false">
         <span class="desktop-dock-icon"><i data-lucide="${escapeAttr(d.icon)}" class="w-5 h-5"></i></span>
-        <span class="desktop-dock-label">${escapeHtmlLite(d.label)}</span>
+        <span class="desktop-dock-label">${escapeHtml(d.label)}</span>
         <span class="desktop-dock-indicator" aria-hidden="true"></span>
       </button>`
     ).join('');
@@ -1489,7 +1485,7 @@ export function initAgentDesktop(opts = {}) {
         <div class="desktop-preset-row">
           <button type="button" class="desktop-preset-load-btn" data-preset-id="${escapeAttr(p.id)}" title="Apply ${escapeAttr(p.name)}">
             <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
-            <span class="desktop-preset-name">${escapeHtmlLite(p.name)}</span>
+            <span class="desktop-preset-name">${escapeHtml(p.name)}</span>
           </button>
           <button type="button" class="desktop-preset-del-btn" data-delete-preset="${escapeAttr(p.id)}" title="Delete preset" aria-label="Delete preset">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -1745,15 +1741,8 @@ export function initAgentDesktop(opts = {}) {
     }
   }
 
-  function escapeHtmlLite(s) {
-    return String(s || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
   function escapeAttr(s) {
-    return escapeHtmlLite(s).replace(/'/g, '&#39;');
+    return escapeHtml(s).replace(/'/g, '&#39;');
   }
 
   renderDock();

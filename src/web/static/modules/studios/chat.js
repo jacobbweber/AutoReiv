@@ -2,7 +2,7 @@
  * Chat Studio Module [REQ-FE-001, REQ-WEB-001, REQ-WEB-002]
  */
 
-import { $, $query, safeCreateIcons } from '../dom.js';
+import { $, $query, isMobile, safeCreateIcons } from '../dom.js';
 import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown, formatSessionTimestamp } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
@@ -1407,7 +1407,7 @@ export function initChatStudio(state, callbacks = {}) {
     updateActiveAgentHeader();
 
     const sidebar = $('sidebar');
-    if (window.innerWidth < 768 && sidebar) {
+    if (isMobile() && sidebar) {
       sidebar.classList.add('-translate-x-full');
     }
 

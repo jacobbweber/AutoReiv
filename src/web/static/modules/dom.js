@@ -5,6 +5,14 @@
 export { escapeHtml } from './utils/formatters.js';
 
 /**
+ * Viewport check for mobile breakpoint (< 768px) [CARD-384].
+ * @returns {boolean}
+ */
+export function isMobile() {
+  return typeof window !== 'undefined' && typeof window.innerWidth === 'number' && window.innerWidth < 768;
+}
+
+/**
  * Null-safe getElementById with warning logging.
  * @param {string} id
  * @returns {HTMLElement|null}

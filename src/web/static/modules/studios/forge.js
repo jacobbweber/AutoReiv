@@ -5,6 +5,7 @@
 import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
+import { copyToClipboard } from '../utils/clipboard.js';
 import { PRESETS_DEFAULTS } from './settings.js';
 
 
@@ -3310,16 +3311,7 @@ export function initAgentForge(state, callbacks = {}) {
       }
       const textToCopy = formatLabActivityFeedText(packets);
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(textToCopy);
-        } else {
-          const textArea = document.createElement('textarea');
-          textArea.value = textToCopy;
-          document.body.appendChild(textArea);
-          textArea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textArea);
-        }
+        await copyToClipboard(textToCopy);
         if (labCopyFeedText) {
           const originalText = labCopyFeedText.textContent;
           labCopyFeedText.textContent = 'Copied!';

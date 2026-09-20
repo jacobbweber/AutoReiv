@@ -2,6 +2,14 @@
 
 ### Changed
 
+- Single Lever Audit & Shadow Function Deduplication (`src/web/static/modules/`, `src/web/routers/` [CARD-384]):
+  - **Canonical HTML Escaping Single Lever**: Unified HTML escaping across desktop and studio interfaces to use canonical `escapeHtml` from `dom.js` (re-exported from `formatters.js`); pruned local duplicate `escapeHtml` in `projects.js` and shadow helper `escapeHtmlLite` in `agent-desktop.js`.
+  - **Canonical Mobile Viewport Invariant**: Exported canonical `isMobile()` helper (`window.innerWidth < 768`) from `dom.js` and replaced 11 open-coded viewport width checks and 2 local duplicate functions across `agent-desktop.js`, `prompts.js`, `app.js`, `chat.js`, `wiki.js`, `skills.js`, and `projects.js`.
+  - **Unified Safe Clipboard Operations**: Replaced raw unhandled `navigator.clipboard.writeText` and inconsistent inline `execCommand` fallbacks in `factory.js`, `forge.js`, `projects.js`, and `wiki.js` with centralized `copyToClipboard()` from `utils/clipboard.js`.
+  - **Canonical Toast Dispatch**: Standardized toast notification paths across `factory.js`, `skills.js`, and `projects.js` to dispatch via `../ui/toast.js` (`showToast`) when callbacks are omitted.
+  - **Single Backend Data Directory Resolver**: Eliminated duplicate `_data_dir_paths` implementation in `src/web/routers/data_dir_migrate.py`, cleanly importing the canonical helper from `settings.py`.
+  - **Negative Assertion Regression Suite**: Added `tests/unit/frontend/single_lever_dedup_384.test.js` verifying the absence of shadow functions and asserting positive `isMobile` boundary behaviors.
+
 - Eliminate Hardcoded Agent Names, Aliases, and Fragmented Routing (`src/domain/agents/`, `src/application/orchestration/`, `src/application/kernel/`, `src/infrastructure/agents/`, `src/web/` [CARD-383]):
   - **Schema-Driven Chat Visibility**: Replaced legacy 7-string chained comparison blocklist in `chat.js` with declarative schema properties (`show_in_chat !== false`, `origin !== 'system'`, and `id !== 'agent-builder'`).
   - **Canonical Agent Resolution Single Source**: Unified alias mapping via `canonical_agent_id()` and `DEFAULT_PLATFORM_AGENT_ID = "autoreiv"` in `src/domain/agents/profiles.py`; excised duplicate ad-hoc `alias_map` dictionaries in `handoff_engine.py` and `supervisor_orchestrator.py`.

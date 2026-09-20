@@ -3,10 +3,8 @@
  * Dedicated management workspace for prompt catalog recipes, templates, and 1-click execution.
  */
 
-import { $ } from '../dom.js';
-import { escapeHtml } from '../utils/formatters.js';
+import { $, escapeHtml, isMobile, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
-import { safeCreateIcons } from '../dom.js';
 
 export function initPromptsStudio() {
   const promptsStudioListPane = $('promptsStudioListPane');
@@ -32,11 +30,6 @@ export function initPromptsStudio() {
   let promptsList = [];
   let selectedCategory = 'all';
   let selectedPromptId = null;
-
-  /* ─── Mobile Pane Helpers ─── */
-  function isMobile() {
-    return window.innerWidth < 768;  // md breakpoint
-  }
 
   function showEditorPane() {
     if (isMobile()) {
