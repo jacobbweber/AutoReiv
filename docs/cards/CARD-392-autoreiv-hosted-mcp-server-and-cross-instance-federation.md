@@ -43,23 +43,26 @@ This enables two transformative workflows:
 
 ## 3. What Will Change (Beat 3)
 
-1. **FastAPI Hosted MCP Server Endpoint (`/api/mcp/sse`)**:
-   - Implement official MCP SSE protocol endpoints on the main port (8000):
-     - `GET /api/mcp/sse`: Server-Sent Events stream for connection handshake and notifications.
+1. **FastAPI Hosted MCP Server Endpoints (`/api/mcp/sse`, `/api/mcp/messages`)**:
+   - Implement the official MCP SSE transport on the main application port (8000):
+     - `GET /api/mcp/sse`: Server-Sent Events stream for connection handshake, session initialization, and notifications.
      - `POST /api/mcp/messages`: JSON-RPC 2.0 endpoint handling `initialize`, `tools/list`, and `tools/call`.
-   - Readily exposes registered tools from `ScopedToolRegistry` (Wiki tools, system info, agent dispatch).
+2. **Agent-Mediated Capability Publishing (Zero Naked Tool Leakage)**:
+   - Dynamic Agent Dispatch Tools: Expose active chat-visible agents as high-level tools (`ask_developer`, `ask_autoreiv`, `ask_tutor`, etc.). When invoked, AutoReiv runs the agent's turn via `AgentKernel.execute_turn` with full `AGENTS.md` governance, skill runbooks, and tool guardrails, returning the final scrubbed markdown deliverable.
+   - Safe Passive Lookups: Expose read-only knowledge vault lookup tools (`search_wiki`, `read_wiki_document`) for immediate passive retrieval without spinning up a full agent turn.
    - Optional API Key / Bearer token authentication configured in Settings Studio.
-2. **AutoReiv-to-AutoReiv Federation Client Workflow**:
-   - In Settings Studio (`#view-settings`), operators can add a peer AutoReiv instance URL (`http://<remote-host>:8000/api/mcp/sse`).
-   - The local client connects, discovers the remote tools, namespaces them (e.g. `mcp_homelab_*`), and auto-scaffolds a companion `SKILL.md` runbook (`skills/homelab-cluster/SKILL.md`).
-3. **Strict In-Process Local Execution**:
-   - Verify that local turn execution routes through direct in-process Python callables in `tool_registry.py` and never routes through the loopback HTTP MCP endpoint.
+3. **AutoReiv-to-AutoReiv Federation Workflow**:
+   - In Settings Studio (`#view-settings`), operators can configure a peer AutoReiv instance endpoint (`http://<remote-host>:8000/api/mcp/sse`).
+   - The local client connects, discovers the remote agent tools (e.g. `mcp_homelab_ask_developer`), and auto-mounts them through a companion skill runbook (`skills/homelab-cluster/SKILL.md`), keeping tool usage strictly governed.
+4. **Strict In-Process Local Execution Invariant**:
+   - Verify that local turn execution routes through direct in-process Python callables in `tool_registry.py` and never loops through the HTTP MCP endpoint.
 
 ---
 
 ## 4. What Dies Today (The Prune List - Beat 4)
 
 - Retire ad-hoc custom curl/HTTP scripts for cross-machine coordination.
+- Eliminate raw naked tool publishing over remote interfaces that bypass agent runbooks and SOPs.
 - Eliminate the one-way limitation where AutoReiv could only consume, but never provide, MCP capabilities.
 
 ---
@@ -67,8 +70,8 @@ This enables two transformative workflows:
 ## 5. Acceptance Criteria (EARS Syntax)
 
 - **[REQ-392-001] (Ubiquitous)**: THE SYSTEM SHALL expose an inbound Model Context Protocol (MCP) server endpoint at `/api/mcp/sse` over HTTP with Server-Sent Events on the primary web port.
-- **[REQ-392-002] (Event-Driven)**: WHEN an external MCP client (or peer AutoReiv instance) sends a `tools/list` JSON-RPC request to `/api/mcp/messages`, THE SYSTEM SHALL return the schemas of all authorized tools.
-- **[REQ-392-003] (Event-Driven)**: WHEN an external client sends a `tools/call` request, THE SYSTEM SHALL execute the tool in `ScopedToolRegistry` and stream the structured result back to the client.
+- **[REQ-392-002] (Event-Driven)**: WHEN an external MCP client (or peer AutoReiv instance) sends a `tools/list` JSON-RPC request to `/api/mcp/messages`, THE SYSTEM SHALL return schemas for agent dispatchers (`ask_<agent_id>`) and safe passive wiki lookups.
+- **[REQ-392-003] (Event-Driven)**: WHEN an external client sends a `tools/call` request for an agent dispatcher (e.g. `ask_developer`), THE SYSTEM SHALL execute an autonomous turn via `AgentKernel.execute_turn` and return the structured response.
 - **[REQ-392-004] (State-Driven)**: WHILE connecting to a peer AutoReiv instance via Settings Studio, THE SYSTEM SHALL successfully handshake via SSE, mount the remote tools, and author a companion `SKILL.md` runbook.
 - **[REQ-392-005] (Negative Assertion)**: Automated tests shall explicitly assert that local agent turns execute tools directly in-process without generating HTTP network requests to `/api/mcp/sse`.
 
