@@ -2,6 +2,13 @@
 
 ### Added
 
+- Uniform Skill-First Capability Architecture and Agent Forge Realignment (`src/infrastructure/skills/seeds/sqlite-storage/SKILL.md`, `src/infrastructure/skills/seed.py`, `src/application/agent_packs/schema.py`, `src/domain/settings/models.py`, `src/infrastructure/agents/registry.py`, `src/web/routers/agents.py`, `src/web/static/modules/studios/forge.js`, `src/web/templates/index.html` [CARD-389]):
+  - **Uniform Skill-First Capabilities (Zero Naked Tools)**: In Agent Forge Studio, completely replaced the raw tool checkboxes grid (`#forgeToolsSection`, `#forgeToolsGrid`, `#selectAllToolsBtn`, etc.) with the Assigned Skills section (`#forgeSkillsSection`), which renders declared tools as read-only chips with required badges. Agents configure capabilities strictly through `SKILL.md` runbooks ("Brain & SOPs") which mount their declared tools ("Hands").
+  - **Display Name Customization with Immutable Identity Slug**: Operators can customize `agent.name` for any agent (including seeded agents like `autoreiv`, `developer`, `tutor`) via `#forgeNameInput`. The underlying slug `agent.id` is strictly `readonly` to protect database and filesystem integrity. Changes persist to `agent_overrides` SQLite table and user-data `packs/<id>/pack.json`.
+  - **Specialty SQLite Storage Database Toggle**: Checking `[x] Dedicated Storage Database (<slug>_storage.db)` (`#forgeStorageEnabled`) automatically binds the Tier 1 `sqlite-storage` skill runbook (`query_agent_database`, `execute_agent_database`) via `AgentProfileGuardrail`.
+  - **Locked OS Baseline Primitives**: Preserved uncheckable reference chips for the 5 fundamental platform tools (`activate_skill`, `ask_clarification`, `handoff_to_agent`, `lookup_agents`, `get_session_info`) in `#forgeBaselineBox`.
+  - **Test-Locked Delivery & Negative Assertions**: Authoritative regression tests in `tests/unit/agent_packs/test_card_389_skill_first_architecture.py`, `tests/unit/frontend/forge_decoupled_tools_skills_350.test.js`, and `tests/unit/frontend/forge_allowlist.test.js` ensuring 0 naked tools can be bound without a skill runbook and display names cleanly update without mutating slugs.
+
 - Restore Developer and Tutor as Unified Agent Packs (`platform-packs/`, `src/application/agent_packs/schema.py`, `src/infrastructure/skills/platform_packs.py`, `src/domain/agents/profiles.py`, `src/web/templates/index.html`, `src/web/static/modules/studios/chat.js` [CARD-388]):
   - **Restored Factory Seed Packs**: Added `platform-packs/developer/` with `sdlc-engineering` skill and full SDLC tooling (`read_project_file`, `write_project_file`, `list_project_dir`, `cli_exec`, `execute_code`, `propose_followup`), and `platform-packs/tutor/` with `socratic-tutoring` skill and educational wiki tools. Both packs strictly adhere to the Rule-of-7 tool budget with zero naked tools.
   - **Eliminated Retired Status and Aliases**: Removed `developer` and `tutor` from `RETIRED_PLATFORM_PACK_IDS` and `LEGACY_AGENT_ALIASES`, restoring them to `PLATFORM_PACK_IDS` and `CHAT_SHOWN_BY_ID` so queries resolve canonically without redirecting to `autoreiv`.
@@ -29,6 +36,9 @@
   - **Negative Assertion Regression Suite**: Added `tests/unit/core/test_dead_code_shims_scavenger_385.py` asserting that excised shims cannot be imported and obsolete aliases remain absent.
 
 ### Removed
+
+- Completely excised naked-tool checkboxes grid (`#forgeToolsSection`, `#forgeToolsGrid`, `#forgeToolSearchInput`, `#selectAllToolsBtn`, `#clearAllToolsBtn`) and associated shadow helpers (`toolCheckboxHtml()`, `selectRecommendedToolsForSkill()`, `renderAllowedTools()`, `applyToolChecks()`) from Agent Forge Studio in favor of Assigned Skills architecture [CARD-389].
+- Excised `is_builtin` restriction in `src/web/routers/agents.py` that previously prevented display name customization for seeded agents [CARD-389].
 
 - Excised horizontal button-scroll agent picker and button pills (`#engineBtnCore`, `#engineBtnDeveloper`, `#engineBtnTutor`, `#engineBtnDirect`, `renderEngineSelectorPills`) in Chat Studio header in favor of canonical `#agentSelect` dropdown [CARD-388].
 - Pruned binary dual-engine lock in Chat Studio header (`#engineBtnCore` / `#engineBtnDirect` exclusivity) and hardcoded 2-agent chat restrictions [CARD-388].

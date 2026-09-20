@@ -80,6 +80,7 @@ class ModelPurposeMatrix(BaseModel):
 
 class AgentCustomization(BaseModel):
     agent_id: str
+    name: Optional[str] = None
     provider: Optional[str] = None
     tone: Optional[str] = None
     system_prompt: Optional[str] = None

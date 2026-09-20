@@ -27,8 +27,8 @@ from src.infrastructure.skills.seed import BUNDLED_PACK_IDS
 
 
 def test_platform_skill_ids_strictly_five_core():
-    """AC-1 & AC-2: PLATFORM_SKILL_IDS must strictly contain the 5 genuine tool suites."""
-    expected = {"wiki", "coordination", "proposals", "worker", "sandbox"}
+    """AC-1 & AC-2: PLATFORM_SKILL_IDS contains genuine tool suites (wiki, coordination, proposals, worker, sandbox, sqlite-storage)."""
+    expected = {"wiki", "coordination", "proposals", "worker", "sandbox", "sqlite-storage"}
     assert set(PLATFORM_SKILL_IDS) == expected
     assert "planning" not in PLATFORM_SKILL_IDS
     assert "verification" not in PLATFORM_SKILL_IDS

@@ -90,6 +90,8 @@ class BuiltinAgentRegistry:
             override = self.state_store.get_agent_override(profile.id)
             if override:
                 profile = profile.model_copy()
+                if getattr(override, "name", None):
+                    profile.name = override.name
                 if override.system_prompt:
                     profile.system_prompt = override.system_prompt
                 if override.tone:
@@ -127,6 +129,22 @@ class BuiltinAgentRegistry:
                     profile.max_turns = override.max_turns
                 if override.history_retention_days is not None:
                     profile.history_retention_days = override.history_retention_days
+                if getattr(override, "storage_enabled", None) is not None:
+                    profile.storage_enabled = override.storage_enabled
+                if getattr(override, "storage_type", None) is not None:
+                    profile.storage_type = override.storage_type
+                if getattr(override, "memory_enabled", None) is not None:
+                    profile.memory_enabled = override.memory_enabled
+                if getattr(override, "memory_retention_days", None) is not None:
+                    profile.memory_retention_days = override.memory_retention_days
+                if getattr(override, "pinned_memory", None) is not None:
+                    profile.pinned_memory = override.pinned_memory
+                if getattr(override, "allow_autonomous_training", None) is not None:
+                    profile.allow_autonomous_training = override.allow_autonomous_training
+                if getattr(override, "max_training_retries", None) is not None:
+                    profile.max_training_retries = override.max_training_retries
+                if getattr(override, "allow_wiki_access", None) is not None:
+                    profile.allow_wiki_access = override.allow_wiki_access
                 if getattr(override, "mcp_servers", None) is not None:
                     profile.mcp_servers = override.mcp_servers
                 if getattr(override, "allowed_credentials", None) is not None:

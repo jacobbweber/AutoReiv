@@ -79,13 +79,14 @@ class SettingsRepositoryMixin:
             conn.execute(
                 """
                 INSERT INTO agent_overrides (
-                    agent_id, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                    agent_id, name, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                     allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                     allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
+                    name = excluded.name,
                     origin = excluded.origin,
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
@@ -114,6 +115,7 @@ class SettingsRepositoryMixin:
                 """,
                 (
                     customization.agent_id,
+                    getattr(customization, "name", None),
                     origin_val,
                     provider_val,
                     getattr(customization, "api_base_url", None),
@@ -154,7 +156,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT agent_id, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                SELECT agent_id, name, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
@@ -165,6 +167,7 @@ class SettingsRepositoryMixin:
             r = cur.fetchone()
             if not r:
                 return None
+            name = r["name"] if "name" in r.keys() else None
             origin_val = r["origin"] if "origin" in r.keys() and r["origin"] else "custom"
             tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
             skills = None
@@ -221,6 +224,7 @@ class SettingsRepositoryMixin:
                     credentials = []
             return AgentCustomization(
                 agent_id=r["agent_id"],
+                name=name,
                 origin=origin_val,
                 provider=provider,
                 api_base_url=api_base_url,
@@ -256,7 +260,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT agent_id, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                SELECT agent_id, name, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
@@ -266,6 +270,7 @@ class SettingsRepositoryMixin:
             rows = cur.fetchall()
             results = []
             for r in rows:
+                name = r["name"] if "name" in r.keys() else None
                 origin_val = r["origin"] if "origin" in r.keys() and r["origin"] else "custom"
                 tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
                 skills = None
@@ -325,6 +330,7 @@ class SettingsRepositoryMixin:
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
+                        name=name,
                         origin=origin_val,
                         provider=provider,
                         api_base_url=api_base_url,

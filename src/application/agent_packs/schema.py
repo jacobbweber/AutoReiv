@@ -91,6 +91,10 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_session_artifact",
     ),
     "sandbox": ("execute_code",),
+    "sqlite-storage": (
+        "query_agent_database",
+        "execute_agent_database",
+    ),
 }
 
 DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
@@ -151,6 +155,10 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_agent_sessions",
         "get_agent_usage_summary",
     ),
+    "sqlite-storage": (
+        "query_agent_database",
+        "execute_agent_database",
+    ),
 }
 
 
@@ -186,6 +194,7 @@ OPTIONAL_PLATFORM_SKILLS: tuple[str, ...] = (
     "worker",
     "proposals",
     "sandbox",
+    "sqlite-storage",
 )
 
 PLATFORM_SKILL_IDS = tuple(PLATFORM_SKILL_TOOLS.keys())
@@ -211,6 +220,10 @@ PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
     "sandbox": {
         "name": "Isolated Code Sandbox",
         "description": "Guarded ephemeral code execution.",
+    },
+    "sqlite-storage": {
+        "name": "SQLite Specialty Storage",
+        "description": "Query and execute operations on private agent SQLite databases with strict security guardrails.",
     },
 }
 

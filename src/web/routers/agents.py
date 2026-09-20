@@ -422,6 +422,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     if existing.is_builtin:
         customization = AgentCustomization(
             agent_id=agent_id,
+            name=profile.name,
             provider=profile.provider,
             api_base_url=profile.api_base_url,
             api_key=profile.api_key,
@@ -454,6 +455,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         if store and hasattr(store, "save_agent_override"):
             customization = AgentCustomization(
                 agent_id=agent_id,
+                name=profile.name,
                 provider=profile.provider,
                 api_base_url=profile.api_base_url,
                 api_key=profile.api_key,
@@ -481,31 +483,34 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             )
             store.save_agent_override(customization)
 
-        # CARD-381: Synchronize user-data packs/<agent_id>/pack.json
-        data_dir = _data_dir_root(request)
-        if data_dir is not None:
-            pack_json_file = data_dir / "packs" / agent_id / "pack.json"
-            if pack_json_file.is_file():
-                try:
-                    with open(pack_json_file, "r", encoding="utf-8") as pf:
-                        p_data = json.load(pf)
-                    p_data["allowed_tool_names"] = profile.allowed_tool_names
-                    if profile.system_prompt:
-                        p_data["system_prompt"] = profile.system_prompt
-                    if profile.model:
-                        p_data["model"] = profile.model
-                    if profile.provider:
-                        p_data["provider"] = profile.provider
-                    if profile.mcp_servers is not None:
-                        p_data["mcp_servers"] = [
-                            s.model_dump() if hasattr(s, "model_dump") else s for s in profile.mcp_servers
-                        ]
-                    if profile.allowed_credentials is not None:
-                        p_data["allowed_credentials"] = profile.allowed_credentials
-                    with open(pack_json_file, "w", encoding="utf-8") as pf:
-                        json.dump(p_data, pf, indent=2)
-                except Exception:
-                    logger.exception("Failed to sync updated pack.json for %s", agent_id)
+    # CARD-381 / CARD-389: Synchronize user-data packs/<agent_id>/pack.json
+    data_dir = _data_dir_root(request)
+    if data_dir is not None:
+        pack_json_file = data_dir / "packs" / agent_id / "pack.json"
+        if pack_json_file.is_file():
+            try:
+                with open(pack_json_file, "r", encoding="utf-8") as pf:
+                    p_data = json.load(pf)
+                p_data["name"] = profile.name
+                p_data["allowed_tool_names"] = profile.allowed_tool_names
+                p_data["allowed_skill"] = profile.allowed_skill
+                p_data["storage_enabled"] = profile.storage_enabled
+                if profile.system_prompt:
+                    p_data["system_prompt"] = profile.system_prompt
+                if profile.model:
+                    p_data["model"] = profile.model
+                if profile.provider:
+                    p_data["provider"] = profile.provider
+                if profile.mcp_servers is not None:
+                    p_data["mcp_servers"] = [
+                        s.model_dump() if hasattr(s, "model_dump") else s for s in profile.mcp_servers
+                    ]
+                if profile.allowed_credentials is not None:
+                    p_data["allowed_credentials"] = profile.allowed_credentials
+                with open(pack_json_file, "w", encoding="utf-8") as pf:
+                    json.dump(p_data, pf, indent=2)
+            except Exception:
+                logger.exception("Failed to sync updated pack.json for %s", agent_id)
 
     if profile.storage_enabled:
         from src.infrastructure.data.resolver import get_agent_storage_connection

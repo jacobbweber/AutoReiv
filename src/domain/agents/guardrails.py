@@ -3,7 +3,7 @@ Deterministic Guardrails & Invariant Validation for Agent Profiles [REQ-SKIL-003
 """
 
 import re
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Union
 
 from src.domain.kernel.models import AgentProfile, AgentTone
 from src.domain.settings.models import ModelPurpose
@@ -25,12 +25,15 @@ class AgentProfileGuardrail:
     @classmethod
     def validate(
         cls,
-        payload: Dict[str, Any],
+        payload: Union[Dict[str, Any], AgentProfile],
         available_tools: Optional[Set[str]] = None,
     ) -> AgentProfile:
         """
         Validate and normalize an incoming agent specification against platform invariants.
         """
+        if hasattr(payload, "model_dump"):
+            payload = payload.model_dump()
+
         # 1. Validate ID Slug
         agent_id = str(payload.get("id", "")).strip()
         if not agent_id:
@@ -162,6 +165,8 @@ class AgentProfileGuardrail:
 
         storage_enabled = bool(payload.get("storage_enabled", False))
         storage_type = str(payload.get("storage_type", "sqlite")).strip().lower() or "sqlite"
+        if storage_enabled and "sqlite-storage" not in allowed_skill:
+            allowed_skill.append("sqlite-storage")
 
         # 9. Memory Configuration [CARD-116]
         raw_memory_enabled = payload.get("memory_enabled")
