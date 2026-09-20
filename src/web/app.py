@@ -348,7 +348,6 @@ def create_app(
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
     app.state.factory_orchestrator = factory_orchestrator
-    app.state.factory_runner = factory_orchestrator  # back-compat
     app.state.factory_repo = factory_repo
     app.state.capability_gap_repo = capability_gap_repo
     app.state.capability_catalog_repo = capability_catalog_repo

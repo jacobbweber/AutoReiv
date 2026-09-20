@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Removed
+
+- Orphaned Shims & Dead Compatibility Aliases (`src/web/routers/`, `src/application/orchestration/`, `src/application/agent_training_factory/` [CARD-385]):
+  - **Excised Unused Router Shims**: Deleted unreferenced shim `src/web/routers/_card313_import_data_dir_migrate.py` and obsolete router alias `src/web/routers/factory.py`, ensuring all factory endpoints route canonically through `agent_training_factory.py`.
+  - **Excised FactoryRunner Compatibility Shims**: Deleted `src/application/orchestration/factory_runner.py`, pruned `FactoryRunner = FactoryOrchestrator` export alias from `orchestrator.py`, and cleaned `app.state.factory_runner` and `gaps.py` fallbacks.
+  - **Stale Root Bytecode Cleanup**: Purged historical compiled bytecode from root `__pycache__`.
+  - **Negative Assertion Regression Suite**: Added `tests/unit/core/test_dead_code_shims_scavenger_385.py` asserting that excised shims cannot be imported and obsolete aliases remain absent.
+
 ### Changed
 
 - Single Lever Audit & Shadow Function Deduplication (`src/web/static/modules/`, `src/web/routers/` [CARD-384]):
