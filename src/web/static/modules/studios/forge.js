@@ -548,6 +548,21 @@ export function initAgentForge(state, callbacks = {}) {
   const studioRunbookDeleteBtn = $('studioRunbookDeleteBtn');
   const studioNewRunbookSlug = $('studioNewRunbookSlug');
   const studioNewRunbookBtn = $('studioNewRunbookBtn');
+  const studioRunbookValidateBtn = $('studioRunbookValidateBtn');
+  const studioRunbookLintStatus = $('studioRunbookLintStatus');
+  const studioRunbookCharCount = $('studioRunbookCharCount');
+
+  const CANONICAL_RUNBOOK_TEMPLATE = `# Operating Principles
+1. Always verify assumptions against actual runtime state.
+2. Structure output concisely with clear next steps.
+
+## Available Tools
+- \`activate_skill\`: Activate relevant procedural runbooks.
+
+## Done-When
+- Operational checks complete with zero errors.
+- Verification criteria satisfied.
+`;
 
   function skillRowHtml(skill, home, archived = false) {
     const id = skill.id || '';
@@ -637,6 +652,121 @@ export function initAgentForge(state, callbacks = {}) {
     }
   }
 
+  function updateRunbookCharCount() {
+    if (!studioRunbookCharCount || !studioRunbookBody) return;
+    const len = studioRunbookBody.value.length;
+    const limit = 8000;
+    studioRunbookCharCount.textContent = `${len.toLocaleString()} / ${limit.toLocaleString()} chars`;
+    if (len > limit) {
+      studioRunbookCharCount.classList.add('text-rose-400');
+      studioRunbookCharCount.classList.remove('text-slate-500');
+    } else {
+      studioRunbookCharCount.classList.remove('text-rose-400');
+      studioRunbookCharCount.classList.add('text-slate-500');
+    }
+  }
+
+  function clearRunbookLintStatus() {
+    if (!studioRunbookLintStatus) return;
+    studioRunbookLintStatus.innerHTML = '';
+    studioRunbookLintStatus.className = 'hidden rounded-lg p-2.5 text-xs transition-all';
+  }
+
+  function renderRunbookLintReport(report) {
+    if (!studioRunbookLintStatus) return;
+    studioRunbookLintStatus.classList.remove('hidden');
+
+    if (report.valid && (!report.violations || report.violations.length === 0)) {
+      studioRunbookLintStatus.className = 'rounded-lg p-3 text-xs bg-emerald-950/60 border border-emerald-700/60 text-emerald-200 transition-all flex items-center justify-between';
+      const toolsCount = report.contract ? report.contract.tools_count : 0;
+      studioRunbookLintStatus.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span class="font-medium">Runbook contract valid! Clean ADR-0054 compliance (${toolsCount} declared tool${toolsCount === 1 ? '' : 's'}).</span>
+        </div>
+        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 uppercase">PASS</span>
+      `;
+      safeCreateIcons();
+      return;
+    }
+
+    const errorCount = report.error_count || 0;
+    const warnCount = report.warning_count || 0;
+    const isError = errorCount > 0;
+
+    studioRunbookLintStatus.className = isError
+      ? 'rounded-lg p-3 text-xs bg-rose-950/60 border border-rose-700/60 text-rose-200 transition-all space-y-2'
+      : 'rounded-lg p-3 text-xs bg-amber-950/60 border border-amber-700/60 text-amber-200 transition-all space-y-2';
+
+    const header = `
+      <div class="flex items-center justify-between border-b ${isError ? 'border-rose-800/80' : 'border-amber-800/80'} pb-1.5 mb-1.5">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="${isError ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 ${isError ? 'text-rose-400' : 'text-amber-400'} shrink-0"></i>
+          <span class="font-semibold">${isError ? 'Contract Violations Found' : 'Contract Warnings'} (${errorCount} error${errorCount === 1 ? '' : 's'}, ${warnCount} warning${warnCount === 1 ? '' : 's'})</span>
+        </div>
+        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${isError ? 'bg-rose-900/80 text-rose-300 border border-rose-600/50' : 'bg-amber-900/80 text-amber-300 border border-amber-600/50'} uppercase">${isError ? 'FAIL' : 'WARN'}</span>
+      </div>
+    `;
+
+    const violationsList = (report.violations || []).map((v) => {
+      const isErr = (v.severity || '').toLowerCase() === 'error';
+      const badgeClass = isErr ? 'bg-rose-900/80 text-rose-300 border-rose-700/60' : 'bg-amber-900/80 text-amber-300 border-amber-700/60';
+      return `
+        <div class="flex items-start space-x-2 text-[11px] leading-snug">
+          <span class="px-1 py-0.2 rounded font-mono font-bold text-[9px] border uppercase shrink-0 ${badgeClass}">${escapeHtml(v.rule_id || v.rule || 'LINT')}</span>
+          <span class="text-slate-200 flex-1">${escapeHtml(v.message)}</span>
+        </div>
+      `;
+    }).join('');
+
+    studioRunbookLintStatus.innerHTML = `${header}<div class="space-y-1.5">${violationsList}</div>`;
+    safeCreateIcons();
+  }
+
+  async function validateActiveRunbook(isPreSave = false) {
+    const name = studioRunbookName ? studioRunbookName.value.trim() : '';
+    const description = studioRunbookBlurb ? studioRunbookBlurb.value.trim() : '';
+    const instructions = studioRunbookBody ? studioRunbookBody.value : '';
+
+    if (!instructions.trim()) {
+      showToast('Runbook body cannot be empty', 'error');
+      return false;
+    }
+
+    if (studioRunbookValidateBtn) {
+      studioRunbookValidateBtn.disabled = true;
+    }
+
+    try {
+      const res = await fetch('/api/skills/lint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description, instructions }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || `HTTP ${res.status}`);
+      }
+
+      renderRunbookLintReport(data);
+
+      if (!data.valid && !isPreSave) {
+        showToast(`Runbook validation failed: ${data.error_count} error(s)`, 'error');
+      } else if (data.valid && !isPreSave) {
+        showToast('Runbook passed contract validation', 'success');
+      }
+
+      return data.valid;
+    } catch (err) {
+      showToast(`Lint check error: ${err.message || err}`, 'error');
+      return false;
+    } finally {
+      if (studioRunbookValidateBtn) {
+        studioRunbookValidateBtn.disabled = false;
+      }
+    }
+  }
+
   function hideRunbookEditor() {
     activeRunbookId = '';
     activeRunbookArchived = false;
@@ -645,6 +775,8 @@ export function initAgentForge(state, callbacks = {}) {
     if (studioRunbookBlurb) studioRunbookBlurb.value = '';
     if (studioRunbookBody) studioRunbookBody.value = '';
     if (studioRunbookPath) studioRunbookPath.textContent = '';
+    clearRunbookLintStatus();
+    updateRunbookCharCount();
     setRunbookActionVisibility();
   }
 
@@ -654,8 +786,13 @@ export function initAgentForge(state, callbacks = {}) {
     activeRunbookArchived = Boolean(archivedHint || data.archived || manifest.origin === 'archived');
     if (studioRunbookName) studioRunbookName.value = manifest.name || data.name || '';
     if (studioRunbookBlurb) studioRunbookBlurb.value = manifest.description || data.description || '';
-    if (studioRunbookBody) studioRunbookBody.value = data.instructions || '';
+    const bodyContent = data.instructions || '';
+    if (studioRunbookBody) {
+      studioRunbookBody.value = bodyContent || CANONICAL_RUNBOOK_TEMPLATE;
+    }
     if (studioRunbookPath) studioRunbookPath.textContent = manifest.path || '';
+    updateRunbookCharCount();
+    clearRunbookLintStatus();
     if (studioRunbookEditor) {
       if (targetRow) {
         targetRow.after(studioRunbookEditor);
@@ -2215,6 +2352,13 @@ export function initAgentForge(state, callbacks = {}) {
         showToast('Unarchive this runbook before saving', 'error');
         return;
       }
+      const isValid = await validateActiveRunbook(true);
+      if (!isValid) {
+        const proceed = window.confirm(
+          'This runbook has mechanical contract violations (e.g. missing Done-When or >6 tools). Do you still want to save it as a draft?'
+        );
+        if (!proceed) return;
+      }
       try {
         studioRunbookSaveBtn.disabled = true;
         const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}`, {
@@ -2330,6 +2474,18 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (studioRunbookCancelBtn) {
     studioRunbookCancelBtn.addEventListener('click', () => hideRunbookEditor());
+  }
+
+  if (studioRunbookValidateBtn) {
+    studioRunbookValidateBtn.addEventListener('click', () => {
+      validateActiveRunbook(false);
+    });
+  }
+
+  if (studioRunbookBody) {
+    studioRunbookBody.addEventListener('input', () => {
+      updateRunbookCharCount();
+    });
   }
 
   async function loadTones(selectedToneId = null) {

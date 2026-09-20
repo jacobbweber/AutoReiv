@@ -1,7 +1,7 @@
 ---
 id: CARD-390
 title: "Integrated Runbook Editor and Mechanical Capability Linter"
-status: In Progress
+status: In Review
 created: 2026-09-20
 adr: 0054
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-390] Integrated Runbook Editor and Mechanical Capability Linter
 
-> **Status**: In Progress  
+> **Status**: In Review  
 > **Created**: 2026-09-20  
 > **ADR Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
 > **Labels**: `type:feature`, `domain:skills`, `domain:forge`, `area:web`  
