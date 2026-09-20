@@ -56,11 +56,17 @@ import {
   renderAgentHandoffCardHtml,
 } from './chat/stream.js';
 
+// Retired legacy agent IDs preserved in a frozen set for backward-compatibility [CARD-383]
+export const RETIRED_LEGACY_AGENT_IDS = Object.freeze(
+  new Set(['agent-builder', 'coding', 'review', 'conductor', 'hyperv', 'assistant', 'wiki'])
+);
+
 // Explicitly defined in chat.js to maintain AST and text regex invariants [CARD-119 / REQ-FACT-048]
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
-  if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review' || agent.id === 'conductor' || agent.id === 'hyperv' || agent.id === 'assistant' || agent.id === 'wiki') return false;
   if (agent.visibility === 'internal') return false;
+  if (agent.origin === 'system' && agent.id !== 'autoreiv' && agent.id !== 'direct') return false;
+  if (RETIRED_LEGACY_AGENT_IDS.has(agent.id)) return false;
   return agent.show_in_chat !== false;
 }
 

@@ -533,7 +533,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       e.preventDefault();
       const name = (routineNameInput?.value || '').trim();
       const id = (routineIdInput?.value || '').trim();
-      const agent_id = routineAgentSelect?.value || 'system-agent';
+      const agent_id = (routineAgentSelect?.value || '').trim() || 'autoreiv';
       const cron_expr = (routineCronInput?.value || '0 * * * *').trim();
       const prompt_template = (routinePromptInput?.value || '').trim();
       const enabled = routineEnabledInput ? routineEnabledInput.checked : true;

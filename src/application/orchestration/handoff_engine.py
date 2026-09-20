@@ -9,6 +9,7 @@ import json
 import logging
 from typing import Any, AsyncIterator, Callable, Optional
 
+from src.domain.agents.profiles import canonical_agent_id
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import AgentProfile, KernelEventType
 from src.domain.orchestration.errors import HandoffPacketError
@@ -199,20 +200,8 @@ class HandoffIsolationEngine:
                 )
             )
 
-        alias_map = {
-            "assistant": "autoreiv",
-            "wiki": "autoreiv",
-            "sysadmin": "autoreiv",
-            "linux-sysadmin": "autoreiv",
-            "system-agent": "autoreiv",
-            "system": "autoreiv",
-            "librarian": "autoreiv",
-            "system-librarian": "autoreiv",
-            "general-assistant": "autoreiv",
-            "general": "autoreiv",
-        }
-        recipient_id = alias_map.get(envelope.recipient_agent_id, envelope.recipient_agent_id)
-        sender_id = alias_map.get(envelope.sender_agent_id, envelope.sender_agent_id)
+        recipient_id = canonical_agent_id(envelope.recipient_agent_id)
+        sender_id = canonical_agent_id(envelope.sender_agent_id)
 
         # 2. Guardrail: Circular Self-Handoff Check
         if recipient_id == sender_id or envelope.recipient_agent_id == envelope.sender_agent_id:
