@@ -25,14 +25,14 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
         agents = resp.json()
         agent_map = {a["id"]: a for a in agents}
 
-        # Verify origin surfaced on platform & system agents
+        # Verify origin surfaced on packs & system agents
         assert "origin" in agent_map["autoreiv"]
-        assert agent_map["autoreiv"]["origin"] == "platform"
+        assert agent_map["autoreiv"]["origin"] == "pack"
 
         assert "origin" in agent_map["agent-builder"]
         assert agent_map["agent-builder"]["origin"] == "system"
 
-        # 2. Create custom agent and verify origin is "custom"
+        # 2. Create agent pack and verify origin is "pack"
         custom_payload = {
             "id": "operator-assistant",
             "name": "Operator Assistant",
@@ -46,9 +46,9 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
         # Query created agent
         get_resp = await ac.get("/api/agents/operator-assistant")
         assert get_resp.status_code == 200
-        assert get_resp.json()["origin"] == "custom"
+        assert get_resp.json()["origin"] == "pack"
 
-        # 3. Forbid DELETE on platform agent
+        # 3. Forbid DELETE on autoreiv core agent
         del_platform = await ac.delete("/api/agents/autoreiv")
         assert del_platform.status_code in (400, 403)
 
@@ -56,7 +56,7 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
         del_system = await ac.delete("/api/agents/agent-builder")
         assert del_system.status_code in (400, 403)
 
-        # 5. Allow DELETE on custom agent
+        # 5. Allow DELETE on agent pack
         del_custom = await ac.delete("/api/agents/operator-assistant")
         assert del_custom.status_code == 200
         assert del_custom.json()["status"] == "deleted"

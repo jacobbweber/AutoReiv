@@ -409,10 +409,10 @@ Verify audit returns status success.
         assert (pack_dir / "pack.json").exists()
         assert (pack_dir / "tools" / "audit_disk_inodes.py").exists()
 
-        # 3. Verify registry recognizes newly promoted agent
+        # 3. Verify registry recognizes newly promoted agent pack
         promoted_profile = registry.get_agent(target_agent)
         assert promoted_profile is not None
-        assert promoted_profile.origin == AgentOrigin.CUSTOM
+        assert promoted_profile.origin == AgentOrigin.PACK
 
 
 @pytest.mark.asyncio

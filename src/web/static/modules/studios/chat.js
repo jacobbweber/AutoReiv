@@ -61,11 +61,10 @@ export const RETIRED_LEGACY_AGENT_IDS = Object.freeze(
   new Set(['agent-builder', 'coding', 'review', 'conductor', 'hyperv', 'assistant', 'wiki'])
 );
 
-// Explicitly defined in chat.js to maintain AST and text regex invariants [CARD-119 / REQ-FACT-048]
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
   if (agent.visibility === 'internal') return false;
-  if (agent.origin === 'system' && agent.id !== 'autoreiv' && agent.id !== 'direct' && agent.id !== 'developer' && agent.id !== 'tutor') return false;
+  if (agent.origin === 'system' || agent.is_builtin) return false;
   if (RETIRED_LEGACY_AGENT_IDS.has(agent.id)) return false;
   return agent.show_in_chat !== false;
 }

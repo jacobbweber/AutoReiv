@@ -110,14 +110,10 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
     show_in_chat = is_visible_in_chat(profile)
     pack_bits = _pack_skills_payload(pack_manifest, tools_by_name)
 
-    if getattr(profile, "origin", None):
-        origin_val = profile.origin.value if hasattr(profile.origin, "value") else str(profile.origin).lower()
-    elif profile.is_builtin:
+    if profile.is_builtin or profile.id == "agent-builder":
         origin_val = AgentOrigin.SYSTEM.value
-    elif is_platform_pack(profile.id):
-        origin_val = AgentOrigin.PLATFORM.value
     else:
-        origin_val = AgentOrigin.CUSTOM.value
+        origin_val = AgentOrigin.PACK.value
 
     return {
         "id": profile.id,
@@ -541,18 +537,10 @@ async def delete_agent(request: Request, agent_id: str, purge_history: bool = Fa
     existing = registry.get_agent(agent_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    from src.application.agent_packs.schema import is_platform_pack
-    from src.domain.kernel.models import AgentOrigin
-
-    agent_origin = getattr(existing, "origin", None)
-    if (
-        existing.is_builtin
-        or is_platform_pack(agent_id)
-        or agent_origin in (AgentOrigin.PLATFORM, AgentOrigin.SYSTEM, "platform", "system")
-    ):
+    if agent_id in ("agent-builder", "autoreiv") or existing.is_builtin:
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete a platform or system agent. Only custom agents can be deleted.",
+            detail="Cannot delete core system agent.",
         )
 
     deleted = registry.delete_custom_agent(agent_id, purge_history=purge_history)

@@ -49,9 +49,10 @@ CHAT_HIDDEN_BY_ID = frozenset(
 # Stale hide overrides must not win for these human-facing companions.
 CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "developer", "tutor"})
 
-# Always-installed Platform Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
-# autoreiv, direct, developer, tutor.
-PLATFORM_PACK_IDS = frozenset({"autoreiv", "direct", "developer", "tutor"})
+# Initial Factory Seed Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
+# All seeded packs are simply agent packs once installed.
+DEFAULT_SEEDED_PACK_IDS = frozenset({"autoreiv", "direct", "developer", "tutor"})
+PLATFORM_PACK_IDS = DEFAULT_SEEDED_PACK_IDS  # Backward compatibility alias
 
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
@@ -451,6 +452,14 @@ class AgentPackManifest(BaseModel):
         if not cleaned:
             raise ValueError("Pack name cannot be empty.")
         return cleaned
+
+    @field_validator("purpose", mode="before")
+    @classmethod
+    def normalize_purpose(cls, value: Any) -> str:
+        val = str(value or "general").strip().lower()
+        if val == "code":
+            return "task_execution"
+        return val or "general"
 
     @field_validator("allowed_skill", "pack_tool_names", "allowed_credentials", mode="before")
     @classmethod

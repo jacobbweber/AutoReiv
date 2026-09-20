@@ -6,11 +6,13 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
 def test_agent_origin_enum_values():
-    assert AgentOrigin.PLATFORM.value == "platform"
+    assert AgentOrigin.PACK.value == "pack"
     assert AgentOrigin.SYSTEM.value == "system"
+    assert AgentOrigin.PLATFORM.value == "platform"
     assert AgentOrigin.CUSTOM.value == "custom"
-    assert AgentOrigin("platform") == AgentOrigin.PLATFORM
+    assert AgentOrigin("pack") == AgentOrigin.PACK
     assert AgentOrigin("system") == AgentOrigin.SYSTEM
+    assert AgentOrigin("platform") == AgentOrigin.PLATFORM
     assert AgentOrigin("custom") == AgentOrigin.CUSTOM
 
 
@@ -21,8 +23,8 @@ def test_agent_profile_default_origin():
         description="A test agent",
         system_prompt="Test prompt",
     )
-    assert profile.origin == AgentOrigin.CUSTOM
-    assert profile.origin.value == "custom"
+    assert profile.origin == AgentOrigin.PACK
+    assert profile.origin.value == "pack"
 
 
 def test_agent_profile_explicit_origin():
@@ -31,10 +33,10 @@ def test_agent_profile_explicit_origin():
         name="AutoReiv",
         description="Core platform agent",
         system_prompt="Platform prompt",
-        origin=AgentOrigin.PLATFORM,
+        origin=AgentOrigin.PACK,
     )
-    assert profile.origin == AgentOrigin.PLATFORM
-    assert profile.origin.value == "platform"
+    assert profile.origin == AgentOrigin.PACK
+    assert profile.origin.value == "pack"
 
 
 def test_sqlite_schema_migration_adds_origin_column(tmp_path):
@@ -113,14 +115,14 @@ def test_sqlite_state_store_persists_and_loads_origin(tmp_path):
     # Load individual profiles
     loaded_custom = store.get_agent_profile("my-custom-agent")
     assert loaded_custom is not None
-    assert loaded_custom.origin == AgentOrigin.CUSTOM
+    assert loaded_custom.origin == AgentOrigin.PACK
 
     loaded_platform = store.get_agent_profile("autoreiv")
     assert loaded_platform is not None
-    assert loaded_platform.origin == AgentOrigin.PLATFORM
+    assert loaded_platform.origin == AgentOrigin.PACK
 
     # List custom agent profiles
     all_profiles = store.list_custom_agent_profiles()
     profile_map = {p.id: p for p in all_profiles}
-    assert profile_map["my-custom-agent"].origin == AgentOrigin.CUSTOM
-    assert profile_map["autoreiv"].origin == AgentOrigin.PLATFORM
+    assert profile_map["my-custom-agent"].origin == AgentOrigin.PACK
+    assert profile_map["autoreiv"].origin == AgentOrigin.PACK

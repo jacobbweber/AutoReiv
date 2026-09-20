@@ -11,8 +11,10 @@ from src.domain.settings.models import MCPServerConfig, ModelPurpose
 
 
 class AgentOrigin(str, Enum):
-    PLATFORM = "platform"
+    PACK = "pack"
     SYSTEM = "system"
+    # Legacy aliases for database backward compatibility
+    PLATFORM = "platform"
     CUSTOM = "custom"
 
 
@@ -41,8 +43,8 @@ class AgentProfile(BaseModel):
     description: str = Field(description="Summary of agent role")
     system_prompt: str = Field(description="Base persona prompt")
     origin: AgentOrigin = Field(
-        default=AgentOrigin.CUSTOM,
-        description="Origin tier of the agent profile (platform, system, or custom).",
+        default=AgentOrigin.PACK,
+        description="Origin tier of the agent profile (pack or system).",
     )
     provider: str = Field(
         default="default",

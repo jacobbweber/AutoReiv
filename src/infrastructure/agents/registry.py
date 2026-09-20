@@ -47,11 +47,7 @@ class BuiltinAgentRegistry:
             self.state_store.save_agent_profile(profile)
 
     def delete_custom_agent(self, agent_id: str, purge_history: bool = False) -> bool:
-        """Delete custom agent profile (protects built-in agents)."""
-        from src.application.agent_packs.schema import PLATFORM_PACK_IDS
-
-        builtin_ids = {p.id for p in BUILTIN_PROFILES}
-        if agent_id in builtin_ids or agent_id in PLATFORM_PACK_IDS:
+        if agent_id in ("agent-builder", "autoreiv"):
             return False
 
         if agent_id in self._profiles:

@@ -13,10 +13,11 @@ from typing import Any, Iterable, Optional, Union
 
 logger = logging.getLogger(__name__)
 
-# Platform seeds from repo platform-packs/ into $DATA_DIR/packs/.
-# CARD-341: assistant and wiki retired. CARD-366: forge absorbed. CARD-388: developer & tutor restored.
-PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct", "developer", "tutor")
-ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
+# Initial Factory Seed Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
+# All seeded packs are simply agent packs once installed.
+DEFAULT_SEEDED_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct", "developer", "tutor")
+PLATFORM_PACK_IDS: tuple[str, ...] = DEFAULT_SEEDED_PACK_IDS
+ALL_PLATFORM_PACK_IDS: tuple[str, ...] = DEFAULT_SEEDED_PACK_IDS
 RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
     "assistant",
     "wiki",
@@ -209,8 +210,8 @@ def install_platform_agent_packs(
             continue
         existing = agent_registry.get_agent(pack_id) if agent_registry is not None else None
         if existing is not None:
-            if getattr(existing, "origin", None) != AgentOrigin.PLATFORM:
-                existing.origin = AgentOrigin.PLATFORM
+            if getattr(existing, "origin", None) != AgentOrigin.PACK:
+                existing.origin = AgentOrigin.PACK
                 if service.store and hasattr(service.store, "save_custom_agent_profile"):
                     service.store.save_custom_agent_profile(existing)
             if (src / "pack.json").is_file():
@@ -262,7 +263,7 @@ def install_platform_agent_packs(
 
                     if changed and service.store and hasattr(service.store, "save_custom_agent_profile"):
                         service.store.save_custom_agent_profile(existing)
-                        logger.info("Synchronized platform pack profile for %s", pack_id)
+                        logger.info("Synchronized agent pack profile for %s", pack_id)
                     # CARD-269 / CARD-381: Refresh operator override without wiping custom tools
                     if (
                         service.store
@@ -291,6 +292,9 @@ def install_platform_agent_packs(
                                 dest_data["allowed_tool_names"] = final_tools
                                 dest_data["pack_tool_names"] = new_pack_tools
                                 dest_data["allowed_skill"] = new_allowed_skill
+                                if dest_data.get("purpose") == "code":
+                                    dest_data["purpose"] = "task_execution"
+                                dest_data["origin"] = "pack"
                                 if new_prompt:
                                     dest_data["system_prompt"] = new_prompt
                                 with open(dest / "pack.json", "w", encoding="utf-8") as dpf:
@@ -316,15 +320,28 @@ def install_platform_agent_packs(
                     logger.exception("Failed to sync updated prompt for %s", pack_id)
             continue
         try:
+            # Heal legacy purpose: "code" before importing
+            dest_json_path = dest / "pack.json"
+            if dest_json_path.is_file():
+                try:
+                    with open(dest_json_path, "r", encoding="utf-8") as dpf:
+                        ddata = json.load(dpf)
+                    if ddata.get("purpose") == "code":
+                        ddata["purpose"] = "task_execution"
+                        ddata["origin"] = "pack"
+                        with open(dest_json_path, "w", encoding="utf-8") as dpf:
+                            json.dump(ddata, dpf, indent=2)
+                except Exception:
+                    pass
             profile = service.import_path(dest)
-            if profile and getattr(profile, "origin", None) != AgentOrigin.PLATFORM:
-                profile.origin = AgentOrigin.PLATFORM
+            if profile and getattr(profile, "origin", None) != AgentOrigin.PACK:
+                profile.origin = AgentOrigin.PACK
                 if service.store and hasattr(service.store, "save_agent_profile"):
                     service.store.save_agent_profile(profile)
             installed.append(pack_id)
-            logger.info("Imported platform pack %s", pack_id)
+            logger.info("Imported agent pack %s", pack_id)
         except Exception:
-            logger.exception("Failed to import platform pack %s from %s", pack_id, dest)
+            logger.exception("Failed to import agent pack %s from %s", pack_id, dest)
 
     # Discover and import any existing user packs in $DATA_DIR/packs/ that are not yet in the registry
     if packs_path.is_dir():
@@ -340,16 +357,12 @@ def install_platform_agent_packs(
                 except Exception:
                     continue
 
-                if pack_data.get("origin") == "platform":
-                    logger.warning("Skipping unmanaged/stale platform pack in %s", sub)
-                    continue
-
                 existing = agent_registry.get_agent(sub.name) if agent_registry is not None else None
                 if existing is None:
                     try:
                         imported_profile = service.import_path(sub)
-                        if imported_profile and getattr(imported_profile, "origin", None) != AgentOrigin.CUSTOM:
-                            imported_profile.origin = AgentOrigin.CUSTOM
+                        if imported_profile and getattr(imported_profile, "origin", None) != AgentOrigin.PACK:
+                            imported_profile.origin = AgentOrigin.PACK
                             if service.store and hasattr(service.store, "save_agent_profile"):
                                 service.store.save_agent_profile(imported_profile)
                         installed.append(sub.name)

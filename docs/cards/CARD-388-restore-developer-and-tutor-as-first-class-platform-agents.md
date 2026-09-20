@@ -77,6 +77,9 @@ In Chat Studio, operators can select between seeded or custom agents using human
 
 - Delete `developer` and `tutor` entries from `RETIRED_PLATFORM_PACK_IDS`.
 - Delete `developer` and `tutor` redirect entries from `LEGACY_AGENT_ALIASES`.
+- Prune `(Platform)` and `(Custom)` tags from `formatAgentSelectOption` across all Studio dropdowns.
+- Prune `Platform Agent Pack` vs `Custom Agent` distinction in Agent Studio badges (unify to `Agent Pack`).
+- Prune origin-based automatic pack purging in `DeclarativePackReconciler` (only explicitly retired packs are purged).
 - Prune the binary 2-button lock in Chat Studio header (`#engineBtnCore` / `#engineBtnDirect` exclusivity).
 - Retire hardcoded assumptions that only `autoreiv` and `direct` can appear in Chat.
 
@@ -90,6 +93,7 @@ In Chat Studio, operators can select between seeded or custom agents using human
 - **[REQ-388-004] (Event-Driven)**: WHEN an operator selects `Developer` or `Tutor`, THE SYSTEM SHALL execute the turn with that agent's distinct system prompt, model preferences, and scoped skill capabilities.
 - **[REQ-388-005] (State-Driven)**: WHILE switching between agents in Chat Studio, THE SYSTEM SHALL preserve and display independent conversation session threads keyed by `agent.id`.
 - **[REQ-388-006] (Negative Assertion)**: Automated tests shall explicitly assert that `developer` and `tutor` requests are NOT redirected or aliased to `autoreiv`, and are NOT deleted by retired pack cleanup routines.
+- **[REQ-388-007] (Ubiquitous)**: THE SYSTEM SHALL drop the primitive distinction between "Platform" and "Custom" agents across domain models, UI, API, and database, normalizing all agent packs to `AgentOrigin.PACK = "pack"`, displaying clean agent names without tags, automatically healing legacy `purpose: "code"`, and restricting delete protection strictly to core orchestration identities (`autoreiv` and `agent-builder`).
 
 ---
 

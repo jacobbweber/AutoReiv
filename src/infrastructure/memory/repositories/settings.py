@@ -390,7 +390,7 @@ class SettingsRepositoryMixin:
         origin_str = (
             profile.origin.value
             if hasattr(profile.origin, "value")
-            else str(getattr(profile, "origin", AgentOrigin.CUSTOM.value))
+            else str(getattr(profile, "origin", AgentOrigin.PACK.value))
         )
         created_str = profile.created_at or now_str
         provider_str = getattr(profile, "provider", "default") or "default"
@@ -503,12 +503,15 @@ class SettingsRepositoryMixin:
             r = cur.fetchone()
             if not r:
                 return None
-            origin_val = AgentOrigin.CUSTOM
-            if "origin" in r.keys() and r["origin"]:
-                try:
-                    origin_val = AgentOrigin(r["origin"])
-                except Exception:
-                    origin_val = AgentOrigin.CUSTOM
+            origin_val = AgentOrigin.PACK
+            if bool(r["is_builtin"]) or r["id"] == "agent-builder":
+                origin_val = AgentOrigin.SYSTEM
+            elif "origin" in r.keys() and r["origin"]:
+                raw_origin = str(r["origin"]).lower()
+                if raw_origin == "system":
+                    origin_val = AgentOrigin.SYSTEM
+                else:
+                    origin_val = AgentOrigin.PACK
             tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
             skills = []
             if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
@@ -633,12 +636,15 @@ class SettingsRepositoryMixin:
             rows = cur.fetchall()
             results = []
             for r in rows:
-                origin_val = AgentOrigin.CUSTOM
-                if "origin" in r.keys() and r["origin"]:
-                    try:
-                        origin_val = AgentOrigin(r["origin"])
-                    except Exception:
-                        origin_val = AgentOrigin.CUSTOM
+                origin_val = AgentOrigin.PACK
+                if bool(r["is_builtin"]) or r["id"] == "agent-builder":
+                    origin_val = AgentOrigin.SYSTEM
+                elif "origin" in r.keys() and r["origin"]:
+                    raw_origin = str(r["origin"]).lower()
+                    if raw_origin == "system":
+                        origin_val = AgentOrigin.SYSTEM
+                    else:
+                        origin_val = AgentOrigin.PACK
                 tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
                 skills = []
                 if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
@@ -758,11 +764,7 @@ class SettingsRepositoryMixin:
         import shutil
         from pathlib import Path
 
-        from src.application.agent_packs.schema import PLATFORM_PACK_IDS
-        from src.domain.agents.profiles import BUILTIN_PROFILES
-
-        builtin_ids = {p.id for p in BUILTIN_PROFILES}
-        if agent_id in builtin_ids or agent_id in PLATFORM_PACK_IDS:
+        if agent_id in ("agent-builder", "autoreiv"):
             return False
 
         conn = self._get_connection()

@@ -126,3 +126,73 @@ def test_req_388_006_negative_assertions_no_aliasing_no_retirement(tmp_path: Pat
     assert tutor_dir.is_dir()
     assert (dev_dir / "pack.json").is_file()
     assert (tutor_dir / "pack.json").is_file()
+
+
+def test_req_388_007_unified_agent_pack_primitive_and_healing(tmp_path: Path):
+    """[REQ-388-007] Drops platform vs custom distinction:
+
+    - Legacy purpose: 'code' automatically normalizes to task_execution without failing validation.
+    - install_platform_agent_packs heals legacy on-disk pack.json files.
+    - Delete protection is restricted to core system agents (autoreiv, agent-builder);
+      all other agent packs can be deleted.
+    """
+    from src.application.agent_packs.schema import AgentPackManifest
+    from src.domain.agents.guardrails import AgentProfileGuardrail
+    from src.domain.kernel.models import AgentOrigin
+    from src.infrastructure.agents.registry import BuiltinAgentRegistry
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+    from src.infrastructure.skills.platform_packs import install_platform_agent_packs
+
+    # 1. Validation handles purpose: "code" gracefully
+    legacy_manifest_data = {
+        "id": "developer",
+        "name": "Developer",
+        "purpose": "code",
+        "system_prompt": "Code prompt",
+    }
+    manifest = AgentPackManifest.model_validate(legacy_manifest_data)
+    assert manifest.purpose == "task_execution"
+
+    guardrail_profile = AgentProfileGuardrail.validate(legacy_manifest_data)
+    assert guardrail_profile.purpose.value == "task_execution"
+    assert guardrail_profile.origin == AgentOrigin.PACK
+
+    # 2. Disk healing in install_platform_agent_packs
+    data_dir = tmp_path / "user_data"
+    packs_dir = data_dir / "packs"
+    packs_dir.mkdir(parents=True)
+    dev_pack = packs_dir / "developer"
+    dev_pack.mkdir()
+    (dev_pack / "pack.json").write_text(
+        json.dumps({"id": "developer", "name": "Developer", "purpose": "code", "origin": "platform"}),
+        encoding="utf-8",
+    )
+
+    store = SQLiteStateStore(db_path=data_dir / "database" / "autoreiv.db")
+    registry = BuiltinAgentRegistry(state_store=store)
+
+    install_platform_agent_packs(
+        data_dir=data_dir,
+        agent_registry=registry,
+    )
+
+    # Verify disk was healed
+    healed_data = json.loads((dev_pack / "pack.json").read_text(encoding="utf-8"))
+    assert healed_data["purpose"] == "task_execution"
+    dev_agent = registry.get_agent("developer")
+    assert dev_agent is not None
+    assert dev_agent.origin == AgentOrigin.PACK
+
+    # 3. Deletion rules: autoreiv and agent-builder protected, others deletable
+    assert registry.delete_custom_agent("autoreiv") is False
+    assert registry.delete_custom_agent("agent-builder") is False
+
+    # Seed an agent pack and verify it CAN be deleted
+    seeded_profile = AgentProfileGuardrail.validate(
+        {"id": "developer", "name": "Developer", "system_prompt": "Developer assistant for coding tasks"}
+    )
+    registry.register_profile(seeded_profile)
+    assert registry.get_agent("developer") is not None
+    assert registry.delete_custom_agent("developer") is True
+    assert registry.get_agent("developer") is None
+

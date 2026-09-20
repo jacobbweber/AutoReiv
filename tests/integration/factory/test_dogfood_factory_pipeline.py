@@ -408,14 +408,14 @@ async def test_dogfood_factory_pipeline_e2e_eight_phases(test_env):
     assert profile.show_in_chat is True
     assert tool_name in profile.allowed_tool_names
 
-    # Check origin tag: custom agent must be tagged with origin="custom" [CARD-367, CARD-373]
-    assert profile.origin == AgentOrigin.CUSTOM or str(profile.origin) == "custom"
-    assert profile.origin.value == "custom"
+    # Check origin tag: agent pack must be tagged with origin="pack" [CARD-367, CARD-373, CARD-388]
+    assert profile.origin == AgentOrigin.PACK or str(profile.origin) == "pack"
+    assert profile.origin.value == "pack"
 
     # Also check persisted profile in SQLite store
     stored_profile = store.get_agent_profile(target_slug)
     assert stored_profile is not None
-    assert stored_profile.origin.value == "custom"
+    assert stored_profile.origin.value == "pack"
 
     # -------------------------------------------------------------
     # Verification: AgentKernel Loads and Runs Promoted Custom Agent

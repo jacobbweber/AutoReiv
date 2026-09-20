@@ -32,6 +32,8 @@
 
 - Pruned binary dual-engine lock in Chat Studio header (`#engineBtnCore` / `#engineBtnDirect` exclusivity) and hardcoded 2-agent chat restrictions [CARD-388].
 - Excised `developer` and `tutor` entries from `RETIRED_PLATFORM_PACK_IDS` and `LEGACY_AGENT_ALIASES` [CARD-388].
+- Pruned `(Platform)` and `(Custom)` labels from Agent Studio dropdowns and select options [CARD-388].
+- Excised origin-based pack purging in `DeclarativePackReconciler` [CARD-388].
 
 - Subtractive Pruning of Legacy 8-Phase Factory Compiler & Sub-Views (`src/web/templates/index.html`, `src/web/static/modules/studios/factory.js`, `src/web/static/modules/ui/agent-desktop.js` [CARD-386]):
   - **Excised Obsolete Factory Sub-Views**: Completely deleted the dead 8-phase pipeline view (`#factoryPipelineView`), the training runs & live monitor two-pane view (`#factoryRunsView`), and the sub-tab bar (`#factoryTabIntakeBtn`, `#factoryTabRunsBtn`, `#factoryTabPipelineBtn`).
@@ -40,6 +42,14 @@
   - **Pruned Dead CSS & Event Listeners**: Excised orphaned CSS rules for `#factoryRunsView` and `#factoryPipelineView`, pruned `switchSubView` and tab-switching event handlers, and removed dead modal enhancement hooks from `agent-desktop.js`.
 
 ### Changed
+
+- Unify Agent Packs & Drop Platform vs Custom Primitive (`src/domain/kernel/models.py`, `src/domain/agents/guardrails.py`, `src/infrastructure/skills/reconciler.py`, `src/infrastructure/memory/repositories/settings.py`, `src/web/routers/agents.py`, `src/web/static/modules/studios/forge.js`, `src/web/static/modules/studios/factory.js`, `src/web/static/modules/studios/chat.js` [CARD-388]):
+  - **Unified Agent Pack Model**: Replaced artificial "Platform" vs "Custom" distinction with a single cohesive `Agent Pack` primitive (`AgentOrigin.PACK = "pack"`). Seeding from `platform-packs/` initializes factory defaults into user data, after which all agent packs share sovereign status and capabilities.
+  - **Clean Display Naming**: Pruned `(Platform)` and `(Custom)` tags from `formatAgentSelectOption` across all Studio dropdowns and simplified `#factoryAgentSelect` label to `'All Agents'`.
+  - **Unified Studio Badging**: Replaced `Platform Agent Pack` / `Custom Agent` badges with a single `Agent Pack` badge (reserving `System Baseline` exclusively for internal engine `agent-builder`).
+  - **Refined Deletion Protection**: Restricted deletion protection strictly to core system orchestration identities (`autoreiv` and `agent-builder`). Operators can freely delete or manage any other agent pack (`developer`, `tutor`, or custom packs).
+  - **Sovereign User Pack Reconciliation**: Pruned origin-based purging from `DeclarativePackReconciler`; reconciler now strictly purges explicitly retired packs (`RETIRED_PLATFORM_PACK_IDS`), never touching user packs in `$DATA_DIR/packs/`.
+  - **Self-Healing Legacy Purpose**: Added automated normalization in `AgentProfileGuardrail` and `install_platform_agent_packs` converting legacy `"purpose": "code"` to `"task_execution"`, resolving unhandled validation errors and ensuring Developer imports reliably.
 
 - Single Lever Audit & Shadow Function Deduplication (`src/web/static/modules/`, `src/web/routers/` [CARD-384]):
   - **Canonical HTML Escaping Single Lever**: Unified HTML escaping across desktop and studio interfaces to use canonical `escapeHtml` from `dom.js` (re-exported from `formatters.js`); pruned local duplicate `escapeHtml` in `projects.js` and shadow helper `escapeHtmlLite` in `agent-desktop.js`.

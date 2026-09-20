@@ -372,12 +372,10 @@ export function renderProposalCardHtml(p) {
   `;
 }
 
-/** CARD-202, CARD-367: Format agent display name with (Platform) or (Custom). */
+/** CARD-202, CARD-367, CARD-388: Format agent display name cleanly without Platform/Custom tags. */
 export function formatAgentSelectOption(agent) {
   if (!agent) return '';
-  const origin = agent.origin || (agent.is_platform_pack || agent.is_builtin ? 'platform' : 'custom');
-  const tag = origin === 'platform' || origin === 'system' ? '(Platform)' : '(Custom)';
-  return `${agent.name || agent.id} ${tag}`;
+  return agent.name || agent.id;
 }
 
 /** CARD-202: Sort agents alphabetically by display name (case-insensitive). */
@@ -1073,25 +1071,20 @@ export function initAgentForge(state, callbacks = {}) {
     updateAvatarPreview(agent.avatar_icon || 'bot');
 
     if (forgeBuiltinBadge) {
-      const origin = agent.origin || (agent.is_platform_pack ? 'platform' : (agent.is_builtin ? 'system' : 'custom'));
-      if (origin === 'platform') {
-        forgeBuiltinBadge.textContent = 'Platform Agent Pack';
-        forgeBuiltinBadge.className =
-          'text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800';
-      } else if (origin === 'system') {
+      if (agent.id === 'agent-builder' || agent.is_builtin) {
         forgeBuiltinBadge.textContent = 'System Baseline';
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
       } else {
-        forgeBuiltinBadge.textContent = 'Custom Agent';
+        forgeBuiltinBadge.textContent = 'Agent Pack';
         forgeBuiltinBadge.className =
-          'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+          'text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800';
       }
     }
 
     if (deleteAgentBtn) {
-      const origin = agent.origin || (agent.is_platform_pack ? 'platform' : (agent.is_builtin ? 'system' : 'custom'));
-      if (origin === 'platform' || origin === 'system') {
+      const isProtected = agent.id === 'autoreiv' || agent.id === 'agent-builder' || Boolean(agent.is_builtin);
+      if (isProtected) {
         deleteAgentBtn.disabled = true;
         deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
       } else {

@@ -25,7 +25,7 @@ export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgent
     return { value: val, textContent: text };
   };
 
-  const defaultOpt = createOpt('', 'All Agents (Platform View)');
+  const defaultOpt = createOpt('', 'All Agents');
   selectEl.appendChild(defaultOpt);
 
   (agents || []).forEach((ag) => {

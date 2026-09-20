@@ -61,11 +61,17 @@ class AgentProfileGuardrail:
             if isinstance(purpose_raw, ModelPurpose):
                 purpose = purpose_raw
             else:
-                try:
-                    purpose = ModelPurpose(str(purpose_raw).lower())
-                except ValueError:
-                    valid_purposes = [p.value for p in ModelPurpose]
-                    raise AgentValidationError(f"Invalid purpose '{purpose_raw}'. Must be one of: {valid_purposes}")
+                p_str = str(purpose_raw).strip().lower()
+                if p_str == "code":
+                    purpose = ModelPurpose.TASK_EXECUTION
+                else:
+                    try:
+                        purpose = ModelPurpose(p_str)
+                    except ValueError:
+                        valid_purposes = [p.value for p in ModelPurpose]
+                        raise AgentValidationError(
+                            f"Invalid purpose '{p_str}'. Must be one of: {', '.join(valid_purposes)}"
+                        )
 
         # 5. Validate Agent Tone
         tone_raw = payload.get("tone", "default")
@@ -220,14 +226,19 @@ class AgentProfileGuardrail:
         raw_credentials = payload.get("allowed_credentials") or []
         allowed_credentials = [str(c).strip() for c in raw_credentials if str(c).strip()]
 
-        # 14. Agent Origin [CARD-367]
+        # 14. Agent Origin [CARD-367, CARD-388]
         raw_origin = payload.get("origin")
         from src.domain.kernel.models import AgentOrigin
 
-        try:
-            origin = AgentOrigin(str(raw_origin).lower()) if raw_origin else AgentOrigin.CUSTOM
-        except (ValueError, TypeError):
-            origin = AgentOrigin.CUSTOM
+        if is_builtin or agent_id == "agent-builder":
+            origin = AgentOrigin.SYSTEM
+        elif raw_origin:
+            try:
+                origin = AgentOrigin(str(raw_origin).lower())
+            except (ValueError, TypeError):
+                origin = AgentOrigin.PACK
+        else:
+            origin = AgentOrigin.PACK
 
         return AgentProfile(
             id=agent_id,
