@@ -33,6 +33,7 @@ from src.application.orchestration.research_before_plan import (
     assess_catalog_match,
     run_standing_research,
 )
+from src.domain.agents.profiles import DEFAULT_PLATFORM_AGENT_ID, canonical_agent_id
 from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import (
     HandoffPacket,
@@ -93,60 +94,51 @@ def resolve_specialist_agent_for_capabilities(
     store: Optional[Any] = None,
 ) -> str:
     """
-    Resolve specialist agent for execution phase when capabilities require specialist dispatch [CARD-336, CARD-339, CARD-341].
-    - Coding execution phases -> 'developer'
-    - Task, wiki, and SRE phases -> 'autoreiv'
-    - Education / tutoring phases -> 'tutor'
+    Resolve specialist agent for execution phase when capabilities require specialist dispatch [CARD-336, CARD-339, CARD-341, CARD-383].
+    Uses canonical_agent_id for single-source resolution rather than ad-hoc string comparisons.
     """
+    canonical_default = canonical_agent_id(default_agent_id or DEFAULT_PLATFORM_AGENT_ID)
     if not matched_ids:
-        return default_agent_id if default_agent_id not in ("assistant", "wiki") else "autoreiv"
+        return canonical_default
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
         if s.startswith("agent."):
             candidate = s[len("agent.") :]
-            if candidate in ("assistant", "wiki"):
-                return "autoreiv"
             if candidate:
-                return candidate
+                return canonical_agent_id(candidate)
         elif s.startswith("pack."):
             candidate = s[len("pack.") :]
-            if candidate in ("assistant", "wiki"):
-                return "autoreiv"
             if candidate:
-                return candidate
+                return canonical_agent_id(candidate)
 
     has_coding_tools = any(
         any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "coding"))
         for cid in matched_ids
     )
     if has_coding_tools:
-        return "autoreiv"
+        return DEFAULT_PLATFORM_AGENT_ID
 
     has_tutor_tools = any(
         any(k in cid.lower() for k in ("tutor", "education", "mastery", "quiz", "elaboration", "flashcard"))
         for cid in matched_ids
     )
     if has_tutor_tools:
-        return "tutor"
+        return DEFAULT_PLATFORM_AGENT_ID
 
     has_autoreiv_tools = any(
         any(k in cid.lower() for k in ("wiki_", "wiki_note", "weekly_note", "weekly_task", "work_item", "rollover", "system_info", "health", "sre", "diagnostics", "platform-health"))
         for cid in matched_ids
     )
     if has_autoreiv_tools:
-        return "autoreiv"
+        return DEFAULT_PLATFORM_AGENT_ID
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
         if "homelab" in s:
             return "homelab"
-        if "tutor" in s:
-            return "tutor"
 
-    if default_agent_id in ("assistant", "wiki", "developer", "coding"):
-        return "autoreiv"
-    return default_agent_id
+    return canonical_default
 
 
 class JobPhaseOrchestrator:
@@ -577,9 +569,8 @@ class JobPhaseOrchestrator:
         """Write phase facts into <agent>_memory.db; return fact ids [REQ-JPMEM-002]."""
         try:
             job = self._store.get_job(phase.job_id)
-            agent_id = getattr(job, "agent_id", None) or getattr(phase, "assigned_agent_id", None) or "autoreiv"
-            if agent_id in ("assistant", "wiki"):
-                agent_id = "autoreiv"
+            raw_agent = getattr(job, "agent_id", None) or getattr(phase, "assigned_agent_id", None) or DEFAULT_PLATFORM_AGENT_ID
+            agent_id = canonical_agent_id(str(raw_agent))
             return persist_phase_memory_for_job(
                 agent_id=str(agent_id),
                 job_id=phase.job_id,

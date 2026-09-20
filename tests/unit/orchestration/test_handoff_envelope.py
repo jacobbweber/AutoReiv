@@ -28,9 +28,9 @@ def test_handoff_envelope_schema_validation():
 @pytest.mark.asyncio
 async def test_supervisor_orchestrator_dispatches_to_specialist():
     mock_registry = MagicMock()
-    mock_dev = MagicMock()
-    mock_dev.id = "developer"
-    mock_registry.get_profile = MagicMock(return_value=mock_dev)
+    mock_spec = MagicMock()
+    mock_spec.id = "specialist"
+    mock_registry.get_profile = MagicMock(return_value=mock_spec)
 
     mock_kernel = MagicMock()
     mock_kernel.run_turn = AsyncMock(
@@ -50,7 +50,7 @@ async def test_supervisor_orchestrator_dispatches_to_specialist():
 
     envelope = HandoffEnvelope(
         sender_agent_id="autoreiv",
-        recipient_agent_id="developer",
+        recipient_agent_id="specialist",
         session_id="sess_test",
         task_intent="Check disk usage",
         context_payload={"environment": "production"},
@@ -61,7 +61,7 @@ async def test_supervisor_orchestrator_dispatches_to_specialist():
     assert result["status"] == "success"
     assert "Disk check complete" in result["output"]
     assert result["sender_agent_id"] == "autoreiv"
-    assert result["recipient_agent_id"] == "developer"
+    assert result["recipient_agent_id"] == "specialist"
     assert mock_telemetry.record_handoff_span.called
 
 
@@ -140,7 +140,7 @@ async def test_supervisor_orchestrator_resolves_sysadmin_alias():
     )
 
     envelope = HandoffEnvelope(
-        sender_agent_id="developer",
+        sender_agent_id="direct",
         recipient_agent_id="sysadmin",
         session_id="sess_alias",
         task_intent="Find architecture specs",

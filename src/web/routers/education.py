@@ -12,7 +12,7 @@ router = APIRouter(tags=["Education"])
 
 
 class GradePayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     item_id: str
     answer: str = ""
     # Optional: register item before grade when extracting on the fly
@@ -23,7 +23,7 @@ class GradePayload(BaseModel):
 
 
 class UpsertItemPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     item_id: Optional[str] = None
     topic: str
     wiki_path: str
@@ -32,25 +32,25 @@ class UpsertItemPayload(BaseModel):
 
 
 class ExtractPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     wiki_path: str
     topic: Optional[str] = None
     persist: bool = True
 
 
 class RetentionRunPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     force_due_item_id: Optional[str] = None
 
 
 class QuizNextPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     limit: int = Field(default=5, ge=1, le=50)
     topic: Optional[str] = None
 
 
 class AskPressurePayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     topic: str = ""
     teach_style: Optional[str] = None
     wiki_path: Optional[str] = None
@@ -61,14 +61,14 @@ class AskPressurePayload(BaseModel):
 
 
 class ElaborationExtractPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     wiki_path: str
     topic: Optional[str] = None
     persist: bool = True
 
 
 class ElaborationGradePayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     item_id: str
     answer: str = ""
     topic: Optional[str] = None
@@ -81,7 +81,7 @@ class ElaborationGradePayload(BaseModel):
 
 
 class ConstructionGeneratePayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     topic: str
     wiki_path: Optional[str] = None
     teach_style: Optional[str] = None
@@ -89,13 +89,13 @@ class ConstructionGeneratePayload(BaseModel):
 
 
 class TutorContextPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     topic: str = ""
     limit: int = Field(default=5, ge=1, le=20)
 
 
 class ConstructionAskPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     topic: str
     wiki_path: Optional[str] = None
     wiki_title: Optional[str] = None
@@ -105,14 +105,14 @@ class ConstructionAskPayload(BaseModel):
 
 
 class ApplicationExtractPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     wiki_path: str
     topic: Optional[str] = None
     persist: bool = True
 
 
 class ApplicationGradePayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     item_id: str
     answer: str = ""
     topic: Optional[str] = None
@@ -128,7 +128,7 @@ class ApplicationGradePayload(BaseModel):
 
 
 class ApplicationMintPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     item_id: str
     topic: Optional[str] = None
     wiki_path: Optional[str] = None
@@ -168,7 +168,7 @@ def _wiki_store(request: Request):
 
 
 @router.get("/api/education/mastery")
-async def list_mastery(request: Request, agent_id: str = "tutor", due_only: bool = False):
+async def list_mastery(request: Request, agent_id: str = "autoreiv", due_only: bool = False):
     repo = _memory_repo(request, agent_id)
     if due_only:
         rows = repo.list_due_education_mastery()
@@ -178,7 +178,7 @@ async def list_mastery(request: Request, agent_id: str = "tutor", due_only: bool
 
 
 @router.get("/api/education/mastery/due")
-async def list_due(request: Request, agent_id: str = "tutor"):
+async def list_due(request: Request, agent_id: str = "autoreiv"):
     repo = _memory_repo(request, agent_id)
     rows = repo.list_due_education_mastery()
     return {"agent_id": agent_id, "items": rows, "count": len(rows)}
@@ -403,7 +403,7 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
 @router.get("/api/education/quiz/next")
 async def quiz_next(
     request: Request,
-    agent_id: str = "tutor",
+    agent_id: str = "autoreiv",
     limit: int = 5,
     topic: Optional[str] = None,
     profile_id: Optional[str] = None,
@@ -478,7 +478,7 @@ async def quiz_next(
 
 
 @router.get("/api/education/learner")
-async def learner_summary(request: Request, agent_id: str = "tutor"):
+async def learner_summary(request: Request, agent_id: str = "autoreiv"):
     """Durable second-mind learner summary from memory.db [CARD-243]."""
     from src.application.education.learner_model import summarize_learner_model
 
@@ -653,7 +653,7 @@ async def extract_elaboration(request: Request, payload: ElaborationExtractPaylo
 @router.get("/api/education/elaboration/next")
 async def elaboration_next(
     request: Request,
-    agent_id: str = "tutor",
+    agent_id: str = "autoreiv",
     limit: int = 1,
     topic: Optional[str] = None,
 ):
@@ -827,7 +827,7 @@ async def extract_application(request: Request, payload: ApplicationExtractPaylo
 @router.get("/api/education/application/next")
 async def application_next(
     request: Request,
-    agent_id: str = "tutor",
+    agent_id: str = "autoreiv",
     limit: int = 1,
     topic: Optional[str] = None,
 ):
@@ -955,7 +955,7 @@ async def grade_application(request: Request, payload: ApplicationGradePayload):
 
 
 class AnalysisWikiPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     wiki_path: str
     item_id: Optional[str] = None
     miss_reason: Optional[str] = None
@@ -964,7 +964,7 @@ class AnalysisWikiPayload(BaseModel):
 
 
 @router.get("/api/education/analysis")
-async def analysis_summary(request: Request, agent_id: str = "tutor", limit: int = 50):
+async def analysis_summary(request: Request, agent_id: str = "autoreiv", limit: int = 50):
     """Error log + metacog patterns from memory.db [CARD-247]."""
     from src.application.education.analysis import summarize_analysis
 
@@ -975,7 +975,7 @@ async def analysis_summary(request: Request, agent_id: str = "tutor", limit: int
 
 
 @router.get("/api/education/analysis/errors")
-async def analysis_errors(request: Request, agent_id: str = "tutor", limit: int = 50):
+async def analysis_errors(request: Request, agent_id: str = "autoreiv", limit: int = 50):
     from src.application.education.analysis import list_error_log
 
     repo = _memory_repo(request, agent_id)
@@ -984,7 +984,7 @@ async def analysis_errors(request: Request, agent_id: str = "tutor", limit: int 
 
 
 @router.get("/api/education/analysis/patterns")
-async def analysis_patterns(request: Request, agent_id: str = "tutor", limit: int = 50):
+async def analysis_patterns(request: Request, agent_id: str = "autoreiv", limit: int = 50):
     from src.application.education.analysis import active_miss_reasons, list_metacog_patterns
 
     repo = _memory_repo(request, agent_id)
@@ -998,7 +998,7 @@ async def analysis_patterns(request: Request, agent_id: str = "tutor", limit: in
 
 
 class EnvironmentSelectPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     profile_id: str
 
 
@@ -1018,7 +1018,7 @@ async def environment_profiles():
 
 
 @router.get("/api/education/environment")
-async def environment_summary(request: Request, agent_id: str = "tutor"):
+async def environment_summary(request: Request, agent_id: str = "autoreiv"):
     """Active delivery profile preference from memory.db [CARD-248]."""
     from src.application.education.environment import summarize_environment
 
@@ -1050,7 +1050,7 @@ async def environment_apply_ask(request: Request, payload: dict):
         get_delivery_profile,
     )
 
-    agent_id = str(payload.get("agent_id") or "tutor")
+    agent_id = str(payload.get("agent_id") or "autoreiv")
     ask = str(payload.get("ask") or "")
     profile_id = payload.get("profile_id")
     repo = _memory_repo(request, agent_id)
@@ -1067,7 +1067,7 @@ class AmplifierExtractPayload(BaseModel):
 
 
 class AmplifierAttachPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     item_id: str
     content: Optional[str] = None
     wiki_path: Optional[str] = None
@@ -1172,7 +1172,7 @@ async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
 
 
 @router.get("/api/education/amplifiers")
-async def amplifiers_summary(request: Request, agent_id: str = "tutor", limit: int = 50):
+async def amplifiers_summary(request: Request, agent_id: str = "autoreiv", limit: int = 50):
     """List persisted visual amplifiers (Retrieval-backed only) [CARD-249]."""
     from src.application.education.visual_amplifiers import summarize_amplifiers
 
@@ -1183,7 +1183,7 @@ async def amplifiers_summary(request: Request, agent_id: str = "tutor", limit: i
 
 
 @router.get("/api/education/amplifiers/{item_id}")
-async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "tutor"):
+async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "autoreiv"):
     """Get amplifier for a mastery item; 404 if none; 400 if item not on ledger."""
     from fastapi import HTTPException
 
@@ -1228,24 +1228,24 @@ async def amplifiers_refuse_check(payload: dict):
 
 
 class CourseStartPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     topic_id: str
     steps: Optional[List[str]] = None
 
 
 class CourseIdPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     course_id: str
 
 
 class CourseJumpPayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     course_id: str
     step: str
 
 
 class CourseCompletePayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     course_id: str
     teach_style: Optional[str] = None
     learner_explanation: Optional[str] = None
@@ -1254,7 +1254,7 @@ class CourseCompletePayload(BaseModel):
 
 
 class CourseMasteryGradePayload(BaseModel):
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
     item_id: str
     answer: str = ""
 
@@ -1318,7 +1318,7 @@ async def course_get(
     request: Request,
     topic_id: Optional[str] = None,
     course_id: Optional[str] = None,
-    agent_id: str = "tutor",
+    agent_id: str = "autoreiv",
 ):
     """Retrieve active course row + chrome snapshot [CARD-320]."""
     from src.application.education.course import (
@@ -1419,7 +1419,7 @@ async def course_mastery_grade(request: Request, payload: CourseMasteryGradePayl
 
 class DualCodingPreviewPayload(BaseModel):
     topic: str
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/dual-coding/preview")
@@ -1435,7 +1435,7 @@ async def course_dual_coding_preview(payload: DualCodingPreviewPayload):
 
 class CourseElaborationPreviewPayload(BaseModel):
     topic: str
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/elaboration/preview")
@@ -1453,7 +1453,7 @@ class CourseElaborationCompletePayload(BaseModel):
     course_id: str
     topic: Optional[str] = None
     learner_explanation: Optional[str] = None
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/elaboration/complete")
@@ -1493,7 +1493,7 @@ class CourseLabPreviewPayload(BaseModel):
     topic: Optional[str] = None
     course_id: Optional[str] = None
     step: Optional[str] = "construction"
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/lab/preview")
@@ -1521,7 +1521,7 @@ class CourseLabGradePayload(BaseModel):
     course_id: str
     step: Optional[str] = None
     submission: str
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/lab/grade")
@@ -1567,7 +1567,7 @@ async def course_lab_grade(request: Request, payload: CourseLabGradePayload):
 class CourseConstructionCompletePayload(BaseModel):
     course_id: str
     submission: str
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/construction/complete")
@@ -1587,7 +1587,7 @@ async def course_construction_complete(request: Request, payload: CourseConstruc
 class CourseApplicationCompletePayload(BaseModel):
     course_id: str
     submission: str
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/application/complete")
@@ -1608,7 +1608,7 @@ class CourseEnvironmentPreviewPayload(BaseModel):
     topic: Optional[str] = None
     course_id: Optional[str] = None
     profile_id: Optional[str] = None
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/environment/preview")
@@ -1636,7 +1636,7 @@ async def course_environment_preview(request: Request, payload: CourseEnvironmen
 class CourseEnvironmentCompletePayload(BaseModel):
     course_id: str
     profile_id: Optional[str] = None
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/environment/complete")
@@ -1681,7 +1681,7 @@ async def course_environment_complete(request: Request, payload: CourseEnvironme
 class CourseAnalysisHandoffPayload(BaseModel):
     course_id: Optional[str] = None
     topic: Optional[str] = None
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/analysis/handoff")
@@ -1722,7 +1722,7 @@ async def course_depth_get(
     request: Request,
     topic: Optional[str] = None,
     course_id: Optional[str] = None,
-    agent_id: str = "tutor",
+    agent_id: str = "autoreiv",
 ):
     """Retrieve adaptive mastery depth ladder and milestones for a topic [CARD-327]."""
     from src.application.education.depth import get_topic_depth
@@ -1744,7 +1744,7 @@ async def course_depth_get(
 class CoursePortfolioCreatePayload(BaseModel):
     topic: Optional[str] = None
     course_id: Optional[str] = None
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/portfolio/create")
@@ -1785,12 +1785,12 @@ async def course_portfolio_create(request: Request, payload: CoursePortfolioCrea
 
 class LuminaComposePayload(BaseModel):
     topic: str
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 class LuminaSendToCoursePayload(BaseModel):
     topic: str
-    agent_id: str = "tutor"
+    agent_id: str = "autoreiv"
 
 
 @router.get("/api/lumina/starters")

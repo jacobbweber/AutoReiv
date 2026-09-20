@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Changed
+
+- Eliminate Hardcoded Agent Names, Aliases, and Fragmented Routing (`src/domain/agents/`, `src/application/orchestration/`, `src/application/kernel/`, `src/infrastructure/agents/`, `src/web/` [CARD-383]):
+  - **Schema-Driven Chat Visibility**: Replaced legacy 7-string chained comparison blocklist in `chat.js` with declarative schema properties (`show_in_chat !== false`, `origin !== 'system'`, and `id !== 'agent-builder'`).
+  - **Canonical Agent Resolution Single Source**: Unified alias mapping via `canonical_agent_id()` and `DEFAULT_PLATFORM_AGENT_ID = "autoreiv"` in `src/domain/agents/profiles.py`; excised duplicate ad-hoc `alias_map` dictionaries in `handoff_engine.py` and `supervisor_orchestrator.py`.
+  - **Clean Specialist & Capability Dispatch**: Pruned hardcoded tuple checks for legacy agents (`developer`, `coding`, `wiki`, `tutor`) in `job_phase_orchestrator.py`, delegating all resolution to canonical profiles and capabilities.
+  - **Education Router Defaults**: Replaced legacy `agent_id: str = "tutor"` defaults across 50 API endpoints in `education.py` with canonical `"autoreiv"`.
+  - **Routines Studio Fallback**: Replaced obsolete `'system-agent'` fallback in `routines.js` with active selection fallback to `'autoreiv'`.
+  - **Negative Assertion Regression Suite**: Added `test_canonical_agent_resolution_383.py` ensuring zero duplicate alias dictionaries or legacy tuple checks can recur.
+
 ### Added
 
 - Desktop Canvas Multi-Window Layout Presets, Custom Layout Pinning, and Sticky Auto-Restore (`src/web/static/modules/ui/agent-desktop.js`, `src/web/templates/index.html` [CARD-279]):

@@ -64,16 +64,27 @@ class BuiltinAgentRegistry:
     def get_agent(self, agent_id: str) -> Optional[AgentProfile]:
         """Fetch agent profile with SQLite custom agent resolution, alias fallback, and override overlay."""
         profile: Optional[AgentProfile] = None
-        lookup_id = canonical_agent_id(agent_id)
 
+        # 1. Direct match by exact agent_id
         if self.state_store:
-            profile = self.state_store.get_agent_profile(lookup_id)
+            profile = self.state_store.get_agent_profile(agent_id)
 
         if not profile:
-            profile = self._profiles.get(lookup_id)
+            profile = self._profiles.get(agent_id)
 
+        # 2. Alias fallback via canonical_agent_id
         if not profile:
-            profile = get_builtin_profile(lookup_id)
+            lookup_id = canonical_agent_id(agent_id)
+            if lookup_id != agent_id:
+                if self.state_store:
+                    profile = self.state_store.get_agent_profile(lookup_id)
+                if not profile:
+                    profile = self._profiles.get(lookup_id)
+            else:
+                lookup_id = agent_id
+
+            if not profile:
+                profile = get_builtin_profile(lookup_id)
 
         if not profile:
             return None

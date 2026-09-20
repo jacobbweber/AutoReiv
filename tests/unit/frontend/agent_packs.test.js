@@ -113,15 +113,12 @@ describe('Agent Studio pack UI [CARD-119]', () => {
     expect(forgeJs).toContain("a.id !== 'agent-builder'");
   });
 
-  it('chat.js filters both pickers with show_in_chat !== false and skips hidden ids', () => {
+  it('chat.js filters both pickers with show_in_chat !== false and skips hidden ids [CARD-383]', () => {
     const chatJs = read('src/web/static/modules/studios/chat.js');
     expect(chatJs).toContain('agentsVisibleInChat');
     expect(chatJs).toContain('isAgentVisibleInChat');
     expect(chatJs).toContain('show_in_chat !== false');
-    expect(chatJs).toContain("id === 'agent-builder'");
-    expect(chatJs).toContain("id === 'coding'");
-    expect(chatJs).toContain("id === 'review'");
-    expect(chatJs).toContain("id === 'conductor'");
+    expect(chatJs).toContain('RETIRED_LEGACY_AGENT_IDS');
   });
 });
 
