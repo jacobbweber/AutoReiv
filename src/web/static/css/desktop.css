@@ -628,7 +628,7 @@ body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaSendToCourseBt
 .desktop-dock-apps {
   display: flex;
   align-items: flex-end;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.25rem;
   overflow-x: auto;
   overflow-y: hidden;
@@ -639,6 +639,9 @@ body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaSendToCourseBt
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding: 0.15rem 0.25rem;
+}
+.desktop-dock.has-overflow .desktop-dock-apps {
+  justify-content: flex-start !important;
 }
 .desktop-dock-apps::-webkit-scrollbar {
   display: none;
@@ -843,3 +846,64 @@ body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaSendToCourseBt
     inset 1px 1px 2px rgba(255, 255, 255, 0.3),
     inset -1px -1px 2px rgba(0, 0, 0, 0.4);
 }
+
+@media (min-width: 768px) {
+  .desktop-dock-shell {
+    max-width: 72rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .desktop-dock:not(.has-overflow) .desktop-dock-apps {
+    justify-content: safe center;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-brand-hint {
+    display: none;
+  }
+  .desktop-dock-bar {
+    background: rgba(15, 23, 42, 0.94);
+  }
+  .desktop-dock-shell {
+    padding: 0.35rem 0.35rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.25rem;
+  }
+  .desktop-dock-apps {
+    justify-content: flex-start !important;
+    gap: 0.15rem;
+  }
+  .desktop-dock-btn {
+    min-width: 2.85rem;
+    padding: 0.25rem 0.3rem;
+  }
+  .desktop-dock-label {
+    display: none;
+  }
+  .desktop-dock-btn:hover {
+    transform: none;
+  }
+  .desktop-window,
+  .desktop-window.is-mobile-fs {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+  }
+  .desktop-win-resize {
+    display: none !important;
+  }
+  .desktop-win-sub {
+    display: none;
+  }
+  .desktop-win-max {
+    display: none !important;
+  }
+  body.radical-desktop-demo .tab-view.desktop-view-hosted {
+    border-radius: 0 !important;
+  }
+  .desktop-grid-overlay {
+    display: none !important;
+  }
+}
+

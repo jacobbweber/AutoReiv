@@ -54,4 +54,12 @@ describe('CARD-396: Modular CSS Extraction and Index Template Hygiene', () => {
     // Originally 5,998 lines; now under 4,800 lines
     expect(lineCount).toBeLessThan(4800);
   });
+
+  it('enforces flex-start scroll alignment on .desktop-dock-apps preventing mobile negative coordinate occlusion', () => {
+    const desktopCss = fs.readFileSync(path.join(cssDir, 'desktop.css'), 'utf-8');
+    expect(desktopCss).toMatch(/\.desktop-dock-apps\s*\{[^}]*justify-content:\s*flex-start/);
+    expect(desktopCss).toMatch(/\.desktop-dock\.has-overflow\s+\.desktop-dock-apps\s*\{[^}]*justify-content:\s*flex-start\s*!important/);
+    expect(desktopCss).toMatch(/@media\s*\(max-width:\s*767px\)[\s\S]*?\.desktop-dock-apps\s*\{[^}]*justify-content:\s*flex-start\s*!important/);
+  });
 });
+
