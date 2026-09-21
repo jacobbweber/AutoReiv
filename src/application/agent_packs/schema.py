@@ -159,6 +159,12 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "query_agent_database",
         "execute_agent_database",
     ),
+    "mcp-engineering": (
+        "scaffold_mcp_server",
+        "test_mcp_server",
+        "deploy_mcp_container",
+        "register_mcp_service",
+    ),
 }
 
 

@@ -22,10 +22,22 @@
         "execute_code",
         "propose_followup"
       ]
+    },
+    {
+      "id": "mcp-engineering",
+      "name": "Enterprise MCP Server Engineering & Deployment",
+      "description": "Scaffold FastMCP servers, run JSON-RPC protocol tests, deploy Docker containers with health checks, and register MCP endpoints into AutoReiv.",
+      "tools": [
+        "scaffold_mcp_server",
+        "test_mcp_server",
+        "deploy_mcp_container",
+        "register_mcp_service"
+      ]
     }
   ],
   "allowed_skill": [
-    "sdlc-engineering"
+    "sdlc-engineering",
+    "mcp-engineering"
   ],
   "pack_tool_names": [
     "read_project_file",
@@ -33,7 +45,11 @@
     "list_project_dir",
     "cli_exec",
     "execute_code",
-    "propose_followup"
+    "propose_followup",
+    "scaffold_mcp_server",
+    "test_mcp_server",
+    "deploy_mcp_container",
+    "register_mcp_service"
   ],
   "show_in_chat": true
 }

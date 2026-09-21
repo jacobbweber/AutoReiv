@@ -232,6 +232,8 @@ def create_app(
     wiki_service = WikiService(wiki_root=resolved_wiki_path)
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
+    if hasattr(registry, "mcp_engineering_tools"):
+        registry.mcp_engineering_tools.mcp_manager = mcp_manager
 
     # 4b. Agent Training Factory Orchestrator [CARD-171, REQ-FACT-016]
     from src.application.agent_training_factory import FactoryOrchestrator

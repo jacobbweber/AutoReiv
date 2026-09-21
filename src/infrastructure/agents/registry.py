@@ -382,6 +382,18 @@ class BuiltinAgentRegistry:
         storage_tools = AgentStorageTools(data_dir=data_root)
         storage_tools.register_tools(tool_registry)
 
+        # 12c. Enterprise MCP Engineering Tools [CARD-394]
+        from src.application.skills.mcp_engineering_tools import MCPEngineeringTools
+
+        mcp_engineering_tools = MCPEngineeringTools(
+            state_store=store,
+            tool_registry=tool_registry,
+            data_dir=data_root,
+            root_resolver=projects_service.resolve_root,
+        )
+        mcp_engineering_tools.register_tools(tool_registry)
+        agent_registry.mcp_engineering_tools = mcp_engineering_tools
+
         # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
         from src.application.skills.user_catalog import UserSkillCatalog
 

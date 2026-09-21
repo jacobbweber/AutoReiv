@@ -1,7 +1,7 @@
 ---
 id: CARD-394
 title: "Enterprise MCP Server Development and Docker Deployment Skill Pack"
-status: Ready
+status: In Review
 created: 2026-09-20
 adr: 0054
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-394] Enterprise MCP Server Development and Docker Deployment Skill Pack
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-20  
 > **ADR Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
 > **Labels**: `type:feature`, `domain:mcp`, `domain:skills`, `area:infrastructure`, `area:devops`  
@@ -48,19 +48,23 @@ This card delivers the **`mcp-engineering` Platform Skill Pack**. It equips Auto
    - Canonical `SKILL.md` runbook with Matt Pocock operational blueprint (`## Operating Principles`, `## Available Tools`, `## Done-When`).
    - Guides the agent through standard phases: Interface Design $\rightarrow$ Code Generation $\rightarrow$ Protocol Verification $\rightarrow$ Docker Containerization $\rightarrow$ AutoReiv Registration.
 2. **MCP Engineering Tools**:
-   - `scaffold_mcp_server(name, transport, description, tools_spec)`: Generates canonical FastMCP project with `server.py`, `pyproject.toml`, `Dockerfile`, and `README.md`.
+   - `scaffold_mcp_server(name, description, tools_spec, target_dir)`: Generates canonical FastMCP project with `server.py`, `pyproject.toml`, `Dockerfile`, and `README.md`.
    - `test_mcp_server(project_path)`: Executes simulated JSON-RPC requests against the server script to verify `initialize`, `tools/list`, and `tools/call` without requiring an active external client.
-   - `deploy_mcp_container(project_path, container_name, port, env_vars)`: Builds the Docker image and starts the container via Docker CLI / API with health monitoring.
-   - `register_mcp_service(name, transport, url_or_command)`: Adds the newly deployed server directly into AutoReiv's MCP client store (`store.set_setting`), triggering dynamic capability discovery.
-3. **Agent Integration**:
+   - `deploy_mcp_container(project_path, container_name, port, env_vars)`: Builds the Docker image and starts the container via Docker CLI / API with health monitoring (graceful stdio fallback if Docker is absent).
+   - `register_mcp_service(name, transport, url_or_command, headers, env)`: Adds the server into AutoReiv's canonical MCP store (`store.set_setting("mcp_servers")`) and mounts it via `MCPClientManager`, triggering dynamic capability discovery and companion `SKILL.md` authoring.
+3. **Single Lever Invariant for MCP Mounting**:
+   - Preserves the manual **Add MCP Server** button and modal in Settings Studio (`#view-settings`) as the primary human lever for mounting pre-existing external servers (GitHub, SQLite, Blender, etc.).
+   - Agent tool `register_mcp_service` writes to the exact same store configuration and invokes the exact same `mcp_manager.mount_server` pipeline, guaranteeing zero duplicate data paths.
+4. **Agent Integration**:
    - Mounts `mcp-engineering` onto `platform-packs/developer` and makes it available in Agent Forge for custom engineering agents.
 
 ---
 
 ## 4. What Dies Today (The Prune List - Beat 4)
 
-- Retire manual, error-prone authoring of boilerplate MCP server scripts.
-- Eliminate disconnected manual Docker deployment steps for custom AI capabilities.
+- Retire manual, error-prone authoring of boilerplate MCP server scripts and Dockerfiles.
+- Eliminate disconnected, non-standardized Docker deployments for custom agent tools.
+- Never maintain divergent registration pipelines: manual Settings Studio and agent automated mounting share the exact same `store.set_setting("mcp_servers")` and `mcp_manager.mount_server` execution path.
 
 ---
 
