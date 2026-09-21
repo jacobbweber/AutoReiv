@@ -6,6 +6,7 @@ import logging
 import os
 import tempfile
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -118,6 +119,168 @@ async def restore_data_dir(
         except OSError:
             pass
     return {"status": "restored", "root": str(paths.root)}
+
+
+@router.get("/api/data-dir/backups")
+async def list_data_dir_backups(request: Request):
+    """List existing backup archives, catalog config, and destination path [CARD-404]."""
+    paths = _data_dir_paths(request)
+    store = getattr(request.app.state, "store", None)
+    service = DataDirBackupService(paths)
+    bdir = paths.backups_path
+    backups = service.list_backups(bdir)
+    config = {
+        "schedule": store.get_setting("backup_schedule", "disabled") if store else "disabled",
+        "retention_count": store.get_setting("backup_retention", 7) if store else 7,
+        "backup_dir": str(bdir),
+        "last_backup_time": store.get_setting("last_backup_time", None) if store else None,
+    }
+    return {
+        "status": "ok",
+        "backup_dir": str(bdir),
+        "config": config,
+        "backups": backups,
+    }
+
+
+@router.post("/api/data-dir/backups/run")
+async def run_data_dir_backup(request: Request):
+    """Trigger an immediate backup and apply the retention pruning policy [CARD-404]."""
+    paths = _data_dir_paths(request)
+    store = getattr(request.app.state, "store", None)
+    service = DataDirBackupService(paths)
+    bdir = paths.backups_path
+    dest = service.backup(backup_dir=bdir)
+    retention = 7
+    if store and hasattr(store, "get_setting"):
+        retention = int(store.get_setting("backup_retention", 7))
+    pruned = service.prune_backups(retention_count=retention, backup_dir=bdir)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if store and hasattr(store, "set_setting"):
+        store.set_setting("last_backup_time", now_iso)
+    return {
+        "status": "created",
+        "filename": dest.name,
+        "path": str(dest.resolve()),
+        "size_bytes": dest.stat().st_size,
+        "size_mb": round(dest.stat().st_size / (1024 * 1024), 2),
+        "pruned": pruned,
+        "created_at": now_iso,
+    }
+
+
+@router.get("/api/data-dir/backups/{filename}/download")
+async def download_backup_archive(filename: str, request: Request):
+    """Download a specific backup archive by filename [CARD-404]."""
+    paths = _data_dir_paths(request)
+    clean_name = str(filename).strip()
+    if not clean_name or ".." in clean_name or "/" in clean_name or "\\" in clean_name:
+        raise HTTPException(status_code=400, detail="Invalid backup filename")
+    bdir = paths.backups_path.resolve()
+    target = (bdir / clean_name).resolve()
+    if target.parent != bdir or not target.is_file():
+        raise HTTPException(status_code=404, detail="Backup archive not found")
+    return FileResponse(
+        path=str(target),
+        media_type="application/zip",
+        filename=clean_name,
+        headers={"X-Backup-Path": str(target)},
+    )
+
+
+@router.delete("/api/data-dir/backups/{filename}")
+async def delete_backup_archive(filename: str, request: Request):
+    """Delete a specific backup archive by filename [CARD-404]."""
+    paths = _data_dir_paths(request)
+    service = DataDirBackupService(paths)
+    try:
+        deleted = service.delete_backup(filename, backup_dir=paths.backups_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Backup archive not found")
+    return {"status": "deleted", "filename": filename}
+
+
+@router.post("/api/data-dir/backups/{filename}/restore")
+async def restore_from_catalog(filename: str, request: Request):
+    """Restore the data directory from an existing server-side backup [CARD-404]."""
+    paths = _data_dir_paths(request)
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    confirm = body.get("confirm", False)
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Restore requires confirm=true; live tree unchanged")
+    clean_name = str(filename).strip()
+    if not clean_name or ".." in clean_name or "/" in clean_name or "\\" in clean_name:
+        raise HTTPException(status_code=400, detail="Invalid backup filename")
+    bdir = paths.backups_path.resolve()
+    target = (bdir / clean_name).resolve()
+    if target.parent != bdir or not target.is_file():
+        raise HTTPException(status_code=404, detail="Backup archive not found")
+    service = DataDirBackupService(paths)
+    try:
+        service.restore(target, confirm=True)
+    except DataDirRestoreError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "restored", "filename": clean_name, "root": str(paths.root)}
+
+
+@router.get("/api/data-dir/backup-config")
+async def get_backup_config(request: Request):
+    """Get the current automated backup configuration [CARD-404]."""
+    paths = _data_dir_paths(request)
+    store = getattr(request.app.state, "store", None)
+    return {
+        "schedule": store.get_setting("backup_schedule", "disabled") if store else "disabled",
+        "retention_count": store.get_setting("backup_retention", 7) if store else 7,
+        "backup_dir": str(paths.backups_path),
+        "last_backup_time": store.get_setting("last_backup_time", None) if store else None,
+    }
+
+
+@router.put("/api/data-dir/backup-config")
+async def update_backup_config(request: Request):
+    """Update automated backup schedule, retention count, and backup directory [CARD-404]."""
+    paths = _data_dir_paths(request)
+    store = getattr(request.app.state, "store", None)
+    body = await request.json()
+    schedule = body.get("schedule")
+    retention = body.get("retention_count")
+    backup_dir = body.get("backup_dir")
+
+    from src.infrastructure.data.migrate import persist_autoreiv_backup_config
+    from src.infrastructure.data.resolver import repo_root
+    try:
+        persisted = persist_autoreiv_backup_config(
+            backup_dir=backup_dir,
+            schedule=schedule,
+            retention=retention,
+            checkout=getattr(request.app.state, "checkout_root", None) or repo_root(),
+            store=store,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if backup_dir is not None:
+        clean_bdir = str(backup_dir).strip()
+        new_backup_path = Path(clean_bdir).expanduser().resolve() if clean_bdir else paths.root / "backups"
+        object.__setattr__(paths, "backups_path", new_backup_path)
+        new_backup_path.mkdir(parents=True, exist_ok=True)
+
+    return {
+        "status": "updated",
+        "config": {
+            "schedule": store.get_setting("backup_schedule", "disabled") if store else "disabled",
+            "retention_count": store.get_setting("backup_retention", 7) if store else 7,
+            "backup_dir": str(paths.backups_path),
+            "last_backup_time": store.get_setting("last_backup_time", None) if store else None,
+        },
+        "persisted_via": persisted,
+    }
 
 
 

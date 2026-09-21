@@ -127,9 +127,8 @@ async def test_req_jobgraph_001a_short_turn_plain_react(standing_app):
 
 
 @pytest.mark.asyncio
-async def test_req_jobgraph_001b_002_goal_endpoint_no_execute_authority(standing_app):
-    """/api/chat/goal cannot bypass Job/Phase via execute_plan [REQ-JOBGRAPH-001b, 002]."""
-    # If execute_plan were called it would hit run_turn AssertionError.
+async def test_req_jobgraph_001b_002_goal_endpoint_excised_no_parallel_authority(standing_app):
+    """/api/chat/goal is excised and returns 404 [CARD-395 / REQ-JOBGRAPH-001b, 002]."""
     transport = ASGITransport(app=standing_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.post(
@@ -140,19 +139,7 @@ async def test_req_jobgraph_001b_002_goal_endpoint_no_execute_authority(standing
                 "goal": MULTI_STEP,
             },
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data.get("deprecated") is True
-        assert data.get("job_id")
-        assert data.get("status") in {"formulated", "deprecated"}
-        # No parallel execute output authority.
-        assert data.get("output") in (None, "")
-
-    job = standing_app.state.store.get_job(data["job_id"])
-    phases = standing_app.state.store.list_phases_for_job(job.id)
-    assert len(phases) >= 1
-    # Formulated into Job/Phase store only — not auto-executed by this endpoint.
-    assert all(p.status.value in {"queued", "waiting_approval"} for p in phases)
+        assert resp.status_code == 404
 
 
 @pytest.mark.asyncio

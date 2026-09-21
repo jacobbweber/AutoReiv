@@ -7,7 +7,10 @@ describe('Wiki Collapsible Tree & Subfolder Deletion [CARD-177]', () => {
   let htmlContent;
 
   beforeEach(() => {
-    jsContent = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki.js'), 'utf-8');
+    jsContent =
+      fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki.js'), 'utf-8') +
+      fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki/tree.js'), 'utf-8') +
+      fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki/folder.js'), 'utf-8');
     htmlContent = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
   });
 

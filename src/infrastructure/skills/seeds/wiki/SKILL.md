@@ -23,7 +23,7 @@ Manage structured knowledge in the local-first AutoReiv Knowledge Vault.
 > Note: Legacy root paths (`inbox/`, `notes/`, `resources/`, `archive/`) are transparently aliased to the numbered hierarchy.
 
 ## Available Tools & Order
-0. **Discover Structured Templates**: Call `list_wiki_templates()` to view available cognitive templates (e.g. `concept-comparison`, `feynman-technique`, `concept-map-system-hub`, `dikw-pyramid-of-insight`, `zettelkasten-atomic`, `sop-runbook`, `adr-decision`).
+0. **Discover Structured Templates**: Call `wiki_template_list()` to view available cognitive templates (e.g. `concept-comparison`, `feynman-technique`, `concept-map-system-hub`, `dikw-pyramid-of-insight`, `zettelkasten-atomic`, `sop-runbook`, `adr-decision`).
 1. **Search Before Write**: Call `wiki_note_search(query)` or `wiki_note_list(domain, topic, tag, status)` before authoring to prevent duplicate notes.
 2. **Read Full Context**: Call `wiki_note_read(relative_path)` to retrieve YAML frontmatter, backlinks, and markdown content.
 3. **Create Note (One-Door Policy & Mandatory Template)**: Call `wiki_note_create(title, content, domain, topic, tags, summary, template)` to stage a new note into `00_Inbox/`. Always specify an explicit structured `template` (defaults to `zettelkasten-atomic`). Direct writes into `01_Notes/` are prohibited.

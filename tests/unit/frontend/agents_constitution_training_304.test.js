@@ -4,7 +4,7 @@ import path from 'path';
 
 describe('CARD-304 Agents Constitution + Training Optimization + collapsed', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
-  const js = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge.js'), 'utf-8');
+  const js = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge.js'), 'utf-8') + fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge/scaffold.js'), 'utf-8');
 
   it('places Agent Constitution last under Identity', () => {
     expect(html).toContain('Agent Constitution');

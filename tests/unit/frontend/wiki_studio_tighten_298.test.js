@@ -7,10 +7,19 @@ describe('CARD-298 Wiki Studio tighten labels / Meta / Curate honesty', () => {
     path.resolve(__dirname, '../../../src/web/templates/index.html'),
     'utf-8',
   );
-  const wikiJs = fs.readFileSync(
-    path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki.js'),
-    'utf-8',
-  );
+  const wikiJs =
+    fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki.js'),
+      'utf-8',
+    ) +
+    fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki/templates.js'),
+      'utf-8',
+    ) +
+    fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki/note.js'),
+      'utf-8',
+    );
 
   it('names Wiki Studio as Wiki-based Document Repository', () => {
     expect(indexHtml).toMatch(/id="view-wiki"[\s\S]*?Wiki-based Document Repository/);

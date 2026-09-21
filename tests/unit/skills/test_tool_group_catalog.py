@@ -8,7 +8,7 @@ from src.domain.gateway.models import ToolDefinition
 
 def test_builtin_tool_groups_defined():
     """Verify built-in tool-group manifests are defined with valid metadata and tiers [REQ-TAX-001, REQ-TAX-002]."""
-    assert len(BUILTIN_TOOL_GROUPS) == 9
+    assert len(BUILTIN_TOOL_GROUPS) == 8
     assert len(TOOL_GROUP_TIERS) == 3
 
     tier_ids = {t.id for t in TOOL_GROUP_TIERS}
@@ -21,8 +21,7 @@ def test_builtin_tool_groups_defined():
     assert pack_map["wiki"].name == "Wiki & Knowledge Vault"
     assert "yaml_frontmatter_parse" not in pack_map["wiki"].tool_names
 
-    assert pack_map["weekly-notes"].tier == "productivity"
-    assert pack_map["weekly-notes"].name == "Weekly Notes & To-Dos"
+    assert "weekly-notes" not in pack_map
     assert pack_map["worker"].tier == "productivity"
 
     assert pack_map["sysadmin"].tier == "system"

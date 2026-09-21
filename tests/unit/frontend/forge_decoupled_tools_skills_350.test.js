@@ -37,7 +37,7 @@ describe('CARD-389: Agent Forge Uniform Skill-First Architecture', () => {
   });
 
   it('forge.js renders skill rows with declared tool chips and excises naked tool buttons', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('forge-skill-row');
     expect(forgeJs).toContain('declared tool');
     expect(forgeJs).not.toContain('forge-skill-recommend-tools-btn');
@@ -46,7 +46,7 @@ describe('CARD-389: Agent Forge Uniform Skill-First Architecture', () => {
   });
 
   it('forge.js renders locked platform primitives and excises renderAllowedTools', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('renderBaselineTools');
     expect(forgeJs).not.toContain('renderAllowedTools');
     expect(forgeJs).not.toContain('applyToolChecks');
@@ -58,7 +58,7 @@ describe('CARD-389: Agent Forge Uniform Skill-First Architecture', () => {
   });
 
   it('forge.js save handler derives tools strictly from checked skills', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('derivedTools');
     expect(forgeJs).toContain('sqlite-storage');
   });

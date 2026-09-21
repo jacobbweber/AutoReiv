@@ -244,12 +244,6 @@ class BuiltinAgentRegistry:
         wiki_tools = WikiTools(wiki_root=resolved_wiki_root)
         wiki_tools.register_tools(tool_registry)
 
-        # 2. Weekly Notes & To-Dos Tools -> Assistant
-        from src.application.skills.weekly_notes_tools import WeeklyNotesTools
-
-        weekly_notes_tools = WeeklyNotesTools(wiki_tools=wiki_tools, wiki_root=resolved_wiki_root)
-        weekly_notes_tools.register_tools(tool_registry)
-
         # Spec-driven SDLC projects service for root resolution
         from src.application.sdlc.projects_service import ProjectsService
 
@@ -381,6 +375,12 @@ class BuiltinAgentRegistry:
         data_root = Path(skills_dir).parent if skills_dir else None
         storage_tools = AgentStorageTools(data_dir=data_root)
         storage_tools.register_tools(tool_registry)
+
+        # 12b. Dedicated Cognitive Memory Brain Tools [CARD-116, CARD-405]
+        from src.application.memory.agent_memory_tools import AgentMemoryTools
+
+        memory_tools = AgentMemoryTools(data_dir=data_root)
+        memory_tools.register_tools(tool_registry)
 
         # 12c. Enterprise MCP Engineering Tools [CARD-394]
         from src.application.skills.mcp_engineering_tools import MCPEngineeringTools

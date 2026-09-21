@@ -58,6 +58,7 @@ def test_backup_api_returns_zip_with_tree(monkeypatch, tmp_path):
 
     monkeypatch.delenv("AUTOREIV_DB_PATH", raising=False)
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
+    monkeypatch.delenv("AUTOREIV_BACKUP_DIR", raising=False)
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path / "data"))
     root = _seed_data_dir_tree()
 
@@ -81,6 +82,7 @@ def test_restore_api_requires_confirm_and_round_trips(monkeypatch, tmp_path):
 
     monkeypatch.delenv("AUTOREIV_DB_PATH", raising=False)
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
+    monkeypatch.delenv("AUTOREIV_BACKUP_DIR", raising=False)
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path / "data"))
     root = _seed_data_dir_tree()
 

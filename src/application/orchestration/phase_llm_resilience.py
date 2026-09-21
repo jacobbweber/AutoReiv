@@ -44,8 +44,8 @@ _RETRYABLE_TOKENS = (
 T = TypeVar("T")
 
 
-def load_repo_dotenv(start: Optional[Path] = None) -> Optional[Path]:
-    """Load repo .env into os.environ without overwriting existing keys.
+def load_repo_dotenv(start: Optional[Path] = None, override: bool = False) -> Optional[Path]:
+    """Load repo .env into os.environ.
 
     Safe to call multiple times. Does not require python-dotenv.
     """
@@ -70,13 +70,14 @@ def load_repo_dotenv(start: Optional[Path] = None) -> Optional[Path]:
         key, _, val = stripped.partition("=")
         key = key.strip()
         val = val.strip().strip('"').strip("'")
-        if key and key not in os.environ:
+        if key and (override or key not in os.environ):
             os.environ[key] = val
     return env_path
 
 
 def resolve_standing_phase_llm_timeout() -> float:
     """Call-time timeout (seconds). Env wins; else module constant (monkeypatchable)."""
+    load_repo_dotenv()
     raw = os.environ.get("STANDING_PHASE_LLM_TIMEOUT_SECONDS")
     if raw not in (None, ""):
         try:
@@ -88,6 +89,7 @@ def resolve_standing_phase_llm_timeout() -> float:
 
 def resolve_standing_phase_llm_retries() -> int:
     """Call-time retry count (1-2 typical). Env wins; else module constant."""
+    load_repo_dotenv()
     raw = os.environ.get("STANDING_PHASE_LLM_RETRIES")
     if raw not in (None, ""):
         try:

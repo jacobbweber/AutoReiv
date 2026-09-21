@@ -7,11 +7,12 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import json
 import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +55,44 @@ def compute_content_hash(text: str) -> str:
     if not text:
         return ""
     return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()[:16]
+
+
+def coerce_string_or_list_of_strings(val: Any) -> List[str]:
+    """
+    Safely coerces various representations into a list of clean strings [CARD-407].
+    Handles:
+      - None -> []
+      - list, tuple, set -> [str(x).strip() for x in val if str(x).strip()]
+      - stringified JSON array e.g. '["a", "b"]' -> ['a', 'b']
+      - comma-separated string e.g. 'a, b' -> ['a', 'b']
+      - single string e.g. 'a' -> ['a']
+    """
+    if val is None:
+        return []
+    if isinstance(val, (list, tuple, set)):
+        result = []
+        for item in val:
+            if item is None:
+                continue
+            s = str(item).strip()
+            if s:
+                result.append(s)
+        return result
+    if isinstance(val, str):
+        val_str = val.strip()
+        if not val_str or val_str in ("[]", "{}"):
+            return []
+        if val_str.startswith("[") and val_str.endswith("]"):
+            try:
+                parsed = json.loads(val_str)
+                if isinstance(parsed, list):
+                    return [str(x).strip() for x in parsed if x is not None and str(x).strip()]
+            except Exception:
+                val_str = val_str[1:-1].strip()
+        # Fallback to comma-separated split
+        parts = [p.strip().strip("'\"") for p in val_str.split(",")]
+        return [p for p in parts if p]
+    return [str(val).strip()]
 
 
 _CHATTER_START_RE = re.compile(
@@ -146,6 +185,11 @@ class WikiInboxNoteMeta(BaseModel):
     )
     schema_version: str = Field(default="1.0", description="Schema version")
 
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _coerce_tags(cls, v: Any) -> List[str]:
+        return coerce_string_or_list_of_strings(v)
+
     def to_graduated(self, body: str, **kwargs: Any) -> "WikiNoteMeta":
         words = compute_word_count(body)
         tokens = compute_context_tokens(body)
@@ -186,6 +230,8 @@ ORDERED_FRONTMATTER_KEYS = [
     "summary",
     "template",
     "status",
+    "archived_at",
+    "archive_reason",
     "priority",
     "sensitivity",
     "confidence_score",
@@ -211,6 +257,7 @@ class WikiNoteMeta(BaseModel):
     """
     Authoritative additive YAML frontmatter metadata schema with deterministic serialization.
     """
+    model_config = ConfigDict(extra="allow")
 
     # Category 1: Identity & Retrieval Surface
     uid: str = Field(default_factory=generate_uid, description="Timestamp format YYYYMMDD-HHMMSS")
@@ -237,6 +284,8 @@ class WikiNoteMeta(BaseModel):
         default="draft",
         description="inbox, draft, in_review, final, deprecated, active, archived",
     )
+    archived_at: Optional[str] = Field(default=None, description="ISO timestamp when note was archived")
+    archive_reason: Optional[str] = Field(default=None, description="Reason note was archived or superseded")
     priority: str = Field(
         default="medium",
         description="need_to_do, should_do, want_to_do, high, medium, low",
@@ -315,12 +364,7 @@ class WikiNoteMeta(BaseModel):
                 else:
                     clean[k] = str(v)
             elif k in ("aliases", "tags", "related", "supersedes"):
-                if isinstance(v, list):
-                    clean[k] = [str(item) for item in v if item is not None]
-                elif isinstance(v, str):
-                    clean[k] = [v] if v.strip() else []
-                else:
-                    clean[k] = []
+                clean[k] = coerce_string_or_list_of_strings(v)
             elif k in ("word_count", "context_tokens", "access_count"):
                 try:
                     clean[k] = int(v)

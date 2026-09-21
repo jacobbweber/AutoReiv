@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
+import { loadPageHtml } from './template_helper.js';
+
 /**
  * Unit & Static Contract Tests for CARD-207:
  * Desktop Window Resize, Scrollable Studios, and Sessions Cleanup
  */
 describe('CARD-207 Desktop Window Layout & Scroll Invariants', () => {
-  const indexPath = path.resolve(__dirname, '../../../src/web/templates/index.html');
-  const indexHtml = fs.readFileSync(indexPath, 'utf-8');
+  const indexHtml = loadPageHtml();
   const desktopJsPath = path.resolve(__dirname, '../../../src/web/static/modules/ui/agent-desktop.js');
   const desktopJs = fs.readFileSync(desktopJsPath, 'utf-8');
 

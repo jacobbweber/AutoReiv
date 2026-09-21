@@ -248,7 +248,7 @@ def test_list_notes_with_rich_metadata_filters(temp_wiki):
 
 
 def test_cleanup_vault(temp_wiki):
-    """Verify cleanup_vault removes duplicate templates from notes/ and organizes worklogs [CARD-125]."""
+    """Verify cleanup_vault removes duplicate templates and organizes worklogs into 01_Notes/weekly [CARD-125, CARD-406]."""
     root = temp_wiki.root_dir
 
     # Simulate misplaced template in notes/
@@ -266,11 +266,12 @@ def test_cleanup_vault(temp_wiki):
     # Bad template removed from notes/
     assert not (bad_template_dir / "Weekly Notes Template.md").exists()
 
-    # Weekly note moved to operations/worklog/
-    assert (root / "notes" / "operations" / "worklog" / "2026-W35.md").exists()
+    # Weekly note moved to 01_Notes/weekly/
+    assert (root / "01_Notes" / "weekly" / "2026-W35.md").exists()
+    assert not (root / "notes").exists()
 
-    # Canonical template exists in resources/templates/
-    assert (root / "resources" / "templates" / "note_template.md").exists()
+    # Canonical template exists in 02_Resources/_Templates/
+    assert (root / "02_Resources" / "_Templates" / "note_template.md").exists()
 
 
 def test_numbered_hybrid_scaffold(temp_wiki):

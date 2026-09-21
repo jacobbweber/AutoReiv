@@ -14,35 +14,38 @@ from src.web.app import create_app
 
 
 def test_wiki_store_seed_starter_notes():
-    """Verify that WikiStore automatically seeds starter notes when directory is empty [REQ-WIKI-011]."""
+    """Verify that WikiStore scaffolds clean vanilla folder structure and templates [REQ-WIKI-011, CARD-406]."""
     with tempfile.TemporaryDirectory() as tmp_dir:
         store = WikiStore(root_dir=tmp_dir, auto_seed=True)
         store.scaffold()
 
         # Check directories exist
-        assert (Path(tmp_dir) / "00_Inbox").exists() or (Path(tmp_dir) / "inbox").exists()
-        assert (Path(tmp_dir) / "01_Notes").exists() or (Path(tmp_dir) / "notes").exists()
-        assert (Path(tmp_dir) / "02_Resources" / "operating_manuals").exists() or (Path(tmp_dir) / "resources" / "operating_manuals").exists()
-        assert (Path(tmp_dir) / "02_Resources" / "_Templates").exists() or (Path(tmp_dir) / "resources" / "templates").exists()
+        assert (Path(tmp_dir) / "00_Inbox").exists()
+        assert (Path(tmp_dir) / "01_Notes").exists()
+        assert (Path(tmp_dir) / "02_Resources" / "operating_manuals").exists()
+        assert (Path(tmp_dir) / "02_Resources" / "_Templates").exists()
+        assert (Path(tmp_dir) / "03_Archive").exists()
 
-        # Check starter notes exist
-        inbox_dir = Path(tmp_dir) / "00_Inbox" if (Path(tmp_dir) / "00_Inbox").exists() else Path(tmp_dir) / "inbox"
+        # Check inbox is clean (vanilla install, no starter notes)
+        inbox_dir = Path(tmp_dir) / "00_Inbox"
         inbox_files = list(inbox_dir.glob("*.md"))
-        assert len(inbox_files) >= 1
-        assert any("welcome" in f.name.lower() for f in inbox_files)
+        assert len(inbox_files) == 0
 
-        notes_dir = Path(tmp_dir) / "01_Notes" if (Path(tmp_dir) / "01_Notes").exists() else Path(tmp_dir) / "notes"
+        # Check notes are clean (vanilla install, no pre-filled notes)
+        notes_dir = Path(tmp_dir) / "01_Notes"
         notes_files = list(notes_dir.rglob("*.md"))
-        assert len(notes_files) >= 2
+        assert len(notes_files) == 0
 
-        resources_dir = Path(tmp_dir) / "02_Resources" if (Path(tmp_dir) / "02_Resources").exists() else Path(tmp_dir) / "resources"
-        resources_files = list(resources_dir.rglob("*.md"))
-        assert len(resources_files) >= 2
+        # Check templates exist in _Templates
+        templates_dir = Path(tmp_dir) / "02_Resources" / "_Templates"
+        assert (templates_dir / "tag-authority.md").exists()
+        assert (templates_dir / "note_template.md").exists()
+        assert len(list(templates_dir.glob("*.md"))) >= 2
 
-        # Verify tree hierarchy
+        # Verify tree hierarchy reflects empty notes/inbox and valid structure
         tree = store.get_tree()
-        assert len(tree["inbox"]) >= 1
-        assert "computer_science" in tree["notes"] or len(tree["notes"]) > 0
+        assert len(tree["inbox"]) == 0
+        assert len(tree["notes"]) == 0
 
 
 def test_settings_matrix_dual_shape_payload(tmp_path):

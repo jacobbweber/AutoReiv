@@ -33,16 +33,20 @@ def test_get_system_info_offline_fallback():
 
 
 
-def test_autoreiv_profile_pins_cli_exec():
+def test_autoreiv_profile_pins_telemetry_and_developer_has_cli_exec():
     autoreiv = platform_pack_profile("autoreiv")
-    pinned = ["system_info", "get_recent_errors", "cli_exec"]
+    pinned = ["system_info", "get_recent_errors", "inspect_system_health"]
     assert set(pinned) <= set(autoreiv.allowed_tool_names)
+    assert "cli_exec" not in autoreiv.allowed_tool_names
 
-    # Verify ToolRanker unconditionally includes cli_exec even for an unrelated query
+    developer = platform_pack_profile("developer")
+    assert "cli_exec" in developer.allowed_tool_names
+
+    # Verify ToolRanker unconditionally includes pinned tools even for an unrelated query
     tools = [
         ToolDefinition(name="system_info", description="Sys info"),
         ToolDefinition(name="get_recent_errors", description="Errors"),
-        ToolDefinition(name="cli_exec", description="Run shell command"),
+        ToolDefinition(name="inspect_system_health", description="Health"),
         ToolDefinition(name="wiki_read", description="Read wiki note"),
         ToolDefinition(name="wiki_search", description="Search wiki note"),
         ToolDefinition(name="wiki_list", description="List wiki notes"),
@@ -58,6 +62,7 @@ def test_autoreiv_profile_pins_cli_exec():
     )
 
     active_names = [t.name for t in ranked]
-    assert "cli_exec" in active_names
+    assert "inspect_system_health" in active_names
     assert "system_info" in active_names
     assert "get_recent_errors" in active_names
+

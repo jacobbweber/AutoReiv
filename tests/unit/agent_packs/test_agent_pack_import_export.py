@@ -42,23 +42,6 @@ def test_export_import_roundtrip_strips_instance_facts(tmp_path):
     skills.mkdir(parents=True)
     (skills / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
 
-    wf_dir = data_dir / "agents" / "eu-c-specialist" / "workflows"
-    wf_dir.mkdir(parents=True)
-    (wf_dir / "wf_onboard.json").write_text(
-        json.dumps(
-            {
-                "id": "wf_onboard",
-                "name": "Onboard",
-                "owner_agent_id": "eu-c-specialist",
-                "chapters": [{"name": "Provision", "kind": "skill", "assigned_agent_id": "eu-c-specialist"}],
-                "input_packet_json": {"person": "Jane", "secret": "should-not-export"},
-                "created_at": "2026-08-30T00:00:00+00:00",
-                "updated_at": "2026-08-30T00:00:00+00:00",
-            }
-        ),
-        encoding="utf-8",
-    )
-
     profile = AgentProfile(
         id="eu-c-specialist",
         name="EUC Specialist",
@@ -87,18 +70,14 @@ def test_export_import_roundtrip_strips_instance_facts(tmp_path):
     assert pack["allowed_skill"] == ["user-provisioning"]
     assert "input_packet_json" not in pack
     assert (folder / "skills" / "user-provisioning" / "SKILL.md").is_file()
-    wf = json.loads((folder / "workflows" / "wf_onboard.json").read_text(encoding="utf-8"))
-    assert "input_packet_json" not in wf
-    assert "Jane" not in json.dumps(wf)
+    assert not (folder / "workflows").exists()
     assert not list(folder.rglob("*.py"))
 
     with zipfile.ZipFile(zip_path) as zf:
         names = zf.namelist()
         assert "pack.json" in names
         assert not any(n.endswith(".py") for n in names)
-        dumped = zf.read("workflows/wf_onboard.json").decode("utf-8")
-        assert "input_packet_json" not in dumped
-        assert "Jane" not in dumped
+        assert not any(n.startswith("workflows/") for n in names)
 
     imported = service.import_path(zip_path)
     assert imported.id == "eu-c-specialist"

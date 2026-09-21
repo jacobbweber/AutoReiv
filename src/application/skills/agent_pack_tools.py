@@ -50,8 +50,8 @@ class AgentPackTools:
             name="export_agent_pack",
             description=(
                 "Export one agent as an Agent Pack folder and zip only. "
-                "Includes identity, SKILL.md runbooks, pack-owned tool ids, Show in Chat, "
-                "and workflows. Folder/zip only. Does not copy transcripts, secrets, or instance facts."
+                "Includes identity, SKILL.md runbooks, pack-owned tool ids, Show in Chat. "
+                "Folder/zip only. Does not copy transcripts, secrets, or instance facts."
             ),
             parameters={
                 "type": "object",
@@ -99,7 +99,7 @@ class AgentPackTools:
                             "Pack spec: id, name, description, system_prompt, tone, purpose, "
                             "avatar_icon, model, show_in_chat, skills (id, tools, optional "
                             "name/description/body), optional pack_tool_names/allowed_skill "
-                            "compat fields, and workflows."
+                            "compat fields."
                         ),
                     },
                 },

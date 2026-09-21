@@ -99,16 +99,18 @@ def test_curate_deduplicates_and_appends(temp_wiki):
         content="Base configuration for external vSwitches.",
         domain="systems_engineering",
         topic="hyperv",
+        tags=["networking", "hyperv"],
         category="notes",
     )
     assert existing_res["success"] is True
 
-    # 2. Duplicate note staged in 00_Inbox/
+    # 2. Duplicate note staged in 00_Inbox/ with additional tags
     temp_wiki.file_note(
         title="Hyper-V Virtual Switch Guide",
         content="Additional details on teaming and SR-IOV performance settings.",
         domain="systems_engineering",
         topic="hyperv",
+        tags=["sriov", "virtualization"],
         category="inbox",
     )
 
@@ -120,10 +122,17 @@ def test_curate_deduplicates_and_appends(temp_wiki):
     read_res = temp_wiki.read_note(existing_res["path"])
     assert "SR-IOV" in read_res["content"]
     assert "Base configuration" in read_res["content"]
+    assert "sriov" in read_res["meta"]["tags"]
+    assert "networking" in read_res["meta"]["tags"]
 
     # Check that inbox note was removed
     inbox_files = list((temp_wiki.root_dir / "00_Inbox").glob("*.md"))
     assert len(inbox_files) == 0
+
+    # Check that archival snapshot was created in 03_Archive/
+    archive_files = list((temp_wiki.root_dir / "03_Archive").glob("*.md"))
+    assert len(archive_files) == 1
+    assert "hyper_v_virtual_switch_guide" in archive_files[0].name
 
 
 def test_curate_holds_incomplete_note(temp_wiki):

@@ -44,7 +44,10 @@ def test_fleet_manifest_schema():
 def test_platform_skill_tools_strict_core_only():
     """Verify PLATFORM_SKILL_TOOLS only contains AutoReiv platform core, not domain fleet tools [REQ-FLEET-011]."""
     # Core platform skills MUST be present
-    assert "wiki" in PLATFORM_SKILL_TOOLS
+    assert "wiki_tasks" in PLATFORM_SKILL_TOOLS
+    assert "wiki-knowledge" in PLATFORM_SKILL_TOOLS
+    assert "wiki-inbox" in PLATFORM_SKILL_TOOLS
+    assert "wiki-curation" in PLATFORM_SKILL_TOOLS
     assert "coordination" in PLATFORM_SKILL_TOOLS
     assert "proposals" in PLATFORM_SKILL_TOOLS
     assert "worker" in PLATFORM_SKILL_TOOLS
@@ -104,9 +107,12 @@ async def test_skills_catalog_exposes_fleet_skills_and_wiki(tmp_path, monkeypatc
         assert res.status_code == 200
         data = res.json()
 
-        # 1. Wiki must be present in platform_skills [REQ-FLEET-010, CARD-201]
+        # 1. Wiki skills must be present in platform_skills [REQ-FLEET-010, CARD-201, CARD-409]
         platform_skill_ids = [s["id"] for s in data.get("platform_skills", [])]
-        assert "wiki" in platform_skill_ids, "wiki must be in platform_skills"
+        assert "wiki_tasks" in platform_skill_ids, "wiki_tasks must be in platform_skills"
+        assert "wiki-knowledge" in platform_skill_ids, "wiki-knowledge must be in platform_skills"
+        assert "wiki-inbox" in platform_skill_ids, "wiki-inbox must be in platform_skills"
+        assert "wiki-curation" in platform_skill_ids, "wiki-curation must be in platform_skills"
         assert "coordination" in platform_skill_ids, "coordination must be in platform_skills"
 
         # 2. Homelab skills must NOT be in platform_skills
@@ -166,11 +172,11 @@ def test_agent_pack_service_imports_fleet_suite(tmp_path):
 
 
 def test_developer_build_skill_is_tracked():
-    """CARD-294 / CARD-366: skills/sdlc-engineering must ship; must not be hidden."""
+    """CARD-294 / CARD-388: developer skills/sdlc-engineering must ship; must not be hidden."""
     from pathlib import Path
 
-    skill = Path("platform-packs/autoreiv/skills/sdlc-engineering/SKILL.md")
-    assert skill.is_file(), "sdlc-engineering skill missing from seed"
+    skill = Path("platform-packs/developer/skills/sdlc-engineering/SKILL.md")
+    assert skill.is_file(), "sdlc-engineering skill missing from developer seed"
 
 
 def test_sqlite_default_db_is_under_user_data(monkeypatch, tmp_path):

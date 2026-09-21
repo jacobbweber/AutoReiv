@@ -31,7 +31,9 @@ class GatewayProviderFactory:
 
         # 1. Ollama Local Provider (default enabled)
         ollama_host = cfg.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+        ollama_model = cfg.get("OLLAMA_MODEL", "qwen3.8:latest")
         ollama_adapter = OllamaProviderAdapter(base_url=ollama_host, timeout=timeout_sec, provider_id="ollama")
+        ollama_adapter.default_model = ollama_model
         gateway.register_provider(ollama_adapter)
 
         # 2. LM Studio Local Provider
@@ -194,6 +196,14 @@ class GatewayProviderFactory:
                             provider_id=active_pid,
                         )
                     )
+
+        # 12. Final default model resolution for active provider
+        if not getattr(gateway, "default_model_id", None):
+            explicit_def = cfg.get("default_model_id") or cfg.get("DEFAULT_MODEL_ID")
+            if explicit_def and explicit_def != "default":
+                gateway.default_model_id = explicit_def
+            elif getattr(gateway, "default_provider_id", None) == "ollama":
+                gateway.default_model_id = f"ollama/{ollama_model}"
 
         return gateway
 

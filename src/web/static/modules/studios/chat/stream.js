@@ -207,3 +207,56 @@ export function renderAgentHandoffCardHtml({
     </div>
   `.trim();
 }
+
+export async function consumeChatStream(response, {
+  onEvent = null,
+  onToken = null,
+  onReasoning = null,
+} = {}) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let currentEvent = 'message';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        currentEvent = 'message';
+        continue;
+      }
+      if (trimmed.startsWith('event:')) {
+        currentEvent = trimmed.slice(6).trim();
+        continue;
+      }
+      if (!trimmed.startsWith('data:')) continue;
+      const jsonStr = trimmed.slice(5).trim();
+      if (!jsonStr || jsonStr === '[DONE]') continue;
+
+      try {
+        const ev = JSON.parse(jsonStr);
+        const eventType = ev.type || ev.event || currentEvent;
+        const text = ev.text ?? ev.content ?? ev.data ?? '';
+
+        if (eventType === 'token' && onToken) {
+          onToken(text, ev);
+        } else if (eventType === 'reasoning' && onReasoning) {
+          onReasoning(text, ev);
+        }
+
+        if (onEvent) {
+          onEvent(eventType, ev);
+        }
+      } catch (pErr) {
+        console.warn('[AutoReiv UI] Stream parse error:', pErr);
+      }
+    }
+  }
+}

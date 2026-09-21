@@ -26,7 +26,7 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
   });
 
   it('forge.js removes "Also ticked" and renders clean nested skill accordions without dynamic platform filtering', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('renderNestedHomes');
     expect(forgeJs).toContain('renderPlatformSkills');
     expect(forgeJs).toContain('renderPackSkills');
@@ -37,7 +37,7 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
   });
 
   it('renders required platform tools with REQUIRED badge and disabled input [CARD-330]', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('required_platform');
     expect(forgeJs).toContain('REQUIRED');
     expect(forgeJs).toContain('INCLUDES REQUIRED TOOLS');
@@ -51,7 +51,7 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
   });
 
   it('renders AutoReiv OS Baseline tools with uncheckable references [CARD-330]', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js');
     expect(forgeJs).toContain('renderBaselineTools');
     expect(forgeJs).toContain('baselineToolCardHtml');
     expect(forgeJs).toContain('OS BASELINE');

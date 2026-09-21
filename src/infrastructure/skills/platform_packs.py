@@ -26,6 +26,15 @@ RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
     "homelab-admin",
     "finance",
 )
+RETIRED_TOOL_NAMES: tuple[str, ...] = (
+    "get_or_create_weekly_note",
+    "log_daily_work_item",
+    "complete_weekly_task",
+    "rollover_weekly_tasks",
+    "get_weekly_summary",
+    "list_wiki_templates",
+    "get_wiki_template",
+)
 
 
 def cleanup_orphaned_platform_packs(
@@ -246,6 +255,12 @@ def install_platform_agent_packs(
                     for t in merged_tools:
                         if t not in final_tools:
                             final_tools.append(t)
+                    # Filter out permanently retired tools
+                    final_tools = [
+                        t
+                        for t in final_tools
+                        if t not in RETIRED_TOOL_NAMES
+                    ]
 
                     changed = False
                     if new_prompt and getattr(existing, "system_prompt", None) != new_prompt:
@@ -279,6 +294,12 @@ def install_platform_agent_packs(
                             if getattr(ov, "allowed_tool_names", None) != final_tools:
                                 ov.allowed_tool_names = final_tools
                                 ov_changed = True
+                            if getattr(ov, "pack_tool_names", None) != new_pack_tools:
+                                ov.pack_tool_names = new_pack_tools
+                                ov_changed = True
+                            if getattr(ov, "allowed_skill", None) != new_allowed_skill:
+                                ov.allowed_skill = new_allowed_skill
+                                ov_changed = True
                             if ov_changed:
                                 service.store.save_agent_override(ov)
                                 logger.info("Synchronized agent_overrides for %s", pack_id)
@@ -292,6 +313,8 @@ def install_platform_agent_packs(
                                 dest_data["allowed_tool_names"] = final_tools
                                 dest_data["pack_tool_names"] = new_pack_tools
                                 dest_data["allowed_skill"] = new_allowed_skill
+                                if "skills" in pack_data:
+                                    dest_data["skills"] = list(pack_data["skills"])
                                 if dest_data.get("purpose") == "code":
                                     dest_data["purpose"] = "task_execution"
                                 dest_data["origin"] = "pack"

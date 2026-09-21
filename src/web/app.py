@@ -33,6 +33,7 @@ from src.application.routines.scheduler import RoutineScheduler
 from src.application.sdlc.projects_service import ProjectsService
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
+from src.application.system.backup_scheduler import DataDirBackupScheduler
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
@@ -63,7 +64,6 @@ from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
 from src.web.routers.wiki import router as wiki_router
-from src.web.routers.workflows import router as workflows_router
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +76,10 @@ def create_app(
     wiki_path: Optional[str] = None,
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
+    from src.application.orchestration.phase_llm_resilience import load_repo_dotenv
+
+    load_repo_dotenv()
+
     # 1. State & Telemetry [REQ-DATA-001 - REQ-DATA-004]
     data_paths = bootstrap_data_dir(migrate=state_store is None)
     resolved_db_path = str(data_paths.db_path)
@@ -200,6 +204,14 @@ def create_app(
         CapabilityGapRepository,
     )
     capability_catalog_repo = CapabilityCatalogRepository(store)
+    from src.application.capabilities.seeder import seed_builtin_capabilities
+
+    seed_builtin_capabilities(
+        repo=capability_catalog_repo,
+        tool_registry=tool_reg,
+        agent_registry=registry,
+        user_skill_catalog=getattr(registry, "user_skill_catalog", None),
+    )
     capability_catalog = CapabilityCatalogResolver(capability_catalog_repo)
     capability_gap_repo = CapabilityGapRepository(store)
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
@@ -248,11 +260,19 @@ def create_app(
         gateway=gateway,
         wiki=wiki_service,
     )
+
+    backup_scheduler = DataDirBackupScheduler(
+        paths=data_paths,
+        store=store,
+        interval_seconds=60.0,
+    )
+
     # 5. Lifespan Manager
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
         factory_task = asyncio.create_task(factory_orchestrator.start())
+        backup_task = asyncio.create_task(backup_scheduler.start())
         try:
             for profile in registry.list_agents():
                 days = profile.history_retention_days if profile.history_retention_days is not None else 30
@@ -297,6 +317,12 @@ def create_app(
         try:
             yield
         finally:
+            await backup_scheduler.stop()
+            backup_task.cancel()
+            try:
+                await backup_task
+            except (asyncio.CancelledError, Exception):
+                pass
             await mcp_manager.shutdown_all()
             await factory_orchestrator.stop()
             factory_task.cancel()
@@ -340,6 +366,7 @@ def create_app(
     app.state.orchestrator = orchestrator
     app.state.routine_executor = routine_executor
     app.state.scheduler = scheduler
+    app.state.backup_scheduler = backup_scheduler
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
     app.state.job_orchestrator = job_orchestrator
@@ -414,13 +441,24 @@ def create_app(
         return response
 
     # 9. Seed / Sync Default Routines
+    from src.application.routines.matcher import ScheduleMatcher
+
     for r in BUILTIN_ROUTINES:
         existing_r = store.get_routine(r.id)
         if not existing_r:
+            if r.next_run_at is None:
+                r.next_run_at = ScheduleMatcher.compute_next_run(r)
             store.save_routine(r)
-        elif existing_r.agent_id in ("assistant", "wiki"):
-            existing_r.agent_id = r.agent_id
-            store.save_routine(existing_r)
+        else:
+            updated = False
+            if existing_r.agent_id in ("assistant", "wiki"):
+                existing_r.agent_id = r.agent_id
+                updated = True
+            if existing_r.next_run_at is None and existing_r.last_run_at is None:
+                existing_r.next_run_at = ScheduleMatcher.compute_next_run(existing_r)
+                updated = True
+            if updated:
+                store.save_routine(existing_r)
     store.set_setting("day1_routines_seeded", True)
 
     # 10. Mount Modular Domain Routers
@@ -428,7 +466,6 @@ def create_app(
     app.include_router(factory_router)
     app.include_router(gaps_router)
     app.include_router(agents_router)
-    app.include_router(workflows_router)
     app.include_router(skills_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)

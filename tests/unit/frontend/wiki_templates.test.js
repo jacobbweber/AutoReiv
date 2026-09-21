@@ -7,7 +7,9 @@ describe('Wiki Structured Templates & Optional Directive UI [CARD-178]', () => {
   let htmlContent;
 
   beforeEach(() => {
-    jsContent = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki.js'), 'utf-8');
+    jsContent =
+      fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki.js'), 'utf-8') +
+      fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/wiki/templates.js'), 'utf-8');
     htmlContent = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
   });
 

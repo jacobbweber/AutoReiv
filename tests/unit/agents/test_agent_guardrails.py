@@ -66,15 +66,41 @@ def test_guardrail_rejects_invalid_purpose():
         AgentProfileGuardrail.validate(bad_purpose_data, available_tools={"cli_exec"})
 
 
+def test_guardrail_allows_max_turns_up_to_1000():
+    valid_turns_data = {
+        "id": "custom-agent",
+        "name": "Custom Agent",
+        "description": "Agent with 1000 max turns",
+        "system_prompt": "You are a helpful assistant that can take up to 1000 turns.",
+        "purpose": "general",
+        "allowed_tools": [],
+        "max_turns": 1000,
+    }
+    profile = AgentProfileGuardrail.validate(valid_turns_data, available_tools={"cli_exec"})
+    assert profile.max_turns == 1000
+
+
 def test_guardrail_rejects_out_of_bound_max_turns():
     bad_turns_data = {
         "id": "custom-agent",
         "name": "Custom Agent",
-        "description": "Agent with 500 max turns",
+        "description": "Agent with 1500 max turns",
         "system_prompt": "You are a helpful assistant that loops forever.",
         "purpose": "general",
         "allowed_tools": [],
-        "max_turns": 500,
+        "max_turns": 1500,
     }
     with pytest.raises(AgentValidationError, match="max_turns"):
         AgentProfileGuardrail.validate(bad_turns_data, available_tools={"cli_exec"})
+
+    bad_zero_turns = {
+        "id": "custom-agent",
+        "name": "Custom Agent",
+        "description": "Agent with 0 max turns",
+        "system_prompt": "You are a helpful assistant.",
+        "purpose": "general",
+        "allowed_tools": [],
+        "max_turns": 0,
+    }
+    with pytest.raises(AgentValidationError, match="max_turns"):
+        AgentProfileGuardrail.validate(bad_zero_turns, available_tools={"cli_exec"})

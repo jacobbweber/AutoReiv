@@ -7,7 +7,7 @@ requires_tools:
   - wiki_note_read
   - wiki_note_search
   - wiki_note_list
-  - list_wiki_templates
+  - wiki_template_list
 safety:
   read_only: true
   requires_hitl: false
@@ -26,7 +26,7 @@ Conduct interactive, high-retention educational dialogues. Guide learners to art
 1. **Wiki & Context Grounding**:
    - Ground every study session in the learner's active topic and notes.
    - Use `wiki_note_search` and `wiki_note_read` to inspect concepts in `notes/` before formulating questions.
-   - Use `list_wiki_templates` to identify structured learning templates (e.g. Feynman, Compare-and-Contrast).
+   - Use `wiki_template_list` to identify structured learning templates (e.g. Feynman, Compare-and-Contrast).
 
 2. **The Socratic Method & Feynman Technique**:
    - Ask targeted, probing questions that encourage the learner to articulate concepts in their own words.

@@ -90,4 +90,79 @@ describe('Chat Context & Tools Helpers [CARD-161]', () => {
     expect(result.compaction_applied).toBe(true);
     expect(result.turns_compacted).toBe(4);
   });
+
+  const createMockElement = (initialClasses = []) => {
+    const classList = new Set(initialClasses);
+    const attributes = {};
+    return {
+      classList: {
+        contains: (c) => classList.has(c),
+        add: (...cs) => cs.forEach((c) => classList.add(c)),
+        remove: (...cs) => cs.forEach((c) => classList.delete(c)),
+        toggle: (c, force) => {
+          if (typeof force === 'boolean') {
+            if (force) classList.add(c); else classList.delete(c);
+            return force;
+          }
+          if (classList.has(c)) { classList.delete(c); return false; }
+          classList.add(c); return true;
+        },
+      },
+      setAttribute: (k, v) => { attributes[k] = String(v); },
+      getAttribute: (k) => attributes[k] || null,
+    };
+  };
+
+  it('toggles chat options drawer with boolean first argument [CARD-409]', async () => {
+    const { toggleChatOptionsDrawer } = await import('../../../src/web/static/modules/studios/chat/chrome.js');
+    const drawer = createMockElement(['hidden']);
+    const toggleBtn = createMockElement();
+    const icon = createMockElement();
+    let contextLoaded = false;
+
+    // Open drawer via (true, { ... })
+    toggleChatOptionsDrawer(true, {
+      chatOptionsDrawer: drawer,
+      chatOptionsToggleBtn: toggleBtn,
+      chatOptionsToggleIcon: icon,
+      loadChatSessionContextFn: () => { contextLoaded = true; },
+    });
+    expect(drawer.classList.contains('hidden')).toBe(false);
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
+    expect(icon.classList.contains('rotate-45')).toBe(true);
+    expect(contextLoaded).toBe(true);
+
+    // Close drawer via (false, { ... })
+    toggleChatOptionsDrawer(false, {
+      chatOptionsDrawer: drawer,
+      chatOptionsToggleBtn: toggleBtn,
+      chatOptionsToggleIcon: icon,
+    });
+    expect(drawer.classList.contains('hidden')).toBe(true);
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
+    expect(icon.classList.contains('rotate-45')).toBe(false);
+  });
+
+  it('toggles chat options drawer with object argument [CARD-409]', async () => {
+    const { toggleChatOptionsDrawer } = await import('../../../src/web/static/modules/studios/chat/chrome.js');
+    const drawer = createMockElement(['hidden']);
+    const toggleBtn = createMockElement();
+
+    // Auto-toggle from hidden -> open
+    toggleChatOptionsDrawer({
+      chatOptionsDrawer: drawer,
+      chatOptionsToggleBtn: toggleBtn,
+    });
+    expect(drawer.classList.contains('hidden')).toBe(false);
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
+
+    // Explicit close via { open: false }
+    toggleChatOptionsDrawer({
+      open: false,
+      chatOptionsDrawer: drawer,
+      chatOptionsToggleBtn: toggleBtn,
+    });
+    expect(drawer.classList.contains('hidden')).toBe(true);
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
+  });
 });

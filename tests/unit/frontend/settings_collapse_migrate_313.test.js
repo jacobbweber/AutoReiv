@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 
 describe('CARD-313 Settings collapse + data migrate', () => {
-  const html = fs.readFileSync(
-    path.resolve(__dirname, '../../../src/web/templates/index.html'),
-    'utf-8',
-  );
+  const html = loadPageHtml();
   const settingsJs = fs.readFileSync(
     path.resolve(__dirname, '../../../src/web/static/modules/studios/settings.js'),
     'utf-8',

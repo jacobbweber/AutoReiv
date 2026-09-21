@@ -144,6 +144,8 @@ def test_search_notes_focused_metadata_and_tag_filtering(temp_wiki: WikiStore):
 
 
 def test_schema_skill_tools_include_wiki_template_read():
-    """Verify PLATFORM_SKILL_TOOLS and DYNAMIC_SKILL_TOOLS include wiki_template_read [CARD-353]."""
-    assert "wiki_template_read" in PLATFORM_SKILL_TOOLS["wiki"]
-    assert "wiki_template_read" in DYNAMIC_SKILL_TOOLS["wiki"]
+    """Verify PLATFORM_SKILL_TOOLS and DYNAMIC_SKILL_TOOLS include wiki_template_read [CARD-353, CARD-409]."""
+    assert "wiki_template_read" in PLATFORM_SKILL_TOOLS["wiki_tasks"]
+    assert "wiki_template_read" in PLATFORM_SKILL_TOOLS["wiki-curation"]
+    assert "wiki_template_read" in DYNAMIC_SKILL_TOOLS["wiki_tasks"]
+    assert "wiki_template_read" in DYNAMIC_SKILL_TOOLS["wiki-curation"]

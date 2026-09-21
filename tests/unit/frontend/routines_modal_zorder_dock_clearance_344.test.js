@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 import {
   DESKTOP_DOCK_Z,
   DESKTOP_WINDOW_Z_CAP,
@@ -8,8 +9,7 @@ import {
 } from '../../../src/web/static/modules/ui/agent-desktop.js';
 
 describe('CARD-344 Routines Edit Modal Z-Order Stacking and Dock Clearance', () => {
-  const htmlPath = path.resolve(__dirname, '../../../src/web/templates/index.html');
-  const html = fs.readFileSync(htmlPath, 'utf-8');
+  const html = loadPageHtml();
   const desktopJsPath = path.resolve(__dirname, '../../../src/web/static/modules/ui/agent-desktop.js');
   const desktopJs = fs.readFileSync(desktopJsPath, 'utf-8');
 

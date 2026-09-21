@@ -37,7 +37,8 @@ class ToolSkillResolver:
             "wiki_note_search",
             "wiki_note_create",
             "wiki_note_update",
-            "list_wiki_templates",
+            "wiki_note_archive",
+            "wiki_template_list",
             "wiki_template_create",
             "wiki_template_read",
         },
@@ -48,11 +49,11 @@ class ToolSkillResolver:
             "get_tool_health_matrix",
             "cli_exec",
         },
-        "tasks": {
-            "get_or_create_weekly_note",
-            "log_daily_work_item",
-            "complete_weekly_task",
-            "rollover_weekly_tasks",
+        "wiki_tasks": {
+            "wiki_note_read",
+            "wiki_note_create",
+            "wiki_note_update",
+            "wiki_template_read",
         },
         "coding": {
             "repo_file_read",

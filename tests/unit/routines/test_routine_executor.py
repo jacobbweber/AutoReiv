@@ -193,7 +193,7 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
     r = Routine(
         id="r-park-chat",
         name="Park Chat",
-        agent_id="autoreiv",
+        agent_id="developer",
         prompt="Run dir",
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
@@ -203,9 +203,9 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
     run = await executor.execute_routine(r)
 
     assert run.status == RoutineStatus.SUCCESS
-    pending = store.get_pending_approvals(agent_id="autoreiv")
+    pending = store.get_pending_approvals(agent_id="developer")
     assert pending
-    assert pending[0]["agent_id"] == "autoreiv"
+    assert pending[0]["agent_id"] == "developer"
     assert pending[0]["routine_id"] == "r-park-chat"
     assert pending[0]["tool_name"] == "cli_exec"
     assert pending[0]["session_id"]

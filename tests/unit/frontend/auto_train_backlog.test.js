@@ -15,7 +15,7 @@ function read(rel) {
 
 describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
   const indexHtml = read('src/web/templates/index.html');
-  const forgeJs = read('src/web/static/modules/studios/forge.js');
+  const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js');
   const chatJs = read('src/web/static/modules/studios/chat.js');
 
   it('prunes auto-train inputs while keeping backlog queue in index.html [REQ-PRUNE-AUTO-001, REQ-FACT-027]', () => {

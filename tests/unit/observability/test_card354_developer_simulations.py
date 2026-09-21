@@ -391,7 +391,7 @@ def test_5_safe_apply_dismiss_and_deduplication_lifecycle(sim_environment):
     assert "## Pitfalls" in skill_content
 
     assert (
-        not Path("platform-packs/autoreiv/skills/sdlc-engineering/SKILL.md")
+        not Path("platform-packs/developer/skills/sdlc-engineering/SKILL.md")
         .read_text(encoding="utf-8")
         .count("Do not invoke read_project_file")
     )

@@ -56,21 +56,28 @@ PLATFORM_PACK_IDS = DEFAULT_SEEDED_PACK_IDS  # Backward compatibility alias
 
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
-    "wiki": (
-        "wiki_note_create",
+    "wiki_tasks": (
         "wiki_note_read",
+        "wiki_note_create",
         "wiki_note_update",
+        "wiki_template_read",
+    ),
+    "wiki-knowledge": (
         "wiki_note_search",
+        "wiki_note_read",
         "wiki_note_list",
-        "list_wiki_templates",
+    ),
+    "wiki-inbox": (
+        "wiki_note_create",
+        "promote_artifact_to_wiki",
+    ),
+    "wiki-curation": (
+        "wiki_note_organize",
+        "wiki_note_update",
+        "wiki_note_archive",
         "wiki_template_list",
         "wiki_template_read",
-        "wiki_template_create",
-        "wiki_template_update",
         "wiki_overview",
-        "wiki_graph",
-        "promote_artifact_to_wiki",
-        "wiki_note_organize",
     ),
     "coordination": (
         "lookup_agents",
@@ -103,7 +110,6 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_system_logs",
         "get_recent_errors",
         "get_tool_health_matrix",
-        "cli_exec",
         "system_info",
         "test_provider_connectivity",
     ),
@@ -114,14 +120,35 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_recent_errors",
         "get_system_logs",
         "test_provider_connectivity",
-        "cli_exec",
+    ),
+    "wiki_tasks": (
+        "wiki_note_read",
+        "wiki_note_create",
+        "wiki_note_update",
+        "wiki_template_read",
     ),
     "tasks": (
-        "get_or_create_weekly_note",
-        "log_daily_work_item",
-        "complete_weekly_task",
-        "rollover_weekly_tasks",
-        "get_weekly_summary",
+        "wiki_note_read",
+        "wiki_note_create",
+        "wiki_note_update",
+        "wiki_template_read",
+    ),
+    "wiki-knowledge": (
+        "wiki_note_search",
+        "wiki_note_read",
+        "wiki_note_list",
+    ),
+    "wiki-inbox": (
+        "wiki_note_create",
+        "promote_artifact_to_wiki",
+    ),
+    "wiki-curation": (
+        "wiki_note_organize",
+        "wiki_note_update",
+        "wiki_note_archive",
+        "wiki_template_list",
+        "wiki_template_read",
+        "wiki_overview",
     ),
     "wiki": (
         "wiki_note_create",
@@ -130,13 +157,10 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "wiki_note_search",
         "wiki_note_list",
         "wiki_note_organize",
-        "list_wiki_templates",
+        "wiki_note_archive",
         "wiki_template_list",
         "wiki_template_read",
-        "wiki_template_create",
-        "wiki_template_update",
         "wiki_overview",
-        "wiki_graph",
         "promote_artifact_to_wiki",
     ),
     "coding": (
@@ -182,6 +206,8 @@ REQUIRED_PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "handoff_to_agent",
         "lookup_agents",
         "get_session_info",
+        "recall_agent_memory",
+        "memorize_fact",
     ),
 }
 REQUIRED_PLATFORM_SKILLS: tuple[str, ...] = tuple(REQUIRED_PLATFORM_SKILL_TOOLS.keys())
@@ -191,11 +217,16 @@ REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "handoff_to_agent",
     "lookup_agents",
     "get_session_info",
+    "recall_agent_memory",
+    "memorize_fact",
 )
 
 # Tier 2: Platform Optional Skills
 OPTIONAL_PLATFORM_SKILLS: tuple[str, ...] = (
-    "wiki",
+    "wiki_tasks",
+    "wiki-knowledge",
+    "wiki-inbox",
+    "wiki-curation",
     "coordination",
     "worker",
     "proposals",
@@ -204,9 +235,37 @@ OPTIONAL_PLATFORM_SKILLS: tuple[str, ...] = (
 )
 
 PLATFORM_SKILL_IDS = tuple(PLATFORM_SKILL_TOOLS.keys())
-WIKI_TOOL_NAMES: tuple[str, ...] = PLATFORM_SKILL_TOOLS["wiki"]
+WIKI_TOOL_NAMES: tuple[str, ...] = (
+    "wiki_note_create",
+    "wiki_note_read",
+    "wiki_note_update",
+    "wiki_note_search",
+    "wiki_note_list",
+    "wiki_note_organize",
+    "wiki_note_archive",
+    "wiki_template_list",
+    "wiki_template_read",
+    "wiki_overview",
+    "promote_artifact_to_wiki",
+)
 
 PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
+    "wiki_tasks": {
+        "name": "Weekly Work Logs & Tasks",
+        "description": "Maintain Obsidian-compatible weekly work logs, daily checklists (- [ ]), and task carry-over using standard Wiki tools.",
+    },
+    "wiki-knowledge": {
+        "name": "Wiki Knowledge Lookup",
+        "description": "Search and read verified notes and facts from AutoReiv's Wiki vault.",
+    },
+    "wiki-inbox": {
+        "name": "Wiki Inbox Staging",
+        "description": "Stage new notes, reports, and session artifacts cleanly into 00_Inbox/ (One-Door Policy).",
+    },
+    "wiki-curation": {
+        "name": "Wiki Vault Curation",
+        "description": "One-by-one inbox graduation, template conformance, deduplication, and archival preservation.",
+    },
     "wiki": {
         "name": "Wiki & Knowledge Vault",
         "description": "Local-first Wiki document management, structured notes, and knowledge graph indexing.",

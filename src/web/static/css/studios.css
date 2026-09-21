@@ -1,0 +1,377 @@
+/* AutoReiv Studios Layout Grids & Responsive Scrollers [CARD-396] */
+
+/* CARD-250 / REQ-EDU-VP-001..002: Learning OS panels wrap/stack in viewport — no sideways peek */
+#view-education,
+#educationStudio,
+#educationMainColumn {
+  min-width: 0;
+  max-width: 100%;
+}
+#view-education {
+  overflow-x: hidden;
+}
+#educationPedagogyColumns.education-pedagogy-columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  min-width: 0;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+#educationPedagogyColumns > [id$='Panel'] {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* CARD-315: Education sections collapse + scroll (phone + desktop; Ask + rail stay). */
+#view-education {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+body.radical-desktop-demo #view-education.desktop-view-hosted {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+#educationPedagogyColumns > details.edu-section {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  background: rgba(15, 23, 42, 0.6);
+  overflow: visible;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+#educationPedagogyColumns > details.edu-section:not([open]) {
+  overflow: hidden;
+}
+
+/* CARD-328 / CARD-348: Education mobile vertical scrolling — unified flow without inner scroll traps */
+@media (max-width: 1023px) {
+  #view-education:not(.desktop-view-hosted) {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  #educationStudio {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+  }
+  #educationStudio > div.flex-1 {
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
+  }
+  #educationStudio .lg\:w-\[26rem\] {
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
+  }
+  #educationAskForm {
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
+  }
+  #educationMainColumn {
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
+  }
+  #educationPedagogyColumns {
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
+  }
+}
+#educationPedagogyColumns > details.edu-section[open] {
+  overflow: visible;
+}
+#educationPedagogyColumns > details.edu-section > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+}
+#educationPedagogyColumns > details.edu-section > summary::-webkit-details-marker {
+  display: none;
+}
+#educationPedagogyColumns > details.edu-section > summary::after {
+  content: '+';
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+#educationPedagogyColumns > details.edu-section[open] > summary::after {
+  content: '\2212';
+}
+#educationPedagogyColumns > details.edu-section:not([open]) > summary {
+  border-bottom: none;
+}
+#educationPedagogyColumns > details.edu-section > .edu-section-body {
+  padding: 0.85rem;
+  overflow: visible;
+  max-height: none;
+}
+#educationPedagogyColumns > details.edu-section > .edu-section-body > [id$='Panel'] {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* --- CARD-303 Projects Manager / Explorer mode flip --- */
+#view-projects {
+  position: relative;
+}
+#projectsManagerView,
+#projectsExplorerView {
+  min-height: 0;
+}
+#projectsDriftBanner .proj-missing-path {
+  color: #fb7185;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+}
+
+/* --- CARD-299 Agent Studio collapsible sections --- */
+#view-agents details.forge-section {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(14, 16, 21, 0.55);
+  overflow: hidden;
+}
+#view-agents details.forge-section > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(20, 23, 33, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+#view-agents details.forge-section > summary::-webkit-details-marker {
+  display: none;
+}
+#view-agents details.forge-section > summary::after {
+  content: '▾';
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+#view-agents details.forge-section:not([open]) > summary {
+  border-bottom: none;
+}
+#view-agents details.forge-section:not([open]) > summary::after {
+  content: '▸';
+}
+#view-agents details.forge-section > .forge-section-body {
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* CARD-312: Observe expand scrolls with the studio panel (phone + desktop window). */
+#view-observability {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+body.radical-desktop-demo #view-observability.desktop-view-hosted {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+#view-observability details.obs-section {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(14, 16, 21, 0.55);
+  overflow: visible;
+  flex: 0 0 auto;
+}
+#view-observability details.obs-section:not([open]) {
+  overflow: hidden;
+}
+#view-observability details.obs-section[open] {
+  overflow: visible;
+}
+#view-observability details.obs-section > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(20, 23, 33, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+#view-observability details.obs-section > summary::-webkit-details-marker {
+  display: none;
+}
+#view-observability details.obs-section > summary::after {
+  content: '+';
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+#view-observability details.obs-section[open] > summary::after {
+  content: '\2212';
+}
+#view-observability details.obs-section:not([open]) > summary {
+  border-bottom: none;
+}
+#view-observability details.obs-section > .obs-section-body {
+  padding: 0.85rem;
+  overflow: visible;
+  max-height: none;
+}
+
+/* CARD-313: Settings collapse + expand scrolls with studio panel (phone + desktop). */
+#view-settings {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+body.radical-desktop-demo #view-settings.desktop-view-hosted {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* CARD-314: Factory fills hosted desktop window (full studio, not toast); outer stays overflow-hidden for runs split pane; pipeline/runs scroll inside. */
+#view-factory,
+#factoryStudio {
+  min-height: 0;
+}
+body.radical-desktop-demo #view-factory.desktop-view-hosted #factoryStudio {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* CARD-328 / CARD-348: Lumina Cinema fills hosted desktop window; outer view respects var(--dw-h) */
+#view-lumina,
+#luminaStudio {
+  min-height: 0;
+}
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaStudio {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+#luminaComposeView,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeView {
+  min-height: 0 !important;
+  flex: 1 1 0% !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain;
+  touch-action: pan-y !important;
+}
+#factoryIntakeView {
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+#view-settings details.settings-section {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(14, 16, 21, 0.55);
+  overflow: visible;
+  flex: 0 0 auto;
+}
+#view-settings details.settings-section:not([open]) {
+  overflow: hidden;
+}
+#view-settings details.settings-section[open] {
+  overflow: visible;
+}
+#view-settings details.settings-section > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(20, 23, 33, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+#view-settings details.settings-section > summary::-webkit-details-marker {
+  display: none;
+}
+#view-settings details.settings-section > summary::after {
+  content: '+';
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+#view-settings details.settings-section[open] > summary::after {
+  content: '\2212';
+}
+#view-settings details.settings-section:not([open]) > summary {
+  border-bottom: none;
+}
+#view-settings details.settings-section > .settings-section-body {
+  padding: 0.85rem;
+  overflow: visible;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

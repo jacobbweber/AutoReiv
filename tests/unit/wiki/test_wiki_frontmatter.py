@@ -161,3 +161,36 @@ def test_inbox_staging_note_meta():
     assert graduated.word_count > 0
     assert len(graduated.content_hash) == 16
 
+
+def test_wiki_inbox_and_note_meta_tag_coercion():
+    from src.domain.wiki.frontmatter import WikiInboxNoteMeta, WikiNoteMeta
+
+    # Stringified JSON array
+    meta_json = WikiInboxNoteMeta(title="JSON Tags", tags='["system-health", "telemetry"]')
+    assert meta_json.tags == ["system-health", "telemetry"]
+
+    # Comma-delimited string
+    meta_csv = WikiInboxNoteMeta(title="CSV Tags", tags="health, diagnostics, autoreiv")
+    assert meta_csv.tags == ["health", "diagnostics", "autoreiv"]
+
+    # Single-quoted stringified python list
+    meta_sq = WikiInboxNoteMeta(title="Single Quote Tags", tags="['single-quoted', 'tags']")
+    assert meta_sq.tags == ["single-quoted", "tags"]
+
+    # Empty string or empty brackets
+    assert WikiInboxNoteMeta(title="Empty Brackets", tags="[]").tags == []
+    assert WikiInboxNoteMeta(title="Empty Str", tags="").tags == []
+    assert WikiInboxNoteMeta(title="None Tags", tags=None).tags == []
+
+    # WikiNoteMeta list fields coercion
+    full_meta = WikiNoteMeta(
+        title="Full Meta",
+        tags='["alpha", "beta"]',
+        aliases='alias1, alias2',
+        related='["related1"]',
+    )
+    assert full_meta.tags == ["alpha", "beta"]
+    assert full_meta.aliases == ["alias1", "alias2"]
+    assert full_meta.related == ["related1"]
+
+

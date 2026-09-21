@@ -191,7 +191,8 @@ def _data_dir_root(request: Request) -> Optional[Path]:
     from src.infrastructure.data.resolver import DataDirResolver
 
     try:
-        return Path(DataDirResolver().resolve().data_dir)
+        resolved = DataDirResolver().resolve()
+        return Path(getattr(resolved, "root", None) or getattr(resolved, "data_dir", None) or resolved)
     except Exception:
         return None
 
@@ -495,6 +496,10 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
                 p_data["allowed_tool_names"] = profile.allowed_tool_names
                 p_data["allowed_skill"] = profile.allowed_skill
                 p_data["storage_enabled"] = profile.storage_enabled
+                p_data["max_turns"] = profile.max_turns
+                p_data["history_retention_days"] = profile.history_retention_days
+                if profile.tone:
+                    p_data["tone"] = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
                 if profile.system_prompt:
                     p_data["system_prompt"] = profile.system_prompt
                 if profile.model:
@@ -636,6 +641,18 @@ async def get_agent_memory(
     else:
         facts = repo.list_semantic_facts(active_only=True, limit=50)
 
+    enriched_facts = []
+    for f in facts:
+        item = dict(f)
+        item["fact_text"] = f"{item.get('entity', '')}.{item.get('attribute', '')}: {item.get('value', '')}"
+        enriched_facts.append(item)
+
+    enriched_summaries = []
+    for s in summaries:
+        item = dict(s)
+        item["summary_text"] = item.get("summary", "")
+        enriched_summaries.append(item)
+
     return {
         "status": "ok",
         "agent_id": agent_id,
@@ -643,8 +660,10 @@ async def get_agent_memory(
         "retention_days": getattr(profile, "memory_retention_days", 30),
         "pinned_memory": getattr(profile, "pinned_memory", ""),
         "pinned": pinned,
-        "summaries": summaries,
-        "facts": facts,
+        "summaries": enriched_summaries,
+        "session_summaries": enriched_summaries,
+        "facts": enriched_facts,
+        "semantic_facts": enriched_facts,
     }
 
 
@@ -669,6 +688,7 @@ async def delete_agent_memory_fact(
 
 
 @router.delete("/api/agents/{agent_id}/memory")
+@router.post("/api/agents/{agent_id}/memory/purge")
 async def purge_agent_memory(
     request: Request,
     agent_id: str,

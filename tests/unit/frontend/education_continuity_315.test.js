@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 import {
   EDUCATION_PEDAGOGY_PANEL_IDS,
   EDUCATION_SECTION_KEYS,
@@ -8,10 +9,7 @@ import {
 } from '../../../src/web/static/modules/studios/education.js';
 
 describe('CARD-315 Education continuity / honesty (shell)', () => {
-  const html = fs.readFileSync(
-    path.resolve(__dirname, '../../../src/web/templates/index.html'),
-    'utf-8',
-  );
+  const html = loadPageHtml();
   const educationJs = fs.readFileSync(
     path.resolve(__dirname, '../../../src/web/static/modules/studios/education.js'),
     'utf-8',

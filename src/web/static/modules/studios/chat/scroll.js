@@ -65,3 +65,74 @@ export function collapseChatSessionsDrawer(drawerEl, viewEl = null) {
   }
   return true;
 }
+
+export function setupChatScroll({
+  messagesContainer,
+  chatJumpToLatestBtn,
+  chatSessionsDrawer,
+  chatSessionsDrawerCloseBtn,
+  toggleSidebarBtn,
+  viewChat,
+} = {}) {
+  let chatStickToBottom = true;
+
+  function refreshJumpToLatestBtn() {
+    if (!chatJumpToLatestBtn || !messagesContainer) return;
+    const hasOverflow = messagesContainer.scrollHeight > messagesContainer.clientHeight + 4;
+    const show = shouldShowJumpToLatest({ stickToBottom: chatStickToBottom, hasOverflow });
+    chatJumpToLatestBtn.classList.toggle('hidden', !show);
+    chatJumpToLatestBtn.classList.toggle('flex', show);
+  }
+
+  function maybeAutoscrollMessages() {
+    if (!messagesContainer) return;
+    if (shouldAutoscrollOnStream(chatStickToBottom)) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    refreshJumpToLatestBtn();
+  }
+
+  function jumpMessagesToLatest() {
+    chatStickToBottom = true;
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    refreshJumpToLatestBtn();
+  }
+
+  if (messagesContainer) {
+    messagesContainer.addEventListener('scroll', () => {
+      chatStickToBottom = isScrolledNearBottom(messagesContainer);
+      refreshJumpToLatestBtn();
+    }, { passive: true });
+  }
+  if (chatJumpToLatestBtn) {
+    chatJumpToLatestBtn.addEventListener('click', jumpMessagesToLatest);
+  }
+  if (chatSessionsDrawerCloseBtn) {
+    chatSessionsDrawerCloseBtn.addEventListener('click', () => {
+      collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+    });
+  }
+  if (toggleSidebarBtn && !toggleSidebarBtn.dataset.card296Bound) {
+    toggleSidebarBtn.dataset.card296Bound = '1';
+    toggleSidebarBtn.addEventListener('click', () => {
+      if (typeof document !== 'undefined' && document.body.classList.contains('radical-desktop-demo')) return;
+      if (!chatSessionsDrawer) return;
+      if (isChatSessionsDrawerOpen(chatSessionsDrawer)) {
+        collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+      } else {
+        openChatSessionsDrawer(chatSessionsDrawer, viewChat);
+      }
+    });
+  }
+
+  return {
+    refreshJumpToLatestBtn,
+    maybeAutoscrollMessages,
+    jumpMessagesToLatest,
+    isStickToBottom: () => chatStickToBottom,
+    setStickToBottom: (val) => { chatStickToBottom = Boolean(val); },
+  };
+}
+

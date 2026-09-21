@@ -27,8 +27,8 @@ _WIKI_ASK_RE = re.compile(
     re.IGNORECASE,
 )
 _CREATE_ASK_RE = re.compile(
-    r"\b(write|create|author|draft|stage|file)\b.*\b(note|wiki)\b"
-    r"|\b(note|wiki)\b.*\b(write|create|author|draft|stage|file)\b",
+    r"\b(write|create|author|draft|stage|file|save|record|add)\b.*\b(note|wiki|inbox)\b"
+    r"|\b(note|wiki|inbox)\b.*\b(write|create|author|draft|stage|file|save|record|add)\b",
     re.IGNORECASE,
 )
 _SOURCE_DEP_RE = re.compile(
@@ -66,8 +66,18 @@ _PROVENANCE_TOOLS = frozenset(
     {
         "wiki_note_create",
         "wiki_note_read",
+        "wiki_note_update",
+        "wiki_note_organize",
+        "wiki_note_archive",
+        "wiki_template_create",
+        "wiki_template_update",
         "tool.wiki_note_create",
         "tool.wiki_note_read",
+        "tool.wiki_note_update",
+        "tool.wiki_note_organize",
+        "tool.wiki_note_archive",
+        "tool.wiki_template_create",
+        "tool.wiki_template_update",
     }
 )
 
@@ -339,6 +349,15 @@ def format_need_sources_park_message(
 
 def format_grounding_constraint_block(decision: WikiGroundingDecision) -> str:
     """Inject into Formulate/Execute assignment — never invent paths."""
+    if decision.create_shaped:
+        return (
+            "WIKI GROUNDING CONSTRAINT [CARD-260 / CARD-409 creation-shaped]:\n"
+            f"- action={decision.action}; reason={decision.reason}\n"
+            "- Goal intent is note creation/staging. Allowed to stage new notes in `00_Inbox/` using `wiki_note_create`.\n"
+            "- One-Door Policy: All new notes land strictly in `00_Inbox/`. Do not bypass staging to write directly into `01_Notes/`.\n"
+            "- Never append general notes or health checks into personal weekly worklogs (`01_Notes/weekly/`).\n"
+            "- Never invent Wiki paths or titles. Claim only paths returned by `wiki_note_create` in this Job."
+        )
     allowed = list(decision.matched_read_paths) + list(decision.hit_paths)
     allowed_s = (
         ", ".join(f"`{p}`" for p in allowed)
@@ -360,13 +379,10 @@ def collect_provenanced_paths_from_tool_result(
     tool_name: str | None,
     result: Any,
 ) -> list[str]:
-    """Extract note paths from wiki_note_create / wiki_note_read tool outputs."""
+    """Extract note paths from note and template creation/update tool outputs [CARD-409]."""
     name = (tool_name or "").strip()
-    if (
-        name not in _PROVENANCE_TOOLS
-        and not name.endswith("wiki_note_create")
-        and not name.endswith("wiki_note_read")
-    ):
+    clean_name = name.split(".")[-1]
+    if clean_name not in _PROVENANCE_TOOLS and name not in _PROVENANCE_TOOLS:
         return []
     payload: Any = result
     if isinstance(result, str):
@@ -376,26 +392,26 @@ def collect_provenanced_paths_from_tool_result(
         except Exception:
             return [normalize_wiki_path(m.group("path")) for m in _PATH_RE.finditer(text)]
     paths: list[str] = []
+    keys_to_check = ("path", "relative_path", "note_path", "target_path", "archive_path", "dest_path")
     if isinstance(payload, Mapping):
-        for key in ("path", "relative_path", "note_path"):
+        for key in keys_to_check:
             p = normalize_wiki_path(str(payload.get(key) or ""))
             if p and p not in paths:
                 paths.append(p)
         for nest_key in ("result", "data", "note"):
             nested = payload.get(nest_key)
             if isinstance(nested, Mapping):
-                for key in ("path", "relative_path", "note_path"):
+                for key in keys_to_check:
                     p = normalize_wiki_path(str(nested.get(key) or ""))
                     if p and p not in paths:
                         paths.append(p)
     elif isinstance(payload, list):
         for item in payload:
             if isinstance(item, Mapping):
-                p = normalize_wiki_path(
-                    str(item.get("path") or item.get("relative_path") or "")
-                )
-                if p and p not in paths:
-                    paths.append(p)
+                for key in keys_to_check:
+                    p = normalize_wiki_path(str(item.get(key) or ""))
+                    if p and p not in paths:
+                        paths.append(p)
     return paths
 
 

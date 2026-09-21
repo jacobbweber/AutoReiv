@@ -5,7 +5,7 @@ import mimetypes
 import re
 import uuid
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional, Sequence, Union
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -80,6 +80,50 @@ logger = logging.getLogger(__name__)
 # Active background generation tasks by session_id [REQ-RESIL-003, CARD-114 Finding 4]
 _active_stream_tasks: Dict[str, asyncio.Task] = {}
 _active_stream_agents: Dict[str, str] = {}
+
+
+async def _background_extract_turn_memory(
+    agent_id: str,
+    user_text: str,
+    assistant_text: str,
+    session_id: str,
+    llm_service: Any,
+    data_dir: Optional[Union[str, Path]] = None,
+) -> None:
+    """Asynchronously compile durable facts and milestones into agent's cognitive brain [CARD-116, CARD-405]."""
+    try:
+        from src.application.memory.extractor import MemoryExtractorService, should_skip_extraction
+        from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
+        if should_skip_extraction(user_text):
+            return
+        if not llm_service:
+            return
+
+        repo = AgentMemoryRepository(agent_id=agent_id, data_dir=data_dir)
+        repo.initialize_schema()
+        extractor = MemoryExtractorService(repository=repo, llm_service=llm_service)
+        results = await extractor.process_turn(user_text=user_text, assistant_text=assistant_text)
+        if results:
+            logger.info("Cognitive memory extracted for agent '%s': %s facts applied", agent_id, len(results))
+            summary_text = f"Turn completed with {len(results)} durable facts compiled."
+            decisions = [
+                f"{r.get('action_taken')}: {r.get('entity', '')}.{r.get('attribute', '')}"
+                for r in results
+                if r.get("action_taken")
+            ]
+            try:
+                repo.record_session_summary(
+                    session_id=session_id,
+                    summary=summary_text,
+                    key_decisions=decisions,
+                    turn_count=1,
+                    outcome_status="completed",
+                )
+            except Exception as e:
+                logger.debug("Recording episodic session milestone skipped: %s", e)
+    except Exception as exc:
+        logger.warning("Background turn memory extraction failed for agent '%s': %s", agent_id, exc)
 
 
 def format_prompt_with_attachments(
@@ -228,6 +272,42 @@ def format_json_deliverable_to_markdown(text: str) -> str:
         return text
 
 
+def deduplicate_phase_deliverables(
+    completed_deliverables: Sequence[str] | None,
+    final_content: str,
+) -> str:
+    """
+    Deduplicate multi-phase job deliverables to prevent chat stutter [CARD-409].
+    Only preserves earlier deliverables if they represent genuinely distinct, disjoint artifacts
+    not already represented in final_content.
+    """
+    clean_final = (final_content or "").strip()
+    if not completed_deliverables:
+        return clean_final
+    if not clean_final:
+        return "\n\n---\n\n".join(d.strip() for d in completed_deliverables if d.strip())
+
+    final_words = {w.lower() for w in re.findall(r"[A-Za-z0-9_]{3,}", clean_final)}
+    unique_priors: list[str] = []
+
+    for prior in completed_deliverables:
+        clean_prior = prior.strip()
+        if not clean_prior:
+            continue
+        prior_words = {w.lower() for w in re.findall(r"[A-Za-z0-9_]{3,}", clean_prior)}
+        if not prior_words:
+            continue
+        overlap = len(prior_words & final_words)
+        similarity = overlap / len(prior_words)
+        if similarity >= 0.35:
+            continue
+        unique_priors.append(clean_prior)
+
+    if unique_priors:
+        return "\n\n---\n\n".join(unique_priors) + f"\n\n---\n\n{clean_final}"
+    return clean_final
+
+
 def _sse(event: str, payload: Any) -> str:
     return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
 
@@ -291,15 +371,16 @@ def execution_plan_from_approval(record: dict, session_id: str, agent_id: str):
 async def _forward_kernel_event(queue, event, profile) -> None:
     if event.event_type == KernelEventType.TOKEN:
         if event.reasoning_content:
-            await queue.put(_sse("reasoning", {"text": event.reasoning_content}))
+            await queue.put(_sse("reasoning", {"type": "reasoning", "text": event.reasoning_content}))
         if event.content:
-            await queue.put(_sse("token", {"text": event.content}))
+            await queue.put(_sse("token", {"type": "token", "text": event.content}))
     elif event.event_type == KernelEventType.TOOL_START:
         call_info = event.tool_call or {}
         await queue.put(
             _sse(
                 "tool_start",
                 {
+                    "type": "tool_start",
                     "tool_name": call_info.get("name", ""),
                     "arguments": call_info.get("arguments", {}),
                 },
@@ -307,7 +388,7 @@ async def _forward_kernel_event(queue, event, profile) -> None:
         )
     elif event.event_type == KernelEventType.TOOL_END:
         out_text = event.tool_result.output if event.tool_result else ""
-        await queue.put(_sse("tool_output", {"result": out_text}))
+        await queue.put(_sse("tool_output", {"type": "tool_output", "result": out_text}))
     elif event.event_type == KernelEventType.HANDOFF_START:
         await queue.put(_sse("handoff_start", {"type": "handoff_start", **(event.handoff or {})}))
     elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
@@ -1155,12 +1236,8 @@ async def execute_goal_job_phases(
         last_content = packet_text
 
     final_content = format_json_deliverable_to_markdown(last_content) if last_content else ""
-    # CARD-378 / REQ-CHAT-016: If earlier phases (e.g. Formulate) produced deliverables
-    # not in final_content, preserve them together.
-    if completed_deliverables and final_content:
-        filtered_priors = [d for d in completed_deliverables if d.strip() != final_content.strip()]
-        if filtered_priors:
-            final_content = "\n\n---\n\n".join(filtered_priors) + f"\n\n---\n\n{final_content}"
+    # CARD-378 / CARD-409: Preserve distinct earlier deliverables without repeating or stuttering
+    final_content = deduplicate_phase_deliverables(completed_deliverables, final_content)
     # CARD-260 / REQ-WIKITHIN-002: never claim a Wiki path that was not tool-provenanced
     # or present in this Job's vault grounding hit/read allow-list (RAG).
     if final_content and is_wiki_related_ask(getattr(job, "goal", None) or ""):
@@ -1193,6 +1270,21 @@ async def execute_goal_job_phases(
         )
         await queue.put(_sse("token", {"text": final_content}))
         await queue.put(_sse("turn_done", {"content": final_content}))
+        if getattr(profile, "memory_enabled", True) and getattr(job, "goal", None):
+            llm_service = (
+                getattr(kernel, "gateway", None)
+                or getattr(kernel, "llm_service", None)
+            )
+            asyncio.create_task(
+                _background_extract_turn_memory(
+                    agent_id=profile.id,
+                    user_text=job.goal,
+                    assistant_text=final_content,
+                    session_id=session_id,
+                    llm_service=llm_service,
+                    data_dir=data_dir or getattr(kernel, "data_dir", None),
+                )
+            )
     elif not last_content:
         await queue.put(_sse("turn_done", {"content": ""}))
 
@@ -1304,12 +1396,6 @@ class AuditAgentRequest(BaseModel):
     agent_id: str = "auditor-critic"
     session_id: str
     target_content: str
-
-
-class GoalChatRequest(BaseModel):
-    agent_id: str
-    session_id: str
-    goal: str
 
 
 router = APIRouter(tags=["Chat"])
@@ -1720,7 +1806,6 @@ async def get_session_debug_payload(request: Request, session_id: str):
 async def chat_stream(request: Request, req: ChatStreamRequest):
     registry = request.app.state.registry
     kernel = request.app.state.kernel
-    # plan_engine retained on app.state for deprecated /api/chat/goal; standing Chat uses orch.
     reflexion_engine = getattr(request.app.state, "reflexion_engine", None)
     orch = getattr(request.app.state, "job_orchestrator", None)
     store = request.app.state.store
@@ -2225,6 +2310,28 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     payload["facts"] = [verify_skip_fact()]
                 await queue.put(_sse("reflexion_verified", payload))
 
+            # Trigger background post-turn cognitive memory extraction [CARD-116, CARD-405]
+            if (not resume) and getattr(profile, "memory_enabled", True) and effective_content and last_plain:
+                llm_service = (
+                    getattr(request.app.state, "gateway", None)
+                    or getattr(kernel, "gateway", None)
+                    or getattr(kernel, "llm_service", None)
+                )
+                data_dir = (
+                    getattr(request.app.state, "data_dir", None)
+                    or getattr(kernel, "data_dir", None)
+                )
+                asyncio.create_task(
+                    _background_extract_turn_memory(
+                        agent_id=profile.id,
+                        user_text=effective_content,
+                        assistant_text=last_plain,
+                        session_id=req.session_id,
+                        llm_service=llm_service,
+                        data_dir=data_dir,
+                    )
+                )
+
         except asyncio.CancelledError:
             logger.info("Chat stream worker cancelled for session: %s", req.session_id)
             await queue.put(
@@ -2448,44 +2555,6 @@ async def audit_agent_action(request: Request, req: AuditAgentRequest):
         "agent_id": critic.id,
         "session_id": req.session_id,
         "audit_report": reply.content,
-    }
-
-
-@router.post("/api/chat/goal")
-async def chat_goal(request: Request, req: GoalChatRequest):
-    """Deprecated [CARD-215 / REQ-JOBGRAPH-001b, 002].
-
-    Formulates into Job/Phase only. Does not call execute_plan or otherwise
-    bypass Job/Phase + kernel standing execution. Prefer POST /api/chat/stream.
-    """
-    registry = request.app.state.registry
-    plan_engine = request.app.state.plan_engine
-    orch = getattr(request.app.state, "job_orchestrator", None)
-    profile = registry.get_profile(req.agent_id)
-    if not profile:
-        raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
-
-    plan = await plan_engine.formulate_plan(
-        agent=profile,
-        goal=req.goal,
-        session_id=req.session_id,
-    )
-    job = None
-    if orch is not None:
-        job = persist_plan_as_job(orch, plan)
-
-    return {
-        "status": "formulated",
-        "deprecated": True,
-        "message": (
-            "POST /api/chat/goal is deprecated. Standing multi-step Chat via "
-            "/api/chat/stream owns Job/Phase formulate+advance; this endpoint "
-            "only persists a formulated plan and does not execute."
-        ),
-        "goal": req.goal,
-        "plan": plan.model_dump(),
-        "output": None,
-        "job_id": job.id if job is not None else None,
     }
 
 

@@ -3,12 +3,17 @@ Unit tests for CARD-116: Post-turn memory extraction parser and
 atomic fact conflict resolution engine (ADD, UPDATE, DELETE, BUMP).
 """
 
+from unittest.mock import AsyncMock
+
+import pytest
+
 from src.application.memory.extractor import (
     CandidateMemoryFact,
     MemoryExtractorService,
     parse_extraction_response,
     should_skip_extraction,
 )
+from src.domain.gateway.models import ChatMessage, CompletionResponse, Role
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 
 
@@ -122,3 +127,40 @@ def test_conflict_resolution_pipeline(tmp_path):
     res5 = service.apply_candidate_fact(c5)
     assert res5["action_taken"] == "DELETE"
     assert len(repo.list_semantic_facts(active_only=True)) == 0
+
+
+@pytest.mark.asyncio
+async def test_process_turn_with_gateway_complete(tmp_path):
+    """Test process_turn with standard MultiProviderGateway complete() protocol."""
+    db_file = tmp_path / "test_gateway_memory.db"
+    repo = AgentMemoryRepository(db_path=db_file)
+    repo.initialize_schema()
+
+    mock_gateway = AsyncMock()
+    # Ensure it doesn't trigger mock.generate branch
+    del mock_gateway.generate
+    mock_gateway.default_model_id = "test-model"
+    json_response = """[
+        {"action": "ADD", "category": "user_pref", "entity": "user", "attribute": "test_runner", "value": "pytest"},
+        {"action": "ADD", "category": "environment", "entity": "project", "attribute": "database", "value": "SQLite WAL"}
+    ]"""
+    mock_gateway.complete.return_value = CompletionResponse(
+        model="test-model",
+        message=ChatMessage(role=Role.ASSISTANT, content=json_response),
+    )
+
+    service = MemoryExtractorService(repository=repo, llm_service=mock_gateway)
+    results = await service.process_turn(
+        user_text="We use pytest as our test runner and SQLite in WAL mode for database.",
+        assistant_text="Noted. I will execute tests with pytest and connect to SQLite WAL.",
+    )
+
+    assert len(results) == 2
+    assert results[0]["action_taken"] == "ADD"
+    assert results[1]["action_taken"] == "ADD"
+
+    facts = repo.list_semantic_facts()
+    assert len(facts) == 2
+    attrs = {f["attribute"]: f["value"] for f in facts}
+    assert attrs["test_runner"] == "pytest"
+    assert attrs["database"] == "SQLite WAL"

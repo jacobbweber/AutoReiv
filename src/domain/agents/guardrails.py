@@ -92,9 +92,9 @@ class AgentProfileGuardrail:
 
         # 6. Validate Max Turns Bound
         max_turns = int(payload.get("max_turns", 10))
-        if max_turns < 1 or max_turns > 50:
+        if max_turns < 1 or max_turns > 1000:
             raise AgentValidationError(
-                f"Invalid max_turns '{max_turns}'. Must be between 1 and 50 turns to prevent runaway loops."
+                f"Invalid max_turns '{max_turns}'. Must be between 1 and 1000 turns to prevent runaway loops."
             )
 
         raw_retention = payload.get("history_retention_days", 30)

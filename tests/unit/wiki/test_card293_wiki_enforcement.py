@@ -91,13 +91,13 @@ def test_read_wiki_note_truncation_safety_metadata(temp_wiki_tools):
 
 
 def test_tool_registry_exposes_template_discovery_callables(temp_wiki_tools):
-    """Verify list_wiki_templates and wiki_template_list are registered in tool registry [REQ-WIKI-293-001]."""
+    """Verify wiki_template_list is registered in tool registry and alias is pruned [CARD-409]."""
     registry = ScopedToolRegistry()
     temp_wiki_tools.register_tools(registry)
 
-    assert "wiki_template_list" in registry._tools or "list_wiki_templates" in registry._tools
-    # Both callable
-    discovered = temp_wiki_tools.list_wiki_templates()
+    assert "wiki_template_list" in registry._tools
+    assert "list_wiki_templates" not in registry._tools
+    discovered = temp_wiki_tools.wiki_template_list()
     assert isinstance(discovered, list)
     slugs = [t["slug"] for t in discovered]
     assert "concept-comparison" in slugs

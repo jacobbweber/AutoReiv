@@ -15,7 +15,7 @@ function read(rel) {
 
 describe('Agent Studio Remote MCP Servers UI [CARD-183]', () => {
   const indexHtml = read('src/web/templates/index.html');
-  const forgeJs = read('src/web/static/modules/studios/forge.js');
+  const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js');
 
   it('renders Remote MCP Servers card and modal form in index.html [REQ-MCP-AGENT-003]', () => {
     expect(indexHtml).toContain('id="forgeMcpServersCard"');

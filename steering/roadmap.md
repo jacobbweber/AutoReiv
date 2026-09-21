@@ -88,5 +88,14 @@
   - [ ] **CARD-393**: Studio Maker Agent and Dynamic Custom Studio Pack (Declarative JSON schema blueprints, dynamic dock & desktop window mounting) — **Parked**.
   - [x] **CARD-394**: Enterprise MCP Server Development and Docker Deployment Skill Pack (FastMCP scaffolding, JSON-RPC protocol testing, Docker containerization, Single Lever Invariant) — **Done**.
 
+- **Milestone 20 (v0.20.0 - Architecture Cleanliness, Subtractive Engineering & Monolith Decomposition)**:
+  - [x] **CARD-395**: Dead Code Scavenger, Orphaned Workflows Pruning & Git Hygiene — **Done**.
+  - [x] **CARD-396**: Modular CSS Extraction & Index Template Hygiene — **Done**.
+  - [x] **CARD-397**: Chat Studio Monolith Decomposition & Submodule Refactoring — **Done**.
+  - [x] **CARD-398**: Agent Forge Studio Monolith Decomposition & Submodule Refactoring — **Done**.
+  - [x] **CARD-399**: Wiki Studio Monolith Decomposition & Submodule Refactoring — **Done**.
+  - [x] **CARD-401**: Fix Chat Studio SSE Stream Event Parsing & Message Load Rendering — **Done**.
+
+
 
 

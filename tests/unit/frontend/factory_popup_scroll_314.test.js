@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 
 describe('CARD-314 Factory popup scroll + full studio window', () => {
-  const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
+  const html = loadPageHtml();
   const factoryJs = fs.readFileSync(
     path.resolve(__dirname, '../../../src/web/static/modules/studios/factory.js'),
     'utf-8'

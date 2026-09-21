@@ -32,20 +32,20 @@ def test_developer_pack_is_restored_as_platform_pack():
     assert "sdlc-engineering" in profile.allowed_skill
 
 
-def test_autoreiv_carries_developer_sdlc_engineering_skill():
-    """CARD-366: AutoReiv carries sdlc-engineering skill absorbing developer capabilities."""
-    manifest = load_platform_manifest("autoreiv")
-    assert manifest.id == "autoreiv"
+def test_developer_carries_sdlc_engineering_skill():
+    """CARD-407 / CARD-388: developer carries sdlc-engineering; autoreiv delegates via handoff."""
+    manifest = load_platform_manifest("developer")
+    assert manifest.id == "developer"
     assert "sdlc-engineering" in {s.id for s in manifest.skills}
 
-    # Runbook exists under autoreiv skills
-    autoreiv_root = platform_packs_root() / "autoreiv"
-    runbook = autoreiv_root / "skills" / "sdlc-engineering" / "SKILL.md"
-    assert runbook.is_file(), "Missing runbook for sdlc-engineering"
+    # Runbook exists under developer skills
+    dev_root = platform_packs_root() / "developer"
+    runbook = dev_root / "skills" / "sdlc-engineering" / "SKILL.md"
+    assert runbook.is_file(), "Missing runbook for sdlc-engineering under developer"
     content = runbook.read_text(encoding="utf-8")
     assert len(content) > 50
 
-    # Required developer tools in autoreiv pack
+    # Required developer tools in developer pack
     tools = set(manifest.pack_tool_names)
     required_tools = {
         "read_project_file",
@@ -57,14 +57,15 @@ def test_autoreiv_carries_developer_sdlc_engineering_skill():
     assert required_tools <= tools
 
 
-def test_autoreiv_pack_profile_has_developer_capabilities():
-    """AutoReiv profile includes tools and skills from developer persona."""
+def test_autoreiv_pack_profile_delegates_developer_capabilities():
+    """AutoReiv profile delegates shell/coding to developer via handoff_to_agent."""
     profile = platform_pack_profile("autoreiv")
     assert profile.id == "autoreiv"
     assert profile.show_in_chat is True
-    assert "cli_exec" in profile.allowed_tool_names
-    assert "write_project_file" in profile.allowed_tool_names
-    assert "sdlc-engineering" in profile.allowed_skill
+    assert "cli_exec" not in profile.allowed_tool_names
+    assert "sdlc-engineering" not in profile.allowed_skill
+    assert "handoff_to_agent" in profile.allowed_tool_names
+
 
 
 def test_legacy_sdlc_trio_hidden_from_chat():

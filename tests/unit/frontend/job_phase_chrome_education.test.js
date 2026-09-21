@@ -26,6 +26,9 @@ describe('Unified Job phase chrome [CARD-240 / REQ-JOB-CHROME-001..003]', () => 
     chatJs = fs.readFileSync(
       path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js'),
       'utf-8',
+    ) + fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/job_chrome.js'),
+      'utf-8',
     );
   });
 

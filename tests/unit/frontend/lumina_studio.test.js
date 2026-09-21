@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 import {
   initLuminaStudio,
   calculateEstimatedDuration,
@@ -16,7 +17,7 @@ describe('Lumina Cinema Studio [CARD-328 / REQ-LUMINA-SHELL-001..005]', () => {
   let desktopJs;
 
   beforeEach(() => {
-    html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
+    html = loadPageHtml();
     _luminaJs = fs.readFileSync(
       path.resolve(__dirname, '../../../src/web/static/modules/studios/lumina.js'),
       'utf-8',

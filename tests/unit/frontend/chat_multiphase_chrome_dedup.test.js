@@ -17,6 +17,9 @@ describe('CARD-378: Multi-Phase Stream Chrome Deduplication & Milestone Goal Cle
     chatJs = fs.readFileSync(
       path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js'),
       'utf-8',
+    ) + fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/job_chrome.js'),
+      'utf-8',
     );
   });
 

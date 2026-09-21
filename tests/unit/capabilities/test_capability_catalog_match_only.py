@@ -224,3 +224,55 @@ def test_api_resolve_and_registry_operator_cap(temp_db_path):
 
     bad = client.post("/api/capabilities/resolve", json={"intent": "x", "kinds": ["nope"]})
     assert bad.status_code == 400
+
+
+def test_card409_capability_stopword_immunity_and_underscore_tokenization(resolver):
+    resolver.upsert(
+        CapabilityIndexEntry(
+            id="tool.scaffold_agent_pack",
+            kind=CapabilityKind.TOOL,
+            name="scaffold_agent_pack",
+            summary="Scaffold an agent pack with the given name, description, tools and skills in the platform directory when a user asks to do so.",
+            keywords=["scaffold", "agent", "pack"],
+            roles=["autoreiv"],
+            trust_tier=TrustTier.TRUSTED,
+            source="builtin",
+        )
+    )
+    resolver.upsert(
+        CapabilityIndexEntry(
+            id="tool.wiki_note_create",
+            kind=CapabilityKind.TOOL,
+            name="wiki_note_create",
+            summary="Create, write, or save a new markdown note into the wiki staged in 00_Inbox/.",
+            keywords=["create", "save", "write", "note", "wiki", "inbox"],
+            roles=["autoreiv"],
+            trust_tier=TrustTier.TRUSTED,
+            source="builtin",
+        )
+    )
+    resolver.upsert(
+        CapabilityIndexEntry(
+            id="tool.inspect_system_health",
+            kind=CapabilityKind.TOOL,
+            name="inspect_system_health",
+            summary="Inspect platform and app health, database connectivity, and error rates.",
+            keywords=["health", "check", "inspect", "system", "app", "diagnostics"],
+            roles=["autoreiv"],
+            trust_tier=TrustTier.TRUSTED,
+            source="builtin",
+        )
+    )
+
+    query = "do an app health check report and save it to the wiki; success is when i can read it in the wiki"
+    result = resolver.resolve(query, trusted_only=True, limit=5)
+    matched_ids = [e.id for e in result.matched]
+
+    assert "tool.wiki_note_create" in matched_ids
+    assert "tool.inspect_system_health" in matched_ids
+    assert matched_ids.index("tool.wiki_note_create") < (
+        matched_ids.index("tool.scaffold_agent_pack") if "tool.scaffold_agent_pack" in matched_ids else 999
+    )
+    assert matched_ids.index("tool.inspect_system_health") < (
+        matched_ids.index("tool.scaffold_agent_pack") if "tool.scaffold_agent_pack" in matched_ids else 999
+    )

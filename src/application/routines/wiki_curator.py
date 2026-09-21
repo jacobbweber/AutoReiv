@@ -184,15 +184,33 @@ class WikiCuratorRoutine:
                             break
 
             if existing_match_path:
-                # Merge / Append into existing note
+                # Merge / Append into existing note with archive preservation [CARD-409]
                 today_str = dt.date.today().isoformat()
+                self.store.archive_note(
+                    existing_match_path,
+                    reason=f"Backup before merging inbox note '{title}'",
+                    preserve_source=True,
+                )
                 self.store.append_note(
                     relative_path=existing_match_path,
                     content=cleaned_body,
                     heading=f"Update: {title} ({today_str})",
                 )
+                # Merge tags into existing note frontmatter
+                if tags:
+                    existing_data = self.store.read_note(existing_match_path)
+                    if existing_data.get("success"):
+                        existing_meta = existing_data.get("meta") or {}
+                        existing_tags = list(existing_meta.get("tags") or [])
+                        combined_tags = list(dict.fromkeys(existing_tags + tags))
+                        if combined_tags != existing_tags:
+                            self.store.write_note(
+                                relative_path=existing_match_path,
+                                content=existing_data.get("content", ""),
+                                update_frontmatter={"tags": combined_tags},
+                            )
                 f.unlink(missing_ok=True)
-                actions.append(f"Merged inbox note '{title}' into existing note '{existing_match_path}'.")
+                actions.append(f"Merged inbox note '{title}' into existing note '{existing_match_path}' (archived prior snapshot).")
                 graduated += 1
             else:
                 # Graduate note to permanent warehouse

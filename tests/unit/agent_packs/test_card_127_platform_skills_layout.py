@@ -26,7 +26,10 @@ def _bootstrap(tmp_path):
 
 def test_platform_skill_ids_and_tools_defined():
     expected_skills = {
-        "wiki",
+        "wiki_tasks",
+        "wiki-knowledge",
+        "wiki-inbox",
+        "wiki-curation",
         "coordination",
         "proposals",
         "worker",
@@ -42,7 +45,7 @@ def test_platform_skill_ids_and_tools_defined():
 
 
 def test_tools_for_platform_skills_resolution():
-    tools = tools_for_platform_skills(["coordination", "wiki"])
+    tools = tools_for_platform_skills(["coordination", "wiki_tasks", "wiki-inbox"])
     assert "handoff_to_agent" in tools
     assert "lookup_agents" in tools
     assert "propose_followup" in tools
@@ -50,12 +53,16 @@ def test_tools_for_platform_skills_resolution():
     assert "wiki_note_read" in tools
 
 
-def test_developer_pack_absorbed_into_autoreiv():
-    manifest = load_platform_manifest("autoreiv")
-    assert "sdlc-engineering" in {s.id for s in manifest.skills}
-    assert "sdlc-engineering" in manifest.allowed_skill
-    assert "read_project_file" in manifest.pack_tool_names
-    assert "write_project_file" in manifest.pack_tool_names
+def test_developer_is_separate_platform_pack():
+    dev_manifest = load_platform_manifest("developer")
+    assert "sdlc-engineering" in {s.id for s in dev_manifest.skills}
+    assert "sdlc-engineering" in dev_manifest.allowed_skill
+    assert "read_project_file" in dev_manifest.pack_tool_names
+    assert "write_project_file" in dev_manifest.pack_tool_names
+
+    autoreiv_manifest = load_platform_manifest("autoreiv")
+    assert "sdlc-engineering" not in {s.id for s in autoreiv_manifest.skills}
+    assert "cli_exec" not in autoreiv_manifest.pack_tool_names
 
 
 def test_autoreiv_pack_dedicated_and_platform_skills():
@@ -64,22 +71,25 @@ def test_autoreiv_pack_dedicated_and_platform_skills():
         "build-agent-pack",
         "platform-health",
         "session-inspect",
-        "tasks",
-        "wiki",
-        "sdlc-engineering",
+        "wiki_tasks",
+        "wiki-knowledge",
+        "wiki-inbox",
+        "wiki-curation",
         "agent-authoring",
         "socratic-tutoring",
     }
     assert "build-agent-pack" in manifest.allowed_skill
     assert "platform-health" in manifest.allowed_skill
     assert "session-inspect" in manifest.allowed_skill
-    assert "tasks" in manifest.allowed_skill
-    assert "wiki" in manifest.allowed_skill
+    assert "wiki_tasks" in manifest.allowed_skill
+    assert "wiki-knowledge" in manifest.allowed_skill
+    assert "wiki-inbox" in manifest.allowed_skill
+    assert "wiki-curation" in manifest.allowed_skill
     assert "coordination" in manifest.allowed_skill
     assert "proposals" in manifest.allowed_skill
     assert "system_info" in manifest.pack_tool_names
     assert "inspect_system_health" in manifest.pack_tool_names
     assert "handoff_to_agent" in manifest.pack_tool_names
     assert "propose_skill" in manifest.pack_tool_names
-    assert "get_or_create_weekly_note" in manifest.pack_tool_names
     assert "wiki_note_create" in manifest.pack_tool_names
+    assert "get_or_create_weekly_note" not in manifest.pack_tool_names

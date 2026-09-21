@@ -82,9 +82,18 @@ class RoutineScheduler:
         for r in BUILTIN_ROUTINES:
             existing = store.get_routine(r.id) if hasattr(store, "get_routine") else None
             if not existing:
+                if r.next_run_at is None:
+                    r.next_run_at = ScheduleMatcher.compute_next_run(r)
                 store.save_routine(r)
-            elif existing.agent_id in ("assistant", "wiki"):
-                existing.agent_id = r.agent_id
-                store.save_routine(existing)
+            else:
+                updated = False
+                if existing.agent_id in ("assistant", "wiki"):
+                    existing.agent_id = r.agent_id
+                    updated = True
+                if existing.next_run_at is None and existing.last_run_at is None:
+                    existing.next_run_at = ScheduleMatcher.compute_next_run(existing)
+                    updated = True
+                if updated:
+                    store.save_routine(existing)
         if getattr(store, "set_setting", None):
             store.set_setting("day1_routines_seeded", True)

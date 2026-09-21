@@ -84,3 +84,38 @@ def test_timezone_aware_next_run_not_utc_cron():
     assert paused.enabled is False
     assert ScheduleMatcher.is_routine_due(paused, current_time=nxt) is False
 
+
+def test_cron_cold_boot_not_due():
+    """CARD-406: CRON routines on fresh boot (last_run_at=None, next_run_at=None) must not fire eagerly."""
+    r = Routine(
+        id="weekly-note-rollover",
+        name="Weekly Note Rollover",
+        agent_id="autoreiv",
+        prompt="Perform rollover",
+        schedule_type=ScheduleType.CRON,
+        cron_expression="0 0 * * 1",
+        enabled=True,
+        last_run_at=None,
+        next_run_at=None,
+    )
+    # Even if next_run_at is None, a cron routine must not fire on cold boot
+    now = datetime(2026, 9, 21, 12, 0, 0, tzinfo=timezone.utc)
+    assert ScheduleMatcher.is_routine_due(r, current_time=now) is False
+
+
+def test_compute_next_run_cron():
+    """CARD-406: compute_next_run on CRON routine calculates correct future UTC timestamp."""
+    # 2026-09-21 is Monday 12:00 UTC. Next Monday 00:00 UTC is 2026-09-28 00:00 UTC.
+    base = datetime(2026, 9, 21, 12, 0, 0, tzinfo=timezone.utc)
+    r = Routine(
+        id="weekly-note-rollover",
+        name="Weekly Note Rollover",
+        agent_id="autoreiv",
+        prompt="Perform rollover",
+        schedule_type=ScheduleType.CRON,
+        cron_expression="0 0 * * 1",
+        enabled=True,
+    )
+    nxt = ScheduleMatcher.compute_next_run(r, base_time=base)
+    assert nxt == datetime(2026, 9, 28, 0, 0, 0, tzinfo=timezone.utc)
+

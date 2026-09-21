@@ -213,3 +213,39 @@ def test_req_toolpol_005_extends_existing_hitl_no_parallel_engine():
     assert "DangerousCommandFilter" in src
     assert "class ParallelHitl" not in src
     assert "class AlternateHitl" not in src
+
+
+def test_req_407_empty_matched_capability_subset_fallback(gate):
+    """CARD-407 / REQ-407-003: Empty matched_capability_ids or tool-free match must not block allowlisted tools."""
+    agent = _agent(allowed_tool_names=["wiki_note_search", "inspect_system_health"])
+    registry_names = {"wiki_note_search", "inspect_system_health", "cli_exec"}
+
+    # 1. When matched_capability_ids is empty list [] (the bug that broke AutoReiv's job)
+    d_empty = gate.evaluate(
+        ToolCall(id="c407_1", name="wiki_note_search", arguments={}),
+        agent,
+        registry_tool_names=registry_names,
+        matched_capability_ids=[],
+    )
+    assert d_empty.verdict == ToolPolicyVerdict.ALLOW
+    assert "out of matched capability subset" not in d_empty.reason
+
+    # 2. When matched_capability_ids has non-tool IDs only (e.g. skill only)
+    d_non_tool = gate.evaluate(
+        ToolCall(id="c407_2", name="inspect_system_health", arguments={}),
+        agent,
+        registry_tool_names=registry_names,
+        matched_capability_ids=["skill.platform-health", "agent.autoreiv"],
+    )
+    assert d_non_tool.verdict == ToolPolicyVerdict.ALLOW
+
+    # 3. Negative assertion: When matched_capability_ids explicitly contains tools, out-of-subset tools ARE blocked
+    d_subset_block = gate.evaluate(
+        ToolCall(id="c407_3", name="inspect_system_health", arguments={}),
+        agent,
+        registry_tool_names=registry_names,
+        matched_capability_ids=["tool.wiki_note_search"],
+    )
+    assert d_subset_block.verdict == ToolPolicyVerdict.BLOCK
+    assert "out of matched capability subset" in d_subset_block.reason
+

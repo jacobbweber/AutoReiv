@@ -2,15 +2,17 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
+import { loadPageHtml } from './template_helper.js';
+
 /**
  * CARD-235 — Chat composer hit-testing
  * Prove Enable/dismiss theatre is gone and + Options sits inside pointer-events-auto.
  */
 describe('Chat composer hit-testing [CARD-235]', () => {
-  const indexPath = path.resolve(__dirname, '../../../src/web/templates/index.html');
   const chatJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js');
-  const html = fs.readFileSync(indexPath, 'utf-8');
-  const chatJs = fs.readFileSync(chatJsPath, 'utf-8');
+  const chromeJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/chrome.js');
+  const html = loadPageHtml();
+  const chatJs = fs.readFileSync(chatJsPath, 'utf-8') + fs.readFileSync(chromeJsPath, 'utf-8');
 
   function extractChatInputWrapper(src) {
     const start = src.indexOf('id="chatInputWrapper"');

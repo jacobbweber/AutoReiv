@@ -16,7 +16,7 @@ function read(rel) {
 
 describe('Integrated Runbook Editor & Mechanical Capability Linter [CARD-390]', () => {
   const html = read('src/web/templates/index.html');
-  const forgeJs = read('src/web/static/modules/studios/forge.js');
+  const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
 
   it('[REQ-390-005] index.html provides validation button, status container, and char count inside #studioRunbookEditor', () => {
     expect(html).toContain('id="studioRunbookEditor"');

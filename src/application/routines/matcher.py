@@ -236,16 +236,18 @@ class ScheduleMatcher:
             slot = compute_next_local_weekday_run(routine, now, inclusive=True)
             return now >= slot
 
+        if routine.schedule_type == ScheduleType.CRON:
+            if routine.last_run_at is None:
+                return False
+            elapsed = (now - routine.last_run_at).total_seconds()
+            return elapsed >= (routine.interval_seconds or 3600)
+
         if routine.last_run_at is None:
             return True
 
         if routine.schedule_type == ScheduleType.INTERVAL:
             elapsed = (now - routine.last_run_at).total_seconds()
             return elapsed >= routine.interval_seconds
-
-        if routine.schedule_type == ScheduleType.CRON:
-            elapsed = (now - routine.last_run_at).total_seconds()
-            return elapsed >= (routine.interval_seconds or 3600)
 
         return False
 
@@ -266,6 +268,12 @@ class ScheduleMatcher:
 
         if uses_local_clock(routine):
             return compute_next_local_weekday_run(routine, now, inclusive=False)
+
+        if routine.schedule_type == ScheduleType.CRON and routine.cron_expression:
+            from src.application.routines.humanizer import compute_next_run_eta
+
+            next_dt, _ = compute_next_run_eta(routine.cron_expression, from_time=now)
+            return next_dt
 
         if routine.schedule_type == ScheduleType.INTERVAL:
             return now + timedelta(seconds=routine.interval_seconds)
