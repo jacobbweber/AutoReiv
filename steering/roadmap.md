@@ -91,7 +91,11 @@
 - **Milestone 20 (v0.20.0 - Architecture Cleanliness, Subtractive Engineering & Monolith Decomposition)**:
   - [x] **CARD-395**: Dead Code Scavenger, Orphaned Workflows Pruning & Git Hygiene — **Done**.
   - [x] **CARD-396**: Modular CSS Extraction & Index Template Hygiene — **Done**.
-  - [ ] **CARD-397**: Chat Studio Monolith Decomposition & Submodule Refactoring — **Ready**.
+  - [x] **CARD-397**: Chat Studio Monolith Decomposition & Submodule Refactoring — **Done**.
+  - [x] **CARD-398**: Agent Forge Studio Monolith Decomposition & Submodule Refactoring — **Done**.
+  - [x] **CARD-399**: Wiki Studio Monolith Decomposition & Submodule Refactoring — **Done**.
+  - [x] **CARD-401**: Fix Chat Studio SSE Stream Event Parsing & Message Load Rendering — **Done**.
+
 
 
 

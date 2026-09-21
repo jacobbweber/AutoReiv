@@ -1,7 +1,7 @@
 ---
 id: CARD-398
 title: "Agent Forge Studio Monolith Decomposition and Submodule Refactoring"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-398] Agent Forge Studio Monolith Decomposition and Submodule Refactoring
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:refactor`, `area:frontend`, `domain:forge`  
