@@ -18,7 +18,11 @@ from pathlib import Path
 from typing import Optional
 
 from src.infrastructure.data.resolver import (
+    BACKUP_DIR_SETTING_KEY,
+    BACKUP_RETENTION_SETTING_KEY,
+    BACKUP_SCHEDULE_SETTING_KEY,
     DATA_DIR_SETTING_KEY,
+    ENV_BACKUP_DIR,
     ENV_DATA_DIR,
     DataDirPaths,
     ensure_live_data_root,
@@ -145,6 +149,18 @@ def _upsert_dotenv_key(env_path: Path, key: str, value: str) -> None:
         out.append(f"{key}={value}")
     text = "\n".join(out)
     if not text.endswith("\n"):
+        text += "\n"
+    env_path.write_text(text, encoding="utf-8")
+
+
+def _remove_dotenv_key(env_path: Path, key: str) -> None:
+    if not env_path.is_file():
+        return
+    lines = env_path.read_text(encoding="utf-8").splitlines()
+    pattern = re.compile(rf"^\s*{re.escape(key)}\s*=")
+    out = [line for line in lines if not pattern.match(line)]
+    text = "\n".join(out)
+    if text and not text.endswith("\n"):
         text += "\n"
     env_path.write_text(text, encoding="utf-8")
 
@@ -298,4 +314,65 @@ def resolve_paths_for_root(root: Path) -> DataDirPaths:
         agents_path=root / "agents",
         job_templates_path=root / "templates" / "jobs",
         packs_path=root / "packs",
+        backups_path=root / "backups",
     )
+
+
+def persist_autoreiv_backup_config(
+    *,
+    backup_dir: Optional[str] = None,
+    schedule: Optional[str] = None,
+    retention: Optional[int] = None,
+    checkout: Optional[Path] = None,
+    store: Optional[object] = None,
+) -> list[str]:
+    """Persist backup directory, schedule cadence, and retention policy [CARD-404]."""
+    checkout_root = checkout or repo_root()
+    env_path = _find_repo_dotenv(checkout_root)
+    persisted: list[str] = []
+
+    if backup_dir is not None:
+        clean_dir = str(backup_dir).strip()
+        if clean_dir:
+            p = Path(clean_dir).expanduser()
+            if is_checkout_live_tree_path(p, checkout=checkout_root):
+                raise ValueError(
+                    f"Refusing backup dir inside git checkout: {clean_dir}. "
+                    "Use a path outside the repository or under scratch/."
+                )
+            resolved_str = str(p.resolve())
+            try:
+                _upsert_dotenv_key(env_path, ENV_BACKUP_DIR, resolved_str)
+                persisted.append(f".env:{env_path}")
+            except OSError as exc:
+                logger.warning("Could not write %s to %s: %s", ENV_BACKUP_DIR, env_path, exc)
+            os.environ[ENV_BACKUP_DIR] = resolved_str
+            persisted.append("process:AUTOREIV_BACKUP_DIR")
+            if store is not None and hasattr(store, "set_setting"):
+                store.set_setting(BACKUP_DIR_SETTING_KEY, resolved_str)
+                persisted.append("settings:backup_dir")
+        else:
+            try:
+                _remove_dotenv_key(env_path, ENV_BACKUP_DIR)
+                persisted.append(f".env:removed:{ENV_BACKUP_DIR}")
+            except OSError as exc:
+                logger.warning("Could not remove %s from %s: %s", ENV_BACKUP_DIR, env_path, exc)
+            os.environ.pop(ENV_BACKUP_DIR, None)
+            persisted.append("process:cleared:AUTOREIV_BACKUP_DIR")
+            if store is not None and hasattr(store, "set_setting"):
+                store.set_setting(BACKUP_DIR_SETTING_KEY, None)
+                persisted.append("settings:cleared:backup_dir")
+
+    if schedule is not None:
+        clean_sched = str(schedule).strip().lower()
+        if store is not None and hasattr(store, "set_setting"):
+            store.set_setting(BACKUP_SCHEDULE_SETTING_KEY, clean_sched)
+            persisted.append(f"settings:backup_schedule:{clean_sched}")
+
+    if retention is not None:
+        ret_val = max(1, int(retention))
+        if store is not None and hasattr(store, "set_setting"):
+            store.set_setting(BACKUP_RETENTION_SETTING_KEY, ret_val)
+            persisted.append(f"settings:backup_retention:{ret_val}")
+
+    return persisted

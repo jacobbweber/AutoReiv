@@ -23,9 +23,13 @@ from src.infrastructure.skills.seed import seed_bundled_skill_packs
 logger = logging.getLogger(__name__)
 
 DATA_DIR_SETTING_KEY = "data_dir"
+BACKUP_DIR_SETTING_KEY = "backup_dir"
+BACKUP_SCHEDULE_SETTING_KEY = "backup_schedule"
+BACKUP_RETENTION_SETTING_KEY = "backup_retention"
 ENV_DATA_DIR = "AUTOREIV_DATA_DIR"
 ENV_DB_PATH = "AUTOREIV_DB_PATH"
 ENV_WIKI_PATH = "AUTOREIV_WIKI_PATH"
+ENV_BACKUP_DIR = "AUTOREIV_BACKUP_DIR"
 
 _LEGACY_DB_REL = Path("data") / "autoreiv.db"
 _LEGACY_WIKI_REL = Path("data") / "wiki"
@@ -47,10 +51,13 @@ class DataDirPaths:
     agents_path: Path
     job_templates_path: Path
     packs_path: Optional[Path] = None
+    backups_path: Optional[Path] = None
 
     def __post_init__(self) -> None:
         if self.packs_path is None:
             object.__setattr__(self, "packs_path", self.root / "packs")
+        if self.backups_path is None:
+            object.__setattr__(self, "backups_path", self.root / "backups")
 
 
 def repo_root() -> Path:
@@ -88,6 +95,7 @@ class DataDirResolver:
         self,
         *,
         setting_data_dir: Optional[str] = None,
+        setting_backup_dir: Optional[str] = None,
         checkout_root: Optional[Path] = None,
         in_docker: Optional[bool] = None,
         home: Optional[Path] = None,
@@ -95,6 +103,7 @@ class DataDirResolver:
         os_name: Optional[str] = None,
     ) -> None:
         self.setting_data_dir = setting_data_dir
+        self.setting_backup_dir = setting_backup_dir
         self.checkout_root = Path(checkout_root) if checkout_root is not None else repo_root()
         self.in_docker = _is_docker_runtime() if in_docker is None else in_docker
         self.os_name = os.name if os_name is None else os_name
@@ -165,6 +174,34 @@ class DataDirResolver:
                 return value.strip()
         return None
 
+    def _peek_setting_backup_dir(self) -> Optional[str]:
+        candidates = (
+            self.platform_default() / "database" / "autoreiv.db",
+            self.legacy_db_path(),
+        )
+        for db_path in candidates:
+            value = _read_sqlite_setting(db_path, BACKUP_DIR_SETTING_KEY)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return None
+
+    def _explicit_backup_dir(self) -> Optional[Path]:
+        raw = os.environ.get(ENV_BACKUP_DIR)
+        if raw is not None and str(raw).strip():
+            candidate = Path(str(raw).strip()).expanduser()
+            if not is_checkout_live_tree_path(candidate, checkout=self.checkout_root):
+                return candidate
+        if self.setting_backup_dir is not None and str(self.setting_backup_dir).strip():
+            candidate = Path(str(self.setting_backup_dir).strip()).expanduser()
+            if not is_checkout_live_tree_path(candidate, checkout=self.checkout_root):
+                return candidate
+        peeked = self._peek_setting_backup_dir()
+        if peeked:
+            candidate = Path(peeked).expanduser()
+            if not is_checkout_live_tree_path(candidate, checkout=self.checkout_root):
+                return candidate
+        return None
+
     def resolve_root(self) -> Path:
         env = os.environ.get(ENV_DATA_DIR)
         if env is not None and str(env).strip():
@@ -183,8 +220,10 @@ class DataDirResolver:
             root = self.platform_default()
         explicit_db = self._explicit_db_path()
         explicit_wiki = self._explicit_wiki_path()
+        explicit_backup = self._explicit_backup_dir()
         db_path = explicit_db if explicit_db is not None else root / "database" / "autoreiv.db"
         wiki_path = explicit_wiki if explicit_wiki is not None else root / "wiki"
+        backups_path = explicit_backup if explicit_backup is not None else root / "backups"
         return DataDirPaths(
             root=root,
             db_path=db_path,
@@ -193,6 +232,7 @@ class DataDirResolver:
             agents_path=root / "agents",
             job_templates_path=root / "templates" / "jobs",
             packs_path=root / "packs",
+            backups_path=backups_path,
         )
 
     def ensure_layout(self, paths: DataDirPaths) -> None:
@@ -203,6 +243,7 @@ class DataDirResolver:
         paths.agents_path.mkdir(parents=True, exist_ok=True)
         paths.job_templates_path.mkdir(parents=True, exist_ok=True)
         paths.packs_path.mkdir(parents=True, exist_ok=True)
+        paths.backups_path.mkdir(parents=True, exist_ok=True)
 
     def _db_migrate_source(self, dest_db: Path) -> Optional[Path]:
         explicit = self._explicit_db_path()
@@ -419,10 +460,15 @@ def bootstrap_data_dir(
     *,
     checkout_root: Optional[Path] = None,
     setting_data_dir: Optional[str] = None,
+    setting_backup_dir: Optional[str] = None,
     migrate: bool = True,
 ) -> DataDirPaths:
     """Resolve, ensure layout, and optionally copy-migrate. Used by app and CLI."""
-    resolver = DataDirResolver(checkout_root=checkout_root, setting_data_dir=setting_data_dir)
+    resolver = DataDirResolver(
+        checkout_root=checkout_root,
+        setting_data_dir=setting_data_dir,
+        setting_backup_dir=setting_backup_dir,
+    )
     paths = resolver.resolve()
     resolver.ensure_layout(paths)
     if migrate:

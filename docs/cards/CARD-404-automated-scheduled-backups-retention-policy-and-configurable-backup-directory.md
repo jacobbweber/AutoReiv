@@ -1,7 +1,7 @@
 ---
 id: CARD-404
 title: "Automated Scheduled Backups, Retention Policy, and Configurable Backup Directory"
-status: Ready
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-404] Automated Scheduled Backups, Retention Policy, and Configurable Backup Directory
 
-> **Status**: Ready  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:feature`, `area:settings`, `domain:data`  

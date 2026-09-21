@@ -33,6 +33,7 @@ from src.application.routines.scheduler import RoutineScheduler
 from src.application.sdlc.projects_service import ProjectsService
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
+from src.application.system.backup_scheduler import DataDirBackupScheduler
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
@@ -247,11 +248,19 @@ def create_app(
         gateway=gateway,
         wiki=wiki_service,
     )
+
+    backup_scheduler = DataDirBackupScheduler(
+        paths=data_paths,
+        store=store,
+        interval_seconds=60.0,
+    )
+
     # 5. Lifespan Manager
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
         factory_task = asyncio.create_task(factory_orchestrator.start())
+        backup_task = asyncio.create_task(backup_scheduler.start())
         try:
             for profile in registry.list_agents():
                 days = profile.history_retention_days if profile.history_retention_days is not None else 30
@@ -296,6 +305,12 @@ def create_app(
         try:
             yield
         finally:
+            await backup_scheduler.stop()
+            backup_task.cancel()
+            try:
+                await backup_task
+            except (asyncio.CancelledError, Exception):
+                pass
             await mcp_manager.shutdown_all()
             await factory_orchestrator.stop()
             factory_task.cancel()
@@ -339,6 +354,7 @@ def create_app(
     app.state.orchestrator = orchestrator
     app.state.routine_executor = routine_executor
     app.state.scheduler = scheduler
+    app.state.backup_scheduler = backup_scheduler
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
     app.state.job_orchestrator = job_orchestrator
