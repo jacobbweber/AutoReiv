@@ -1,7 +1,7 @@
 ---
 id: CARD-403
 title: "Agent Desktop Window Manager Monolith Decomposition and Submodule Refactoring"
-status: Ready
+status: In Review
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-403] Agent Desktop Window Manager Monolith Decomposition and Submodule Refactoring
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:refactor`, `area:frontend`, `domain:desktop`  
