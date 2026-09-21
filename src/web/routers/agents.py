@@ -191,7 +191,8 @@ def _data_dir_root(request: Request) -> Optional[Path]:
     from src.infrastructure.data.resolver import DataDirResolver
 
     try:
-        return Path(DataDirResolver().resolve().data_dir)
+        resolved = DataDirResolver().resolve()
+        return Path(getattr(resolved, "root", None) or getattr(resolved, "data_dir", None) or resolved)
     except Exception:
         return None
 
@@ -495,6 +496,10 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
                 p_data["allowed_tool_names"] = profile.allowed_tool_names
                 p_data["allowed_skill"] = profile.allowed_skill
                 p_data["storage_enabled"] = profile.storage_enabled
+                p_data["max_turns"] = profile.max_turns
+                p_data["history_retention_days"] = profile.history_retention_days
+                if profile.tone:
+                    p_data["tone"] = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
                 if profile.system_prompt:
                     p_data["system_prompt"] = profile.system_prompt
                 if profile.model:

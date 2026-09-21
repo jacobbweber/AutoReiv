@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.domain.wiki.frontmatter import FrontmatterParser
+from src.domain.wiki.frontmatter import FrontmatterParser, coerce_string_or_list_of_strings
 from src.domain.wiki.store import WikiStore
 
 
@@ -74,6 +74,7 @@ class WikiTools:
         Supports optional structured template directives [CARD-178, REQ-WIKI-034].
         """
         effective_template = (template or "").strip() or "zettelkasten-atomic"
+        clean_tags = coerce_string_or_list_of_strings(tags)
         extra_frontmatter = dict(extra_frontmatter or {})
         extra_frontmatter.setdefault("template", effective_template)
         if not content:
@@ -106,7 +107,7 @@ class WikiTools:
                     category="inbox",
                     inbox_priority=inbox_priority,
                     document_type=document_type,
-                    tags=tags,
+                    tags=clean_tags,
                     summary=summary,
                     status="inbox",
                     priority=priority,
@@ -114,7 +115,7 @@ class WikiTools:
                 )
                 seeded = self._maybe_seed_priming_ledger(
                     filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
-                    tags=tags,
+                    tags=clean_tags,
                     content=content,
                     title=title,
                     topic=topic,
@@ -130,7 +131,7 @@ class WikiTools:
                     "domain": domain,
                     "topic": topic,
                     "document_type": document_type,
-                    "tags": tags or [],
+                    "tags": clean_tags,
                     "summary": summary,
                     "status": "active" if is_resource else "inbox",
                     "priority": priority,
@@ -144,7 +145,7 @@ class WikiTools:
                     "title": title,
                     "category": "resources" if is_resource else "inbox",
                 },
-                tags=tags,
+                tags=clean_tags,
                 content=content,
                 title=title,
                 topic=topic,
@@ -163,7 +164,7 @@ class WikiTools:
             category=target_category,
             inbox_priority=inbox_priority,
             document_type=document_type,
-            tags=tags,
+            tags=clean_tags,
             summary=summary,
             status=status if target_category == "resources" else "inbox",
             priority=priority,
@@ -171,7 +172,7 @@ class WikiTools:
         )
         seeded = self._maybe_seed_priming_ledger(
             filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
-            tags=tags,
+            tags=clean_tags,
             content=content,
             title=title,
             topic=topic,

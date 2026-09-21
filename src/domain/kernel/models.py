@@ -84,7 +84,7 @@ class AgentProfile(BaseModel):
     max_active_tools: int = Field(
         default=50, ge=1, le=50, description="Reserved. Turn time mounts the full allowlist [REQ-TOOLS-010]"
     )
-    max_turns: int = Field(default=10, ge=1, le=50, description="Max ReAct turns")
+    max_turns: int = Field(default=10, ge=1, le=1000, description="Max ReAct turns")
     history_retention_days: int = Field(
         default=30,
         ge=0,

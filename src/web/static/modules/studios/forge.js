@@ -516,8 +516,19 @@ export function initAgentForge(state, callbacks = {}) {
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.detail || 'Failed to save agent profile');
+          let errMsg = 'Failed to save agent profile';
+          const errData = await res.json().catch(() => ({}));
+          if (Array.isArray(errData.detail)) {
+            errMsg = errData.detail
+              .map((d) => {
+                const loc = Array.isArray(d.loc) ? d.loc.filter((x) => x !== 'body').join('.') : '';
+                return loc ? `${loc}: ${d.msg}` : d.msg;
+              })
+              .join('; ');
+          } else if (typeof errData.detail === 'string') {
+            errMsg = errData.detail;
+          }
+          throw new Error(errMsg);
         }
 
         saveAgentBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Saved!</span>';

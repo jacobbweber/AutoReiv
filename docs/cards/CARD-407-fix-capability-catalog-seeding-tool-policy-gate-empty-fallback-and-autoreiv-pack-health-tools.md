@@ -67,6 +67,13 @@ labels:
      - Shell commands belong to `developer`; use `handoff_to_agent("developer", ...)` if terminal execution is ever needed.
      - Follow the One-Door Policy: always create notes in `00_Inbox/` and do not attempt manual warehouse graduation.
    - Sync pack updates to user data (`packs/autoreiv/pack.json`).
+4. **Max Turns Ceiling Expansion (1–1000) & Agent Studio Persistence**:
+   - Raise `max_turns` upper bound from 50 to 1000 in `AgentProfile` and `AgentProfileGuardrail`.
+   - Update Agent Studio UI (`index.html`) to allow `min="1" max="1000"` with explicit helper description.
+   - Improve UI error toast formatting in `forge.js` to unpack FastAPI 422 validation detail arrays.
+   - Sync `max_turns`, `tone`, and `history_retention_days` to `pack.json` during profile updates.
+5. **Defensive Tag Coercion (`src/domain/wiki/frontmatter.py`)**:
+   - Add pre-validators to `WikiInboxNoteMeta` and `WikiNoteMeta` to coerce stringified JSON lists (`'["tag"]'`) and comma-delimited strings into valid `list[str]`, preventing ReAct tool error loops.
 
 ---
 
@@ -77,6 +84,9 @@ labels:
 - **PRUNE**: `read_project_file`, `write_project_file`, `list_project_dir`, `execute_code` from `autoreiv`'s `pack_tool_names`.
 - **PRUNE**: Empty-set blocking in `_capability_tool_names()` in `src/application/safety/tool_policy_gate.py` that forced `subset = set()` when `matched_capability_ids == []`.
 - **PRUNE**: Zero-seeding cold-start state of `capability_index` in `src/web/app.py`.
+- **PRUNE**: Rigid `le=50` and `max_turns > 50` validation ceilings in `models.py`, `guardrails.py`, and `index.html`.
+- **PRUNE**: Unhandled `[object Object]` toast formatting in `forge.js`.
+- **PRUNE**: Unhandled raw string rejection on `tags` in `WikiInboxNoteMeta` / `WikiNoteMeta`.
 
 ---
 
@@ -92,6 +102,12 @@ labels:
   - *Negative Assertion*: Automated tests SHALL assert that `cli_exec` is NOT present in `autoreiv`'s `platform-health` skill tools list in `platform-packs/autoreiv/pack.json`.
 - **[REQ-407-005] AutoReiv Telemetry Diagnostic Verification**:
   - *Event-Driven*: WHEN AutoReiv executes a platform health check, THE SYSTEM SHALL invoke `inspect_system_health` or `get_tool_health_matrix` and create the resulting summary note in `00_Inbox/`.
+- **[REQ-407-006] Max Turns Range Expansion (1–1000)**:
+  - *Ubiquitous*: THE SYSTEM SHALL allow `max_turns` values between 1 and 1000 inclusive in `AgentProfile`, `AgentProfileGuardrail`, and Agent Studio UI inputs, persisting them to `autoreiv.db` and user-data `pack.json`.
+- **[REQ-407-007] Defensive Wiki Tag Deserialization**:
+  - *Event-Driven*: WHEN an LLM or caller passes `tags` as a stringified JSON array (e.g. `'["system-health"]'`) or comma-separated string to `wiki_note_create` or `WikiInboxNoteMeta`, THE SYSTEM SHALL automatically deserialize and clean it into a `list[str]` without raising a Pydantic validation error.
+- **[REQ-407-008] Agent Studio Validation Toast Clarity**:
+  - *Event-Driven*: WHEN saving an agent returns HTTP 422 with validation errors, Agent Studio SHALL display a formatted human-readable error message instead of `[object Object]`.
 
 ---
 
@@ -101,8 +117,11 @@ labels:
 - `pytest tests/unit/safety/test_tool_policy_gate.py`: Verify empty `matched_capability_ids` does not block allowlisted tools.
 - `pytest tests/unit/capabilities/test_capability_seeder.py`: Verify built-in tools and agents are seeded into `capability_index` with `TRUSTED` tier.
 - `pytest tests/unit/agents/test_autoreiv_pack_alignment.py`: Verify `cli_exec` is absent from `autoreiv`'s `platform-health` skill.
+- `pytest tests/unit/agents/test_agent_guardrails.py`: Verify `max_turns` up to 1000 is accepted and >1000 is rejected.
+- `pytest tests/unit/wiki/test_wiki_frontmatter.py`: Verify stringified JSON and comma-delimited `tags` are parsed into `list[str]`.
 - Full regression suite: `uv run pytest tests/unit/` + `npm run test:unit:frontend` + `npm run lint:frontend` + `uv run ruff check src/ tests/`.
 
 ### Manual Verification
 - In Chat Studio with `autoreiv`, send: `"hi, can you do a system health check, and then save that note to the wiki; success is when the note lives in the wiki and a can read it"`.
 - Verify the multi-step job successfully executes using `inspect_system_health` and `wiki_note_create` in `00_Inbox/`, claiming success without turn budget exhaustion or capability subset block errors.
+- In Agent Studio, set Max Turns to 100 or 1000, save profile, refresh, and verify the value persists.
