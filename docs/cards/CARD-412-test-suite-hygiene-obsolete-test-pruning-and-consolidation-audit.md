@@ -1,98 +1,136 @@
 ---
 id: CARD-412
-title: "Test Suite Hygiene, Obsolete Test Pruning, and Consolidation Audit"
+title: "Test Suite Hygiene, Operator-Contract Pyramid, and First Regression Locks"
 status: Ready
 created: 2026-09-21
-adr: none
+adr: docs/adr/0055-operator-contract-testing-and-suite-hygiene.md
 labels:
   - type:refactor
   - area:tests
   - area:hygiene
+  - area:reliability
 ---
 
-# [CARD-412] Test Suite Hygiene, Obsolete Test Pruning, and Consolidation Audit
+# [CARD-412] Test Suite Hygiene, Operator-Contract Pyramid, and First Regression Locks
 
 > **Status**: Ready  
 > **Created**: 2026-09-21  
-> **ADR Reference**: none  
-> **Labels**: `type:refactor`, `area:tests`, `area:hygiene`  
+> **ADR Reference**: [ADR-0055](../adr/0055-operator-contract-testing-and-suite-hygiene.md)  
+> **Labels**: `type:refactor`, `area:tests`, `area:hygiene`, `area:reliability`  
+> **Rules**: `.agents/rules/operator-contract-testing.md`, `.agents/rules/tdd-invariants.md`, `.agents/rules/definition-of-done.md`
 
 ---
 
 ## 1. Why / Intent (Beat 1: What Jacob Means)
 
-AutoReiv currently runs **1,854 unit tests** taking over **4.5 minutes** per run on developer machines.
+After many redactors and direction shifts, AutoReiv carries a massive unit suite (~1,850 tests, ~4.5 minutes) that was grown under forced TDD. That suite is **not** preventing the regressions Jacob cares about. Playwright and chrome-level checks also miss durable-state failures.
 
-Through hundreds of architectural iterations and card cycles (CARD-001 through CARD-409), substantial portions of the test suite have accumulated severe **test bloat and brittleness**:
-- Tests that assert obsolete internal implementation details rather than observable system behavior.
-- Legacy tests that test retired or superseded subsystems (e.g. older Assistant packs, archived RTM artifacts, retired weekly tools, legacy prompt shapes).
-- Over-mocked whitebox tests that break upon harmless refactors, forcing engineers to spend hours updating historical string assertions rather than building features.
+**Examples (uncarded today; become first operator contracts here):**
 
-**Jacob's Question**: Is it worth stripping them down substantially, consolidating, or starting fresh on bloated areas?
+1. Static **context window** size saved in settings does **not** persist after save/reload.
+2. **Observe** per-agent chat session metrics report writes an **empty** wiki inbox note even when DB data exists (previously worked).
 
-**Goal**:
-Execute a comprehensive **Test Suite Scavenger Pass**:
-1. Identify and excise dead/zombie tests that test retired systems.
-2. Replace dozens of brittle whitebox tests with lean, high-leverage contract & integration suites.
-3. Radically speed up test execution (targeting `<60 seconds` for the entire backend suite).
-4. Preserve critical negative regression assertions while eliminating test drag.
+**Goal:** Establish solid footing — prune test theater, lock operator jobs with contracts, keep only invariants that matter — before spending cycles on one-off bug whack-a-mole that will recur.
 
 ---
 
-## 2. What AutoReiv Does Now (Beat 2: Current Test Landscape & Pain Points)
+## 2. What AutoReiv Does Now (Beat 2)
 
-1. **Test Proliferation**:
-   - Over 1,850 tests across dozens of subdirectories (`tests/unit/agent_packs`, `tests/unit/agents`, `tests/unit/skills`, `tests/unit/wiki`, etc.).
-2. **Brittle Whitebox Assertions**:
-   - Tests assert exact hardcoded lists of tools or skill strings (e.g. `assert "wiki" in agent.allowed_skill` or expecting exact 9 tool groups) rather than testing capability contracts.
-3. **Execution Latency**:
-   - Running `pytest -q tests/unit/` takes **275 seconds** (~4.5 minutes), slowing down pair-programming loops and creating high cognitive drag during verification passes.
-4. **Orphaned Test Fixtures**:
-   - Mocks and fixtures for deprecated classes continue to run in every CI/preflight cycle.
+1. Large whitebox unit suite pinning internals (tool string lists, private helpers, retired pack shapes).
+2. Integration folder exists but is not the default regression net for Studio/operator jobs.
+3. Definition of Done and TDD rules historically pushed "comprehensive unit + Playwright" volume.
+4. Honesty-smoke / serve-hygiene skills exist but are not paired with durable operator contracts for settings and observe→inbox.
+5. Governance as of this card: **ADR-0055 Accepted**; new always-on rule `operator-contract-testing.md`; TDD + DoD updated to prefer contracts.
 
 ---
 
-## 3. What Will Change (Beat 3: Technical Approach & Hypotheses)
+## 3. What Will Change (Beat 3)
 
-### Strategy: Subtractive Test Engineering
+### Phase 0 — Governance (this continue; lands with rules/ADR) ✅ planned in-repo
 
-1. **Test Inventory & Triage Pass**:
-   - Categorize all 1,854 tests into 3 buckets:
-     - **Bucket A (Essential Invariants & Negative Assertions)**: Security gates, boundary hygiene, single-lever invariants, schema validators, honesty smoke gates. *KEEP & LOCK.*
-     - **Bucket B (Redundant / Overlapping Permutations)**: 20 tests testing minor variations of the same regex or helper. *CONSOLIDATE into parameterized tests.*
-     - **Bucket C (Dead / Zombie Tests)**: Tests asserting behavior of retired features, deleted tools, or archived architectures. *PRUNE IMMEDIATELY.*
-2. **Blackbox Contract Transition**:
-   - Shift from whitebox internal state checks (`assert agent._internal_variable == 'xyz'`) to API & behavior contracts (`assert response.status_code == 200` and `assert payload.capabilities has ...`).
-3. **Pytest Performance Optimization**:
-   - Eliminate redundant SQLite disk I/O in tests that can use `:memory:`.
-   - Parallelize test execution with `pytest-xdist` (`-n auto`).
+- ADR-0055 accepted.
+- `.agents/rules/operator-contract-testing.md` (always_on).
+- Rewrite `.agents/rules/tdd-invariants.md` and soften Playwright-as-primary in `.agents/rules/definition-of-done.md`.
+- Point `AGENTS.md` test-locked delivery at ADR-0055 / operator contracts.
+
+### Phase 1 — Inventory & prune (on **build**)
+
+1. Triage `tests/unit/**` into Buckets A / B / C (see ADR-0055).
+2. PRUNE Bucket C (retired weekly tools, zombie fixtures, superseded card whitebox).
+3. CONSOLIDATE Bucket B.
+4. KEEP Bucket A; measure wall time; target kept backend unit/invariant gate under ~60 seconds where practical (plus contracts separately).
+
+### Phase 2 — First operator contracts (on **build**, same card)
+
+| ID | Contract | Failure mode locked |
+|----|----------|---------------------|
+| **OC-1** | Settings context-window persist | Save → re-read mismatch / silent drop |
+| **OC-2** | Observe per-agent chat session metrics → inbox | Empty `00_Inbox/` note despite DB rows |
+| **OC-3** | Wiki note create single-lever | Success theater with no readable note |
+
+Implementation notes:
+
+- Temp user-data dir fixtures; real FastAPI + SQLite.
+- Prefer `tests/integration/operator_contracts/` (or equivalent clear path).
+- Fix OC-1 and OC-2 product bugs **through** the failing contracts (do not "manual patch only").
+
+### Phase 3 — Thin post-live map (on **build** if time; else follow-up)
+
+Document the five-to-ten golden paths for honesty-smoke / serve-hygiene; no Playwright volume expansion.
 
 ---
 
-## 4. What Dies Today (Beat 4: The Prune List)
+## 4. What Dies Today (Beat 4)
 
-- **PRUNE**: All test cases asserting legacy, retired platform tools and skills.
-- **PRUNE**: Brittle duplicate test files covering superseded historical cards.
-- **PRUNE**: Redundant multi-minute test execution delays.
+**Governance / process (now):**
+
+- Dies: default of "add more unit tests / more Playwright" as the regression answer.
+- Dies: DoD language that treats Playwright volume as equal to durable-state proof.
+
+**On build (execution):**
+
+- PRUNE: Bucket C zombie/retired/whitebox theater tests (explicit file list produced during triage).
+- PRUNE: Redundant overlapping permutations (fold into parametrized Bucket B).
+- PRUNE: Habit of fixing OC-class bugs without a lasting contract.
 
 ---
 
-## 5. Acceptance Criteria (EARS Syntax)
+## 5. Acceptance Criteria (EARS)
 
-- **[REQ-412-001] Test Suite Dead-Code Elimination**:
-  - *Ubiquitous*: THE SYSTEM SHALL contain zero test cases asserting against retired symbols, superseded tools, or archived pack structures.
-- **[REQ-412-002] Execution Speedup**:
-  - *Ubiquitous*: THE SYSTEM SHALL complete the full backend unit test suite in under 60 seconds on standard development environments.
-- **[REQ-412-003] Zero Regression Coverage Loss**:
-  - *Ubiquitous*: THE SYSTEM SHALL retain 100% of critical security, boundary hygiene, and negative regression assertions.
+- **[REQ-412-000] Governance**: THE SYSTEM SHALL document ADR-0055 and ship `.agents/rules/operator-contract-testing.md` plus updated `tdd-invariants.md` and `definition-of-done.md` aligned to operator contracts.
+- **[REQ-412-001] Dead-test elimination**: THE SYSTEM SHALL contain zero Bucket C tests asserting retired symbols, superseded tools, or archived pack structures after the prune pass.
+- **[REQ-412-002] Speed**: THE SYSTEM SHALL complete the kept backend unit/invariant gate in under 60 seconds on a standard Jarvis-class dev machine (operator contracts may be a separate named gate).
+- **[REQ-412-003] Invariants retained**: THE SYSTEM SHALL retain Bucket A security, boundary, single-lever, and honesty-class negative assertions.
+- **[REQ-412-004] OC-1**: WHEN an operator saves a static context-window size via settings, THE SYSTEM SHALL persist and return that value on subsequent read/reload.
+- **[REQ-412-005] OC-2**: WHEN session metrics exist in storage and the observe per-agent metrics report runs, THE SYSTEM SHALL write a non-empty note under `00_Inbox/` containing expected metric fields.
+- **[REQ-412-006] OC-3**: WHEN a note is created through the canonical create path, THE SYSTEM SHALL allow read-back of that note at the same path with non-empty body.
 
 ---
 
 ## 6. Constraints & Verification Plan
 
-### Automated Tests
-- Full test run comparison: Measure test count, pass rate, and execution time before vs after pruning.
-- Run `ruff check` and boundary check on test directories.
+### Automated
 
-### Manual Verification
-- Review pruned test lists with Jacob to ensure no visionary product contracts are accidentally removed.
+- Before/after counts and timings for `pytest` unit gate vs integration operator contracts.
+- `ruff check` on touched test and src paths.
+- OC-1..OC-3 green.
+
+### Manual (Jacob)
+
+- Live: set context window, restart or hard refresh settings, confirm value sticks.
+- Live: run observe per-agent chat session metrics report; confirm inbox note is non-empty.
+- Confirm agents following `.agents/rules` no longer propose whitebox TDD theater as the default.
+
+### Out of scope for this card
+
+- Full rewrite of every historical unit file beyond triage buckets.
+- Large new Playwright suites.
+- Unrelated UI polish bugs without an operator contract.
+
+---
+
+## 7. Human reply phrases
+
+- **continue** — refine this plan / governance only (no prune/fix yet).
+- **build** — execute Phase 1 prune + Phase 2 OC-1..OC-3 (and product fixes).
+- **merge to qa** — after In Review live-test of contracts and prune.
