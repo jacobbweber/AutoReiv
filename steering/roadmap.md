@@ -89,7 +89,7 @@
   - [x] **CARD-394**: Enterprise MCP Server Development and Docker Deployment Skill Pack (FastMCP scaffolding, JSON-RPC protocol testing, Docker containerization, Single Lever Invariant) — **Done**.
 
 - **Milestone 20 (v0.20.0 - Architecture Cleanliness, Subtractive Engineering & Monolith Decomposition)**:
-  - [ ] **CARD-395**: Dead Code Scavenger, Orphaned Workflows Pruning & Git Hygiene — **Ready**.
+  - [x] **CARD-395**: Dead Code Scavenger, Orphaned Workflows Pruning & Git Hygiene — **Done**.
   - [ ] **CARD-396**: Modular CSS Extraction & Index Template Hygiene — **Ready**.
   - [ ] **CARD-397**: Chat Studio Monolith Decomposition & Submodule Refactoring — **Ready**.
 

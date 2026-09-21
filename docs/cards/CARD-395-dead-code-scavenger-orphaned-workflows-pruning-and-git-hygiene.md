@@ -1,8 +1,9 @@
 ---
 id: CARD-395
 title: "Dead Code Scavenger Orphaned Workflows Pruning and Git Hygiene"
-status: In Review
+status: Done
 created: 2026-09-21
+completed: 2026-09-21
 adr: none
 labels:
   - type:refactor
@@ -12,7 +13,7 @@ labels:
 
 # [CARD-395] Dead Code Scavenger Orphaned Workflows Pruning and Git Hygiene
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:refactor`, `area:hygiene`, `domain:core`  
