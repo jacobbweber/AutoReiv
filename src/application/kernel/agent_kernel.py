@@ -613,6 +613,7 @@ class AgentKernel:
                 "- `coding`: File reading, writing, editing, and terminal script execution in the active project.",
                 "- `diagnostics`: System health checks, hardware metrics, and background service diagnostics.",
                 "- `tasks`: Routine automation, cron schedule management, and standing background jobs.",
+                "- `mcp-engineering`: FastMCP server development, JSON-RPC protocol testing, Docker container deployment, and AutoReiv mounting.",
             ]
             discovered_mcp: dict[str, int] = {}
             if hasattr(self, "tool_registry") and hasattr(self.tool_registry, "_tools"):
@@ -697,6 +698,12 @@ class AgentKernel:
         ) or re.search(r"\b(read|write|edit)\s+(file|code|script)\b", text):
             matched.append("coding")
 
+        # MCP server engineering intent [CARD-394]
+        if re.search(r"\b(mcp|fastmcp|mcp-engineering)\b", text) and any(
+            w in text for w in ("scaffold", "server", "deploy", "register", "test", "container", "service")
+        ):
+            matched.append("mcp-engineering")
+
         # External MCP server domains [CARD-377]
         for domain in extra_domains or []:
             clean_dom = str(domain).strip().lower()
@@ -759,20 +766,25 @@ class AgentKernel:
             import re
             user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) if user_content else set()
 
+            from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
+
             def _tool_priority(t: Any) -> tuple[int, int, str]:
                 name = getattr(t, "name", "")
                 desc = (getattr(t, "description", "") or "").lower()
-                # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_)
+                name_words = set(re.findall(r"\b[a-z]{3,}\b", name.lower()))
+                desc_words = set(re.findall(r"\b[a-z]{3,}\b", desc))
+                overlap = len((name_words | desc_words) & user_tokens)
+
+                # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = any(
-                    name.startswith(f"{sk}_")
+                    name in DYNAMIC_SKILL_TOOLS.get(sk, ())
+                    or name in PLATFORM_SKILL_TOOLS.get(sk, ())
+                    or name.startswith(f"{sk}_")
                     or name.startswith(f"mcp_{sk}_")
                     or f"_{sk}_" in name.lower()
                     for sk in active_skill_set
                 )
                 if is_active:
-                    name_words = set(re.findall(r"\b[a-z]{3,}\b", name.lower()))
-                    desc_words = set(re.findall(r"\b[a-z]{3,}\b", desc))
-                    overlap = len((name_words | desc_words) & user_tokens)
                     boost = 1 if any(k in name for k in ("execute", "info", "list", "get", "status")) else 0
                     score = -(overlap * 2 + boost)
                     return (0, score, name)
@@ -780,8 +792,8 @@ class AgentKernel:
                 # Priority 1: Core baseline coordination primitives
                 if name in BASELINE_COORDINATION_TOOLS:
                     return (1, 0, name)
-                # Priority 2: Other generic / unactivated tools
-                return (2, 0, name)
+                # Priority 2: Other generic / unactivated tools (ranked by query overlap)
+                return (2, -overlap, name)
 
             tools.sort(key=_tool_priority)
             tools = tools[:MAX_ACTIVE_TOOLS_PER_TURN]
