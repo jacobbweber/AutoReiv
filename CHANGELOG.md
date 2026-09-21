@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- Dead Code Scavenger, Orphaned Workflows Pruning, and Git Hygiene (`src/web/static/modules/studios/skills.js`, `src/web/routers/workflows.py`, `src/application/orchestration/workflow_service.py`, `src/infrastructure/memory/repositories/workflows.py`, `src/domain/orchestration/workflow.py`, `src/web/routers/chat.py`, `src/web/app.py`, `src/application/agent_packs/service.py`, `.gitignore` [CARD-395]):
+  - **Pruned Dead Standalone Studio File**: Deleted orphaned `src/web/static/modules/studios/skills.js` (367 lines, retired since CARD-118, zero importers, dead DOM IDs).
+  - **Excised Orphaned Workflows Subsystem**: Removed legacy `workflows` router, service, repository, and domain models (`src/web/routers/workflows.py`, `workflow_service.py`, `repositories/workflows.py`, `workflow.py`). Unmounted `workflows_router` from `src/web/app.py` and excised obsolete workflow copy routines from `AgentPackService`.
+  - **Retired Deprecated Chat Goal Endpoint**: Excised `POST /api/chat/goal` and `GoalChatRequest` from `src/web/routers/chat.py`, locking all multi-step chat execution through the standing `POST /api/chat/stream` orchestrator.
+  - **Fixed Git-Ignore Masking & Restored Hidden Tests**: Anchored `.gitignore` rule `/core` to prevent matching `tests/unit/core/`, tracking the previously ignored regression suite `test_dead_code_shims_scavenger_385.py` and adding `test_dead_code_scavenger_395.py` with negative assertions for all excised files and endpoints.
+
 ## [0.38.0] - 2026-09-20
 
 - Enterprise MCP Server Development and Docker Deployment Skill Pack (`src/application/skills/mcp_engineering_tools.py`, `src/infrastructure/tools/mcp_engineering.py`, `src/infrastructure/skills/seeds/mcp-engineering/SKILL.md`, `platform-packs/developer/skills/mcp-engineering/SKILL.md`, `platform-packs/developer/pack.json`, `src/infrastructure/agents/registry.py`, `src/web/app.py` [CARD-394]):

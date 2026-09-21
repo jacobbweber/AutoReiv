@@ -1,36 +1,22 @@
 """
-Deprecated Goal Chat API thin-wrap [CARD-215 / REQ-JOBGRAPH-001b, 002].
-Formulates into Job/Phase only — no execute_plan authority.
+Negative assertion: verify that retired Goal Chat API returns 404 [CARD-395].
+All standing multi-step Chat executes exclusively via /api/chat/stream.
 """
-
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.domain.gateway.models import ChatMessage, Role
 from src.web.app import create_app
 
 
 @pytest.fixture
 def mock_app():
-    app = create_app()
-    app.state.kernel.gateway.complete = AsyncMock(
-        return_value=MagicMock(
-            message=ChatMessage(
-                role=Role.ASSISTANT,
-                content='{"steps": [{"title": "Step 1: Check CPU", "description": "Run sysinfo"}]}',
-            )
-        )
-    )
-    app.state.kernel.run_turn = AsyncMock(
-        side_effect=AssertionError("deprecated /api/chat/goal must not execute_plan/run_turn")
-    )
-    return app
+    return create_app()
 
 
 @pytest.mark.asyncio
-async def test_goal_chat_api_formulates_only(mock_app):
+async def test_goal_chat_api_endpoint_excised_and_returns_404(mock_app):
+    """Verify that POST /api/chat/goal is fully excised and returns 404."""
     transport = ASGITransport(app=mock_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.post(
@@ -41,14 +27,4 @@ async def test_goal_chat_api_formulates_only(mock_app):
                 "goal": "Audit CPU and report status",
             },
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["status"] == "formulated"
-        assert data["deprecated"] is True
-        assert data.get("output") in (None, "")
-        assert len(data["plan"]["steps"]) == 1
-        assert data.get("job_id")
-        job = mock_app.state.store.get_job(data["job_id"])
-        phases = mock_app.state.store.list_phases_for_job(job.id)
-        assert len(phases) >= 1
-        assert all(p.status.value in {"queued", "waiting_approval"} for p in phases)
+        assert resp.status_code == 404

@@ -1306,12 +1306,6 @@ class AuditAgentRequest(BaseModel):
     target_content: str
 
 
-class GoalChatRequest(BaseModel):
-    agent_id: str
-    session_id: str
-    goal: str
-
-
 router = APIRouter(tags=["Chat"])
 
 
@@ -1720,7 +1714,6 @@ async def get_session_debug_payload(request: Request, session_id: str):
 async def chat_stream(request: Request, req: ChatStreamRequest):
     registry = request.app.state.registry
     kernel = request.app.state.kernel
-    # plan_engine retained on app.state for deprecated /api/chat/goal; standing Chat uses orch.
     reflexion_engine = getattr(request.app.state, "reflexion_engine", None)
     orch = getattr(request.app.state, "job_orchestrator", None)
     store = request.app.state.store
@@ -2448,44 +2441,6 @@ async def audit_agent_action(request: Request, req: AuditAgentRequest):
         "agent_id": critic.id,
         "session_id": req.session_id,
         "audit_report": reply.content,
-    }
-
-
-@router.post("/api/chat/goal")
-async def chat_goal(request: Request, req: GoalChatRequest):
-    """Deprecated [CARD-215 / REQ-JOBGRAPH-001b, 002].
-
-    Formulates into Job/Phase only. Does not call execute_plan or otherwise
-    bypass Job/Phase + kernel standing execution. Prefer POST /api/chat/stream.
-    """
-    registry = request.app.state.registry
-    plan_engine = request.app.state.plan_engine
-    orch = getattr(request.app.state, "job_orchestrator", None)
-    profile = registry.get_profile(req.agent_id)
-    if not profile:
-        raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
-
-    plan = await plan_engine.formulate_plan(
-        agent=profile,
-        goal=req.goal,
-        session_id=req.session_id,
-    )
-    job = None
-    if orch is not None:
-        job = persist_plan_as_job(orch, plan)
-
-    return {
-        "status": "formulated",
-        "deprecated": True,
-        "message": (
-            "POST /api/chat/goal is deprecated. Standing multi-step Chat via "
-            "/api/chat/stream owns Job/Phase formulate+advance; this endpoint "
-            "only persists a formulated plan and does not execute."
-        ),
-        "goal": req.goal,
-        "plan": plan.model_dump(),
-        "output": None,
-        "job_id": job.id if job is not None else None,
     }
 
 

@@ -63,7 +63,6 @@ from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
 from src.web.routers.wiki import router as wiki_router
-from src.web.routers.workflows import router as workflows_router
 
 logger = logging.getLogger(__name__)
 
@@ -428,7 +427,6 @@ def create_app(
     app.include_router(factory_router)
     app.include_router(gaps_router)
     app.include_router(agents_router)
-    app.include_router(workflows_router)
     app.include_router(skills_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)

@@ -270,7 +270,6 @@ class AgentPackService:
         manifest = self.manifest_from_profile(profile, skill_tools=stored_map)
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
         self._copy_skills_out(manifest.allowed_skill, dest / "skills", source_pack_dir=pack_home)
-        self._copy_workflows_out(profile.id, dest / "workflows")
         return dest
 
     def export_zip(self, agent_id: str, dest_zip: Optional[Union[str, Path]] = None) -> Path:
@@ -350,7 +349,6 @@ class AgentPackService:
     def scaffold_pack(self, spec: Dict[str, Any], dest_dir: Optional[Union[str, Path]] = None) -> Path:
         """Write a pack folder from a structured spec (identity, nested skills, tools, Show in Chat)."""
         data = dict(spec or {})
-        inline_workflows = data.pop("workflows", None)
         KNOWN_PROVIDERS = {"ollama", "gemini", "openai", "anthropic", "lmstudio", "vllm", "openrouter", "deepseek", "groq"}
         raw_model = str(data.get("model") or "").strip().lower()
         if not raw_model or raw_model == "default" or raw_model in KNOWN_PROVIDERS:
@@ -419,19 +417,6 @@ class AgentPackService:
         manifest.allowed_skill = skill_ids
         manifest.schema_version = PACK_SCHEMA_VERSION
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
-
-        if isinstance(inline_workflows, list):
-            wf_root = dest / "workflows"
-            wf_root.mkdir(parents=True, exist_ok=True)
-            for workflow in inline_workflows:
-                if not isinstance(workflow, dict):
-                    continue
-                wf_id = str(workflow.get("id") or "").strip() or "wf_scaffold"
-                cleaned = _strip_forbidden(dict(workflow))
-                cleaned["id"] = wf_id
-                cleaned["owner_agent_id"] = manifest.id
-                _write_json(wf_root / f"{_safe_id(wf_id)}.json", cleaned)
-
         return dest
 
     def scaffold_and_import(self, spec: Dict[str, Any]) -> AgentProfile:
@@ -451,7 +436,6 @@ class AgentPackService:
 
         # Pack skills remain strictly isolated under packs/<agent_id>/skills/ [CARD-203].
         # Never copy agent-specific skills into the platform skills_dir ($DATA_DIR/skills/).
-        self._copy_workflows_in(manifest.id, folder / "workflows")
         dest_pack = self.pack_dir(manifest.id)
         if folder.resolve() != dest_pack.resolve():
             dest_pack.mkdir(parents=True, exist_ok=True)
@@ -493,36 +477,6 @@ class AgentPackService:
     def _copy_skills_in(self, src_root: Path) -> None:
         """Deprecated no-op [CARD-203]. Pack skills stay jailed inside packs/<id>/skills/."""
         return
-
-    def _copy_workflows_out(self, agent_id: str, dest_root: Path) -> None:
-        src_root = self.agents_dir / _safe_id(agent_id) / "workflows"
-        dest_root.mkdir(parents=True, exist_ok=True)
-        if not src_root.is_dir():
-            return
-        for path in sorted(src_root.glob("*.json")):
-            try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                continue
-            cleaned = _strip_forbidden(payload)
-            _write_json(dest_root / path.name, cleaned)
-
-    def _copy_workflows_in(self, agent_id: str, src_root: Path) -> None:
-        if not src_root.is_dir():
-            return
-        dest_root = self.agents_dir / _safe_id(agent_id) / "workflows"
-        dest_root.mkdir(parents=True, exist_ok=True)
-        for path in sorted(src_root.glob("*.json")):
-            if _is_python_or_binary_tool(path):
-                continue
-            try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                continue
-            cleaned = _strip_forbidden(payload)
-            if isinstance(cleaned, dict):
-                cleaned["owner_agent_id"] = agent_id
-            _write_json(dest_root / path.name, cleaned)
 
     def _write_skill_md(self, path: Path, spec: Dict[str, Any]) -> None:
         name = str(spec.get("name") or spec.get("id") or "skill").strip()
