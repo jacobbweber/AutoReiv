@@ -1,7 +1,7 @@
 ---
 id: CARD-405
 title: "Agent Memory System Verification, Stress Audit, and Live Walkthrough"
-status: Ready
+status: In Review
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-405] Agent Memory System Verification, Stress Audit, and Live Walkthrough
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:test`, `area:memory`, `domain:agents`  

@@ -278,12 +278,18 @@ export async function loadAndRenderBrainDrawer(agentId, query = '') {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    if (data.pinned && data.pinned.content && brainShelfPinnedContainer) {
-      brainShelfPinnedContainer.textContent = data.pinned.content;
+    if (brainShelfPinnedContainer) {
+      if (Array.isArray(data.pinned) && data.pinned.length > 0) {
+        brainShelfPinnedContainer.textContent = data.pinned.map((p) => p.content).join('\n');
+      } else if (data.pinned && data.pinned.content) {
+        brainShelfPinnedContainer.textContent = data.pinned.content;
+      } else if (data.pinned_memory) {
+        brainShelfPinnedContainer.textContent = data.pinned_memory;
+      }
     }
 
     // Shelf 2: Episodic Summaries
-    const summaries = data.session_summaries || [];
+    const summaries = data.session_summaries || data.summaries || [];
     if (brainShelfSummariesCount) brainShelfSummariesCount.textContent = `${summaries.length} sessions`;
     if (brainShelfSummariesContainer) {
       if (summaries.length === 0) {
@@ -295,20 +301,22 @@ export async function loadAndRenderBrainDrawer(agentId, query = '') {
               <span class="font-mono text-blue-400 font-medium">Session ${escapeHtml(s.session_id ? s.session_id.slice(0, 8) : '')}</span>
               <span>${escapeHtml(s.created_at || '')}</span>
             </div>
-            <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(s.summary_text || '')}</p>
+            <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(s.summary_text || s.summary || '')}</p>
           </div>
         `).join('');
       }
     }
 
     // Shelf 3: Semantic Facts
-    const facts = data.semantic_facts || [];
+    const facts = data.semantic_facts || data.facts || [];
     if (brainShelfFactsCount) brainShelfFactsCount.textContent = `${facts.length} facts`;
     if (brainShelfFactsContainer) {
       if (facts.length === 0) {
         brainShelfFactsContainer.innerHTML = '<div class="text-slate-500 text-xs italic py-2">No semantic facts compiled yet.</div>';
       } else {
-        brainShelfFactsContainer.innerHTML = facts.map((f) => `
+        brainShelfFactsContainer.innerHTML = facts.map((f) => {
+          const factText = f.fact_text || (f.entity && f.attribute ? `${f.entity}.${f.attribute}: ${f.value}` : (f.value || ''));
+          return `
           <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start justify-between space-x-3">
             <div class="space-y-1 flex-1">
               <div class="flex items-center space-x-2">
@@ -316,13 +324,14 @@ export async function loadAndRenderBrainDrawer(agentId, query = '') {
                 <span class="text-[10px] font-mono text-slate-400">conf: ${Number(f.confidence || 1.0).toFixed(2)}</span>
                 <span class="text-[10px] font-mono text-slate-400">access: ${f.access_count || 0}</span>
               </div>
-              <p class="text-xs text-slate-200">${escapeHtml(f.fact_text || '')}</p>
+              <p class="text-xs text-slate-200">${escapeHtml(factText)}</p>
             </div>
             <button type="button" class="btn-forget-fact text-[11px] text-rose-400 hover:text-rose-300 px-2 py-1 rounded bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 transition flex-shrink-0" data-fact-id="${escapeHtml(f.id)}">
               Forget
             </button>
           </div>
-        `).join('');
+        `;
+        }).join('');
 
         brainShelfFactsContainer.querySelectorAll('.btn-forget-fact').forEach((btn) => {
           btn.addEventListener('click', async (e) => {
@@ -593,7 +602,7 @@ export function setupBrainDrawer({ getActiveAgentId = null } = {}) {
       if (!id) return;
       if (!window.confirm(`Purge episodic memory for ${id}? Pinned memory is preserved.`)) return;
       try {
-        const res = await fetch(`/api/agents/${encodeURIComponent(id)}/memory/purge`, { method: 'POST' });
+        const res = await fetch(`/api/agents/${encodeURIComponent(id)}/memory`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Purge failed');
         showToast('Memory purged', 'info');
         loadAndRenderBrainDrawer(id);
