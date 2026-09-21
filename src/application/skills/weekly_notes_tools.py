@@ -31,9 +31,7 @@ DEFAULT_TEMPLATE = (
     "---\n"
     "[[My Dashboard]]\n\n"
     "## Projects\n"
-    "- **Server Currency** - Work through Windows OS In-Place Upgrades/Migrations for all systems.\n"
-    "- **AQS Migration** - Migrate app from server 2000 to 2022.\n"
-    "- **Leaders Life** - Child Domain permissions delegation.\n\n"
+    "-\n\n"
     "---\n\n"
     "## {{week_title}} Summary\n\n"
     "### 🎯 Focusing\n"
@@ -218,6 +216,8 @@ class WeeklyNotesTools:
     def _load_template_content(self) -> str:
         """Load template from wiki resources directory or fallback."""
         template_candidates = [
+            self.wiki_root / "02_Resources" / "_Templates" / "weekly_notes.md",
+            self.wiki_root / "02_Resources" / "templates" / "weekly_notes.md",
             self.wiki_root / "03_Resources" / "templates" / "weekly_notes.md",
             self.wiki_root / "resources" / "templates" / "weekly_notes.md",
             self.wiki_root / "templates" / "weekly_notes.md",
@@ -268,9 +268,9 @@ class WeeklyNotesTools:
         formatted_week_str = f"{year}-W{week_num:02d}"
 
         candidate_paths = [
-            f"notes/weekly/{formatted_week_str}.md",
             f"01_Notes/weekly/{formatted_week_str}.md",
             f"01_notes/weekly/{formatted_week_str}.md",
+            f"notes/weekly/{formatted_week_str}.md",
         ]
         for cp in candidate_paths:
             fp = self.wiki_root / cp
@@ -287,9 +287,9 @@ class WeeklyNotesTools:
         # Check for previous week's tasks to carry over
         prev_week_str = self._get_previous_week_str(year, week_num)
         prev_candidates = [
-            self.wiki_root / f"notes/weekly/{prev_week_str}.md",
             self.wiki_root / f"01_Notes/weekly/{prev_week_str}.md",
             self.wiki_root / f"01_notes/weekly/{prev_week_str}.md",
+            self.wiki_root / f"notes/weekly/{prev_week_str}.md",
         ]
         carried_tasks_lines = []
         for prev_path in prev_candidates:
@@ -319,16 +319,10 @@ class WeeklyNotesTools:
         rendered = re.sub(r"\{\{saturday:dddd D\}\}", day_labels["saturday"], rendered, flags=re.IGNORECASE)
         rendered = re.sub(r"\{\{sunday:dddd D\}\}", day_labels["sunday"], rendered, flags=re.IGNORECASE)
 
-        rel_path = f"notes/weekly/{formatted_week_str}.md"
+        rel_path = f"01_Notes/weekly/{formatted_week_str}.md"
         full_path = self.wiki_root / rel_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(rendered, encoding="utf-8")
-
-        # Also sync to 01_Notes/weekly if directory exists
-        if (self.wiki_root / "01_Notes").exists():
-            p2 = self.wiki_root / "01_Notes" / "weekly" / f"{formatted_week_str}.md"
-            p2.parent.mkdir(parents=True, exist_ok=True)
-            p2.write_text(rendered, encoding="utf-8")
 
         return {
             "success": True,
@@ -482,9 +476,9 @@ class WeeklyNotesTools:
             from_week = self._get_previous_week_str(year, week_num)
 
         from_candidates = [
-            self.wiki_root / f"notes/weekly/{from_week}.md",
             self.wiki_root / f"01_Notes/weekly/{from_week}.md",
             self.wiki_root / f"01_notes/weekly/{from_week}.md",
+            self.wiki_root / f"notes/weekly/{from_week}.md",
         ]
         from_path = None
         for fc in from_candidates:

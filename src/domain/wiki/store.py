@@ -428,6 +428,55 @@ CORE_STRUCTURED_TEMPLATES: Dict[str, Dict[str, str]] = {
             "*Building a house:* [Concept A] is the floor plan and plumbing — where rooms, doors, and pipes go. [Concept B] is the paint, trim, and fixtures. A beautiful paint job does not help if the bedroom has no door.\n"
         ),
     },
+    "weekly_notes.md": {
+        "title": "Weekly Work Log & Task Carry-Over",
+        "summary": "Obsidian-compatible weekly work log with daily sections, carry-over tasks, and project goals.",
+        "content": (
+            "---\n"
+            'title: "{{week_title}} ({{week}})"\n'
+            "domain: weekly\n"
+            "topic: worklog\n"
+            "category: notes\n"
+            "document_type: log\n"
+            "status: active\n"
+            "tags:\n"
+            "  - worklog\n"
+            "  - weekly_notes\n"
+            'week: "{{week}}"\n'
+            'date_start: "{{date_start}}"\n'
+            'date_end: "{{date_end}}"\n'
+            "---\n"
+            "[[My Dashboard]]\n\n"
+            "## Projects\n"
+            "-\n\n"
+            "---\n\n"
+            "## {{week_title}} Summary\n\n"
+            "### 🎯 Focusing\n"
+            "-\n\n"
+            "### ⚡ Ad-Hoc\n"
+            "-\n\n"
+            "### 🔄 Carry-Over\n"
+            "{{carry_over_tasks}}\n\n"
+            "### ✅ Done\n"
+            "-\n\n"
+            "---\n\n"
+            "## 📅 Daily Work Logs\n\n"
+            "### {{monday:dddd D}}\n"
+            "-\n\n"
+            "### {{tuesday:dddd D}}\n"
+            "-\n\n"
+            "### {{wednesday:dddd D}}\n"
+            "-\n\n"
+            "### {{thursday:dddd D}}\n"
+            "-\n\n"
+            "### {{friday:dddd D}}\n"
+            "-\n\n"
+            "### {{saturday:dddd D}}\n"
+            "-\n\n"
+            "### {{sunday:dddd D}}\n"
+            "-\n"
+        ),
+    },
 }
 
 # Register Education Learning OS templates [CARD-322]
@@ -465,11 +514,6 @@ class WikiStore:
         directories = [
             self.root_dir / "00_Inbox",
             self.root_dir / "01_Notes",
-            self.root_dir / "01_Notes" / "computer_science" / "artificial_intelligence",
-            self.root_dir / "01_Notes" / "systems_engineering" / "observability",
-            self.root_dir / "01_Notes" / "operations" / "worklog",
-            self.root_dir / "01_Notes" / "operations" / "diagnostics",
-            self.root_dir / "01_Notes" / "general" / "notes",
             self.root_dir / "02_Resources" / "operating_manuals",
             self.root_dir / "02_Resources" / "_Templates",
             self.root_dir / "03_Archive",
@@ -583,115 +627,11 @@ class WikiStore:
             self._seed_starter_notes_if_empty()
 
     def _seed_starter_notes_if_empty(self) -> None:
-        """Seed default knowledge vault notes if no markdown files exist."""
-        existing_md = [
-            f for f in self.root_dir.rglob("*.md")
-            if "_Templates" not in f.parts and "templates" not in f.parts
-        ]
-        if existing_md:
-            return
-
-        # 1. Inbox Staging Note
-        inbox_note = (
-            "---\n"
-            "uid: \"20260824-000000\"\n"
-            "title: Welcome to AutoReiv Knowledge Vault\n"
-            "domain: general\n"
-            "topic: onboarding\n"
-            "status: inbox\n"
-            "document_type: note\n"
-            "tags: [onboarding, guide, getting-started]\n"
-            "date_created: \"2026-08-24\"\n"
-            "schema_version: \"1.0\"\n"
-            "---\n\n"
-            "# Welcome to AutoReiv Knowledge Vault\n\n"
-            "Welcome to the **AutoReiv Distributed Knowledge Vault**! This vault organizes notes following Jacob's PARA-Wiki architecture:\n\n"
-            "- **00_Inbox**: Flat staging ground for raw captures, agent thoughts, and quick ideas.\n"
-            "- **01_Notes**: Long-term hierarchical knowledge categorized by domain and topic (Degree rule).\n"
-            "- **02_Resources**: Reference operating manuals and reusable templates (_Templates).\n"
-            "- **03_Archive**: Retired notes.\n\n"
-            "Use the scheduled **Wiki Curation Routine** to curate and graduate staged inbox notes.\n"
-        )
-        (self.root_dir / "00_Inbox" / "welcome_to_autoreiv.md").write_text(inbox_note, encoding="utf-8")
-
-        # 2. Computer Science Note
-        ai_note = (
-            "---\n"
-            "title: Local Agent Architecture & Bounded Loops\n"
-            "domain: computer_science\n"
-            "topic: artificial_intelligence\n"
-            "category: notes\n"
-            "document_type: atomic_note\n"
-            "status: active\n"
-            "priority: high\n"
-            "sensitivity: internal\n"
-            "tags: [agents, architecture, react, memory]\n"
-            "created_at: 2026-08-24T00:00:00Z\n"
-            "updated_at: 2026-08-24T00:00:00Z\n"
-            "---\n\n"
-            "# Local Agent Architecture & Bounded Loops\n\n"
-            "AutoReiv coordinates localized autonomous agents with deterministic tools and bounded loops.\n\n"
-            "## Architectural Invariants\n"
-            "1. **Stateless ReAct Loops**: Bounded step execution preventing runaway LLM cycles.\n"
-            "2. **Multi-Provider LLM Gateway**: Unified routing across Ollama, OpenAI, and Claude.\n"
-            "3. **Scoped Episodic Memory**: Fast SQLite WAL indexing and native FTS5 full-text search.\n\n"
-            "See also: [[telemetry_and_metrics]] and [[librarian_workflow_manual]].\n"
-        )
-        (
-            self.root_dir / "01_Notes" / "computer_science" / "artificial_intelligence" / "local_agent_architecture.md"
-        ).write_text(ai_note, encoding="utf-8")
-
-        # 3. Systems Engineering Note
-        obs_note = (
-            "---\n"
-            "title: Telemetry, Observability & Live Event Streams\n"
-            "domain: systems_engineering\n"
-            "topic: observability\n"
-            "category: notes\n"
-            "document_type: atomic_note\n"
-            "status: active\n"
-            "priority: medium\n"
-            "sensitivity: internal\n"
-            "tags: [observability, telemetry, events, metrics]\n"
-            "created_at: 2026-08-24T00:00:00Z\n"
-            "updated_at: 2026-08-24T00:00:00Z\n"
-            "---\n\n"
-            "# Telemetry, Observability & Live Event Streams\n\n"
-            "AutoReiv streams sub-millisecond execution logs and telemetry events via FastAPI Server-Sent Events (SSE).\n\n"
-            "## Key Metrics Tracked\n"
-            "- **Token Usage**: Prompt tokens, completion tokens, and estimated cost.\n"
-            "- **Execution Latency**: Wall-clock duration per turn and tool invocation.\n"
-            "- **Memory Compaction**: Automatic context compaction when token budgets exceed thresholds.\n"
-        )
-        (self.root_dir / "01_Notes" / "systems_engineering" / "observability" / "telemetry_and_metrics.md").write_text(
-            obs_note, encoding="utf-8"
-        )
-
-        # 4. Resources: Operating Manual
-        lib_manual = (
-            "---\n"
-            "title: Librarian Agent Operating Manual\n"
-            "domain: general\n"
-            "topic: operations\n"
-            "category: resources\n"
-            "document_type: operating_manual\n"
-            "status: active\n"
-            "priority: medium\n"
-            "sensitivity: internal\n"
-            "tags: [manual, librarian, workflow, curation]\n"
-            "created_at: 2026-08-24T00:00:00Z\n"
-            "updated_at: 2026-08-24T00:00:00Z\n"
-            "---\n\n"
-            "# Librarian Agent Operating Manual\n\n"
-            "This manual specifies the operational procedures for knowledge ingestion, note filing, and taxonomy reorganization.\n\n"
-            "## Standard Ingestion Pipeline\n"
-            "1. **Stage Raw Note**: Write raw markdown content to `00_Inbox/`.\n"
-            "2. **Hydrate Frontmatter**: Inject domain, topic, summary, and semantic tags.\n"
-            "3. **File to Warehouse**: Move note from `00_Inbox/` to `01_Notes/{domain}/{topic}/`.\n"
-        )
-        (self.root_dir / "02_Resources" / "operating_manuals" / "librarian_workflow_manual.md").write_text(
-            lib_manual, encoding="utf-8"
-        )
+        """
+        Maintains vanilla vault seeding: strictly numbered folders with canonical templates only [CARD-406].
+        Pre-filled mock domain notes are completely retired.
+        """
+        return
 
     def migrate_legacy_vault(self, ensure_scaffold: bool = True) -> Dict[str, Any]:
         """
@@ -749,8 +689,15 @@ class WikiStore:
                             shutil.move(str(f), str(safe_target))
                             actions.append(f"Moved {rel_inside} to 01_Notes/{safe_name}")
                             migrated_files += 1
-            if legacy_notes.exists() and not any(legacy_notes.iterdir()):
-                shutil.rmtree(legacy_notes, ignore_errors=True)
+            if legacy_notes.exists():
+                for d in sorted(legacy_notes.rglob("*"), reverse=True):
+                    if d.is_dir():
+                        try:
+                            d.rmdir()
+                        except Exception:
+                            pass
+                if not any(legacy_notes.iterdir()):
+                    shutil.rmtree(legacy_notes, ignore_errors=True)
 
         # 3. Legacy resources/ -> 02_Resources/
         legacy_resources = self.root_dir / "resources"
@@ -1533,13 +1480,13 @@ class WikiStore:
 
     def cleanup_vault(self) -> Dict[str, Any]:
         """
-        Clean up misplaced templates from notes/, organize weekly worklogs to operations/worklog/,
-        and ensure the single canonical template lives in resources/templates/note_template.md.
+        Clean up misplaced templates, organize weekly worklogs to 01_Notes/weekly/,
+        and ensure canonical templates live in 02_Resources/_Templates/ [CARD-173, CARD-406].
         """
         self.scaffold()
         actions = []
 
-        # 1. Clean templates inside notes/
+        # 1. Clean misplaced templates inside legacy notes/
         notes_dir = self.root_dir / "notes"
         if notes_dir.exists():
             for f in list(notes_dir.rglob("*.md")):
@@ -1549,40 +1496,43 @@ class WikiStore:
                     f.unlink(missing_ok=True)
                     actions.append(f"Deleted misplaced template: {f.name}")
 
-        # 2. Relocate legacy weekly logs to notes/operations/worklog/
+        # 2. Relocate legacy weekly logs to 01_Notes/weekly/
         legacy_weekly = self.root_dir / "notes" / "weekly"
-        ops_worklog = self.root_dir / "notes" / "operations" / "worklog"
-        ops_worklog.mkdir(parents=True, exist_ok=True)
+        ops_worklog = self.root_dir / "01_Notes" / "weekly"
         if legacy_weekly.exists() and legacy_weekly.is_dir():
+            ops_worklog.mkdir(parents=True, exist_ok=True)
             for f in list(legacy_weekly.glob("*.md")):
                 dest = ops_worklog / f.name
                 if not dest.exists():
                     f.rename(dest)
-                    actions.append(f"Moved weekly note to operations/worklog: {f.name}")
+                    actions.append(f"Moved weekly note to 01_Notes/weekly: {f.name}")
                 else:
                     f.unlink(missing_ok=True)
+            try:
+                legacy_weekly.rmdir()
+            except Exception:
+                pass
 
-        # 3. Clean legacy 01_Notes and 03_resources directories
-        for legacy_name in ["01_Notes", "03_resources", "00_Inbox", "02_Areas", "04_Archive"]:
-            legacy_dir = self.root_dir / legacy_name
-            if legacy_dir.exists() and legacy_dir.is_dir():
-                for f in list(legacy_dir.rglob("*.md")):
-                    if "week" in f.name.lower() or "w" in f.name.lower():
-                        dest = ops_worklog / f.name
-                        if not dest.exists():
-                            f.rename(dest)
-                            actions.append(f"Migrated legacy note to operations/worklog: {f.name}")
-                    else:
-                        inbox_dest = self.root_dir / "inbox" / f.name
-                        if not inbox_dest.exists():
-                            f.rename(inbox_dest)
-                            actions.append(f"Migrated legacy note to inbox: {f.name}")
-                import shutil
-                shutil.rmtree(legacy_dir, ignore_errors=True)
-                actions.append(f"Removed legacy directory: {legacy_name}")
+        # 3. Clean legacy unnumbered directories via migrate_legacy_vault
+        migration = self.migrate_legacy_vault(ensure_scaffold=False)
+        actions.extend(migration.get("actions", []))
 
-        # 4. Ensure single canonical template in resources/templates/note_template.md
-        tmpl_dir = self.root_dir / "resources" / "templates"
+        # Clean up empty legacy notes/ tree if left behind
+        notes_dir = self.root_dir / "notes"
+        if notes_dir.exists():
+            for d in sorted(notes_dir.rglob("*"), reverse=True):
+                if d.is_dir():
+                    try:
+                        d.rmdir()
+                    except Exception:
+                        pass
+            try:
+                notes_dir.rmdir()
+            except Exception:
+                pass
+
+        # 4. Ensure single canonical template in 02_Resources/_Templates/note_template.md
+        tmpl_dir = self.root_dir / "02_Resources" / "_Templates"
         tmpl_dir.mkdir(parents=True, exist_ok=True)
         canonical_tmpl = tmpl_dir / "note_template.md"
         if not canonical_tmpl.exists():
@@ -1622,10 +1572,10 @@ class WikiStore:
                 "## Details\n"
                 "${DETAILS}\n\n"
                 "## References\n"
-                "- [[local_agent_architecture]]\n"
+                "- \n"
             )
             canonical_tmpl.write_text(tmpl_content, encoding="utf-8")
-            actions.append("Created canonical template at resources/templates/note_template.md")
+            actions.append("Created canonical template at 02_Resources/_Templates/note_template.md")
 
         return {"success": True, "actions": actions}
 

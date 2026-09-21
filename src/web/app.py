@@ -429,13 +429,24 @@ def create_app(
         return response
 
     # 9. Seed / Sync Default Routines
+    from src.application.routines.matcher import ScheduleMatcher
+
     for r in BUILTIN_ROUTINES:
         existing_r = store.get_routine(r.id)
         if not existing_r:
+            if r.next_run_at is None:
+                r.next_run_at = ScheduleMatcher.compute_next_run(r)
             store.save_routine(r)
-        elif existing_r.agent_id in ("assistant", "wiki"):
-            existing_r.agent_id = r.agent_id
-            store.save_routine(existing_r)
+        else:
+            updated = False
+            if existing_r.agent_id in ("assistant", "wiki"):
+                existing_r.agent_id = r.agent_id
+                updated = True
+            if existing_r.next_run_at is None and existing_r.last_run_at is None:
+                existing_r.next_run_at = ScheduleMatcher.compute_next_run(existing_r)
+                updated = True
+            if updated:
+                store.save_routine(existing_r)
     store.set_setting("day1_routines_seeded", True)
 
     # 10. Mount Modular Domain Routers

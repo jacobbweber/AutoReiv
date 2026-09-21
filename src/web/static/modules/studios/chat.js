@@ -727,7 +727,8 @@ export function initChatStudio(state, callbacks = {}) {
     if (stopBtn) { stopBtn.disabled = false; stopBtn.classList.remove('hidden'); }
 
     if (!options.isResume && userPrompt) {
-      appendMessageBubbleDirect('user', userPrompt, messagesContainer, {
+      appendMessageBubbleDirect('user', userPrompt, null, {
+        messagesContainer,
         activeAgentId: state.selectedAgentId,
         sessionId: state.activeSessionId,
       });

@@ -212,9 +212,17 @@ def cmd_routine(args: argparse.Namespace) -> int:
     store.initialize_db()
 
     # Ensure default routines seeded
+    from src.application.routines.matcher import ScheduleMatcher
+
     for r in BUILTIN_ROUTINES:
-        if not store.get_routine(r.id):
+        existing_r = store.get_routine(r.id)
+        if not existing_r:
+            if r.next_run_at is None:
+                r.next_run_at = ScheduleMatcher.compute_next_run(r)
             store.save_routine(r)
+        elif existing_r.next_run_at is None and existing_r.last_run_at is None:
+            existing_r.next_run_at = ScheduleMatcher.compute_next_run(existing_r)
+            store.save_routine(existing_r)
 
     if args.routine_command == "list" or not args.routine_command:
         routines = store.list_routines()

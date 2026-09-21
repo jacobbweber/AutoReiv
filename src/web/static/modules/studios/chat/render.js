@@ -391,16 +391,18 @@ export function renderSkillProposalCard(proposal, {
   return el;
 }
 
-export function appendMessageBubble(role, content, options = null, {
-  messagesContainer,
-  activeAgentTitle,
-  renderMarkdownFn = renderMarkdown,
-  openWorkbenchFn = null,
-  copyToClipboardFn = copyToClipboard,
-  exportMessageToWikiFn = null,
-  onTeachAgent = null,
-} = {}) {
+export function appendMessageBubble(role, content, options = null, extraOptions = {}) {
+  const isEl = (el) => Boolean(el && ((typeof HTMLElement !== 'undefined' && el instanceof HTMLElement) || el.nodeType === 1));
+  const messagesContainer = isEl(options) ? options : (extraOptions?.messagesContainer || options?.messagesContainer || null);
   if (!messagesContainer) return null;
+
+  const actualOptions = isEl(options) ? (extraOptions || {}) : (options || {});
+  const activeAgentTitle = extraOptions?.activeAgentTitle || actualOptions?.activeAgentTitle;
+  const renderMarkdownFn = extraOptions?.renderMarkdownFn || actualOptions?.renderMarkdownFn || renderMarkdown;
+  const openWorkbenchFn = extraOptions?.openWorkbenchFn || actualOptions?.openWorkbenchFn || null;
+  const copyToClipboardFn = extraOptions?.copyToClipboardFn || actualOptions?.copyToClipboardFn || copyToClipboard;
+  const exportMessageToWikiFn = extraOptions?.exportMessageToWikiFn || actualOptions?.exportMessageToWikiFn || null;
+  const onTeachAgent = extraOptions?.onTeachAgent || actualOptions?.onTeachAgent || null;
 
   const isUser = (role || '').toLowerCase() === 'user';
   const bubble = document.createElement('div');
@@ -409,7 +411,7 @@ export function appendMessageBubble(role, content, options = null, {
   const copyBtnHtml = !isUser
     ? `
     <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5 items-center">
-      <button class="msg-teach-agent-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition shadow-sm" data-message-id="${escapeHtml(options?.messageId || '')}" data-content="${escapeHtml(content)}" title="Teach agent a runbook skill from this turn [CARD-352]">
+      <button class="msg-teach-agent-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition shadow-sm" data-message-id="${escapeHtml(actualOptions?.messageId || '')}" data-content="${escapeHtml(content)}" title="Teach agent a runbook skill from this turn [CARD-352]">
         <i data-lucide="lightbulb" class="w-3 h-3 text-amber-400"></i>
         <span>Teach Agent</span>
       </button>
@@ -430,7 +432,7 @@ export function appendMessageBubble(role, content, options = null, {
     : '';
 
   let attachmentsHtml = '';
-  const attachments = (options && options.attachments) || [];
+  const attachments = (actualOptions && actualOptions.attachments) || [];
   if (Array.isArray(attachments) && attachments.length > 0) {
     attachmentsHtml = `
       <div class="attachments-grid flex flex-wrap gap-2 mt-2 pt-2 border-t border-white/20">

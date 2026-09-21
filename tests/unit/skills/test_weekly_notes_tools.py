@@ -69,7 +69,8 @@ def test_get_or_create_weekly_note_creates_interpolated_note(skill, temp_wiki_ro
     # Week 35 of 2026 starts Monday Aug 24, 2026 and ends Sunday Aug 30, 2026
     res = skill.get_or_create_weekly_note("2026-W35")
     assert res["success"] is True
-    assert "weekly/2026-W35.md" in res["path"]
+    assert res["path"] == "01_Notes/weekly/2026-W35.md"
+    assert not (temp_wiki_root / "notes").exists()
 
     note_path = temp_wiki_root / res["path"]
     assert note_path.exists()
@@ -86,6 +87,11 @@ def test_get_or_create_weekly_note_creates_interpolated_note(skill, temp_wiki_ro
     assert "### Friday 28" in content
     assert "### Saturday 29" in content
     assert "### Sunday 30" in content
+
+    # Negative assertion: zero mock projects from old template
+    assert "Server Currency" not in content
+    assert "AQS Migration" not in content
+    assert "Leaders Life" not in content
 
 
 def test_log_daily_work_item(skill, temp_wiki_root):
@@ -156,7 +162,8 @@ def test_rollover_weekly_tasks_carries_over_incomplete_tasks(skill, temp_wiki_ro
     assert rollover_res["success"] is True
     assert len(rollover_res["carried_over_tasks"]) == 2
 
-    w35_content = (temp_wiki_root / "notes" / "weekly" / "2026-W35.md").read_text(encoding="utf-8")
+    w35_content = (temp_wiki_root / "01_Notes" / "weekly" / "2026-W35.md").read_text(encoding="utf-8")
+    assert not (temp_wiki_root / "notes").exists()
     assert "### 🔄 Carry-Over" in w35_content
     assert "SQL GMSA Automation - Revisit implementing this" in w35_content
     assert "SystemWare - Red Hat Support Ticket Permissions Issue" in w35_content
