@@ -646,19 +646,23 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   async function loadMessages(sessionId) {
-    if (!messagesContainer) return;
+    if (!messagesContainer || !sessionId) return;
     try {
       const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      state.messages = data.messages || [];
-      renderMessagesDirect(state.messages, messagesContainer, {
-        activeAgentId: state.selectedAgentId,
-        sessionId,
-        showToastFn: showToast,
-        onOpenArtifact: openWorkbench,
+      if (state.activeSessionId !== sessionId) return;
+      state.messages = Array.isArray(data) ? data : (data.messages || []);
+      renderMessagesDirect({
+        messagesContainer,
+        messages: state.messages,
+        isStreaming: state.isStreaming,
+        activeAgentTitle,
+        renderMarkdownFn: renderMarkdown,
+        openWorkbenchFn: openWorkbench,
         onRefreshWorkbench: refreshWorkbenchArtifactCount,
         onTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
+        maybeAutoscrollMessagesFn: maybeAutoscrollMessages,
       });
       maybeAutoscrollMessages();
     } catch (e) {
@@ -889,6 +893,13 @@ export function initChatStudio(state, callbacks = {}) {
       state.messages.push({ role: 'assistant', content: accumulatedContent, reasoning: accumulatedReasoning });
       const streamingBadge = streamBubble.querySelector('.text-brand-400.animate-pulse');
       if (streamingBadge) streamingBadge.remove();
+
+      if (streamContentEl && accumulatedContent) {
+        await renderMarkdown(streamContentEl, accumulatedContent, {
+          onOpenArtifact: openWorkbench,
+          onRefreshWorkbench: refreshWorkbenchArtifactCount,
+        });
+      }
 
       await refreshPendingHitl();
       await refreshWorkbenchArtifactCount();

@@ -668,36 +668,42 @@ export function renderMessageItem(msg, _idx, _allMessages, {
   }
 }
 
-export function renderMessages({
-  messagesContainer,
-  messages,
-  isStreaming,
-  activeAgentTitle,
-  renderMessageItemFn = renderMessageItem,
-  maybeAutoscrollMessagesFn = null,
-} = {}) {
+export function renderMessages(opts = {}, legacyContainer, legacyOpts = {}) {
+  const messagesContainer = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts.messagesContainer : legacyContainer;
+  const messages = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts.messages : opts;
+  const config = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : (legacyOpts || {});
+
   if (!messagesContainer) return;
-  if (isStreaming) return;
+  if (config.isStreaming) return;
   messagesContainer.innerHTML = '';
   if (!Array.isArray(messages) || messages.length === 0) {
+    const title = config.activeAgentTitle ? config.activeAgentTitle.textContent : 'Agent';
     messagesContainer.innerHTML = `
       <div class="text-center py-12 text-slate-400 space-y-2">
         <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
           <i data-lucide="bot" class="w-6 h-6"></i>
         </div>
-        <p class="text-sm font-medium">Start a new conversation with ${escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}.</p>
+        <p class="text-sm font-medium">Start a new conversation with ${escapeHtml(title)}.</p>
       </div>
     `;
     safeCreateIcons();
     return;
   }
 
+  const renderItem = config.renderMessageItemFn || renderMessageItem;
   messages.forEach((msg, idx) => {
-    renderMessageItemFn(msg, idx, messages, { messagesContainer, activeAgentTitle });
+    renderItem(msg, idx, messages, {
+      messagesContainer,
+      activeAgentTitle: config.activeAgentTitle,
+      renderMarkdownFn: config.renderMarkdownFn || renderMarkdown,
+      openWorkbenchFn: config.openWorkbenchFn,
+      exportMessageToWikiFn: config.exportMessageToWikiFn,
+      onTeachAgent: config.onTeachAgent,
+    });
   });
 
-  if (typeof maybeAutoscrollMessagesFn === 'function') {
-    maybeAutoscrollMessagesFn();
+  if (typeof config.maybeAutoscrollMessagesFn === 'function') {
+    config.maybeAutoscrollMessagesFn();
   }
   safeCreateIcons();
 }
