@@ -90,7 +90,7 @@
 
 - **Milestone 20 (v0.20.0 - Architecture Cleanliness, Subtractive Engineering & Monolith Decomposition)**:
   - [x] **CARD-395**: Dead Code Scavenger, Orphaned Workflows Pruning & Git Hygiene — **Done**.
-  - [ ] **CARD-396**: Modular CSS Extraction & Index Template Hygiene — **Ready**.
+  - [x] **CARD-396**: Modular CSS Extraction & Index Template Hygiene — **Done**.
   - [ ] **CARD-397**: Chat Studio Monolith Decomposition & Submodule Refactoring — **Ready**.
 
 
