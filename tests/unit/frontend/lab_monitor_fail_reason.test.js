@@ -26,7 +26,7 @@ describe('Lab Monitor verify fail reason [CARD-171]', () => {
   });
 
   it('forge.js live feed uses formatLabPacketFeedLines', () => {
-    const forgeJs = fs.readFileSync(path.join(repoRoot, 'src/web/static/modules/studios/forge.js'), 'utf-8');
+    const forgeJs = fs.readFileSync(path.join(repoRoot, 'src/web/static/modules/studios/forge.js'), 'utf-8') + fs.readFileSync(path.join(repoRoot, 'src/web/static/modules/studios/forge/lab_monitor.js'), 'utf-8');
     expect(forgeJs).toContain('formatLabPacketFeedLines');
     expect(forgeJs).toContain('critic_notes');
   });

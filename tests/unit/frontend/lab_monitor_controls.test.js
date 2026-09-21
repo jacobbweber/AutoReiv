@@ -199,7 +199,7 @@ describe('Lab Monitor DOM Elements Contract [CARD-182]', () => {
   });
 
   it('forge.js wires labCopyFeedBtn and labRetryJobBtn', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/lab_monitor.js');
     expect(forgeJs).toContain('formatLabActivityFeedText');
     expect(forgeJs).toContain('populateTrainModalForRetry');
     expect(forgeJs).toContain('labCopyFeedBtn');

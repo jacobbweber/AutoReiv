@@ -16,7 +16,7 @@ function read(rel) {
 describe('Credential Vault and Per-Agent Grants UI [CARD-168]', () => {
   const indexHtml = read('src/web/templates/index.html');
   const settingsJs = read('src/web/static/modules/studios/settings.js');
-  const forgeJs = read('src/web/static/modules/studios/forge.js');
+  const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js');
 
   it('renders Credential Vault elements in Settings Studio [CARD-168]', () => {
     expect(indexHtml).toContain('id="addCredentialBtn"');

@@ -4,7 +4,8 @@ import path from 'path';
 
 describe('CARD-306 Train keep-one + Workbench honesty', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
-  const forge = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge.js'), 'utf-8');
+  const forge = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge.js'), 'utf-8')
+    + fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge/tools.js'), 'utf-8');
   const chat = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js'), 'utf-8');
   const factory = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/factory.js'), 'utf-8');
 

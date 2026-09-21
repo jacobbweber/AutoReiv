@@ -35,7 +35,7 @@ describe('Forge allowlist warning removed [CARD-115]', () => {
 
 describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () => {
   it('configures capabilities via skills without raw tool checklists or master checkboxes', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('renderNestedHomes');
     expect(forgeJs).toContain('forge-skill-row');
     expect(forgeJs).not.toContain('forge-skill-recommend-tools-btn');
@@ -119,7 +119,7 @@ describe('CARD-118 one Agent Studio', () => {
   });
 
   it('Agent Studio can open and edit a runbook body', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('studio-runbook-open-btn');
     expect(forgeJs).toContain('/api/skills/user-packs');
     expect(forgeJs).toContain('studioRunbookSaveBtn');

@@ -15,7 +15,7 @@ function read(rel) {
 
 describe('Agent Studio Cognitive Memory UI [CARD-116]', () => {
   const indexHtml = read('src/web/templates/index.html');
-  const forgeJs = read('src/web/static/modules/studios/forge.js');
+  const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/config.js');
 
   it('renders memory controls in index.html [REQ-MEM-009, REQ-MEM-010]', () => {
     expect(indexHtml).toContain('id="forgeMemoryEnabled"');

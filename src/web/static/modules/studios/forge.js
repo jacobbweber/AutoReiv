@@ -1,388 +1,88 @@
 /**
- * Agent Studio module [REQ-FE-001, REQ-FORGE-006]. Filename forge.js kept (CARD-118).
+ * Agent Studio Coordinator Module [REQ-FE-001, CARD-119, CARD-127, CARD-148, CARD-153, CARD-162, CARD-202, CARD-350, CARD-389, CARD-398]
+ * Orchestrates agent inspection, editing, saving, deletion, and coordinates focused Agent Studio submodules:
+ * - lab_monitor.js: Autonomous factory training monitor drawer, packet telemetry, live feeds, artifact preview
+ * - proposals.js: Architectural governance proposals inbox, category badges, remedy execution, synthesis
+ * - scaffold.js: Quick presets, quick scaffold modal, candidate queue, same-job origin resumption
+ * - tools.js: OS baseline tools, capability gaps backlog, remote MCP server management, credential grants
+ * - runbook.js: Runbook markdown authoring, char counter, mechanical capability linting, platform/pack skills
+ * - config.js: Per-agent LLM providers, model discovery, avatar preview, routines, telemetry, brain drawer, tones
  */
 
-import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
-import { escapeHtml, formatAgentSelectOption } from '../utils/formatters.js';
+import { $, $queryAll, safeCreateIcons } from '../dom.js';
+import { formatAgentSelectOption } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
-import { copyToClipboard } from '../utils/clipboard.js';
 import { PRESETS_DEFAULTS } from './settings.js';
 
+// Re-export all decomposed submodules for complete backward compatibility [CARD-398]
+export * from './forge/lab_monitor.js';
+export * from './forge/proposals.js';
+export * from './forge/scaffold.js';
+export * from './forge/tools.js';
+export * from './forge/runbook.js';
+export * from './forge/config.js';
 
-/** Build expected on-disk pack paths after promote (CARD-171). */
-export function buildExpectedPackPaths(agentId, relativeFiles = []) {
-  const root = `%LOCALAPPDATA%\\AutoReiv\\packs\\${agentId || 'agent'}`;
-  return (relativeFiles || []).map((rel) => {
-    const clean = String(rel || '').replace(/\//g, '\\').replace(/^\\+/, '');
-    return `${root}\\${clean}`;
-  });
-}
+import {
+  setupLabMonitor,
+  openLabMonitorDrawer,
+  updateLabRunsBadge,
+} from './forge/lab_monitor.js';
 
-/** Collect unique artifacts from factory packets (files_map + wiki_paths). */
-export function collectPacketArtifacts(packets = []) {
-  const out = [];
-  const seen = new Set();
-  for (const p of packets || []) {
-    const payload = (p && p.payload) || {};
-    const filesMap = payload.files_map || {};
-    for (const [rel, content] of Object.entries(filesMap)) {
-      const key = `file:${rel}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({
-        kind: 'file',
-        path: rel,
-        content: content == null ? '' : String(content),
-        source: p.sender_role || 'packet',
-      });
-    }
-    const wikiPaths = payload.wiki_paths || [];
-    for (const wp of wikiPaths) {
-      const key = `wiki:${wp}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({
-        kind: 'wiki',
-        path: wp,
-        content: '',
-        source: p.sender_role || 'packet',
-      });
-    }
-  }
-  return out;
-}
+import {
+  setupArchitecturalProposals,
+  loadArchitecturalProposals,
+} from './forge/proposals.js';
 
+import {
+  setupScaffold,
+  loadForgeScaffoldQueue,
+  startNewAgentPackFromStudio,
+} from './forge/scaffold.js';
 
-export function formatLabPacketFeedLines(packet) {
-  const payload = (packet && packet.payload) || {};
-  const msg = payload.message || payload.goal || '';
-  const notes = (payload.critic_notes || '').trim();
-  const passed = payload.passed;
-  const lines = [];
-  if (msg) lines.push(String(msg));
-  const looksFailed =
-    passed === false ||
-    /FAILED/i.test(String(msg)) ||
-    payload.terminal_fail === true;
-  if (looksFailed) {
-    const rinseKind = payload.rinse_kind || '';
-    const fclass = payload.failure_class || '';
-    if (rinseKind || fclass) {
-      const bits = [];
-      if (rinseKind) bits.push(`${rinseKind} rinse`);
-      if (fclass) bits.push(fclass);
-      lines.push(`Rinse: ${bits.join(' / ')}`);
-    }
-    if (notes) {
-      const short = notes.length > 160 ? `${notes.slice(0, 157)}...` : notes;
-      lines.push(`Reason: ${short}`);
-    }
-  }
-  if (!lines.length && payload && typeof payload === 'object') {
-    lines.push(JSON.stringify(payload));
-  }
-  return lines;
-}
+import {
+  setupAgentMcpControls,
+  loadAgentCapabilityGaps,
+  loadAgentMcpServers,
+  loadAgentCredentialGrants,
+} from './forge/tools.js';
 
-export function formatLabActivityFeedText(packets) {
-  if (!packets || !Array.isArray(packets) || packets.length === 0) return '';
-  const lines = [];
-  packets.forEach((p) => {
-    const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString() : '';
-    const role = (p.sender_role || 'system').toUpperCase();
-    const feedLines = formatLabPacketFeedLines(p);
-    feedLines.forEach((line) => {
-      lines.push(`[${timeStr}] [${role}] ${line}`);
-    });
-  });
-  return lines.join('\n');
-}
+import {
+  setupRunbookEditor,
+  loadPlatformSkills,
+  renderNestedHomes,
+  applySkillChecks,
+  openRunbookEditor,
+} from './forge/runbook.js';
 
-export function populateTrainModalForRetry(jobData, elements = {}) {
-  if (!jobData) return false;
-  const job = jobData.job || jobData;
-  const inputs = jobData.inputs || {};
+import {
+  setupAgentModelConfig,
+  setupBrainDrawer,
+  setupToneManager,
+  populateAgentModelSelect,
+  updateProviderConfigVisibility,
+  updateAvatarPreview,
+  loadAgentAssignedRoutines,
+  loadAgentTelemetry,
+  loadTones,
+  setCachedDiscoveredModels,
+} from './forge/config.js';
 
-  const agentId = inputs.target_agent_id || job.target_agent_id || '';
-  const seedIntent = inputs.seed_intent || job.seed_intent || '';
-  const objectives = inputs.objectives || job.objectives || [];
-  const deliverableType = inputs.deliverable_type || 'auto';
-  const constraints = inputs.constraints || '';
-  const prerequisites = inputs.prerequisites || '';
-  const referenceDocs = inputs.reference_docs || '';
-  const targetLocation = inputs.target_directory || '';
-
-  const modal = elements.modal || $('trainAgentHandshakeModal');
-  if (modal) {
-    modal.dataset.agentId = agentId;
-  }
-
-  const targetSelect = elements.trainAgentTargetSelect || $('trainAgentTargetSelect');
-  if (targetSelect) {
-    targetSelect.value = agentId || '__new__';
-  }
-
-  const nameInput = elements.nameInput || $('trainAgentNameInput');
-  const nameGroup = elements.nameGroup || $('trainAgentNameGroup');
-  if (nameGroup && nameGroup.classList) {
-    if (!agentId || agentId === '__new__') {
-      nameGroup.classList.remove('hidden');
-    } else {
-      nameGroup.classList.add('hidden');
-    }
-  }
-  if (nameInput) nameInput.value = agentId;
-
-  const targetLoc = elements.targetLocation || $('trainTargetLocation');
-  if (targetLoc) targetLoc.value = targetLocation;
-
-  const seedObj = elements.seedObjectives || $('trainSeedObjectives');
-  if (seedObj) {
-    if (objectives && objectives.length > 0) {
-      seedObj.value = objectives.join('\n');
-    } else {
-      seedObj.value = seedIntent;
-    }
-  }
-
-  const intentInput = elements.seedIntentInput || $('trainSeedIntentInput');
-  if (intentInput) {
-    intentInput.value = seedIntent || '';
-  }
-
-  const promptInput = elements.promptInput || $('promptInput');
-  if (promptInput && seedIntent) {
-    promptInput.value = seedIntent;
-  }
-
-  const deliverableSelect = elements.deliverableType || $('trainDeliverableType');
-  if (deliverableSelect) deliverableSelect.value = deliverableType;
-
-  const constraintsInput = elements.constraints || $('trainConstraintsInput');
-  if (constraintsInput) constraintsInput.value = constraints;
-
-  const prereqsInput = elements.prerequisites || $('trainPrerequisitesInput');
-  if (prereqsInput) prereqsInput.value = prerequisites;
-
-  const refDocsInput = elements.referenceDocs || $('trainReferenceDocsInput');
-  if (refDocsInput) refDocsInput.value = referenceDocs;
-
-  const advContent = elements.advancedContent || $('trainAdvancedReqsContent');
-  const advChevron = elements.advancedChevron || $('trainAdvancedChevron');
-  const hasAdvanced = Boolean(constraints || prerequisites || referenceDocs);
-  if (advContent) {
-    advContent.classList.toggle('hidden', !hasAdvanced);
-    if (advChevron) advChevron.classList.toggle('rotate-180', hasAdvanced);
-  }
-
-  return true;
-}
-
-export function startNewAgentPackFromStudio(callbacks = {}) {
-  if (typeof callbacks.onStartNewAgentPack === 'function') {
-    callbacks.onStartNewAgentPack();
-    return true;
-  }
-  return false;
-}
-
-export const FORGE_QUICK_PRESETS = {
-  'wiki-librarian': {
-    id: 'wiki-librarian',
-    name: 'Wiki Librarian',
-    role: 'Knowledge Curator & Research Librarian',
-    description: 'Specialist agent for wiki vault curation, structured note synthesis, taxonomy management, and template-guided knowledge capture.',
-    avatar: 'book-open',
-    tone: 'balanced',
-    purpose: 'reasoning',
-  },
-  'sre-ops': {
-    id: 'sre-ops',
-    name: 'SRE Specialist',
-    role: 'Kubernetes cluster administrator and pod diagnostician',
-    description: 'Specialist agent for incident triage, telemetry inspection, and resilient operations.',
-    avatar: 'terminal',
-    tone: 'analytical',
-    purpose: 'execution',
-  },
-};
-
-/**
- * Construct a structured agent pack specification with gold-standard sections [CARD-197, REQ-FACT-047].
- */
-export function buildQuickScaffoldPayload({
-  id = '',
-  name = '',
-  description = '',
-  role = '',
-  avatar = 'bot',
-  tone = 'balanced',
-  purpose = 'general',
-} = {}) {
-  const cleanId = String(id || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-  const cleanName = String(name || '').trim() || cleanId;
-  const cleanRole = String(role || '').trim() || cleanName;
-  const cleanDesc = String(description || '').trim() || `Specialist agent for ${cleanRole}.`;
-
-  const systemPrompt = [
-    `[IDENTITY & ROLE]`,
-    `You are ${cleanName}, a specialized AI agent focused on: ${cleanRole}.`,
-    ``,
-    `[DOMAIN BOUNDARIES & REFUSALS]`,
-    `Focus strictly on ${cleanRole}. Refuse requests outside your authorized domain or refer them to other specialists.`,
-    ``,
-    `[EXECUTION PROTOCOL]`,
-    `1. Inspect and read the current environment or state before making changes.`,
-    `2. Formulate an explicit plan before executing commands or actions.`,
-    `3. Validate all inputs and parameters defensively.`,
-    `4. Verify completion and report clear outcomes with evidence.`,
-    ``,
-    `[SAFETY & APPROVALS]`,
-    `Always require confirmation before executing destructive, mutating, or production operations. Use dry-runs where available.`,
-    `HITL gates (REQUIRE_CONFIRM / Approve / Reject) are authoritative — never treat a toast or UI hint as approval.`,
-    ``,
-    `[TOOL USAGE RULES]`,
-    `Invoke tools atomically and check return status codes. Handle failures gracefully with actionable diagnostic messages.`,
-    `Only claim tool results you actually received this turn. Listed tools are capabilities, not proof of execution.`,
-    `Never search the filesystem or use shell commands to hunt for Wiki vault files. Always use canonical wiki_* tools (list_wiki_templates, wiki_note_read, wiki_note_search, wiki_note_create).`,
-    ``,
-    `[PROVENANCE & HONESTY]`,
-    `Separate operator-visible facts (tool returns, job_id, wiki/repo reads) from inference.`,
-    `When citing wiki or checkout files, name the source path or note id; do not invent contents.`,
-    `On kill/resume and handoffs, keep the same job_id and report continuity honestly.`,
-    ``,
-    `[OUTPUT FORMAT]`,
-    `Provide concise, structured markdown with clear checklists, diagnostic tables, or code snippets.`,
-  ].join('\n');
-
-  const primarySkillId = `${cleanId}-core`;
-
-  return {
-    id: cleanId,
-    name: cleanName,
-    description: cleanDesc,
-    system_prompt: systemPrompt,
-    tone: tone,
-    purpose: purpose,
-    avatar_icon: avatar,
-    model: 'default',
-    show_in_chat: true,
-    skills: [
-      {
-        id: primarySkillId,
-        name: `${cleanName} Core`,
-        description: `Core operational capabilities and runbook for ${cleanName}.`,
-        tools: [],
-      },
-    ],
-  };
-}
-
-export function renderToolBadgeHtml(tool, activeAgent = null) {
-  const tObj = typeof tool === 'string' ? { name: tool } : (tool || {});
-  const name = tObj.name || '';
-  const isMcp = Boolean(
-    tObj.is_mcp ||
-    tObj.deliverable_type === 'mcp' ||
-    tObj.type === 'mcp' ||
-    name.startsWith('mcp_') ||
-    (activeAgent && activeAgent.mcp_server && activeAgent.mcp_server.enabled)
-  );
-  return isMcp
-    ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-800/80 uppercase tracking-wide">MCP Server</span>'
-    : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/80 uppercase tracking-wide">Native Tool</span>';
-}
-
-/** Render badge for Architectural Proposal category [CARD-365, REQ-ARCH-013]. */
-export function renderProposalBadgeHtml(proposalType) {
-  const t = String(proposalType || '').toLowerCase();
-  if (t === 'promotion_routine') {
-    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950/80 text-purple-300 border border-purple-700/60">ROUTINE PROMOTION</span>';
-  }
-  if (t === 'tool_pruning') {
-    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-700/60">TOOL PRUNING</span>';
-  }
-  if (t === 'skill_decomposition') {
-    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950/80 text-blue-300 border border-blue-700/60">SKILL DECOMPOSITION</span>';
-  }
-  if (t === 'security_isolation') {
-    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-700/60">SECURITY ISOLATION</span>';
-  }
-  if (t === 'contract_reinforcement') {
-    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">CONTRACT REINFORCEMENT</span>';
-  }
-  return `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-slate-300 border border-slate-700">${escapeHtml(t.toUpperCase())}</span>`;
-}
-
-/** Render HTML for an architectural proposal card [CARD-365, REQ-ARCH-013]. */
-export function renderProposalCardHtml(p) {
-  const id = escapeHtml(p.id || '');
-  const title = escapeHtml(p.title || 'Architectural Proposal');
-  const desc = escapeHtml(p.description || '');
-  const agentId = escapeHtml(p.agent_id || '');
-  const impact = escapeHtml(p.impact_summary || '');
-  const badgeHtml = renderProposalBadgeHtml(p.proposal_type);
-  const payload = p.action_payload || {};
-
-  let remedyDetail;
-  if (payload.routine_name) {
-    remedyDetail = `Register background routine '<strong>${escapeHtml(payload.routine_name)}</strong>' (${escapeHtml(payload.schedule_type || 'interval')} ${payload.interval_seconds || 3600}s, approval: ${escapeHtml(payload.approval_mode || 'ask')})`;
-  } else if (payload.verification_command) {
-    remedyDetail = `Enforce verification contract: <code>${escapeHtml(payload.verification_command)}</code>`;
-  } else if (payload.current_tool_count) {
-    remedyDetail = `Enforce Rule of 7: reduce tools from ${payload.current_tool_count} down to ${payload.target_tool_ceiling || 8}`;
-  } else if (payload.hitl_tools && payload.hitl_tools.length) {
-    remedyDetail = `Gate mutating levers behind HITL: <code>${escapeHtml(payload.hitl_tools.join(', '))}</code>`;
-  } else if (payload.schema_chars) {
-    remedyDetail = `Cap schema pre-fill to 4,000 chars (currently ${payload.schema_chars})`;
-  } else {
-    remedyDetail = 'Execute mechanical architectural refactor.';
-  }
-
-  return `
-    <div class="p-3.5 rounded-xl bg-[#08090c] border border-white/[0.08] hover:border-amber-500/30 transition-all space-y-2.5" data-proposal-id="${id}">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <div class="flex flex-wrap items-center gap-2">
-          ${badgeHtml}
-          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-900 text-slate-400 border border-slate-800">Agent: ${agentId}</span>
-          <span class="text-xs font-bold text-slate-100">${title}</span>
-        </div>
-        <div class="flex items-center space-x-1.5">
-          <button type="button" data-proposal-action="apply" data-id="${id}" class="px-2.5 py-1 rounded bg-amber-600/90 hover:bg-amber-500 text-[11px] font-semibold text-white shadow-sm flex items-center space-x-1 transition">
-            <i data-lucide="check" class="w-3 h-3"></i>
-            <span>Apply Remedy</span>
-          </button>
-          <button type="button" data-proposal-action="dismiss" data-id="${id}" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-rose-950/50 text-[11px] font-medium text-slate-300 hover:text-rose-200 border border-white/[0.08] transition">
-            Dismiss
-          </button>
-        </div>
-      </div>
-      <p class="text-[11px] text-slate-300 leading-relaxed">${desc}</p>
-      <div class="p-2 rounded-lg bg-amber-950/20 border border-amber-500/20 text-[11px] text-amber-200/90 flex items-start space-x-2">
-        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5"></i>
-        <div>
-          <span class="font-semibold text-amber-300">Autonomic Impact:</span> ${impact}
-        </div>
-      </div>
-      <div class="text-[10px] text-slate-400 font-mono flex items-center space-x-1 pt-0.5">
-        <i data-lucide="wrench" class="w-3 h-3 text-slate-500"></i>
-        <span>Action Remedy: ${remedyDetail}</span>
-      </div>
-    </div>
-  `;
-}
-
-/** CARD-202, CARD-367, CARD-388: Format agent display name cleanly without Platform/Custom tags. */
 export { formatAgentSelectOption };
 
-/** CARD-202: Sort agents alphabetically by display name (case-insensitive). */
+/**
+ * Sorts agents alphabetically by display name (A to Z) [CARD-202].
+ */
 export function sortStudioAgentsAlphabetically(agents = []) {
-  return [...agents].sort((a, b) =>
-    (a.name || a.id || '').localeCompare(b.name || b.id || '', undefined, { sensitivity: 'base' })
-  );
+  return [...(agents || [])].sort((a, b) => {
+    const nameA = formatAgentSelectOption(a).toLowerCase();
+    const nameB = formatAgentSelectOption(b).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 }
 
-/** CARD-339, CARD-359: Filter agents visible in Agent Studio (excluding retired platform agents). */
+/**
+ * Determines whether an agent is visible in the Agent Forge selector [CARD-202, CARD-339].
+ */
 export function isStudioAgentVisible(a) {
   if (!a) return false;
   const id = a.id || '';
@@ -392,7 +92,9 @@ export function isStudioAgentVisible(a) {
   return false;
 }
 
-/** CARD-202: Populate agent select dropdown without optgroups. */
+/**
+ * Populates agent select element with alphabetical sorted options [CARD-202].
+ */
 export function populateForgeAgentSelectOptions(selectEl, agents = [], selectedId = null) {
   if (!selectEl) return null;
   selectEl.innerHTML = '';
@@ -411,33 +113,14 @@ export function populateForgeAgentSelectOptions(selectEl, agents = [], selectedI
   return selectEl.value;
 }
 
-
+/**
+ * Main Controller Entry Point for Agent Studio [CARD-398].
+ */
 export function initAgentForge(state, callbacks = {}) {
+  // DOM Cache
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
-  const forgeQuickScaffoldBtn = $('forgeQuickScaffoldBtn');
-  const forgeNewAgentModal = $('forgeNewAgentModal');
-  const forgeNewAgentPresetSelect = $('forgeNewAgentPresetSelect');
-  const forgeNewAgentIdInput = $('forgeNewAgentIdInput');
-  const forgeNewAgentNameInput = $('forgeNewAgentNameInput');
-  const forgeNewAgentRoleInput = $('forgeNewAgentRoleInput');
-  const forgeNewAgentDescInput = $('forgeNewAgentDescInput');
-  const forgeNewAgentAvatarSelect = $('forgeNewAgentAvatarSelect');
-  const forgeNewAgentToneSelect = $('forgeNewAgentToneSelect');
-  const forgeNewAgentPurposeSelect = $('forgeNewAgentPurposeSelect');
-  const forgeNewAgentSubmitBtn = $('forgeNewAgentSubmitBtn');
-  const forgeNewAgentCancelBtn = $('forgeNewAgentCancelBtn');
-  const forgeNewAgentCloseBtn = $('forgeNewAgentCloseBtn');
-  const forgeTrainAgentBtn = $('forgeTrainAgentBtn');
-  const saveAgentBtn = $('saveAgentBtn');
-  const deleteAgentBtn = $('deleteAgentBtn');
-  const forgeImportPackBtn = $('forgeImportPackBtn');
-  const forgeExportPackBtn = $('forgeExportPackBtn');
-  const forgeImportPackInput = $('forgeImportPackInput');
-  const forgeShowInChat = $('forgeShowInChat');
-  const forgeStatusBanner = $('forgeStatusBanner');
   const forgeBuiltinBadge = $('forgeBuiltinBadge');
-  const forgeAvatarPreview = $('forgeAvatarIcon');
   const forgeAvatarSelect = $('forgeAvatarSelect');
   const forgeNameInput = $('forgeNameInput');
   const forgeIdInput = $('forgeIdInput');
@@ -446,13 +129,10 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMaxTurnsInput = $('forgeMaxTurnsInput');
   const forgeRetentionDaysInput = $('forgeRetentionDaysInput');
   const forgeProviderSelect = $('forgeProviderSelect');
-  const forgeProviderConfigContainer = $('forgeProviderConfigContainer');
   const forgeApiBaseUrlInput = $('forgeApiBaseUrlInput');
   const forgeApiKeyInput = $('forgeApiKeyInput');
   const forgeContextWindowInput = $('forgeContextWindowInput');
-  const forgeDiscoverModelsBtn = $('forgeDiscoverModelsBtn');
   const forgeAgentModelSelect = $('forgeAgentModelSelect');
-  let cachedDiscoveredModels = [];
   const forgeStorageEnabled = $('forgeStorageEnabled');
   const forgeStorageTypeContainer = $('forgeStorageTypeContainer');
   const forgeStorageType = $('forgeStorageType');
@@ -460,541 +140,66 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMemoryRetentionDays = $('forgeMemoryRetentionDays');
   const forgeMemoryRetentionDaysLabel = $('forgeMemoryRetentionDaysLabel');
   const forgePinnedMemory = $('forgePinnedMemory');
-  const _agentTrainingBacklogCard = $('agentTrainingBacklogCard');
-  const agentBacklogCountBadge = $('agentBacklogCountBadge');
-  const agentBacklogList = $('agentBacklogList');
-  const btnOpenBrainDrawer = $('btnOpenBrainDrawer');
-  const btnPurgeBrain = $('btnPurgeBrain');
-  const agentBrainDrawer = $('agentBrainDrawer');
-  const brainDrawerAgentName = $('brainDrawerAgentName');
-  const brainSearchInput = $('brainSearchInput');
-  const brainShelfPinnedContainer = $('brainShelfPinnedContainer');
-  const brainShelfSummariesCount = $('brainShelfSummariesCount');
-  const brainShelfSummariesContainer = $('brainShelfSummariesContainer');
-  const brainShelfFactsCount = $('brainShelfFactsCount');
-  const brainShelfFactsContainer = $('brainShelfFactsContainer');
-  const closeBrainDrawerBtn = $('closeBrainDrawerBtn');
-  const closeBrainDrawerFooterBtn = $('closeBrainDrawerFooterBtn');
   const forgeSystemPrompt = $('forgeSystemPrompt');
-  const forgeBaselineGrid = $('forgeBaselineGrid');
-  const forgeSkillsGrid = $('forgeSkillsGrid');
   const forgePackBoxTitle = $('forgePackBoxTitle');
-  const forgeRunbooksGrid = $('forgeRunbooksGrid');
-  const _forgeMcpServersCard = $('forgeMcpServersCard');
-  const forgeMcpServerCountBadge = $('forgeMcpServerCountBadge');
-  const forgeAddMcpServerBtn = $('forgeAddMcpServerBtn');
-  const forgeMcpServerForm = $('forgeMcpServerForm');
-  const _forgeMcpServerFormTitle = $('forgeMcpServerFormTitle');
-  const forgeMcpServerFormCloseBtn = $('forgeMcpServerFormCloseBtn');
-  const forgeMcpNameInput = $('forgeMcpNameInput');
-  const forgeMcpTransportSelect = $('forgeMcpTransportSelect');
-  const forgeMcpUrlGroup = $('forgeMcpUrlGroup');
-  const forgeMcpUrlInput = $('forgeMcpUrlInput');
-  const forgeMcpCommandGroup = $('forgeMcpCommandGroup');
-  const forgeMcpCommandInput = $('forgeMcpCommandInput');
-  const forgeMcpHeadersInput = $('forgeMcpHeadersInput');
-  const forgeMcpEnabledCheckbox = $('forgeMcpEnabledCheckbox');
-  const forgeMcpTestBtn = $('forgeMcpTestBtn');
-  const forgeMcpSaveBtn = $('forgeMcpSaveBtn');
-  const forgeMcpTestResult = $('forgeMcpTestResult');
-  const forgeMcpServerList = $('forgeMcpServerList');
-  let currentAgentMcpServers = [];
   const forgeCredentialGrantsList = $('forgeCredentialGrantsList');
-  const forgeCredentialCountBadge = $('forgeCredentialCountBadge');
-  const forgeStatTurns = $('forgeStatTurns');
-  const forgeStatTokens = $('forgeStatTokens');
-  const forgeStatCost = $('forgeStatCost');
-  const forgeStatTools = $('forgeStatTools');
-  const forgeStatErrors = $('forgeStatErrors');
-  const forgeStatLatency = $('forgeStatLatency');
-
+  const saveAgentBtn = $('saveAgentBtn');
+  const deleteAgentBtn = $('deleteAgentBtn');
+  const forgeImportPackBtn = $('forgeImportPackBtn');
+  const forgeExportPackBtn = $('forgeExportPackBtn');
+  const forgeImportPackInput = $('forgeImportPackInput');
+  const forgeShowInChat = $('forgeShowInChat');
+  const forgeStatusBanner = $('forgeStatusBanner');
   const linkRoutineForAgentBtn = $('linkRoutineForAgentBtn');
-  const forgeAssignedRoutinesList = $('forgeAssignedRoutinesList');
+  const forgeOpenObserveBtn = $('forgeOpenObserveBtn');
 
-  const manageTonesBtn = $('manageTonesBtn');
-  const manageTonesModal = $('manageTonesModal');
-  const closeManageTonesModalBtn = $('closeManageTonesModalBtn');
-  const openNewToneFormBtn = $('openNewToneFormBtn');
-  const manageTonesList = $('manageTonesList');
-  const manageToneForm = $('manageToneForm');
-  const manageToneFormTitle = $('manageToneFormTitle');
-  const closeToneFormBtn = $('closeToneFormBtn');
-  const cancelToneFormBtn = $('cancelToneFormBtn');
-  const toneFormMode = $('toneFormMode');
-  const toneFormName = $('toneFormName');
-  const toneFormId = $('toneFormId');
-  const toneFormDescription = $('toneFormDescription');
-  const toneFormDirective = $('toneFormDirective');
+  // Delete modal elements
+  const deleteAgentModal = $('deleteAgentModal');
+  const deleteAgentModalMessage = $('deleteAgentModalMessage');
+  const purgeHistoryCheckbox = $('purgeHistoryCheckbox');
+  const confirmDeleteAgentBtn = $('confirmDeleteAgentBtn');
+  const cancelDeleteAgentBtn = $('cancelDeleteAgentBtn');
+  const closeDeleteAgentModalBtn = $('closeDeleteAgentModalBtn');
 
+  // Internal coordinator state
   let activeForgeAgent = null;
   let cachedSkillsCatalog = null;
   let cachedPlatformSkills = [];
   let cachedArchivedSkills = [];
-  let cachedTones = [];
   let lastAllowedSkills = new Set();
-  let activeRunbookId = '';
-  let activeRunbookArchived = false;
+  let currentAgentMcpServers = [];
 
-  const studioRunbookEditor = $('studioRunbookEditor');
-  const studioRunbookCloseBtn = $('studioRunbookCloseBtn');
-  const studioRunbookCancelBtn = $('studioRunbookCancelBtn');
-  const studioRunbookName = $('studioRunbookName');
-  const studioRunbookBlurb = $('studioRunbookBlurb');
-  const studioRunbookBody = $('studioRunbookBody');
-  const studioRunbookPath = $('studioRunbookPath');
-  const studioRunbookSaveBtn = $('studioRunbookSaveBtn');
-  const studioRunbookArchiveBtn = $('studioRunbookArchiveBtn');
-  const studioRunbookUnarchiveBtn = $('studioRunbookUnarchiveBtn');
-  const studioRunbookDeleteBtn = $('studioRunbookDeleteBtn');
-  const studioNewRunbookSlug = $('studioNewRunbookSlug');
-  const studioNewRunbookBtn = $('studioNewRunbookBtn');
-  const studioRunbookValidateBtn = $('studioRunbookValidateBtn');
-  const studioRunbookLintStatus = $('studioRunbookLintStatus');
-  const studioRunbookCharCount = $('studioRunbookCharCount');
-
-  const CANONICAL_RUNBOOK_TEMPLATE = `# Operating Principles
-1. Always verify assumptions against actual runtime state.
-2. Structure output concisely with clear next steps.
-
-## Available Tools
-- \`activate_skill\`: Activate relevant procedural runbooks.
-
-## Done-When
-- Operational checks complete with zero errors.
-- Verification criteria satisfied.
-`;
-
-  function skillRowHtml(skill, home, archived = false) {
-    const id = skill.id || '';
-    const name = skill.name || id;
-    const desc = skill.description || '';
-    const archivedAttr = archived ? ' data-archived="1"' : '';
-    const hasRequired = Boolean(skill.has_required_tools);
-    const reqIndicator = hasRequired
-      ? '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60 inline-block align-middle">INCLUDES REQUIRED TOOLS</span>'
-      : '';
-    const checkbox = archived
-      ? ''
-      : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-home="${escapeHtml(home)}">`;
-
-    const rawTools = skill.tools || [];
-    const toolNames = rawTools.map((t) => (typeof t === 'string' ? t : (t.name || ''))).filter(Boolean);
-    const toolsChipsHtml = toolNames.length > 0
-      ? `
-        <div class="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-slate-800/80">
-          <span class="text-[9px] font-mono text-slate-500 uppercase tracking-wider">${toolNames.length} declared tool${toolNames.length === 1 ? '' : 's'}:</span>
-          ${toolNames.map((tn) => {
-            const tObj = rawTools.find((t) => (typeof t === 'string' ? t : t.name) === tn) || {};
-            const isReq = tObj.tier === 'required_platform';
-            const badge = isReq ? '<span class="ml-1 px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-900/80 text-emerald-300 uppercase">REQUIRED</span>' : '';
-            return `<span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-950 text-slate-300 border border-slate-800"><i data-lucide="wrench" class="w-2.5 h-2.5 text-brand-400"></i><span>${escapeHtml(tn)}</span>${badge}</span>`;
-          }).join('')}
-        </div>
-      `
-      : '';
-
-    return `
-      <div class="forge-skill-row rounded-lg bg-slate-900/60 border border-slate-800 p-2.5" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}">
-        <div class="flex items-start gap-2">
-          <label class="flex items-start space-x-2.5 flex-1 min-w-0 cursor-pointer">
-            ${checkbox}
-            <div class="flex-1 min-w-0">
-              <span class="font-mono text-slate-200 inline text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
-              ${reqIndicator}
-              <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight mt-0.5">${escapeHtml(desc)}</span>
-            </div>
-          </label>
-          <div class="flex items-center space-x-1.5 shrink-0">
-            <button type="button" class="studio-runbook-open-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700 transition" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit Runbook</button>
-          </div>
-        </div>
-        ${toolsChipsHtml}
-      </div>
-    `;
+  function getActiveAgentId() {
+    return (activeForgeAgent && activeForgeAgent.id) || (forgeAgentSelect ? forgeAgentSelect.value : null);
   }
 
-  function applySkillChecks() {
-    $queryAll('.forge-skill-checkbox').forEach((cb) => {
-      cb.checked = lastAllowedSkills.has(cb.value);
+  function getActiveAgent() {
+    return activeForgeAgent;
+  }
+
+  function renderNestedHomesWrapper() {
+    renderNestedHomes({
+      cachedPlatformSkills,
+      cachedArchivedSkills,
+      activeForgeAgent,
+      lastAllowedSkills,
+      onOpenRunbook: (packId, isArchived, row) => openRunbookEditor(packId, isArchived, row),
     });
   }
 
-  function bindSkillRowHandlers(root) {
-    if (!root) return;
-    root.querySelectorAll('.studio-runbook-open-btn').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const row = btn.closest('.forge-skill-row');
-        openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1', row);
-      });
+  async function loadPlatformSkillsWrapper() {
+    const result = await loadPlatformSkills({
+      cachedSkillsCatalog,
+      activeForgeAgent,
+      lastAllowedSkills,
+      onOpenRunbook: (packId, isArchived, row) => openRunbookEditor(packId, isArchived, row),
+      onLoaded: ({ platformSkills, archivedSkills, catalog }) => {
+        cachedPlatformSkills = platformSkills;
+        cachedArchivedSkills = archivedSkills;
+        cachedSkillsCatalog = catalog;
+      },
     });
-    root.querySelectorAll('.forge-skill-checkbox').forEach((cb) => {
-      cb.addEventListener('change', () => {
-        if (cb.value === 'sqlite-storage') {
-          if (forgeStorageEnabled) forgeStorageEnabled.checked = cb.checked;
-          if (forgeStorageTypeContainer) forgeStorageTypeContainer.classList.toggle('hidden', !cb.checked);
-        }
-      });
-    });
-  }
-
-  function setRunbookActionVisibility() {
-    const has = Boolean(activeRunbookId);
-    if (studioRunbookArchiveBtn) {
-      studioRunbookArchiveBtn.classList.toggle('hidden', !has || activeRunbookArchived);
-    }
-    if (studioRunbookUnarchiveBtn) {
-      studioRunbookUnarchiveBtn.classList.toggle('hidden', !has || !activeRunbookArchived);
-    }
-    if (studioRunbookDeleteBtn) {
-      studioRunbookDeleteBtn.classList.toggle('hidden', !has);
-    }
-  }
-
-  function updateRunbookCharCount() {
-    if (!studioRunbookCharCount || !studioRunbookBody) return;
-    const len = studioRunbookBody.value.length;
-    const limit = 8000;
-    studioRunbookCharCount.textContent = `${len.toLocaleString()} / ${limit.toLocaleString()} chars`;
-    if (len > limit) {
-      studioRunbookCharCount.classList.add('text-rose-400');
-      studioRunbookCharCount.classList.remove('text-slate-500');
-    } else {
-      studioRunbookCharCount.classList.remove('text-rose-400');
-      studioRunbookCharCount.classList.add('text-slate-500');
-    }
-  }
-
-  function clearRunbookLintStatus() {
-    if (!studioRunbookLintStatus) return;
-    studioRunbookLintStatus.innerHTML = '';
-    studioRunbookLintStatus.className = 'hidden rounded-lg p-2.5 text-xs transition-all';
-  }
-
-  function renderRunbookLintReport(report) {
-    if (!studioRunbookLintStatus) return;
-    studioRunbookLintStatus.classList.remove('hidden');
-
-    if (report.valid && (!report.violations || report.violations.length === 0)) {
-      studioRunbookLintStatus.className = 'rounded-lg p-3 text-xs bg-emerald-950/60 border border-emerald-700/60 text-emerald-200 transition-all flex items-center justify-between';
-      const toolsCount = report.contract ? report.contract.tools_count : 0;
-      studioRunbookLintStatus.innerHTML = `
-        <div class="flex items-center space-x-2">
-          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-          <span class="font-medium">Runbook contract valid! Clean ADR-0054 compliance (${toolsCount} declared tool${toolsCount === 1 ? '' : 's'}).</span>
-        </div>
-        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 uppercase">PASS</span>
-      `;
-      safeCreateIcons();
-      return;
-    }
-
-    const errorCount = report.error_count || 0;
-    const warnCount = report.warning_count || 0;
-    const isError = errorCount > 0;
-
-    studioRunbookLintStatus.className = isError
-      ? 'rounded-lg p-3 text-xs bg-rose-950/60 border border-rose-700/60 text-rose-200 transition-all space-y-2'
-      : 'rounded-lg p-3 text-xs bg-amber-950/60 border border-amber-700/60 text-amber-200 transition-all space-y-2';
-
-    const header = `
-      <div class="flex items-center justify-between border-b ${isError ? 'border-rose-800/80' : 'border-amber-800/80'} pb-1.5 mb-1.5">
-        <div class="flex items-center space-x-2">
-          <i data-lucide="${isError ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 ${isError ? 'text-rose-400' : 'text-amber-400'} shrink-0"></i>
-          <span class="font-semibold">${isError ? 'Contract Violations Found' : 'Contract Warnings'} (${errorCount} error${errorCount === 1 ? '' : 's'}, ${warnCount} warning${warnCount === 1 ? '' : 's'})</span>
-        </div>
-        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${isError ? 'bg-rose-900/80 text-rose-300 border border-rose-600/50' : 'bg-amber-900/80 text-amber-300 border border-amber-600/50'} uppercase">${isError ? 'FAIL' : 'WARN'}</span>
-      </div>
-    `;
-
-    const violationsList = (report.violations || []).map((v) => {
-      const isErr = (v.severity || '').toLowerCase() === 'error';
-      const badgeClass = isErr ? 'bg-rose-900/80 text-rose-300 border-rose-700/60' : 'bg-amber-900/80 text-amber-300 border-amber-700/60';
-      return `
-        <div class="flex items-start space-x-2 text-[11px] leading-snug">
-          <span class="px-1 py-0.2 rounded font-mono font-bold text-[9px] border uppercase shrink-0 ${badgeClass}">${escapeHtml(v.rule_id || v.rule || 'LINT')}</span>
-          <span class="text-slate-200 flex-1">${escapeHtml(v.message)}</span>
-        </div>
-      `;
-    }).join('');
-
-    studioRunbookLintStatus.innerHTML = `${header}<div class="space-y-1.5">${violationsList}</div>`;
-    safeCreateIcons();
-  }
-
-  async function validateActiveRunbook(isPreSave = false) {
-    const name = studioRunbookName ? studioRunbookName.value.trim() : '';
-    const description = studioRunbookBlurb ? studioRunbookBlurb.value.trim() : '';
-    const instructions = studioRunbookBody ? studioRunbookBody.value : '';
-
-    if (!instructions.trim()) {
-      showToast('Runbook body cannot be empty', 'error');
-      return false;
-    }
-
-    if (studioRunbookValidateBtn) {
-      studioRunbookValidateBtn.disabled = true;
-    }
-
-    try {
-      const res = await fetch('/api/skills/lint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, instructions }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.detail || `HTTP ${res.status}`);
-      }
-
-      renderRunbookLintReport(data);
-
-      if (!data.valid && !isPreSave) {
-        showToast(`Runbook validation failed: ${data.error_count} error(s)`, 'error');
-      } else if (data.valid && !isPreSave) {
-        showToast('Runbook passed contract validation', 'success');
-      }
-
-      return data.valid;
-    } catch (err) {
-      showToast(`Lint check error: ${err.message || err}`, 'error');
-      return false;
-    } finally {
-      if (studioRunbookValidateBtn) {
-        studioRunbookValidateBtn.disabled = false;
-      }
-    }
-  }
-
-  function hideRunbookEditor() {
-    activeRunbookId = '';
-    activeRunbookArchived = false;
-    if (studioRunbookEditor) studioRunbookEditor.classList.add('hidden');
-    if (studioRunbookName) studioRunbookName.value = '';
-    if (studioRunbookBlurb) studioRunbookBlurb.value = '';
-    if (studioRunbookBody) studioRunbookBody.value = '';
-    if (studioRunbookPath) studioRunbookPath.textContent = '';
-    clearRunbookLintStatus();
-    updateRunbookCharCount();
-    setRunbookActionVisibility();
-  }
-
-  function applyRunbook(data, archivedHint, targetRow = null) {
-    const manifest = data.manifest || {};
-    activeRunbookId = manifest.id || activeRunbookId;
-    activeRunbookArchived = Boolean(archivedHint || data.archived || manifest.origin === 'archived');
-    if (studioRunbookName) studioRunbookName.value = manifest.name || data.name || '';
-    if (studioRunbookBlurb) studioRunbookBlurb.value = manifest.description || data.description || '';
-    const bodyContent = data.instructions || '';
-    if (studioRunbookBody) {
-      studioRunbookBody.value = bodyContent || CANONICAL_RUNBOOK_TEMPLATE;
-    }
-    if (studioRunbookPath) studioRunbookPath.textContent = manifest.path || '';
-    updateRunbookCharCount();
-    clearRunbookLintStatus();
-    if (studioRunbookEditor) {
-      if (targetRow) {
-        targetRow.after(studioRunbookEditor);
-      }
-      studioRunbookEditor.classList.remove('hidden');
-      studioRunbookEditor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-    setRunbookActionVisibility();
-    safeCreateIcons();
-  }
-
-  async function openRunbookEditor(packId, archived, targetRow = null) {
-    if (!packId) return;
-    try {
-      const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(packId)}`);
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      applyRunbook(data, archived, targetRow);
-    } catch (err) {
-      showToast(String(err.message || err), 'error');
-    }
-  }
-
-  function baselineToolCardHtml(tool) {
-    const tObj = typeof tool === 'string' ? { name: tool, description: '' } : (tool || {});
-    const name = tObj.name || '';
-    const desc = tObj.description || '';
-    return `
-      <div class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-950/70 border border-emerald-700/60 text-xs text-slate-200 select-none shadow-sm" title="${escapeHtml(desc)}">
-        <input type="checkbox" checked disabled class="hidden" title="Enforced platform required for all agents">
-        <i data-lucide="lock" class="w-3 h-3 text-emerald-400 shrink-0"></i>
-        <span class="font-mono text-[11px] font-semibold text-emerald-200">${escapeHtml(name)}</span>
-        <span class="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 uppercase">OS BASELINE</span>
-      </div>
-    `;
-  }
-
-  function renderBaselineTools() {
-    if (!forgeBaselineGrid) return;
-    const requiredPrimitives = [
-      { name: 'activate_skill', description: 'Activate a procedural skill runbook into the current session context.' },
-      { name: 'ask_clarification', description: 'Ask the human operator a clarifying question when requirements are ambiguous.' },
-      { name: 'handoff_to_agent', description: 'Handoff the conversation or task to another agent specialist.' },
-      { name: 'lookup_agents', description: 'Query available agents and their capabilities.' },
-      { name: 'get_session_info', description: 'Inspect active session metadata and runtime state.' },
-    ];
-    forgeBaselineGrid.innerHTML = requiredPrimitives.map((t) => baselineToolCardHtml(t)).join('');
-    safeCreateIcons();
-  }
-
-  function renderPlatformSkills() {
-    if (!forgeSkillsGrid) return;
-    const platform = cachedPlatformSkills || [];
-    const archived = cachedArchivedSkills || [];
-    const platformHtml = platform.length
-      ? platform.map((s) => skillRowHtml(s, 'platform', false)).join('')
-      : '<p class="text-[10px] text-slate-500 px-1">No platform runbooks in the skills data dir.</p>';
-    const archivedHtml = archived.length
-      ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Archived</h4>${archived.map((s) => skillRowHtml(s, 'archived', true)).join('')}</div>`
-      : '';
-    forgeSkillsGrid.innerHTML = `${platformHtml}${archivedHtml}`;
-    bindSkillRowHandlers(forgeSkillsGrid);
-    applySkillChecks();
-  }
-
-  function renderPackSkills() {
-    if (!forgeRunbooksGrid) return;
-    const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
-    const packHtml = packSkills.length
-      ? packSkills.map((s) => skillRowHtml(s, 'pack', false)).join('')
-      : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
-    forgeRunbooksGrid.innerHTML = packHtml;
-    bindSkillRowHandlers(forgeRunbooksGrid);
-    applySkillChecks();
-  }
-
-  function renderNestedHomes() {
-    renderBaselineTools();
-    renderPlatformSkills();
-    renderPackSkills();
-  }
-
-  async function loadPlatformSkills() {
-    try {
-      if (cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.platform_skills)) {
-        cachedPlatformSkills = cachedSkillsCatalog.platform_skills;
-      } else {
-        const catRes = await fetch('/api/skills/catalog');
-        if (catRes.ok) {
-          const catData = await catRes.json();
-          cachedSkillsCatalog = catData;
-          cachedPlatformSkills = catData.platform_skills || [];
-        }
-      }
-      const archRes = await fetch('/api/skills/archived-packs');
-      if (archRes.ok) {
-        const archData = await archRes.json();
-        cachedArchivedSkills = archData.packs || [];
-      } else {
-        cachedArchivedSkills = [];
-      }
-    } catch (e) {
-      console.warn('[AutoReiv UI] Failed to load platform skills:', e);
-      cachedPlatformSkills = [];
-      cachedArchivedSkills = [];
-    }
-    renderNestedHomes();
-  }
-
-  function populateAgentModelSelect(selectedProvider, targetModel = 'default') {
-    if (!forgeAgentModelSelect) return;
-    forgeAgentModelSelect.innerHTML = '<option value="default">Use Global Default</option>';
-    const prov = (selectedProvider || 'default').toLowerCase();
-
-    const filteredModels =
-      prov === 'default'
-        ? cachedDiscoveredModels
-        : cachedDiscoveredModels.filter((m) => (m.provider || '').toLowerCase() === prov);
-
-    filteredModels.forEach((m) => {
-      const opt = document.createElement('option');
-      opt.value = m.name;
-      opt.textContent = prov === 'default' ? `${m.name} (${m.provider})` : m.name;
-      forgeAgentModelSelect.appendChild(opt);
-    });
-
-    if (targetModel && targetModel !== 'default') {
-      const exists = Array.from(forgeAgentModelSelect.options).some((o) => o.value === targetModel);
-      if (!exists) {
-        const customOpt = document.createElement('option');
-        customOpt.value = targetModel;
-        customOpt.textContent = `${targetModel} (Custom)`;
-        forgeAgentModelSelect.appendChild(customOpt);
-      }
-      forgeAgentModelSelect.value = targetModel;
-    } else {
-      forgeAgentModelSelect.value = 'default';
-    }
-  }
-
-  function updateProviderConfigVisibility(provider) {
-    const p = (provider || 'default').toLowerCase();
-    if (!forgeProviderConfigContainer) return;
-    if (p === 'default') {
-      forgeProviderConfigContainer.classList.add('hidden');
-    } else {
-      forgeProviderConfigContainer.classList.remove('hidden');
-      if (PRESETS_DEFAULTS[p] && forgeApiKeyInput) {
-        forgeApiKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder || 'Optional for Local';
-      }
-    }
-  }
-
-  async function discoverModelsForAgent() {
-    const prov = forgeProviderSelect ? forgeProviderSelect.value : 'default';
-    const isCustom = prov !== 'default';
-    const url = isCustom && forgeApiBaseUrlInput ? forgeApiBaseUrlInput.value.trim() : '';
-    const key = isCustom && forgeApiKeyInput ? forgeApiKeyInput.value.trim() : '';
-
-    if (forgeDiscoverModelsBtn) {
-      forgeDiscoverModelsBtn.disabled = true;
-      forgeDiscoverModelsBtn.innerHTML = '<span>⏳ Discovering...</span>';
-    }
-
-    try {
-      const params = new URLSearchParams();
-      if (isCustom) {
-        params.set('provider_id', prov);
-        if (url) params.set('host_url', url);
-        if (key) params.set('api_key', key);
-      }
-      const query = params.toString();
-      const endpoint = query ? `/api/models/discover?${query}` : '/api/models/discover';
-      const res = await fetch(endpoint);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      const discovered = data.models || [];
-      if (isCustom) {
-        cachedDiscoveredModels = [
-          ...cachedDiscoveredModels.filter((m) => (m.provider || '').toLowerCase() !== prov.toLowerCase()),
-          ...discovered,
-        ];
-      } else {
-        cachedDiscoveredModels = discovered;
-      }
-      const curModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
-      populateAgentModelSelect(prov, curModel);
-      showToast(`Discovered ${discovered.length} model(s) for ${prov}`, 'success');
-    } catch (err) {
-      console.warn('[AutoReiv UI] Failed to discover models:', err);
-      showToast(`Failed to discover models: ${err.message || err}`, 'error');
-    } finally {
-      if (forgeDiscoverModelsBtn) {
-        forgeDiscoverModelsBtn.disabled = false;
-        forgeDiscoverModelsBtn.innerHTML = '<span>🔄 Refresh Models</span>';
-      }
-    }
+    return result;
   }
 
   async function loadAgentForge(targetAgentId) {
@@ -1003,13 +208,13 @@ export function initAgentForge(state, callbacks = {}) {
       if (catRes.ok) {
         cachedSkillsCatalog = await catRes.json();
       }
-      await loadPlatformSkills();
+      await loadPlatformSkillsWrapper();
 
       try {
         const modRes = await fetch('/api/models/discover');
         if (modRes.ok) {
           const modData = await modRes.json();
-          cachedDiscoveredModels = modData.models || [];
+          setCachedDiscoveredModels(modData.models || []);
           const curProv = forgeProviderSelect ? forgeProviderSelect.value : 'default';
           const curMod = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
           populateAgentModelSelect(curProv, curMod);
@@ -1030,7 +235,7 @@ export function initAgentForge(state, callbacks = {}) {
 
         const targetAgent = studioAgents.find((a) => a.id === forgeAgentSelect.value) || studioAgents[0];
         if (targetAgent) {
-          renderAgentToForge(targetAgent);
+          await renderAgentToForge(targetAgent);
         }
       }
     } catch (err) {
@@ -1049,7 +254,7 @@ export function initAgentForge(state, callbacks = {}) {
     }
     if (forgeDescInput) forgeDescInput.value = agent.description || '';
     if (forgeSystemPrompt) forgeSystemPrompt.value = agent.system_prompt || '';
-    loadTones(agent.tone || 'default');
+    await loadTones(agent.tone || 'default');
     if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || 10;
     if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
     const agentProv = agent.provider || 'default';
@@ -1079,8 +284,7 @@ export function initAgentForge(state, callbacks = {}) {
       forgePackBoxTitle.textContent = 'Custom Agent Pack Skills & Tools';
     }
 
-    renderNestedHomes();
-
+    renderNestedHomesWrapper();
     updateAvatarPreview(agent.avatar_icon || 'bot');
 
     if (forgeBuiltinBadge) {
@@ -1113,871 +317,74 @@ export function initAgentForge(state, callbacks = {}) {
     if (agent.allow_wiki_access === false) {
       lastAllowedSkills.delete('wiki');
     }
-    applySkillChecks();
+    applySkillChecks(lastAllowedSkills);
 
     loadAgentTelemetry(agent.id);
-    loadAgentAssignedRoutines(agent.id);
-    loadAgentCapabilityGaps(agent.id);
-    loadAgentMcpServers(agent.id);
+    loadAgentAssignedRoutines(agent.id, callbacks);
+    loadAgentCapabilityGaps(agent.id, callbacks);
+    currentAgentMcpServers = await loadAgentMcpServers(agent.id, {
+      getActiveAgent,
+      onServersChanged: (servers) => { currentAgentMcpServers = servers; },
+    });
     loadAgentCredentialGrants(agent);
     loadArchitecturalProposals(agent.id);
   }
 
-  function updateAvatarPreview(iconName) {
-    if (forgeAvatarPreview) {
-      forgeAvatarPreview.innerHTML = `<i data-lucide="${iconName}" class="w-7 h-7"></i>`;
-      safeCreateIcons();
+  function openDeleteModal() {
+    if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
+    if (deleteAgentModalMessage) {
+      deleteAgentModalMessage.textContent = `Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"? This will remove the agent configuration, delete its pack files, and unbind any assigned routines.`;
     }
-  }
-
-
-  async function loadAgentAssignedRoutines(agentId) {
-    if (!forgeAssignedRoutinesList) return;
-    try {
-      const res = await fetch(`/api/routines?agent_id=${encodeURIComponent(agentId)}`);
-      if (!res.ok) return;
-      const routines = await res.json();
-      forgeAssignedRoutinesList.innerHTML = '';
-
-      if (routines.length === 0) {
-        forgeAssignedRoutinesList.innerHTML = `
-          <p class="text-[11px] text-slate-500 italic py-1">No scheduled background routines currently assigned to this agent.</p>
-        `;
-        return;
-      }
-
-      routines.forEach((r) => {
-        const item = document.createElement('div');
-        item.className =
-          'p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-between text-xs space-x-2';
-        item.innerHTML = `
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center space-x-2">
-              <span class="font-semibold text-slate-200 truncate">${escapeHtml(r.name)}</span>
-              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded ${r.enabled ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}">${r.enabled ? 'Active' : 'Paused'}</span>
-            </div>
-            <div class="text-[10px] text-slate-400 flex items-center space-x-2 mt-0.5">
-              <span>${escapeHtml(r.human_schedule || r.cron_expression)}</span>
-              <span class="text-brand-400 font-mono">Next: ${escapeHtml(r.next_run_eta || 'scheduled')}</span>
-            </div>
-          </div>
-          <div class="flex items-center space-x-1 flex-shrink-0">
-            <button class="forge-routine-run-btn p-1.5 rounded bg-slate-700 hover:bg-brand-600 text-slate-200 hover:text-white transition" title="Run Routine Now">
-              <i data-lucide="play" class="w-3 h-3"></i>
-            </button>
-            <button class="forge-routine-edit-btn p-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 transition" title="Edit Routine">
-              <i data-lucide="edit-3" class="w-3 h-3"></i>
-            </button>
-          </div>
-        `;
-        forgeAssignedRoutinesList.appendChild(item);
-
-        $query('.forge-routine-edit-btn', item)?.addEventListener('click', () => {
-          const routinesTabBtn = $query('.tab-btn[data-tab="routines"]');
-          if (routinesTabBtn) routinesTabBtn.click();
-          if (callbacks.openRoutineModal) callbacks.openRoutineModal(r);
-        });
-
-        $query('.forge-routine-run-btn', item)?.addEventListener('click', async (e) => {
-          const btn = e.currentTarget;
-          btn.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>`;
-          try {
-            await fetch(`/api/routines/${r.id}/run`, { method: 'POST' });
-            btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>`;
-            setTimeout(() => {
-              btn.innerHTML = `<i data-lucide="play" class="w-3 h-3"></i>`;
-              safeCreateIcons();
-            }, 2000);
-          } catch (err) {
-            console.error('[AutoReiv UI] Failed to run routine from Agent Studio:', err);
-            btn.innerHTML = `<i data-lucide="play" class="w-3 h-3"></i>`;
-            safeCreateIcons();
-          }
-        });
-      });
-
-      safeCreateIcons();
-    } catch (e) {
-      console.warn('[AutoReiv UI] Failed to load agent assigned routines:', e);
-    }
-  }
-
-  if (linkRoutineForAgentBtn) {
-    linkRoutineForAgentBtn.addEventListener('click', () => {
-      const agentId = activeForgeAgent ? activeForgeAgent.id : forgeAgentSelect ? forgeAgentSelect.value : null;
-      if (callbacks.openRoutineModal) callbacks.openRoutineModal(null, agentId);
-    });
-  }
-
-  async function loadAgentCapabilityGaps(agentId) {
-    if (!agentBacklogList) return;
-    if (!agentId) {
-      agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
-      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = '0';
-      return;
-    }
-    try {
-      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps?status=pending`);
-      const data = res.ok ? await res.json() : {};
-      const items = Array.isArray(data) ? data : (data.gaps || []);
-      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = String(items.length);
-      if (!items.length) {
-        agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
-        return;
-      }
-      agentBacklogList.innerHTML = items.map((gap) => `
-        <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${escapeHtml(gap.id)}">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability')}</span>
-            <div class="flex items-center space-x-1.5">
-              <button type="button" class="btn-open-factory-gap px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}" title="Open Training Factory for this agent">Open Training Factory</button>
-              <button type="button" class="btn-dismiss-gap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-medium transition" data-gap-id="${escapeHtml(gap.id)}">Dismiss</button>
-            </div>
-          </div>
-          ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span></div>` : ''}
-          <p class="text-[11px] text-slate-400 whitespace-pre-wrap">${escapeHtml(gap.turn_text || gap.user_prompt || '')}</p>
-        </div>
-      `).join('');
-
-      agentBacklogList.querySelectorAll('.btn-open-factory-gap').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          // CARD-306: Forge does not launch a second lab — open Training Factory for this agent
-          if (typeof callbacks.openFactoryStudio === 'function') {
-            callbacks.openFactoryStudio(agentId);
-          } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
-            window.openFactoryStudioForAgent(agentId);
-          } else if (typeof forgeTrainAgentBtn !== 'undefined' && forgeTrainAgentBtn) {
-            forgeTrainAgentBtn.click();
-          } else {
-            showToast('Open Factory Studio from the dock to train this gap.', 'info');
-          }
-        });
-      });
-
-      agentBacklogList.querySelectorAll('.btn-dismiss-gap').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
-          const gapId = e.currentTarget.dataset.gapId;
-          try {
-            const delRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps/${encodeURIComponent(gapId)}`, { method: 'DELETE' });
-            if (!delRes.ok) throw new Error('Failed to dismiss gap');
-            showToast('Capability gap dismissed', 'info');
-            await loadAgentCapabilityGaps(agentId);
-          } catch (err) {
-            showToast(String(err.message || err), 'error');
-          }
-        });
-      });
-    } catch (err) {
-      console.warn('[AutoReiv UI] Failed to load capability gaps:', err);
-      agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
-      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = '0';
-    }
-  }
-
-  async function loadAgentMcpServers(agentId) {
-    if (!forgeMcpServerList) return;
-    if (!agentId) {
-      forgeMcpServerList.innerHTML = '<p id="forgeMcpServerEmpty" class="text-[11px] text-slate-500">No remote MCP servers configured for this agent.</p>';
-      if (forgeMcpServerCountBadge) forgeMcpServerCountBadge.textContent = '0';
-      return;
-    }
-    try {
-      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp`);
-      const servers = res.ok ? await res.json() : [];
-      currentAgentMcpServers = Array.isArray(servers) ? servers : [];
-      if (activeForgeAgent) {
-        activeForgeAgent.mcp_servers = currentAgentMcpServers;
-      }
-      renderAgentMcpServers(agentId, currentAgentMcpServers);
-    } catch (err) {
-      console.warn('[AutoReiv UI] Failed to load agent MCP servers:', err);
-      forgeMcpServerList.innerHTML = '<p id="forgeMcpServerEmpty" class="text-[11px] text-slate-500">Failed to load MCP servers.</p>';
-    }
-  }
-
-  function renderAgentMcpServers(agentId, servers) {
-    if (!forgeMcpServerList) return;
-    if (forgeMcpServerCountBadge) {
-      forgeMcpServerCountBadge.textContent = String(servers.length);
-    }
-    if (!servers.length) {
-      forgeMcpServerList.innerHTML = '<p id="forgeMcpServerEmpty" class="text-[11px] text-slate-500">No remote MCP servers configured for this agent.</p>';
-      return;
-    }
-
-    forgeMcpServerList.innerHTML = servers.map((s) => {
-      const isMounted = Boolean(s.is_mounted);
-      const isEnabled = s.enabled !== false;
-      const toolCount = s.tool_count || (s.tools ? s.tools.length : 0);
-      const target = s.url || s.command || 'N/A';
-      return `
-        <div class="p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-2" data-server-name="${escapeHtml(s.name)}">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-              <span class="text-xs font-bold text-slate-200 font-mono">${escapeHtml(s.name)}</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-950/70 text-cyan-400 border border-cyan-800/60">${escapeHtml(s.transport || 'sse')}</span>
-              ${isEnabled 
-                ? (isMounted 
-                    ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950/70 text-emerald-400 border border-emerald-800/60 flex items-center space-x-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span>Mounted (${toolCount} tools)</span>
-                       </span>`
-                    : '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">Enabled</span>')
-                : '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-900 text-slate-500 border border-slate-800">Disabled</span>'
-              }
-            </div>
-            <div class="flex items-center space-x-1.5">
-              ${!isMounted && isEnabled ? `
-                <button type="button" class="btn-mount-server px-2 py-1 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Connect/Mount this MCP server">
-                  <i data-lucide="play" class="w-3 h-3"></i>
-                  <span>Connect</span>
-                </button>
-              ` : ''}
-              <button type="button" class="btn-probe-server px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/60 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Test connection probe">
-                <i data-lucide="activity" class="w-3 h-3"></i>
-                <span>Probe</span>
-              </button>
-              <button type="button" class="btn-delete-server px-2 py-1 bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Remove this MCP server">
-                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                <span>Delete</span>
-              </button>
-            </div>
-          </div>
-          <div class="text-[11px] font-mono text-slate-400 truncate">
-            <span class="text-slate-500">Endpoint:</span> ${escapeHtml(target)}
-          </div>
-          <div class="server-probe-result hidden p-2 rounded text-[11px] font-mono border"></div>
-        </div>
-      `;
-    }).join('');
-
+    if (purgeHistoryCheckbox) purgeHistoryCheckbox.checked = false;
+    if (deleteAgentModal) deleteAgentModal.classList.remove('hidden');
     safeCreateIcons();
-
-    forgeMcpServerList.querySelectorAll('.btn-mount-server').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        const sName = e.currentTarget.dataset.serverName;
-        const card = btn.closest('[data-server-name]');
-        const resultEl = card ? card.querySelector('.server-probe-result') : null;
-        if (resultEl) {
-          resultEl.classList.remove('hidden');
-          resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-slate-900 border-slate-700 text-slate-300';
-          resultEl.textContent = 'Connecting to MCP server...';
-        }
-        try {
-          const mountRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/${encodeURIComponent(sName)}/mount`, {
-            method: 'POST',
-          });
-          const data = await mountRes.json();
-          if (data.status === 'mounted') {
-            await loadAgentMcpServers(agentId);
-          } else {
-            if (resultEl) {
-              resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-              resultEl.textContent = `✗ Mount failed: ${data.error || 'Unknown error'}`;
-            }
-          }
-        } catch (err) {
-          if (resultEl) {
-            resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-            resultEl.textContent = `✗ Mount error: ${err.message || err}`;
-          }
-        }
-      });
-    });
-
-    forgeMcpServerList.querySelectorAll('.btn-probe-server').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        const sName = e.currentTarget.dataset.serverName;
-        const sObj = servers.find((s) => s.name === sName);
-        if (!sObj) return;
-        const card = btn.closest('[data-server-name]');
-        const resultEl = card ? card.querySelector('.server-probe-result') : null;
-        if (resultEl) {
-          resultEl.classList.remove('hidden');
-          resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-slate-900 border-slate-700 text-slate-300';
-          resultEl.textContent = 'Probing server endpoint...';
-        }
-        try {
-          const probeRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/test`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sObj),
-          });
-          const data = await probeRes.json();
-          if (resultEl) {
-            if (data.status === 'ok') {
-              resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-emerald-950/60 border-emerald-800 text-emerald-300';
-              resultEl.textContent = `✓ OK (${data.latency_ms}ms) - ${data.tools_count} tool(s): ${(data.tools || []).join(', ')}`;
-            } else {
-              resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-              resultEl.textContent = `✗ Probe failed (${data.latency_ms}ms): ${data.error || 'Unknown error'}`;
-            }
-          }
-        } catch (err) {
-          if (resultEl) {
-            resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-            resultEl.textContent = `✗ Probe error: ${err.message || err}`;
-          }
-        }
-      });
-    });
-
-    forgeMcpServerList.querySelectorAll('.btn-delete-server').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        const sName = e.currentTarget.dataset.serverName;
-        if (!confirm(`Delete MCP server '${sName}' from this agent?`)) return;
-        try {
-          const delRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/${encodeURIComponent(sName)}`, {
-            method: 'DELETE',
-          });
-          if (!delRes.ok) throw new Error(`HTTP ${delRes.status}`);
-          showToast(`MCP server '${sName}' removed`, 'info');
-          await loadAgentMcpServers(agentId);
-        } catch (err) {
-          showToast(`Failed to delete server: ${err.message || err}`, 'error');
-        }
-      });
-    });
   }
 
-  async function loadAgentCredentialGrants(agent) {
-    if (!forgeCredentialGrantsList) return;
-    const allowed = new Set(agent ? (agent.allowed_credentials || []) : []);
-    try {
-      const res = await fetch('/api/vault/credentials');
-      if (!res.ok) {
-        forgeCredentialGrantsList.innerHTML = '<p id="forgeCredentialEmpty" class="text-[11px] text-slate-500">Failed to load credentials from vault.</p>';
-        if (forgeCredentialCountBadge) forgeCredentialCountBadge.textContent = '0';
-        return;
-      }
-      const creds = await res.json();
-      if (!Array.isArray(creds) || creds.length === 0) {
-        forgeCredentialGrantsList.innerHTML = '<p id="forgeCredentialEmpty" class="text-[11px] text-slate-500">No credentials configured in Vault. Add credentials in Settings Studio.</p>';
-        if (forgeCredentialCountBadge) forgeCredentialCountBadge.textContent = '0';
-        return;
-      }
-
-      forgeCredentialGrantsList.innerHTML = creds.map((c) => {
-        const isChecked = allowed.has(c.id);
-        return `
-          <label class="flex items-center space-x-2.5 p-2 rounded-lg bg-slate-800/60 border border-slate-700/60 hover:border-slate-600 transition cursor-pointer">
-            <input type="checkbox" value="${escapeHtml(c.id)}" class="forge-credential-checkbox rounded border-slate-700 text-emerald-500 focus:ring-emerald-500/20 bg-slate-900 h-4 w-4" ${isChecked ? 'checked' : ''}>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center space-x-2">
-                <span class="text-xs font-semibold text-slate-200 truncate">${escapeHtml(c.name)}</span>
-                <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-700/50 text-slate-300 border border-slate-600/40 uppercase">${escapeHtml(c.type || 'generic')}</span>
-              </div>
-              <span class="text-[10px] font-mono text-slate-400 truncate block">${escapeHtml(c.id)}</span>
-            </div>
-          </label>
-        `;
-      }).join('');
-
-      const updateCount = () => {
-        const checkedCount = $queryAll('.forge-credential-checkbox:checked', forgeCredentialGrantsList).length;
-        if (forgeCredentialCountBadge) {
-          forgeCredentialCountBadge.textContent = String(checkedCount);
-        }
-      };
-
-      $queryAll('.forge-credential-checkbox', forgeCredentialGrantsList).forEach((cb) => {
-        cb.addEventListener('change', updateCount);
-      });
-
-      updateCount();
-    } catch (err) {
-      console.warn('[AutoReiv UI] Failed to load credential grants:', err);
-      forgeCredentialGrantsList.innerHTML = '<p id="forgeCredentialEmpty" class="text-[11px] text-slate-500">Failed to load credentials.</p>';
-      if (forgeCredentialCountBadge) forgeCredentialCountBadge.textContent = '0';
-    }
+  function closeDeleteModal() {
+    if (deleteAgentModal) deleteAgentModal.classList.add('hidden');
   }
 
-  async function loadAgentTelemetry(agentId) {
-    try {
-      const res = await fetch(`/api/observability/kpi?agent_id=${encodeURIComponent(agentId)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-
-      // Resolve matching agent metrics (or match legacy aliases)
-      const aliases = [agentId];
-      if (agentId === 'assistant') aliases.push('general-assistant');
-      if (agentId === 'general-assistant') aliases.push('assistant');
-
-      const agentMetrics =
-        (data.agents || []).find((a) => aliases.includes(a.agent_id)) ||
-        (data.overview && data.overview.total_turns > 0 ? data.overview : null);
-
-      if (agentMetrics) {
-        const turns = agentMetrics.turn_count ?? agentMetrics.total_turns ?? 0;
-        const tokens = agentMetrics.total_tokens ?? 0;
-        const cost = agentMetrics.estimated_cost_usd ?? tokens * 0.000001;
-        const tools = agentMetrics.tool_call_count ?? agentMetrics.total_tool_calls ?? 0;
-        const errors = agentMetrics.error_count ?? 0;
-        const errorPct = turns > 0 ? (errors / turns) * 100 : (agentMetrics.error_rate_pct ?? 0);
-        const latency = agentMetrics.avg_duration_ms ?? agentMetrics.avg_turn_duration_ms ?? 0;
-
-        if (forgeStatTurns) forgeStatTurns.textContent = turns.toLocaleString();
-        if (forgeStatTokens) forgeStatTokens.textContent = tokens.toLocaleString();
-        if (forgeStatCost) forgeStatCost.textContent = `$${cost < 0.01 && cost > 0 ? cost.toFixed(4) : cost.toFixed(2)}`;
-        if (forgeStatTools) forgeStatTools.textContent = tools.toLocaleString();
-        if (forgeStatErrors) forgeStatErrors.textContent = `${errorPct.toFixed(1)}%`;
-        if (forgeStatLatency) forgeStatLatency.textContent = `${Math.round(latency)}ms`;
-      } else {
-        if (forgeStatTurns) forgeStatTurns.textContent = '0';
-        if (forgeStatTokens) forgeStatTokens.textContent = '0';
-        if (forgeStatCost) forgeStatCost.textContent = '$0.00';
-        if (forgeStatTools) forgeStatTools.textContent = '0';
-        if (forgeStatErrors) forgeStatErrors.textContent = '0.0%';
-        if (forgeStatLatency) forgeStatLatency.textContent = '0ms';
-      }
-    } catch (e) {
-      console.warn('[AutoReiv UI] Failed to load agent telemetry:', e);
-    }
+  // Delete modal listeners
+  if (deleteAgentBtn) {
+    deleteAgentBtn.addEventListener('click', openDeleteModal);
   }
+  if (cancelDeleteAgentBtn) cancelDeleteAgentBtn.addEventListener('click', closeDeleteModal);
+  if (closeDeleteAgentModalBtn) closeDeleteAgentModalBtn.addEventListener('click', closeDeleteModal);
 
-  const forgeOpenObserveBtn = $('forgeOpenObserveBtn');
-  if (forgeOpenObserveBtn) {
-    forgeOpenObserveBtn.addEventListener('click', () => {
-      if (typeof callbacks.switchTab === 'function') callbacks.switchTab('observability');
-    });
-  }
+  if (confirmDeleteAgentBtn) {
+    confirmDeleteAgentBtn.addEventListener('click', async () => {
+      if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
+      const purge = purgeHistoryCheckbox ? purgeHistoryCheckbox.checked : false;
+      closeDeleteModal();
 
-  if (forgeAgentSelect) {
-    forgeAgentSelect.addEventListener('change', () => {
-      const selectedId = forgeAgentSelect.value;
-      const agent = (state.agents || []).find((a) => a.id === selectedId);
-      if (agent) renderAgentToForge(agent);
-    });
-  }
-
-  if (forgeAvatarSelect) {
-    forgeAvatarSelect.addEventListener('change', () => {
-      updateAvatarPreview(forgeAvatarSelect.value);
-    });
-  }
-
-
-  if (forgeExportPackBtn) {
-    forgeExportPackBtn.addEventListener('click', async () => {
-      const id = (activeForgeAgent && activeForgeAgent.id) || (forgeIdInput ? forgeIdInput.value.trim() : '');
-      if (!id) {
-        showToast('Select an agent to export.', 'warning');
-        return;
-      }
       try {
-        const res = await fetch(`/api/agents/${encodeURIComponent(id)}/pack.zip`);
+        const res = await fetch(`/api/agents/${encodeURIComponent(activeForgeAgent.id)}?purge_history=${purge}`, { method: 'DELETE' });
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `HTTP ${res.status}`);
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to delete agent');
         }
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${id}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        showToast(`Exported ${id}`, 'success');
-      } catch (err) {
-        showToast(`Export failed: ${err.message || err}`, 'error');
-      }
-    });
-  }
 
-  if (forgeImportPackBtn && forgeImportPackInput) {
-    forgeImportPackBtn.addEventListener('click', () => forgeImportPackInput.click());
-    forgeImportPackInput.addEventListener('change', async (event) => {
-      const file = event.target.files && event.target.files[0];
-      event.target.value = '';
-      if (!file) return;
-      try {
-        const body = new FormData();
-        body.append('file', file);
-        const res = await fetch('/api/agents/import-pack', { method: 'POST', body });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        const imported = data.agent || {};
-        showToast(`Imported ${imported.name || imported.id || 'pack'}`, 'success');
-        if (callbacks.onAgentSaved) {
-          await callbacks.onAgentSaved(imported.id);
+        showToast(`Agent "${activeForgeAgent.name}" deleted.`, 'info');
+
+        if (forgeStatusBanner) {
+          forgeStatusBanner.textContent = `Agent "${activeForgeAgent.name}" deleted.`;
+          forgeStatusBanner.className =
+            'px-4 py-2 text-xs font-medium text-center border-b border-rose-800 bg-rose-950/60 text-rose-300 block';
+          setTimeout(() => forgeStatusBanner.classList.add('hidden'), 3500);
+        }
+
+        if (callbacks.onAgentDeleted) {
+          await callbacks.onAgentDeleted();
         }
         await loadAgentForge();
-        if (forgeAgentSelect && imported.id) forgeAgentSelect.value = imported.id;
       } catch (err) {
-        showToast(`Import failed: ${err.message || err}`, 'error');
+        console.error('[AutoReiv UI] Delete agent error:', err);
+        showToast(`Error deleting agent: ${err.message}`, 'error');
       }
     });
   }
 
-  if (forgeProviderSelect) {
-    forgeProviderSelect.addEventListener('change', () => {
-      const p = forgeProviderSelect.value;
-      updateProviderConfigVisibility(p);
-      if (p !== 'default' && PRESETS_DEFAULTS[p]) {
-        const knownUrls = Object.values(PRESETS_DEFAULTS).map((preset) => preset.url);
-        if (forgeApiBaseUrlInput && (!forgeApiBaseUrlInput.value || knownUrls.includes(forgeApiBaseUrlInput.value))) {
-          forgeApiBaseUrlInput.value = PRESETS_DEFAULTS[p].url;
-        }
-      }
-      const currentModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
-      populateAgentModelSelect(p, currentModel);
-    });
-  }
-
-  if (forgeDiscoverModelsBtn) {
-    forgeDiscoverModelsBtn.addEventListener('click', () => {
-      discoverModelsForAgent();
-    });
-  }
-
-  if (forgeStorageEnabled && forgeStorageTypeContainer) {
-    forgeStorageEnabled.addEventListener('change', () => {
-      forgeStorageTypeContainer.classList.toggle('hidden', !forgeStorageEnabled.checked);
-      const storageSkillCheckbox = document.querySelector('.forge-skill-checkbox[value="sqlite-storage"]');
-      if (storageSkillCheckbox) {
-        storageSkillCheckbox.checked = forgeStorageEnabled.checked;
-      }
-    });
-  }
-
-  if (forgeMemoryRetentionDays && forgeMemoryRetentionDaysLabel) {
-    forgeMemoryRetentionDays.addEventListener('input', () => {
-      forgeMemoryRetentionDaysLabel.textContent = `${forgeMemoryRetentionDays.value} days`;
-    });
-  }
-
-  async function loadAndRenderBrainDrawer(agentId, query = '') {
-    if (!agentBrainDrawer) return;
-    if (brainDrawerAgentName) brainDrawerAgentName.textContent = `(${agentId})`;
-
-    if (brainShelfPinnedContainer) {
-      const pinned = forgePinnedMemory ? forgePinnedMemory.value.trim() : '';
-      brainShelfPinnedContainer.textContent = pinned || 'No pinned directives configured.';
-    }
-
-    try {
-      const url = query
-        ? `/api/agents/${encodeURIComponent(agentId)}/memory?query=${encodeURIComponent(query)}`
-        : `/api/agents/${encodeURIComponent(agentId)}/memory`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      if (data.pinned && data.pinned.content && brainShelfPinnedContainer) {
-        brainShelfPinnedContainer.textContent = data.pinned.content;
-      }
-
-      // Shelf 2: Episodic Summaries
-      const summaries = data.session_summaries || [];
-      if (brainShelfSummariesCount) brainShelfSummariesCount.textContent = `${summaries.length} sessions`;
-      if (brainShelfSummariesContainer) {
-        if (summaries.length === 0) {
-          brainShelfSummariesContainer.innerHTML = '<div class="text-slate-500 text-xs italic py-2">No episodic session summaries recorded yet.</div>';
-        } else {
-          brainShelfSummariesContainer.innerHTML = summaries.map((s) => `
-            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
-              <div class="flex items-center justify-between text-[11px] text-slate-400">
-                <span class="font-mono text-blue-400 font-medium">Session ${escapeHtml(s.session_id ? s.session_id.slice(0, 8) : '')}</span>
-                <span>${escapeHtml(s.created_at || '')}</span>
-              </div>
-              <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(s.summary_text || '')}</p>
-            </div>
-          `).join('');
-        }
-      }
-
-      // Shelf 3: Semantic Facts
-      const facts = data.semantic_facts || [];
-      if (brainShelfFactsCount) brainShelfFactsCount.textContent = `${facts.length} facts`;
-      if (brainShelfFactsContainer) {
-        if (facts.length === 0) {
-          brainShelfFactsContainer.innerHTML = '<div class="text-slate-500 text-xs italic py-2">No semantic facts compiled yet.</div>';
-        } else {
-          brainShelfFactsContainer.innerHTML = facts.map((f) => `
-            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start justify-between space-x-3">
-              <div class="space-y-1 flex-1">
-                <div class="flex items-center space-x-2">
-                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800/60">${escapeHtml(f.category || 'fact')}</span>
-                  <span class="text-[10px] font-mono text-slate-400">conf: ${Number(f.confidence || 1.0).toFixed(2)}</span>
-                  <span class="text-[10px] font-mono text-slate-400">access: ${f.access_count || 0}</span>
-                </div>
-                <p class="text-xs text-slate-200">${escapeHtml(f.fact_text || '')}</p>
-              </div>
-              <button type="button" class="btn-forget-fact text-[11px] text-rose-400 hover:text-rose-300 px-2 py-1 rounded bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 transition flex-shrink-0" data-fact-id="${escapeHtml(f.id)}">
-                Forget
-              </button>
-            </div>
-          `).join('');
-
-          brainShelfFactsContainer.querySelectorAll('.btn-forget-fact').forEach((btn) => {
-            btn.addEventListener('click', async (e) => {
-              const factId = e.currentTarget.dataset.factId;
-              if (!factId) return;
-              try {
-                const delRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/memory/facts/${encodeURIComponent(factId)}`, {
-                  method: 'DELETE',
-                });
-                if (!delRes.ok) throw new Error('Failed to delete fact');
-                showToast('Fact forgotten', 'success');
-                const curQuery = brainSearchInput ? brainSearchInput.value.trim() : '';
-                await loadAndRenderBrainDrawer(agentId, curQuery);
-              } catch (err) {
-                showToast(String(err.message || err), 'error');
-              }
-            });
-          });
-        }
-      }
-    } catch (e) {
-      console.error('[Agent Brain] Failed to fetch memory:', e);
-      showToast('Failed to load agent brain memory', 'error');
-    }
-  }
-
-  function openBrainDrawer() {
-    const agentId = forgeIdInput ? forgeIdInput.value.trim() : (activeForgeAgent ? activeForgeAgent.id : '');
-    if (!agentId) {
-      showToast('Please select or save an agent first.', 'warning');
-      return;
-    }
-    if (agentBrainDrawer) {
-      agentBrainDrawer.classList.remove('hidden');
-      if (brainSearchInput) brainSearchInput.value = '';
-      loadAndRenderBrainDrawer(agentId);
-      safeCreateIcons();
-    }
-  }
-
-  function closeBrainDrawer() {
-    if (agentBrainDrawer) {
-      agentBrainDrawer.classList.add('hidden');
-    }
-  }
-
-  if (btnOpenBrainDrawer) {
-    btnOpenBrainDrawer.addEventListener('click', openBrainDrawer);
-  }
-
-  if (closeBrainDrawerBtn) {
-    closeBrainDrawerBtn.addEventListener('click', closeBrainDrawer);
-  }
-
-  if (closeBrainDrawerFooterBtn) {
-    closeBrainDrawerFooterBtn.addEventListener('click', closeBrainDrawer);
-  }
-
-  if (brainSearchInput) {
-    let searchDebounce = null;
-    brainSearchInput.addEventListener('input', () => {
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => {
-        const agentId = forgeIdInput ? forgeIdInput.value.trim() : (activeForgeAgent ? activeForgeAgent.id : '');
-        if (agentId) {
-          loadAndRenderBrainDrawer(agentId, brainSearchInput.value.trim());
-        }
-      }, 250);
-    });
-  }
-
-  if (btnPurgeBrain) {
-    btnPurgeBrain.addEventListener('click', async () => {
-      const agentId = forgeIdInput ? forgeIdInput.value.trim() : (activeForgeAgent ? activeForgeAgent.id : '');
-      if (!agentId) {
-        showToast('Please select an agent first.', 'warning');
-        return;
-      }
-      if (!window.confirm(`Permanently purge all episodic summaries and semantic facts for agent "${agentId}"?`)) {
-        return;
-      }
-      try {
-        const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/memory`, {
-          method: 'DELETE',
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
-        }
-        showToast(`Brain memory purged for agent "${agentId}"`, 'success');
-        if (agentBrainDrawer && !agentBrainDrawer.classList.contains('hidden')) {
-          loadAndRenderBrainDrawer(agentId);
-        }
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      }
-    });
-  }
-
-  if (newAgentBtn) {
-    newAgentBtn.addEventListener('click', () => {
-      startNewAgentPackFromStudio(callbacks);
-      showToast('Talk to AutoReiv to build the pack.', 'info');
-    });
-  }
-
-  // Quick Scaffold Modal Wiring [CARD-197, REQ-FACT-047]
-  function openQuickScaffoldModal() {
-    if (!forgeNewAgentModal) return;
-    if (forgeNewAgentPresetSelect) forgeNewAgentPresetSelect.value = '';
-    if (forgeNewAgentIdInput) forgeNewAgentIdInput.value = '';
-    if (forgeNewAgentNameInput) forgeNewAgentNameInput.value = '';
-    if (forgeNewAgentRoleInput) forgeNewAgentRoleInput.value = '';
-    if (forgeNewAgentDescInput) forgeNewAgentDescInput.value = '';
-    forgeNewAgentModal.classList.remove('hidden');
-    if (forgeNewAgentIdInput) forgeNewAgentIdInput.focus();
-  }
-
-  function closeQuickScaffoldModal() {
-    if (forgeNewAgentModal) {
-      forgeNewAgentModal.classList.add('hidden');
-    }
-  }
-
-  if (forgeNewAgentPresetSelect) {
-    forgeNewAgentPresetSelect.addEventListener('change', () => {
-      const presetKey = forgeNewAgentPresetSelect.value;
-      const preset = FORGE_QUICK_PRESETS[presetKey];
-      if (preset) {
-        if (forgeNewAgentIdInput) forgeNewAgentIdInput.value = preset.id;
-        if (forgeNewAgentNameInput) forgeNewAgentNameInput.value = preset.name;
-        if (forgeNewAgentRoleInput) forgeNewAgentRoleInput.value = preset.role;
-        if (forgeNewAgentDescInput) forgeNewAgentDescInput.value = preset.description;
-        if (forgeNewAgentAvatarSelect) forgeNewAgentAvatarSelect.value = preset.avatar;
-        if (forgeNewAgentToneSelect) forgeNewAgentToneSelect.value = preset.tone;
-        if (forgeNewAgentPurposeSelect) forgeNewAgentPurposeSelect.value = preset.purpose;
-      }
-    });
-  }
-
-  if (forgeQuickScaffoldBtn) {
-    forgeQuickScaffoldBtn.addEventListener('click', () => {
-      openQuickScaffoldModal();
-    });
-  }
-
-  if (forgeNewAgentCloseBtn) {
-    forgeNewAgentCloseBtn.addEventListener('click', () => {
-      closeQuickScaffoldModal();
-    });
-  }
-
-  if (forgeNewAgentCancelBtn) {
-    forgeNewAgentCancelBtn.addEventListener('click', () => {
-      closeQuickScaffoldModal();
-    });
-  }
-
-  const forgeNewAgentChatInsteadBtn = $('forgeNewAgentChatInsteadBtn');
-  if (forgeNewAgentChatInsteadBtn) {
-    forgeNewAgentChatInsteadBtn.addEventListener('click', () => {
-      closeQuickScaffoldModal();
-      startNewAgentPackFromStudio(callbacks);
-    });
-  }
-
-  if (forgeNewAgentSubmitBtn) {
-    forgeNewAgentSubmitBtn.addEventListener('click', async () => {
-      const id = forgeNewAgentIdInput ? forgeNewAgentIdInput.value.trim() : '';
-      const name = forgeNewAgentNameInput ? forgeNewAgentNameInput.value.trim() : '';
-      if (!id || !name) {
-        showToast('Please provide both an Agent ID and Display Name.', 'warning');
-        return;
-      }
-      const role = forgeNewAgentRoleInput ? forgeNewAgentRoleInput.value.trim() : '';
-      const desc = forgeNewAgentDescInput ? forgeNewAgentDescInput.value.trim() : '';
-      const avatar = forgeNewAgentAvatarSelect ? forgeNewAgentAvatarSelect.value : 'bot';
-      const tone = forgeNewAgentToneSelect ? forgeNewAgentToneSelect.value : 'balanced';
-      const purpose = forgeNewAgentPurposeSelect ? forgeNewAgentPurposeSelect.value : 'general';
-
-      const payload = buildQuickScaffoldPayload({
-        id,
-        name,
-        description: desc,
-        role,
-        avatar,
-        tone,
-        purpose,
-      });
-
-      try {
-        forgeNewAgentSubmitBtn.disabled = true;
-        const res = await fetch('/api/agents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || 'Failed to scaffold agent pack');
-        }
-        closeQuickScaffoldModal();
-        showToast(`Agent "${name}" pack created successfully!`, 'success');
-        await loadAgentForge(id);
-        if (typeof callbacks.openFactoryStudio === 'function') {
-          callbacks.openFactoryStudio(id);
-        } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
-          window.openFactoryStudioForAgent(id);
-        }
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        forgeNewAgentSubmitBtn.disabled = false;
-      }
-    });
-  }
-
-
-  if (forgeTrainAgentBtn) {
-    forgeTrainAgentBtn.addEventListener('click', () => {
-      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
-      if (typeof callbacks.openFactoryStudio === 'function') {
-        callbacks.openFactoryStudio(currentAgentId);
-      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
-        window.openFactoryStudioForAgent(currentAgentId);
-      }
-
-      const modal = $('trainAgentHandshakeModal');
-      if (modal) {
-        const currentAgentName = forgeNameInput ? forgeNameInput.value.trim() : '';
-        if (currentAgentId) {
-          modal.dataset.agentId = currentAgentId;
-        } else {
-          delete modal.dataset.agentId;
-        }
-        modal.classList.remove('hidden');
-        const modalTitle = $('trainAgentModalTitle');
-        if (modalTitle) {
-          modalTitle.innerHTML = `
-            <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
-            <span>Train ${escapeHtml(currentAgentName || currentAgentId || 'Agent')} (Lab Loop)</span>
-          `;
-        }
-        const nameGroup = $('trainAgentNameGroup');
-        if (nameGroup) nameGroup.classList.add('hidden');
-        const nameInput = $('trainAgentNameInput');
-        if (nameInput) nameInput.value = '';
-        const trainTargetLocation = $('trainTargetLocation');
-        if (trainTargetLocation) {
-          trainTargetLocation.value = '';
-        }
-        const trainSeedIntent = $('trainSeedIntentInput');
-        if (trainSeedIntent) {
-          const desc = forgeDescInput ? forgeDescInput.value.trim() : '';
-          trainSeedIntent.value = '';
-          trainSeedIntent.placeholder = desc || `e.g. Expand ${currentAgentName || currentAgentId} capabilities`;
-        }
-        const trainSeedObjectives = $('trainSeedObjectives');
-        if (trainSeedObjectives) {
-          trainSeedObjectives.value = '';
-          trainSeedObjectives.placeholder = `List 1 to 3 capabilities to train for ${currentAgentName || currentAgentId} (one per line)...`;
-          trainSeedObjectives.focus();
-        }
-        safeCreateIcons();
-      }
-    });
-  }
-
+  // Save Agent handler
   if (saveAgentBtn) {
     saveAgentBtn.addEventListener('click', async () => {
       const name = forgeNameInput ? forgeNameInput.value.trim() : '';
@@ -2138,1357 +545,144 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
-  // --- Remote MCP Server Management Event Listeners [CARD-183] ---
-  if (forgeAddMcpServerBtn && forgeMcpServerForm) {
-    forgeAddMcpServerBtn.addEventListener('click', () => {
-      forgeMcpServerForm.classList.remove('hidden');
-      if (forgeMcpNameInput) forgeMcpNameInput.value = '';
-      if (forgeMcpUrlInput) forgeMcpUrlInput.value = '';
-      if (forgeMcpCommandInput) forgeMcpCommandInput.value = '';
-      if (forgeMcpHeadersInput) forgeMcpHeadersInput.value = '';
-      if (forgeMcpEnabledCheckbox) forgeMcpEnabledCheckbox.checked = true;
-      if (forgeMcpTestResult) forgeMcpTestResult.classList.add('hidden');
-    });
-  }
-
-  if (forgeMcpServerFormCloseBtn && forgeMcpServerForm) {
-    forgeMcpServerFormCloseBtn.addEventListener('click', () => {
-      forgeMcpServerForm.classList.add('hidden');
-    });
-  }
-
-  if (forgeMcpTransportSelect) {
-    forgeMcpTransportSelect.addEventListener('change', () => {
-      const isStdio = forgeMcpTransportSelect.value === 'stdio';
-      if (forgeMcpUrlGroup) forgeMcpUrlGroup.classList.toggle('hidden', isStdio);
-      if (forgeMcpCommandGroup) forgeMcpCommandGroup.classList.toggle('hidden', !isStdio);
-    });
-  }
-
-  if (forgeMcpTestBtn) {
-    forgeMcpTestBtn.addEventListener('click', async () => {
-      const name = forgeMcpNameInput ? forgeMcpNameInput.value.trim() : 'test-server';
-      const transport = forgeMcpTransportSelect ? forgeMcpTransportSelect.value : 'sse';
-      const url = forgeMcpUrlInput ? forgeMcpUrlInput.value.trim() : '';
-      const command = forgeMcpCommandInput ? forgeMcpCommandInput.value.trim() : '';
-      let headers = null;
-      if (forgeMcpHeadersInput && forgeMcpHeadersInput.value.trim()) {
-        try {
-          headers = JSON.parse(forgeMcpHeadersInput.value.trim());
-        } catch {
-          showToast('Invalid JSON in custom headers', 'warning');
-          return;
-        }
-      }
-      const agentId = activeForgeAgent ? activeForgeAgent.id : 'assistant';
-      if (forgeMcpTestResult) {
-        forgeMcpTestResult.classList.remove('hidden');
-        forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-slate-900 border-slate-700 text-slate-300';
-        forgeMcpTestResult.textContent = 'Probing server...';
-      }
-      try {
-        const testRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/test`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, transport, url: url || null, command: command || null, headers, enabled: true }),
-        });
-        const data = await testRes.json();
-        if (forgeMcpTestResult) {
-          if (data.status === 'ok') {
-            forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-emerald-950/60 border-emerald-800 text-emerald-300';
-            forgeMcpTestResult.textContent = `✓ OK (${data.latency_ms}ms) - ${data.tools_count} tool(s) found: ${(data.tools || []).join(', ')}`;
-          } else {
-            forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-            forgeMcpTestResult.textContent = `✗ Probe failed (${data.latency_ms}ms): ${data.error || 'Unknown error'}`;
-          }
-        }
-      } catch (err) {
-        if (forgeMcpTestResult) {
-          forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-          forgeMcpTestResult.textContent = `✗ Connection error: ${err.message || err}`;
-        }
-      }
-    });
-  }
-
-  if (forgeMcpSaveBtn) {
-    forgeMcpSaveBtn.addEventListener('click', async () => {
-      const name = forgeMcpNameInput ? forgeMcpNameInput.value.trim() : '';
-      if (!name) {
-        showToast('Server name is required', 'warning');
-        return;
-      }
-      const transport = forgeMcpTransportSelect ? forgeMcpTransportSelect.value : 'sse';
-      const url = forgeMcpUrlInput ? forgeMcpUrlInput.value.trim() : '';
-      const command = forgeMcpCommandInput ? forgeMcpCommandInput.value.trim() : '';
-      if (transport === 'sse' && !url) {
-        showToast('Remote URL is required for HTTP/SSE transport', 'warning');
-        return;
-      }
-      let headers = null;
-      if (forgeMcpHeadersInput && forgeMcpHeadersInput.value.trim()) {
-        try {
-          headers = JSON.parse(forgeMcpHeadersInput.value.trim());
-        } catch {
-          showToast('Invalid JSON in custom headers', 'warning');
-          return;
-        }
-      }
-      const enabled = forgeMcpEnabledCheckbox ? forgeMcpEnabledCheckbox.checked : true;
-      const agentId = activeForgeAgent ? activeForgeAgent.id : null;
-      if (!agentId) {
-        showToast('No active agent selected', 'error');
+  // Pack export & import
+  if (forgeExportPackBtn) {
+    forgeExportPackBtn.addEventListener('click', async () => {
+      const id = (activeForgeAgent && activeForgeAgent.id) || (forgeIdInput ? forgeIdInput.value.trim() : '');
+      if (!id) {
+        showToast('Select an agent to export.', 'warning');
         return;
       }
       try {
-        const saveRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, transport, url: url || null, command: command || null, headers, enabled }),
-        });
-        if (!saveRes.ok) throw new Error(`HTTP ${saveRes.status}`);
-        showToast(`MCP server '${name}' saved`, 'success');
-        if (forgeMcpServerForm) forgeMcpServerForm.classList.add('hidden');
-        await loadAgentMcpServers(agentId);
-      } catch (err) {
-        showToast(`Failed to save server: ${err.message || err}`, 'error');
-      }
-    });
-  }
-
-  const deleteAgentModal = $('deleteAgentModal');
-  const deleteAgentModalMessage = $('deleteAgentModalMessage');
-  const purgeHistoryCheckbox = $('purgeHistoryCheckbox');
-  const confirmDeleteAgentBtn = $('confirmDeleteAgentBtn');
-  const cancelDeleteAgentBtn = $('cancelDeleteAgentBtn');
-  const closeDeleteAgentModalBtn = $('closeDeleteAgentModalBtn');
-
-  function openDeleteModal() {
-    if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
-    if (deleteAgentModalMessage) {
-      deleteAgentModalMessage.textContent = `Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"? This will remove the agent configuration, delete its pack files, and unbind any assigned routines.`;
-    }
-    if (purgeHistoryCheckbox) purgeHistoryCheckbox.checked = false;
-    if (deleteAgentModal) deleteAgentModal.classList.remove('hidden');
-    safeCreateIcons();
-  }
-
-  function closeDeleteModal() {
-    if (deleteAgentModal) deleteAgentModal.classList.add('hidden');
-  }
-
-  if (deleteAgentBtn) {
-    deleteAgentBtn.addEventListener('click', openDeleteModal);
-  }
-  if (cancelDeleteAgentBtn) cancelDeleteAgentBtn.addEventListener('click', closeDeleteModal);
-  if (closeDeleteAgentModalBtn) closeDeleteAgentModalBtn.addEventListener('click', closeDeleteModal);
-
-  if (confirmDeleteAgentBtn) {
-    confirmDeleteAgentBtn.addEventListener('click', async () => {
-      if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
-      const purge = purgeHistoryCheckbox ? purgeHistoryCheckbox.checked : false;
-      closeDeleteModal();
-
-      try {
-        const res = await fetch(`/api/agents/${encodeURIComponent(activeForgeAgent.id)}?purge_history=${purge}`, { method: 'DELETE' });
+        const res = await fetch(`/api/agents/${encodeURIComponent(id)}/pack.zip`);
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || 'Failed to delete agent');
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `HTTP ${res.status}`);
         }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${id}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${id}`, 'success');
+      } catch (err) {
+        showToast(`Export failed: ${err.message || err}`, 'error');
+      }
+    });
+  }
 
-        showToast(`Agent "${activeForgeAgent.name}" deleted.`, 'info');
-
-        if (forgeStatusBanner) {
-          forgeStatusBanner.textContent = `Agent "${activeForgeAgent.name}" deleted.`;
-          forgeStatusBanner.className =
-            'px-4 py-2 text-xs font-medium text-center border-b border-rose-800 bg-rose-950/60 text-rose-300 block';
-          setTimeout(() => forgeStatusBanner.classList.add('hidden'), 3500);
-        }
-
-        if (callbacks.onAgentDeleted) {
-          await callbacks.onAgentDeleted();
+  if (forgeImportPackBtn && forgeImportPackInput) {
+    forgeImportPackBtn.addEventListener('click', () => forgeImportPackInput.click());
+    forgeImportPackInput.addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+      try {
+        const body = new FormData();
+        body.append('file', file);
+        const res = await fetch('/api/agents/import-pack', { method: 'POST', body });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        const imported = data.agent || {};
+        showToast(`Imported ${imported.name || imported.id || 'pack'}`, 'success');
+        if (callbacks.onAgentSaved) {
+          await callbacks.onAgentSaved(imported.id);
         }
         await loadAgentForge();
+        if (forgeAgentSelect && imported.id) forgeAgentSelect.value = imported.id;
       } catch (err) {
-        console.error('[AutoReiv UI] Delete agent error:', err);
-        showToast(`Error deleting agent: ${err.message}`, 'error');
+        showToast(`Import failed: ${err.message || err}`, 'error');
       }
     });
   }
 
-
-  if (studioNewRunbookBtn) {
-    studioNewRunbookBtn.addEventListener('click', async () => {
-      const slug = ((studioNewRunbookSlug && studioNewRunbookSlug.value) || '').trim();
-      if (!slug) {
-        showToast('Runbook slug is required', 'error');
-        return;
-      }
-      try {
-        const res = await fetch('/api/skills/user-packs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: slug, name: slug, description: 'User skill runbook.' }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        if (studioNewRunbookSlug) studioNewRunbookSlug.value = '';
-        showToast(`Created ${slug}`, 'success');
-        await loadPlatformSkills();
-        applyRunbook(data, false);
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
+  // Storage toggle sync
+  if (forgeStorageEnabled && forgeStorageTypeContainer) {
+    forgeStorageEnabled.addEventListener('change', () => {
+      forgeStorageTypeContainer.classList.toggle('hidden', !forgeStorageEnabled.checked);
+      const storageSkillCheckbox = document.querySelector('.forge-skill-checkbox[value="sqlite-storage"]');
+      if (storageSkillCheckbox) {
+        storageSkillCheckbox.checked = forgeStorageEnabled.checked;
       }
     });
   }
 
-  if (studioRunbookSaveBtn) {
-    studioRunbookSaveBtn.addEventListener('click', async () => {
-      if (!activeRunbookId) {
-        showToast('Open a runbook first', 'error');
-        return;
-      }
-      if (activeRunbookArchived) {
-        showToast('Unarchive this runbook before saving', 'error');
-        return;
-      }
-      const isValid = await validateActiveRunbook(true);
-      if (!isValid) {
-        const proceed = window.confirm(
-          'This runbook has mechanical contract violations (e.g. missing Done-When or >6 tools). Do you still want to save it as a draft?'
-        );
-        if (!proceed) return;
-      }
-      try {
-        studioRunbookSaveBtn.disabled = true;
-        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: studioRunbookName ? studioRunbookName.value : '',
-            description: studioRunbookBlurb ? studioRunbookBlurb.value : '',
-            instructions: studioRunbookBody ? studioRunbookBody.value : '',
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast('Runbook saved', 'success');
-        await loadPlatformSkills();
-        applyRunbook(data, false);
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookSaveBtn.disabled = false;
+  // Agent selector change
+  if (forgeAgentSelect) {
+    forgeAgentSelect.addEventListener('change', () => {
+      const selectedId = forgeAgentSelect.value;
+      const agent = (state.agents || []).find((a) => a.id === selectedId);
+      if (agent) renderAgentToForge(agent);
+    });
+  }
+
+  // Avatar select change
+  if (forgeAvatarSelect) {
+    forgeAvatarSelect.addEventListener('change', () => {
+      updateAvatarPreview(forgeAvatarSelect.value);
+    });
+  }
+
+  // New Agent button -> handoff to AutoReiv
+  if (newAgentBtn) {
+    newAgentBtn.addEventListener('click', () => {
+      const handled = startNewAgentPackFromStudio(callbacks);
+      if (!handled) {
+        showToast('Talk to AutoReiv to build the pack.', 'info');
       }
     });
   }
 
-  if (studioRunbookArchiveBtn) {
-    studioRunbookArchiveBtn.addEventListener('click', async () => {
-      if (!activeRunbookId) {
-        showToast('Open a runbook first', 'error');
-        return;
-      }
-      if (!window.confirm(`Archive runbook "${activeRunbookId}"? It leaves the live list and can be unarchived later.`)) {
-        return;
-      }
-      try {
-        studioRunbookArchiveBtn.disabled = true;
-        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/archive`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ confirm: true }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast(`Archived ${activeRunbookId}`, 'success');
-        hideRunbookEditor();
-        await loadPlatformSkills();
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookArchiveBtn.disabled = false;
-      }
+  // Observability cross link
+  if (forgeOpenObserveBtn) {
+    forgeOpenObserveBtn.addEventListener('click', () => {
+      if (typeof callbacks.switchTab === 'function') callbacks.switchTab('observability');
     });
   }
 
-  if (studioRunbookUnarchiveBtn) {
-    studioRunbookUnarchiveBtn.addEventListener('click', async () => {
-      if (!activeRunbookId) {
-        showToast('Open an archived runbook first', 'error');
-        return;
-      }
-      if (!window.confirm(`Unarchive runbook "${activeRunbookId}" and restore it to the live list?`)) {
-        return;
-      }
-      try {
-        studioRunbookUnarchiveBtn.disabled = true;
-        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/unarchive`, {
-          method: 'POST',
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast(`Unarchived ${activeRunbookId}`, 'success');
-        await loadPlatformSkills();
-        await openRunbookEditor(activeRunbookId, false);
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookUnarchiveBtn.disabled = false;
-      }
+  // Link routine for agent
+  if (linkRoutineForAgentBtn) {
+    linkRoutineForAgentBtn.addEventListener('click', () => {
+      const agentId = getActiveAgentId();
+      if (callbacks.openRoutineModal) callbacks.openRoutineModal(null, agentId);
     });
   }
 
-  if (studioRunbookDeleteBtn) {
-    studioRunbookDeleteBtn.addEventListener('click', async () => {
-      if (!activeRunbookId) {
-        showToast('Open a runbook first', 'error');
-        return;
-      }
-      if (!window.confirm(`Permanently delete runbook "${activeRunbookId}"? This removes the directory under skills/ and cannot be undone.`)) {
-        return;
-      }
-      try {
-        studioRunbookDeleteBtn.disabled = true;
-        const params = new URLSearchParams({ confirm: 'true' });
-        const res = await fetch(
-          `/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}?${params.toString()}`,
-          { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }) },
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast(`Deleted ${activeRunbookId}`, 'success');
-        hideRunbookEditor();
-        await loadPlatformSkills();
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookDeleteBtn.disabled = false;
-      }
-    });
-  }
-
-  if (studioRunbookCloseBtn) {
-    studioRunbookCloseBtn.addEventListener('click', () => hideRunbookEditor());
-  }
-
-  if (studioRunbookCancelBtn) {
-    studioRunbookCancelBtn.addEventListener('click', () => hideRunbookEditor());
-  }
-
-  if (studioRunbookValidateBtn) {
-    studioRunbookValidateBtn.addEventListener('click', () => {
-      validateActiveRunbook(false);
-    });
-  }
-
-  if (studioRunbookBody) {
-    studioRunbookBody.addEventListener('input', () => {
-      updateRunbookCharCount();
-    });
-  }
-
-  async function loadTones(selectedToneId = null) {
-    try {
-      const res = await fetch('/api/tones');
-      if (!res.ok) return;
-      cachedTones = await res.json();
-
-      if (forgeToneSelect) {
-        const currentVal =
-          selectedToneId ||
-          forgeToneSelect.value ||
-          (activeForgeAgent ? activeForgeAgent.tone : 'default');
-        forgeToneSelect.innerHTML = '';
-        cachedTones.forEach((t) => {
-          const opt = document.createElement('option');
-          opt.value = t.id;
-          opt.textContent = `${t.name}${t.description ? ` (${t.description})` : ''}`;
-          forgeToneSelect.appendChild(opt);
-        });
-        forgeToneSelect.value = currentVal;
-        if (!forgeToneSelect.value && cachedTones.length > 0) {
-          forgeToneSelect.value = cachedTones[0].id;
-        }
-      }
-    } catch (e) {
-      console.warn('[AutoReiv UI] Failed to load tones:', e);
-    }
-  }
-
-  function openManageTonesModal() {
-    if (!manageTonesModal) return;
-    manageTonesModal.classList.remove('hidden');
-    hideToneForm();
-    renderManageTonesList();
-  }
-
-  function closeManageTonesModal() {
-    if (!manageTonesModal) return;
-    manageTonesModal.classList.add('hidden');
-    hideToneForm();
-  }
-
-  function showToneForm(mode = 'create', tone = null) {
-    if (!manageToneForm) return;
-    manageToneForm.classList.remove('hidden');
-    if (toneFormMode) toneFormMode.value = mode;
-    if (manageToneFormTitle) {
-      manageToneFormTitle.textContent = mode === 'edit' && tone ? `Edit Tone: ${tone.name}` : 'Create Custom Tone';
-    }
-    if (toneFormId) {
-      toneFormId.value = tone ? tone.id : '';
-      toneFormId.disabled = mode === 'edit';
-    }
-    if (toneFormName) toneFormName.value = tone ? tone.name : '';
-    if (toneFormDescription) toneFormDescription.value = tone ? tone.description : '';
-    if (toneFormDirective) toneFormDirective.value = tone ? tone.directive : '';
-    if (toneFormName) toneFormName.focus();
-  }
-
-  function hideToneForm() {
-    if (!manageToneForm) return;
-    manageToneForm.classList.add('hidden');
-    if (manageToneForm.reset) manageToneForm.reset();
-  }
-
-  async function renderManageTonesList() {
-    if (!manageTonesList) return;
-    manageTonesList.innerHTML = '<div class="text-slate-500 py-3 text-center">Loading tones...</div>';
-    await loadTones();
-
-    if (cachedTones.length === 0) {
-      manageTonesList.innerHTML = '<div class="text-slate-500 py-3 text-center">No tones found.</div>';
-      return;
-    }
-
-    manageTonesList.innerHTML = '';
-    cachedTones.forEach((t) => {
-      const item = document.createElement('div');
-      item.className = 'p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5 transition';
-
-      const badgeClass = t.is_builtin
-        ? 'bg-indigo-950 text-indigo-300 border-indigo-800'
-        : 'bg-emerald-950 text-emerald-300 border-emerald-800';
-      const badgeText = t.is_builtin ? 'Built-in' : 'Custom';
-
-      item.innerHTML = `
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <span class="font-bold text-white text-xs">${escapeHtml(t.name)}</span>
-            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border ${badgeClass}">${badgeText}</span>
-            <span class="text-[10px] font-mono text-slate-500">id: ${escapeHtml(t.id)}</span>
-          </div>
-          ${
-            !t.is_builtin
-              ? `
-            <div class="flex items-center space-x-1.5">
-              <button type="button" class="edit-tone-btn text-[11px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition" data-id="${escapeHtml(t.id)}">Edit</button>
-              <button type="button" class="del-tone-btn text-[11px] text-rose-400 hover:text-rose-300 px-2 py-0.5 rounded bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 transition" data-id="${escapeHtml(t.id)}">Delete</button>
-            </div>
-          `
-              : ''
-          }
-        </div>
-        ${t.description ? `<p class="text-[11px] text-slate-400">${escapeHtml(t.description)}</p>` : ''}
-        <div class="p-2 rounded bg-slate-900/80 border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap">${escapeHtml(t.directive)}</div>
-      `;
-
-      // Wire Edit button
-      const editBtn = item.querySelector('.edit-tone-btn');
-      if (editBtn) {
-        editBtn.addEventListener('click', () => {
-          showToneForm('edit', t);
-        });
-      }
-
-      // Wire Delete button
-      const delBtn = item.querySelector('.del-tone-btn');
-      if (delBtn) {
-        delBtn.addEventListener('click', async () => {
-          if (!window.confirm(`Delete custom tone "${t.name}" (${t.id})?`)) return;
-          try {
-            const res = await fetch(`/api/tones/${encodeURIComponent(t.id)}`, { method: 'DELETE' });
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              throw new Error(err.detail || `HTTP ${res.status}`);
-            }
-            showToast(`Deleted tone "${t.name}"`, 'success');
-            await renderManageTonesList();
-          } catch (e) {
-            showToast(String(e.message || e), 'error');
-          }
-        });
-      }
-
-      manageTonesList.appendChild(item);
-    });
-  }
-
-  if (manageTonesBtn) {
-    manageTonesBtn.addEventListener('click', openManageTonesModal);
-  }
-
-  if (closeManageTonesModalBtn) {
-    closeManageTonesModalBtn.addEventListener('click', closeManageTonesModal);
-  }
-
-  if (openNewToneFormBtn) {
-    openNewToneFormBtn.addEventListener('click', () => showToneForm('create'));
-  }
-
-  if (closeToneFormBtn) {
-    closeToneFormBtn.addEventListener('click', hideToneForm);
-  }
-
-  if (cancelToneFormBtn) {
-    cancelToneFormBtn.addEventListener('click', hideToneForm);
-  }
-
-  if (manageToneForm) {
-    manageToneForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const mode = toneFormMode ? toneFormMode.value : 'create';
-      const id = toneFormId ? toneFormId.value.trim().toLowerCase() : '';
-      const name = toneFormName ? toneFormName.value.trim() : '';
-      const description = toneFormDescription ? toneFormDescription.value.trim() : '';
-      const directive = toneFormDirective ? toneFormDirective.value.trim() : '';
-
-      if (!id || !name || !directive) {
-        showToast('Name, ID, and Directive are required.', 'warning');
-        return;
-      }
-
-      try {
-        if (mode === 'create') {
-          const res = await fetch('/api/tones', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, name, description, directive }),
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.detail || `HTTP ${res.status}`);
-          }
-          showToast(`Created tone "${name}"`, 'success');
-        } else {
-          const res = await fetch(`/api/tones/${encodeURIComponent(id)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, description, directive }),
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.detail || `HTTP ${res.status}`);
-          }
-          showToast(`Updated tone "${name}"`, 'success');
-        }
-        hideToneForm();
-        await renderManageTonesList();
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      }
-    });
-  }
-
-  setRunbookActionVisibility();
-
-  // ==================== LAB TRAINING MONITOR DRAWER [CARD-164] ====================
-  const forgeLabMonitorBtn = $('forgeLabMonitorBtn');
-  const forgeLabRunsBadge = $('forgeLabRunsBadge');
-  const labMonitorDrawer = $('labMonitorDrawer');
-  const closeLabMonitorDrawerBtn = $('closeLabMonitorDrawerBtn');
-  const closeLabMonitorDrawerFooterBtn = $('closeLabMonitorDrawerFooterBtn');
-  const refreshLabMonitorBtn = $('refreshLabMonitorBtn');
-  const labJobSelect = $('labJobSelect');
-  const labJobStatusPill = $('labJobStatusPill');
-  const labMonitorJobBadge = $('labMonitorJobBadge');
-  const labHitlCard = $('labHitlCard');
-  const labHitlToolsList = $('labHitlToolsList');
-  const labApproveDeployBtn = $('labApproveDeployBtn');
-  const labRejectDeployBtn = $('labRejectDeployBtn');
-  const labPacketsFeed = $('labPacketsFeed');
-  const labPacketsCount = $('labPacketsCount');
-  const labRetryJobBtn = $('labRetryJobBtn');
-  const labCopyFeedBtn = $('labCopyFeedBtn');
-  const labCopyFeedText = $('labCopyFeedText');
-
-
-  let labPollTimer = null;
-  let currentLabJobData = null;
-
-
-  // --- Self-Scaffold Candidate Queue [CARD-218] ---
-  async function loadForgeScaffoldQueue() {
-    const statusEl = $('forgeScaffoldStatus');
-    const body = $('forgeScaffoldQueueBody');
-    if (!body) return;
-    if (statusEl) statusEl.textContent = 'Loading candidates…';
-    try {
-      const res = await fetch('/api/capabilities/scaffold/candidates?limit=50');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to load candidates');
-      const rows = data.candidates || [];
-      if (!rows.length) {
-        body.innerHTML = '<tr><td colspan="5" class="p-2 text-slate-500">No candidates in queue.</td></tr>';
-      } else {
-        body.innerHTML = rows.map((r) => {
-          const id = escapeHtml(r.id || '');
-          const name = escapeHtml(r.name || r.pack_id || '');
-          const phase = escapeHtml(r.phase || '');
-          const trust = escapeHtml(r.trust_tier || '');
-          const sand = r.sandboxed ? 'yes' : 'no';
-          return `<tr data-scaffold-id="${id}">
-            <td class="p-2">${name}</td>
-            <td class="p-2 font-mono">${phase}</td>
-            <td class="p-2">${trust}</td>
-            <td class="p-2">${sand}</td>
-            <td class="p-2 space-x-1">
-              <button type="button" data-scaffold-action="sandbox" data-id="${id}" class="px-1.5 py-0.5 rounded bg-amber-800/60 hover:bg-amber-700 text-[10px] text-amber-100 border border-amber-700/50">Sandbox</button>
-              <button type="button" data-scaffold-action="version" data-id="${id}" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-200 border border-slate-700">Version</button>
-              <button type="button" data-scaffold-action="approve" data-id="${id}" class="px-1.5 py-0.5 rounded bg-emerald-800/60 hover:bg-emerald-700 text-[10px] text-emerald-100 border border-emerald-700/50">Approve</button>
-              <button type="button" data-scaffold-action="rollback" data-id="${id}" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-rose-900/50 text-[10px] text-slate-300 border border-slate-700">Rollback</button>
-            </td>
-          </tr>`;
-        }).join('');
-      }
-      if (statusEl) statusEl.textContent = `Queue: ${rows.length} candidate(s). forge_queue=${!!data.forge_queue}`;
-    } catch (err) {
-      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
-      body.innerHTML = `<tr><td colspan="5" class="p-2 text-rose-400">${escapeHtml(String(err.message || err))}</td></tr>`;
-    }
-  }
-
-  async function runForgeScaffoldAction(action, id) {
-    const statusEl = $('forgeScaffoldStatus');
-    const paths = {
-      sandbox: `/api/capabilities/scaffold/${encodeURIComponent(id)}/sandbox`,
-      version: `/api/capabilities/scaffold/${encodeURIComponent(id)}/version`,
-      approve: `/api/capabilities/scaffold/${encodeURIComponent(id)}/approve`,
-      rollback: `/api/capabilities/scaffold/${encodeURIComponent(id)}/rollback`,
-    };
-    const url = paths[action];
-    if (!url) return;
-    try {
-      if (statusEl) statusEl.textContent = `${action}…`;
-      const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
-      if (action === 'sandbox') opts.body = JSON.stringify({ evidence: 'forge-ui-sandbox' });
-      const res = await fetch(url, opts);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `${action} failed`);
-      // CARD-251: Forge Approve resumes same job_id / origin session (no orphan).
-      if (action === 'approve' && data && data.resumed && data.job_id) {
-        showToast(`Approved — resumed same job ${data.job_id}`, 'success');
-        if (statusEl) {
-          statusEl.textContent = `Approved. Resumed same job_id=${data.job_id} (origin session; no orphan).`;
-        }
-        await resumeOriginAfterForgeApprove(data);
-      } else {
-        showToast(`Scaffold ${action} ok`, 'success');
-      }
-      await loadForgeScaffoldQueue();
-    } catch (err) {
-      showToast(String(err.message || err), 'error');
-      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
-    }
-  }
-
-  async function resumeOriginAfterForgeApprove(data) {
-    const jobId = data && data.job_id ? String(data.job_id) : '';
-    const sessionId = data && data.session_id ? String(data.session_id) : '';
-    if (!jobId) return;
-    try {
-      const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
-      if (chat && sessionId && typeof chat.selectSession === 'function') {
-        await chat.selectSession(sessionId);
-      }
-      if (chat && typeof chat.resumeParkedJob === 'function') {
-        await chat.resumeParkedJob();
-      }
-      if (typeof callbacks.switchTab === 'function') {
-        callbacks.switchTab('chat');
-      }
-      const obs = typeof callbacks.getObsCtrl === 'function' ? callbacks.getObsCtrl() : null;
-      const input = $('standingJourneyJobIdInput');
-      if (input) input.value = jobId;
-      if (obs && typeof obs.loadStandingJourney === 'function') {
-        await obs.loadStandingJourney();
-      }
-    } catch (err) {
-      console.warn('CARD-251 origin resume after Forge Approve soft-fail:', err);
-    }
-  }
-
-  async function updateLabRunsBadge() {
-    try {
-      const res = await fetch('/api/agent_training_factory/jobs');
-      if (!res.ok) return;
-      const data = await res.json();
-      const jobs = data.jobs || [];
-      const activeJobs = jobs.filter((j) => ['queued', 'running', 'waiting_approval'].includes(j.status));
-      if (forgeLabRunsBadge) {
-        if (activeJobs.length > 0) {
-          forgeLabRunsBadge.textContent = String(activeJobs.length);
-          forgeLabRunsBadge.classList.remove('hidden');
-        } else {
-          forgeLabRunsBadge.classList.add('hidden');
-        }
-      }
-    } catch {
-      // quiet fail
-    }
-  }
-
-  function setStepVisual(el, state) {
-    if (!el) return;
-    el.classList.remove('border-emerald-500', 'bg-emerald-950/40', 'border-brand-500', 'bg-brand-950/40', 'border-slate-800', 'bg-slate-950/50');
-    const num = el.querySelector('.step-num');
-    const name = el.querySelector('.step-name');
-    const icon = el.querySelector('.step-icon');
-
-    if (state === 'done') {
-      el.classList.add('border-emerald-500', 'bg-emerald-950/40');
-      if (num) num.className = 'step-num text-[10px] font-mono text-emerald-400';
-      if (name) name.className = 'step-name font-semibold text-emerald-300';
-      if (icon) icon.className = 'step-icon text-emerald-400';
-    } else if (state === 'active') {
-      el.classList.add('border-brand-500', 'bg-brand-950/40');
-      if (num) num.className = 'step-num text-[10px] font-mono text-brand-400';
-      if (name) name.className = 'step-name font-semibold text-brand-300';
-      if (icon) icon.className = 'step-icon text-brand-400';
-    } else {
-      el.classList.add('border-slate-800', 'bg-slate-950/50');
-      if (num) num.className = 'step-num text-[10px] font-mono text-slate-500';
-      if (name) name.className = 'step-name font-semibold text-slate-400';
-      if (icon) icon.className = 'step-icon text-slate-500';
-    }
-  }
-
-  async function loadLabJobDetails(jobId) {
-    if (!jobId) return;
-    try {
-      const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      currentLabJobData = data;
-      if (labRetryJobBtn) {
-        labRetryJobBtn.classList.remove('hidden');
-      }
-      const job = data.job;
-      const packets = data.packets || [];
-      const evals = data.eval_runs || [];
-
-      if (labMonitorJobBadge) {
-        labMonitorJobBadge.textContent = `${job.target_agent_id} (${job.id})`;
-      }
-
-      // Status Pill
-      if (labJobStatusPill) {
-        const dot = labJobStatusPill.querySelector('span:first-child');
-        const txt = labJobStatusPill.querySelector('.status-text');
-        if (txt) txt.textContent = job.status.toUpperCase();
-        labJobStatusPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center space-x-1.5';
-        if (dot) dot.className = 'w-2 h-2 rounded-full';
-
-        if (job.status === 'done') {
-          labJobStatusPill.classList.add('border-emerald-500/50', 'bg-emerald-950/40', 'text-emerald-300');
-          if (dot) dot.classList.add('bg-emerald-400');
-        } else if (job.status === 'waiting_approval') {
-          labJobStatusPill.classList.add('border-amber-500/50', 'bg-amber-950/40', 'text-amber-300');
-          if (dot) dot.classList.add('bg-amber-400');
-        } else if (job.status === 'running') {
-          labJobStatusPill.classList.add('border-brand-500/50', 'bg-brand-950/40', 'text-brand-300');
-          if (dot) dot.classList.add('bg-brand-400');
-        } else if (job.status === 'failed') {
-          labJobStatusPill.classList.add('border-rose-500/50', 'bg-rose-950/40', 'text-rose-300');
-          if (dot) dot.classList.add('bg-rose-400');
-        } else {
-          labJobStatusPill.classList.add('border-slate-700', 'bg-slate-800', 'text-slate-300');
-          if (dot) dot.classList.add('bg-slate-400');
-        }
-      }
-
-      // Stepper logic — Agent Training Factory phases (CARD-171)
-      const node = job.current_node_id;
-      const status = job.status;
-      const phaseOrder = [
-        'intent_distill',
-        'ground',
-        'blueprint',
-        'author',
-        'scenario_verify',
-        'verify',
-        'optimize',
-        'promote',
-      ];
-      // Legacy costume nodes map into phaseOrder indices
-      const legacyMap = {
-        socratic_handshake: 'intent_distill',
-        discovery_probe: 'ground',
-        architecture_blueprint: 'blueprint',
-        attempt_node: 'author',
-        conduct_node: 'author',
-        coder_node: 'author',
-        sandbox_battery_node: 'verify',
-        critic_signoff_node: 'optimize',
-        hitl_deploy_gate_node: 'promote',
-        pack_finalized_node: 'done',
-      };
-      const phase = legacyMap[node] || node;
-      let activeIdx = phaseOrder.indexOf(phase);
-      if (phase === 'done' || status === 'done') activeIdx = phaseOrder.length;
-      if (status === 'waiting_approval') activeIdx = phaseOrder.indexOf('promote');
-
-      const stepEls = [
-        'labStep1',
-        'labStep2',
-        'labStep3',
-        'labStep4',
-        'labStep5',
-        'labStep6',
-        'labStep7',
-        'labStep8',
-      ];
-      stepEls.forEach((id, idx) => {
-        const el = $(id);
-        if (!el) return;
-        if (activeIdx < 0) {
-          setStepVisual(el, 'idle');
-        } else if (idx < activeIdx) {
-          setStepVisual(el, 'done');
-        } else if (idx === activeIdx) {
-          setStepVisual(el, 'active');
-        } else {
-          setStepVisual(el, 'idle');
-        }
-      });
-
-      // HITL Card
-      if (labHitlCard) {
-        if (status === 'waiting_approval') {
-          labHitlCard.classList.remove('hidden');
-          if (labHitlToolsList) {
-            labHitlToolsList.innerHTML = '';
-            const toolNames = new Set();
-            packets.forEach((p) => {
-              if (p.payload && p.payload.tool_name) toolNames.add(p.payload.tool_name);
-              if (p.payload && p.payload.authored_files) {
-                p.payload.authored_files.forEach((f) => toolNames.add(f));
-              }
-            });
-            evals.forEach((e) => toolNames.add(e.tool_name));
-            if (toolNames.size === 0) toolNames.add(`manage_${job.target_agent_id.replace(/-/g, '_')}`);
-
-            toolNames.forEach((t) => {
-              const chip = document.createElement('span');
-              chip.className = 'px-2 py-0.5 rounded-lg bg-emerald-900/40 border border-emerald-700/50 text-emerald-300 font-mono text-[11px]';
-              chip.textContent = t;
-              labHitlToolsList.appendChild(chip);
-            });
-          }
-        } else {
-          labHitlCard.classList.add('hidden');
-        }
-      }
-
-      // Live Activity Feed
-      if (labPacketsCount) {
-        labPacketsCount.textContent = `${packets.length} packet${packets.length === 1 ? '' : 's'}`;
-      }
-      if (labPacketsFeed) {
-        if (packets.length === 0) {
-          labPacketsFeed.innerHTML = '<div class="text-slate-500 italic py-2">No activity recorded for this job yet.</div>';
-        } else {
-          labPacketsFeed.innerHTML = '';
-          packets.forEach((p) => {
-            const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString() : '';
-            const role = p.sender_role || 'system';
-            const feedLines = formatLabPacketFeedLines(p);
-            let roleColor = 'text-slate-400';
-            if (role === 'intent_distill') roleColor = 'text-sky-400';
-            else if (role === 'ground' || role === 'inspector') roleColor = 'text-cyan-400';
-            else if (role === 'blueprint' || role === 'conductor') roleColor = 'text-brand-400';
-            else if (role === 'author' || role === 'coder') roleColor = 'text-amber-400';
-            else if (role === 'scenario_verify') roleColor = 'text-fuchsia-400';
-            else if (role === 'verify' || role === 'sandbox_runner') roleColor = 'text-purple-400';
-            else if (role === 'optimize' || role === 'critic') roleColor = 'text-emerald-400';
-            else if (role === 'promote') roleColor = 'text-rose-400';
-
-            feedLines.forEach((line, lineIdx) => {
-              const row = document.createElement('div');
-              row.className = 'flex items-start space-x-2 py-0.5';
-              const bodyClass = lineIdx === 0 ? 'text-slate-200' : 'text-rose-300 text-[11px]';
-              row.innerHTML = `
-              <span class="text-slate-500 text-[10px] flex-shrink-0">[${escapeHtml(lineIdx === 0 ? timeStr : '')}]</span>
-              <span class="${roleColor} font-semibold flex-shrink-0">[${escapeHtml(lineIdx === 0 ? role.toUpperCase() : '')}]</span>
-              <span class="${bodyClass}">${escapeHtml(line)}</span>
-            `;
-              labPacketsFeed.appendChild(row);
-            });
-          });
-          labPacketsFeed.scrollTop = labPacketsFeed.scrollHeight;
-        }
-      }
-
-
-      // Artifact review pills (CARD-171)
-      const labArtifactPills = $('labArtifactPills');
-      const artifacts = collectPacketArtifacts(packets);
-      if (labArtifactPills) {
-        labArtifactPills.innerHTML = '';
-        if (artifacts.length === 0) {
-          labArtifactPills.innerHTML = '<span class="text-slate-500 text-[11px] italic">No authored artifacts yet.</span>';
-        } else {
-          artifacts.forEach((art, idx) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'lab-artifact-pill px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-brand-900/40 border border-slate-700 hover:border-brand-500/50 text-slate-200 hover:text-brand-200 font-mono text-[11px] transition';
-            btn.setAttribute('data-testid', `lab-artifact-pill-${idx}`);
-            btn.setAttribute('data-artifact-path', art.path);
-            btn.title = 'Preview artifact from job packet';
-            btn.textContent = art.path;
-            btn.addEventListener('click', () => openLabArtifactPreview(art, job.target_agent_id));
-            labArtifactPills.appendChild(btn);
-          });
-        }
-      }
-
-      safeCreateIcons();
-    } catch (e) {
-      console.error('Failed to load lab job details:', e);
-    }
-  }
-
-  async function openLabMonitorDrawer(preferredJobId = null) {
-    if (!labMonitorDrawer) return;
-    labMonitorDrawer.classList.remove('hidden');
-
-    try {
-      const res = await fetch('/api/agent_training_factory/jobs');
-      if (!res.ok) throw new Error('Failed to list factory jobs');
-      const data = await res.json();
-      const jobs = data.jobs || [];
-
-      if (labJobSelect) {
-        labJobSelect.innerHTML = '';
-        if (jobs.length === 0) {
-          const opt = document.createElement('option');
-          opt.value = '';
-          opt.textContent = 'No training runs found';
-          labJobSelect.appendChild(opt);
-          if (labRetryJobBtn) {
-            labRetryJobBtn.classList.add('hidden');
-          }
-          currentLabJobData = null;
-        } else {
-          jobs.forEach((j) => {
-            const opt = document.createElement('option');
-            opt.value = j.id;
-            opt.textContent = `[${j.status.toUpperCase()}] ${j.target_agent_id} (${j.id.slice(0, 10)})`;
-            labJobSelect.appendChild(opt);
-          });
-
-          const activeJob = jobs.find((j) => j.status === 'running' || j.status === 'waiting_approval');
-          const targetJobId = preferredJobId || (activeJob ? activeJob.id : jobs[0].id);
-          labJobSelect.value = targetJobId;
-          await loadLabJobDetails(targetJobId);
-        }
-      }
-
-      if (labPollTimer) clearInterval(labPollTimer);
-      labPollTimer = setInterval(() => {
-        if (labJobSelect && labJobSelect.value) {
-          loadLabJobDetails(labJobSelect.value);
-          updateLabRunsBadge();
-        }
-      }, 2500);
-
-      safeCreateIcons();
-    } catch (e) {
-      showToast(e.message, 'error');
-    }
-  }
-
-
-  function openLabArtifactPreview(art, agentId) {
-    const modal = $('labArtifactPreviewModal');
-    const titleEl = $('labArtifactPreviewTitle');
-    const bodyEl = $('labArtifactPreviewBody');
-    const pathsEl = $('labArtifactPreviewPaths');
-    const noteEl = $('labArtifactPreviewNote');
-    if (!modal || !art) return;
-    if (titleEl) titleEl.textContent = art.path || 'Artifact';
-    if (bodyEl) {
-      const content = art.content || '(No inline content in packet; wiki path listed for human review.)';
-      bodyEl.textContent = content;
-    }
-    if (noteEl) {
-      noteEl.textContent = art.kind === 'wiki'
-        ? 'Pre-promote: Wiki path from Grounding packet (may already exist under the Wiki vault).'
-        : 'Pre-promote: content is from the job packet (not yet written under packs/).';
-    }
-    if (pathsEl) {
-      const expected = art.kind === 'file'
-        ? buildExpectedPackPaths(agentId, [art.path])
-        : [art.path];
-      pathsEl.innerHTML = '';
-      expected.forEach((p) => {
-        const li = document.createElement('li');
-        li.className = 'font-mono text-[11px] text-emerald-300 break-all';
-        li.setAttribute('data-testid', 'lab-artifact-expected-path');
-        li.textContent = p;
-        pathsEl.appendChild(li);
-      });
-    }
-    modal.classList.remove('hidden');
-    safeCreateIcons();
-  }
-
-  function closeLabArtifactPreview() {
-    const modal = $('labArtifactPreviewModal');
-    if (modal) modal.classList.add('hidden');
-  }
-
-  function closeLabMonitorDrawer() {
-    if (labMonitorDrawer) labMonitorDrawer.classList.add('hidden');
-    if (labPollTimer) {
-      clearInterval(labPollTimer);
-      labPollTimer = null;
-    }
-  }
-
-  window.openLabMonitorDrawer = openLabMonitorDrawer;
-  window.closeLabMonitorDrawer = closeLabMonitorDrawer;
-
-  if (forgeLabMonitorBtn) {
-    forgeLabMonitorBtn.addEventListener('click', () => {
-      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
-      if (typeof callbacks.openFactoryStudio === 'function') {
-        callbacks.openFactoryStudio(currentAgentId);
-      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
-        window.openFactoryStudioForAgent(currentAgentId);
-      } else {
-        openLabMonitorDrawer();
-      }
-    });
-  }
-
-  if (closeLabMonitorDrawerBtn) {
-    closeLabMonitorDrawerBtn.addEventListener('click', closeLabMonitorDrawer);
-  }
-
-  if (closeLabMonitorDrawerFooterBtn) {
-    closeLabMonitorDrawerFooterBtn.addEventListener('click', closeLabMonitorDrawer);
-  }
-
-  if (refreshLabMonitorBtn) {
-    refreshLabMonitorBtn.addEventListener('click', () => {
-      if (labJobSelect && labJobSelect.value) {
-        loadLabJobDetails(labJobSelect.value);
-        updateLabRunsBadge();
-      }
-    });
-  }
-
-  if (labJobSelect) {
-    labJobSelect.addEventListener('change', () => {
-      if (labJobSelect.value) {
-        loadLabJobDetails(labJobSelect.value);
-      }
-    });
-  }
-
-  if (labApproveDeployBtn) {
-    labApproveDeployBtn.addEventListener('click', async () => {
-      const jobId = labJobSelect ? labJobSelect.value : null;
-      if (!jobId) return;
-      labApproveDeployBtn.disabled = true;
-      labApproveDeployBtn.textContent = 'Deploying...';
-      try {
-        const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}/promote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ decision: 'approved' }),
-        });
-        if (!res.ok) throw new Error('Promotion deployment failed');
-        const data = await res.json();
-        showToast(`Successfully deployed ${data.agent_id} pack to live fleet!`, 'success');
-        if (data.agent_id) {
-          await loadAgentForge(data.agent_id);
-        }
-        if (typeof callbacks.onReloadAgents === 'function') {
-          callbacks.onReloadAgents(data.agent_id);
-        }
-        if (typeof callbacks.onAgentSaved === 'function') {
-          callbacks.onAgentSaved();
-        }
-        await loadLabJobDetails(jobId);
-        await updateLabRunsBadge();
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        labApproveDeployBtn.disabled = false;
-        labApproveDeployBtn.textContent = 'Approve & Deploy to Fleet';
-      }
-    });
-  }
-
-  if (labRejectDeployBtn) {
-    labRejectDeployBtn.addEventListener('click', async () => {
-      const jobId = labJobSelect ? labJobSelect.value : null;
-      if (!jobId) return;
-      try {
-        const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}/promote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ decision: 'rejected' }),
-        });
-        if (!res.ok) throw new Error('Rejection failed');
-        showToast('Training run rejected and aborted.', 'info');
-        await loadLabJobDetails(jobId);
-        await updateLabRunsBadge();
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  }
-
-  if (labCopyFeedBtn) {
-    labCopyFeedBtn.addEventListener('click', async () => {
-      const packets = currentLabJobData ? (currentLabJobData.packets || []) : [];
-      if (packets.length === 0) {
-        showToast('No activity feed logs to copy.', 'info');
-        return;
-      }
-      const textToCopy = formatLabActivityFeedText(packets);
-      try {
-        await copyToClipboard(textToCopy);
-        if (labCopyFeedText) {
-          const originalText = labCopyFeedText.textContent;
-          labCopyFeedText.textContent = 'Copied!';
-          setTimeout(() => {
-            if (labCopyFeedText) labCopyFeedText.textContent = originalText;
-          }, 2000);
-        }
-        showToast('Activity feed copied to clipboard!', 'success');
-      } catch (err) {
-        console.error('Failed to copy feed:', err);
-        showToast('Failed to copy feed to clipboard.', 'error');
-      }
-    });
-  }
-
-  if (labRetryJobBtn) {
-    labRetryJobBtn.addEventListener('click', () => {
-      if (!currentLabJobData) {
-        showToast('No training run selected to retry.', 'warning');
-        return;
-      }
-      closeLabMonitorDrawer();
-      populateTrainModalForRetry(currentLabJobData);
-      const modal = $('trainAgentHandshakeModal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        const modalTitle = $('trainAgentModalTitle');
-        if (modalTitle) {
-          const agentId = currentLabJobData?.job?.target_agent_id || currentLabJobData?.inputs?.target_agent_id || '';
-          modalTitle.innerHTML = `
-            <i data-lucide="rotate-ccw" class="w-4 h-4 text-emerald-400"></i>
-            <span>Retry Training: ${escapeHtml(agentId || 'Specialist')}</span>
-          `;
-        }
-        safeCreateIcons();
-      }
-    });
-  }
-
-
-  const closeLabArtifactPreviewBtn = $('closeLabArtifactPreviewBtn');
-  const closeLabArtifactPreviewFooterBtn = $('closeLabArtifactPreviewFooterBtn');
-  if (closeLabArtifactPreviewBtn) {
-    closeLabArtifactPreviewBtn.addEventListener('click', closeLabArtifactPreview);
-  }
-  if (closeLabArtifactPreviewFooterBtn) {
-    closeLabArtifactPreviewFooterBtn.addEventListener('click', closeLabArtifactPreview);
-  }
-  const labArtifactPreviewModal = $('labArtifactPreviewModal');
-  if (labArtifactPreviewModal) {
-    labArtifactPreviewModal.addEventListener('click', (e) => {
-      if (e.target === labArtifactPreviewModal) closeLabArtifactPreview();
-    });
-  }
-
-
-
-  const forgeScaffoldRefreshBtn = $('forgeScaffoldRefreshBtn');
-  if (forgeScaffoldRefreshBtn) {
-    forgeScaffoldRefreshBtn.addEventListener('click', () => { loadForgeScaffoldQueue(); });
-  }
-  const forgeScaffoldQueueBody = $('forgeScaffoldQueueBody');
-  if (forgeScaffoldQueueBody) {
-    forgeScaffoldQueueBody.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-scaffold-action]');
-      if (!btn) return;
-      const action = btn.getAttribute('data-scaffold-action');
-      const id = btn.getAttribute('data-id');
-      if (action && id) runForgeScaffoldAction(action, id);
-    });
-  }
-  loadForgeScaffoldQueue();
-
-
-  // CARD-304: Open Training Factory from Agent Training Optimization queue
-  const forgeScaffoldOpenFactoryBtn = $('forgeScaffoldOpenFactoryBtn');
-  if (forgeScaffoldOpenFactoryBtn && !forgeScaffoldOpenFactoryBtn.dataset.card304Bound) {
-    forgeScaffoldOpenFactoryBtn.dataset.card304Bound = '1';
-    forgeScaffoldOpenFactoryBtn.addEventListener('click', () => {
-      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
-      if (typeof callbacks.openFactoryStudio === 'function') {
-        callbacks.openFactoryStudio(currentAgentId);
-      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
-        window.openFactoryStudioForAgent(currentAgentId);
-      } else if (forgeTrainAgentBtn) {
-        forgeTrainAgentBtn.click();
-      }
-    });
-  }
-
-  // --- Architectural Governance & Proposal Inbox [ADR-0054, CARD-365] ---
-  async function loadArchitecturalProposals(agentId = null) {
-    const statusEl = $('forgeProposalStatusText');
-    const badgeEl = $('forgeProposalCountBadge');
-    const listEl = $('forgeProposalsList');
-    if (!listEl) return;
-    if (statusEl) statusEl.textContent = 'Loading proposals…';
-    try {
-      const url = `/api/observability/architectural/proposals?status=pending${agentId ? `&agent_id=${encodeURIComponent(agentId)}` : ''}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to load proposals');
-      const proposals = data.proposals || [];
-
-      if (badgeEl) {
-        if (proposals.length > 0) {
-          badgeEl.textContent = String(proposals.length);
-          badgeEl.classList.remove('hidden');
-        } else {
-          badgeEl.classList.add('hidden');
-        }
-      }
-
-      if (statusEl) {
-        statusEl.textContent = `Pending: ${proposals.length} proposal(s)`;
-      }
-
-      if (!proposals.length) {
-        listEl.innerHTML = `
-          <div class="p-3 text-xs text-slate-500 italic bg-white/[0.02] border border-white/[0.04] rounded-lg text-center">
-            No active architectural proposals for this scope. Click "Scan &amp; Synthesize" to audit recent telemetry.
-          </div>`;
-      } else {
-        listEl.innerHTML = proposals.map((p) => renderProposalCardHtml(p)).join('');
-        safeCreateIcons();
-      }
-    } catch (err) {
-      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
-      listEl.innerHTML = `<div class="p-3 text-xs text-rose-400 bg-rose-950/20 border border-rose-800/30 rounded-lg">${escapeHtml(String(err.message || err))}</div>`;
-    }
-  }
-
-  async function runArchitecturalProposalAction(action, proposalId) {
-    const statusEl = $('forgeProposalStatusText');
-    if (!proposalId) return;
-    try {
-      if (statusEl) statusEl.textContent = `${action === 'apply' ? 'Applying remedy' : 'Dismissing proposal'}…`;
-      const res = await fetch(`/api/observability/architectural/proposals/${encodeURIComponent(proposalId)}/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `${action} failed`);
-
-      if (action === 'apply') {
-        const msg = data.routine_name
-          ? `Promoted to Routine '${data.routine_name}'!`
-          : 'Proposal remedy executed successfully.';
-        showToast(msg, 'success');
-      } else {
-        showToast('Proposal dismissed.', 'info');
-      }
-
-      const activeAgentId = forgeAgentSelect ? forgeAgentSelect.value : null;
-      loadArchitecturalProposals(activeAgentId);
-    } catch (err) {
-      showToast(`Action failed: ${err.message || err}`, 'error');
-      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
-    }
-  }
-
-  async function scanAndSynthesizeProposals() {
-    const statusEl = $('forgeProposalStatusText');
-    const scanBtn = $('forgeProposalScanBtn');
-    try {
-      if (scanBtn) scanBtn.disabled = true;
-      if (statusEl) statusEl.textContent = 'Scanning telemetry & God-Agent thresholds…';
-
-      // 1. Trigger scan
-      const scanRes = await fetch('/api/observability/architectural/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lookback_hours: 72 }),
-      });
-      const scanData = await scanRes.json().catch(() => ({}));
-      if (!scanRes.ok) throw new Error(scanData.detail || 'Scan failed');
-
-      // 2. Synthesize proposals
-      if (statusEl) statusEl.textContent = 'Synthesizing actionable proposals…';
-      const genRes = await fetch('/api/observability/architectural/proposals/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const genData = await genRes.json().catch(() => ({}));
-      if (!genRes.ok) throw new Error(genData.detail || 'Proposal synthesis failed');
-
-      const count = genData.generated_count || 0;
-      showToast(`Scan complete: ${count} new proposal(s) synthesized.`, count > 0 ? 'success' : 'info');
-
-      const activeAgentId = forgeAgentSelect ? forgeAgentSelect.value : null;
-      await loadArchitecturalProposals(activeAgentId);
-    } catch (err) {
-      showToast(`Scan error: ${err.message || err}`, 'error');
-      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
-    } finally {
-      if (scanBtn) scanBtn.disabled = false;
-    }
-  }
-
-  const forgeProposalRefreshBtn = $('forgeProposalRefreshBtn');
-  if (forgeProposalRefreshBtn) {
-    forgeProposalRefreshBtn.addEventListener('click', () => {
-      const activeAgentId = forgeAgentSelect ? forgeAgentSelect.value : null;
-      loadArchitecturalProposals(activeAgentId);
-    });
-  }
-
-  const forgeProposalScanBtn = $('forgeProposalScanBtn');
-  if (forgeProposalScanBtn) {
-    forgeProposalScanBtn.addEventListener('click', () => {
-      scanAndSynthesizeProposals();
-    });
-  }
-
-  const forgeProposalsList = $('forgeProposalsList');
-  if (forgeProposalsList) {
-    forgeProposalsList.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-proposal-action]');
-      if (!btn) return;
-      const action = btn.getAttribute('data-proposal-action');
-      const id = btn.getAttribute('data-id');
-      if (action && id) runArchitecturalProposalAction(action, id);
-    });
-  }
-
-  loadArchitecturalProposals();
+  // Wire Submodules
+  setupLabMonitor({
+    callbacks,
+    onLoadAgent: loadAgentForge,
+  });
+
+  setupArchitecturalProposals({
+    getActiveAgentId,
+  });
+
+  setupScaffold({
+    callbacks,
+    onLoadAgent: loadAgentForge,
+  });
+
+  setupAgentMcpControls({
+    getActiveAgent,
+    onServersChanged: (servers) => { currentAgentMcpServers = servers; },
+  });
+
+  setupRunbookEditor({
+    onRefreshSkills: loadPlatformSkillsWrapper,
+  });
+
+  setupAgentModelConfig();
+
+  setupBrainDrawer({
+    getActiveAgentId,
+  });
+
+  setupToneManager();
 
   // Initial badge check
   updateLabRunsBadge();

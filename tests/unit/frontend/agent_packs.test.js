@@ -102,7 +102,7 @@ describe('Agent Studio pack UI [CARD-119]', () => {
   });
 
   it('forge.js saves show_in_chat and fills pack-owned from pack_tool_names', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('show_in_chat');
     expect(forgeJs).toContain('pack_tool_names');
     expect(forgeJs).toContain('/api/agents/import-pack');
@@ -155,7 +155,7 @@ describe('New Agent AutoReiv handoff [CARD-119]', () => {
   });
 
   it('forge New Agent hands off instead of blanking a custom agent', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/scaffold.js');
     expect(forgeJs).toContain('startNewAgentPackFromStudio');
     expect(forgeJs).toContain('onStartNewAgentPack');
     expect(forgeJs).toContain('Talk to AutoReiv to build the pack.');

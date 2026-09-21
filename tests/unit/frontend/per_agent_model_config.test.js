@@ -15,7 +15,7 @@ function read(rel) {
 
 describe('Agent Studio Per-Agent LLM Configuration [CARD-153]', () => {
   const indexHtml = read('src/web/templates/index.html');
-  const forgeJs = read('src/web/static/modules/studios/forge.js');
+  const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/config.js');
   const settingsJs = read('src/web/static/modules/studios/settings.js');
 
   it('renders forgeProviderSelect and forgeAgentModelSelect in index.html [REQ-MODEL-001]', () => {

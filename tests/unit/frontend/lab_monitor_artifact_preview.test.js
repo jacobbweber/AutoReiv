@@ -54,7 +54,7 @@ describe('Lab Monitor artifact preview path builders [CARD-171]', () => {
   });
 
   it('forge.js wires clickable artifact pills and preview modal', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/lab_monitor.js');
     expect(forgeJs).toContain('labArtifactPills');
     expect(forgeJs).toContain('openLabArtifactPreview');
     expect(forgeJs).toContain('buildExpectedPackPaths');
