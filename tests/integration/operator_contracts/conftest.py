@@ -1,4 +1,4 @@
-"""Shared fixtures for operator contracts — temp user-data only [ADR-0055]."""
+"""Shared fixtures for operator contracts - temp user-data only [ADR-0055]."""
 
 from __future__ import annotations
 
@@ -17,20 +17,25 @@ def operator_client(tmp_path, monkeypatch):
     from src.infrastructure.memory.sqlite_store import SQLiteStateStore
     from src.web.app import create_app
 
-    user_data = tmp_path / "user-data"
+    user_data = (tmp_path / "user-data").resolve()
     wiki = user_data / "wiki"
     db = user_data / "autoreiv.db"
     user_data.mkdir(parents=True, exist_ok=True)
     wiki.mkdir(parents=True, exist_ok=True)
 
+    # Refuse the live Jarvis user-data root (not pytest Temp under LOCALAPPDATA).
+    local_app = os.environ.get("LOCALAPPDATA") or ""
+    if local_app:
+        live_root = (Path(local_app) / "AutoReiv").resolve()
+        ud = str(user_data).replace("\\", "/").lower()
+        live = str(live_root).replace("\\", "/").lower()
+        assert ud != live and not ud.startswith(live + "/"), (
+            f"operator contracts must not use live user-data: {user_data}"
+        )
+
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(user_data))
     monkeypatch.setenv("AUTOREIV_DB_PATH", str(db))
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(wiki))
-
-    live = (os.environ.get("LOCALAPPDATA") or "").replace("\\", "/").lower()
-    assert "autoreiv" not in str(user_data).replace("\\", "/").lower() or "user-data" in str(user_data)
-    if live:
-        assert live not in str(user_data).replace("\\", "/").lower()
 
     store = SQLiteStateStore(db_path=str(db))
     store.initialize_db()
