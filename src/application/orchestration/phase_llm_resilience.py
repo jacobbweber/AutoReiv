@@ -44,8 +44,8 @@ _RETRYABLE_TOKENS = (
 T = TypeVar("T")
 
 
-def load_repo_dotenv(start: Optional[Path] = None) -> Optional[Path]:
-    """Load repo .env into os.environ without overwriting existing keys.
+def load_repo_dotenv(start: Optional[Path] = None, override: bool = False) -> Optional[Path]:
+    """Load repo .env into os.environ.
 
     Safe to call multiple times. Does not require python-dotenv.
     """
@@ -70,7 +70,7 @@ def load_repo_dotenv(start: Optional[Path] = None) -> Optional[Path]:
         key, _, val = stripped.partition("=")
         key = key.strip()
         val = val.strip().strip('"').strip("'")
-        if key and key not in os.environ:
+        if key and (override or key not in os.environ):
             os.environ[key] = val
     return env_path
 

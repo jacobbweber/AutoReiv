@@ -436,6 +436,12 @@ export function initAgentForge(state, callbacks = {}) {
         derivedTools.add('execute_agent_database');
       }
 
+      const isMemory = Boolean(forgeMemoryEnabled && forgeMemoryEnabled.checked);
+      if (isMemory) {
+        derivedTools.add('recall_agent_memory');
+        derivedTools.add('memorize_fact');
+      }
+
       const allowedToolNames = Array.from(derivedTools);
 
       const payload = {

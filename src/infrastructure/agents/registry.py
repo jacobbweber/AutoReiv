@@ -382,6 +382,12 @@ class BuiltinAgentRegistry:
         storage_tools = AgentStorageTools(data_dir=data_root)
         storage_tools.register_tools(tool_registry)
 
+        # 12b. Dedicated Cognitive Memory Brain Tools [CARD-116, CARD-405]
+        from src.application.memory.agent_memory_tools import AgentMemoryTools
+
+        memory_tools = AgentMemoryTools(data_dir=data_root)
+        memory_tools.register_tools(tool_registry)
+
         # 12c. Enterprise MCP Engineering Tools [CARD-394]
         from src.application.skills.mcp_engineering_tools import MCPEngineeringTools
 

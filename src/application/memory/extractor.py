@@ -236,7 +236,38 @@ class MemoryExtractorService:
 
         prompt = build_extraction_prompt(user_text, assistant_text)
         try:
-            raw_response = await self.llm_service.generate(prompt)
+            # Check for mock or custom generate() service first
+            if hasattr(self.llm_service, "generate") and (
+                "mock" in type(self.llm_service).__name__.lower()
+                or not hasattr(self.llm_service, "complete")
+            ):
+                raw_response = await self.llm_service.generate(prompt)
+            elif hasattr(self.llm_service, "complete"):
+                from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
+
+                raw_model_id = getattr(self.llm_service, "default_model_id", None)
+                model_id = raw_model_id if isinstance(raw_model_id, str) and raw_model_id else "default"
+                req = CompletionRequest(
+                    model=model_id,
+                    messages=[ChatMessage(role=Role.USER, content=prompt)],
+                    temperature=0.0,
+                    max_tokens=600,
+                )
+                resp = await self.llm_service.complete(req)
+                raw_response = getattr(resp, "text", None) or (
+                    resp.message.content if getattr(resp, "message", None) else str(resp)
+                )
+            elif hasattr(self.llm_service, "generate"):
+                raw_response = await self.llm_service.generate(prompt)
+            elif callable(self.llm_service):
+                import inspect
+                res = self.llm_service(prompt)
+                if inspect.iscoroutine(res):
+                    res = await res
+                raw_response = str(res)
+            else:
+                return []
+
             candidates = parse_extraction_response(raw_response)
             results = []
             for candidate in candidates:

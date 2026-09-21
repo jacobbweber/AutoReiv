@@ -182,6 +182,8 @@ REQUIRED_PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "handoff_to_agent",
         "lookup_agents",
         "get_session_info",
+        "recall_agent_memory",
+        "memorize_fact",
     ),
 }
 REQUIRED_PLATFORM_SKILLS: tuple[str, ...] = tuple(REQUIRED_PLATFORM_SKILL_TOOLS.keys())
@@ -191,6 +193,8 @@ REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "handoff_to_agent",
     "lookup_agents",
     "get_session_info",
+    "recall_agent_memory",
+    "memorize_fact",
 )
 
 # Tier 2: Platform Optional Skills

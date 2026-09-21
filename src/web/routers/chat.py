@@ -5,7 +5,7 @@ import mimetypes
 import re
 import uuid
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -80,6 +80,50 @@ logger = logging.getLogger(__name__)
 # Active background generation tasks by session_id [REQ-RESIL-003, CARD-114 Finding 4]
 _active_stream_tasks: Dict[str, asyncio.Task] = {}
 _active_stream_agents: Dict[str, str] = {}
+
+
+async def _background_extract_turn_memory(
+    agent_id: str,
+    user_text: str,
+    assistant_text: str,
+    session_id: str,
+    llm_service: Any,
+    data_dir: Optional[Union[str, Path]] = None,
+) -> None:
+    """Asynchronously compile durable facts and milestones into agent's cognitive brain [CARD-116, CARD-405]."""
+    try:
+        from src.application.memory.extractor import MemoryExtractorService, should_skip_extraction
+        from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
+        if should_skip_extraction(user_text):
+            return
+        if not llm_service:
+            return
+
+        repo = AgentMemoryRepository(agent_id=agent_id, data_dir=data_dir)
+        repo.initialize_schema()
+        extractor = MemoryExtractorService(repository=repo, llm_service=llm_service)
+        results = await extractor.process_turn(user_text=user_text, assistant_text=assistant_text)
+        if results:
+            logger.info("Cognitive memory extracted for agent '%s': %s facts applied", agent_id, len(results))
+            summary_text = f"Turn completed with {len(results)} durable facts compiled."
+            decisions = [
+                f"{r.get('action_taken')}: {r.get('entity', '')}.{r.get('attribute', '')}"
+                for r in results
+                if r.get("action_taken")
+            ]
+            try:
+                repo.record_session_summary(
+                    session_id=session_id,
+                    summary=summary_text,
+                    key_decisions=decisions,
+                    turn_count=1,
+                    outcome_status="completed",
+                )
+            except Exception as e:
+                logger.debug("Recording episodic session milestone skipped: %s", e)
+    except Exception as exc:
+        logger.warning("Background turn memory extraction failed for agent '%s': %s", agent_id, exc)
 
 
 def format_prompt_with_attachments(
@@ -1194,6 +1238,21 @@ async def execute_goal_job_phases(
         )
         await queue.put(_sse("token", {"text": final_content}))
         await queue.put(_sse("turn_done", {"content": final_content}))
+        if getattr(profile, "memory_enabled", True) and getattr(job, "goal", None):
+            llm_service = (
+                getattr(kernel, "gateway", None)
+                or getattr(kernel, "llm_service", None)
+            )
+            asyncio.create_task(
+                _background_extract_turn_memory(
+                    agent_id=profile.id,
+                    user_text=job.goal,
+                    assistant_text=final_content,
+                    session_id=session_id,
+                    llm_service=llm_service,
+                    data_dir=data_dir or getattr(kernel, "data_dir", None),
+                )
+            )
     elif not last_content:
         await queue.put(_sse("turn_done", {"content": ""}))
 
@@ -2218,6 +2277,28 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 else:
                     payload["facts"] = [verify_skip_fact()]
                 await queue.put(_sse("reflexion_verified", payload))
+
+            # Trigger background post-turn cognitive memory extraction [CARD-116, CARD-405]
+            if (not resume) and getattr(profile, "memory_enabled", True) and effective_content and last_plain:
+                llm_service = (
+                    getattr(request.app.state, "gateway", None)
+                    or getattr(kernel, "gateway", None)
+                    or getattr(kernel, "llm_service", None)
+                )
+                data_dir = (
+                    getattr(request.app.state, "data_dir", None)
+                    or getattr(kernel, "data_dir", None)
+                )
+                asyncio.create_task(
+                    _background_extract_turn_memory(
+                        agent_id=profile.id,
+                        user_text=effective_content,
+                        assistant_text=last_plain,
+                        session_id=req.session_id,
+                        llm_service=llm_service,
+                        data_dir=data_dir,
+                    )
+                )
 
         except asyncio.CancelledError:
             logger.info("Chat stream worker cancelled for session: %s", req.session_id)

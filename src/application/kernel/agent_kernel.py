@@ -523,8 +523,8 @@ class AgentKernel:
             except Exception as e:
                 logger.debug(f"Episodic memory auto-recall skipped: {e}")
 
-        # Cognitive Memory Brain Injection [CARD-116]
-        if getattr(agent, "memory_enabled", True):
+        # Cognitive Memory Brain Injection [CARD-116, CARD-405]
+        if getattr(agent, "memory_enabled", True) and getattr(agent, "id", None) != "direct":
             try:
                 from src.application.memory.assembler import MemoryContextAssembler
                 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
@@ -539,8 +539,17 @@ class AgentKernel:
                     user_query=user_content,
                     pinned_override=getattr(agent, "pinned_memory", None),
                 )
+                memory_preamble = (
+                    f"[Agent Brain - Cognitive Memory System]\n"
+                    f"You have a dedicated cognitive memory database ({agent.id}_memory.db) that retains user preferences, "
+                    f"domain facts, and session milestones across conversations.\n"
+                    f"You have two cognitive memory tools: `recall_agent_memory` to search stored facts and past milestones, "
+                    f"and `memorize_fact` to persist key learnings or user preferences into your database."
+                )
                 if cog_block:
-                    base_prompt = f"{base_prompt}\n\n{cog_block}"
+                    base_prompt = f"{base_prompt}\n\n{memory_preamble}\n\n{cog_block}"
+                else:
+                    base_prompt = f"{base_prompt}\n\n{memory_preamble}"
             except Exception as e:
                 logger.debug(f"Per-agent cognitive memory assembly skipped: {e}")
 

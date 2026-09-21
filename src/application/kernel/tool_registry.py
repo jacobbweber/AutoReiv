@@ -137,6 +137,9 @@ class ScopedToolRegistry:
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
+        if getattr(agent, "memory_enabled", True):
+            allowed.add("recall_agent_memory")
+            allowed.add("memorize_fact")
         if getattr(agent, "id", None) != "autoreiv" and "read_document_file" in self._tools:
             allowed.add("read_document_file")
         if getattr(agent, "allow_wiki_access", True) is False:
@@ -238,6 +241,9 @@ class ScopedToolRegistry:
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
+        if getattr(agent, "memory_enabled", True) and getattr(agent, "id", None) != "direct":
+            allowed.add("recall_agent_memory")
+            allowed.add("memorize_fact")
         if "read_document_file" in self._tools:
             allowed.add("read_document_file")
 

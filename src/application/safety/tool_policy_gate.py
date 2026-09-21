@@ -60,6 +60,8 @@ _DEFAULT_SAFE: frozenset[str] = frozenset(
         "list_available_skills_and_tools",
         "read_document_file",
         "query_agent_database",
+        "recall_agent_memory",
+        "memorize_fact",
         "get_system_info",
         "search_memory",
         "repo_file_list",
@@ -149,6 +151,9 @@ def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
 
 
 def _agent_allowed_names(agent: Any) -> set[str]:
+    if getattr(agent, "id", None) == "direct":
+        return set()
+
     from src.application.agent_packs.schema import (
         PLATFORM_SKILL_TOOLS,
         REQUIRED_PLATFORM_TOOLS,
@@ -167,6 +172,9 @@ def _agent_allowed_names(agent: Any) -> set[str]:
     if getattr(agent, "storage_enabled", False):
         allowed.add("query_agent_database")
         allowed.add("execute_agent_database")
+    if getattr(agent, "memory_enabled", True) and getattr(agent, "id", None) != "direct":
+        allowed.add("recall_agent_memory")
+        allowed.add("memorize_fact")
     return allowed
 
 
