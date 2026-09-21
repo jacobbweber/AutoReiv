@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.38.0] - 2026-09-20
+
 - Enterprise MCP Server Development and Docker Deployment Skill Pack (`src/application/skills/mcp_engineering_tools.py`, `src/infrastructure/tools/mcp_engineering.py`, `src/infrastructure/skills/seeds/mcp-engineering/SKILL.md`, `platform-packs/developer/skills/mcp-engineering/SKILL.md`, `platform-packs/developer/pack.json`, `src/infrastructure/agents/registry.py`, `src/web/app.py` [CARD-394]):
   - **`mcp-engineering` Platform Skill Pack**: Equipped AutoReiv Developer agent and engineering specialists with end-to-end capabilities to scaffold FastMCP projects, execute AST syntax and JSON-RPC 2.0 schema tests, containerize with multi-stage non-root Dockerfiles, and automatically register endpoints into AutoReiv.
   - **FastMCP Scaffolding (`scaffold_mcp_server`)**: Generates canonical FastMCP project trees with typed Pydantic parameter schemas, automatic `health()` endpoint, multi-stage non-root `Dockerfile`, `pyproject.toml`, and comprehensive `README.md`.
