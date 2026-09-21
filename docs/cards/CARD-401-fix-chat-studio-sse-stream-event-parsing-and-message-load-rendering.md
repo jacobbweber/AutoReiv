@@ -1,7 +1,7 @@
 ---
 id: CARD-401
 title: "Fix Chat Studio SSE Stream Event Parsing and Message Load Rendering"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-401] Fix Chat Studio SSE Stream Event Parsing and Message Load Rendering
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-21
 > **ADR Reference**: none
 > **Labels**: `type:bug`, `area:frontend`, `priority:high`
