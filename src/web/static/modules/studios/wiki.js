@@ -2,8 +2,9 @@
  * Wiki Studio & Obsidian-Style Mind-Map Module [REQ-FE-001, REQ-WIKI-006, REQ-MIND-003]
  */
 
-import { $, $queryAll, safeCreateIcons } from '../dom.js';
+import { $, $queryAll, isMobile, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+import { copyToClipboard } from '../utils/clipboard.js';
 import { stepSimulation, createSimulationRunner } from '../utils/physics.js';
 import { showToast } from '../ui/toast.js';
 
@@ -183,7 +184,7 @@ export function initWikiStudio(state, callbacks = {}) {
     // Close mobile drawer if open
     const wikiDrawerPane = $('wikiDrawerPane');
     const wikiDrawerBackdrop = $('wikiDrawerBackdrop');
-    if (window.innerWidth < 768) {
+    if (isMobile()) {
       if (wikiDrawerPane) wikiDrawerPane.classList.add('-translate-x-full');
       if (wikiDrawerBackdrop) wikiDrawerBackdrop.classList.add('hidden');
     }
@@ -795,7 +796,7 @@ export function initWikiStudio(state, callbacks = {}) {
 
     const wikiDrawerPane = $('wikiDrawerPane');
     const wikiDrawerBackdrop = $('wikiDrawerBackdrop');
-    if (window.innerWidth < 768) {
+    if (isMobile()) {
       if (wikiDrawerPane) wikiDrawerPane.classList.add('-translate-x-full');
       if (wikiDrawerBackdrop) wikiDrawerBackdrop.classList.add('hidden');
     }
@@ -1018,7 +1019,7 @@ export function initWikiStudio(state, callbacks = {}) {
     fmCopyRawBtn.addEventListener('click', async () => {
       if (!currentRawFrontmatter) return;
       try {
-        await navigator.clipboard.writeText(currentRawFrontmatter);
+        await copyToClipboard(currentRawFrontmatter);
         showToast('YAML frontmatter copied to clipboard', 'success');
       } catch (err) {
         console.error('Failed to copy YAML:', err);

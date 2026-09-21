@@ -118,7 +118,7 @@ class ScopedToolRegistry:
                 clean_sk = clean_sk[len("mcp:"):] if clean_sk.startswith("mcp:") else clean_sk
                 clean_sk = clean_sk.replace("-", "_")
                 for reg_name in self._tools:
-                    if reg_name.startswith(f"mcp_{clean_sk}_"):
+                    if reg_name == f"mcp_{clean_sk}" or reg_name.startswith(f"mcp_{clean_sk}_"):
                         allowed.add(reg_name)
 
         # Allow explicitly configured agent MCP servers

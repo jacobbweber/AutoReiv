@@ -21,18 +21,18 @@ describe('Agent Studio Alphabetized Picker [CARD-202, CARD-339]', () => {
     expect(isStudioAgentVisible({ id: 'developer' })).toBe(true);
     expect(isStudioAgentVisible({ id: 'wiki' })).toBe(false);
   });
-  it('formats platform and custom agents with uniform tags', () => {
+  it('formats agent names cleanly without platform or custom tags [CARD-388]', () => {
     const platformAgent = { id: 'autoreiv', name: 'AutoReiv', is_platform_pack: true };
     const builtinAgent = { id: 'assistant', name: 'Assistant', is_builtin: true };
     const customAgent = { id: 'my-bot', name: 'My Bot', is_platform_pack: false, is_builtin: false };
     const explicitPlatform = { id: 'autoreiv', name: 'AutoReiv', origin: 'platform' };
     const explicitCustom = { id: 'my-bot', name: 'My Bot', origin: 'custom' };
 
-    expect(formatAgentSelectOption(platformAgent)).toBe('AutoReiv (Platform)');
-    expect(formatAgentSelectOption(builtinAgent)).toBe('Assistant (Platform)');
-    expect(formatAgentSelectOption(customAgent)).toBe('My Bot (Custom)');
-    expect(formatAgentSelectOption(explicitPlatform)).toBe('AutoReiv (Platform)');
-    expect(formatAgentSelectOption(explicitCustom)).toBe('My Bot (Custom)');
+    expect(formatAgentSelectOption(platformAgent)).toBe('AutoReiv');
+    expect(formatAgentSelectOption(builtinAgent)).toBe('Assistant');
+    expect(formatAgentSelectOption(customAgent)).toBe('My Bot');
+    expect(formatAgentSelectOption(explicitPlatform)).toBe('AutoReiv');
+    expect(formatAgentSelectOption(explicitCustom)).toBe('My Bot');
   });
 
   it('sorts agents alphabetically by display name (A to Z)', () => {
@@ -78,9 +78,9 @@ describe('Agent Studio Alphabetized Picker [CARD-202, CARD-339]', () => {
       expect(mockSelect.innerHTML).toBe('');
       expect(mockOptions).toHaveLength(2);
       expect(mockOptions[0].value).toBe('a-agent');
-      expect(mockOptions[0].textContent).toBe('Alpha Agent (Platform)');
+      expect(mockOptions[0].textContent).toBe('Alpha Agent');
       expect(mockOptions[1].value).toBe('z-agent');
-      expect(mockOptions[1].textContent).toBe('Zebra Agent (Custom)');
+      expect(mockOptions[1].textContent).toBe('Zebra Agent');
       expect(activeId).toBe('z-agent');
       expect(mockSelect.value).toBe('z-agent');
     } finally {

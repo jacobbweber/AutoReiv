@@ -4,14 +4,15 @@
  * Lists USER packs only. Python builtin tools stay out of this catalog.
  */
 
-import { $, safeCreateIcons } from '../dom.js';
+import { $, isMobile, safeCreateIcons } from '../dom.js';
 import { fetchJSON } from '../services/api.js';
 import { escapeHtml } from '../utils/formatters.js';
+import { showToast } from '../ui/toast.js';
 
 const BUNDLED_SEED_ID = 'okta-admin';
 
 export function initSkillsStudio(state, callbacks = {}) {
-  const toast = callbacks.showToast || (() => {});
+  const toast = callbacks.showToast || showToast;
 
   const packList = $('skillsPackList');
   const nameInput = $('skillsNameInput');
@@ -181,7 +182,7 @@ export function initSkillsStudio(state, callbacks = {}) {
     try {
       const data = await fetchJSON(`/api/skills/user-packs/${encodeURIComponent(packId)}`);
       applyPack(data, archived);
-      if (window.innerWidth < 768) closeDrawer();
+      if (isMobile()) closeDrawer();
     } catch (err) {
       toast(String(err.message || err), 'error');
     }

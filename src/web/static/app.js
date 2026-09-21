@@ -2,7 +2,7 @@
  * AutoReiv Control Plane - Central SPA Orchestrator [REQ-FE-001 - REQ-FE-003, REQ-A11Y-001 - REQ-A11Y-003]
  */
 
-import { $, $queryAll, safeCreateIcons } from './modules/dom.js';
+import { $, $queryAll, isMobile, safeCreateIcons } from './modules/dom.js';
 import { state } from './modules/state/store.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
 import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
@@ -198,7 +198,7 @@ export function initApp() {
       desktopCtrl.onTabChanged(tabName);
     }
     // Close mobile drawer on tab select
-    if (window.innerWidth < 768 && sidebar) {
+    if (isMobile() && sidebar) {
       sidebar.classList.add('-translate-x-full');
     }
   }

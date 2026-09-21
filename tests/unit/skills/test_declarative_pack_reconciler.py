@@ -43,49 +43,49 @@ def test_reconciler_purges_stale_platform_agent_from_db_and_disk(test_env):
         encoding="utf-8",
     )
 
-    # 2. Seed an obsolete platform agent (origin=platform, not in PLATFORM_PACK_IDS)
-    stale_profile = AgentProfile(
-        id="old-platform-helper",
-        name="Old Platform Helper",
-        description="Deprecated platform agent",
-        system_prompt="Stale prompt",
-        origin=AgentOrigin.PLATFORM,
+    # 2. Seed a sovereign user agent pack (not in desired, not in retired - must be preserved!)
+    user_pack_profile = AgentProfile(
+        id="user-pack-helper",
+        name="User Pack Helper",
+        description="Operator custom agent pack",
+        system_prompt="Pack prompt",
+        origin=AgentOrigin.PACK,
     )
-    store.save_agent_profile(stale_profile)
-    (packs_dir / "old-platform-helper").mkdir()
-    (packs_dir / "old-platform-helper" / "pack.json").write_text(
-        json.dumps({"id": "old-platform-helper", "name": "Old Helper", "origin": "platform"}),
+    store.save_agent_profile(user_pack_profile)
+    (packs_dir / "user-pack-helper").mkdir()
+    (packs_dir / "user-pack-helper" / "pack.json").write_text(
+        json.dumps({"id": "user-pack-helper", "name": "User Helper", "origin": "pack"}),
         encoding="utf-8",
     )
 
     # 3. Seed a retired platform agent (in RETIRED_PLATFORM_PACK_IDS)
     retired_profile = AgentProfile(
-        id="developer",
-        name="Developer",
-        description="Absorbed developer",
-        system_prompt="Developer prompt",
-        origin=AgentOrigin.CUSTOM,  # Legacy row default
+        id="forge",
+        name="Forge",
+        description="Absorbed forge",
+        system_prompt="Forge prompt",
+        origin=AgentOrigin.PACK,
     )
     store.save_agent_profile(retired_profile)
-    (packs_dir / "developer").mkdir()
-    (packs_dir / "developer" / "pack.json").write_text(
-        json.dumps({"id": "developer", "name": "Developer"}),
+    (packs_dir / "forge").mkdir()
+    (packs_dir / "forge" / "pack.json").write_text(
+        json.dumps({"id": "forge", "name": "Forge"}),
         encoding="utf-8",
     )
 
-    # 4. Seed a genuine custom agent
+    # 4. Seed another custom agent
     custom_profile = AgentProfile(
         id="my-custom-researcher",
         name="My Custom Researcher",
         description="User custom agent",
         system_prompt="Custom prompt",
-        origin=AgentOrigin.CUSTOM,
+        origin=AgentOrigin.PACK,
     )
     store.save_agent_profile(custom_profile)
     custom_pack = packs_dir / "my-custom-researcher"
     custom_pack.mkdir()
     (custom_pack / "pack.json").write_text(
-        json.dumps({"id": "my-custom-researcher", "name": "Custom", "origin": "custom"}),
+        json.dumps({"id": "my-custom-researcher", "name": "Custom", "origin": "pack"}),
         encoding="utf-8",
     )
     (custom_pack / "my-custom-researcher_storage.db").write_text("dummy-data", encoding="utf-8")
@@ -97,26 +97,26 @@ def test_reconciler_purges_stale_platform_agent_from_db_and_disk(test_env):
     )
     report = reconciler.reconcile(desired_platform_ids=["autoreiv", "direct"])
 
-    # Verify report
-    assert "old-platform-helper" in report.purged_database_agents
-    assert "developer" in report.purged_database_agents
-    assert "old-platform-helper" in report.purged_pack_directories
-    assert "developer" in report.purged_pack_directories
+    # Verify report: only retired agent is purged; sovereign user packs are preserved
+    assert "forge" in report.purged_database_agents
+    assert "forge" in report.purged_pack_directories
+    assert "user-pack-helper" not in report.purged_database_agents
+    assert "user-pack-helper" in report.preserved_custom_agents
     assert "my-custom-researcher" in report.preserved_custom_agents
     assert "autoreiv" in report.active_platform_agents
 
     # Verify DB state
     assert store.get_agent_profile("autoreiv") is not None
+    assert store.get_agent_profile("user-pack-helper") is not None
     assert store.get_agent_profile("my-custom-researcher") is not None
-    assert store.get_agent_profile("old-platform-helper") is None
-    assert store.get_agent_profile("developer") is None
+    assert store.get_agent_profile("forge") is None
 
     # Verify Filesystem state
     assert (packs_dir / "autoreiv").exists()
+    assert (packs_dir / "user-pack-helper").exists()
     assert (packs_dir / "my-custom-researcher").exists()
     assert (custom_pack / "my-custom-researcher_storage.db").exists()
-    assert not (packs_dir / "old-platform-helper").exists()
-    assert not (packs_dir / "developer").exists()
+    assert not (packs_dir / "forge").exists()
 
 
 def test_reconciler_strictly_preserves_custom_agents(test_env):

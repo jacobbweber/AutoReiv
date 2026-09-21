@@ -46,12 +46,12 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
     expect(html).toContain('id="trainRequireApproval"');
   });
 
-  it('index.html consolidates training buttons from Agent Studio into Factory Studio [REQ-FACT-042]', () => {
+  it('index.html consolidates agent creation into Factory Studio single canonical lever [REQ-FACT-042, CARD-386]', () => {
     const html = readIndexHtml();
     expect(html).not.toContain('id="forgeTrainNewAgentBtn"');
     expect(html).not.toContain('id="forgeTrainAgentBtn"');
-    expect(html).toContain('id="factoryNewRunBtn"');
-    expect(html).toContain('id="factoryNewAgentBtn"');
+    expect(html).not.toContain('id="factoryNewRunBtn"');
+    expect(html).toContain('id="factoryAgentSelect"');
   });
 });
 
@@ -201,7 +201,8 @@ describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022, REQ-FAC
   it('index.html omits forgeLabMonitorBtn from Agent Studio and routes via Factory Studio', () => {
     const html = readIndexHtml();
     expect(html).not.toContain('id="forgeLabMonitorBtn"');
-    expect(html).toContain('id="factoryTabRunsBtn"');
+    expect(html).toContain('id="tab-factory"');
+    expect(html).not.toContain('id="factoryTabRunsBtn"');
   });
 
   it('index.html contains #labMonitorDrawer with 5-stage stepper, live feed, and hitl card', () => {

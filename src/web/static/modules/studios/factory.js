@@ -1,1671 +1,701 @@
 /**
- * Factory Studio Controller [CARD-195, REQ-FACT-034 - REQ-FACT-039]
+ * Capabilities & Scaffolding Workshop Studio Controller [CARD-386]
  *
- * Provides a dedicated, first-class workspace for the Agent Training Factory:
- * 1. Pipeline & Phase Prompts Inspector: 8-stage flowchart, context variables,
- *    and platform-wide system prompt customization.
- * 2. Training Runs & Live Monitor: Two-pane telemetry view with run filtering,
- *    live progress stepper, HITL deployment gate, and streaming packet logs.
+ * Replaces the legacy 8-phase synthetic tool factory with a 3-column workbench:
+ * Column 1: Agent Brief (New or Existing)
+ * Column 2: Skills & Runbook (Matt Pocock SKILL.md with Auto-Pin)
+ * Column 3: Capabilities & Grounding (Live MCP tool inspector & source context)
  */
 
-import { $, $queryAll, escapeHtml, safeCreateIcons } from '../dom.js';
-import {
-  collectPacketArtifacts,
-  buildExpectedPackPaths,
-  formatLabPacketFeedLines,
-  formatLabActivityFeedText,
-  populateTrainModalForRetry,
-} from './forge.js';
-import {
-  updateTrainAgentLiveIndicator,
-} from './chat.js';
+import { $, escapeHtml, safeCreateIcons } from '../dom.js';
+import { showToast } from '../ui/toast.js';
 
-export const PHASE_METADATA = [
-  {
-    id: 'intent_distill',
-    num: '01',
-    name: 'Intent Distill',
-    icon: 'message-circle-question',
-    defaultDesc: 'Distills high-level operator brief into structured starter objectives, constraints, prerequisites, and Reflexion lessons.',
-  },
-  {
-    id: 'ground',
-    num: '02',
-    name: 'Ground',
-    icon: 'search',
-    defaultDesc: 'Executes safe, read-only discovery against target host environment, filesystem, APIs, and credentials.',
-  },
-  {
-    id: 'blueprint',
-    num: '03',
-    name: 'Blueprint',
-    icon: 'compass',
-    defaultDesc: 'Synthesizes tool schemas, capability taxonomy (tool, skill, mcp), file maps, and test plans.',
-  },
-  {
-    id: 'author',
-    num: '04',
-    name: 'Author',
-    icon: 'code',
-    defaultDesc: 'Synthesizes complete, runnable Python tool code, PowerShell cmdlets, and SKILL.md runbooks.',
-  },
-  {
-    id: 'scenario_verify',
-    num: '05',
-    name: 'Scenario Verify',
-    icon: 'list-checks',
-    defaultDesc: 'Executes authored tools against simulated sandbox fixtures and mock environments.',
-  },
-  {
-    id: 'verify',
-    num: '06',
-    name: 'Code Verify',
-    icon: 'shield-check',
-    defaultDesc: 'Performs static AST validation, security guardrail allowlist checks, and idempotency tests.',
-  },
-  {
-    id: 'optimize',
-    num: '07',
-    name: 'Optimize',
-    icon: 'check-circle',
-    defaultDesc: 'Refines code structure, handles edge cases, and removes redundant token baggage.',
-  },
-  {
-    id: 'promote',
-    num: '08',
-    name: 'Promote',
-    icon: 'rocket',
-    defaultDesc: 'Packages verified files into the target agent pack, updates profile, and triggers fleet deployment.',
-  },
-];
-
-export const PHASE_ORDER = PHASE_METADATA.map((p) => p.id);
-
-export function calculateProgressIndex(nodeId, status) {
-  const legacyMap = {
-    socratic_handshake: 'intent_distill',
-    discovery_probe: 'ground',
-    architecture_blueprint: 'blueprint',
-    attempt_node: 'author',
-    conduct_node: 'author',
-    coder_node: 'author',
-    sandbox_battery_node: 'verify',
-    critic_signoff_node: 'optimize',
-    hitl_deploy_gate_node: 'promote',
-    pack_finalized_node: 'done',
-  };
-
-  const phase = legacyMap[nodeId] || nodeId;
-  if (phase === 'done' || status === 'done') return PHASE_ORDER.length;
-  if (status === 'waiting_approval') return PHASE_ORDER.indexOf('promote');
-  return PHASE_ORDER.indexOf(phase);
-}
-
-/**
- * Format milliseconds into human-readable duration badge string [CARD-197, REQ-FACT-051].
- */
-export function formatPhaseDurationMs(ms) {
-  if (ms == null || isNaN(ms)) return '';
-  if (ms < 1000) return `${ms}ms`;
-  const s = (ms / 1000).toFixed(1);
-  return `${s.replace(/\.0$/, '')}s`;
-}
-
-export function filterJobs(jobs = [], searchQuery = '', statusFilter = 'all', agentFilter = '') {
-  const query = String(searchQuery || '').trim().toLowerCase();
-  const filter = String(statusFilter || 'all').trim().toLowerCase();
-  const agent = String(agentFilter || '').trim().toLowerCase();
-
-  return (jobs || []).filter((job) => {
-    if (!job) return false;
-
-    if (agent && agent !== 'all') {
-      const jobAgent = String(job.target_agent_id || job.agent_id || '').trim().toLowerCase();
-      if (jobAgent !== agent) return false;
-    }
-
-    const matchesSearch =
-      !query ||
-      (job.target_agent_id && job.target_agent_id.toLowerCase().includes(query)) ||
-      (job.id && job.id.toLowerCase().includes(query));
-
-    if (!matchesSearch) return false;
-
-    if (filter === 'all') return true;
-    const jobStatus = String(job.status || '').toLowerCase();
-    if (filter === 'running') return jobStatus === 'running' || jobStatus === 'queued';
-    if (filter === 'waiting_approval' || filter === 'waiting') return jobStatus === 'waiting_approval';
-    if (filter === 'done') return jobStatus === 'done';
-    if (filter === 'failed') return jobStatus === 'failed';
-    return jobStatus === filter;
-  });
-}
-
+// ==================== Scaffolder Helpers & Gap Bindings ====================
 export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgentId = '') {
   if (!selectEl) return;
-  selectEl.innerHTML = '<option value="">All Agents (Platform View)</option>';
-  if (!selectEl.children) selectEl.children = [];
-  if (selectEl.children.length === 0) {
-    selectEl.children.push({ value: '', textContent: 'All Agents (Platform View)' });
-  }
+  selectEl.innerHTML = '';
+
+  const createOpt = (val, text) => {
+    if (typeof document !== 'undefined' && document.createElement) {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = text;
+      return opt;
+    }
+    return { value: val, textContent: text };
+  };
+
+  const defaultOpt = createOpt('', 'All Agents');
+  selectEl.appendChild(defaultOpt);
 
   (agents || []).forEach((ag) => {
-    const id = ag.id || ag.agent_id || (typeof ag === 'string' ? ag : '');
-    if (!id) return;
-    if (id === 'agent_builder' || id === 'agent-builder') return;
-    const name = ag.name || id;
-    const label = name === id ? id : `${name} (${id})`;
-    if (typeof document !== 'undefined') {
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = label;
-      if (selectedAgentId && id === selectedAgentId) {
-        opt.selected = true;
-      }
-      selectEl.appendChild(opt);
-    } else if (selectEl.appendChild) {
-      const opt = { value: id, textContent: label };
-      if (selectedAgentId && id === selectedAgentId) {
-        opt.selected = true;
-      }
-      selectEl.appendChild(opt);
-    }
+    if (ag.id === 'agent_builder' || ag.id === 'agent-builder') return;
+    const opt = createOpt(ag.id, `${ag.name || ag.id} (${ag.id})`);
+    selectEl.appendChild(opt);
   });
+
   if (selectedAgentId) {
     selectEl.value = selectedAgentId;
   }
 }
 
-/**
- * Extracts runbook, tool code, and manifest diff from job and packet payloads [CARD-197, REQ-FACT-055].
- */
-export function extractJobDeliverables(job = {}, packets = []) {
-  const agentId = (job && (job.target_agent_id || job.agent_id)) || 'agent';
-  let runbookPath = `skills/${agentId}/SKILL.md`;
-  let runbookContent = '(No runbook authored in this job yet.)';
-  let toolPath = `tools/manage_${agentId.replace(/-/g, '_')}.py`;
-  let toolCode = '(No tool code authored in this job yet.)';
-  let collisionData = null;
-
-  (packets || []).forEach((p) => {
-    const payload = p && p.payload ? p.payload : {};
-    if (payload.collisions) {
-      collisionData = payload.collisions;
-    }
-    const files = payload.files_map || {};
-    Object.keys(files).forEach((filePath) => {
-      const norm = filePath.replace(/\\/g, '/');
-      if (norm.endsWith('SKILL.md')) {
-        runbookPath = norm;
-        runbookContent = files[filePath];
-      } else if (norm.startsWith('tools/') && norm.endsWith('.py')) {
-        toolPath = norm;
-        toolCode = files[filePath];
-      } else if (norm === 'mcp/server.py') {
-        toolPath = norm;
-        toolCode = files[filePath];
-      }
-    });
-  });
-
-  const manifestPatch = {
-    id: agentId,
-    name: agentId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-    description: (job && job.seed_intent) || '',
-    updated_runbook: runbookPath,
-    updated_tool: toolPath,
-    status: (job && job.status) || 'waiting_approval',
-  };
-
+export function applyBacklogGapToIntake(gap = {}) {
+  if (!gap) return null;
+  const seedIntent = gap.missing_capability || gap.identified_capability || gap.description || gap.intent || gap.name || '';
+  const objectives = gap.objectives || (gap.suggested_steps ? gap.suggested_steps : (seedIntent ? [seedIntent] : []));
   return {
-    agentId,
-    runbookPath,
-    runbookContent,
-    toolPath,
-    toolCode,
-    manifestDiff: JSON.stringify(manifestPatch, null, 2),
-    collisionData,
-  };
-}
-
-export function validateIntakeForm({ targetAgentId, seedIntent, objectives }) {
-  const agentId = String(targetAgentId || '').trim();
-  if (!agentId || agentId === 'all') {
-    return { valid: false, error: 'Please select a target agent to train.' };
-  }
-
-  const intent = String(seedIntent || '').trim();
-  const objList = Array.isArray(objectives)
-    ? objectives.filter((o) => typeof o === 'string' && o.trim().length > 0)
-    : [];
-
-  if (!intent && objList.length === 0) {
-    return { valid: false, error: 'Please provide either a training intent or at least one objective.' };
-  }
-
-  return { valid: true };
-}
-
-export function buildFactoryJobPayload({
-  targetAgentId,
-  seedIntent,
-  objectives = [],
-  deliverableType = 'auto',
-  targetLocation = '',
-  referenceDocs = '',
-  requireApproval = true,
-  targetType = 'local',
-  sessionId = null,
-}) {
-  const intent = String(seedIntent || '').trim();
-  const objList = Array.isArray(objectives)
-    ? objectives.map((s) => String(s).trim().replace(/^-\s*/, '')).filter(Boolean)
-    : [];
-
-  const derivedIntent = intent || (objList.length > 0 ? objList[0] : `Train capabilities for ${targetAgentId}`);
-
-  return {
-    target_agent_id: targetAgentId,
-    seed_intent: derivedIntent,
-    seed_objectives: objList,
-    deliverable_type: deliverableType || 'auto',
-    target_location: targetLocation ? targetLocation.trim() : null,
-    reference_docs: referenceDocs ? referenceDocs.trim() : null,
-    target_type: targetType || 'local',
-    require_approval: Boolean(requireApproval),
-    session_id: sessionId,
-  };
-}
-
-export function applyBacklogGapToIntake(gap) {
-  if (!gap) return { targetAgentId: '', seedIntent: '', objectives: [], deliverableType: 'auto' };
-
-  const targetAgentId = gap.agent_id || gap.target_agent_id || '';
-  const capabilityDesc = gap.missing_capability || gap.capability_description || gap.identified_capability || gap.gap_title || '';
-  const userIntent = gap.user_intent || gap.intent || gap.turn_text || gap.user_prompt || '';
-  const deliverable = gap.suggested_deliverable || gap.deliverable_type || 'auto';
-
-  const seedIntent = capabilityDesc || userIntent || '';
-  const objectives = [];
-  if (capabilityDesc) {
-    objectives.push(capabilityDesc);
-  }
-  if (userIntent && userIntent !== capabilityDesc) {
-    objectives.push(`Satisfy user intent: ${userIntent}`);
-  }
-
-  return {
-    targetAgentId,
+    targetAgentId: gap.agent_id || gap.target_agent_id || '',
     seedIntent,
     objectives,
-    deliverableType: ['tool', 'skill', 'mcp', 'auto'].includes(deliverable) ? deliverable : 'auto',
+    deliverableType: gap.suggested_deliverable || gap.deliverable_type || 'tool',
+    referenceDocs: gap.user_intent || '',
+    capabilityGapId: gap.id || null,
   };
 }
 
 export function buildForgeInitialPrompt(agentId = '') {
-  const cleanId = String(agentId || '').trim();
-  if (!cleanId || cleanId === 'all') {
-    return "I want to design a new capability. Let's talk through what it needs.";
+  if (agentId) {
+    return `Let's design a new capability for agent ${agentId}. What tools or skills do we need?`;
   }
-  return `I want to design a new capability for agent "${cleanId}". Let's talk through what it needs.`;
+  return `Let's design a new capability. What agent, tools, or skills should we build?`;
 }
 
+export const LEGACY_GAP_TRIGGER_CLASS = 'btn-train-gap';
+export const LEGACY_GAP_PAYLOAD_FIELD = 'identified_capability';
 
+export function toSnakeCase(text) {
+  return (text || '')
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+const COMMON_STOP_WORDS = new Set([
+  'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'as',
+  'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'could',
+  'did', 'do', 'does', 'doing', 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had',
+  'has', 'have', 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'how',
+  'i', 'if', 'in', 'into', 'is', 'it', 'its', 'itself', 'just', 'me', 'more', 'most', 'my', 'myself',
+  'no', 'nor', 'not', 'now', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours',
+  'ourselves', 'out', 'over', 'own', 'same', 'she', 'should', 'so', 'some', 'such', 'than', 'that',
+  'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'these', 'they', 'this', 'those',
+  'through', 'to', 'too', 'under', 'until', 'up', 'very', 'was', 'we', 'were', 'what', 'when', 'where',
+  'which', 'while', 'who', 'whom', 'why', 'with', 'would', 'you', 'your', 'yours', 'yourself',
+]);
+
+// ==================== Studio Lifecycle Manager ====================
 export function initFactoryStudio(state, callbacks = {}) {
-
-  // DOM Elements - Shell & Sub-Tabs [CARD-351, REQ-FACT-053]
-  const factoryTabIntakeBtn = $('factoryTabIntakeBtn');
-  const factoryTabRunsBtn = $('factoryTabRunsBtn');
-  const factoryTabPipelineBtn = $('factoryTabPipelineBtn');
-  const factoryIntakeView = $('factoryIntakeView');
-  const factoryRunsView = $('factoryRunsView');
-  const factoryPipelineView = $('factoryPipelineView');
-  const factoryActiveRunsBadge = $('factoryActiveRunsBadge');
-  const factoryActiveStatusPill = $('factoryActiveStatusPill');
-  const factoryRefreshBtn = $('factoryRefreshBtn');
-  const factoryNewRunBtn = $('factoryNewRunBtn');
-  const factoryNewRunBtnText = $('factoryNewRunBtnText');
+  // DOM Elements - Column 1: Agent Brief
   const factoryAgentSelect = $('factoryAgentSelect');
+  const factoryAgentModeBadge = $('factoryAgentModeBadge');
+  const factoryAgentIdInput = $('factoryAgentIdInput');
+  const factoryAgentNameInput = $('factoryAgentNameInput');
+  const factoryAgentPromptInput = $('factoryAgentPromptInput');
 
-  // DOM Elements - Intake Workbench [CARD-351, REQ-FACT-052]
-  const factoryIntakePreFillSelect = $('factoryIntakePreFillSelect');
-  const factoryIntakeIntentInput = $('factoryIntakeIntentInput');
-  const factoryIntakeObjectivesInput = $('factoryIntakeObjectivesInput');
-  const factoryIntakeDeliverableType = $('factoryIntakeDeliverableType');
-  const factoryIntakeLocationInput = $('factoryIntakeLocationInput');
-  const factoryIntakeContextInput = $('factoryIntakeContextInput');
-  const factoryIntakeRequireApproval = $('factoryIntakeRequireApproval');
-  const factoryIntakeTalkToForgeBtn = $('factoryIntakeTalkToForgeBtn');
-  const factoryIntakeResetBtn = $('factoryIntakeResetBtn');
-  const factoryIntakeLaunchBtn = $('factoryIntakeLaunchBtn');
-
-
-  // DOM Elements - Pipeline & Prompt Inspector
-  const factoryFlowchartContainer = $('factoryFlowchartContainer');
-  const factoryInspectorStageTitle = $('factoryInspectorStageTitle');
-  const factoryInspectorStageDesc = $('factoryInspectorStageDesc');
-  const factoryInspectorStatusBadge = $('factoryInspectorStatusBadge');
-  const factoryContextVarPills = $('factoryContextVarPills');
-  const factoryPhasePromptInput = $('factoryPhasePromptInput');
-  const factoryPromptLastUpdated = $('factoryPromptLastUpdated');
-  const factoryPromptCharCount = $('factoryPromptCharCount');
-  const factorySavePromptBtn = $('factorySavePromptBtn');
-  const factoryResetPromptBtn = $('factoryResetPromptBtn');
-
-  // DOM Elements - Runs & Telemetry
-  const factoryRunsListPane = $('factoryRunsListPane');
-  const factoryRunDetailPane = $('factoryRunDetailPane');
-  const factoryRunSearchInput = $('factoryRunSearchInput');
-  const factoryRunsList = $('factoryRunsList');
-  const factoryMobileBackToRunsBtn = $('factoryMobileBackToRunsBtn');
-  const factoryDetailJobBadge = $('factoryDetailJobBadge');
-  const factoryDetailStatusPill = $('factoryDetailStatusPill');
-  const factoryDetailRetryBtn = $('factoryDetailRetryBtn');
-  const factoryDetailCopyFeedBtn = $('factoryDetailCopyFeedBtn');
-  const factoryDetailCopyFeedText = $('factoryDetailCopyFeedText');
-  const factoryDetailStepper = $('factoryDetailStepper');
-  const factoryDetailHitlCard = $('factoryDetailHitlCard');
-  const factoryDetailHitlToolsList = $('factoryDetailHitlToolsList');
-  const factoryDetailApproveBtn = $('factoryDetailApproveBtn');
-  const factoryDetailRejectBtn = $('factoryDetailRejectBtn');
-  const factoryDetailArtifactPills = $('factoryDetailArtifactPills');
-  const factoryDetailPacketsFeed = $('factoryDetailPacketsFeed');
-  const factoryDetailPacketCount = $('factoryDetailPacketCount');
-  const factoryInspectDeliverablesBtn = $('factoryInspectDeliverablesBtn');
-  const factoryDeliverableModal = $('factoryDeliverableModal');
-  const closeFactoryDeliverableModalBtn = $('closeFactoryDeliverableModalBtn');
-  const closeFactoryDeliverableFooterBtn = $('closeFactoryDeliverableFooterBtn');
-  const factoryTabRunbookBtn = $('factoryTabRunbookBtn');
-  const factoryTabToolBtn = $('factoryTabToolBtn');
-  const factoryTabDiffBtn = $('factoryTabDiffBtn');
-  const factoryTabContentRunbook = $('factoryTabContentRunbook');
-  const factoryTabContentTool = $('factoryTabContentTool');
-  const factoryTabContentDiff = $('factoryTabContentDiff');
-  const factoryDeliverableRunbookPath = $('factoryDeliverableRunbookPath');
-  const factoryDeliverableRunbookPreview = $('factoryDeliverableRunbookPreview');
-  const factoryDeliverableToolPath = $('factoryDeliverableToolPath');
-  const factoryDeliverableToolCode = $('factoryDeliverableToolCode');
-  const factoryDeliverableManifestDiff = $('factoryDeliverableManifestDiff');
-  const factoryDeliverableCollisionNotice = $('factoryDeliverableCollisionNotice');
-
-
-  // State
-  let activeSubView = 'intake'; // 'intake' | 'runs' | 'pipeline'
-  let phasesData = [];
-  let selectedPhaseId = 'intent_distill';
-  let allJobs = [];
-  let selectedJobId = null;
-  let currentJobData = null;
-  let statusFilter = 'all';
-  let pollInterval = null;
-  let activeAgentScope = '';
-  let allAgents = [];
-  let loadedBacklogGaps = [];
-
-  function showToast(msg, type = 'info') {
-    if (typeof callbacks.showToast === 'function') {
-      callbacks.showToast(msg, type);
-    }
+  // DOM Elements - Column 2: Skills & Runbook
+  const factoryCurrentSkillsList = $('factoryCurrentSkillsList');
+  const factoryAssignedSkillsCount = $('factoryAssignedSkillsCount');
+  const factoryNewSkillFormBtn = $('factoryNewSkillFormBtn');
+  const factorySkillNameInput = $('factorySkillNameInput');
+  const factorySkillIdInput = $('factorySkillIdInput');
+  if (factorySkillIdInput) {
+    factorySkillIdInput.readOnly = true;
   }
-
-  // -------------------------------------------------------------
-  // 1. Sub-View Switching [REQ-FACT-053]
-  // -------------------------------------------------------------
-  function switchSubView(targetView) {
-    activeSubView = targetView;
-    if (targetView === 'intake') {
-      if (factoryIntakeView) factoryIntakeView.classList.remove('hidden');
-      if (factoryRunsView) {
-        factoryRunsView.classList.add('hidden');
-        factoryRunsView.classList.remove('flex');
-      }
-      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
-
-      if (factoryTabIntakeBtn) {
-        factoryTabIntakeBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
-        factoryTabIntakeBtn.setAttribute('aria-selected', 'true');
-      }
-      if (factoryTabRunsBtn) {
-        factoryTabRunsBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabRunsBtn.setAttribute('aria-selected', 'false');
-      }
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
-      }
-      updateIntakeTargetAgentCard(activeAgentScope);
-    } else if (targetView === 'runs') {
-      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
-      if (factoryRunsView) {
-        factoryRunsView.classList.remove('hidden');
-        factoryRunsView.classList.add('flex');
-      }
-      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
-
-      if (factoryTabIntakeBtn) {
-        factoryTabIntakeBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
-      }
-      if (factoryTabRunsBtn) {
-        factoryTabRunsBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
-        factoryTabRunsBtn.setAttribute('aria-selected', 'true');
-      }
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
-      }
-      loadTrainingRuns();
-    } else if (targetView === 'pipeline') {
-      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
-      if (factoryRunsView) {
-        factoryRunsView.classList.add('hidden');
-        factoryRunsView.classList.remove('flex');
-      }
-      if (factoryPipelineView) factoryPipelineView.classList.remove('hidden');
-
-      if (factoryTabIntakeBtn) {
-        factoryTabIntakeBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
-      }
-      if (factoryTabRunsBtn) {
-        factoryTabRunsBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
-        factoryTabRunsBtn.setAttribute('aria-selected', 'false');
-      }
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'true');
-      }
-      loadPhaseInstructions();
-    }
-    safeCreateIcons();
-  }
-
-  if (factoryTabIntakeBtn) {
-    factoryTabIntakeBtn.addEventListener('click', () => switchSubView('intake'));
-  }
-  if (factoryTabRunsBtn) {
-    factoryTabRunsBtn.addEventListener('click', () => switchSubView('runs'));
-  }
-  if (factoryTabPipelineBtn) {
-    factoryTabPipelineBtn.addEventListener('click', () => switchSubView('pipeline'));
-  }
-
-  // -------------------------------------------------------------
-  // 2. Flowchart & Phase Prompt Inspector
-  // -------------------------------------------------------------
-  async function loadPhaseInstructions() {
-    try {
-      const res = await fetch('/api/agent_training_factory/phases/instructions');
-      if (!res.ok) throw new Error(`Failed to load phase instructions (${res.status})`);
-      const data = await res.json();
-      phasesData = data.phases || [];
-      renderFlowchart();
-      renderPhaseInspector(selectedPhaseId);
-    } catch (err) {
-      console.error('[Factory Studio] Phase instruction error:', err);
-    }
-  }
-
-  function renderFlowchart() {
-    if (!factoryFlowchartContainer) return;
-    factoryFlowchartContainer.innerHTML = '';
-
-    PHASE_METADATA.forEach((meta) => {
-      const pData = phasesData.find((p) => p.phase_id === meta.id) || {};
-      const isCustom = Boolean(pData.is_custom);
-      const isSelected = meta.id === selectedPhaseId;
-
-      const tile = document.createElement('button');
-      tile.type = 'button';
-      tile.id = `factoryStageTile-${meta.id}`;
-      tile.dataset.phaseId = meta.id;
-      tile.className = `p-3 rounded-xl border text-left transition relative flex flex-col justify-between space-y-2 group cursor-pointer ${
-        isSelected
-          ? 'ring-2 ring-brand-500 border-brand-500 bg-brand-950/70 shadow-lg shadow-brand-500/20'
-          : 'border-slate-800 bg-slate-950/70 hover:border-slate-700 hover:bg-slate-900/90'
-      }`;
-
-      tile.innerHTML = `
-        <div class="flex items-center justify-between w-full">
-          <span class="text-[10px] font-mono font-bold ${isSelected ? 'text-brand-400' : 'text-slate-500 group-hover:text-slate-400'}">${meta.num}</span>
-          <div class="w-6 h-6 rounded-lg ${isSelected ? 'bg-brand-900/80 text-brand-300' : 'bg-slate-900 text-slate-400 group-hover:text-white'} flex items-center justify-center">
-            <i data-lucide="${meta.icon}" class="w-3.5 h-3.5"></i>
-          </div>
-        </div>
-        <div>
-          <div class="text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'} truncate">${meta.name}</div>
-          <div class="mt-1 flex items-center space-x-1">
-            <span class="w-1.5 h-1.5 rounded-full ${isCustom ? 'bg-amber-400' : 'bg-emerald-400'}"></span>
-            <span class="text-[9px] font-mono ${isCustom ? 'text-amber-300' : 'text-emerald-300'}">${isCustom ? 'Custom' : 'Default'}</span>
-          </div>
-        </div>
-      `;
-
-      tile.addEventListener('click', () => {
-        selectedPhaseId = meta.id;
-        renderFlowchart();
-        renderPhaseInspector(meta.id);
-      });
-
-      factoryFlowchartContainer.appendChild(tile);
-    });
-
-    safeCreateIcons();
-  }
-
-  function renderPhaseInspector(phaseId) {
-    const meta = PHASE_METADATA.find((m) => m.id === phaseId) || PHASE_METADATA[0];
-    const pData = phasesData.find((p) => p.phase_id === phaseId) || {};
-    const isCustom = Boolean(pData.is_custom);
-
-    if (factoryInspectorStageTitle) {
-      factoryInspectorStageTitle.textContent = `Stage ${meta.num}: ${meta.name}`;
-    }
-
-    if (factoryInspectorStageDesc) {
-      factoryInspectorStageDesc.textContent = pData.description || meta.defaultDesc;
-    }
-
-    if (factoryInspectorStatusBadge) {
-      factoryInspectorStatusBadge.textContent = isCustom ? 'Custom Override' : 'Platform Default';
-      factoryInspectorStatusBadge.className = isCustom
-        ? 'px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-amber-950/50 border-amber-700/60 text-amber-300'
-        : 'px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-emerald-950/50 border-emerald-700/60 text-emerald-300';
-    }
-
-    if (factoryPromptLastUpdated) {
-      factoryPromptLastUpdated.textContent = isCustom ? 'Custom platform override' : 'Built-in platform default';
-    }
-
-    // Context Variables Pills
-    if (factoryContextVarPills) {
-      factoryContextVarPills.innerHTML = '';
-      const vars = pData.context_variables || [
-        'target_agent_id',
-        'seed_intent',
-        'objectives',
-        'failure_lessons',
-      ];
-      vars.forEach((v) => {
-        const pill = document.createElement('button');
-        pill.type = 'button';
-        pill.className =
-          'px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-brand-950 border border-slate-700 hover:border-brand-500/60 text-cyan-300 font-mono text-[11px] transition shadow-sm';
-        pill.textContent = `{{${v}}}`;
-        pill.title = `Click to insert {{${v}}} at cursor`;
-        pill.addEventListener('click', () => {
-          insertContextVariable(`{{${v}}}`);
-        });
-        factoryContextVarPills.appendChild(pill);
-      });
-    }
-
-    // System Prompt Textarea
-    if (factoryPhasePromptInput) {
-      factoryPhasePromptInput.value = pData.active_prompt || pData.default_prompt || '';
-      updateCharCount();
-    }
-  }
-
-  function insertContextVariable(token) {
-    if (!factoryPhasePromptInput) return;
-    const start = factoryPhasePromptInput.selectionStart || 0;
-    const end = factoryPhasePromptInput.selectionEnd || 0;
-    const text = factoryPhasePromptInput.value;
-    factoryPhasePromptInput.value = text.substring(0, start) + token + text.substring(end);
-    factoryPhasePromptInput.selectionStart = factoryPhasePromptInput.selectionEnd = start + token.length;
-    factoryPhasePromptInput.focus();
-    updateCharCount();
-    showToast(`Inserted ${token} into prompt editor`, 'info');
-  }
-
-  function updateCharCount() {
-    if (!factoryPhasePromptInput || !factoryPromptCharCount) return;
-    const len = factoryPhasePromptInput.value.length;
-    factoryPromptCharCount.textContent = `${len.toLocaleString()} chars`;
-  }
-
-  if (factoryPhasePromptInput) {
-    factoryPhasePromptInput.addEventListener('input', updateCharCount);
-  }
-
-  // Save Custom Phase Prompt
-  if (factorySavePromptBtn) {
-    factorySavePromptBtn.addEventListener('click', async () => {
-      if (!factoryPhasePromptInput) return;
-      const promptText = factoryPhasePromptInput.value.trim();
-      if (!promptText) {
-        showToast('System prompt instructions cannot be empty.', 'warning');
-        return;
-      }
-
-      factorySavePromptBtn.disabled = true;
-      factorySavePromptBtn.textContent = 'Saving...';
-      try {
-        const res = await fetch(`/api/agent_training_factory/phases/${encodeURIComponent(selectedPhaseId)}/instructions`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: promptText }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
-        }
-        showToast(`Saved custom instructions for ${selectedPhaseId}!`, 'success');
-        await loadPhaseInstructions();
-      } catch (err) {
-        showToast(`Failed to save prompt: ${err.message}`, 'error');
-      } finally {
-        factorySavePromptBtn.disabled = false;
-        factorySavePromptBtn.textContent = 'Save Instructions';
-        safeCreateIcons();
-      }
-    });
-  }
-
-  // Reset to Platform Default
-  if (factoryResetPromptBtn) {
-    factoryResetPromptBtn.addEventListener('click', async () => {
-      factoryResetPromptBtn.disabled = true;
-      try {
-        const res = await fetch(`/api/agent_training_factory/phases/${encodeURIComponent(selectedPhaseId)}/instructions`, {
-          method: 'DELETE',
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
-        }
-        showToast(`Restored platform default for ${selectedPhaseId}.`, 'info');
-        await loadPhaseInstructions();
-      } catch (err) {
-        showToast(`Failed to reset prompt: ${err.message}`, 'error');
-      } finally {
-        factoryResetPromptBtn.disabled = false;
-        safeCreateIcons();
-      }
-    });
-  }
-
-  // -------------------------------------------------------------
-  // 3. Training Runs & Live Monitor
-  // -------------------------------------------------------------
-  async function loadFactoryAgents() {
-    try {
-      const res = await fetch('/api/agents');
-      if (res.ok) {
-        allAgents = await res.json();
-        populateFactoryAgentOptions(factoryAgentSelect, allAgents, activeAgentScope);
-        updateNewRunButtonScope();
-        updateIntakeTargetAgentCard(activeAgentScope);
-      }
-    } catch (err) {
-      console.warn('[Factory Studio] Failed to load agents list:', err);
-    }
-  }
-
-  function updateNewRunButtonScope() {
-    if (!factoryNewRunBtnText) return;
-    if (activeAgentScope) {
-      const ag = allAgents.find((a) => (a.id || a.agent_id) === activeAgentScope);
-      const name = ag ? (ag.name || ag.id) : activeAgentScope;
-      factoryNewRunBtnText.textContent = `Train ${name}`;
-      if (factoryNewRunBtn) {
-        factoryNewRunBtn.title = `Train new capabilities for ${name} in the factory`;
-      }
-    } else {
-      factoryNewRunBtnText.textContent = 'New Training Run';
-      if (factoryNewRunBtn) {
-        factoryNewRunBtn.title = 'Start new training run';
-      }
-    }
-  }
-
-  function updateRunsStatusBadges() {
-    const relevantJobs = activeAgentScope
-      ? allJobs.filter((j) => String(j.target_agent_id || j.agent_id || '').toLowerCase() === activeAgentScope.toLowerCase())
-      : allJobs;
-    const activeJobs = relevantJobs.filter((j) => ['running', 'queued', 'waiting_approval'].includes(j.status));
-
-    if (factoryActiveRunsBadge) {
-      if (activeJobs.length > 0) {
-        factoryActiveRunsBadge.textContent = String(activeJobs.length);
-        factoryActiveRunsBadge.classList.remove('hidden');
-      } else {
-        factoryActiveRunsBadge.classList.add('hidden');
-      }
-    }
-
-    if (factoryActiveStatusPill) {
-      if (activeJobs.some((j) => j.status === 'waiting_approval')) {
-        factoryActiveStatusPill.textContent = 'WAITING APPROVAL';
-        factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-amber-950/60 border-amber-700/60 text-amber-300';
-      } else if (activeJobs.length > 0) {
-        factoryActiveStatusPill.textContent = `${activeJobs.length} RUNNING`;
-        factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-brand-950/60 border-brand-700/60 text-brand-300 animate-pulse';
-      } else {
-        factoryActiveStatusPill.textContent = 'Ready';
-        factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-slate-800 border-slate-700 text-slate-300';
-      }
-    }
-  }
-
-  async function loadAgentCapabilityGaps(agentId = '') {
-    const agentBacklogList = $('agentBacklogList');
-    const agentBacklogCountBadge = $('agentBacklogCountBadge');
-    if (!agentBacklogList) return;
-
-    try {
-      const url = agentId
-        ? `/api/agents/${encodeURIComponent(agentId)}/gaps?status=pending`
-        : '/api/agents/gaps?status=pending';
-      const res = await fetch(url);
-      const data = res.ok ? await res.json() : {};
-      const items = Array.isArray(data) ? data : (data.gaps || []);
-      loadedBacklogGaps = items;
-      populateIntakePreFillOptions(items);
-      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = String(items.length);
-      if (!items.length) {
-        agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
-        return;
-      }
-      agentBacklogList.innerHTML = items.map((gap) => {
-        const targetAgent = gap.agent_id || agentId || 'agent';
-        return `
-        <div class="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 space-y-1.5" data-gap-id="${escapeHtml(gap.id)}" data-agent-id="${escapeHtml(targetAgent)}">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-1.5">
-              ${!agentId ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-slate-800 text-brand-300 border border-slate-700">${escapeHtml(targetAgent)}</span>` : ''}
-              <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability')}</span>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <button type="button" class="btn-train-gap px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}" data-agent-id="${escapeHtml(targetAgent)}" title="Launch training directly for this capability">⚡ Train</button>
-              <button type="button" class="btn-dismiss-gap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-medium transition" data-gap-id="${escapeHtml(gap.id)}" data-agent-id="${escapeHtml(targetAgent)}" title="Dismiss gap">Dismiss</button>
-            </div>
-          </div>
-          ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span></div>` : ''}
-          <p class="text-[11px] text-slate-400 whitespace-pre-wrap">${escapeHtml(gap.turn_text || gap.user_prompt || '')}</p>
-        </div>
-      `;
-      }).join('');
-
-      agentBacklogList.querySelectorAll('.btn-train-gap').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
-          const gapId = e.currentTarget.dataset.gapId;
-          const targetAgent = e.currentTarget.dataset.agentId || agentId;
-          try {
-            const trainRes = await fetch(`/api/agents/${encodeURIComponent(targetAgent)}/gaps/${encodeURIComponent(gapId)}/train`, { method: 'POST' });
-            if (!trainRes.ok) throw new Error('Failed to launch training');
-            showToast(`Training launched for ${targetAgent}!`, 'success');
-            await loadAgentCapabilityGaps(activeAgentScope);
-            await loadTrainingRuns();
-          } catch (err) {
-            showToast(String(err.message || err), 'error');
-          }
-        });
-      });
-
-      agentBacklogList.querySelectorAll('.btn-dismiss-gap').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
-          const gapId = e.currentTarget.dataset.gapId;
-          const targetAgent = e.currentTarget.dataset.agentId || agentId;
-          try {
-            const delRes = await fetch(`/api/agents/${encodeURIComponent(targetAgent)}/gaps/${encodeURIComponent(gapId)}`, { method: 'DELETE' });
-            if (!delRes.ok) throw new Error('Failed to dismiss gap');
-            showToast('Capability gap dismissed', 'info');
-            await loadAgentCapabilityGaps(activeAgentScope);
-          } catch (err) {
-            showToast(String(err.message || err), 'error');
-          }
-        });
-      });
-    } catch (err) {
-      console.warn('[AutoReiv Factory] Failed to load capability gaps:', err);
-      agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
-      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = '0';
-    }
-  }
-
-  function updateIntakeTargetAgentCard(agentId) {
-    const card = $('factoryIntakeAgentCard');
-    const nameEl = $('factoryIntakeAgentName');
-    const badgeEl = $('factoryIntakeAgentIdBadge');
-    const countsEl = $('factoryIntakeLiveCounts');
-    const pathEl = $('factoryIntakeLivePackPath');
-    const noticeEl = $('factoryIntakeAgentNotice');
-    if (!card) return;
-
-    if (!agentId || agentId === 'all') {
-      if (nameEl) nameEl.textContent = 'Select an Agent to Train';
-      if (badgeEl) badgeEl.textContent = 'platform_view';
-      if (countsEl) countsEl.textContent = '0 skills · 0 tools';
-      if (pathEl) pathEl.textContent = 'packs/';
-      if (noticeEl) {
-        noticeEl.textContent = 'Select an agent from the Agent dropdown above to target manufacturing for a specific specialist pack.';
-      }
-      return;
-    }
-
-    const agent = (allAgents || []).find((a) => (a.id || a.agent_id) === agentId);
-    const displayName = (agent && (agent.name || agent.title)) || agentId;
-    const skillsCount = agent && Array.isArray(agent.skills) ? agent.skills.length : 0;
-    const toolsCount = agent && Array.isArray(agent.tools) ? agent.tools.length : 0;
-    const packRelPath = `packs/${agentId}/`;
-
-    if (nameEl) nameEl.textContent = displayName;
-    if (badgeEl) badgeEl.textContent = agentId;
-    if (countsEl) countsEl.textContent = `${skillsCount} skills · ${toolsCount} tools`;
-    if (pathEl) pathEl.textContent = packRelPath;
-    if (noticeEl) {
-      noticeEl.textContent = `All manufactured tools, test harnesses, and skill runbooks will be verified in sandbox and packaged directly into ${displayName}'s verified pack (${packRelPath}).`;
-    }
-  }
-
-  function populateIntakePreFillOptions(gaps = []) {
-    const preFillSelect = $('factoryIntakePreFillSelect');
-    if (!preFillSelect) return;
-    preFillSelect.innerHTML = '<option value="">-- Choose a queued capability gap --</option>';
-    gaps.forEach((gap, idx) => {
-      const opt = document.createElement('option');
-      opt.value = String(gap.id || idx);
-      const title = gap.identified_capability || gap.missing_capability || gap.user_prompt || `Gap #${idx + 1}`;
-      const agent = gap.agent_id ? `[${gap.agent_id}] ` : '';
-      opt.textContent = `${agent}${title}`;
-      preFillSelect.appendChild(opt);
-    });
-  }
-
-  // Pre-Fill Selector Bridge [REQ-FACT-055]
-  if (factoryIntakePreFillSelect) {
-    factoryIntakePreFillSelect.addEventListener('change', () => {
-      const selectedId = factoryIntakePreFillSelect.value;
-      if (!selectedId) return;
-      const gap = loadedBacklogGaps.find((g, idx) => String(g.id || idx) === selectedId);
-      if (!gap) return;
-
-      const prefill = applyBacklogGapToIntake(gap);
-      if (prefill.targetAgentId) {
-        setAgentScope(prefill.targetAgentId);
-      }
-      if (factoryIntakeIntentInput) {
-        factoryIntakeIntentInput.value = prefill.seedIntent;
-      }
-      if (factoryIntakeObjectivesInput) {
-        factoryIntakeObjectivesInput.value = prefill.objectives.join('\n');
-      }
-      if (factoryIntakeDeliverableType && prefill.deliverableType) {
-        factoryIntakeDeliverableType.value = prefill.deliverableType;
-      }
-      showToast('Intake form pre-filled from backlog gap.', 'info');
-    });
-  }
-
-  // Reset Intake Form
-  if (factoryIntakeResetBtn) {
-    factoryIntakeResetBtn.addEventListener('click', () => {
-      if (factoryIntakeIntentInput) factoryIntakeIntentInput.value = '';
-      if (factoryIntakeObjectivesInput) factoryIntakeObjectivesInput.value = '';
-      if (factoryIntakeLocationInput) factoryIntakeLocationInput.value = '';
-      if (factoryIntakeContextInput) factoryIntakeContextInput.value = '';
-      if (factoryIntakeDeliverableType) factoryIntakeDeliverableType.value = 'auto';
-      if (factoryIntakeRequireApproval) factoryIntakeRequireApproval.checked = true;
-      if (factoryIntakePreFillSelect) factoryIntakePreFillSelect.value = '';
-    });
-  }
-
-  // Talk it out with Forge Bridge [CARD-355, REQ-FACT-063]
-  if (factoryIntakeTalkToForgeBtn) {
-    factoryIntakeTalkToForgeBtn.addEventListener('click', () => {
-      const targetAgentId = activeAgentScope;
-      if (typeof callbacks.onTalkToForge === 'function') {
-        callbacks.onTalkToForge(targetAgentId);
-      } else if (typeof callbacks.switchTab === 'function') {
-        callbacks.switchTab('chat');
-        if (typeof callbacks.switchSelectedAgent === 'function') {
-          callbacks.switchSelectedAgent('forge');
-        }
-      }
-    });
-  }
-
-  // In-Page Launch Capability Manufacturing [REQ-FACT-054]
-  if (factoryIntakeLaunchBtn) {
-
-    factoryIntakeLaunchBtn.addEventListener('click', async () => {
-      const rawObjectives = factoryIntakeObjectivesInput ? factoryIntakeObjectivesInput.value.trim() : '';
-      const objectives = rawObjectives
-        ? rawObjectives.split('\n').map((s) => s.trim().replace(/^-\s*/, '')).filter(Boolean)
-        : [];
-      const seedIntent = factoryIntakeIntentInput ? factoryIntakeIntentInput.value.trim() : '';
-      const targetAgentId = activeAgentScope;
-
-      const validation = validateIntakeForm({ targetAgentId, seedIntent, objectives });
-      if (!validation.valid) {
-        showToast(validation.error, 'warning');
-        return;
-      }
-
-      const payload = buildFactoryJobPayload({
-        targetAgentId,
-        seedIntent,
-        objectives,
-        deliverableType: factoryIntakeDeliverableType ? factoryIntakeDeliverableType.value : 'auto',
-        targetLocation: factoryIntakeLocationInput ? factoryIntakeLocationInput.value.trim() : '',
-        referenceDocs: factoryIntakeContextInput ? factoryIntakeContextInput.value.trim() : '',
-        requireApproval: factoryIntakeRequireApproval ? factoryIntakeRequireApproval.checked : true,
-        targetType: 'local',
-        sessionId: (state.selectedAgentId === 'autoreiv' || !state.selectedAgentId) ? state.activeSessionId : null,
-      });
-
-      factoryIntakeLaunchBtn.disabled = true;
-      try {
-        const res = await fetch('/api/agent_training_factory/jobs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `Server error (${res.status})`);
-        }
-        const result = await res.json();
-        showToast(`Manufacturing Job ${result.job_id || result.id} initiated!`, 'success');
-
-        if (factoryIntakeIntentInput) factoryIntakeIntentInput.value = '';
-        if (factoryIntakeObjectivesInput) factoryIntakeObjectivesInput.value = '';
-        if (factoryIntakeLocationInput) factoryIntakeLocationInput.value = '';
-        if (factoryIntakeContextInput) factoryIntakeContextInput.value = '';
-        if (factoryIntakePreFillSelect) factoryIntakePreFillSelect.value = '';
-
-        switchSubView('runs');
-        const jobId = result.job_id || result.id;
-        if (jobId) {
-          selectedJobId = jobId;
-        }
-        await loadTrainingRuns();
-      } catch (err) {
-        showToast(`Failed to launch capability manufacturing: ${err.message}`, 'error');
-      } finally {
-        factoryIntakeLaunchBtn.disabled = false;
-      }
-    });
-  }
-
-  function setAgentScope(agentId) {
-    activeAgentScope = String(agentId || '').trim();
-    if (factoryAgentSelect) {
-      factoryAgentSelect.value = activeAgentScope;
-    }
-    updateNewRunButtonScope();
-    updateRunsStatusBadges();
-    renderRunsList();
-    updateIntakeTargetAgentCard(activeAgentScope);
-    loadAgentCapabilityGaps(activeAgentScope);
-  }
-
-  if (factoryAgentSelect) {
-    factoryAgentSelect.addEventListener('change', () => {
-      setAgentScope(factoryAgentSelect.value);
-    });
-  }
-
-  async function loadTrainingRuns() {
-    try {
-      const res = await fetch('/api/agent_training_factory/jobs');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      allJobs = data.jobs || [];
-
-      updateRunsStatusBadges();
-      renderRunsList();
-      await loadAgentCapabilityGaps(activeAgentScope);
-
-      const relevantJobs = activeAgentScope
-        ? allJobs.filter((j) => String(j.target_agent_id || j.agent_id || '').toLowerCase() === activeAgentScope.toLowerCase())
-        : allJobs;
-      const activeJobs = relevantJobs.filter((j) => ['running', 'queued', 'waiting_approval'].includes(j.status));
-
-      if (!selectedJobId || !relevantJobs.some((j) => j.id === selectedJobId)) {
-        if (relevantJobs.length > 0) {
-          const active = activeJobs[0] || relevantJobs[0];
-          selectedJobId = active.id;
-        } else {
-          selectedJobId = null;
-        }
-      }
-
-      if (selectedJobId) {
-        await loadJobDetails(selectedJobId);
-      }
-    } catch (err) {
-      console.error('[Factory Studio] Runs error:', err);
-    }
-  }
-
-  function renderRunsList() {
-    if (!factoryRunsList) return;
-    const query = factoryRunSearchInput ? factoryRunSearchInput.value : '';
-    const filtered = filterJobs(allJobs, query, statusFilter, activeAgentScope);
-
-    factoryRunsList.innerHTML = '';
-    if (filtered.length === 0) {
-      factoryRunsList.innerHTML = `
-        <div class="p-6 text-center space-y-2 text-slate-500">
-          <i data-lucide="inbox" class="w-8 h-8 mx-auto text-slate-600"></i>
-          <p class="text-xs">No training runs match filter.</p>
-        </div>
-      `;
-      safeCreateIcons();
-      return;
-    }
-
-    filtered.forEach((job) => {
-      const isSelected = job.id === selectedJobId;
-      const card = document.createElement('div');
-      card.className = `p-3 rounded-xl border transition cursor-pointer space-y-1.5 ${
-        isSelected
-          ? 'border-brand-500 bg-brand-950/50 shadow-md ring-1 ring-brand-500/50'
-          : 'border-slate-800 bg-slate-950/60 hover:border-slate-700 hover:bg-slate-900/60'
-      }`;
-
-      let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
-      if (job.status === 'running') badgeColor = 'bg-brand-950 text-brand-300 border-brand-700 animate-pulse';
-      else if (job.status === 'done') badgeColor = 'bg-emerald-950 text-emerald-300 border-emerald-700';
-      else if (job.status === 'waiting_approval') badgeColor = 'bg-amber-950 text-amber-300 border-amber-700';
-      else if (job.status === 'failed') badgeColor = 'bg-rose-950 text-rose-300 border-rose-700';
-
-      const timeStr = job.created_at ? new Date(job.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-      card.innerHTML = `
-        <div class="flex items-center justify-between">
-          <span class="font-mono font-bold text-xs text-white truncate max-w-[160px]">${escapeHtml(job.target_agent_id)}</span>
-          <span class="px-2 py-0.5 rounded-full text-[9px] font-mono uppercase font-semibold border ${badgeColor}">
-            ${escapeHtml(job.status)}
-          </span>
-        </div>
-        <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-          <span>${escapeHtml(job.id ? job.id.slice(0, 10) : '')}</span>
-          <span>${escapeHtml(timeStr)}</span>
-        </div>
-      `;
-
-      card.addEventListener('click', () => {
-        selectedJobId = job.id;
-        renderRunsList();
-        loadJobDetails(job.id);
-
-        // Mobile responsiveness: on small screens switch view to details pane
-        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-          if (factoryRunsListPane) factoryRunsListPane.classList.add('hidden');
-          if (factoryRunDetailPane) factoryRunDetailPane.classList.remove('hidden');
-        }
-      });
-
-      factoryRunsList.appendChild(card);
-    });
-
-    safeCreateIcons();
-  }
-
-  async function loadJobDetails(jobId) {
-    if (!jobId) return;
-    try {
-      const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      currentJobData = data;
-      const job = data.job || {};
-      const packets = data.packets || [];
-      const evals = data.eval_runs || [];
-
-      // Header
-      if (factoryDetailJobBadge) {
-        factoryDetailJobBadge.textContent = `${job.target_agent_id} (${job.id})`;
-      }
-
-      // Status Pill
-      if (factoryDetailStatusPill) {
-        const dot = factoryDetailStatusPill.querySelector('span:first-child');
-        const txt = factoryDetailStatusPill.querySelector('.status-text');
-        if (txt) txt.textContent = String(job.status || 'UNKNOWN').toUpperCase();
-        factoryDetailStatusPill.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-semibold border flex items-center space-x-1.5';
-
-        if (job.status === 'done') {
-          factoryDetailStatusPill.classList.add('border-emerald-500/50', 'bg-emerald-950/40', 'text-emerald-300');
-          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
-        } else if (job.status === 'waiting_approval') {
-          factoryDetailStatusPill.classList.add('border-amber-500/50', 'bg-amber-950/40', 'text-amber-300');
-          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
-        } else if (job.status === 'running') {
-          factoryDetailStatusPill.classList.add('border-brand-500/50', 'bg-brand-950/40', 'text-brand-300');
-          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-brand-400 animate-ping';
-        } else if (job.status === 'failed') {
-          factoryDetailStatusPill.classList.add('border-rose-500/50', 'bg-rose-950/40', 'text-rose-300');
-          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400';
-        } else {
-          factoryDetailStatusPill.classList.add('border-slate-700', 'bg-slate-800', 'text-slate-300');
-          if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-slate-400';
-        }
-      }
-
-      // Retry Button
-      if (factoryDetailRetryBtn) {
-        factoryDetailRetryBtn.classList.remove('hidden');
-      }
-
-      // Stepper
-      renderDetailStepper(job, packets);
-
-      // HITL Card
-      renderDetailHitl(job, packets, evals);
-
-      // Artifact Pills
-      renderDetailArtifacts(job, packets);
-
-      // Packets Activity Feed
-      renderDetailFeed(packets);
-
-      safeCreateIcons();
-    } catch (err) {
-      console.error('[Factory Studio] Job detail error:', err);
-    }
-  }
-
-  function renderDetailStepper(job, packets = []) {
-    if (!factoryDetailStepper) return;
-    factoryDetailStepper.innerHTML = '';
-
-    const activeIdx = calculateProgressIndex(job.current_node_id, job.status);
-
-    const phaseDurations = {};
-    (packets || []).forEach((p) => {
-      const node = p && (p.node_id || (p.payload && p.payload.phase));
-      const dur = p && p.payload && p.payload.duration_ms;
-      if (node && dur != null) {
-        phaseDurations[node] = dur;
-      }
-    });
-
-    PHASE_METADATA.forEach((meta, idx) => {
-      let state = 'idle';
-      if (activeIdx >= 0) {
-        if (idx < activeIdx) state = 'done';
-        else if (idx === activeIdx) state = 'active';
-      }
-
-      const dur = phaseDurations[meta.id];
-      const durBadge = dur != null
-        ? `<div class="phase-duration-badge text-[9px] font-mono text-slate-400 bg-slate-900/80 px-1 py-0.5 rounded border border-slate-800/80">${formatPhaseDurationMs(dur)}</div>`
-        : '';
-
-      const step = document.createElement('div');
-      step.className = `p-2 rounded-xl border text-center space-y-1 transition ${
-        state === 'done'
-          ? 'border-emerald-500/60 bg-emerald-950/40 text-emerald-300'
-          : state === 'active'
-          ? 'border-brand-500 bg-brand-950/40 text-brand-300 ring-1 ring-brand-500'
-          : 'border-slate-800 bg-slate-950/50 text-slate-500'
-      }`;
-
-      step.innerHTML = `
-        <div class="text-[9px] font-mono">${meta.num}</div>
-        <div class="font-bold text-[10px] md:text-[11px] truncate">${meta.name}</div>
-        <div class="text-center py-0.5"><i data-lucide="${meta.icon}" class="w-3.5 h-3.5 mx-auto"></i></div>
-        ${durBadge}
-      `;
-
-      factoryDetailStepper.appendChild(step);
-    });
-  }
-
-  function renderDetailHitl(job, packets, evals) {
-    if (!factoryDetailHitlCard) return;
-    if (job.status === 'waiting_approval') {
-      factoryDetailHitlCard.classList.remove('hidden');
-      if (factoryDetailHitlToolsList) {
-        factoryDetailHitlToolsList.innerHTML = '';
-        const toolNames = new Set();
-        packets.forEach((p) => {
-          if (p.payload && p.payload.tool_name) toolNames.add(p.payload.tool_name);
-          if (p.payload && p.payload.authored_files) {
-            p.payload.authored_files.forEach((f) => toolNames.add(f));
-          }
-        });
-        evals.forEach((e) => toolNames.add(e.tool_name));
-        if (toolNames.size === 0) toolNames.add(`manage_${job.target_agent_id.replace(/-/g, '_')}`);
-
-        toolNames.forEach((t) => {
-          const chip = document.createElement('span');
-          chip.className =
-            'px-2 py-0.5 rounded-lg bg-emerald-900/40 border border-emerald-700/50 text-emerald-300 font-mono text-[11px]';
-          chip.textContent = t;
-          factoryDetailHitlToolsList.appendChild(chip);
-        });
-      }
-    } else {
-      factoryDetailHitlCard.classList.add('hidden');
-    }
-  }
-
-  function renderDetailArtifacts(job, packets) {
-    if (!factoryDetailArtifactPills) return;
-    const artifacts = collectPacketArtifacts(packets);
-    factoryDetailArtifactPills.innerHTML = '';
-
-    if (artifacts.length === 0) {
-      factoryDetailArtifactPills.innerHTML = '<span class="text-slate-500 text-[11px] italic">No authored artifacts yet.</span>';
-      return;
-    }
-
-    artifacts.forEach((art, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className =
-        'px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-brand-900/40 border border-slate-700 hover:border-brand-500/50 text-slate-200 hover:text-brand-200 font-mono text-[11px] transition shadow-sm';
-      btn.dataset.testid = `factory-artifact-pill-${idx}`;
-      btn.title = 'Preview artifact from job packet';
-      btn.textContent = art.path;
-      btn.addEventListener('click', () => openArtifactPreviewModal(art, job.target_agent_id));
-      factoryDetailArtifactPills.appendChild(btn);
-    });
-  }
-
-  function openArtifactPreviewModal(art, agentId) {
-    const modal = $('labArtifactPreviewModal');
-    const titleEl = $('labArtifactPreviewTitle');
-    const bodyEl = $('labArtifactPreviewBody');
-    const pathsEl = $('labArtifactPreviewPaths');
-    const noteEl = $('labArtifactPreviewNote');
-    if (!modal || !art) return;
-
-    if (titleEl) titleEl.textContent = art.path || 'Artifact';
-    if (bodyEl) bodyEl.textContent = art.content || '(No inline content in packet; wiki path listed for review.)';
-    if (noteEl) {
-      noteEl.textContent =
-        art.kind === 'wiki'
-          ? 'Pre-promote: Wiki path from Grounding packet (vault staged).'
-          : 'Pre-promote: content is from the job packet (staged in memory).';
-    }
-    if (pathsEl) {
-      const expected = art.kind === 'file' ? buildExpectedPackPaths(agentId, [art.path]) : [art.path];
-      pathsEl.innerHTML = '';
-      expected.forEach((p) => {
-        const li = document.createElement('li');
-        li.className = 'font-mono text-[11px] text-emerald-300 break-all';
-        li.textContent = p;
-        pathsEl.appendChild(li);
-      });
-    }
-
-    modal.classList.remove('hidden');
-    safeCreateIcons();
-  }
-
-  function renderDetailFeed(packets) {
-    if (factoryDetailPacketCount) {
-      factoryDetailPacketCount.textContent = `${packets.length} packet${packets.length === 1 ? '' : 's'}`;
-    }
-
-    if (!factoryDetailPacketsFeed) return;
-    if (packets.length === 0) {
-      factoryDetailPacketsFeed.innerHTML = '<div class="text-slate-500 italic py-2">No activity recorded for this job yet.</div>';
-      return;
-    }
-
-    factoryDetailPacketsFeed.innerHTML = '';
-    packets.forEach((p) => {
-      const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString() : '';
-      const role = p.sender_role || 'system';
-      const feedLines = formatLabPacketFeedLines(p);
-
-      let roleColor = 'text-slate-400';
-      if (role === 'intent_distill') roleColor = 'text-sky-400';
-      else if (role === 'ground' || role === 'inspector') roleColor = 'text-cyan-400';
-      else if (role === 'blueprint' || role === 'conductor') roleColor = 'text-brand-400';
-      else if (role === 'author' || role === 'coder') roleColor = 'text-amber-400';
-      else if (role === 'scenario_verify') roleColor = 'text-fuchsia-400';
-      else if (role === 'verify' || role === 'sandbox_runner') roleColor = 'text-purple-400';
-      else if (role === 'optimize' || role === 'critic') roleColor = 'text-emerald-400';
-      else if (role === 'promote') roleColor = 'text-rose-400';
-
-      feedLines.forEach((line, lineIdx) => {
-        const row = document.createElement('div');
-        row.className = 'flex items-start space-x-2 py-0.5';
-        const bodyClass = lineIdx === 0 ? 'text-slate-200' : 'text-rose-300 text-[11px]';
-        row.innerHTML = `
-          <span class="text-slate-500 text-[10px] flex-shrink-0">[${escapeHtml(lineIdx === 0 ? timeStr : '')}]</span>
-          <span class="${roleColor} font-semibold flex-shrink-0">[${escapeHtml(lineIdx === 0 ? role.toUpperCase() : '')}]</span>
-          <span class="${bodyClass}">${escapeHtml(line)}</span>
-        `;
-        factoryDetailPacketsFeed.appendChild(row);
-      });
-    });
-
-    factoryDetailPacketsFeed.scrollTop = factoryDetailPacketsFeed.scrollHeight;
-  }
-
-  // Mobile Back Button
-  if (factoryMobileBackToRunsBtn) {
-    factoryMobileBackToRunsBtn.addEventListener('click', () => {
-      if (factoryRunsListPane) factoryRunsListPane.classList.remove('hidden');
-      if (factoryRunDetailPane) factoryRunDetailPane.classList.add('hidden');
-    });
-  }
-
-  // Filter Search Input
-  if (factoryRunSearchInput) {
-    factoryRunSearchInput.addEventListener('input', () => {
-      renderRunsList();
-    });
-  }
-
-  // Status Filter Pills
-  const statusPills = $queryAll('.factory-status-filter');
-  statusPills.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      statusPills.forEach((b) => {
-        b.className = 'factory-status-filter px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition';
-      });
-      btn.className = 'factory-status-filter active px-2.5 py-1 rounded-lg font-semibold bg-brand-600 text-white transition';
-      statusFilter = btn.dataset.filter || 'all';
-      renderRunsList();
-    });
-  });
-
-  // Copy Feed Button
-  if (factoryDetailCopyFeedBtn) {
-    factoryDetailCopyFeedBtn.addEventListener('click', async () => {
-      const packets = currentJobData ? currentJobData.packets || [] : [];
-      if (packets.length === 0) {
-        showToast('No activity feed logs to copy.', 'info');
-        return;
-      }
-      const textToCopy = formatLabActivityFeedText(packets);
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(textToCopy);
-        } else {
-          const ta = document.createElement('textarea');
-          ta.value = textToCopy;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-        }
-        if (factoryDetailCopyFeedText) {
-          const original = factoryDetailCopyFeedText.textContent;
-          factoryDetailCopyFeedText.textContent = 'Copied!';
-          setTimeout(() => {
-            if (factoryDetailCopyFeedText) factoryDetailCopyFeedText.textContent = original;
-          }, 2000);
-        }
-        showToast('Activity feed copied to clipboard!', 'success');
-      } catch (err) {
-        console.error('Copy feed failed:', err);
-        showToast('Failed to copy feed.', 'error');
-      }
-    });
-  }
-
-  // Retry Button
-  if (factoryDetailRetryBtn) {
-    factoryDetailRetryBtn.addEventListener('click', () => {
-      if (!currentJobData) {
-        showToast('No training run selected to retry.', 'warning');
-        return;
-      }
-      populateTrainModalForRetry(currentJobData);
-      const retriedAgentId = currentJobData?.inputs?.target_agent_id || currentJobData?.job?.target_agent_id || '';
-      const modal = $('trainAgentHandshakeModal');
-      if (modal && retriedAgentId) modal.dataset.agentId = retriedAgentId;
-      updateTrainAgentLiveIndicator(
-        {
-          nameGroup: $('trainAgentNameGroup'),
-          liveInfo: $('trainAgentLiveInfo'),
-          livePackPath: $('trainAgentLivePackPath'),
-          liveCounts: $('trainAgentLiveCounts'),
-          liveInfoText: $('trainAgentLiveInfoText'),
-          modalTitle: $('trainAgentModalTitle'),
-          intentInput: $('trainSeedIntentInput'),
-          seedObj: $('trainSeedObjectives'),
-          targetBadge: $('trainAgentTargetBadge'),
-          targetName: $('trainAgentTargetName'),
-          targetIdBadge: $('trainAgentTargetIdBadge'),
-        },
-        retriedAgentId || '__new__',
-        allAgents
-      );
-      if (modal) modal.classList.remove('hidden');
-      safeCreateIcons();
-    });
-  }
-
-  // Tabbed Deliverable Modal Switching & Population [CARD-197, REQ-FACT-055]
-  function switchDeliverableTab(tabName) {
-    const tabBtns = [
-      { name: 'runbook', btn: factoryTabRunbookBtn, content: factoryTabContentRunbook },
-      { name: 'tool', btn: factoryTabToolBtn, content: factoryTabContentTool },
-      { name: 'diff', btn: factoryTabDiffBtn, content: factoryTabContentDiff },
-    ];
-    tabBtns.forEach(({ name, btn, content }) => {
-      if (!btn || !content) return;
-      if (name === tabName) {
-        btn.className = 'factory-deliverable-tab active px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white flex items-center space-x-1.5 transition';
-        content.classList.remove('hidden');
-      } else {
-        btn.className = 'factory-deliverable-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-1.5 transition';
-        content.classList.add('hidden');
-      }
-    });
-  }
-
-  if (factoryTabRunbookBtn) factoryTabRunbookBtn.addEventListener('click', () => switchDeliverableTab('runbook'));
-  if (factoryTabToolBtn) factoryTabToolBtn.addEventListener('click', () => switchDeliverableTab('tool'));
-  if (factoryTabDiffBtn) factoryTabDiffBtn.addEventListener('click', () => switchDeliverableTab('diff'));
-
-  function openDeliverableModal() {
-    if (!currentJobData || !factoryDeliverableModal) return;
-    const job = currentJobData.job || {};
-    const packets = currentJobData.packets || [];
-    const delivs = extractJobDeliverables(job, packets);
-
-    if (factoryDeliverableRunbookPath) factoryDeliverableRunbookPath.textContent = delivs.runbookPath;
-    if (factoryDeliverableRunbookPreview) factoryDeliverableRunbookPreview.textContent = delivs.runbookContent;
-    if (factoryDeliverableToolPath) factoryDeliverableToolPath.textContent = delivs.toolPath;
-    if (factoryDeliverableToolCode) factoryDeliverableToolCode.textContent = delivs.toolCode;
-    if (factoryDeliverableManifestDiff) factoryDeliverableManifestDiff.textContent = delivs.manifestDiff;
-
-    if (factoryDeliverableCollisionNotice) {
-      if (delivs.collisionData && delivs.collisionData.has_collision) {
-        const conflicts = (delivs.collisionData.conflicts || []).join(', ');
-        factoryDeliverableCollisionNotice.textContent = `⚠️ Collision warning: duplicate tool(s) ${conflicts}`;
-        factoryDeliverableCollisionNotice.className = 'text-[11px] text-amber-400 font-mono';
-      } else {
-        factoryDeliverableCollisionNotice.textContent = '✓ No tool name collisions detected.';
-        factoryDeliverableCollisionNotice.className = 'text-[11px] text-emerald-400 font-mono';
-      }
-    }
-
-    switchDeliverableTab('runbook');
-    factoryDeliverableModal.classList.remove('hidden');
-    safeCreateIcons();
-  }
-
-  if (factoryInspectDeliverablesBtn) {
-    factoryInspectDeliverablesBtn.addEventListener('click', openDeliverableModal);
-  }
-  if (closeFactoryDeliverableModalBtn) {
-    closeFactoryDeliverableModalBtn.addEventListener('click', () => {
-      if (factoryDeliverableModal) factoryDeliverableModal.classList.add('hidden');
-    });
-  }
-  if (closeFactoryDeliverableFooterBtn) {
-    closeFactoryDeliverableFooterBtn.addEventListener('click', () => {
-      if (factoryDeliverableModal) factoryDeliverableModal.classList.add('hidden');
-    });
-  }
-
-  // HITL Approve Deploy
-  if (factoryDetailApproveBtn) {
-    factoryDetailApproveBtn.addEventListener('click', async () => {
-      if (!selectedJobId) return;
-      factoryDetailApproveBtn.disabled = true;
-      factoryDetailApproveBtn.textContent = 'Deploying...';
-      try {
-        const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(selectedJobId)}/promote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ decision: 'approved', allow_overwrite: true }),
-        });
-        if (!res.ok) throw new Error('Deployment failed');
-        const data = await res.json();
-        showToast(`Successfully deployed ${data.agent_id} pack to live fleet!`, 'success');
-        if (typeof callbacks.onReloadAgents === 'function') {
-          callbacks.onReloadAgents(data.agent_id);
-        }
-        await loadJobDetails(selectedJobId);
-        await loadTrainingRuns();
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        factoryDetailApproveBtn.disabled = false;
-        factoryDetailApproveBtn.textContent = 'Approve & Deploy to Fleet';
-        safeCreateIcons();
-      }
-    });
-  }
-
-
-  // HITL Reject
-  if (factoryDetailRejectBtn) {
-    factoryDetailRejectBtn.addEventListener('click', async () => {
-      if (!selectedJobId) return;
-      try {
-        const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(selectedJobId)}/promote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ decision: 'rejected' }),
-        });
-        if (!res.ok) throw new Error('Rejection failed');
-        showToast('Training run rejected and aborted.', 'info');
-        await loadJobDetails(selectedJobId);
-        await loadTrainingRuns();
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  }
-
-  // Refresh Button
-  if (factoryRefreshBtn) {
-    factoryRefreshBtn.addEventListener('click', async () => {
-      if (activeSubView === 'pipeline') {
-        await loadPhaseInstructions();
-      } else if (activeSubView === 'intake') {
-        updateIntakeTargetAgentCard(activeAgentScope);
-        await loadAgentCapabilityGaps(activeAgentScope);
-      } else {
-        await loadTrainingRuns();
-      }
-      showToast('Refreshed factory state.', 'info');
-    });
-  }
-
-  // Conversational New Agent Pack Creator [REQ-FACT-044]
-  const factoryNewAgentBtn = $('factoryNewAgentBtn');
-  if (factoryNewAgentBtn) {
-    factoryNewAgentBtn.addEventListener('click', () => {
-      if (typeof callbacks.onStartNewAgentPack === 'function') {
-        callbacks.onStartNewAgentPack();
-      }
-    });
-  }
-
-  // New Training Run Launcher Button [CARD-351, REQ-FACT-052]
-  if (factoryNewRunBtn) {
-    factoryNewRunBtn.addEventListener('click', () => {
-      switchSubView('intake');
-      if (factoryIntakeIntentInput) {
-        factoryIntakeIntentInput.focus();
-      }
-      if (!activeAgentScope) {
-        showToast('Select an agent from the dropdown to steer capability manufacturing.', 'info');
-      }
-    });
-  }
-
-  // -------------------------------------------------------------
-  // 4. Poller & Public API
-  // -------------------------------------------------------------
-  function startPolling() {
-    stopPolling();
-    pollInterval = setInterval(() => {
-      if (state.activeTab === 'factory') {
-        if (activeSubView === 'runs') {
-          loadTrainingRuns();
-        }
-      }
-    }, 2500);
-  }
-
-  function stopPolling() {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
-    }
-  }
-
-  // Global helper bridge
-  // CARD-314: always open full Factory Studio window (switchTab/desktop host), not a toast/chip.
+  const factorySkillTriggerInput = $('factorySkillTriggerInput');
+  const factorySkillTriggerCharCount = $('factorySkillTriggerCharCount');
+  const factorySkillIntentInput = $('factorySkillIntentInput');
+  const factoryGenerateRunbookBtn = $('factoryGenerateRunbookBtn');
+  const factoryGenerateStatusText = $('factoryGenerateStatusText');
+  const factorySkillMarkdownEditor = $('factorySkillMarkdownEditor');
+  const factorySaveSkillBtn = $('factorySaveSkillBtn');
+  const factorySaveFeedbackMsg = $('factorySaveFeedbackMsg');
+
+  // DOM Elements - Column 3: Capabilities & Grounding
+  const factoryToolSearchInput = $('factoryToolSearchInput');
+  const factorySelectAllToolsBtn = $('factorySelectAllToolsBtn');
+  const factoryClearAllToolsBtn = $('factoryClearAllToolsBtn');
+  const factoryAutoSuggestToolsBtn = $('factoryAutoSuggestToolsBtn');
+  const factoryCapabilitiesContainer = $('factoryCapabilitiesContainer');
+  const factorySelectedToolCountBadge = $('factorySelectedToolCountBadge');
+  const factorySourceContextInput = $('factorySourceContextInput');
+  const factoryRefreshBtn = $('factoryRefreshBtn');
+
+  // Internal State
+  let loadedAgents = [];
+  let currentCapabilities = [];
+  let selectedTools = new Set();
+  let assignedSkills = [];
+
+  // Deep-link helper for CARD-314
   if (typeof window !== 'undefined') {
     window.openFactoryStudioForAgent = (agentId) => {
       if (typeof callbacks.openFactoryStudio === 'function') {
         callbacks.openFactoryStudio(agentId);
-        return;
       }
-      if (typeof callbacks.switchTab === 'function') {
-        callbacks.switchTab('factory');
-      }
-      switchSubView('runs');
       setAgentScope(agentId);
-      loadTrainingRuns();
     };
   }
 
-  return {
-    loadFactoryStudio: async (preferredAgentId = null) => {
-      await loadFactoryAgents();
-      if (preferredAgentId) {
-        setAgentScope(preferredAgentId);
-        switchSubView('runs');
-        await loadTrainingRuns();
-        const matched = allJobs.find((j) => (j.target_agent_id || j.agent_id) === preferredAgentId);
-        if (matched) {
-          selectedJobId = matched.id;
-          await loadJobDetails(matched.id);
+  // ----------------------------------------------------
+  // Column 1: Agent Management
+  // ----------------------------------------------------
+  async function loadAgents(preferredAgentId = null) {
+    try {
+      const resp = await fetch('/api/agents');
+      if (resp.ok) {
+        const data = await resp.json();
+        loadedAgents = Array.isArray(data) ? data : (data.agents || []);
+        if (factoryAgentSelect) {
+          factoryAgentSelect.innerHTML = '';
+          const newOpt = document.createElement('option');
+          newOpt.value = '__new__';
+          newOpt.textContent = '+ Create New Agent';
+          factoryAgentSelect.appendChild(newOpt);
+
+          loadedAgents.forEach((ag) => {
+            if (ag.id === 'agent_builder' || ag.id === 'agent-builder') return;
+            const opt = document.createElement('option');
+            opt.value = ag.id;
+            opt.textContent = `${ag.name || ag.id} (${ag.id})`;
+            if (ag.id === preferredAgentId) opt.selected = true;
+            factoryAgentSelect.appendChild(opt);
+          });
         }
-      } else {
-        if (activeSubView === 'intake') {
-          updateIntakeTargetAgentCard(activeAgentScope);
-          await loadAgentCapabilityGaps(activeAgentScope);
-        } else if (activeSubView === 'pipeline') {
-          await loadPhaseInstructions();
+        onAgentSelectChanged();
+      }
+    } catch (err) {
+      console.error('[FactoryStudio] Failed to load agents:', err);
+    }
+  }
+
+  function setAgentScope(agentId) {
+    if (factoryAgentSelect) {
+      factoryAgentSelect.value = agentId || '__new__';
+      onAgentSelectChanged();
+    }
+  }
+
+  function onAgentSelectChanged() {
+    if (!factoryAgentSelect) return;
+    const val = factoryAgentSelect.value;
+    const factoryIntakeAgentIdBadge = $('factoryIntakeAgentIdBadge');
+    const factoryIntakeLivePackPath = $('factoryIntakeLivePackPath');
+    const factoryIntakeLiveCounts = $('factoryIntakeLiveCounts');
+
+    if (val === '__new__') {
+      if (factoryAgentModeBadge) {
+        factoryAgentModeBadge.textContent = 'New';
+        factoryAgentModeBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/60 border border-brand-500/30 text-brand-400';
+      }
+      if (factoryIntakeAgentIdBadge) {
+        factoryIntakeAgentIdBadge.textContent = 'New Agent';
+        factoryIntakeAgentIdBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/80 text-brand-300 border border-brand-500/30';
+      }
+      if (factoryIntakeLivePackPath) {
+        factoryIntakeLivePackPath.textContent = 'packs/<agent_id>';
+      }
+      if (factoryIntakeLiveCounts) {
+        factoryIntakeLiveCounts.textContent = 'Skills: 0 | Tools: 0';
+      }
+      if (factoryAgentIdInput) {
+        factoryAgentIdInput.value = toSnakeCase(factoryAgentNameInput ? factoryAgentNameInput.value : '');
+        factoryAgentIdInput.readOnly = true;
+      }
+      if (factoryAgentNameInput) {
+        factoryAgentNameInput.value = '';
+        factoryAgentNameInput.focus();
+      }
+      if (factoryAgentPromptInput) factoryAgentPromptInput.value = '';
+      assignedSkills = [];
+    } else {
+      const agent = loadedAgents.find((a) => a.id === val);
+      if (factoryAgentModeBadge) {
+        factoryAgentModeBadge.textContent = 'Existing';
+        factoryAgentModeBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400';
+      }
+      const agentId = agent ? agent.id : val;
+      if (factoryIntakeAgentIdBadge) {
+        factoryIntakeAgentIdBadge.textContent = agent ? (agent.name || agent.id) : (val || 'AutoReiv');
+        factoryIntakeAgentIdBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300';
+      }
+      if (factoryIntakeLivePackPath) {
+        factoryIntakeLivePackPath.textContent = `packs/${agentId || 'AutoReiv'}`;
+      }
+      const sCount = agent && agent.allowed_skill ? agent.allowed_skill.length : (agent && agent.skills ? agent.skills.length : 0);
+      const tCount = agent && agent.tools ? agent.tools.length : 0;
+      if (factoryIntakeLiveCounts) {
+        factoryIntakeLiveCounts.textContent = `Skills: ${sCount} | Tools: ${tCount}`;
+      }
+      if (agent) {
+        if (factoryAgentIdInput) {
+          factoryAgentIdInput.value = agent.id || '';
+          factoryAgentIdInput.readOnly = true;
+        }
+        if (factoryAgentNameInput) factoryAgentNameInput.value = agent.name || '';
+        if (factoryAgentPromptInput) factoryAgentPromptInput.value = agent.system_prompt || agent.description || '';
+        assignedSkills = agent.allowed_skill ? [...agent.allowed_skill] : (agent.skills ? [...agent.skills] : []);
+      }
+    }
+    renderAssignedSkills();
+  }
+
+  // ----------------------------------------------------
+  // Column 2: Skills & Runbook
+  // ----------------------------------------------------
+  function renderAssignedSkills() {
+    if (!factoryCurrentSkillsList) return;
+    if (factoryAssignedSkillsCount) {
+      factoryAssignedSkillsCount.textContent = `${assignedSkills.length} Assigned`;
+    }
+
+    if (!assignedSkills || assignedSkills.length === 0) {
+      factoryCurrentSkillsList.innerHTML = '<span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>';
+      return;
+    }
+
+    factoryCurrentSkillsList.innerHTML = '';
+    assignedSkills.forEach((sid) => {
+      const pill = document.createElement('span');
+      pill.className = 'inline-flex items-center space-x-1.5 px-2 py-1 rounded-lg text-xs font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300';
+      pill.innerHTML = `
+        <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
+        <span>${escapeHtml(sid)}</span>
+      `;
+      factoryCurrentSkillsList.appendChild(pill);
+    });
+    safeCreateIcons({ root: factoryCurrentSkillsList });
+  }
+
+  function resetNewSkillForm() {
+    if (factorySkillNameInput) factorySkillNameInput.value = '';
+    if (factorySkillIdInput) {
+      factorySkillIdInput.value = '';
+      factorySkillIdInput.readOnly = true;
+    }
+    if (factorySkillTriggerInput) {
+      factorySkillTriggerInput.value = '';
+      if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = '0/60';
+    }
+    if (factorySkillIntentInput) factorySkillIntentInput.value = '';
+    if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = '';
+    if (factorySaveFeedbackMsg) factorySaveFeedbackMsg.classList.add('hidden');
+  }
+
+  async function handleGenerateRunbook() {
+    const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
+    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || toSnakeCase(skillName);
+    const trigger = (factorySkillTriggerInput && factorySkillTriggerInput.value.trim()) || '';
+    const intent = (factorySkillIntentInput && factorySkillIntentInput.value.trim()) || '';
+    const sourceContext = (factorySourceContextInput && factorySourceContextInput.value.trim()) || '';
+    const agentId = (factoryAgentIdInput && factoryAgentIdInput.value.trim()) || 'general';
+
+    if (!skillName) {
+      showToast('Please enter a Skill Name first.', 'warning');
+      if (factorySkillNameInput) factorySkillNameInput.focus();
+      return;
+    }
+    if (!trigger) {
+      showToast('Please specify a Trigger Condition (<= 60 chars).', 'warning');
+      if (factorySkillTriggerInput) factorySkillTriggerInput.focus();
+      return;
+    }
+
+    if (factoryGenerateRunbookBtn) {
+      factoryGenerateRunbookBtn.disabled = true;
+      factoryGenerateRunbookBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    if (factoryGenerateStatusText) {
+      factoryGenerateStatusText.textContent = 'Generating standard runbook...';
+      factoryGenerateStatusText.classList.remove('hidden');
+    }
+
+    try {
+      const resp = await fetch('/api/agent_training_factory/scaffold/runbook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: agentId,
+          skill_id: skillId,
+          skill_name: skillName,
+          trigger_description: trigger,
+          intent_notes: intent,
+          selected_tools: Array.from(selectedTools),
+          source_context: sourceContext,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.detail || `Server returned ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      if (factorySkillMarkdownEditor) {
+        factorySkillMarkdownEditor.value = data.markdown_content || '';
+      }
+      showToast(`✨ Generated runbook for ${skillName}!`, 'success');
+    } catch (err) {
+      console.error('[FactoryStudio] Failed to generate runbook:', err);
+      showToast(`Runbook generation failed: ${err.message}`, 'error');
+    } finally {
+      if (factoryGenerateRunbookBtn) {
+        factoryGenerateRunbookBtn.disabled = false;
+        factoryGenerateRunbookBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+      if (factoryGenerateStatusText) {
+        factoryGenerateStatusText.classList.add('hidden');
+      }
+    }
+  }
+
+  async function handleSaveSkill() {
+    const agentId = (factoryAgentIdInput && factoryAgentIdInput.value.trim()) || '';
+    const agentName = (factoryAgentNameInput && factoryAgentNameInput.value.trim()) || '';
+    const rolePersona = (factoryAgentPromptInput && factoryAgentPromptInput.value.trim()) || '';
+    const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
+    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || toSnakeCase(skillName);
+    const content = (factorySkillMarkdownEditor && factorySkillMarkdownEditor.value.trim()) || '';
+
+    if (!agentId) {
+      showToast('Agent ID is required.', 'warning');
+      if (factoryAgentIdInput) factoryAgentIdInput.focus();
+      return;
+    }
+    if (!skillId) {
+      showToast('Skill ID is required.', 'warning');
+      if (factorySkillIdInput) factorySkillIdInput.focus();
+      return;
+    }
+    if (!content) {
+      showToast('Skill markdown content is empty. Generate or write a runbook first.', 'warning');
+      if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.focus();
+      return;
+    }
+
+    if (factorySaveSkillBtn) {
+      factorySaveSkillBtn.disabled = true;
+      factorySaveSkillBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+
+    try {
+      const resp = await fetch('/api/agent_training_factory/scaffold/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: agentId,
+          agent_name: agentName,
+          role_persona: rolePersona,
+          skill_id: skillId,
+          skill_content: content,
+          auto_pin: true,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.detail || `Server returned ${resp.status}`);
+      }
+
+      await resp.json();
+      if (!assignedSkills.includes(skillId)) {
+        assignedSkills.push(skillId);
+      }
+      renderAssignedSkills();
+
+      if (factorySaveFeedbackMsg) {
+        factorySaveFeedbackMsg.textContent = `✓ Saved & Pinned ${skillId} to ${agentId}!`;
+        factorySaveFeedbackMsg.classList.remove('hidden');
+        setTimeout(() => {
+          if (factorySaveFeedbackMsg) factorySaveFeedbackMsg.classList.add('hidden');
+        }, 4000);
+      }
+      showToast(`💾 Skill ${skillId} saved and pinned to ${agentId}!`, 'success');
+
+      await loadAgents(agentId);
+    } catch (err) {
+      console.error('[FactoryStudio] Failed to save skill:', err);
+      showToast(`Save failed: ${err.message}`, 'error');
+    } finally {
+      if (factorySaveSkillBtn) {
+        factorySaveSkillBtn.disabled = false;
+        factorySaveSkillBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+  }
+
+  // ----------------------------------------------------
+  // Column 3: Capabilities & Grounding
+  // ----------------------------------------------------
+  async function loadCapabilities() {
+    try {
+      const resp = await fetch('/api/agent_training_factory/capabilities');
+      if (resp.ok) {
+        const data = await resp.json();
+        currentCapabilities = data.namespaces || [];
+        renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
+      }
+    } catch (err) {
+      console.error('[FactoryStudio] Failed to load capabilities:', err);
+    }
+  }
+
+  function renderCapabilities(filterText = '') {
+    if (!factoryCapabilitiesContainer) return;
+    const q = (filterText || '').toLowerCase().trim();
+
+    if (!currentCapabilities || currentCapabilities.length === 0) {
+      factoryCapabilitiesContainer.innerHTML = '<div class="text-[11px] text-slate-500 italic p-2">No capabilities registered.</div>';
+      return;
+    }
+
+    factoryCapabilitiesContainer.innerHTML = '';
+    let totalRendered = 0;
+
+    currentCapabilities.forEach((ns) => {
+      const matchingTools = (ns.tools || []).filter((t) => {
+        if (!q) return true;
+        return (t.name || '').toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q);
+      });
+
+      if (matchingTools.length === 0) return;
+      totalRendered += matchingTools.length;
+
+      const groupCard = document.createElement('div');
+      groupCard.className = 'bg-[#13161f]/80 border border-white/[0.06] rounded-xl overflow-hidden mb-2';
+
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'px-3 py-2 bg-white/[0.02] border-b border-white/[0.04] flex items-center justify-between cursor-pointer select-none';
+      groupHeader.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <i data-lucide="package" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span class="text-xs font-semibold text-white">${escapeHtml(ns.name)}</span>
+        </div>
+        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-500/20">${matchingTools.length} tools</span>
+      `;
+
+      const toolsList = document.createElement('div');
+      toolsList.className = 'p-2 space-y-1.5';
+
+      matchingTools.forEach((tool) => {
+        const isChecked = selectedTools.has(tool.name);
+        const item = document.createElement('label');
+        item.className = 'flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white/[0.04] cursor-pointer transition';
+        item.innerHTML = `
+          <input type="checkbox" class="mt-0.5 rounded border-white/[0.2] bg-[#08090c] text-purple-600 focus:ring-purple-500 focus:ring-offset-0" data-tool-name="${escapeHtml(tool.name)}" ${isChecked ? 'checked' : ''}>
+          <div class="min-w-0 flex-1 text-[11px]">
+            <div class="font-mono text-slate-200 font-medium truncate">${escapeHtml(tool.name)}</div>
+            <div class="text-slate-400 text-[10px] line-clamp-1">${escapeHtml(tool.description || 'No description')}</div>
+          </div>
+        `;
+
+        const chk = item.querySelector('input[type="checkbox"]');
+        chk.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            selectedTools.add(tool.name);
+          } else {
+            selectedTools.delete(tool.name);
+          }
+          updateSelectedToolBadge();
+        });
+
+        toolsList.appendChild(item);
+      });
+
+      groupCard.appendChild(groupHeader);
+      groupCard.appendChild(toolsList);
+      factoryCapabilitiesContainer.appendChild(groupCard);
+    });
+
+    if (totalRendered === 0) {
+      factoryCapabilitiesContainer.innerHTML = `<div class="text-[11px] text-slate-500 italic p-2">No capabilities match "${escapeHtml(q)}".</div>`;
+    }
+
+    safeCreateIcons({ root: factoryCapabilitiesContainer });
+  }
+
+  function handleSelectAllVisibleTools() {
+    if (!factoryCapabilitiesContainer) return;
+    const checkboxes = factoryCapabilitiesContainer.querySelectorAll('input[type="checkbox"][data-tool-name]');
+    let count = 0;
+    checkboxes.forEach((cb) => {
+      const toolName = cb.dataset.toolName;
+      if (toolName && !cb.checked) {
+        cb.checked = true;
+        selectedTools.add(toolName);
+        count++;
+      }
+    });
+    updateSelectedToolBadge();
+    showToast(count > 0 ? `Selected ${count} matching tool(s)` : 'All matching tools are already selected', 'info');
+  }
+
+  function handleClearAllVisibleTools() {
+    if (!factoryCapabilitiesContainer) return;
+    const checkboxes = factoryCapabilitiesContainer.querySelectorAll('input[type="checkbox"][data-tool-name]');
+    let count = 0;
+    checkboxes.forEach((cb) => {
+      const toolName = cb.dataset.toolName;
+      if (toolName && cb.checked) {
+        cb.checked = false;
+        selectedTools.delete(toolName);
+        count++;
+      }
+    });
+    updateSelectedToolBadge();
+    showToast(count > 0 ? `Cleared ${count} tool(s)` : 'No tools were selected in current view', 'info');
+  }
+
+  function handleAutoSuggestTools() {
+    const textSources = [
+      (factorySkillNameInput && factorySkillNameInput.value) || '',
+      (factorySkillTriggerInput && factorySkillTriggerInput.value) || '',
+      (factorySkillIntentInput && factorySkillIntentInput.value) || '',
+    ].join(' ').toLowerCase();
+
+    const tokens = textSources
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !COMMON_STOP_WORDS.has(w));
+
+    if (tokens.length === 0) {
+      showToast('Enter a skill name, trigger, or intent notes first to suggest tools', 'warning');
+      return;
+    }
+
+    let addedCount = 0;
+    (currentCapabilities || []).forEach((ns) => {
+      (ns.tools || []).forEach((t) => {
+        const toolText = `${t.name} ${t.description || ''} ${ns.name || ''}`.toLowerCase();
+        const matches = tokens.some((tok) => toolText.includes(tok));
+        if (matches && !selectedTools.has(t.name)) {
+          selectedTools.add(t.name);
+          addedCount++;
+        }
+      });
+    });
+
+    renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
+    updateSelectedToolBadge();
+    if (addedCount > 0) {
+      showToast(`Auto-suggested and selected ${addedCount} tool(s)`, 'success');
+    } else {
+      showToast('No matching tools found in catalog for current intent keywords', 'info');
+    }
+  }
+
+  function updateSelectedToolBadge() {
+    if (factorySelectedToolCountBadge) {
+      factorySelectedToolCountBadge.textContent = `${selectedTools.size} Selected`;
+    }
+  }
+
+  // ----------------------------------------------------
+  // Event Listeners Binding
+  // ----------------------------------------------------
+  if (factoryAgentSelect) {
+    factoryAgentSelect.addEventListener('change', onAgentSelectChanged);
+  }
+
+  if (factoryAgentNameInput) {
+    factoryAgentNameInput.addEventListener('input', () => {
+      if (factoryAgentSelect && factoryAgentSelect.value === '__new__') {
+        const slug = toSnakeCase(factoryAgentNameInput.value);
+        if (factoryAgentIdInput) factoryAgentIdInput.value = slug;
+        const badge = $('factoryIntakeAgentIdBadge');
+        const packPath = $('factoryIntakeLivePackPath');
+        if (badge) badge.textContent = slug || 'New Agent';
+        if (packPath) packPath.textContent = slug ? `packs/${slug}` : 'packs/<agent_id>';
+      }
+    });
+  }
+
+  if (factorySkillNameInput) {
+    factorySkillNameInput.addEventListener('input', () => {
+      if (factorySkillIdInput) {
+        factorySkillIdInput.value = toSnakeCase(factorySkillNameInput.value);
+      }
+    });
+  }
+
+  if (factorySkillTriggerInput) {
+    factorySkillTriggerInput.addEventListener('input', () => {
+      const len = factorySkillTriggerInput.value.length;
+      if (factorySkillTriggerCharCount) {
+        factorySkillTriggerCharCount.textContent = `${len}/60`;
+        if (len > 55) {
+          factorySkillTriggerCharCount.className = 'text-[10px] font-mono text-amber-400';
         } else {
-          await loadTrainingRuns();
+          factorySkillTriggerCharCount.className = 'text-[10px] font-mono text-slate-500';
         }
       }
-      startPolling();
+    });
+  }
+
+  if (factoryGenerateRunbookBtn) {
+    factoryGenerateRunbookBtn.addEventListener('click', handleGenerateRunbook);
+  }
+
+  if (factorySaveSkillBtn) {
+    factorySaveSkillBtn.addEventListener('click', handleSaveSkill);
+  }
+
+  if (factoryNewSkillFormBtn) {
+    factoryNewSkillFormBtn.addEventListener('click', resetNewSkillForm);
+  }
+
+  if (factoryToolSearchInput) {
+    factoryToolSearchInput.addEventListener('input', () => {
+      renderCapabilities(factoryToolSearchInput.value);
+    });
+  }
+
+  if (factorySelectAllToolsBtn) {
+    factorySelectAllToolsBtn.addEventListener('click', handleSelectAllVisibleTools);
+  }
+
+  if (factoryClearAllToolsBtn) {
+    factoryClearAllToolsBtn.addEventListener('click', handleClearAllVisibleTools);
+  }
+
+  if (factoryAutoSuggestToolsBtn) {
+    factoryAutoSuggestToolsBtn.addEventListener('click', handleAutoSuggestTools);
+  }
+
+
+  const factoryIntakeTalkToForgeBtn = $('factoryIntakeTalkToForgeBtn');
+  if (factoryIntakeTalkToForgeBtn) {
+    factoryIntakeTalkToForgeBtn.addEventListener('click', () => {
+      const agentId = (factoryAgentSelect && factoryAgentSelect.value !== '__new__') ? factoryAgentSelect.value : '';
+      const prompt = buildForgeInitialPrompt(agentId);
+      if (typeof callbacks.switchTab === 'function') {
+        callbacks.switchTab('chat');
+      }
+      const chatInput = $('chatInput');
+      if (chatInput) {
+        chatInput.value = prompt;
+        chatInput.focus();
+      }
+    });
+  }
+
+  if (factoryRefreshBtn) {
+    factoryRefreshBtn.addEventListener('click', async () => {
+      showToast('Refreshing workshop capabilities...', 'info');
+      await Promise.all([loadAgents(factoryAgentSelect ? factoryAgentSelect.value : null), loadCapabilities()]);
+      showToast('Workshop refreshed!', 'success');
+    });
+  }
+
+  // ----------------------------------------------------
+  // Public Controller API
+  // ----------------------------------------------------
+  return {
+    loadFactoryStudio: async (preferredAgentId = null) => {
+      await Promise.all([loadAgents(preferredAgentId), loadCapabilities()]);
     },
     setAgentScope,
-    switchSubView,
-    stopPolling,
+    stopPolling: () => {},
   };
 }

@@ -10,12 +10,26 @@ from src.infrastructure.skills.platform_packs import platform_packs_root
 from tests.unit.agent_packs.catalog import load_platform_manifest, platform_pack_profile
 
 
-def test_developer_pack_is_retired_from_platform_packs():
-    """CARD-366: developer is absorbed into autoreiv; retired from platform packs."""
-    assert "developer" not in PLATFORM_PACK_IDS
-    assert not is_platform_pack("developer")
-    assert "developer" in CHAT_HIDDEN_BY_ID
-    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is False
+def test_developer_pack_is_restored_as_platform_pack():
+    """CARD-388: developer is restored as a unified platform pack."""
+    assert "developer" in PLATFORM_PACK_IDS
+    assert is_platform_pack("developer")
+    assert "developer" not in CHAT_HIDDEN_BY_ID
+    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is True
+
+    manifest = load_platform_manifest("developer")
+    assert manifest.id == "developer"
+    assert manifest.name == "Developer"
+    assert manifest.purpose == "task_execution"
+    assert manifest.show_in_chat is True
+    assert "sdlc-engineering" in {s.id for s in manifest.skills}
+
+    profile = platform_pack_profile("developer")
+    assert profile.id == "developer"
+    assert profile.show_in_chat is True
+    assert "cli_exec" in profile.allowed_tool_names
+    assert "write_project_file" in profile.allowed_tool_names
+    assert "sdlc-engineering" in profile.allowed_skill
 
 
 def test_autoreiv_carries_developer_sdlc_engineering_skill():
@@ -54,6 +68,6 @@ def test_autoreiv_pack_profile_has_developer_capabilities():
 
 
 def test_legacy_sdlc_trio_hidden_from_chat():
-    for legacy_id in ("conductor", "coding", "review", "developer"):
+    for legacy_id in ("conductor", "coding", "review"):
         assert legacy_id in CHAT_HIDDEN_BY_ID
         assert is_visible_in_chat({"id": legacy_id, "show_in_chat": True}) is False

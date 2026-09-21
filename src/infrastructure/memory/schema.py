@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS settings (
 
 CREATE TABLE IF NOT EXISTS agent_overrides (
     agent_id TEXT PRIMARY KEY,
+    name TEXT,
     provider TEXT DEFAULT 'default',
     api_base_url TEXT,
     api_key TEXT,

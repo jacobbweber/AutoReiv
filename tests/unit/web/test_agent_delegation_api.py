@@ -57,7 +57,7 @@ def client(tmp_path):
 def test_post_agent_delegate_endpoint(client):
     req_body = {
         "sender_agent_id": "autoreiv",
-        "recipient_agent_id": "developer",
+        "recipient_agent_id": "direct",
         "session_id": "sess_delegate_test",
         "task_intent": "Inspect repository files",
         "context_payload": {"repo": "AutoReiv"},
@@ -68,4 +68,4 @@ def test_post_agent_delegate_endpoint(client):
     data = res.json()
     assert data["status"] == "success"
     assert "Specialist agent output result" in data["output"]
-    assert data["recipient_agent_id"] == "developer"
+    assert data["recipient_agent_id"] == "direct"

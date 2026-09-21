@@ -8,6 +8,7 @@ from typing import Any, Dict
 
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.telemetry.collector import TelemetryCollector
+from src.domain.agents.profiles import canonical_agent_id
 from src.domain.orchestration.models import HandoffEnvelope
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
@@ -50,21 +51,9 @@ class SupervisorOrchestrator:
                 "correlation_id": envelope.correlation_id,
             }
 
-        # 2. Alias Mapping
-        alias_map = {
-            "assistant": "autoreiv",
-            "wiki": "autoreiv",
-            "sysadmin": "autoreiv",
-            "linux-sysadmin": "autoreiv",
-            "system-agent": "autoreiv",
-            "system": "autoreiv",
-            "librarian": "autoreiv",
-            "system-librarian": "autoreiv",
-            "general-assistant": "autoreiv",
-            "general": "autoreiv",
-        }
-        recipient_id = alias_map.get(envelope.recipient_agent_id, envelope.recipient_agent_id)
-        sender_id = alias_map.get(envelope.sender_agent_id, envelope.sender_agent_id)
+        # 2. Canonical Agent Resolution
+        recipient_id = canonical_agent_id(envelope.recipient_agent_id)
+        sender_id = canonical_agent_id(envelope.sender_agent_id)
 
         # 3. Guardrail: Circular Self-Handoff Check
         if recipient_id == sender_id or envelope.recipient_agent_id == envelope.sender_agent_id:

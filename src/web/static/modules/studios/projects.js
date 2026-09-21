@@ -2,8 +2,10 @@
  * Projects Studio — list, create, select, delete, directory tree & artifact viewer [REQ-SDLC-050..052, REQ-PROJ-010..014].
  */
 
-import { $ } from '../dom.js';
+import { $, escapeHtml, isMobile } from '../dom.js';
 import { fetchJSON } from '../services/api.js';
+import { copyToClipboard } from '../utils/clipboard.js';
+import { showToast } from '../ui/toast.js';
 
 /** @param {string} rel */
 export function normalizeBrowseRel(rel) {
@@ -32,7 +34,7 @@ export function filterFoldersOnly(entries) {
 
 
 export function initProjectsStudio(state, callbacks = {}) {
-  const toast = callbacks.showToast || (() => {});
+  const toast = callbacks.showToast || showToast;
 
   let currentCategory = 'all';
   let currentPath = '.';
@@ -82,15 +84,6 @@ export function initProjectsStudio(state, callbacks = {}) {
     try {
       localStorage.setItem('autoreiv.projectsStudioMode', projectsMode);
     } catch { /* ignore */ }
-  }
-
-
-  function escapeHtml(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 
   function rPlaceholder() {
@@ -143,6 +136,7 @@ export function initProjectsStudio(state, callbacks = {}) {
   function updateActiveHeader(project) {
     const activeName = $('projectsActiveName');
     const activeBadge = $('projectsActiveBadge');
+    const pairDevBtn = $('projectsPairDeveloperBtn');
     if (activeName) {
       activeName.textContent = project ? (project.name || project.slug) : 'None';
       activeName.title = project ? (project.path || project.slug) : 'No project selected';
@@ -152,6 +146,13 @@ export function initProjectsStudio(state, callbacks = {}) {
         activeBadge.classList.remove('hidden');
       } else {
         activeBadge.classList.add('hidden');
+      }
+    }
+    if (pairDevBtn) {
+      if (project && project.path) {
+        pairDevBtn.classList.remove('hidden');
+      } else {
+        pairDevBtn.classList.add('hidden');
       }
     }
   }
@@ -387,7 +388,7 @@ export function initProjectsStudio(state, callbacks = {}) {
   function closeReadingPane() {
     const viewerPane = $('projectsViewerPane');
     if (viewerPane) {
-      if (window.innerWidth < 768) {
+      if (isMobile()) {
         viewerPane.classList.add('hidden');
         viewerPane.classList.remove('flex');
       } else {
@@ -422,7 +423,7 @@ export function initProjectsStudio(state, callbacks = {}) {
 
     // On mobile, pop open the reading pane overlay over the tree
     const viewerPane = $('projectsViewerPane');
-    if (viewerPane && window.innerWidth < 768) {
+    if (viewerPane && isMobile()) {
       viewerPane.classList.remove('hidden');
       viewerPane.classList.add('flex');
     }
@@ -500,7 +501,7 @@ export function initProjectsStudio(state, callbacks = {}) {
       codeEl.textContent = '';
     }
     const viewerPane = $('projectsViewerPane');
-    if (viewerPane && window.innerWidth < 768) {
+    if (viewerPane && isMobile()) {
       viewerPane.classList.add('hidden');
       viewerPane.classList.remove('flex');
     }
@@ -656,6 +657,35 @@ export function initProjectsStudio(state, callbacks = {}) {
     });
   }
 
+  // Pair with Developer Button [CARD-391]
+  const pairDeveloperBtn = $('projectsPairDeveloperBtn');
+  if (pairDeveloperBtn) {
+    pairDeveloperBtn.addEventListener('click', () => {
+      if (!activeProject || !activeProject.path) {
+        toast('No active project selected to pair with.', 'warning');
+        return;
+      }
+      const chatTab = $('tab-chat');
+      if (chatTab) chatTab.click();
+
+      const agentSelect = $('agentSelect');
+      if (agentSelect) {
+        agentSelect.value = 'developer';
+        agentSelect.dispatchEvent(new Event('change'));
+      }
+
+      const promptInput = $('promptInput');
+      if (promptInput) {
+        const projName = activeProject.name || activeProject.slug || 'active project';
+        promptInput.value = `I'm pairing with you on ${projName}. Inspect the workspace structure, read our active work cards, and outline the current status.`;
+        promptInput.dispatchEvent(new Event('input'));
+        promptInput.focus();
+      }
+
+      toast(`Pairing with Developer on ${activeProject.name || activeProject.slug}`, 'success');
+    });
+  }
+
   // Category Filter Pills
   const categoryPills = $('projectsCategoryPills');
   if (categoryPills) {
@@ -692,7 +722,7 @@ export function initProjectsStudio(state, callbacks = {}) {
     copyPathBtn.addEventListener('click', async () => {
       if (!selectedFilePath) return;
       try {
-        await navigator.clipboard.writeText(selectedFilePath);
+        await copyToClipboard(selectedFilePath);
         const textEl = $('projectsCopyPathText');
         if (textEl) {
           const orig = textEl.textContent;

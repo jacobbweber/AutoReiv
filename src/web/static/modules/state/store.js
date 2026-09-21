@@ -37,7 +37,7 @@ export function createStore(initialState = {}) {
 export const state = {
   activeTab: 'chat',
   agents: [],
-  selectedAgentId: 'assistant',
+  selectedAgentId: 'autoreiv',
   sessions: [],
   activeSessionId: null,
   messages: [],

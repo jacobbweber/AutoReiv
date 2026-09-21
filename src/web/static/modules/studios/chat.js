@@ -2,8 +2,8 @@
  * Chat Studio Module [REQ-FE-001, REQ-WEB-001, REQ-WEB-002]
  */
 
-import { $, $query, safeCreateIcons } from '../dom.js';
-import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown, formatSessionTimestamp } from '../utils/formatters.js';
+import { $, $query, isMobile, safeCreateIcons } from '../dom.js';
+import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown, formatSessionTimestamp, formatAgentSelectOption } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
@@ -56,11 +56,16 @@ import {
   renderAgentHandoffCardHtml,
 } from './chat/stream.js';
 
-// Explicitly defined in chat.js to maintain AST and text regex invariants [CARD-119 / REQ-FACT-048]
+// Retired legacy agent IDs preserved in a frozen set for backward-compatibility [CARD-383]
+export const RETIRED_LEGACY_AGENT_IDS = Object.freeze(
+  new Set(['agent-builder', 'coding', 'review', 'conductor', 'hyperv', 'assistant', 'wiki'])
+);
+
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
-  if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review' || agent.id === 'conductor' || agent.id === 'hyperv' || agent.id === 'assistant' || agent.id === 'wiki') return false;
   if (agent.visibility === 'internal') return false;
+  if (agent.origin === 'system' || agent.is_builtin) return false;
+  if (RETIRED_LEGACY_AGENT_IDS.has(agent.id)) return false;
   return agent.show_in_chat !== false;
 }
 
@@ -646,12 +651,12 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
 
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
-  const engineBtnCore = $('engineBtnCore');
-  const engineBtnDirect = $('engineBtnDirect');
   const sessionList = $('sessionList');
   const newChatBtn = $('newChatBtn');
   const activeAgentTitle = $('activeAgentTitle');
   const activeAgentTone = $('activeAgentTone');
+  const chatActiveProjectPill = $('chatActiveProjectPill');
+  const chatActiveProjectName = $('chatActiveProjectName');
   const messagesContainer = $('messagesContainer');
   const chatSessionsDrawer = $('chatSessionsDrawer');
   const chatSessionsDrawerCloseBtn = $('chatSessionsDrawerCloseBtn');
@@ -710,6 +715,20 @@ export function initChatStudio(state, callbacks = {}) {
       } else {
         openChatSessionsDrawer(chatSessionsDrawer, viewChat);
       }
+    });
+  }
+
+  if (chatActiveProjectPill) {
+    chatActiveProjectPill.addEventListener('click', () => {
+      const tabProjects = $('tab-projects');
+      if (tabProjects) tabProjects.click();
+    });
+  }
+
+  const tabChat = $('tab-chat');
+  if (tabChat) {
+    tabChat.addEventListener('click', () => {
+      syncActiveProjectIndicator();
     });
   }
 
@@ -1355,28 +1374,26 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.agents = await res.json();
-      const chatAgents = dualEngineAgentsVisibleInChat(state.agents);
-
-      if (agentSelect) {
-        agentSelect.innerHTML = '';
-        chatAgents.forEach((agent) => {
-          const opt = document.createElement('option');
-          opt.value = agent.id;
-          opt.textContent = `${agent.name} (${agent.tone})`;
-          agentSelect.appendChild(opt);
-        });
-      }
-
+      const chatAgents = agentsVisibleInChat(state.agents);
 
       const savedAgentId = storageGet('autoreiv_active_agent_id');
       const visibleIds = chatAgents.map((a) => a.id);
       if (savedAgentId && visibleIds.includes(savedAgentId)) {
         state.selectedAgentId = savedAgentId;
       } else if (!state.selectedAgentId || !visibleIds.includes(state.selectedAgentId)) {
-        state.selectedAgentId = chatAgents.length > 0 ? chatAgents[0].id : 'autoreiv';
+        state.selectedAgentId = visibleIds.includes('autoreiv') ? 'autoreiv' : (chatAgents.length > 0 ? chatAgents[0].id : 'autoreiv');
       }
 
-      if (agentSelect) agentSelect.value = state.selectedAgentId;
+      if (agentSelect) {
+        agentSelect.innerHTML = '';
+        chatAgents.forEach((agent) => {
+          const opt = document.createElement('option');
+          opt.value = agent.id;
+          opt.textContent = formatAgentSelectOption(agent);
+          agentSelect.appendChild(opt);
+        });
+        agentSelect.value = state.selectedAgentId;
+      }
 
       if (trainAgentTargetSelect) {
         populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, state.selectedAgentId || 'autoreiv');
@@ -1385,6 +1402,7 @@ export function initChatStudio(state, callbacks = {}) {
       updateActiveAgentHeader();
       await loadSessions();
       await refreshPendingHitl();
+      await syncActiveProjectIndicator();
       safeCreateIcons();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load agents:', err);
@@ -1401,53 +1419,57 @@ export function initChatStudio(state, callbacks = {}) {
     updateActiveAgentHeader();
 
     const sidebar = $('sidebar');
-    if (window.innerWidth < 768 && sidebar) {
+    if (isMobile() && sidebar) {
       sidebar.classList.add('-translate-x-full');
     }
 
     await loadSessions();
     await refreshPendingHitl();
+    await syncActiveProjectIndicator();
+  }
+
+  async function syncActiveProjectIndicator() {
+    if (!chatActiveProjectPill || !chatActiveProjectName) return;
+    try {
+      const res = await fetch('/api/projects/selected');
+      if (!res.ok) {
+        chatActiveProjectPill.classList.add('hidden');
+        chatActiveProjectPill.classList.remove('inline-flex');
+        return;
+      }
+      const data = await res.json();
+      const proj = data && data.selected;
+      const isDeveloper = state.selectedAgentId === 'developer';
+      if (isDeveloper && proj && (proj.slug || proj.name || proj.path)) {
+        const displayName = proj.name || proj.slug || (proj.path ? proj.path.split(/[\\/]/).pop() : 'Active Project');
+        chatActiveProjectName.textContent = displayName;
+        chatActiveProjectPill.title = `Active Project: ${displayName} (${proj.path || ''}) — click to open in Projects Studio`;
+        chatActiveProjectPill.classList.remove('hidden');
+        chatActiveProjectPill.classList.add('inline-flex');
+        safeCreateIcons();
+      } else {
+        chatActiveProjectPill.classList.add('hidden');
+        chatActiveProjectPill.classList.remove('inline-flex');
+      }
+    } catch {
+      chatActiveProjectPill.classList.add('hidden');
+      chatActiveProjectPill.classList.remove('inline-flex');
+    }
   }
 
   function updateEngineSelectorUi(activeId) {
+    if (agentSelect && agentSelect.value !== activeId) {
+      agentSelect.value = activeId;
+    }
     const isDirect = activeId === 'direct';
-    if (engineBtnCore) {
-      if (!isDirect) {
-        engineBtnCore.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs';
-        const icon = engineBtnCore.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-amber-300';
-      } else {
-        engineBtnCore.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs';
-        const icon = engineBtnCore.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-slate-400';
-      }
-    }
-    if (engineBtnDirect) {
-      if (isDirect) {
-        engineBtnDirect.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md bg-brand-600 text-white shadow-sm font-semibold transition text-xs';
-        const icon = engineBtnDirect.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-emerald-300';
-      } else {
-        engineBtnDirect.className = 'flex items-center space-x-1 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 transition text-xs';
-        const icon = engineBtnDirect.querySelector('i');
-        if (icon) icon.className = 'w-3.5 h-3.5 text-slate-400';
-      }
-    }
     if (jobPhaseStatusStrip && isDirect) {
       jobPhaseStatusStrip.classList.add('hidden');
     }
   }
 
   async function switchEngineChannel(engineId) {
-    if (engineId !== 'autoreiv' && engineId !== 'direct') return;
+    if (!engineId) return;
     await switchSelectedAgent(engineId);
-  }
-
-  if (engineBtnCore) {
-    engineBtnCore.addEventListener('click', () => switchEngineChannel('autoreiv'));
-  }
-  if (engineBtnDirect) {
-    engineBtnDirect.addEventListener('click', () => switchEngineChannel('direct'));
   }
 
   if (agentSelect) {
@@ -1463,7 +1485,7 @@ export function initChatStudio(state, callbacks = {}) {
       if (activeAgentTone) {
         activeAgentTone.textContent = isDirect
           ? 'Engine: Direct LLM (Zero Tools)'
-          : 'Engine: AutoReiv Core (Orchestrated)';
+          : `Engine: ${agent.name}`;
       }
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
     } else {
@@ -4028,6 +4050,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   startPendingHitlPoll();
   loadAgents();
+  syncActiveProjectIndicator();
 
 
   async function startNewAgentAuthoring() {
@@ -4064,6 +4087,7 @@ export function initChatStudio(state, callbacks = {}) {
     loadSessions,
     switchSelectedAgent,
     switchEngineChannel,
+    syncActiveProjectIndicator,
     updateEngineSelectorUi,
     startNewAgentAuthoring,
     updateActiveAgentHeader,

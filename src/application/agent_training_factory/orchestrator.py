@@ -192,7 +192,3 @@ class FactoryOrchestrator:
             cycles_consumed=job.cycles_consumed + 1,
         )
         return True
-
-
-# Back-compat alias used by older imports / tests during rename
-FactoryRunner = FactoryOrchestrator

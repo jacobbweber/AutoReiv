@@ -57,6 +57,8 @@ BUILTIN_PROFILES: List[AgentProfile] = [
     AGENT_BUILDER_PROFILE,
 ]
 
+DEFAULT_PLATFORM_AGENT_ID: str = "autoreiv"
+
 # Legacy lookup ids that used to alias the Assistant / Wiki / AutoReiv builtins.
 LEGACY_AGENT_ALIASES: Dict[str, str] = {
     "assistant": "autoreiv",
@@ -70,8 +72,6 @@ LEGACY_AGENT_ALIASES: Dict[str, str] = {
     "linux-sysadmin": "autoreiv",
     "sysadmin": "autoreiv",
     "auditor-critic": "autoreiv",
-    "developer": "autoreiv",
-    "tutor": "autoreiv",
     "forge": "autoreiv",
 }
 

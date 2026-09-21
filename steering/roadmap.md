@@ -72,3 +72,21 @@
   - [x] **CARD-363**: Mechanical Capability Linter & Contract Compiler (Static validation for `SKILL.md`: tool cap <= 6, verification contracts).
   - [x] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
   - [x] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
+
+---
+
+### Phase 5: Primitive Matrix Realignment & Ecosystem Expansion (In Progress)
+
+- **Milestone 19 (v0.19.0 - Primitive Realignment & Specialized Platform Agents)**:
+  - [x] **CARD-386**: 3-Column Agent & Skill Scaffolder & Capabilities Workshop (Factory Studio overhaul).
+  - [x] **CARD-387**: Factory Scaffolder UX Top Action Banner, Auto Slug & Tool Batch Selection.
+  - [x] **CARD-388**: Restore Developer and Tutor as Unified Agent Packs (Re-seed packs, model routing, Chat Studio front door selection).
+  - [x] **CARD-389**: Uniform Skill-First Architecture and Agent Forge Realignment (Zero naked tools, editable display names, specialty storage toggle).
+  - [x] **CARD-390**: Integrated Runbook Editor and Mechanical Capability Linter (Direct `SKILL.md` authoring, live ADR-0054 validation feedback in Agent Studio, pre-save guard, and canonical blueprint).
+  - [x] **CARD-391**: Developer Agent and Projects Studio Workspace Integration (Active project grounding, DotAgents SDLC cards bridge).
+  - [x] **CARD-392**: AutoReiv Hosted MCP Server and Cross-Instance Federation (Inbound HTTP/SSE MCP server, multi-instance federation).
+  - [ ] **CARD-393**: Studio Maker Agent and Dynamic Custom Studio Pack (Declarative JSON schema blueprints, dynamic dock & desktop window mounting) — **Parked**.
+  - [x] **CARD-394**: Enterprise MCP Server Development and Docker Deployment Skill Pack (FastMCP scaffolding, JSON-RPC protocol testing, Docker containerization, Single Lever Invariant) — **Done**.
+
+
+

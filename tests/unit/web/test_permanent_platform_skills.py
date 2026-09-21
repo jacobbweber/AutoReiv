@@ -12,13 +12,14 @@ def test_platform_skills_permanence_in_catalog():
     platform_skills = data.get("platform_skills", [])
     returned_ids = {s["id"] for s in platform_skills}
 
-    # All 5 core platform skill primitives must ALWAYS be present in Platform Skills & Tools and ONLY those 5
+    # All core platform skill primitives must ALWAYS be present in Platform Skills & Tools
     expected_platform_skills = {
         "wiki",
         "coordination",
         "proposals",
         "worker",
         "sandbox",
+        "sqlite-storage",
     }
     assert returned_ids == expected_platform_skills, f"Platform skills mismatch: {returned_ids ^ expected_platform_skills}"
 

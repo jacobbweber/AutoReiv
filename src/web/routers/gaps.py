@@ -156,7 +156,7 @@ async def train_gap_in_lab(agent_id: str, gap_id: str, request: Request) -> Dict
     factory_repo.save_job(job)
 
     # Step immediately if factory_orchestrator is active
-    runner = getattr(request.app.state, "factory_orchestrator", None) or getattr(request.app.state, "factory_runner", None)
+    runner = getattr(request.app.state, "factory_orchestrator", None)
     if runner and hasattr(runner, "step_job"):
         try:
             await runner.step_job(job_id)

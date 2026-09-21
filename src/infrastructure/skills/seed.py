@@ -24,6 +24,7 @@ BUNDLED_PACK_IDS: tuple[str, ...] = (
     "education-dual-coding",
     "education-construction",
     "education-application",
+    "sqlite-storage",
 )
 
 

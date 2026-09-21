@@ -33,13 +33,13 @@ describe('Forge allowlist warning removed [CARD-115]', () => {
   });
 });
 
-describe('Forge decoupled skills and tools [CARD-126 / CARD-350]', () => {
-  it('decouples tools from skills into peer sections, without skill-pack masters', () => {
+describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () => {
+  it('configures capabilities via skills without raw tool checklists or master checkboxes', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js');
     expect(forgeJs).toContain('renderNestedHomes');
     expect(forgeJs).toContain('forge-skill-row');
-    expect(forgeJs).toContain('forge-skill-recommend-tools-btn');
-    expect(forgeJs).toContain('renderAllowedTools');
+    expect(forgeJs).not.toContain('forge-skill-recommend-tools-btn');
+    expect(forgeJs).not.toContain('renderAllowedTools');
     expect(forgeJs).toContain('No pack-owned skills yet.');
     expect(forgeJs).toContain("'platform'");
     expect(forgeJs).toContain("'pack'");
@@ -53,18 +53,20 @@ describe('Forge decoupled skills and tools [CARD-126 / CARD-350]', () => {
     expect(forgeJs).not.toContain('Hermes');
   });
 
-  it('Agent Studio Platform then this pack, ticked schemas still go to the model', () => {
+  it('Agent Studio renders Assigned Skills and OS Baseline, excising naked tool sections', () => {
     const html = read('src/web/templates/index.html');
+    expect(html).toContain('id="forgeSkillsSection"');
+    expect(html).toContain('id="forgeBaselineBox"');
     expect(html).toContain('id="forgePlatformBox"');
     expect(html).toContain('id="forgePackBox"');
-    expect(html).toContain('Ticked schemas go to the model');
+    expect(html).not.toContain('id="forgeToolsSection"');
+    expect(html).not.toContain('Ticked schemas go to the model');
     expect(html).toContain('forgeSystemPrompt');
+    expect(html).toContain('forgeStorageEnabled');
     const promptAt = html.indexOf('id="forgeSystemPrompt"');
-    const platformAt = html.indexOf('id="forgePlatformBox"');
-    const packAt = html.indexOf('id="forgePackBox"');
+    const skillsAt = html.indexOf('id="forgeSkillsSection"');
     expect(promptAt).toBeGreaterThan(-1);
-    expect(platformAt).toBeGreaterThan(promptAt);
-    expect(packAt).toBeGreaterThan(platformAt);
+    expect(skillsAt).toBeGreaterThan(promptAt);
     expect(html).not.toContain('RBAC');
     expect(html).not.toContain('rbac');
     expect(html).not.toContain('Skill Capabilities');

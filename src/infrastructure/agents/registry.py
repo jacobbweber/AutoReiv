@@ -47,11 +47,7 @@ class BuiltinAgentRegistry:
             self.state_store.save_agent_profile(profile)
 
     def delete_custom_agent(self, agent_id: str, purge_history: bool = False) -> bool:
-        """Delete custom agent profile (protects built-in agents)."""
-        from src.application.agent_packs.schema import PLATFORM_PACK_IDS
-
-        builtin_ids = {p.id for p in BUILTIN_PROFILES}
-        if agent_id in builtin_ids or agent_id in PLATFORM_PACK_IDS:
+        if agent_id in ("agent-builder", "autoreiv"):
             return False
 
         if agent_id in self._profiles:
@@ -64,16 +60,27 @@ class BuiltinAgentRegistry:
     def get_agent(self, agent_id: str) -> Optional[AgentProfile]:
         """Fetch agent profile with SQLite custom agent resolution, alias fallback, and override overlay."""
         profile: Optional[AgentProfile] = None
-        lookup_id = canonical_agent_id(agent_id)
 
+        # 1. Direct match by exact agent_id
         if self.state_store:
-            profile = self.state_store.get_agent_profile(lookup_id)
+            profile = self.state_store.get_agent_profile(agent_id)
 
         if not profile:
-            profile = self._profiles.get(lookup_id)
+            profile = self._profiles.get(agent_id)
 
+        # 2. Alias fallback via canonical_agent_id
         if not profile:
-            profile = get_builtin_profile(lookup_id)
+            lookup_id = canonical_agent_id(agent_id)
+            if lookup_id != agent_id:
+                if self.state_store:
+                    profile = self.state_store.get_agent_profile(lookup_id)
+                if not profile:
+                    profile = self._profiles.get(lookup_id)
+            else:
+                lookup_id = agent_id
+
+            if not profile:
+                profile = get_builtin_profile(lookup_id)
 
         if not profile:
             return None
@@ -83,6 +90,8 @@ class BuiltinAgentRegistry:
             override = self.state_store.get_agent_override(profile.id)
             if override:
                 profile = profile.model_copy()
+                if getattr(override, "name", None):
+                    profile.name = override.name
                 if override.system_prompt:
                     profile.system_prompt = override.system_prompt
                 if override.tone:
@@ -120,6 +129,22 @@ class BuiltinAgentRegistry:
                     profile.max_turns = override.max_turns
                 if override.history_retention_days is not None:
                     profile.history_retention_days = override.history_retention_days
+                if getattr(override, "storage_enabled", None) is not None:
+                    profile.storage_enabled = override.storage_enabled
+                if getattr(override, "storage_type", None) is not None:
+                    profile.storage_type = override.storage_type
+                if getattr(override, "memory_enabled", None) is not None:
+                    profile.memory_enabled = override.memory_enabled
+                if getattr(override, "memory_retention_days", None) is not None:
+                    profile.memory_retention_days = override.memory_retention_days
+                if getattr(override, "pinned_memory", None) is not None:
+                    profile.pinned_memory = override.pinned_memory
+                if getattr(override, "allow_autonomous_training", None) is not None:
+                    profile.allow_autonomous_training = override.allow_autonomous_training
+                if getattr(override, "max_training_retries", None) is not None:
+                    profile.max_training_retries = override.max_training_retries
+                if getattr(override, "allow_wiki_access", None) is not None:
+                    profile.allow_wiki_access = override.allow_wiki_access
                 if getattr(override, "mcp_servers", None) is not None:
                     profile.mcp_servers = override.mcp_servers
                 if getattr(override, "allowed_credentials", None) is not None:
@@ -356,6 +381,18 @@ class BuiltinAgentRegistry:
         data_root = Path(skills_dir).parent if skills_dir else None
         storage_tools = AgentStorageTools(data_dir=data_root)
         storage_tools.register_tools(tool_registry)
+
+        # 12c. Enterprise MCP Engineering Tools [CARD-394]
+        from src.application.skills.mcp_engineering_tools import MCPEngineeringTools
+
+        mcp_engineering_tools = MCPEngineeringTools(
+            state_store=store,
+            tool_registry=tool_registry,
+            data_dir=data_root,
+            root_resolver=projects_service.resolve_root,
+        )
+        mcp_engineering_tools.register_tools(tool_registry)
+        agent_registry.mcp_engineering_tools = mcp_engineering_tools
 
         # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
         from src.application.skills.user_catalog import UserSkillCatalog

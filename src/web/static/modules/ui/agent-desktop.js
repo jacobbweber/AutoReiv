@@ -13,22 +13,99 @@
  * HITL approvals surface as modal dialog windows.
  */
 
-import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
+import { $, $query, $queryAll, escapeHtml, isMobile, safeCreateIcons } from '../dom.js';
 
 /** @typedef {{ id: string, tab: string, label: string, icon: string, subtitle?: string, defaultSize?: { w: number, h: number } }} DockLauncher */
 
 export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
-  { id: 'dock-chat', tab: 'chat', label: 'Chat', icon: 'message-square', subtitle: 'Agent conversations', defaultSize: { w: 720, h: 560 } },
-  { id: 'dock-wiki', tab: 'wiki', label: 'Wiki', icon: 'book-marked', subtitle: 'Document repository', defaultSize: { w: 780, h: 560 } },
-  { id: 'dock-projects', tab: 'projects', label: 'Projects', icon: 'folders', subtitle: 'Workspaces', defaultSize: { w: 760, h: 540 } },
-  { id: 'dock-agents', tab: 'agents', label: 'Agents', icon: 'users', subtitle: 'Forge / fleet', defaultSize: { w: 820, h: 580 } },
-  { id: 'dock-factory', tab: 'factory', label: 'Factory', icon: 'flask-conical', subtitle: 'Training lab', defaultSize: { w: 960, h: 680 } },
-  { id: 'dock-routines', tab: 'routines', label: 'Routines', icon: 'clock', subtitle: 'Schedules', defaultSize: { w: 700, h: 520 } },
-  { id: 'dock-observability', tab: 'observability', label: 'Observe', icon: 'bar-chart-3', subtitle: 'Telemetry', defaultSize: { w: 760, h: 540 } },
-  { id: 'dock-settings', tab: 'settings', label: 'Settings', icon: 'settings', subtitle: 'Providers', defaultSize: { w: 720, h: 540 } },
-  { id: 'dock-prompts', tab: 'prompts', label: 'Prompts', icon: 'sparkles', subtitle: 'Catalog', defaultSize: { w: 700, h: 520 } },
-  { id: 'dock-education', tab: 'education', label: 'Education', icon: 'graduation-cap', subtitle: 'Wiki-backed study', defaultSize: { w: 760, h: 560 } },
-  { id: 'dock-lumina', tab: 'lumina', label: 'Lumina', icon: 'tv', subtitle: 'Concept cinema', defaultSize: { w: 840, h: 620 } },
+  {
+    id: 'dock-chat',
+    tab: 'chat',
+    label: 'Chat',
+    icon: 'message-square',
+    subtitle: 'Agent conversations',
+    defaultSize: { w: 720, h: 560 },
+  },
+  {
+    id: 'dock-wiki',
+    tab: 'wiki',
+    label: 'Wiki',
+    icon: 'book-marked',
+    subtitle: 'Document repository',
+    defaultSize: { w: 780, h: 560 },
+  },
+  {
+    id: 'dock-projects',
+    tab: 'projects',
+    label: 'Projects',
+    icon: 'folders',
+    subtitle: 'Workspaces',
+    defaultSize: { w: 760, h: 540 },
+  },
+  {
+    id: 'dock-agents',
+    tab: 'agents',
+    label: 'Agents',
+    icon: 'users',
+    subtitle: 'Forge / fleet',
+    defaultSize: { w: 820, h: 580 },
+  },
+  {
+    id: 'dock-factory',
+    tab: 'factory',
+    label: 'Factory',
+    icon: 'flask-conical',
+    subtitle: 'Training lab',
+    defaultSize: { w: 960, h: 680 },
+  },
+  {
+    id: 'dock-routines',
+    tab: 'routines',
+    label: 'Routines',
+    icon: 'clock',
+    subtitle: 'Schedules',
+    defaultSize: { w: 700, h: 520 },
+  },
+  {
+    id: 'dock-observability',
+    tab: 'observability',
+    label: 'Observe',
+    icon: 'bar-chart-3',
+    subtitle: 'Telemetry',
+    defaultSize: { w: 760, h: 540 },
+  },
+  {
+    id: 'dock-settings',
+    tab: 'settings',
+    label: 'Settings',
+    icon: 'settings',
+    subtitle: 'Providers',
+    defaultSize: { w: 720, h: 540 },
+  },
+  {
+    id: 'dock-prompts',
+    tab: 'prompts',
+    label: 'Prompts',
+    icon: 'sparkles',
+    subtitle: 'Catalog',
+    defaultSize: { w: 700, h: 520 },
+  },
+  {
+    id: 'dock-education',
+    tab: 'education',
+    label: 'Education',
+    icon: 'graduation-cap',
+    subtitle: 'Wiki-backed study',
+    defaultSize: { w: 760, h: 560 },
+  },
+  {
+    id: 'dock-lumina',
+    tab: 'lumina',
+    label: 'Lumina',
+    icon: 'tv',
+    subtitle: 'Concept cinema',
+    defaultSize: { w: 840, h: 620 },
+  },
   // CARD-296/305: Sessions is Chat in-studio drawer only — never a dock launcher.
 ]);
 
@@ -51,7 +128,7 @@ const MIN_H = 240;
 export const GRID_SIZE = 16;
 /** Dock + Organize Windows stay above every studio window. */
 export const DESKTOP_DOCK_Z = 10000;
-/** Modal dialogs (routineModal, factoryDeliverableModal, etc.) sit above all windows and dock [CARD-344]. */
+/** Modal dialogs (routineModal, chatToolsModal, etc.) sit above all windows and dock [CARD-344]. */
 export const DESKTOP_MODAL_Z = 11000;
 export const DESKTOP_WINDOW_Z_CAP = 9000;
 
@@ -67,17 +144,41 @@ export function nextDesktopStackZ(currentZ, cap = DESKTOP_WINDOW_Z_CAP) {
   return Math.min(cur + 1, top);
 }
 
-
 export const PREFS_KEY = 'autoreiv.agentDesktop.v1';
 
-/** CARD-305: Sessions is not a desktop window — drop stale prefs entries. */
+/** CARD-305/CARD-279: Sessions is not a desktop window — drop stale prefs entries and normalize schema. */
 export function scrubSessionsFromDesktopPrefs(prefs) {
-  if (!prefs || typeof prefs !== 'object') return prefs || { windows: {} };
+  if (!prefs || typeof prefs !== 'object') {
+    return {
+      windows: {},
+      gridOverlay: false,
+      autoRestore: true,
+      openWindows: [],
+      savedPresets: [],
+    };
+  }
   const windows = { ...(prefs.windows || {}) };
   if (windows.sessions) delete windows.sessions;
-  return { ...prefs, windows };
+  const openWindows = Array.isArray(prefs.openWindows)
+    ? prefs.openWindows.filter((t) => typeof t === 'string' && t !== 'sessions')
+    : [];
+  const savedPresets = Array.isArray(prefs.savedPresets)
+    ? prefs.savedPresets.map((p) => ({
+        ...p,
+        windows: Array.isArray(p.windows)
+          ? p.windows.filter((w) => w && typeof w === 'object' && w.tab !== 'sessions')
+          : [],
+      }))
+    : [];
+  return {
+    ...prefs,
+    windows,
+    openWindows,
+    savedPresets,
+    autoRestore: prefs.autoRestore !== false,
+    gridOverlay: !!prefs.gridOverlay,
+  };
 }
-
 
 const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
@@ -170,8 +271,8 @@ export function computeTileRects(count, viewport) {
           w: Math.max(MIN_W, cellW - 8),
           h: Math.max(MIN_H, cellH - 8),
         },
-        viewport,
-      ),
+        viewport
+      )
     );
   }
   return rects;
@@ -213,6 +314,85 @@ export function computeSnapHalf(side, viewport) {
 }
 
 /**
+ * Compute side-by-side 50/50 two-column layout rects [CARD-279].
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {Array<{ x: number, y: number, w: number, h: number }>}
+ */
+export function computeTwoColumnsRects(viewport) {
+  const dockH = viewport.dockH ?? 72;
+  const gap = 8;
+  const colW = Math.max(MIN_W, Math.floor((viewport.width - gap * 3) / 2));
+  const h = Math.max(MIN_H, viewport.height - dockH - gap * 2);
+  return [
+    clampWindowRect({ x: gap, y: gap, w: colW, h }, viewport),
+    clampWindowRect({ x: gap * 2 + colW, y: gap, w: colW, h }, viewport),
+  ];
+}
+
+/**
+ * Compute 3 equal-width columns layout rects [CARD-279].
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {Array<{ x: number, y: number, w: number, h: number }>}
+ */
+export function computeThreeColumnsRects(viewport) {
+  const dockH = viewport.dockH ?? 72;
+  const gap = 8;
+  const colW = Math.max(MIN_W, Math.floor((viewport.width - gap * 4) / 3));
+  const h = Math.max(MIN_H, viewport.height - dockH - gap * 2);
+  return [
+    clampWindowRect({ x: gap, y: gap, w: colW, h }, viewport),
+    clampWindowRect({ x: gap * 2 + colW, y: gap, w: colW, h }, viewport),
+    clampWindowRect({ x: gap * 3 + colW * 2, y: gap, w: colW, h }, viewport),
+  ];
+}
+
+/**
+ * Compute 3-window layout rects: Left side has 2 vertically stacked windows (50% w, 50% h),
+ * Right side has 1 full-height window (50% w, 100% h). Matches Jacob's cockpit layout [CARD-279].
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {Array<{ x: number, y: number, w: number, h: number }>}
+ */
+export function computeLeftStackedRightFullRects(viewport) {
+  const dockH = viewport.dockH ?? 72;
+  const gap = 8;
+  const halfW = Math.max(MIN_W, Math.floor((viewport.width - gap * 3) / 2));
+  const fullH = Math.max(MIN_H, viewport.height - dockH - gap * 2);
+  const halfH = Math.max(MIN_H, Math.floor((fullH - gap) / 2));
+  const botH = Math.max(MIN_H, fullH - gap - halfH);
+  return [
+    // Window 0: Top-left
+    clampWindowRect({ x: gap, y: gap, w: halfW, h: halfH }, viewport),
+    // Window 1: Bottom-left
+    clampWindowRect({ x: gap, y: gap * 2 + halfH, w: halfW, h: botH }, viewport),
+    // Window 2: Right full
+    clampWindowRect({ x: gap * 2 + halfW, y: gap, w: halfW, h: fullH }, viewport),
+  ];
+}
+
+/**
+ * Compute 3-window layout rects: Left side has 1 full-height window (50% w, 100% h),
+ * Right side has 2 vertically stacked windows (50% w, 50% h) [CARD-279].
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {Array<{ x: number, y: number, w: number, h: number }>}
+ */
+export function computeLeftFullRightStackedRects(viewport) {
+  const dockH = viewport.dockH ?? 72;
+  const gap = 8;
+  const halfW = Math.max(MIN_W, Math.floor((viewport.width - gap * 3) / 2));
+  const fullH = Math.max(MIN_H, viewport.height - dockH - gap * 2);
+  const halfH = Math.max(MIN_H, Math.floor((fullH - gap) / 2));
+  const botH = Math.max(MIN_H, fullH - gap - halfH);
+  return [
+    // Window 0: Left full
+    clampWindowRect({ x: gap, y: gap, w: halfW, h: fullH }, viewport),
+    // Window 1: Top-right
+    clampWindowRect({ x: gap * 2 + halfW, y: gap, w: halfW, h: halfH }, viewport),
+    // Window 2: Bottom-right
+    clampWindowRect({ x: gap * 2 + halfW, y: gap * 2 + halfH, w: halfW, h: botH }, viewport),
+  ];
+}
+
+/**
  * Maximize rect filling space above the dock.
  * @param {{ width: number, height: number, dockH?: number }} viewport
  * @returns {{ x: number, y: number, w: number, h: number }}
@@ -226,7 +406,7 @@ export function computeMaximizeRect(viewport) {
       w: viewport.width - 16,
       h: viewport.height - dockH - 16,
     },
-    viewport,
+    viewport
   );
 }
 
@@ -269,11 +449,17 @@ export function collectAgentsFromDom(state) {
 }
 
 /**
- * Load persisted window prefs (positions/sizes). Schema v1.
- * @returns {{ windows: Record<string, {x:number,y:number,w:number,h:number, maximized?: boolean}>, gridOverlay?: boolean }}
+ * Load persisted window prefs (positions/sizes/presets). Schema v1 + v2.
+ * @returns {{ windows: Record<string, {x:number,y:number,w:number,h:number, maximized?: boolean}>, gridOverlay?: boolean, autoRestore?: boolean, openWindows?: string[], savedPresets?: Array<object> }}
  */
 export function loadDesktopPrefs() {
-  const empty = { windows: {}, gridOverlay: false };
+  const empty = {
+    windows: {},
+    gridOverlay: false,
+    autoRestore: true,
+    openWindows: [],
+    savedPresets: [],
+  };
   if (typeof localStorage === 'undefined') return empty;
   try {
     const raw = localStorage.getItem(PREFS_KEY);
@@ -284,6 +470,9 @@ export function loadDesktopPrefs() {
     return scrubSessionsFromDesktopPrefs({
       windows,
       gridOverlay: !!parsed.gridOverlay,
+      autoRestore: parsed.autoRestore !== false,
+      openWindows: Array.isArray(parsed.openWindows) ? parsed.openWindows : [],
+      savedPresets: Array.isArray(parsed.savedPresets) ? parsed.savedPresets : [],
     });
   } catch {
     return empty;
@@ -291,7 +480,7 @@ export function loadDesktopPrefs() {
 }
 
 /**
- * @param {{ windows: Record<string, object>, gridOverlay?: boolean }} prefs
+ * @param {{ windows: Record<string, object>, gridOverlay?: boolean, autoRestore?: boolean, openWindows?: string[], savedPresets?: Array<object> }} prefs
  */
 export function saveDesktopPrefs(prefs) {
   if (typeof localStorage === 'undefined') return;
@@ -302,7 +491,10 @@ export function saveDesktopPrefs(prefs) {
       JSON.stringify({
         windows: clean.windows || {},
         gridOverlay: !!clean.gridOverlay,
-      }),
+        autoRestore: clean.autoRestore !== false,
+        openWindows: Array.isArray(clean.openWindows) ? clean.openWindows : [],
+        savedPresets: Array.isArray(clean.savedPresets) ? clean.savedPresets : [],
+      })
     );
   } catch {
     /* quota / private mode */
@@ -368,10 +560,6 @@ export function initAgentDesktop(opts = {}) {
     };
   }
 
-  function isMobile() {
-    return window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-  }
-
   function nextZ() {
     zTop = nextDesktopStackZ(zTop);
     return zTop;
@@ -400,6 +588,7 @@ export function initAgentDesktop(opts = {}) {
   function persistPrefs() {
     /** @type {Record<string, object>} */
     const winPrefs = {};
+    const openTabs = [];
     windows.forEach((win) => {
       winPrefs[win.tab] = {
         x: win.rect.x,
@@ -408,6 +597,9 @@ export function initAgentDesktop(opts = {}) {
         h: win.rect.h,
         maximized: !!win.maximized,
       };
+      if (!win.minimized && win.tab !== 'sessions') {
+        openTabs.push(win.tab);
+      }
     });
     // Keep previously saved closed windows so reopen restores
     Object.keys(prefs.windows || {}).forEach((tab) => {
@@ -417,6 +609,9 @@ export function initAgentDesktop(opts = {}) {
     prefs.windows = winPrefs;
     if (prefs.windows) delete prefs.windows.sessions;
     prefs.gridOverlay = gridOverlay;
+    prefs.openWindows = openTabs;
+    prefs.autoRestore = prefs.autoRestore !== false;
+    prefs.savedPresets = prefs.savedPresets || [];
     saveDesktopPrefs(prefs);
   }
 
@@ -590,8 +785,6 @@ export function initAgentDesktop(opts = {}) {
         view.addEventListener('pointerdown', () => focusWindow(win.tab));
       }
     });
-
-
   }
 
   function buildTitleExtras(tab, titleRight) {
@@ -614,14 +807,16 @@ export function initAgentDesktop(opts = {}) {
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', launcher.label);
 
-    const handles = RESIZE_EDGES.map((edge) => `<div class="desktop-win-resize desktop-win-resize-${edge}" data-resize="${edge}" title="Resize"></div>`).join('');
+    const handles = RESIZE_EDGES.map(
+      (edge) => `<div class="desktop-win-resize desktop-win-resize-${edge}" data-resize="${edge}" title="Resize"></div>`
+    ).join('');
 
     el.innerHTML = `
       <div class="desktop-win-titlebar" data-drag-handle="1">
         <div class="desktop-win-title-left">
           <span class="desktop-win-icon"><i data-lucide="${escapeAttr(launcher.icon)}" class="w-3.5 h-3.5"></i></span>
-          <span class="desktop-win-title">${escapeHtmlLite(launcher.label)}</span>
-          <span class="desktop-win-sub">${escapeHtmlLite(launcher.subtitle || '')}</span>
+          <span class="desktop-win-title">${escapeHtml(launcher.label)}</span>
+          <span class="desktop-win-sub">${escapeHtml(launcher.subtitle || '')}</span>
         </div>
         <div class="desktop-win-title-right" data-title-right="1"></div>
         <div class="desktop-win-controls">
@@ -651,15 +846,12 @@ export function initAgentDesktop(opts = {}) {
     let rect;
     let maximized = false;
     if (saved && typeof saved.w === 'number' && typeof saved.h === 'number') {
-      rect = clampWindowRect(
-        { x: saved.x ?? off.x, y: saved.y ?? off.y, w: saved.w, h: saved.h },
-        vp,
-      );
+      rect = clampWindowRect({ x: saved.x ?? off.x, y: saved.y ?? off.y, w: saved.w, h: saved.h }, vp);
       maximized = !!saved.maximized;
     } else {
       rect = clampWindowRect(
         { x: off.x, y: off.y, w: Math.min(def.w, vp.width - 32), h: Math.min(def.h, vp.height - vp.dockH - 24) },
-        vp,
+        vp
       );
     }
 
@@ -910,7 +1102,7 @@ export function initAgentDesktop(opts = {}) {
             w: Math.min(def.w, vp.width - 32),
             h: Math.min(def.h, vp.height - vp.dockH - 24),
           },
-          vp,
+          vp
         );
         applyRect(win);
       }
@@ -1061,7 +1253,6 @@ export function initAgentDesktop(opts = {}) {
     toast(gridOverlay ? 'Grid overlay on' : 'Grid overlay off', 'info', 900);
   }
 
-
   function focusComposer() {
     const input = $('promptInput');
     if (!input) return;
@@ -1101,9 +1292,9 @@ export function initAgentDesktop(opts = {}) {
       (d) => `
       <button type="button" id="${escapeAttr(d.id)}" class="desktop-dock-btn" data-dock-tab="${escapeAttr(d.tab)}" data-dock-id="${escapeAttr(d.id)}" title="${escapeAttr(d.label)}" aria-label="${escapeAttr(d.label)}" aria-pressed="false">
         <span class="desktop-dock-icon"><i data-lucide="${escapeAttr(d.icon)}" class="w-5 h-5"></i></span>
-        <span class="desktop-dock-label">${escapeHtmlLite(d.label)}</span>
+        <span class="desktop-dock-label">${escapeHtml(d.label)}</span>
         <span class="desktop-dock-indicator" aria-hidden="true"></span>
-      </button>`,
+      </button>`
     ).join('');
     safeCreateIcons(dockApps);
     $queryAll('.desktop-dock-btn', dockApps).forEach((btn) => {
@@ -1122,6 +1313,251 @@ export function initAgentDesktop(opts = {}) {
     updateDockScrollChrome();
   }
 
+  function arrangePreset(type) {
+    if (isMobile()) {
+      applyMobileLayout();
+      toast('Mobile snap applied', 'info', 900);
+      return;
+    }
+    const vp = viewportSize();
+    const PRIORITY_TABS = [
+      'chat',
+      'wiki',
+      'agents',
+      'projects',
+      'factory',
+      'routines',
+      'observability',
+      'settings',
+      'prompts',
+      'education',
+      'lumina',
+    ];
+
+    let targetCount = 3;
+    if (type === 'two-columns') targetCount = 2;
+    else if (type === 'three-columns' || type === 'left-stacked-right-full' || type === 'left-full-right-stacked')
+      targetCount = 3;
+
+    // Current visible windows sorted by z-index descending (focused first)
+    let vis = visibleWindows().sort((a, b) => b.z - a.z);
+
+    // If fewer than needed, open priority windows that aren't currently visible
+    if (vis.length < targetCount) {
+      for (const tab of PRIORITY_TABS) {
+        if (!windows.has(tab) || windows.get(tab).minimized) {
+          openWindow(tab);
+          vis = visibleWindows().sort((a, b) => b.z - a.z);
+          if (vis.length >= targetCount) break;
+        }
+      }
+    }
+
+    // Windows to position: the top targetCount windows
+    const targetWins = vis.slice(0, targetCount);
+
+    // Minimize any excess windows beyond targetCount
+    if (vis.length > targetCount) {
+      vis.slice(targetCount).forEach((w) => minimizeWindow(w.tab));
+    }
+
+    let rects = [];
+    let label = '';
+    if (type === 'left-stacked-right-full') {
+      rects = computeLeftStackedRightFullRects(vp);
+      label = '3-Window (Left Stacked, Right Full)';
+    } else if (type === 'left-full-right-stacked') {
+      rects = computeLeftFullRightStackedRects(vp);
+      label = '3-Window (Left Full, Right Stacked)';
+    } else if (type === 'two-columns') {
+      rects = computeTwoColumnsRects(vp);
+      label = 'Split 50 / 50';
+    } else if (type === 'three-columns') {
+      rects = computeThreeColumnsRects(vp);
+      label = '3 Columns Equal';
+    }
+
+    targetWins.forEach((win, i) => {
+      win.maximized = false;
+      win.restoreRect = null;
+      if (rects[i]) {
+        win.rect = rects[i];
+      }
+      applyRect(win);
+    });
+
+    if (targetWins[0]) focusWindow(targetWins[0].tab);
+    schedulePersist();
+    toast(`Applied ${label}`, 'info', 1000);
+  }
+
+  function promptSaveCurrentLayout() {
+    const vis = visibleWindows();
+    if (!vis.length) {
+      toast('Open at least one window to save a layout', 'warning', 1500);
+      return;
+    }
+    const defaultName = vis.map((w) => w.label).join(' + ');
+    const name = window.prompt('Save Layout Preset\nEnter a name for this layout preset:', defaultName);
+    if (name === null) return;
+    const cleanName = (name || defaultName).trim() || defaultName;
+
+    const newPreset = {
+      id: `preset-${Date.now()}`,
+      name: cleanName,
+      createdAt: Date.now(),
+      windows: vis.map((w) => ({
+        tab: w.tab,
+        rect: { ...w.rect },
+        maximized: !!w.maximized,
+        z: w.z,
+      })),
+    };
+
+    prefs.savedPresets = prefs.savedPresets || [];
+    prefs.savedPresets.push(newPreset);
+    saveDesktopPrefs(prefs);
+    renderOrganizeMenuContent();
+    toast(`Saved layout "${cleanName}"`, 'success', 1500);
+  }
+
+  function applyPreset(presetId) {
+    prefs.savedPresets = prefs.savedPresets || [];
+    const preset = prefs.savedPresets.find((p) => p.id === presetId);
+    if (!preset || !Array.isArray(preset.windows)) {
+      toast('Preset not found', 'error', 1200);
+      return;
+    }
+
+    if (isMobile()) {
+      applyMobileLayout();
+      toast('Mobile snap applied', 'info', 900);
+      return;
+    }
+
+    const vp = viewportSize();
+    const presetTabs = new Set(preset.windows.map((w) => w.tab));
+
+    // Minimize windows that are NOT in the preset
+    windows.forEach((win, tab) => {
+      if (!presetTabs.has(tab) && !win.minimized) {
+        minimizeWindow(tab);
+      }
+    });
+
+    // Open and size preset windows
+    preset.windows.forEach((saved) => {
+      const win = openWindow(saved.tab);
+      if (win) {
+        win.maximized = !!saved.maximized;
+        win.restoreRect = saved.maximized ? { ...saved.rect } : null;
+        win.rect = clampWindowRect(saved.rect, vp);
+        applyRect(win);
+      }
+    });
+
+    if (preset.windows[0]) {
+      focusWindow(preset.windows[0].tab);
+    }
+    schedulePersist();
+    toast(`Loaded "${preset.name}"`, 'info', 1200);
+  }
+
+  function deletePreset(presetId) {
+    prefs.savedPresets = prefs.savedPresets || [];
+    const idx = prefs.savedPresets.findIndex((p) => p.id === presetId);
+    if (idx === -1) return;
+    const removed = prefs.savedPresets.splice(idx, 1)[0];
+    saveDesktopPrefs(prefs);
+    renderOrganizeMenuContent();
+    toast(`Deleted layout "${removed.name}"`, 'info', 1000);
+  }
+
+  function renderOrganizeMenuContent() {
+    if (!organizeMenu) return;
+    const presetsList = prefs.savedPresets || [];
+    const autoRestoreActive = prefs.autoRestore !== false;
+
+    const presetsHtml = presetsList.length
+      ? presetsList
+          .map(
+            (p) => `
+        <div class="desktop-preset-row">
+          <button type="button" class="desktop-preset-load-btn" data-preset-id="${escapeAttr(p.id)}" title="Apply ${escapeAttr(p.name)}">
+            <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+            <span class="desktop-preset-name">${escapeHtml(p.name)}</span>
+          </button>
+          <button type="button" class="desktop-preset-del-btn" data-delete-preset="${escapeAttr(p.id)}" title="Delete preset" aria-label="Delete preset">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>`
+          )
+          .join('')
+      : '<div class="desktop-preset-empty">No saved presets yet</div>';
+
+    organizeMenu.innerHTML = `
+      <div class="desktop-organize-section-title">Canvas Presets</div>
+      <button type="button" role="menuitem" data-arrange="preset-3-stacked-right">
+        <i data-lucide="columns-3" class="w-3.5 h-3.5"></i>
+        <span>3-Window: Left Stacked, Right Full</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="preset-3-left-stacked">
+        <i data-lucide="columns-3" class="w-3.5 h-3.5"></i>
+        <span>3-Window: Left Full, Right Stacked</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="preset-2-cols">
+        <i data-lucide="columns-2" class="w-3.5 h-3.5"></i>
+        <span>Split 50 / 50</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="preset-3-cols">
+        <i data-lucide="columns" class="w-3.5 h-3.5"></i>
+        <span>3 Columns Equal</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="tile">
+        <i data-lucide="grid" class="w-3.5 h-3.5"></i>
+        <span>Tile All</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="cascade">
+        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+        <span>Cascade</span>
+      </button>
+
+      <div class="desktop-organize-divider"></div>
+      <div class="desktop-organize-section-title">Window Actions</div>
+      <button type="button" role="menuitem" data-arrange="snap-left">
+        <i data-lucide="arrow-left-to-line" class="w-3.5 h-3.5"></i>
+        <span>Snap Left Half</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="snap-right">
+        <i data-lucide="arrow-right-to-line" class="w-3.5 h-3.5"></i>
+        <span>Snap Right Half</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="maximize">
+        <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+        <span>Maximize / Restore</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="grid">
+        <i data-lucide="hash" class="w-3.5 h-3.5"></i>
+        <span>Toggle Grid Overlay (${gridOverlay ? 'On' : 'Off'})</span>
+      </button>
+
+      <div class="desktop-organize-divider"></div>
+      <div class="desktop-organize-section-title">Saved Layouts</div>
+      <button type="button" role="menuitem" data-arrange="save-layout" class="desktop-organize-save-btn">
+        <i data-lucide="bookmark-plus" class="w-3.5 h-3.5"></i>
+        <span>Save Current Layout...</span>
+      </button>
+      <button type="button" role="menuitem" data-arrange="toggle-auto-restore" class="desktop-organize-toggle-btn">
+        <i data-lucide="${autoRestoreActive ? 'check-square' : 'square'}" class="w-3.5 h-3.5"></i>
+        <span>Auto-Restore on Startup: <strong>${autoRestoreActive ? 'Active' : 'Disabled'}</strong></span>
+      </button>
+      <div class="desktop-preset-list">
+        ${presetsHtml}
+      </div>
+    `;
+    safeCreateIcons(organizeMenu);
+  }
+
   function bindOrganizeMenu() {
     const toggleBtn = $('desktopOrganizeBtn');
     if (!toggleBtn || !organizeMenu) return;
@@ -1131,25 +1567,66 @@ export function initAgentDesktop(opts = {}) {
       toggleBtn.setAttribute('aria-expanded', 'false');
     };
 
+    renderOrganizeMenuContent();
+
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const open = organizeMenu.classList.contains('hidden');
+      if (open) {
+        renderOrganizeMenuContent();
+      }
       organizeMenu.classList.toggle('hidden', !open);
       toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
 
     organizeMenu.addEventListener('click', (e) => {
+      // 1. Delete preset
+      const delBtn = e.target && e.target.closest ? e.target.closest('[data-delete-preset]') : null;
+      if (delBtn) {
+        e.stopPropagation();
+        const presetId = delBtn.getAttribute('data-delete-preset');
+        deletePreset(presetId);
+        return;
+      }
+
+      // 2. Load preset
+      const loadBtn = e.target && e.target.closest ? e.target.closest('[data-preset-id]') : null;
+      if (loadBtn) {
+        e.stopPropagation();
+        const presetId = loadBtn.getAttribute('data-preset-id');
+        applyPreset(presetId);
+        closeMenu();
+        return;
+      }
+
+      // 3. Arrange actions
       const btn = e.target && e.target.closest ? e.target.closest('[data-arrange]') : null;
       if (!btn) return;
       const action = btn.getAttribute('data-arrange');
-      if (action === 'tile') arrangeTile();
+      if (action === 'preset-3-stacked-right') arrangePreset('left-stacked-right-full');
+      else if (action === 'preset-3-left-stacked') arrangePreset('left-full-right-stacked');
+      else if (action === 'preset-2-cols') arrangePreset('two-columns');
+      else if (action === 'preset-3-cols') arrangePreset('three-columns');
+      else if (action === 'tile') arrangeTile();
       else if (action === 'cascade') arrangeCascade();
       else if (action === 'snap-left') arrangeSnapHalf('left');
       else if (action === 'snap-right') arrangeSnapHalf('right');
       else if (action === 'maximize') {
         const focus = root.getAttribute('data-desktop-focus');
         if (focus) toggleMaximize(focus);
-      } else if (action === 'grid') toggleGridOverlay();
+      } else if (action === 'grid') {
+        toggleGridOverlay();
+        renderOrganizeMenuContent();
+        return;
+      } else if (action === 'save-layout') {
+        promptSaveCurrentLayout();
+      } else if (action === 'toggle-auto-restore') {
+        prefs.autoRestore = prefs.autoRestore === false;
+        saveDesktopPrefs(prefs);
+        toast(`Auto-restore ${prefs.autoRestore ? 'enabled' : 'disabled'}`, 'info', 1000);
+        renderOrganizeMenuContent();
+        return;
+      }
       closeMenu();
     });
 
@@ -1180,7 +1657,7 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function enhanceHitlDialogs() {
-    ['factoryDeliverableModal', 'chatToolsModal', 'routineModal'].forEach((id) => {
+    ['chatToolsModal', 'routineModal'].forEach((id) => {
       const modal = $(id);
       if (!modal) return;
       modal.classList.add('desktop-dialog-host');
@@ -1259,20 +1736,13 @@ export function initAgentDesktop(opts = {}) {
             if (view) view.classList.add('sessions-drawer-open');
           }
         },
-        true,
+        true
       );
     }
   }
 
-  function escapeHtmlLite(s) {
-    return String(s || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
   function escapeAttr(s) {
-    return escapeHtmlLite(s).replace(/'/g, '&#39;');
+    return escapeHtml(s).replace(/'/g, '&#39;');
   }
 
   renderDock();
@@ -1281,7 +1751,9 @@ export function initAgentDesktop(opts = {}) {
     try {
       const sw = windows.get('sessions');
       if (sw && sw.el && sw.el.parentNode) sw.el.parentNode.removeChild(sw.el);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     windows.delete('sessions');
     root.classList.remove('desktop-sessions-open');
   }
@@ -1298,6 +1770,15 @@ export function initAgentDesktop(opts = {}) {
   $queryAll('.tab-view').forEach((v) => {
     v.classList.add('desktop-view-parked');
   });
+
+  // CARD-279: Auto-restore open windows on desktop (>=768px) if enabled
+  if (!isMobile() && prefs.autoRestore !== false && Array.isArray(prefs.openWindows) && prefs.openWindows.length > 0) {
+    prefs.openWindows.forEach((tab) => {
+      if (tab !== 'sessions' && launcherForTab(tab)) {
+        openWindow(tab);
+      }
+    });
+  }
 
   // CARD-301: strip any legacy titlebar agent picker; do not recreate it.
   let tries = 0;
@@ -1321,6 +1802,10 @@ export function initAgentDesktop(opts = {}) {
     arrangeTile,
     arrangeCascade,
     arrangeSnapHalf,
+    arrangePreset,
+    saveCurrentLayout: promptSaveCurrentLayout,
+    applyPreset,
+    deletePreset,
     toggleGridOverlay,
     collectAgentsFromDom,
     destroy() {

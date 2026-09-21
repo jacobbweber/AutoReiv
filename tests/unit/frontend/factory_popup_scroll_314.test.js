@@ -6,11 +6,11 @@ describe('CARD-314 Factory popup scroll + full studio window', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
   const factoryJs = fs.readFileSync(
     path.resolve(__dirname, '../../../src/web/static/modules/studios/factory.js'),
-    'utf-8',
+    'utf-8'
   );
   const desktopJs = fs.readFileSync(
     path.resolve(__dirname, '../../../src/web/static/modules/ui/agent-desktop.js'),
-    'utf-8',
+    'utf-8'
   );
 
   it('trainAgentHandshakeModal inner has max-h and body overflow-y-auto', () => {
@@ -38,7 +38,7 @@ describe('CARD-314 Factory popup scroll + full studio window', () => {
   });
 
   it('desktop Factory defaultSize is a full studio window, not toast-sized', () => {
-    expect(desktopJs).toMatch(/dock-factory[^\n]*defaultSize:\s*\{\s*w:\s*960,\s*h:\s*680\s*\}/);
+    expect(desktopJs).toMatch(/dock-factory[\s\S]*?defaultSize:\s*\{\s*w:\s*960,\s*h:\s*680\s*\}/);
     expect(desktopJs).toContain('CARD-314: Factory deep-link');
   });
 });

@@ -65,7 +65,7 @@ def test_homelab_not_shipped_as_platform_packs():
 
     repo_root = Path(__file__).resolve().parents[3]
     platform_packs = repo_root / "platform-packs"
-    assert PLATFORM_PACK_IDS == ("autoreiv", "direct")
+    assert PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor")
     assert ALL_PLATFORM_PACK_IDS == PLATFORM_PACK_IDS
 
     for agent_id in (
@@ -74,12 +74,15 @@ def test_homelab_not_shipped_as_platform_packs():
         "homelab-engineer",
         "homelab-admin",
         "homelab-janitor",
-        "developer",
-        "tutor",
         "forge",
     ):
         assert agent_id not in ALL_PLATFORM_PACK_IDS
         assert not (platform_packs / agent_id).exists(), f"{agent_id} must not ship as platform pack"
+
+    # CARD-388: developer and tutor ship as platform packs
+    for agent_id in ("developer", "tutor"):
+        assert agent_id in ALL_PLATFORM_PACK_IDS
+        assert (platform_packs / agent_id / "pack.json").is_file()
 
 
 @pytest.mark.asyncio

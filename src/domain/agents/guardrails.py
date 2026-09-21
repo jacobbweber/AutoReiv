@@ -3,7 +3,7 @@ Deterministic Guardrails & Invariant Validation for Agent Profiles [REQ-SKIL-003
 """
 
 import re
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Union
 
 from src.domain.kernel.models import AgentProfile, AgentTone
 from src.domain.settings.models import ModelPurpose
@@ -25,12 +25,15 @@ class AgentProfileGuardrail:
     @classmethod
     def validate(
         cls,
-        payload: Dict[str, Any],
+        payload: Union[Dict[str, Any], AgentProfile],
         available_tools: Optional[Set[str]] = None,
     ) -> AgentProfile:
         """
         Validate and normalize an incoming agent specification against platform invariants.
         """
+        if hasattr(payload, "model_dump"):
+            payload = payload.model_dump()
+
         # 1. Validate ID Slug
         agent_id = str(payload.get("id", "")).strip()
         if not agent_id:
@@ -61,11 +64,17 @@ class AgentProfileGuardrail:
             if isinstance(purpose_raw, ModelPurpose):
                 purpose = purpose_raw
             else:
-                try:
-                    purpose = ModelPurpose(str(purpose_raw).lower())
-                except ValueError:
-                    valid_purposes = [p.value for p in ModelPurpose]
-                    raise AgentValidationError(f"Invalid purpose '{purpose_raw}'. Must be one of: {valid_purposes}")
+                p_str = str(purpose_raw).strip().lower()
+                if p_str == "code":
+                    purpose = ModelPurpose.TASK_EXECUTION
+                else:
+                    try:
+                        purpose = ModelPurpose(p_str)
+                    except ValueError:
+                        valid_purposes = [p.value for p in ModelPurpose]
+                        raise AgentValidationError(
+                            f"Invalid purpose '{p_str}'. Must be one of: {', '.join(valid_purposes)}"
+                        )
 
         # 5. Validate Agent Tone
         tone_raw = payload.get("tone", "default")
@@ -156,6 +165,8 @@ class AgentProfileGuardrail:
 
         storage_enabled = bool(payload.get("storage_enabled", False))
         storage_type = str(payload.get("storage_type", "sqlite")).strip().lower() or "sqlite"
+        if storage_enabled and "sqlite-storage" not in allowed_skill:
+            allowed_skill.append("sqlite-storage")
 
         # 9. Memory Configuration [CARD-116]
         raw_memory_enabled = payload.get("memory_enabled")
@@ -220,14 +231,19 @@ class AgentProfileGuardrail:
         raw_credentials = payload.get("allowed_credentials") or []
         allowed_credentials = [str(c).strip() for c in raw_credentials if str(c).strip()]
 
-        # 14. Agent Origin [CARD-367]
+        # 14. Agent Origin [CARD-367, CARD-388]
         raw_origin = payload.get("origin")
         from src.domain.kernel.models import AgentOrigin
 
-        try:
-            origin = AgentOrigin(str(raw_origin).lower()) if raw_origin else AgentOrigin.CUSTOM
-        except (ValueError, TypeError):
-            origin = AgentOrigin.CUSTOM
+        if is_builtin or agent_id == "agent-builder":
+            origin = AgentOrigin.SYSTEM
+        elif raw_origin:
+            try:
+                origin = AgentOrigin(str(raw_origin).lower())
+            except (ValueError, TypeError):
+                origin = AgentOrigin.PACK
+        else:
+            origin = AgentOrigin.PACK
 
         return AgentProfile(
             id=agent_id,

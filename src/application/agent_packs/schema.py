@@ -30,9 +30,8 @@ SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".
 FACTORY_PACK_IDS = frozenset()
 RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset({"conductor", "inspector", "coder", "sandbox_runner", "critic"})
 
-# CARD-339 / CARD-341 / CARD-366: Platform agent consolidation.
-# autoreiv (Single Brain) and direct (Raw Model Passthrough) are the platform packs.
-# developer, tutor, forge are absorbed into autoreiv as skills.
+# CARD-339 / CARD-341 / CARD-366 / CARD-388: Platform agent consolidation & restoration.
+# autoreiv, direct, developer, tutor are the platform packs.
 CHAT_HIDDEN_BY_ID = frozenset(
     {
         "agent-builder",
@@ -42,19 +41,18 @@ CHAT_HIDDEN_BY_ID = frozenset(
         "hyperv",
         "assistant",
         "wiki",
-        "developer",
-        "tutor",
         "forge",
         "homelab",
         "finance",
     }
 )
 # Stale hide overrides must not win for these human-facing companions.
-CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct"})
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "developer", "tutor"})
 
-# Always-installed Platform Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
-# autoreiv, direct.
-PLATFORM_PACK_IDS = frozenset({"autoreiv", "direct"})
+# Initial Factory Seed Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
+# All seeded packs are simply agent packs once installed.
+DEFAULT_SEEDED_PACK_IDS = frozenset({"autoreiv", "direct", "developer", "tutor"})
+PLATFORM_PACK_IDS = DEFAULT_SEEDED_PACK_IDS  # Backward compatibility alias
 
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
@@ -93,6 +91,10 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_session_artifact",
     ),
     "sandbox": ("execute_code",),
+    "sqlite-storage": (
+        "query_agent_database",
+        "execute_agent_database",
+    ),
 }
 
 DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
@@ -153,6 +155,16 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_agent_sessions",
         "get_agent_usage_summary",
     ),
+    "sqlite-storage": (
+        "query_agent_database",
+        "execute_agent_database",
+    ),
+    "mcp-engineering": (
+        "scaffold_mcp_server",
+        "test_mcp_server",
+        "deploy_mcp_container",
+        "register_mcp_service",
+    ),
 }
 
 
@@ -188,6 +200,7 @@ OPTIONAL_PLATFORM_SKILLS: tuple[str, ...] = (
     "worker",
     "proposals",
     "sandbox",
+    "sqlite-storage",
 )
 
 PLATFORM_SKILL_IDS = tuple(PLATFORM_SKILL_TOOLS.keys())
@@ -213,6 +226,10 @@ PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
     "sandbox": {
         "name": "Isolated Code Sandbox",
         "description": "Guarded ephemeral code execution.",
+    },
+    "sqlite-storage": {
+        "name": "SQLite Specialty Storage",
+        "description": "Query and execute operations on private agent SQLite databases with strict security guardrails.",
     },
 }
 
@@ -276,6 +293,23 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
             for tool in DYNAMIC_SKILL_TOOLS.get(sid, ()):
                 if tool not in scoped:
                     scoped.append(tool)
+
+        # Check pack-declared skills from agent pack manifest
+        if agent_id:
+            try:
+                from src.infrastructure.data.resolver import DataDirResolver
+                data_root = DataDirResolver().resolve().root
+                pack_json_file = data_root / "packs" / agent_id / "pack.json"
+                if pack_json_file.is_file():
+                    import json
+                    pdata = json.loads(pack_json_file.read_text(encoding="utf-8"))
+                    for sk in pdata.get("skills") or []:
+                        if isinstance(sk, dict) and sk.get("id") in effective_skills:
+                            for t in sk.get("tools") or []:
+                                if t and t not in scoped:
+                                    scoped.append(str(t))
+            except Exception:
+                pass
         return scoped
 
     # Static / unconstrained resolution: include all authorized skills & pack tools
@@ -437,6 +471,14 @@ class AgentPackManifest(BaseModel):
         if not cleaned:
             raise ValueError("Pack name cannot be empty.")
         return cleaned
+
+    @field_validator("purpose", mode="before")
+    @classmethod
+    def normalize_purpose(cls, value: Any) -> str:
+        val = str(value or "general").strip().lower()
+        if val == "code":
+            return "task_execution"
+        return val or "general"
 
     @field_validator("allowed_skill", "pack_tool_names", "allowed_credentials", mode="before")
     @classmethod

@@ -8,14 +8,12 @@ while strictly preserving user-created custom agents (origin == AgentOrigin.CUST
 
 from __future__ import annotations
 
-import json
 import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
-from src.domain.kernel.models import AgentOrigin
 from src.infrastructure.skills.platform_packs import PLATFORM_PACK_IDS, RETIRED_PLATFORM_PACK_IDS
 
 logger = logging.getLogger(__name__)
@@ -64,13 +62,10 @@ class DeclarativePackReconciler:
 
             for profile in profiles:
                 agent_id = profile.id
-                # Condition A: Retired platform pack id (regardless of whether legacy migration gave it 'custom')
+                # Retired pack id: purge from database and disk
                 is_retired = agent_id in retired
 
-                # Condition B: Origin is platform, but not in desired platform ids
-                is_stale_platform = (profile.origin == AgentOrigin.PLATFORM) and (agent_id not in desired)
-
-                if is_retired or is_stale_platform:
+                if is_retired:
                     logger.info("Purging obsolete/retired agent from database: %s", agent_id)
                     try:
                         self.store.delete_agent_profile(agent_id, purge_history=True)
@@ -90,12 +85,12 @@ class DeclarativePackReconciler:
                             logger.info("Purged pack folder for: %s", agent_id)
                         except Exception:
                             logger.exception("Failed to delete pack folder: %s", pack_folder)
-                elif profile.origin == AgentOrigin.PLATFORM:
+                elif agent_id in desired:
                     report.active_platform_agents.append(agent_id)
                 else:
                     report.preserved_custom_agents.append(agent_id)
 
-        # 2. Inspect filesystem for any orphaned retired packs or abandoned platform seeds not in DB
+        # 2. Inspect filesystem for any orphaned retired packs
         if self.packs_dir.is_dir():
             for sub in sorted(self.packs_dir.iterdir()):
                 if not sub.is_dir():
@@ -107,26 +102,11 @@ class DeclarativePackReconciler:
                         try:
                             shutil.rmtree(sub, ignore_errors=True)
                             report.purged_pack_directories.append(pack_name)
-                            logger.info("Purged retired platform pack folder: %s", sub)
+                            logger.info("Purged retired agent pack folder: %s", sub)
                         except Exception:
                             logger.exception("Failed to purge retired pack directory: %s", sub)
                     self._unregister_from_registry(pack_name)
                     continue
-
-                if pack_name not in desired:
-                    # Check if this pack has an explicit platform origin marker
-                    pack_json = sub / "pack.json"
-                    if pack_json.is_file():
-                        try:
-                            data = json.loads(pack_json.read_text(encoding="utf-8"))
-                            if data.get("origin") == "platform" and pack_name not in desired:
-                                if pack_name not in report.purged_pack_directories:
-                                    shutil.rmtree(sub, ignore_errors=True)
-                                    report.purged_pack_directories.append(pack_name)
-                                    logger.info("Purged abandoned platform pack folder: %s", sub)
-                                self._unregister_from_registry(pack_name)
-                        except Exception:
-                            pass
 
         return report
 

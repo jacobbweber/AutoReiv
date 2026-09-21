@@ -52,6 +52,7 @@ from src.web.routers.education import router as education_router
 from src.web.routers.education_priming import router as education_priming_router
 from src.web.routers.gaps import router as gaps_router
 from src.web.routers.hitl import router as hitl_router
+from src.web.routers.mcp_server import router as mcp_server_router
 from src.web.routers.observability import router as observability_router
 from src.web.routers.projects import router as projects_router
 from src.web.routers.prompts import router as prompts_router
@@ -231,6 +232,8 @@ def create_app(
     wiki_service = WikiService(wiki_root=resolved_wiki_path)
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
+    if hasattr(registry, "mcp_engineering_tools"):
+        registry.mcp_engineering_tools.mcp_manager = mcp_manager
 
     # 4b. Agent Training Factory Orchestrator [CARD-171, REQ-FACT-016]
     from src.application.agent_training_factory import FactoryOrchestrator
@@ -348,7 +351,6 @@ def create_app(
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
     app.state.factory_orchestrator = factory_orchestrator
-    app.state.factory_runner = factory_orchestrator  # back-compat
     app.state.factory_repo = factory_repo
     app.state.capability_gap_repo = capability_gap_repo
     app.state.capability_catalog_repo = capability_catalog_repo
@@ -444,6 +446,7 @@ def create_app(
     app.include_router(prompts_router)
     app.include_router(credentials_router)
     app.include_router(remote_hosts_router)
+    app.include_router(mcp_server_router)
 
     # 11. Static Files & Root Template View
     base_web_dir = Path(__file__).parent

@@ -12,19 +12,21 @@ from src.infrastructure.skills.platform_packs import (
 )
 
 
-def test_platform_pack_ids_restricted_to_autoreiv_and_direct():
-    """Active platform pack IDs must be strictly autoreiv and direct [REQ-CONSOL-004]."""
-    assert PLATFORM_PACK_IDS == ("autoreiv", "direct")
+def test_platform_pack_ids_include_developer_and_tutor():
+    """Active platform pack IDs must include autoreiv, direct, developer, and tutor [CARD-388, REQ-388-001]."""
+    assert PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor")
 
 
-def test_retired_platform_packs_include_developer_tutor_forge():
-    """Retired platform packs must include developer, tutor, forge, homelab, homelab-admin, and finance [REQ-CONSOL-004, REQ-CONSOL-005]."""
-    for retired_id in ("developer", "tutor", "forge", "assistant", "wiki", "homelab", "homelab-admin", "finance"):
+def test_retired_platform_packs_exclude_developer_and_tutor():
+    """Retired platform packs must NOT include developer or tutor [CARD-388, REQ-388-006]."""
+    assert "developer" not in RETIRED_PLATFORM_PACK_IDS
+    assert "tutor" not in RETIRED_PLATFORM_PACK_IDS
+    for retired_id in ("forge", "assistant", "wiki", "homelab", "homelab-admin", "finance"):
         assert retired_id in RETIRED_PLATFORM_PACK_IDS
 
 
-def test_cleanup_orphaned_platform_packs_removes_retired(tmp_path: Path):
-    """Cleanup routine must purge retired packs from user data packs directory [REQ-CONSOL-004]."""
+def test_cleanup_orphaned_platform_packs_preserves_developer_and_tutor(tmp_path: Path):
+    """Cleanup routine must NOT purge developer or tutor from user data [CARD-388, REQ-388-006]."""
     packs_dir = tmp_path / "packs"
     packs_dir.mkdir(parents=True)
 
@@ -37,21 +39,21 @@ def test_cleanup_orphaned_platform_packs_removes_retired(tmp_path: Path):
 
     cleaned = cleanup_orphaned_platform_packs(packs_dir)
 
-    assert "developer" in cleaned
-    assert "tutor" in cleaned
+    assert "developer" not in cleaned
+    assert "tutor" not in cleaned
     assert "forge" in cleaned
 
-    assert not (packs_dir / "developer").exists()
-    assert not (packs_dir / "tutor").exists()
+    assert (packs_dir / "developer").exists()
+    assert (packs_dir / "tutor").exists()
     assert not (packs_dir / "forge").exists()
     assert (packs_dir / "autoreiv").exists()
     assert (packs_dir / "direct").exists()
 
 
-def test_canonical_agent_id_aliases_retired_personas_to_autoreiv():
-    """Legacy queries for developer, tutor, or forge resolve to autoreiv [REQ-CONSOL-004]."""
-    assert canonical_agent_id("developer") == "autoreiv"
-    assert canonical_agent_id("tutor") == "autoreiv"
+def test_canonical_agent_id_preserves_developer_and_tutor():
+    """Queries for developer and tutor resolve to themselves, not aliased to autoreiv [CARD-388, REQ-388-006]."""
+    assert canonical_agent_id("developer") == "developer"
+    assert canonical_agent_id("tutor") == "tutor"
     assert canonical_agent_id("forge") == "autoreiv"
     assert canonical_agent_id("autoreiv") == "autoreiv"
     assert canonical_agent_id("direct") == "direct"
