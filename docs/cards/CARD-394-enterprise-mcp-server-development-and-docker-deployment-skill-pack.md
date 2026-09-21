@@ -1,7 +1,7 @@
 ---
 id: CARD-394
 title: "Enterprise MCP Server Development and Docker Deployment Skill Pack"
-status: In Review
+status: Done
 created: 2026-09-20
 adr: 0054
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-394] Enterprise MCP Server Development and Docker Deployment Skill Pack
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-20  
 > **ADR Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
 > **Labels**: `type:feature`, `domain:mcp`, `domain:skills`, `area:infrastructure`, `area:devops`  
