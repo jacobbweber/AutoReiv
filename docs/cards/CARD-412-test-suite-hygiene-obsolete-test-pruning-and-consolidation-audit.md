@@ -1,7 +1,7 @@
 ---
 id: CARD-412
 title: "Test Suite Hygiene, Operator-Contract Pyramid, and First Regression Locks"
-status: Ready
+status: In Progress
 created: 2026-09-21
 adr: docs/adr/0055-operator-contract-testing-and-suite-hygiene.md
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-412] Test Suite Hygiene, Operator-Contract Pyramid, and First Regression Locks
 
-> **Status**: Ready  
+> **Status**: In Progress  
 > **Created**: 2026-09-21  
 > **ADR Reference**: [ADR-0055](../adr/0055-operator-contract-testing-and-suite-hygiene.md)  
 > **Labels**: `type:refactor`, `area:tests`, `area:hygiene`, `area:reliability`  
