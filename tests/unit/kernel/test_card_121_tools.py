@@ -115,7 +115,9 @@ def test_builtin_allowlists_unchanged_for_core():
     autoreiv = platform_pack_profile("autoreiv")
     assert "wiki_note_read" in autoreiv.allowed_tool_names
     assert "wiki_note_create" in autoreiv.allowed_tool_names
-    assert "execute_code" in autoreiv.allowed_tool_names
+    assert "execute_code" not in autoreiv.allowed_tool_names
+    developer = platform_pack_profile("developer")
+    assert "execute_code" in developer.allowed_tool_names
     assert "execute_code" not in AGENT_BUILDER_PROFILE.allowed_tool_names
     assert not any("execute_code" in p.allowed_tool_names for p in BUILTIN_PROFILES)
     assert "skill_view" in AGENT_BUILDER_PROFILE.allowed_tool_names

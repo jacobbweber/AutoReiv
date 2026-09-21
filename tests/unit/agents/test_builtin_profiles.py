@@ -13,13 +13,19 @@ from src.domain.kernel.models import AgentTone
 from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
-def test_developer_absorbed_into_autoreiv_profile():
-    agent = platform_pack_profile("autoreiv")
-    assert agent.id == "autoreiv"
-    assert "sdlc-engineering" in agent.allowed_skill
-    assert "write_project_file" in agent.allowed_tool_names
-    assert "read_project_file" in agent.allowed_tool_names
-    assert "cli_exec" in agent.allowed_tool_names
+def test_developer_is_separate_pack_and_not_in_autoreiv():
+    autoreiv = platform_pack_profile("autoreiv")
+    assert autoreiv.id == "autoreiv"
+    assert "sdlc-engineering" not in autoreiv.allowed_skill
+    assert "cli_exec" not in autoreiv.allowed_tool_names
+    assert "handoff_to_agent" in autoreiv.allowed_tool_names
+
+    dev = platform_pack_profile("developer")
+    assert dev.id == "developer"
+    assert "sdlc-engineering" in dev.allowed_skill
+    assert "write_project_file" in dev.allowed_tool_names
+    assert "read_project_file" in dev.allowed_tool_names
+    assert "cli_exec" in dev.allowed_tool_names
 
 
 def test_tutor_absorbed_into_autoreiv_profile():
@@ -54,7 +60,7 @@ def test_autoreiv_profile_definition():
     assert "get_system_logs" in agent.allowed_tool_names
     assert "get_recent_errors" in agent.allowed_tool_names
     assert "system_info" in agent.allowed_tool_names
-    assert "cli_exec" in agent.allowed_tool_names
+    assert "cli_exec" not in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
     assert "get_or_create_weekly_note" in agent.allowed_tool_names
@@ -69,7 +75,7 @@ def test_autoreiv_profile_definition():
     assert "propose_skill" in agent.allowed_tool_names
     assert "propose_tool" in agent.allowed_tool_names
     assert "propose_workflow" not in agent.allowed_tool_names
-    assert "execute_code" in agent.allowed_tool_names
+    assert "execute_code" not in agent.allowed_tool_names
     assert agent.is_builtin is False
 
 

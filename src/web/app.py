@@ -200,6 +200,14 @@ def create_app(
         CapabilityGapRepository,
     )
     capability_catalog_repo = CapabilityCatalogRepository(store)
+    from src.application.capabilities.seeder import seed_builtin_capabilities
+
+    seed_builtin_capabilities(
+        repo=capability_catalog_repo,
+        tool_registry=tool_reg,
+        agent_registry=registry,
+        user_skill_catalog=getattr(registry, "user_skill_catalog", None),
+    )
     capability_catalog = CapabilityCatalogResolver(capability_catalog_repo)
     capability_gap_repo = CapabilityGapRepository(store)
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.

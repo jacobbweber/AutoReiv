@@ -62,7 +62,6 @@ def test_autoreiv_pack_weekly_tasks_and_skills():
         "session-inspect",
         "tasks",
         "wiki",
-        "sdlc-engineering",
         "agent-authoring",
         "socratic-tutoring",
     }

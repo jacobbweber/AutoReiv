@@ -103,7 +103,6 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_system_logs",
         "get_recent_errors",
         "get_tool_health_matrix",
-        "cli_exec",
         "system_info",
         "test_provider_connectivity",
     ),
@@ -114,7 +113,6 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_recent_errors",
         "get_system_logs",
         "test_provider_connectivity",
-        "cli_exec",
     ),
     "tasks": (
         "get_or_create_weekly_note",

@@ -110,7 +110,11 @@ def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
 
     autoreiv_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("autoreiv"))
     assert len(autoreiv_tools) >= 8
-    assert any(t.name == "execute_code" for t in autoreiv_tools)
+    assert any(t.name == "inspect_system_health" for t in autoreiv_tools)
+
+    developer_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("developer"))
+    assert any(t.name == "execute_code" for t in developer_tools)
+
 
 
 def test_system_agent_diagnostic_tools(store, collector, skill):

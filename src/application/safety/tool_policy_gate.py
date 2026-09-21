@@ -238,18 +238,18 @@ def expand_education_wiki_note_tools(
 
 
 def _capability_tool_names(matched_capability_ids: Optional[Sequence[str]]) -> Optional[set[str]]:
-    """Extract tool names from matched capability IDs [CARD-221/241].
+    """Extract tool names from matched capability IDs [CARD-221/241/407].
 
     - tool.<name> -> <name>
     - bare tool names accepted
     - skill./agent./pack./routine. IDs are NOT tool names (CARD-241: skill-only
       matches must not poison the subset into blocking every real tool)
     - Education skill matches expand to EDUCATION_WIKI_NOTE_TOOLS
+    - Empty sequence or sequence with no extracted tools returns None (falls back to agent allowlist)
     """
-    if matched_capability_ids is None:
+    if not matched_capability_ids:
         return None
     names: set[str] = set()
-    saw_non_tool = False
     for raw in matched_capability_ids:
         cid = str(raw or "").strip()
         if not cid:
@@ -258,16 +258,15 @@ def _capability_tool_names(matched_capability_ids: Optional[Sequence[str]]) -> O
             names.add(cid[len("tool.") :])
             continue
         if cid.startswith(_NON_TOOL_CAPABILITY_PREFIXES):
-            saw_non_tool = True
             continue
         # Bare tool name in the subset list.
         names.add(cid)
     names |= expand_education_wiki_note_tools(matched_capability_ids)
     # Never treat wiki_overview as Education-matched even if somehow listed.
     names -= set(EDUCATION_FORBIDDEN_WIKI_TOOLS)
-    if not names and saw_non_tool:
-        # Non-education skill/pack-only match: do not enforce an empty subset
-        # (would BLOCK every tool). Agent allowlist + registry still apply.
+    if not names:
+        # When no tool names are present, do not enforce an empty subset
+        # (which would BLOCK every tool). Agent allowlist + registry still apply [CARD-241/407].
         return None
     return names
 

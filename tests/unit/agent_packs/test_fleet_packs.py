@@ -166,11 +166,11 @@ def test_agent_pack_service_imports_fleet_suite(tmp_path):
 
 
 def test_developer_build_skill_is_tracked():
-    """CARD-294 / CARD-366: skills/sdlc-engineering must ship; must not be hidden."""
+    """CARD-294 / CARD-388: developer skills/sdlc-engineering must ship; must not be hidden."""
     from pathlib import Path
 
-    skill = Path("platform-packs/autoreiv/skills/sdlc-engineering/SKILL.md")
-    assert skill.is_file(), "sdlc-engineering skill missing from seed"
+    skill = Path("platform-packs/developer/skills/sdlc-engineering/SKILL.md")
+    assert skill.is_file(), "sdlc-engineering skill missing from developer seed"
 
 
 def test_sqlite_default_db_is_under_user_data(monkeypatch, tmp_path):

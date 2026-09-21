@@ -19,19 +19,19 @@ def test_linter_resolves_without_import_error(tmp_path: Path):
 
 
 def test_consolidated_skills_exist_and_pass_lint():
-    """Consolidated skills (sdlc-engineering, agent-authoring, socratic-tutoring) pass lint [REQ-CONSOL-001..003]."""
+    """Consolidated skills pass lint across platform packs."""
     repo_root = Path(__file__).resolve().parents[3]
-    autoreiv_skills_dir = repo_root / "platform-packs" / "autoreiv" / "skills"
+    platform_packs_dir = repo_root / "platform-packs"
 
     expected_skills = [
-        "sdlc-engineering",
-        "agent-authoring",
-        "socratic-tutoring",
+        ("developer", "sdlc-engineering"),
+        ("autoreiv", "agent-authoring"),
+        ("autoreiv", "socratic-tutoring"),
     ]
 
     compiler = SkillContractCompiler()
-    for skill_name in expected_skills:
-        skill_path = autoreiv_skills_dir / skill_name / "SKILL.md"
+    for pack_id, skill_name in expected_skills:
+        skill_path = platform_packs_dir / pack_id / "skills" / skill_name / "SKILL.md"
         assert skill_path.is_file(), f"Expected skill {skill_name} at {skill_path}"
 
         text = skill_path.read_text(encoding="utf-8")
