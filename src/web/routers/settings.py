@@ -259,7 +259,7 @@ async def update_backup_config(request: Request):
             backup_dir=backup_dir,
             schedule=schedule,
             retention=retention,
-            checkout=repo_root(),
+            checkout=getattr(request.app.state, "checkout_root", None) or repo_root(),
             store=store,
         )
     except ValueError as exc:

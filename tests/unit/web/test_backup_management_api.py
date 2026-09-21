@@ -62,6 +62,9 @@ def app_with_custom_data_dir(tmp_path, monkeypatch):
     app = create_app(state_store=store, wiki_path=str(wiki_dir))
     app.state.data_dir_paths = paths
     app.state.store = store
+    fake_checkout = tmp_path / "fake_repo"
+    fake_checkout.mkdir(parents=True, exist_ok=True)
+    app.state.checkout_root = fake_checkout
 
     return app, paths, store
 
@@ -154,7 +157,7 @@ async def test_backup_config_get_and_put_api(app_with_custom_data_dir, tmp_path)
             assert cfg["retention_count"] == 7
 
             # Updating with destination inside git checkout outside scratch/ is rejected [CARD-294]
-            checkout = repo_root()
+            checkout = getattr(app.state, "checkout_root", repo_root())
             forbidden_inside_repo = checkout / "src" / "forbidden_backups"
             bad_put = await ac.put(
                 "/api/data-dir/backup-config",
