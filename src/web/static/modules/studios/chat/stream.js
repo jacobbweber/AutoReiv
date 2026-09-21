@@ -216,6 +216,7 @@ export async function consumeChatStream(response, {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let currentEvent = 'message';
 
   while (true) {
     const { value, done } = await reader.read();
@@ -226,18 +227,28 @@ export async function consumeChatStream(response, {
     buffer = lines.pop() || '';
 
     for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const jsonStr = line.slice(6).trim();
+      const trimmed = line.trim();
+      if (!trimmed) {
+        currentEvent = 'message';
+        continue;
+      }
+      if (trimmed.startsWith('event:')) {
+        currentEvent = trimmed.slice(6).trim();
+        continue;
+      }
+      if (!trimmed.startsWith('data:')) continue;
+      const jsonStr = trimmed.slice(5).trim();
       if (!jsonStr || jsonStr === '[DONE]') continue;
 
       try {
         const ev = JSON.parse(jsonStr);
-        const eventType = ev.event || ev.type;
+        const eventType = ev.type || ev.event || currentEvent;
+        const text = ev.text ?? ev.content ?? ev.data ?? '';
 
         if (eventType === 'token' && onToken) {
-          onToken(ev.text || ev.content || '', ev);
+          onToken(text, ev);
         } else if (eventType === 'reasoning' && onReasoning) {
-          onReasoning(ev.text || ev.content || '', ev);
+          onReasoning(text, ev);
         }
 
         if (onEvent) {

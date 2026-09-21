@@ -291,15 +291,16 @@ def execution_plan_from_approval(record: dict, session_id: str, agent_id: str):
 async def _forward_kernel_event(queue, event, profile) -> None:
     if event.event_type == KernelEventType.TOKEN:
         if event.reasoning_content:
-            await queue.put(_sse("reasoning", {"text": event.reasoning_content}))
+            await queue.put(_sse("reasoning", {"type": "reasoning", "text": event.reasoning_content}))
         if event.content:
-            await queue.put(_sse("token", {"text": event.content}))
+            await queue.put(_sse("token", {"type": "token", "text": event.content}))
     elif event.event_type == KernelEventType.TOOL_START:
         call_info = event.tool_call or {}
         await queue.put(
             _sse(
                 "tool_start",
                 {
+                    "type": "tool_start",
                     "tool_name": call_info.get("name", ""),
                     "arguments": call_info.get("arguments", {}),
                 },
@@ -307,7 +308,7 @@ async def _forward_kernel_event(queue, event, profile) -> None:
         )
     elif event.event_type == KernelEventType.TOOL_END:
         out_text = event.tool_result.output if event.tool_result else ""
-        await queue.put(_sse("tool_output", {"result": out_text}))
+        await queue.put(_sse("tool_output", {"type": "tool_output", "result": out_text}))
     elif event.event_type == KernelEventType.HANDOFF_START:
         await queue.put(_sse("handoff_start", {"type": "handoff_start", **(event.handoff or {})}))
     elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
