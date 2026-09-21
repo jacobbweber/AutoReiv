@@ -218,7 +218,7 @@ async def get_observability_audit(
 
 @router.post("/api/observability/audit/export")
 async def export_observability_audit(request: Request, payload: AuditExportRequest):
-    """Export deterministic performance audit markdown to 00_Inbox [CARD-337]."""
+    """Export deterministic performance audit markdown to 00_Inbox [CARD-337 / CARD-412 OC-2]."""
     from src.application.observability.audit_service import AuditService
     from src.web.routers.wiki import _get_wiki_service
 
@@ -232,7 +232,14 @@ async def export_observability_audit(request: Request, payload: AuditExportReque
     else:
         report = service.audit_window(hours=payload.hours or 24)
 
-    md = service.format_markdown_report(report)
+    md = (service.format_markdown_report(report) or "").strip()
+    # Honesty gate [CARD-412 / OC-2]: never claim success with an empty deliverable body
+    if not md or len(md) < 40:
+        raise HTTPException(
+            status_code=500,
+            detail="Audit export produced an empty report body; refusing empty inbox theater",
+        )
+
     default_title = payload.title or f"Performance Audit - {report.target_type.title()} {report.target_id}"
 
     wiki_service = _get_wiki_service(request)
@@ -247,12 +254,27 @@ async def export_observability_audit(request: Request, payload: AuditExportReque
         summary=f"Performance and cost audit report for {report.target_type} {report.target_id}",
         status="inbox",
     )
-    raw_path = filed.get("path") if isinstance(filed, dict) else str(filed)
+    if not isinstance(filed, dict) or not filed.get("success"):
+        raise HTTPException(status_code=500, detail="Failed to file audit report into wiki inbox")
+
+    raw_path = str(filed.get("path") or "")
+    # Read-back verification — fail closed if body did not land
+    read_back = wiki_service.get_note(raw_path) if raw_path else {"success": False}
+    body = (read_back.get("content") or "").strip() if isinstance(read_back, dict) else ""
+    if not (isinstance(read_back, dict) and read_back.get("success") and body):
+        raise HTTPException(
+            status_code=500,
+            detail="Audit export wrote an empty or unreadable inbox note (success theater)",
+        )
+
     return {
-        "success": bool(filed.get("success", True) if isinstance(filed, dict) else True),
+        "success": True,
         "path": raw_path,
         "title": default_title,
         "filename": raw_path.replace("\\", "/").rsplit("/", 1)[-1],
+        "body_chars": len(body),
+        "total_tokens": report.total_tokens,
+        "total_turns": report.total_turns,
     }
 
 

@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+- CARD-412 Phase 1+2 build (	ests/integration/operator_contracts/, src/web/static/modules/studios/settings.js, src/application/settings/settings_service.py, src/web/routers/observability.py, src/domain/wiki/frontmatter.py [CARD-412]):
+  - **OC-1**: Save Provider also persists default_context_window via /api/settings/matrix; settings dump uses JSON mode.
+  - **OC-2**: Observe session-metrics export fail-closed on empty markdown/read-back; wiki frontmatter uses model_dump for Pydantic metas.
+  - **OC-3**: Wiki note create single-lever operator contract.
+  - **Prune**: Removed 8 brittle frontend vitest whitebox files (Bucket C theater).
+
 - Operator-contract testing strategy and suite hygiene footing (docs/adr/0055-operator-contract-testing-and-suite-hygiene.md, .agents/rules/operator-contract-testing.md, .agents/rules/tdd-invariants.md, .agents/rules/definition-of-done.md, docs/cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md, AGENTS.md [CARD-412]):
   - **ADR-0055 Accepted**: Prefer operator contracts + Bucket A invariants + thin honesty/smoke over broad unit-TDD theater and Playwright volume.
   - **Always-on rule**: .agents/rules/operator-contract-testing.md defines OC-1 (context-window persist), OC-2 (observe metrics non-empty inbox), OC-3 (wiki note create single-lever).

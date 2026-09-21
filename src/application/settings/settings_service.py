@@ -40,7 +40,7 @@ class SettingsService:
 
     def save_purpose_matrix(self, matrix: ModelPurposeMatrix) -> None:
         """Persist the purpose routing matrix to SQLite."""
-        self.state_store.set_setting("purpose_matrix", matrix.model_dump())
+        self.state_store.set_setting("purpose_matrix", matrix.model_dump(mode="json"))
         apply = getattr(self.gateway, "set_max_concurrent_generations", None)
         if callable(apply):
             apply(matrix.max_concurrent_generations)

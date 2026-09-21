@@ -858,6 +858,54 @@ export function initSettingsStudio(state, _callbacks = {}) {
 
           updateKeyInputForVaultSelection();
         }
+
+        // CARD-412 / OC-1: persist default context window (orphaned when CARD-153 retired Save Matrix)
+        const defaultCtxRaw = ($('defaultContextInput')?.value || '').trim();
+        const defaultCtxParsed = parseInt(defaultCtxRaw, 10);
+        const existingCtx =
+          state.settings && state.settings.matrix
+            ? state.settings.matrix.default_context_window
+            : null;
+        let defaultCtx = null;
+        if (Number.isFinite(defaultCtxParsed) && defaultCtxParsed > 0) {
+          defaultCtx = defaultCtxParsed;
+        } else if (defaultCtxRaw === '' && existingCtx) {
+          // Preserve prior persisted value when the input was not populated this session
+          defaultCtx = existingCtx;
+        } else {
+          defaultCtx = null;
+        }
+        try {
+          const matrixRes = await fetch('/api/settings/matrix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              default_model: selectedModel || state.savedDefaultModel || 'default',
+              default_context_window: defaultCtx,
+              purposes: state.savedMatrix || {},
+              model_context_windows: state.savedModelWindows || {},
+            }),
+          });
+          if (matrixRes.ok) {
+            const matrixResult = await matrixRes.json();
+            if (matrixResult.matrix) {
+              state.savedMatrix = matrixResult.matrix.purposes || state.savedMatrix || {};
+              state.savedModelWindows = matrixResult.matrix.model_context_windows || {};
+              state.settings = { ...(state.settings || {}), matrix: matrixResult.matrix };
+              const defaultCtxInput = $('defaultContextInput');
+              if (defaultCtxInput) {
+                defaultCtxInput.value = matrixResult.matrix.default_context_window
+                  ? matrixResult.matrix.default_context_window
+                  : '';
+              }
+            }
+          } else {
+            console.error('[AutoReiv UI] Provider saved but context window matrix save failed:', matrixRes.status);
+          }
+        } catch (matrixErr) {
+          console.error('[AutoReiv UI] Failed to persist default_context_window:', matrixErr);
+        }
+
         saveProvidersBtn.textContent = 'Saved!';
         setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider'), 2000);
         await discoverAndPopulateModels();
