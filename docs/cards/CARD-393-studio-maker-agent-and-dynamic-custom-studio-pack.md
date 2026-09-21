@@ -1,7 +1,7 @@
 ---
 id: CARD-393
 title: "Studio Maker Agent and Dynamic Custom Studio Pack"
-status: Ready
+status: Parked
 created: 2026-09-20
 adr: 0054
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-393] Studio Maker Agent and Dynamic Custom Studio Pack
 
-> **Status**: Ready  
+> **Status**: Parked  
 > **Created**: 2026-09-20  
 > **ADR Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
 > **Labels**: `type:feature`, `domain:studios`, `domain:agents`, `area:frontend`, `area:packs`  
