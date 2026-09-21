@@ -1,7 +1,7 @@
 ---
 id: CARD-407
 title: "Fix Capability Catalog Seeding, Tool Policy Gate Empty Fallback, and AutoReiv Pack Health Tools"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-407] Fix Capability Catalog Seeding, Tool Policy Gate Empty Fallback, and AutoReiv Pack Health Tools
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:bug`, `area:orchestration`, `area:safety`, `area:agents`, `area:wiki`  
