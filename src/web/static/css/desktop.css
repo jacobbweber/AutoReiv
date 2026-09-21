@@ -1,0 +1,845 @@
+/* AutoReiv Radical Agent Desktop & Windowing System [CARD-396] */
+
+/* ============================================================
+       Radical Demo 04 — AGENT DESKTOP (OS-style multi-window)
+       Branch: demo/ui-radical-04-agent-desktop
+       HARD BAN: no rail/sidebar/orb/pie/void/cosmos/HUD as primary nav
+       ============================================================ */
+
+body.radical-desktop-demo {
+  background: #08090c !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+  overflow: hidden;
+}
+
+body.radical-desktop-demo #appRoot > header,
+body.radical-desktop-demo #mobileSurfaceSwitcher {
+  display: none !important;
+}
+
+/* Sidebar is not primary nav. Sessions live in Chat in-studio drawer (CARD-296/305). */
+body.radical-desktop-demo #sidebar {
+  display: none !important;
+}
+body.radical-desktop-demo.desktop-sessions-open #sidebar {
+  display: flex !important;
+  position: fixed !important;
+  left: var(--dw-l, 0) !important;
+  top: var(--dw-t, 0) !important;
+  width: var(--dw-w, 20rem) !important;
+  height: var(--dw-h, 70vh) !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  z-index: var(--dw-z, 41) !important;
+  box-shadow: none !important;
+  border-radius: 0 0 12px 12px;
+  border: none !important;
+  background: var(--theme-bg-surface, #0f172a) !important;
+}
+body.radical-desktop-demo.desktop-sessions-open #sidebar .border-t.border-slate-800.bg-slate-950\/70,
+body.radical-desktop-demo.desktop-sessions-open #sidebarNav {
+  display: none !important;
+}
+body.radical-desktop-demo.desktop-sessions-open #sidebarDrawerHeader,
+body.radical-desktop-demo.desktop-sessions-open #closeSidebarBtn {
+  display: none !important;
+}
+
+body.radical-desktop-demo main {
+  position: relative !important;
+  background: transparent !important;
+  overflow: hidden !important;
+}
+
+/* Park stock tab views until a window hosts them */
+body.radical-desktop-demo .tab-view.desktop-view-parked,
+body.radical-desktop-demo .tab-view:not(.desktop-view-hosted) {
+  display: none !important;
+}
+body.radical-desktop-demo .tab-view.desktop-view-hosted {
+  position: fixed !important;
+  left: var(--dw-l, 0) !important;
+  top: var(--dw-t, 0) !important;
+  width: var(--dw-w, 40rem) !important;
+  height: var(--dw-h, 30rem) !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden;
+  background: var(--theme-bg-base, #020617) !important;
+  border: none !important;
+  border-radius: 0 0 12px 12px;
+  box-shadow: none !important;
+}
+body.radical-desktop-demo #view-settings.desktop-view-hosted,
+body.radical-desktop-demo #view-routines.desktop-view-hosted,
+body.radical-desktop-demo #view-observability.desktop-view-hosted,
+body.radical-desktop-demo #view-education.desktop-view-hosted,
+body.radical-desktop-demo .tab-view.desktop-view-hosted.overflow-y-auto {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.radical-desktop-demo .tab-view.desktop-view-hosted#view-chat #toggleSidebarBtn {
+  /* remap sidebar toggle → sessions window via JS capture */
+}
+
+/* --- Wallpaper / stage --- */
+#desktopStage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.desktop-wallpaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -5%, var(--theme-brand-glow, rgba(99, 102, 241, 0.08)), transparent 55%),
+    linear-gradient(180deg, var(--theme-bg-surface, #12141a) 0%, var(--theme-bg-base, #09090b) 55%, #050506 100%);
+}
+.desktop-wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+  opacity: 0.7;
+}
+.desktop-brand {
+  position: absolute;
+  left: 1.25rem;
+  top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(226, 232, 240, 0.72);
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 2;
+}
+.desktop-brand-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--theme-brand, #6366f1);
+  box-shadow: none;
+}
+.desktop-brand-hint {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: rgba(148, 163, 184, 0.65);
+  font-size: 0.7rem;
+}
+
+/* --- Window layer --- */
+#desktopWindowLayer,
+.desktop-window-layer {
+  display: contents;
+}
+.desktop-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  border-radius: 12px;
+  border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
+  background: transparent;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 18px 45px rgba(0, 0, 0, 0.65);
+  overflow: visible;
+  min-width: 280px;
+  min-height: 200px;
+}
+.desktop-window > * {
+  pointer-events: auto;
+}
+.desktop-window.is-focused {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 0 1px rgba(6, 182, 212, 0.25),
+    0 0 20px -3px rgba(6, 182, 212, 0.15),
+    0 24px 60px rgba(0, 0, 0, 0.75);
+}
+.desktop-window.is-minimized {
+  display: none !important;
+}
+.desktop-window.is-dragging,
+.desktop-window.is-resizing {
+  user-select: none;
+  opacity: 0.96;
+}
+.desktop-win-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 0.55rem 0 0.75rem;
+  background: var(--theme-bg-surface, #0e1015);
+  border-top-left-radius: 11px;
+  border-top-right-radius: 11px;
+  border-bottom: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
+  cursor: grab;
+  flex-shrink: 0;
+  user-select: none;
+}
+.desktop-window.is-dragging .desktop-win-titlebar {
+  cursor: grabbing;
+}
+.desktop-win-title-left {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1;
+}
+.desktop-win-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.45rem;
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.desktop-win-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+}
+.desktop-win-sub {
+  font-size: 0.65rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.desktop-win-title-right {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.desktop-win-agent-select {
+  max-width: 9.5rem;
+  background: #0f172a;
+  border: 1px solid rgba(71, 85, 105, 0.9);
+  color: #e2e8f0;
+  border-radius: 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  outline: none;
+}
+.desktop-win-agent-select:focus {
+  border-color: rgba(129, 140, 248, 0.8);
+}
+.desktop-win-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+.desktop-win-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+.desktop-win-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: #fff;
+}
+.desktop-win-close:hover {
+  background: rgba(185, 28, 28, 0.45);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fecaca;
+}
+.desktop-win-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: transparent;
+  pointer-events: none;
+}
+.desktop-window.is-maximized {
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.desktop-window.is-maximized .desktop-win-titlebar {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+.desktop-window.is-maximized .tab-view.desktop-view-hosted {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+/* CARD-235: maximized chrome resize hit-targets must not cover Chat composer controls */
+.desktop-window.is-maximized > .desktop-win-resize {
+  pointer-events: none !important;
+}
+/* CARD-235: keep composer controls above decorative gradients / sticky stack inside the studio */
+body.radical-desktop-demo #view-chat.desktop-view-hosted #chatInputWrapper {
+  z-index: 30;
+}
+body.radical-desktop-demo #view-chat.desktop-view-hosted #chatForm,
+body.radical-desktop-demo #view-chat.desktop-view-hosted #chatOptionsToggleBtn {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* CARD-237 / REQ-EDU-SHELL-002a: Education Ask controls must receive clicks in hosted windows */
+body.radical-desktop-demo #view-education.desktop-view-hosted,
+body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskForm,
+body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskSubmitBtn,
+body.radical-desktop-demo #view-education.desktop-view-hosted #educationTopicInput,
+body.radical-desktop-demo #view-education.desktop-view-hosted #educationTeachStyleInput {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* CARD-328 / REQ-LUMINA-SHELL-001: Lumina Cinema controls must receive clicks in hosted windows */
+body.radical-desktop-demo #view-lumina.desktop-view-hosted,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaStudio,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeView,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeForm,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaTopicInput,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeBtn,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted .lumina-starter-chip,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaBackToComposeBtn,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaStageView,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaPlayPauseBtn,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaPrevBtn,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaNextBtn,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaVoiceToggleBtn,
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaSendToCourseBtn {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.desktop-win-resize {
+  position: absolute;
+  z-index: 20;
+  background: transparent;
+  pointer-events: auto;
+}
+.desktop-win-resize-n {
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 8px;
+  cursor: n-resize;
+}
+.desktop-win-resize-s {
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 8px;
+  cursor: s-resize;
+}
+.desktop-win-resize-e {
+  right: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 8px;
+  cursor: e-resize;
+}
+.desktop-win-resize-w {
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 8px;
+  cursor: w-resize;
+}
+.desktop-win-resize-ne {
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: ne-resize;
+}
+.desktop-win-resize-nw {
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nw-resize;
+}
+.desktop-win-resize-se {
+  right: -1px;
+  bottom: -1px;
+  width: 22px;
+  height: 22px;
+  cursor: se-resize;
+  z-index: 25;
+  background: linear-gradient(
+      135deg,
+      transparent 45%,
+      rgba(148, 163, 184, 0.75) 45%,
+      rgba(148, 163, 184, 0.75) 60%,
+      transparent 60%,
+      transparent 75%,
+      rgba(148, 163, 184, 0.75) 75%
+    )
+    no-repeat;
+  background-size: 14px 14px;
+  background-position: right 4px bottom 4px;
+}
+.desktop-win-resize-se:hover {
+  background: linear-gradient(
+      135deg,
+      transparent 45%,
+      #818cf8 45%,
+      #818cf8 60%,
+      transparent 60%,
+      transparent 75%,
+      #818cf8 75%
+    )
+    no-repeat;
+  background-size: 14px 14px;
+  background-position: right 4px bottom 4px;
+}
+.desktop-win-resize-sw {
+  left: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: sw-resize;
+}
+
+.desktop-grid-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(129, 140, 248, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(129, 140, 248, 0.18) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.desktop-grid-overlay.is-visible {
+  display: block;
+}
+
+/* --- Dock (full-width bar + scroll strip) --- */
+#desktopDock,
+.desktop-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  pointer-events: none;
+  width: 100%;
+  max-width: none;
+  transform: none;
+}
+.desktop-dock-bar {
+  pointer-events: none;
+  width: 100%;
+  background: rgba(10, 12, 16, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.desktop-dock-shell {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0.4rem 0.5rem;
+  box-sizing: border-box;
+}
+.desktop-dock-organize {
+  position: relative;
+  flex-shrink: 0;
+}
+.desktop-organize-btn,
+.desktop-dock-scroll {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  background: rgba(30, 41, 59, 0.85);
+  color: #cbd5e1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.desktop-organize-btn:hover,
+.desktop-dock-scroll:hover {
+  background: rgba(51, 65, 85, 0.95);
+  color: #fff;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+.desktop-dock-scroll[hidden] {
+  display: none !important;
+}
+.desktop-dock-scroll:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.desktop-organize-menu {
+  position: absolute;
+  bottom: calc(100% + 0.45rem);
+  left: 0;
+  min-width: 15.5rem;
+  max-height: 28rem;
+  overflow-y: auto;
+  padding: 0.45rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  backdrop-filter: blur(12px);
+}
+.desktop-organize-menu::-webkit-scrollbar {
+  width: 4px;
+}
+.desktop-organize-menu::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+}
+.desktop-organize-menu.hidden {
+  display: none !important;
+}
+.desktop-organize-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+  width: 100%;
+}
+.desktop-organize-menu button:hover {
+  background: rgba(79, 70, 229, 0.25);
+  color: #fff;
+}
+.desktop-organize-section-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  padding: 0.35rem 0.45rem 0.15rem;
+  user-select: none;
+}
+.desktop-organize-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.25rem 0.2rem;
+}
+.desktop-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+.desktop-preset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  border-radius: 0.5rem;
+}
+.desktop-preset-row:hover {
+  background: rgba(79, 70, 229, 0.2);
+}
+.desktop-preset-load-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.4rem 0.5rem !important;
+}
+.desktop-preset-load-btn .desktop-preset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.desktop-preset-del-btn {
+  flex-shrink: 0;
+  width: auto !important;
+  padding: 0.35rem 0.45rem !important;
+  color: #94a3b8 !important;
+  border-radius: 0.35rem !important;
+}
+.desktop-preset-del-btn:hover {
+  color: #f87171 !important;
+  background: rgba(239, 68, 68, 0.2) !important;
+}
+.desktop-preset-empty {
+  font-size: 0.7rem;
+  color: #64748b;
+  padding: 0.3rem 0.5rem;
+  font-style: italic;
+}
+.desktop-dock-apps {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0.15rem 0.25rem;
+}
+.desktop-dock-apps::-webkit-scrollbar {
+  display: none;
+}
+.desktop-dock-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 0.45rem 0.3rem;
+  border-radius: 0.85rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+  min-width: 3.35rem;
+  flex: 0 0 auto;
+}
+.desktop-dock-btn:hover {
+  transform: translateY(-4px) scale(1.06);
+  background: rgba(51, 65, 85, 0.55);
+  color: #fff;
+}
+.desktop-dock-btn.is-open {
+  background: color-mix(in srgb, var(--theme-brand, #6366f1) 18%, transparent);
+  border-color: transparent;
+  color: #fff;
+}
+.desktop-dock-btn.is-minimized {
+  background: rgba(51, 65, 85, 0.45);
+}
+.desktop-dock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(160deg, rgba(71, 85, 105, 0.45), rgba(15, 23, 42, 0.92));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
+}
+.desktop-dock-btn.is-open .desktop-dock-icon {
+  background: color-mix(in srgb, var(--theme-brand, #6366f1) 28%, rgba(15, 23, 42, 0.9));
+  border-color: color-mix(in srgb, var(--theme-brand, #6366f1) 35%, transparent);
+  color: #e2e8f0;
+}
+.desktop-dock-label {
+  font-size: 0.58rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+.desktop-dock-indicator {
+  position: absolute;
+  bottom: 0.1rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: transparent;
+}
+.desktop-dock-btn.is-open .desktop-dock-indicator {
+  background: var(--theme-brand, #6366f1);
+  box-shadow: none;
+}
+.desktop-dock-btn.is-minimized .desktop-dock-indicator {
+  background: #64748b;
+}
+.desktop-dock-tray {
+  display: flex;
+  align-items: center;
+  padding-left: 0.45rem;
+  border-left: 1px solid rgba(71, 85, 105, 0.7);
+  margin-left: 0.15rem;
+}
+.desktop-clock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  padding: 0 0.35rem;
+  min-width: 3.2rem;
+  text-align: center;
+}
+
+/* Clay Desktop Dock */
+[data-theme='claymorphism'] .desktop-dock-bar {
+  background: rgba(22, 25, 34, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 -12px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+[data-theme='claymorphism'] .desktop-dock-btn {
+  border-radius: 18px;
+  transition:
+    transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.15s,
+    color 0.15s;
+}
+
+[data-theme='claymorphism'] .desktop-dock-icon {
+  border-radius: 16px;
+  background: linear-gradient(145deg, #2a2f40, #1c202d);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    4px 4px 10px rgba(0, 0, 0, 0.45),
+    -2px -2px 6px rgba(255, 255, 255, 0.05),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.18),
+    inset -2px -2px 5px rgba(0, 0, 0, 0.45);
+  transition: all 0.15s ease-out;
+}
+
+[data-theme='claymorphism'] .desktop-dock-btn:hover .desktop-dock-icon {
+  transform: translateY(-2px);
+  box-shadow:
+    6px 8px 14px rgba(0, 0, 0, 0.5),
+    -3px -3px 8px rgba(255, 255, 255, 0.08),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.25),
+    inset -2px -2px 5px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='claymorphism'] .desktop-dock-btn:active,
+[data-theme='claymorphism'] .desktop-dock-btn:active .desktop-dock-icon {
+  transform: scale(0.95) translateY(2px);
+  box-shadow:
+    1px 2px 4px rgba(0, 0, 0, 0.4),
+    inset 3px 3px 6px rgba(0, 0, 0, 0.6),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='claymorphism'] .desktop-dock-btn.is-open .desktop-dock-icon {
+  background: linear-gradient(145deg, #fb7185, #e11d48);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  box-shadow:
+    0 6px 16px rgba(251, 113, 133, 0.4),
+    inset 2px 2px 5px rgba(255, 255, 255, 0.45),
+    inset -2px -2px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* Clay Desktop Windows */
+[data-theme='claymorphism'] .desktop-window {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 1px 1px 3px rgba(255, 255, 255, 0.16),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+[data-theme='claymorphism'] .desktop-window.is-focused {
+  border-color: rgba(251, 113, 133, 0.45);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.7),
+    0 0 24px -2px rgba(251, 113, 133, 0.25),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.22),
+    inset -2px -2px 5px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='claymorphism'] .desktop-win-titlebar {
+  border-top-left-radius: 17px;
+  border-top-right-radius: 17px;
+  background: linear-gradient(180deg, #272c3d, #1f2330);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.14);
+}
+
+[data-theme='claymorphism'] .desktop-win-btn {
+  border-radius: 8px;
+  background: #181b24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    2px 2px 4px rgba(0, 0, 0, 0.3),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.12),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.3);
+  transition: all 0.12s;
+}
+
+[data-theme='claymorphism'] .desktop-win-btn:active {
+  transform: scale(0.92) translateY(1px);
+  box-shadow:
+    inset 2px 2px 3px rgba(0, 0, 0, 0.5),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='claymorphism'] .desktop-win-close:hover {
+  background: linear-gradient(145deg, #ef4444, #b91c1c);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  box-shadow:
+    0 2px 8px rgba(239, 68, 68, 0.4),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.4);
+}

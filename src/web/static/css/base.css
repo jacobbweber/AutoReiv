@@ -1,0 +1,208 @@
+/* AutoReiv Base Styles, Theme Tokens & Inset Locks [CARD-396] */
+
+:root {
+  --theme-brand: #6366f1;
+  --theme-brand-hover: #4f46e5;
+  --theme-brand-glow: rgba(99, 102, 241, 0.1);
+  --theme-bg-base: #08090c;
+  --theme-bg-surface: #0e1015;
+  --theme-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Mobile Native Inset Lock & Overscroll Protection [REQ-RESP-001] */
+html,
+body {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
+}
+
+#appRoot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Systematic Concentric Design Tokens [CARD-137] */
+/* Rule 1: Inner = Outer - Padding */
+.radius-panel {
+  border-radius: 16px;
+} /* xl: sheets, drawers, modals */
+.radius-card {
+  border-radius: 12px;
+} /* lg: cards, chat bubbles, content trays */
+.radius-btn {
+  border-radius: 8px;
+} /* md: buttons, inputs, dropdowns */
+.radius-tag {
+  border-radius: 4px;
+} /* sm: badges, chips, code snippets */
+.radius-pill {
+  border-radius: 9999px;
+} /* full: avatars, toggle knobs, status dots */
+
+/* Rule 2: Touching an edge? No corner. */
+.edge-touching-bottom {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+.edge-touching-top {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+.edge-touching-left {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+.edge-touching-right {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+/* Rule 3: Ring = Inner + Gap (Concentric focus & selection rings) */
+.ring-concentric:focus-visible,
+.ring-concentric:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px #0f172a,
+    0 0 0 4px #6366f1;
+}
+
+/* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/50,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/60,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/70,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/80,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/90,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/40,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/50,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/60,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/70,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/80,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .card-nested {
+  background-color: var(--theme-bg-surface) !important;
+  border-color: var(--theme-border) !important;
+}
+
+body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-800,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-850,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-700\/80 {
+  border-color: var(--theme-border) !important;
+}
+
+body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-indigo-600,
+body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-blue-600,
+body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-brand-600,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .btn-primary {
+  background-color: var(--theme-brand) !important;
+  color: var(--theme-brand-contrast, #ffffff) !important;
+}
+
+body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-indigo-600:hover,
+body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-blue-600:hover,
+body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-brand-600:hover,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .btn-primary:hover {
+  background-color: var(--theme-brand-hover) !important;
+  color: var(--theme-brand-contrast, #ffffff) !important;
+}
+
+body.radical-desktop-demo .tab-view.desktop-view-hosted .text-indigo-400,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .text-blue-400,
+body.radical-desktop-demo .tab-view.desktop-view-hosted .text-brand-400 {
+  color: var(--theme-brand) !important;
+}
+
+@media (max-width: 767px) {
+  .desktop-brand-hint {
+    display: none;
+  }
+  .desktop-dock-bar {
+    background: rgba(15, 23, 42, 0.94);
+  }
+  .desktop-dock-shell {
+    padding: 0.35rem 0.35rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.25rem;
+  }
+  .desktop-dock-apps {
+    justify-content: flex-start;
+    gap: 0.15rem;
+  }
+  .desktop-dock-btn {
+    min-width: 2.85rem;
+    padding: 0.25rem 0.3rem;
+  }
+  .desktop-dock-label {
+    display: none;
+  }
+  .desktop-dock-btn:hover {
+    transform: none;
+  }
+  .desktop-window,
+  .desktop-window.is-mobile-fs {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+  }
+  .desktop-win-resize {
+    display: none !important;
+  }
+  .desktop-win-sub {
+    display: none;
+  }
+  .desktop-win-max {
+    display: none !important;
+  }
+  body.radical-desktop-demo .tab-view.desktop-view-hosted {
+    border-radius: 0 !important;
+  }
+  .desktop-grid-overlay {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .desktop-dock-shell {
+    max-width: 72rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .desktop-dock-apps {
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+       CARD-345 Claymorphism Theme Prototype
+       Tactile 3D inflated surfaces, soft outer elevation, dual inner bevels
+       ========================================================================== */
+[data-theme='claymorphism'] {
+  --clay-surface: #222634;
+  --clay-surface-light: #2c3143;
+  --clay-shadow-dark: rgba(0, 0, 0, 0.45);
+  --clay-shadow-light: rgba(255, 255, 255, 0.12);
+}

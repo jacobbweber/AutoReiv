@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 import {
   PRESET_THEMES,
   applyTheme,
@@ -9,8 +8,7 @@ import {
 } from '../../../src/web/static/modules/ui/theme-engine.js';
 
 describe('CARD-345 Claymorphism Theme Prototype Unit & Contract Tests', () => {
-  const indexPath = path.resolve(__dirname, '../../../src/web/templates/index.html');
-  const indexHtml = fs.readFileSync(indexPath, 'utf-8');
+  const indexHtml = loadPageHtml();
 
   it('defines the claymorphism theme preset in PRESET_THEMES', () => {
     expect(PRESET_THEMES).toHaveProperty('claymorphism');
@@ -67,13 +65,13 @@ describe('CARD-345 Claymorphism Theme Prototype Unit & Contract Tests', () => {
   });
 
   it('defines scoped claymorphism CSS rules with compound inset bevel shadows', () => {
-    expect(indexHtml).toContain('[data-theme="claymorphism"]');
+    expect(indexHtml).toMatch(/\[data-theme=['"]claymorphism['"]\]/);
     // Dock icon clay styling with inset bevel
-    expect(indexHtml).toMatch(/\[data-theme="claymorphism"\]\s+\.desktop-dock-icon[\s\S]*?box-shadow:[\s\S]*?inset/);
+    expect(indexHtml).toMatch(/\[data-theme=['"]claymorphism['"]\]\s+\.desktop-dock-icon[\s\S]*?box-shadow:[\s\S]*?inset/);
     // Dock button tactile active state
-    expect(indexHtml).toMatch(/\[data-theme="claymorphism"\]\s+\.desktop-dock-btn:active/);
+    expect(indexHtml).toMatch(/\[data-theme=['"]claymorphism['"]\]\s+\.desktop-dock-btn:active/);
     // Desktop window clay styling
-    expect(indexHtml).toMatch(/\[data-theme="claymorphism"\]\s+\.desktop-window[\s\S]*?border-radius:\s*(1[6-9]|2\d)px/);
-    expect(indexHtml).toMatch(/\[data-theme="claymorphism"\]\s+\.desktop-window[\s\S]*?box-shadow:[\s\S]*?inset/);
+    expect(indexHtml).toMatch(/\[data-theme=['"]claymorphism['"]\]\s+\.desktop-window[\s\S]*?border-radius:\s*(1[6-9]|2\d)px/);
+    expect(indexHtml).toMatch(/\[data-theme=['"]claymorphism['"]\]\s+\.desktop-window[\s\S]*?box-shadow:[\s\S]*?inset/);
   });
 });

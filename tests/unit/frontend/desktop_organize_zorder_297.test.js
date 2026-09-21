@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 import {
   DESKTOP_DOCK_Z,
   DESKTOP_WINDOW_Z_CAP,
@@ -8,10 +9,7 @@ import {
 } from '../../../src/web/static/modules/ui/agent-desktop.js';
 
 describe('CARD-297 Organize Windows always above open windows', () => {
-  const indexHtml = fs.readFileSync(
-    path.resolve(__dirname, '../../../src/web/templates/index.html'),
-    'utf-8',
-  );
+  const indexHtml = loadPageHtml();
   const desktopJs = fs.readFileSync(
     path.resolve(__dirname, '../../../src/web/static/modules/ui/agent-desktop.js'),
     'utf-8',

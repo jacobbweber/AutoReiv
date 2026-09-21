@@ -1,7 +1,7 @@
 ---
 id: CARD-396
 title: "Modular CSS Extraction and Index Template Hygiene"
-status: Ready
+status: In Review
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-396] Modular CSS Extraction and Index Template Hygiene
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:refactor`, `area:frontend`, `domain:ui`  

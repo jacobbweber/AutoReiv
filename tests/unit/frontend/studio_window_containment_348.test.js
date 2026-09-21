@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 
 describe('CARD-348 Studio Window Box Content Containment', () => {
-  const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
+  const html = loadPageHtml();
 
   it('tab-view.desktop-view-hosted enforces height via --dw-h CSS variable', () => {
     expect(html).toMatch(

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 import {
   PRESET_THEMES,
   THEME_STORAGE_KEY,
@@ -12,8 +11,7 @@ import {
 } from '../../../src/web/static/modules/ui/theme-engine.js';
 
 describe('CARD-208 Theme Engine Unit & Contract Tests', () => {
-  const indexPath = path.resolve(__dirname, '../../../src/web/templates/index.html');
-  const indexHtml = fs.readFileSync(indexPath, 'utf-8');
+  const indexHtml = loadPageHtml();
 
   it('defines the 5 core prebuilt theme presets with enterprise names', () => {
     expect(PRESET_THEMES).toHaveProperty('autoreiv-indigo');
@@ -154,7 +152,7 @@ describe('CARD-208 Theme Engine Unit & Contract Tests', () => {
       expect(indexHtml).toContain('--theme-brand-glow');
       expect(indexHtml).toMatch(/\.desktop-wallpaper[\s\S]*?var\(--theme-brand-glow/);
       expect(indexHtml).toMatch(/\.desktop-wallpaper[\s\S]*?var\(--theme-bg-base/);
-      expect(indexHtml).toMatch(/\.desktop-brand-dot[\s\S]*?var\(--theme-brand\)/);
+      expect(indexHtml).toMatch(/\.desktop-brand-dot[\s\S]*?var\(--theme-brand/);
     });
 
     it('window shells use neutral borders and elevation shadows without brand halo', () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { loadPageHtml } from './template_helper.js';
 import {
   EDUCATION_SESSIONS_KEY,
   EDUCATION_ASK_MARKER,
@@ -22,7 +23,7 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
   let desktopJs;
 
   beforeEach(() => {
-    html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
+    html = loadPageHtml();
     educationJs = fs.readFileSync(
       path.resolve(__dirname, '../../../src/web/static/modules/studios/education.js'),
       'utf-8',
