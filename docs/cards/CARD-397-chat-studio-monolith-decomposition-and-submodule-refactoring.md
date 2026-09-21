@@ -1,7 +1,7 @@
 ---
 id: CARD-397
 title: "Chat Studio Monolith Decomposition and Submodule Refactoring"
-status: Ready
+status: In Review
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-397] Chat Studio Monolith Decomposition and Submodule Refactoring
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:refactor`, `area:frontend`, `domain:chat`  

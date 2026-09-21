@@ -207,3 +207,45 @@ export function renderAgentHandoffCardHtml({
     </div>
   `.trim();
 }
+
+export async function consumeChatStream(response, {
+  onEvent = null,
+  onToken = null,
+  onReasoning = null,
+} = {}) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const jsonStr = line.slice(6).trim();
+      if (!jsonStr || jsonStr === '[DONE]') continue;
+
+      try {
+        const ev = JSON.parse(jsonStr);
+        const eventType = ev.event || ev.type;
+
+        if (eventType === 'token' && onToken) {
+          onToken(ev.text || ev.content || '', ev);
+        } else if (eventType === 'reasoning' && onReasoning) {
+          onReasoning(ev.text || ev.content || '', ev);
+        }
+
+        if (onEvent) {
+          onEvent(eventType, ev);
+        }
+      } catch (pErr) {
+        console.warn('[AutoReiv UI] Stream parse error:', pErr);
+      }
+    }
+  }
+}

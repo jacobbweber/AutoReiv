@@ -10,8 +10,9 @@ import { loadPageHtml } from './template_helper.js';
  */
 describe('Chat composer hit-testing [CARD-235]', () => {
   const chatJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js');
+  const chromeJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/chrome.js');
   const html = loadPageHtml();
-  const chatJs = fs.readFileSync(chatJsPath, 'utf-8');
+  const chatJs = fs.readFileSync(chatJsPath, 'utf-8') + fs.readFileSync(chromeJsPath, 'utf-8');
 
   function extractChatInputWrapper(src) {
     const start = src.indexOf('id="chatInputWrapper"');

@@ -5,6 +5,7 @@
 
 import { escapeHtml } from '../../utils/formatters.js';
 import { storageGet, storageSet } from '../../utils/storage.js';
+import { safeCreateIcons } from '../../dom.js';
 
 export const CODE_KEYS = [
   'code',
@@ -396,5 +397,100 @@ export function shouldPreventOrphanMint({ openJobStatus, resume }) {
 
 export function isGoalPlanReviewTool(toolName) {
   return String(toolName || '') === 'goal_plan_review';
+}
+
+export function setupPendingHitl(state, messagesContainer, { onResumeTurn, showToastFn } = {}) {
+  const showToast = showToastFn || (() => {});
+
+  async function refreshPendingHitl() {
+    try {
+      const res = await fetch(pendingApprovalsUrl(state.activeSessionId));
+      if (!res.ok) return;
+      const data = await res.json();
+      renderPendingHitlCards(data.pending || []);
+    } catch (e) {
+      console.warn('Failed to fetch pending approvals:', e);
+    }
+  }
+
+  function renderPendingHitlCards(pending) {
+    if (!messagesContainer) return;
+    messagesContainer.querySelectorAll('.hitl-pending-card').forEach((el) => el.remove());
+    if (!pending || pending.length === 0) return;
+
+    pending.forEach((req) => {
+      if (shouldSkipPendingHitlCard(req, state.activeSessionId)) return;
+      const el = document.createElement('div');
+      el.className = 'hitl-pending-card my-3 p-4 rounded-xl border border-amber-500/50 bg-amber-950/20 text-slate-200 text-xs shadow-md animate-fade-in';
+      el.setAttribute('data-request-id', req.id);
+      el.innerHTML = buildHitlCardInnerHtml(req, { pendingHitlLabel, formatHitlArgs });
+      messagesContainer.appendChild(el);
+
+      const approveBtn = el.querySelector('.hitl-approve-btn');
+      const rejectBtn = el.querySelector('.hitl-reject-btn');
+
+      if (approveBtn) {
+        approveBtn.addEventListener('click', async () => {
+          approveBtn.disabled = true;
+          if (rejectBtn) rejectBtn.disabled = true;
+          approveBtn.textContent = 'Approving...';
+          const success = await submitHitlDecision(req.id, true);
+          if (success) {
+            approveBtn.textContent = 'Approved ✓';
+            approveBtn.className = 'hitl-approve-btn px-3 py-1.5 rounded-lg bg-emerald-900/60 text-emerald-300 font-semibold cursor-default border border-emerald-700/50';
+            if (rejectBtn) rejectBtn.remove();
+            showToast('Action approved and running', 'success');
+            await refreshPendingHitl();
+            if (shouldResumeChatAfterHitl(req, isGoalPlanReviewTool(req.tool_name)) && onResumeTurn) {
+              await onResumeTurn('Approved. Proceed with execution.', { isResume: true, resumeJobId: req.job_id || null });
+            }
+          } else {
+            approveBtn.disabled = false;
+            if (rejectBtn) rejectBtn.disabled = false;
+            approveBtn.textContent = 'Approve & Run';
+            showToast('Failed to submit approval', 'error');
+          }
+        });
+      }
+
+      if (rejectBtn) {
+        rejectBtn.addEventListener('click', async () => {
+          if (approveBtn) approveBtn.disabled = true;
+          rejectBtn.disabled = true;
+          rejectBtn.textContent = 'Rejecting...';
+          const success = await submitHitlDecision(req.id, false);
+          if (success) {
+            rejectBtn.textContent = 'Rejected ✗';
+            rejectBtn.className = 'hitl-reject-btn px-3 py-1.5 rounded-lg bg-rose-900/60 text-rose-300 font-semibold cursor-default border border-rose-700/50';
+            if (approveBtn) approveBtn.remove();
+            showToast('Action rejected', 'info');
+            await refreshPendingHitl();
+          } else {
+            if (approveBtn) approveBtn.disabled = false;
+            rejectBtn.disabled = false;
+            rejectBtn.textContent = 'Reject';
+            showToast('Failed to submit rejection', 'error');
+          }
+        });
+      }
+
+      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+    safeCreateIcons();
+  }
+
+  function startPendingHitlPoll() {
+    return setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshPendingHitl();
+      }
+    }, 4000);
+  }
+
+  return {
+    refreshPendingHitl,
+    renderPendingHitlCards,
+    startPendingHitlPoll,
+  };
 }
 

@@ -21,7 +21,7 @@ describe('CARD-296 DOM contract — one agent picker + in-studio sessions drawer
 
   beforeEach(() => {
     html = read(indexPath);
-    chatJs = read(chatJsPath);
+    chatJs = read(chatJsPath) + read(path.join(repoRoot, 'src/web/static/modules/studios/chat/render.js'));
     desktopJs = read(desktopJsPath);
   });
 
