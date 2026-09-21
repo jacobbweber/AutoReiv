@@ -230,6 +230,8 @@ ORDERED_FRONTMATTER_KEYS = [
     "summary",
     "template",
     "status",
+    "archived_at",
+    "archive_reason",
     "priority",
     "sensitivity",
     "confidence_score",
@@ -255,6 +257,7 @@ class WikiNoteMeta(BaseModel):
     """
     Authoritative additive YAML frontmatter metadata schema with deterministic serialization.
     """
+    model_config = ConfigDict(extra="allow")
 
     # Category 1: Identity & Retrieval Surface
     uid: str = Field(default_factory=generate_uid, description="Timestamp format YYYYMMDD-HHMMSS")
@@ -281,6 +284,8 @@ class WikiNoteMeta(BaseModel):
         default="draft",
         description="inbox, draft, in_review, final, deprecated, active, archived",
     )
+    archived_at: Optional[str] = Field(default=None, description="ISO timestamp when note was archived")
+    archive_reason: Optional[str] = Field(default=None, description="Reason note was archived or superseded")
     priority: str = Field(
         default="medium",
         description="need_to_do, should_do, want_to_do, high, medium, low",

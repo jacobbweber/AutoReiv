@@ -235,7 +235,7 @@ class SystemAgentTools:
         """Register System Agent diagnostic and health tools."""
         registry.register_tool(
             name="inspect_system_health",
-            description="Inspect platform database connectivity, total turns, tokens, and error rates.",
+            description="Inspect platform and app health, database connectivity, total turns, tokens, and error rates.",
             parameters={"type": "object"},
             handler=self.inspect_system_health,
         )

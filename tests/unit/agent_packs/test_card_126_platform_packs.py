@@ -41,7 +41,7 @@ def test_platform_packs_parse_as_schema_1_1():
         assert (platform_dir() / pack_id / "pack.json").is_file()
         assert not list((platform_dir() / pack_id).rglob("*.py"))
         if pack_id == "autoreiv":
-            assert "wiki" in manifest.allowed_skill
+            assert "wiki_tasks" in manifest.allowed_skill
 
 
 def test_forge_platform_pack():
@@ -60,32 +60,34 @@ def test_autoreiv_pack_weekly_tasks_and_skills():
         "build-agent-pack",
         "platform-health",
         "session-inspect",
-        "tasks",
-        "wiki",
+        "wiki_tasks",
+        "wiki-knowledge",
+        "wiki-inbox",
+        "wiki-curation",
         "agent-authoring",
         "socratic-tutoring",
     }
-    weekly = next(s for s in manifest.skills if s.id == "tasks")
+    weekly = next(s for s in manifest.skills if s.id == "wiki_tasks")
     assert weekly.tools == [
-        "get_or_create_weekly_note",
-        "log_daily_work_item",
-        "complete_weekly_task",
-        "rollover_weekly_tasks",
-        "get_weekly_summary",
+        "wiki_note_read",
+        "wiki_note_create",
+        "wiki_note_update",
+        "wiki_template_read",
     ]
-    task_tools = {
+    # Pruned weekly tools must not be present
+    for pruned_tool in (
         "get_or_create_weekly_note",
         "log_daily_work_item",
         "complete_weekly_task",
         "rollover_weekly_tasks",
         "get_weekly_summary",
-    }
-    assert task_tools <= set(manifest.pack_tool_names)
+    ):
+        assert pruned_tool not in manifest.pack_tool_names
     assert "save_agent_specification" not in manifest.pack_tool_names
     profile = platform_pack_profile("autoreiv")
     assert "wiki_note_read" in profile.allowed_tool_names
-    assert "wiki" in profile.allowed_skill
-    assert "tasks" in profile.allowed_skill
+    assert "wiki_tasks" in profile.allowed_skill
+    assert "wiki-knowledge" in profile.allowed_skill
     assert "proposals" in profile.allowed_skill
 
 
@@ -133,8 +135,8 @@ def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     assert not (data_dir / "packs" / "wiki" / "pack.json").is_file()
     assert not (data_dir / "packs" / "forge" / "pack.json").is_file()
     assert not (data_dir / "packs" / "conductor" / "pack.json").is_file()
-    assert "wiki" in autoreiv.allowed_skill
-    assert "tasks" in autoreiv.allowed_skill
+    assert "wiki_tasks" in autoreiv.allowed_skill
+    assert "wiki-knowledge" in autoreiv.allowed_skill
     assert "wiki_note_read" in autoreiv.allowed_tool_names
     assert "save_agent_specification" not in autoreiv.allowed_tool_names
 

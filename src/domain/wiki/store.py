@@ -1024,20 +1024,76 @@ class WikiStore:
             "content_hash": compute_content_hash(new_body),
         }
 
+    def archive_note(
+        self,
+        relative_path: str,
+        reason: str = "archived",
+        preserve_source: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Safely archive a note to 03_Archive/<slug>_<timestamp>.md [CARD-409].
+        Preserves frontmatter, sets status='archived', and updates archive metadata.
+        If preserve_source is True, copies to archive instead of moving.
+        """
+        self.scaffold()
+        target_path = self._resolve_safe_path(relative_path)
+        if target_path is None or not target_path.is_file():
+            return {"success": False, "error": f"Note '{relative_path}' not found."}
+
+        raw_text = target_path.read_text(encoding="utf-8", errors="replace")
+        meta, body = FrontmatterParser.parse(raw_text)
+        meta_dict = meta.model_dump()
+        meta_dict["status"] = "archived"
+        meta_dict["archived_at"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if reason:
+            meta_dict["archive_reason"] = reason
+
+        archive_dir = self.root_dir / "03_Archive"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+
+        stem = target_path.stem
+        ts = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+        archive_filename = f"{stem}_{ts}.md"
+        dest_path = archive_dir / archive_filename
+        counter = 1
+        while dest_path.exists():
+            dest_path = archive_dir / f"{stem}_{ts}_{counter}.md"
+            counter += 1
+
+        updated_meta = WikiNoteMeta.model_validate(meta_dict)
+        full_text = FrontmatterParser.dump(updated_meta, body)
+        dest_path.write_text(full_text, encoding="utf-8")
+
+        if not preserve_source:
+            target_path.unlink(missing_ok=True)
+
+        rel_dest = str(dest_path.relative_to(self.root_dir)).replace("\\", "/")
+        return {
+            "success": True,
+            "source_path": relative_path.replace("\\", "/"),
+            "archive_path": rel_dest,
+            "title": updated_meta.title,
+            "status": "archived",
+        }
+
     def write_note(
         self,
         relative_path: str,
         content: str,
         update_frontmatter: Optional[Dict[str, Any]] = None,
+        backup_to_archive: bool = False,
     ) -> Dict[str, Any]:
         """
         Non-destructively update an existing note's body, preserving metadata and bumping last_updated.
+        Optionally backs up the existing note to 03_Archive/ before writing [CARD-409].
         """
         target_path = self._resolve_safe_path(relative_path)
         if target_path is None:
             return {"success": False, "error": "Invalid or unsafe path."}
 
         if target_path.is_file():
+            if backup_to_archive:
+                self.archive_note(relative_path, reason="Backup before update", preserve_source=True)
             raw_text = target_path.read_text(encoding="utf-8", errors="replace")
             meta, _ = FrontmatterParser.parse(raw_text)
             meta_dict = meta.model_dump()
@@ -1597,7 +1653,15 @@ class WikiStore:
         normalized_tags = [t.lower().strip() for t in (tags or []) if t and t.strip()]
 
         scored = []
+        include_templates = document_type == "template" or (domain and "template" in domain.lower())
         for note in self.list_notes():
+            note_path = str(note.get("path", "")).lower()
+            if not include_templates and (
+                "_templates" in note_path
+                or "templates/" in note_path
+                or note_path.endswith("tag-authority.md")
+            ):
+                continue
             # Domain filter
             if domain and note.get("domain", "").lower() != domain.lower().strip():
                 continue

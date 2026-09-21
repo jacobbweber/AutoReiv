@@ -116,6 +116,15 @@ class CapabilityCatalogRepository:
         finally:
             self._close_if_needed(conn)
 
+    def delete_entry(self, entry_id: str) -> bool:
+        conn = self._get_connection()
+        try:
+            cur = conn.execute("DELETE FROM capability_index WHERE id = ?", (entry_id,))
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            self._close_if_needed(conn)
+
     def list_entries(
         self,
         *,

@@ -30,7 +30,7 @@ def test_match_intent_skills():
     """Verify Layer 1 0ms intent heuristics."""
     assert AgentKernel._match_intent_skills("please search the wiki for kubernetes notes") == ["wiki"]
     assert AgentKernel._match_intent_skills("inspect system health, cpu and telemetry") == ["diagnostics"]
-    assert AgentKernel._match_intent_skills("schedule a weekly task and log daily items") == ["tasks"]
+    assert AgentKernel._match_intent_skills("schedule a weekly task and log daily items") == ["wiki_tasks"]
     assert AgentKernel._match_intent_skills("read the repository code file and prepare a patch") == ["coding"]
     assert AgentKernel._match_intent_skills("hello, what is the capital of France?") == []
 

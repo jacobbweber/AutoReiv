@@ -76,6 +76,10 @@ def create_app(
     wiki_path: Optional[str] = None,
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
+    from src.application.orchestration.phase_llm_resilience import load_repo_dotenv
+
+    load_repo_dotenv()
+
     # 1. State & Telemetry [REQ-DATA-001 - REQ-DATA-004]
     data_paths = bootstrap_data_dir(migrate=state_store is None)
     resolved_db_path = str(data_paths.db_path)

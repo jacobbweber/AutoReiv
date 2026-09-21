@@ -216,16 +216,30 @@ class WikiTools:
         relative_path: str,
         content: str = "",
         update_frontmatter: Optional[Dict[str, Any]] = None,
+        backup_to_archive: bool = False,
     ) -> Dict[str, Any]:
-        """Update note content or frontmatter in the Wiki."""
+        """Update note content or frontmatter in the Wiki, optionally backing up prior version to 03_Archive/."""
         res = self.store.write_note(
             relative_path=relative_path,
             content=content,
             update_frontmatter=update_frontmatter,
+            backup_to_archive=backup_to_archive,
         )
         if isinstance(res, dict) and res.get("success"):
             res["vault_root"] = str(self.store.root_dir.resolve())
             res["relative_path"] = relative_path
+        return res
+
+    def archive_wiki_note(
+        self,
+        relative_path: str,
+        reason: str = "archived",
+    ) -> Dict[str, Any]:
+        """Safely move a note to 03_Archive/ with updated metadata [CARD-409]."""
+        res = self.store.archive_note(relative_path=relative_path, reason=reason)
+        if isinstance(res, dict) and res.get("success"):
+            res["vault_root"] = str(self.store.root_dir.resolve())
+            res["relative_path"] = res.get("archive_path", "")
         return res
 
     def organize_wiki_note(
@@ -313,17 +327,25 @@ class WikiTools:
         """Get the interconnected wiki knowledge graph nodes and edges."""
         return self.store.get_graph()
 
-    def list_wiki_templates(self) -> List[Dict[str, Any]]:
+    def wiki_template_list(self) -> List[Dict[str, Any]]:
         """
         List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, SOP runbook, ADR).
         """
         return self.store.list_templates()
 
-    def get_wiki_template(self, slug: str) -> Optional[Dict[str, Any]]:
+    def list_wiki_templates(self) -> List[Dict[str, Any]]:
+        """Backward-compatible Python alias for wiki_template_list."""
+        return self.wiki_template_list()
+
+    def wiki_template_read(self, slug: str) -> Optional[Dict[str, Any]]:
         """
-        Get a specific structured wiki note template by slug or name.
+        Read a specific structured wiki note template by slug or name.
         """
         return self.store.get_template(slug)
+
+    def get_wiki_template(self, slug: str) -> Optional[Dict[str, Any]]:
+        """Backward-compatible Python alias for wiki_template_read."""
+        return self.wiki_template_read(slug)
 
     def create_wiki_template(
         self,
@@ -365,12 +387,22 @@ class WikiTools:
             tags=tags,
         )
 
+    # Canonical tool name aliases
+    wiki_note_create = create_wiki_note
+    wiki_note_read = read_wiki_note
+    wiki_note_update = update_wiki_note
+    wiki_note_archive = archive_wiki_note
+    wiki_note_organize = organize_wiki_note
+    wiki_note_search = search_wiki_notes
+    wiki_note_list = list_wiki_notes
+    wiki_note_append = append_wiki_note
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register all Wiki tools into the ScopedToolRegistry."""
         registry.register_tool(
             name="wiki_note_create",
             description=(
-                "Stage a new markdown note into 00_Inbox/ with structured YAML metadata. "
+                "Create, write, or save a new markdown note into the wiki (stages into 00_Inbox/ with structured YAML metadata). "
                 "One-Door Policy: all new notes land in 00_Inbox/ first for automatic verification, "
                 "fluff scrubbing, tag authority audit, and graduation to 01_Notes/."
             ),
@@ -436,7 +468,7 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_note_update",
-            description="Update the content or frontmatter of an existing Wiki note.",
+            description="Update the content or frontmatter of an existing Wiki note, optionally backing up prior version to 03_Archive/.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -446,10 +478,29 @@ class WikiTools:
                         "type": "object",
                         "description": "Dictionary of frontmatter fields to update",
                     },
+                    "backup_to_archive": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "If true, archives a copy of the existing note to 03_Archive/ before applying updates.",
+                    },
                 },
                 "required": ["relative_path"],
             },
             handler=self.update_wiki_note,
+        )
+
+        registry.register_tool(
+            name="wiki_note_archive",
+            description="Safely move a note to 03_Archive/ with timestamped preservation and updated archive metadata.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "relative_path": {"type": "string", "description": "Relative path to the note to archive"},
+                    "reason": {"type": "string", "default": "archived", "description": "Reason for archiving"},
+                },
+                "required": ["relative_path"],
+            },
+            handler=self.archive_wiki_note,
         )
 
         registry.register_tool(
@@ -543,16 +594,9 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_template_list",
-            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR).",
-            parameters={"type": "object", "properties": {}},
-            handler=self.list_wiki_templates,
-        )
-
-        registry.register_tool(
-            name="list_wiki_templates",
             description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR). Returns lightweight index metadata without full content.",
             parameters={"type": "object", "properties": {}},
-            handler=self.list_wiki_templates,
+            handler=self.wiki_template_list,
         )
 
         registry.register_tool(
@@ -568,23 +612,7 @@ class WikiTools:
                 },
                 "required": ["slug"],
             },
-            handler=self.get_wiki_template,
-        )
-
-        registry.register_tool(
-            name="get_wiki_template",
-            description=(
-                "Read the complete markdown skeleton and metadata of a specific structured note template by slug [CARD-353]. "
-                "Use this only when you need to inspect or fill out a specific template schema."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "slug": {"type": "string", "description": "Unique kebab-case slug of the template (e.g. 'feynman-technique', 'cooking-recipe')"},
-                },
-                "required": ["slug"],
-            },
-            handler=self.get_wiki_template,
+            handler=self.wiki_template_read,
         )
 
         registry.register_tool(

@@ -74,7 +74,7 @@ export function buildQuickScaffoldPayload({
     `[TOOL USAGE RULES]`,
     `Invoke tools atomically and check return status codes. Handle failures gracefully with actionable diagnostic messages.`,
     `Only claim tool results you actually received this turn. Listed tools are capabilities, not proof of execution.`,
-    `Never search the filesystem or use shell commands to hunt for Wiki vault files. Always use canonical wiki_* tools (list_wiki_templates, wiki_note_read, wiki_note_search, wiki_note_create).`,
+    `Never search the filesystem or use shell commands to hunt for Wiki vault files. Always use canonical wiki_* tools (wiki_template_list, wiki_note_read, wiki_note_search, wiki_note_create).`,
     ``,
     `[PROVENANCE & HONESTY]`,
     `Separate operator-visible facts (tool returns, job_id, wiki/repo reads) from inference.`,

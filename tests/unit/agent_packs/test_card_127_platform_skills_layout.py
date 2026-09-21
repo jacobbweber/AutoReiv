@@ -26,7 +26,10 @@ def _bootstrap(tmp_path):
 
 def test_platform_skill_ids_and_tools_defined():
     expected_skills = {
-        "wiki",
+        "wiki_tasks",
+        "wiki-knowledge",
+        "wiki-inbox",
+        "wiki-curation",
         "coordination",
         "proposals",
         "worker",
@@ -42,7 +45,7 @@ def test_platform_skill_ids_and_tools_defined():
 
 
 def test_tools_for_platform_skills_resolution():
-    tools = tools_for_platform_skills(["coordination", "wiki"])
+    tools = tools_for_platform_skills(["coordination", "wiki_tasks", "wiki-inbox"])
     assert "handoff_to_agent" in tools
     assert "lookup_agents" in tools
     assert "propose_followup" in tools
@@ -68,21 +71,25 @@ def test_autoreiv_pack_dedicated_and_platform_skills():
         "build-agent-pack",
         "platform-health",
         "session-inspect",
-        "tasks",
-        "wiki",
+        "wiki_tasks",
+        "wiki-knowledge",
+        "wiki-inbox",
+        "wiki-curation",
         "agent-authoring",
         "socratic-tutoring",
     }
     assert "build-agent-pack" in manifest.allowed_skill
     assert "platform-health" in manifest.allowed_skill
     assert "session-inspect" in manifest.allowed_skill
-    assert "tasks" in manifest.allowed_skill
-    assert "wiki" in manifest.allowed_skill
+    assert "wiki_tasks" in manifest.allowed_skill
+    assert "wiki-knowledge" in manifest.allowed_skill
+    assert "wiki-inbox" in manifest.allowed_skill
+    assert "wiki-curation" in manifest.allowed_skill
     assert "coordination" in manifest.allowed_skill
     assert "proposals" in manifest.allowed_skill
     assert "system_info" in manifest.pack_tool_names
     assert "inspect_system_health" in manifest.pack_tool_names
     assert "handoff_to_agent" in manifest.pack_tool_names
     assert "propose_skill" in manifest.pack_tool_names
-    assert "get_or_create_weekly_note" in manifest.pack_tool_names
     assert "wiki_note_create" in manifest.pack_tool_names
+    assert "get_or_create_weekly_note" not in manifest.pack_tool_names

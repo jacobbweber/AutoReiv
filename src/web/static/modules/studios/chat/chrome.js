@@ -105,13 +105,16 @@ export async function createNewSession(arg1 = {}, arg2 = {}) {
   }
 }
 
-export function toggleChatOptionsDrawer({
-  chatOptionsDrawer,
-  chatOptionsToggleBtn,
-  chatOptionsToggleIcon,
-  loadChatSessionContextFn = null,
-  open = undefined,
-} = {}) {
+export function toggleChatOptionsDrawer(openOrOptions = {}, maybeOptions = {}) {
+  const isExplicitBool = typeof openOrOptions === 'boolean';
+  const opts = isExplicitBool ? (maybeOptions || {}) : (openOrOptions || {});
+  const open = isExplicitBool ? openOrOptions : opts.open;
+  const {
+    chatOptionsDrawer,
+    chatOptionsToggleBtn,
+    chatOptionsToggleIcon,
+    loadChatSessionContextFn = null,
+  } = opts;
   if (!chatOptionsDrawer) return;
   const shouldOpen = typeof open === 'boolean' ? open : chatOptionsDrawer.classList.contains('hidden');
   chatOptionsDrawer.classList.toggle('hidden', !shouldOpen);
@@ -442,12 +445,13 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
       const isOpen = chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden');
       toggleChatOptionsDrawer(!isOpen, {
         chatOptionsDrawer,
+        chatOptionsToggleBtn,
         chatOptionsToggleIcon,
-        state,
-        chatContextTokensBadge,
-        chatContextProgressBar,
-        chatToolsCountBadge,
-        showToastFn: showToast,
+        loadChatSessionContextFn: () => loadChatSessionContext(state, {
+          chatContextTokensBadge,
+          chatContextProgressBar,
+          chatToolsCountBadge,
+        }),
       });
     });
   }
@@ -456,12 +460,8 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
     chatOptionsCloseBtn.addEventListener('click', () => {
       toggleChatOptionsDrawer(false, {
         chatOptionsDrawer,
+        chatOptionsToggleBtn,
         chatOptionsToggleIcon,
-        state,
-        chatContextTokensBadge,
-        chatContextProgressBar,
-        chatToolsCountBadge,
-        showToastFn: showToast,
       });
     });
   }

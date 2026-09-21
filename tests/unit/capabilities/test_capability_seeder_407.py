@@ -143,3 +143,61 @@ def test_seed_builtin_capabilities_populates_trusted_entries(repo):
     matched_ids = [m.id for m in result.matched]
     assert any("health" in mid for mid in matched_ids)
 
+
+def test_delete_entry_and_pruning(repo):
+    from src.domain.capabilities.models import CapabilityIndexEntry, RiskLevel
+
+    # 1. Test direct delete_entry
+    assert repo.delete_entry("non_existent_entry") is False
+
+    entry = CapabilityIndexEntry(
+        id="tool.legacy_tool",
+        kind=CapabilityKind.TOOL,
+        name="legacy_tool",
+        summary="A legacy tool to be pruned",
+        keywords=["legacy"],
+        roles=[],
+        trust_tier=TrustTier.TRUSTED,
+        risk_level=RiskLevel.LOW,
+        requires_hitl=False,
+        source="builtin",
+    )
+    repo.upsert_entry(entry)
+    assert repo.get_entry("tool.legacy_tool") is not None
+    assert repo.delete_entry("tool.legacy_tool") is True
+    assert repo.get_entry("tool.legacy_tool") is None
+
+    # 2. Test pruning during seed_builtin_capabilities
+    repo.upsert_entry(entry)  # Re-insert obsolete builtin entry
+
+    # Insert a retired tool entry
+    retired_entry = CapabilityIndexEntry(
+        id="tool.get_or_create_weekly_note",
+        kind=CapabilityKind.TOOL,
+        name="get_or_create_weekly_note",
+        summary="Old weekly note tool",
+        keywords=["weekly"],
+        roles=[],
+        trust_tier=TrustTier.TRUSTED,
+        risk_level=RiskLevel.LOW,
+        requires_hitl=False,
+        source="builtin",
+    )
+    repo.upsert_entry(retired_entry)
+
+    # Seed with active tool that is NOT the legacy or retired one
+    tool_reg = MagicMock()
+    tool_reg.list_tools.return_value = [
+        DummyToolDef("wiki_note_create", "Create note in wiki"),
+    ]
+    agent_reg = MagicMock()
+    agent_reg.list_agents.return_value = []
+
+    seed_builtin_capabilities(repo, tool_reg, agent_reg, None)
+
+    # Obsolete builtin and retired tool must be pruned
+    assert repo.get_entry("tool.legacy_tool") is None
+    assert repo.get_entry("tool.get_or_create_weekly_note") is None
+    # Active tool must exist
+    assert repo.get_entry("tool.wiki_note_create") is not None
+

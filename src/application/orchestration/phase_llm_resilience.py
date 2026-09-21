@@ -77,6 +77,7 @@ def load_repo_dotenv(start: Optional[Path] = None, override: bool = False) -> Op
 
 def resolve_standing_phase_llm_timeout() -> float:
     """Call-time timeout (seconds). Env wins; else module constant (monkeypatchable)."""
+    load_repo_dotenv()
     raw = os.environ.get("STANDING_PHASE_LLM_TIMEOUT_SECONDS")
     if raw not in (None, ""):
         try:
@@ -88,6 +89,7 @@ def resolve_standing_phase_llm_timeout() -> float:
 
 def resolve_standing_phase_llm_retries() -> int:
     """Call-time retry count (1-2 typical). Env wins; else module constant."""
+    load_repo_dotenv()
     raw = os.environ.get("STANDING_PHASE_LLM_RETRIES")
     if raw not in (None, ""):
         try:

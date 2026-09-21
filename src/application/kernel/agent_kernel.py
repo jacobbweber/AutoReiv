@@ -699,7 +699,7 @@ class AgentKernel:
 
         # Tasks, routines, jobs intent
         if re.search(r"\b(tasks?|routines?|jobs?|cron|schedule|scheduled)\b", text):
-            matched.append("tasks")
+            matched.append("wiki_tasks")
 
         # Coding, repository, files intent
         if re.search(

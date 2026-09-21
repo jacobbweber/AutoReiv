@@ -5,7 +5,7 @@ import mimetypes
 import re
 import uuid
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Sequence, Union
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -270,6 +270,42 @@ def format_json_deliverable_to_markdown(text: str) -> str:
         return "\n".join(sections).strip()
     except Exception:
         return text
+
+
+def deduplicate_phase_deliverables(
+    completed_deliverables: Sequence[str] | None,
+    final_content: str,
+) -> str:
+    """
+    Deduplicate multi-phase job deliverables to prevent chat stutter [CARD-409].
+    Only preserves earlier deliverables if they represent genuinely distinct, disjoint artifacts
+    not already represented in final_content.
+    """
+    clean_final = (final_content or "").strip()
+    if not completed_deliverables:
+        return clean_final
+    if not clean_final:
+        return "\n\n---\n\n".join(d.strip() for d in completed_deliverables if d.strip())
+
+    final_words = {w.lower() for w in re.findall(r"[A-Za-z0-9_]{3,}", clean_final)}
+    unique_priors: list[str] = []
+
+    for prior in completed_deliverables:
+        clean_prior = prior.strip()
+        if not clean_prior:
+            continue
+        prior_words = {w.lower() for w in re.findall(r"[A-Za-z0-9_]{3,}", clean_prior)}
+        if not prior_words:
+            continue
+        overlap = len(prior_words & final_words)
+        similarity = overlap / len(prior_words)
+        if similarity >= 0.35:
+            continue
+        unique_priors.append(clean_prior)
+
+    if unique_priors:
+        return "\n\n---\n\n".join(unique_priors) + f"\n\n---\n\n{clean_final}"
+    return clean_final
 
 
 def _sse(event: str, payload: Any) -> str:
@@ -1200,12 +1236,8 @@ async def execute_goal_job_phases(
         last_content = packet_text
 
     final_content = format_json_deliverable_to_markdown(last_content) if last_content else ""
-    # CARD-378 / REQ-CHAT-016: If earlier phases (e.g. Formulate) produced deliverables
-    # not in final_content, preserve them together.
-    if completed_deliverables and final_content:
-        filtered_priors = [d for d in completed_deliverables if d.strip() != final_content.strip()]
-        if filtered_priors:
-            final_content = "\n\n---\n\n".join(filtered_priors) + f"\n\n---\n\n{final_content}"
+    # CARD-378 / CARD-409: Preserve distinct earlier deliverables without repeating or stuttering
+    final_content = deduplicate_phase_deliverables(completed_deliverables, final_content)
     # CARD-260 / REQ-WIKITHIN-002: never claim a Wiki path that was not tool-provenanced
     # or present in this Job's vault grounding hit/read allow-list (RAG).
     if final_content and is_wiki_related_ask(getattr(job, "goal", None) or ""):

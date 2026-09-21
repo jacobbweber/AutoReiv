@@ -39,7 +39,10 @@ def test_wiki_pack_retains_wiki_curation_ownership():
     data = json.loads(autoreiv_pack_path.read_text(encoding="utf-8"))
 
     skill_ids = {s.get("id") for s in data.get("skills", [])}
-    assert "wiki" in skill_ids
+    assert "wiki-curation" in skill_ids
+    assert "wiki-knowledge" in skill_ids
+    assert "wiki_tasks" in skill_ids
+    assert "wiki" not in skill_ids
 
     pack_tools = set(data.get("pack_tool_names", []))
     assert "wiki_note_create" in pack_tools

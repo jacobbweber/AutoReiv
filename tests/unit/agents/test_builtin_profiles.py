@@ -48,8 +48,10 @@ def test_autoreiv_profile_definition():
     assert "proposals" in agent.allowed_skill
     assert "platform-health" in agent.allowed_skill
     assert "session-inspect" in agent.allowed_skill
-    assert "wiki" in agent.allowed_skill
-    assert "tasks" in agent.allowed_skill
+    assert "wiki_tasks" in agent.allowed_skill
+    assert "wiki-knowledge" in agent.allowed_skill
+    assert "wiki-inbox" in agent.allowed_skill
+    assert "wiki-curation" in agent.allowed_skill
     assert "coordination" in agent.allowed_skill
     assert "save_agent_specification" not in agent.allowed_tool_names
     assert "propose_agent_specification" in agent.allowed_tool_names
@@ -63,11 +65,11 @@ def test_autoreiv_profile_definition():
     assert "cli_exec" not in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
-    assert "get_or_create_weekly_note" in agent.allowed_tool_names
-    assert "log_daily_work_item" in agent.allowed_tool_names
-    assert "complete_weekly_task" in agent.allowed_tool_names
-    assert "rollover_weekly_tasks" in agent.allowed_tool_names
-    assert "get_weekly_summary" in agent.allowed_tool_names
+    assert "get_or_create_weekly_note" not in agent.allowed_tool_names
+    assert "log_daily_work_item" not in agent.allowed_tool_names
+    assert "complete_weekly_task" not in agent.allowed_tool_names
+    assert "rollover_weekly_tasks" not in agent.allowed_tool_names
+    assert "get_weekly_summary" not in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "propose_followup" in agent.allowed_tool_names
     assert "list_user_skill_packs" in agent.allowed_tool_names

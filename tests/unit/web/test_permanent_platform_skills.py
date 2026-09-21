@@ -14,7 +14,10 @@ def test_platform_skills_permanence_in_catalog():
 
     # All core platform skill primitives must ALWAYS be present in Platform Skills & Tools
     expected_platform_skills = {
-        "wiki",
+        "wiki_tasks",
+        "wiki-knowledge",
+        "wiki-inbox",
+        "wiki-curation",
         "coordination",
         "proposals",
         "worker",
@@ -51,15 +54,15 @@ def test_pack_skills_payload_excludes_platform_skills():
         name="Test Agent",
         description="Test description",
         skills=[
-            PackSkill(id="wiki", tools=[]),
+            PackSkill(id="wiki_tasks", tools=[]),
             PackSkill(id="coordination", tools=[]),
             PackSkill(id="custom-domain-skill", tools=["custom_tool"]),
         ],
-        allowed_skill=["wiki", "coordination", "custom-domain-skill"],
+        allowed_skill=["wiki_tasks", "coordination", "custom-domain-skill"],
     )
     payload = _pack_skills_payload(manifest)
     returned_skill_ids = [s["id"] for s in payload.get("pack_skills", [])]
-    assert "wiki" not in returned_skill_ids
+    assert "wiki_tasks" not in returned_skill_ids
     assert "coordination" not in returned_skill_ids
     assert returned_skill_ids == ["custom-domain-skill"]
 

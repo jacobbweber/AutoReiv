@@ -18,6 +18,7 @@ class CapabilityCatalogStore(Protocol):
     def upsert_entry(self, entry: CapabilityIndexEntry) -> CapabilityIndexEntry: ...
 
     def get_entry(self, entry_id: str) -> Optional[CapabilityIndexEntry]: ...
+    def delete_entry(self, entry_id: str) -> bool: ...
 
     def list_entries(
         self,
@@ -31,11 +32,144 @@ class CapabilityCatalogStore(Protocol):
     def count_entries(self) -> int: ...
 
 
-_TOKEN_RE = re.compile(r"[a-z0-9_]+", re.IGNORECASE)
+ENGLISH_STOPWORDS = frozenset(
+    {
+        "a",
+        "about",
+        "above",
+        "after",
+        "again",
+        "against",
+        "all",
+        "am",
+        "an",
+        "and",
+        "any",
+        "are",
+        "as",
+        "at",
+        "be",
+        "because",
+        "been",
+        "before",
+        "being",
+        "below",
+        "between",
+        "both",
+        "but",
+        "by",
+        "can",
+        "cannot",
+        "could",
+        "did",
+        "do",
+        "does",
+        "doing",
+        "down",
+        "during",
+        "each",
+        "few",
+        "for",
+        "from",
+        "further",
+        "had",
+        "has",
+        "have",
+        "having",
+        "he",
+        "her",
+        "here",
+        "hers",
+        "herself",
+        "him",
+        "himself",
+        "his",
+        "how",
+        "i",
+        "if",
+        "in",
+        "into",
+        "is",
+        "it",
+        "its",
+        "itself",
+        "me",
+        "more",
+        "most",
+        "my",
+        "myself",
+        "no",
+        "nor",
+        "not",
+        "of",
+        "off",
+        "on",
+        "once",
+        "only",
+        "or",
+        "other",
+        "our",
+        "ours",
+        "ourselves",
+        "out",
+        "over",
+        "own",
+        "same",
+        "she",
+        "should",
+        "so",
+        "some",
+        "such",
+        "than",
+        "that",
+        "the",
+        "their",
+        "theirs",
+        "them",
+        "themselves",
+        "then",
+        "there",
+        "these",
+        "they",
+        "this",
+        "those",
+        "through",
+        "to",
+        "too",
+        "under",
+        "until",
+        "up",
+        "very",
+        "was",
+        "we",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "while",
+        "who",
+        "whom",
+        "why",
+        "with",
+        "would",
+        "you",
+        "your",
+        "yours",
+        "yourself",
+        "yourselves",
+    }
+)
+
+_TOKEN_RE = re.compile(r"[a-z0-9]+", re.IGNORECASE)
 
 
 def _tokenize(text: str) -> List[str]:
-    return [t.lower() for t in _TOKEN_RE.findall(text or "") if t]
+    toks = [t.lower() for t in _TOKEN_RE.findall(text or "") if t]
+    raw = (text or "").strip().lower()
+    if "_" in raw and raw not in toks:
+        toks.append(raw)
+    return toks
 
 
 @dataclass(frozen=True)
@@ -130,27 +264,42 @@ class CapabilityCatalogResolver:
                 if str(tier).lower() == TrustTier.TRUSTED.value:
                     filtered.append(entry)
             candidates = filtered
-        tokens = set(_tokenize(query))
+        raw_tokens = set(_tokenize(query))
+        tokens = {t for t in raw_tokens if t not in ENGLISH_STOPWORDS and len(t) > 1} or raw_tokens
         role_norm = (role or "").strip().lower() or None
 
-        scored: List[tuple[int, CapabilityIndexEntry]] = []
+        scored: List[tuple[int, int, CapabilityIndexEntry]] = []
         for entry in candidates:
             score = 0
-            kw = {str(x).lower() for x in (entry.keywords or [])}
+            kw = ({str(x).lower() for x in (entry.keywords or [])}) - ENGLISH_STOPWORDS
             roles = {str(x).lower() for x in (entry.roles or [])}
-            name_tokens = set(_tokenize(entry.name))
-            summary_tokens = set(_tokenize(entry.summary))
+            name_tokens = set(_tokenize(entry.name)) - ENGLISH_STOPWORDS
+            summary_tokens = set(_tokenize(entry.summary)) - ENGLISH_STOPWORDS
+            substantive_matches: set[str] = set()
             if tokens:
-                score += 3 * len(tokens & kw)
-                score += 2 * len(tokens & name_tokens)
-                score += len(tokens & summary_tokens)
+                matched_kw = tokens & kw
+                matched_name = tokens & name_tokens
+                matched_summary = tokens & summary_tokens
+
+                # Direct match in tool/agent name is primary intent indicator
+                score += 5 * len(matched_name)
+                # Specific keyword match
+                score += 3 * len(matched_kw)
+                # Summary match (substantive non-stopword tokens only)
+                score += 1 * len(matched_summary)
+
+                # Compound bonus: matching multiple distinct tokens across name/keywords
+                substantive_matches = matched_name | matched_kw
+                if len(substantive_matches) > 1:
+                    score += 4 * (len(substantive_matches) - 1)
+
             if role_norm and role_norm in roles:
                 score += 4
             if score > 0:
-                scored.append((score, entry))
+                scored.append((score, len(substantive_matches), entry))
 
-        scored.sort(key=lambda pair: (-pair[0], pair[1].name.lower(), pair[1].id))
-        matched = tuple(entry for _, entry in scored[:lim])
+        scored.sort(key=lambda pair: (-pair[0], -pair[1], pair[2].name.lower(), pair[2].id))
+        matched = tuple(entry for _, _, entry in scored[:lim])
         miss = len(matched) == 0
         facts = (
             f"capability_resolve: matched={len(matched)}/{total} subset_only=true trusted_only={str(bool(trusted_only)).lower()}",
