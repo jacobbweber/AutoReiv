@@ -175,4 +175,5 @@ Jacob (paraphrase): designing an agent is its own need; skills need their own sp
 ## Successor cards
 
 - [CARD-418](./CARD-418-skill-studio-extract-from-factory.md) — Skill Studio extract (slice 1).
-- Later (not scaffolded yet): Agent skill pills; developer mediation v1; Tools Studio v1.
+- [CARD-419](./CARD-419-agent-studio-skill-toggle-pills.md) — Agent Studio skill toggle pills (slice 2).
+- Later (not scaffolded yet): developer mediation v1; Tools Studio v1.
