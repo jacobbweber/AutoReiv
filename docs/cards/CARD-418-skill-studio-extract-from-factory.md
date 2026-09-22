@@ -15,10 +15,10 @@ labels:
 
 > **Status**: Ready  
 > **Created**: 2026-09-22  
-> **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Proposed** — Accept before **build**)  
+> **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted** — Accept before **build**)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:skills`  
 > **Parent planning**: [CARD-417](./CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md) (forks locked)  
-> **Depends on**: CARD-411 Done; ADR-0057 Accepted (or Jacob explicitly **build** with Proposed risk acknowledged)
+> **Depends on**: CARD-411 Done; ADR-0057 Accepted
 
 ---
 
@@ -27,7 +27,7 @@ labels:
 | Jacob reply | Meaning |
 |-------------|---------|
 | **`continue`** | Refine slice / AC — **no product code** |
-| **`build`** | Implement this card on `feat/card-418-*` from `qa` after ADR-0057 Accept (preferred) |
+| **`build`** | Implement this card on `feat/card-418-*` from `qa` after ADR-0057 Accepted |
 | **`merge to qa`** | After In Review + live test |
 
 ---

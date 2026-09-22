@@ -1,6 +1,7 @@
 # [ADR-0057] Three Studios and Developer-Mediated Authoring
 
-> **Status**: Proposed  
+> **Status**: Accepted
+> **Accepted**: 2026-09-22 (Jacob: Accept ADR-0057)
 > **Date**: 2026-09-22  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-417 planning; CARD-411 Option A live test  
@@ -40,7 +41,7 @@ This ADR records those decisions as platform policy so implementation cards stay
 
 ---
 
-## 4. Decision Outcome (Proposed — awaiting Accept)
+## 4. Decision Outcome (Accepted)
 
 ### 4.1 Studio topology
 
@@ -106,4 +107,4 @@ Factory’s three-column scaffolder is a **transitional** UI. Implementation ext
 
 ## 6. Accept / Reject
 
-Reply **Accept ADR-0057** or **Reject ADR-0057** (with reason). Until Accepted, CARD-418+ may be scaffolded Ready but must not **build** product code against this ADR as final policy.
+**Accepted** 2026-09-22 by Jacob. Implementation proceeds via thin cards starting at CARD-418 (Skill Studio extract); say **build CARD-418** to start product code.

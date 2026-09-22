@@ -18,7 +18,7 @@ labels:
 
 > **Status**: Ready (planning / decision — **no product code** until Jacob says **build** after forks are locked)
 > **Created**: 2026-09-22
-> **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Proposed** 2026-09-22; forks locked)
+> **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted** 2026-09-22; forks locked)
 > **Labels**: `type:architecture`, `type:planning`, `area:ux`, `area:studios`, `area:skills`, `area:agents`, `area:tools`
 > **Depends on**: CARD-411 Done (Option A Forge/Factory split + SQLite skill tool bindings on `qa` / `v0.40.0`)
 
