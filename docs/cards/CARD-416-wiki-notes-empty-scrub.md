@@ -1,7 +1,7 @@
 ---
 id: CARD-416
 title: "Wiki establish: scrub polluted 01_Notes taxonomy dirs; keep Notes empty"
-status: Ready
+status: Done
 created: 2026-09-21
 investigation: docs/design/CARD-416-wiki-notes-scrub-investigation.md
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-416] Wiki establish: scrub polluted 01_Notes taxonomy dirs; keep Notes empty
 
-> **Status**: Ready  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **Investigation**: [docs/design/CARD-416-wiki-notes-scrub-investigation.md](../../docs/design/CARD-416-wiki-notes-scrub-investigation.md)  
 > **Labels**: `type:bug`, `area:wiki`, `area:test`
@@ -56,11 +56,11 @@ Pre-CARD-406 `WikiStore.scaffold()` created exactly those five paths (and starte
 
 ## 2. Acceptance
 
-- [ ] Fresh scaffold: `01_Notes` has no children.
-- [ ] Vault with only the five empty seed paths: after scrub/scaffold, gone.
-- [ ] Non-empty operator notes under `01_Notes` are not deleted.
-- [ ] Settings “Create standard folder layout” does not recreate the five-pack.
-- [ ] Tests green; CHANGELOG Unreleased.
+- [x] Fresh scaffold: `01_Notes` has no children.
+- [x] Vault with only the five empty seed paths: after scrub/scaffold, gone.
+- [x] Non-empty operator notes under `01_Notes` are not deleted.
+- [x] Settings “Create standard folder layout” does not recreate the five-pack.
+- [x] Tests green; CHANGELOG Unreleased.
 
 ## 3. Out of scope
 

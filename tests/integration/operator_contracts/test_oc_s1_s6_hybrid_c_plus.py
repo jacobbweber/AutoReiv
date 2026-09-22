@@ -338,11 +338,16 @@ def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
     ok = enforce_wiki_path_for_boot()
     assert ok.status == "configured"
 
-    # create_app hard-fail path (fresh store without wiki)
+    # create_app hard-fail path: isolated data root so peek cannot inherit local wiki_path
+    docker_ud = (tmp_path / "docker-ud").resolve()
+    docker_ud.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(docker_ud))
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
     monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "docker")
-    db2 = user_data / "database" / "docker_fail.db"
+    db2 = docker_ud / "database" / "docker_fail.db"
+    db2.parent.mkdir(parents=True, exist_ok=True)
     store2 = SQLiteStateStore(db_path=str(db2))
     store2.initialize_db()
     with pytest.raises(WikiPathConfigurationError):
         create_app(state_store=store2)
+

@@ -29,6 +29,18 @@ _WORD_PATTERN = re.compile(r"[a-zA-Z0-9_]{3,}")
 _SLUG_CLEAN_PATTERN = re.compile(r"[^a-zA-Z0-9_]+")
 
 
+
+# Pre-CARD-406 scaffold seeded these empty taxonomy dirs under 01_Notes.
+# CARD-416 scrubs them when empty; never reintroduce via mkdir lists.
+_EMPTY_SEED_TAXONOMY_REL_PATHS: tuple[str, ...] = (
+    "computer_science/artificial_intelligence",
+    "general/notes",
+    "operations/diagnostics",
+    "operations/worklog",
+    "systems_engineering/observability",
+)
+
+
 def slugify(text: str) -> str:
     """Convert text to clean snake_case filename slug."""
     s = text.strip().lower()
@@ -520,6 +532,9 @@ class WikiStore:
         ]
         for d in directories:
             d.mkdir(parents=True, exist_ok=True)
+        # Do not mkdir domain/topic trees under 01_Notes (CARD-406/416).
+        # Scrub leftover empty pre-CARD-406 seed taxonomy on every scaffold.
+        self.scrub_empty_seed_taxonomy()
 
         # Check if legacy unnumbered directories exist, and auto-migrate them non-destructively
         if auto_migrate and any(
@@ -625,6 +640,44 @@ class WikiStore:
         should_seed = self.auto_seed if seed_starter is None else seed_starter
         if should_seed:
             self._seed_starter_notes_if_empty()
+
+
+
+    def scrub_empty_seed_taxonomy(self) -> List[str]:
+        """
+        Idempotently remove empty pre-CARD-406 seed taxonomy dirs under 01_Notes [CARD-416].
+
+        Only empty directories are removed (Path.rmdir). Non-empty note paths are never deleted.
+        Invoked from scaffold so establish / Settings confirm_scaffold cleans leftovers.
+        """
+        notes_root = self.root_dir / "01_Notes"
+        if not notes_root.is_dir():
+            return []
+
+        candidates: list[Path] = []
+        seen: set[Path] = set()
+        for rel in _EMPTY_SEED_TAXONOMY_REL_PATHS:
+            parts = Path(rel).parts
+            for depth in range(len(parts), 0, -1):
+                candidate = notes_root.joinpath(*parts[:depth])
+                if candidate not in seen:
+                    seen.add(candidate)
+                    candidates.append(candidate)
+
+        candidates.sort(key=lambda p: len(p.parts), reverse=True)
+        actions: List[str] = []
+        for candidate in candidates:
+            if not candidate.is_dir():
+                continue
+            try:
+                candidate.rmdir()
+            except OSError:
+                # Non-empty or busy — leave operator content alone.
+                continue
+            rel = candidate.relative_to(self.root_dir).as_posix()
+            actions.append(f"Removed empty seed taxonomy: {rel}")
+            log.info("CARD-416 scrubbed empty seed taxonomy path: %s", rel)
+        return actions
 
     def _seed_starter_notes_if_empty(self) -> None:
         """

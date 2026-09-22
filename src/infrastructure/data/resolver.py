@@ -158,11 +158,34 @@ class DataDirResolver:
 
 
     def _peek_setting_wiki_path(self) -> Optional[str]:
-        candidates = (
-            self.platform_default() / "database" / "autoreiv.db",
-            self.legacy_db_path(),
-        )
+        """Read wiki_path from the active data root DB when DATA_DIR is set.
+
+        Never fall through to platform_default AppData when AUTOREIV_DATA_DIR (or an
+        explicit setting_data_dir) isolates the root — that leak made Docker/unset
+        hard-fail tests and fresh temp roots inherit the live wiki path.
+        """
+        candidates: list[Path] = []
+        env_data = os.environ.get(ENV_DATA_DIR)
+        if env_data and str(env_data).strip():
+            candidates.append(Path(str(env_data).strip()).expanduser() / "database" / "autoreiv.db")
+        if self.setting_data_dir and str(self.setting_data_dir).strip():
+            candidates.append(Path(str(self.setting_data_dir).strip()).expanduser() / "database" / "autoreiv.db")
+        env_db = os.environ.get(ENV_DB_PATH)
+        if env_db and str(env_db).strip():
+            candidates.append(Path(str(env_db).strip()).expanduser())
+        if not candidates:
+            candidates.extend(
+                (
+                    self.platform_default() / "database" / "autoreiv.db",
+                    self.legacy_db_path(),
+                )
+            )
+        seen: set[str] = set()
         for db_path in candidates:
+            key = str(db_path).lower()
+            if key in seen:
+                continue
+            seen.add(key)
             value = _read_sqlite_setting(db_path, WIKI_PATH_SETTING_KEY)
             if isinstance(value, str) and value.strip():
                 return value.strip()
