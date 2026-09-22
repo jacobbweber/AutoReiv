@@ -36,6 +36,8 @@ def operator_client(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(user_data))
     monkeypatch.setenv("AUTOREIV_DB_PATH", str(db))
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(wiki))
+    # Isolate from process-level docker probes left by live tests
+    monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "local")
 
     store = SQLiteStateStore(db_path=str(db))
     store.initialize_db()
