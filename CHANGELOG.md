@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- **CARD-414 / ADR-0056 Hybrid C+ cutover (vertical slice)**: SQLite sole writer for agent profiles + tool/skill bindings with `user_modified` + seed hash/version provenance; platform pack sync is hash-gated and never prunes operator skill dirs or re-adds removed tools when `user_modified`; `pack.json` treated as export projection. Wiki: local explicit path (no suggestion) via Settings + `/api/settings/wiki-path`; Docker/daemon hard-fail start when `AUTOREIV_WIKI_PATH` unset/unreadable (`AUTOREIV_DEPLOY_MODE=docker|daemon`). Backup writes `backup-manifest.json` (DBs, wiki URI, digests, packs, provenance). Compose requires wiki env+volume. Operator contracts OC-S1..S6 under `tests/integration/operator_contracts/`.
+
 - ADR-0056 **Accepted** (Hybrid C+ durable runtime registry) and CARD-414 Ready implementation scaffold (`docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md`, `docs/cards/CARD-414-implement-hybrid-c-plus-durable-runtime-registry-and-deployment-mode-wiki.md`, `docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md` [CARD-413]/CARD-414]): Docker/daemon hard-fail if wiki missing; local explicit wiki path with no suggestion; CARD-411 remains deferred.
 
 - ADR-0056 Proposed: Docker/daemon hard-fail start when wiki path/volume missing (docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md [CARD-413]).
