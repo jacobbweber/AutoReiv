@@ -99,9 +99,10 @@ describe('CARD-118 one Agent Studio', () => {
     expect(html).not.toContain('Workflow Studio');
     expect(html).toContain('Agent Studio');
         expect(html).toContain('studioRunbookBody');
-    expect(html).toContain('studioNewRunbookBtn');
-    expect(html).toContain('studioRunbookArchiveBtn');
-    expect(html).toContain('studioRunbookDeleteBtn');
+    expect(html).toContain('studioRunbookOpenFactoryBtn');
+    expect(html).not.toContain('studioNewRunbookBtn');
+    expect(html).not.toContain('studioRunbookArchiveBtn');
+    expect(html).not.toContain('studioRunbookDeleteBtn');
     expect(html).not.toContain('studioWorkflowsList');
     expect(html).not.toContain('No workflows yet.');
     expect(html).not.toContain('Workflow Studio');
@@ -118,11 +119,13 @@ describe('CARD-118 one Agent Studio', () => {
     expect(app).not.toContain('Hermes');
   });
 
-  it('Agent Studio can open and edit a runbook body', () => {
+  it('Agent Studio inspects a runbook and opens Factory instead of saving it [CARD-411]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('studio-runbook-open-btn');
     expect(forgeJs).toContain('/api/skills/user-packs');
-    expect(forgeJs).toContain('studioRunbookSaveBtn');
+    expect(forgeJs).toContain('studioRunbookOpenFactoryBtn');
+    expect(forgeJs).not.toContain('studioRunbookSaveBtn');
+    expect(forgeJs).not.toContain("method: 'PUT'");
     expect(forgeJs).not.toContain('Failed to load Agent Forge');
     expect(forgeJs).not.toContain('Agent Forge Studio');
     expect(forgeJs).not.toContain('Hermes');

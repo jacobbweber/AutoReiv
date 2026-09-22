@@ -1,11 +1,12 @@
 /**
- * Agent Studio: Runbook Editor, Skills Hierarchy & Capability Linter Submodule [CARD-127, CARD-167, CARD-200, CARD-350, CARD-389, CARD-390, CARD-398]
- * Manages runbook authoring, markdown editing, character budget monitoring,
- * ADR-0054 capability contract validation, and Platform/Pack skill hierarchy rendering.
+ * Agent Studio: Read-only runbook inspector & skill hierarchy [CARD-411].
+ * Inspects SKILL.md metadata. Authoring and tool bindings live in the Factory workshop.
+ * Keeps the character budget, ADR-0054 lint view, and Platform/Pack skill rows.
  */
 
 import { $, $queryAll, safeCreateIcons } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
+import { formatSafetyLabel } from '../../utils/skill_frontmatter.js';
 import { showToast } from '../../ui/toast.js';
 import { renderBaselineTools } from './tools.js';
 
@@ -79,7 +80,7 @@ export function skillRowHtml(skill, home, archived = false) {
           </div>
         </label>
         <div class="flex items-center space-x-1.5 shrink-0">
-          <button type="button" class="studio-runbook-open-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700 transition" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit Runbook</button>
+          <button type="button" class="studio-runbook-open-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700 transition" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Inspect</button>
         </div>
       </div>
       ${toolsChipsHtml}
@@ -123,19 +124,30 @@ export function bindSkillRowHandlers(root, { onOpenRunbook = null } = {}) {
 }
 
 export function setRunbookActionVisibility() {
-  const studioRunbookArchiveBtn = $('studioRunbookArchiveBtn');
-  const studioRunbookUnarchiveBtn = $('studioRunbookUnarchiveBtn');
-  const studioRunbookDeleteBtn = $('studioRunbookDeleteBtn');
-  const has = Boolean(activeRunbookId);
-  if (studioRunbookArchiveBtn) {
-    studioRunbookArchiveBtn.classList.toggle('hidden', !has || activeRunbookArchived);
+  const studioRunbookOpenFactoryBtn = $('studioRunbookOpenFactoryBtn');
+  if (studioRunbookOpenFactoryBtn) {
+    studioRunbookOpenFactoryBtn.classList.toggle('hidden', !activeRunbookId);
   }
-  if (studioRunbookUnarchiveBtn) {
-    studioRunbookUnarchiveBtn.classList.toggle('hidden', !has || !activeRunbookArchived);
+}
+
+function renderInspectorTools(toolIds) {
+  const studioRunbookTools = $('studioRunbookTools');
+  if (!studioRunbookTools) return;
+  const ids = Array.isArray(toolIds) ? toolIds.filter(Boolean) : [];
+  if (!ids.length) {
+    studioRunbookTools.innerHTML = '<span class="text-[10px] text-slate-500 italic">No required tools</span>';
+    return;
   }
-  if (studioRunbookDeleteBtn) {
-    studioRunbookDeleteBtn.classList.toggle('hidden', !has);
-  }
+  studioRunbookTools.innerHTML = ids.map((toolId) => (
+    `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-950 text-slate-300 border border-slate-800">${escapeHtml(toolId)}</span>`
+  )).join('');
+}
+
+function lockRunbookFields() {
+  ['studioRunbookName', 'studioRunbookBlurb', 'studioRunbookTier', 'studioRunbookSafety', 'studioRunbookBody'].forEach((id) => {
+    const el = $(id);
+    if (el) el.readOnly = true;
+  });
 }
 
 export function updateRunbookCharCount() {
@@ -276,6 +288,11 @@ export function hideRunbookEditor() {
   if (studioRunbookBlurb) studioRunbookBlurb.value = '';
   if (studioRunbookBody) studioRunbookBody.value = '';
   if (studioRunbookPath) studioRunbookPath.textContent = '';
+  const studioRunbookTier = $('studioRunbookTier');
+  const studioRunbookSafety = $('studioRunbookSafety');
+  if (studioRunbookTier) studioRunbookTier.value = '';
+  if (studioRunbookSafety) studioRunbookSafety.value = '';
+  renderInspectorTools([]);
   clearRunbookLintStatus();
   updateRunbookCharCount();
   setRunbookActionVisibility();
@@ -289,10 +306,17 @@ export function applyRunbook(data, archivedHint, targetRow = null) {
   const studioRunbookPath = $('studioRunbookPath');
 
   const manifest = data.manifest || {};
+  const frontmatter = data.frontmatter || {};
   activeRunbookId = manifest.id || activeRunbookId;
   activeRunbookArchived = Boolean(archivedHint || data.archived || manifest.origin === 'archived');
-  if (studioRunbookName) studioRunbookName.value = manifest.name || data.name || '';
-  if (studioRunbookBlurb) studioRunbookBlurb.value = manifest.description || data.description || '';
+  lockRunbookFields();
+  if (studioRunbookName) studioRunbookName.value = frontmatter.name || manifest.name || data.name || '';
+  if (studioRunbookBlurb) studioRunbookBlurb.value = frontmatter.description || manifest.description || data.description || '';
+  const studioRunbookTier = $('studioRunbookTier');
+  const studioRunbookSafety = $('studioRunbookSafety');
+  if (studioRunbookTier) studioRunbookTier.value = frontmatter.tier || 'pack';
+  if (studioRunbookSafety) studioRunbookSafety.value = formatSafetyLabel(frontmatter.safety);
+  renderInspectorTools(frontmatter.requires_tools || []);
   const bodyContent = data.instructions || '';
   if (studioRunbookBody) {
     studioRunbookBody.value = bodyContent || CANONICAL_RUNBOOK_TEMPLATE;
@@ -421,21 +445,30 @@ export async function loadPlatformSkills({
 }
 
 /**
- * Sets up the runbook editor save, archive, unarchive, delete, validate, and input listeners.
+ * Sets up the read-only runbook inspector, Factory handoff, validate, and input listeners [CARD-411].
  */
 export function setupRunbookEditor({
-  onRefreshSkills = null,
+  getActiveAgentId = null,
+  openFactoryWorkshop = null,
 } = {}) {
   const studioRunbookCloseBtn = $('studioRunbookCloseBtn');
   const studioRunbookCancelBtn = $('studioRunbookCancelBtn');
-  const studioRunbookSaveBtn = $('studioRunbookSaveBtn');
-  const studioRunbookArchiveBtn = $('studioRunbookArchiveBtn');
-  const studioRunbookUnarchiveBtn = $('studioRunbookUnarchiveBtn');
-  const studioRunbookDeleteBtn = $('studioRunbookDeleteBtn');
   const studioRunbookValidateBtn = $('studioRunbookValidateBtn');
   const studioRunbookBody = $('studioRunbookBody');
-  const studioRunbookName = $('studioRunbookName');
-  const studioRunbookBlurb = $('studioRunbookBlurb');
+  const studioRunbookOpenFactoryBtn = $('studioRunbookOpenFactoryBtn');
+  const studioOpenFactoryBtn = $('studioOpenFactoryBtn');
+
+  function openFactory(agentId, skillId) {
+    if (typeof openFactoryWorkshop === 'function') {
+      openFactoryWorkshop(agentId || '', skillId || null);
+      return;
+    }
+    if (typeof window !== 'undefined' && typeof window.openFactoryWorkshopForSkill === 'function') {
+      window.openFactoryWorkshopForSkill({ agentId: agentId || '', skillId: skillId || null });
+      return;
+    }
+    showToast('Factory workshop is not ready yet', 'error');
+  }
 
   if (studioRunbookCloseBtn) {
     studioRunbookCloseBtn.addEventListener('click', () => hideRunbookEditor());
@@ -457,132 +490,21 @@ export function setupRunbookEditor({
     });
   }
 
-  if (studioRunbookSaveBtn) {
-    studioRunbookSaveBtn.addEventListener('click', async () => {
+  if (studioRunbookOpenFactoryBtn) {
+    studioRunbookOpenFactoryBtn.addEventListener('click', () => {
       if (!activeRunbookId) {
         showToast('Open a runbook first', 'error');
         return;
       }
-      const isValid = await validateActiveRunbook(true);
-      if (!isValid) {
-        if (!window.confirm('Runbook has validation errors or warnings. Save anyway?')) {
-          return;
-        }
-      }
-      try {
-        studioRunbookSaveBtn.disabled = true;
-        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: studioRunbookName ? studioRunbookName.value : '',
-            description: studioRunbookBlurb ? studioRunbookBlurb.value : '',
-            instructions: studioRunbookBody ? studioRunbookBody.value : '',
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast('Runbook saved', 'success');
-        if (typeof onRefreshSkills === 'function') {
-          await onRefreshSkills();
-        }
-        applyRunbook(data, false);
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookSaveBtn.disabled = false;
-      }
+      const agentId = typeof getActiveAgentId === 'function' ? (getActiveAgentId() || '') : '';
+      openFactory(agentId, activeRunbookId);
     });
   }
 
-  if (studioRunbookArchiveBtn) {
-    studioRunbookArchiveBtn.addEventListener('click', async () => {
-      if (!activeRunbookId) {
-        showToast('Open a runbook first', 'error');
-        return;
-      }
-      if (!window.confirm(`Archive runbook "${activeRunbookId}"? It leaves the live list and can be unarchived later.`)) {
-        return;
-      }
-      try {
-        studioRunbookArchiveBtn.disabled = true;
-        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/archive`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ confirm: true }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast(`Archived ${activeRunbookId}`, 'success');
-        hideRunbookEditor();
-        if (typeof onRefreshSkills === 'function') {
-          await onRefreshSkills();
-        }
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookArchiveBtn.disabled = false;
-      }
-    });
-  }
-
-  if (studioRunbookUnarchiveBtn) {
-    studioRunbookUnarchiveBtn.addEventListener('click', async () => {
-      if (!activeRunbookId) {
-        showToast('Open an archived runbook first', 'error');
-        return;
-      }
-      if (!window.confirm(`Unarchive runbook "${activeRunbookId}" and restore it to the live list?`)) {
-        return;
-      }
-      try {
-        studioRunbookUnarchiveBtn.disabled = true;
-        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/unarchive`, {
-          method: 'POST',
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast(`Unarchived ${activeRunbookId}`, 'success');
-        if (typeof onRefreshSkills === 'function') {
-          await onRefreshSkills();
-        }
-        await openRunbookEditor(activeRunbookId, false);
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookUnarchiveBtn.disabled = false;
-      }
-    });
-  }
-
-  if (studioRunbookDeleteBtn) {
-    studioRunbookDeleteBtn.addEventListener('click', async () => {
-      if (!activeRunbookId) {
-        showToast('Open a runbook first', 'error');
-        return;
-      }
-      if (!window.confirm(`Permanently delete runbook "${activeRunbookId}"? This removes the directory under skills/ and cannot be undone.`)) {
-        return;
-      }
-      try {
-        studioRunbookDeleteBtn.disabled = true;
-        const params = new URLSearchParams({ confirm: 'true' });
-        const res = await fetch(
-          `/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}?${params.toString()}`,
-          { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }) },
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        showToast(`Deleted ${activeRunbookId}`, 'success');
-        hideRunbookEditor();
-        if (typeof onRefreshSkills === 'function') {
-          await onRefreshSkills();
-        }
-      } catch (err) {
-        showToast(String(err.message || err), 'error');
-      } finally {
-        studioRunbookDeleteBtn.disabled = false;
-      }
+  if (studioOpenFactoryBtn) {
+    studioOpenFactoryBtn.addEventListener('click', () => {
+      const agentId = typeof getActiveAgentId === 'function' ? (getActiveAgentId() || '') : '';
+      openFactory(agentId, null);
     });
   }
 

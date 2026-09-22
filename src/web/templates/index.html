@@ -1410,11 +1410,11 @@
                   <!-- Platform skill rows with declared tool chips -->
                 </div>
                 <div class="flex flex-wrap items-center gap-2 pt-1">
-                  <input id="studioNewRunbookSlug" type="text" placeholder="new-runbook-slug" class="flex-1 sm:flex-none min-w-[120px] bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
-                  <button id="studioNewRunbookBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                    <span>New runbook</span>
+                  <button id="studioOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" data-testid="forge-open-factory">
+                    <i data-lucide="hammer" class="w-3.5 h-3.5"></i>
+                    <span>Author skill in Factory</span>
                   </button>
+                  <span class="text-[10px] text-slate-500">Skill runbooks and tool bindings are authored in the Agent Training Factory.</span>
                 </div>
               </div>
 
@@ -1523,43 +1523,52 @@
               </div>
             </div>
 
-            <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-[#141721]/60 border border-white/[0.08] space-y-3">
+            <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-[#141721]/60 border border-white/[0.08] space-y-3" data-mode="readonly">
               <div class="flex items-center justify-between pb-1 border-b border-white/[0.06]">
-                <span class="text-xs font-bold text-slate-200">Edit Skill Runbook</span>
-                <button id="studioRunbookCloseBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition" title="Close runbook editor">
+                <span class="text-xs font-bold text-slate-200">Skill runbook (read-only)</span>
+                <button id="studioRunbookCloseBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition" title="Close runbook inspector">
                   <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
               </div>
-              <p class="text-[11px] text-slate-400">Edit name, short blurb, and SKILL.md body. Do not hand-edit Python tool implementations.</p>
+              <p class="text-[11px] text-slate-400">Agent Studio shows identity and which skills this agent may run. Edit the runbook, frontmatter, and required tools in the Factory workshop.</p>
               <p id="studioRunbookPath" class="text-[10px] font-mono text-slate-500 truncate"></p>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div id="studioRunbookMeta" class="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="forge-runbook-meta">
                 <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Name</label>
-                  <input id="studioRunbookName" type="text" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="runbook name">
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookName">Name</label>
+                  <input id="studioRunbookName" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-medium cursor-default" placeholder="runbook name">
                 </div>
                 <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Short blurb</label>
-                  <input id="studioRunbookBlurb" type="text" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="frontmatter description">
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookBlurb">Description</label>
+                  <input id="studioRunbookBlurb" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 cursor-default" placeholder="frontmatter description">
+                </div>
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookTier">Tier</label>
+                  <input id="studioRunbookTier" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 font-mono cursor-default" data-testid="forge-runbook-tier">
+                </div>
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookSafety">Safety</label>
+                  <input id="studioRunbookSafety" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 cursor-default" data-testid="forge-runbook-safety">
                 </div>
               </div>
               <div>
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Required tools</span>
+                <div id="studioRunbookTools" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 rounded-lg bg-[#0d0f17] border border-white/[0.06]" data-testid="forge-runbook-tools"></div>
+              </div>
+              <div>
                 <div class="flex items-center justify-between mb-1">
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block">SKILL.md body</label>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block" for="studioRunbookBody">SKILL.md body</label>
                   <span id="studioRunbookCharCount" class="text-[10px] font-mono text-slate-500"></span>
                 </div>
-                <textarea id="studioRunbookBody" rows="10" class="w-full min-h-[12rem] bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="Playbook instructions."></textarea>
+                <textarea id="studioRunbookBody" rows="10" readonly class="w-full min-h-[12rem] bg-[#0d0f17] border border-white/[0.06] rounded-lg p-3 text-xs text-slate-300 font-mono leading-relaxed resize-y cursor-default" placeholder="Playbook instructions."></textarea>
               </div>
               <div id="studioRunbookLintStatus" class="hidden rounded-lg p-2.5 text-xs transition-all"></div>
               <div class="flex flex-wrap items-center gap-2">
-                <button id="studioRunbookSaveBtn" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">Save runbook</button>
+                <button id="studioRunbookOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold" data-testid="forge-runbook-open-factory">Open in Factory Workshop</button>
                 <button id="studioRunbookValidateBtn" type="button" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-brand-300 rounded-lg text-xs font-semibold border border-white/[0.08] flex items-center space-x-1.5">
                   <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
                   <span>Validate runbook</span>
                 </button>
                 <button id="studioRunbookCancelBtn" type="button" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold border border-white/[0.08]">Cancel</button>
-                <button id="studioRunbookArchiveBtn" type="button" class="hidden px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-amber-300 rounded-lg text-xs font-semibold border border-white/[0.08]">Archive</button>
-                <button id="studioRunbookUnarchiveBtn" type="button" class="hidden px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-brand-300 rounded-lg text-xs font-semibold border border-white/[0.08]">Unarchive</button>
-                <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
               </div>
             </div>
                 <details class="rounded-xl bg-[#0e1015]/70 border border-white/[0.06] shadow-sm" data-card="311" id="forgeTelemetryDetails" data-section="telemetry">
@@ -3756,30 +3765,46 @@
                 <label for="factoryAgentPromptInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Role Persona / System Instructions</label>
                 <textarea id="factoryAgentPromptInput" rows="6" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
               </div>
-            </div>
 
-            <!-- COLUMN 2: SKILLS & RUNBOOK (lg:col-span-5) -->
-            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
-              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-                <div class="flex items-center space-x-2">
-                  <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
-                  <h3 class="text-xs font-bold text-white uppercase tracking-wider">2. Skills &amp; Runbook</h3>
-                </div>
-                <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
-              </div>
-
-              <!-- Currently Assigned Skills Pills -->
-              <div class="space-y-1.5">
+              <!-- Assigned skills: agent↔skill scoping only (not the skill editor) [CARD-411 UX] -->
+              <div class="space-y-1.5 pt-1 border-t border-white/[0.04]" data-testid="factory-assigned-skills">
                 <div class="flex items-center justify-between">
                   <label class="text-[11px] font-semibold text-slate-400">Assigned Skills (Active on Agent)</label>
-                  <button type="button" id="factoryNewSkillFormBtn" class="text-[10px] text-brand-400 hover:text-brand-300 font-semibold flex items-center space-x-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>
-                    <span>New Skill Form</span>
-                  </button>
+                  <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
                 </div>
                 <div id="factoryCurrentSkillsList" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-[#08090c]/60 rounded-xl border border-white/[0.04]">
                   <span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>
                 </div>
+                <p class="text-[10px] text-slate-500">Pinned to this agent. Author or edit a runbook in column 2.</p>
+              </div>
+            </div>
+
+            <!-- COLUMN 2: SKILL WORKSHOP (lg:col-span-5) -->
+            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
+                  <h3 class="text-xs font-bold text-white uppercase tracking-wider">2. Skill Workshop</h3>
+                </div>
+                <span id="factoryWorkshopSkillBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300" data-testid="factory-workshop-badge">New skill</span>
+              </div>
+
+              <!-- Existing skill picker + New Skill [CARD-411 UX] -->
+              <div class="space-y-2" data-testid="factory-skill-picker-row">
+                <div class="flex flex-col sm:flex-row sm:items-end gap-2">
+                  <div class="flex-1 min-w-0 space-y-1.5">
+                    <label for="factoryExistingSkillSelect" class="block text-[11px] font-semibold text-slate-400">Existing skill</label>
+                    <input type="search" id="factoryExistingSkillFilter" placeholder="Filter skills by name or id..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" data-testid="factory-existing-skill-filter" autocomplete="off">
+                    <select id="factoryExistingSkillSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono" data-testid="factory-existing-skill">
+                      <option value="">— Select a skill to edit —</option>
+                    </select>
+                  </div>
+                  <button type="button" id="factoryNewSkillFormBtn" class="shrink-0 px-3 py-2 rounded-xl bg-brand-950/50 hover:bg-brand-900/60 border border-brand-500/30 text-brand-300 hover:text-white text-[11px] font-semibold flex items-center justify-center space-x-1.5 transition" data-testid="factory-new-skill">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>+ New Skill</span>
+                  </button>
+                </div>
+                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Column 1 shows which skills are pinned to the agent.</p>
               </div>
 
               <!-- Author Skill Form -->
@@ -3797,10 +3822,10 @@
 
                 <div>
                   <div class="flex items-center justify-between mb-1">
-                    <label for="factorySkillTriggerInput" class="text-[11px] font-semibold text-slate-400">Trigger Condition (Matt Pocock Standard &le; 60 chars)</label>
+                    <label for="factorySkillTriggerInput" class="text-[11px] font-semibold text-slate-400">Description (trigger, &le; 60 chars)</label>
                     <span id="factorySkillTriggerCharCount" class="text-[10px] font-mono text-slate-500">0/60</span>
                   </div>
-                  <input type="text" id="factorySkillTriggerInput" maxlength="60" placeholder="When to use this skill: e.g. Create, manipulate, or render 3D scenes in Blender" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                  <input type="text" id="factorySkillTriggerInput" data-testid="factory-skill-description" maxlength="60" placeholder="When to use this skill: e.g. Create, manipulate, or render 3D scenes in Blender" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
                 </div>
 
                 <div>
@@ -3809,6 +3834,50 @@
                   <input type="hidden" id="factoryIntakeIntentInput" value="">
                   <input type="hidden" id="factoryIntakeObjectivesInput" value="">
                   <input type="hidden" id="factoryIntakeDeliverableType" value="skill">
+                </div>
+
+                <div id="factorySkillMetaPanel" class="space-y-3 p-3 rounded-xl bg-[#08090c]/70 border border-white/[0.06]" data-testid="factory-skill-meta">
+                  <fieldset class="space-y-2.5">
+                    <legend class="text-[11px] font-semibold text-slate-400 mb-1">Safety</legend>
+                    <label class="flex flex-col gap-0.5 text-[11px] text-slate-300">
+                      <span class="inline-flex items-center gap-2 font-medium">
+                        <input id="factorySkillSafetyHitl" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="requires_hitl">
+                        Requires approval
+                      </span>
+                      <span class="text-[10px] text-slate-500 pl-6 leading-snug">Pause for human approval before sensitive work.</span>
+                    </label>
+                    <label class="flex flex-col gap-0.5 text-[11px] text-slate-300">
+                      <span class="inline-flex items-center gap-2 font-medium">
+                        <input id="factorySkillSafetyReadOnly" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="read_only">
+                        Read only
+                      </span>
+                      <span class="text-[10px] text-slate-500 pl-6 leading-snug">Declares this runbook should not change the host or data; lint/contract flag, not a hard kernel lock on every tool.</span>
+                    </label>
+                    <label class="flex flex-col gap-0.5 text-[11px] text-slate-300">
+                      <span class="inline-flex items-center gap-2 font-medium">
+                        <input id="factorySkillSafetyUntrusted" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="untrusted_input_allowed">
+                        Untrusted input
+                      </span>
+                      <span class="text-[10px] text-slate-500 pl-6 leading-snug">Allows ingesting untrusted external content; if on with mutating tools, Requires approval must also be on (linter enforces that).</span>
+                    </label>
+                  </fieldset>
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-[11px] font-semibold text-slate-400">Required tools</span>
+                      <span class="text-[10px] text-slate-500">Picker in column 3 writes <span class="font-mono">requires_tools</span></span>
+                    </div>
+                    <div id="factoryRequiredToolsChips" class="flex flex-wrap gap-1.5 min-h-[28px]" data-testid="factory-required-tools"></div>
+                  </div>
+                  <details class="rounded-lg border border-white/[0.04] bg-[#0e1015]/50 px-2.5 py-2" data-testid="factory-skill-tier-advanced">
+                    <summary class="text-[11px] text-slate-500 cursor-pointer select-none">Advanced: Tier (legacy taxonomy)</summary>
+                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Runtime scoping uses the assigned-skills list in column 1.</p>
+                    <label for="factorySkillTierSelect" class="sr-only">Tier</label>
+                    <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                      <option value="pack">pack</option>
+                      <option value="platform">platform</option>
+                      <option value="user">user</option>
+                    </select>
+                  </details>
                 </div>
 
                 <!-- Live SKILL.md Editor -->

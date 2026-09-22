@@ -571,3 +571,26 @@ CREATE INDEX IF NOT EXISTS idx_standing_journey_job ON standing_journey_events(j
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + STANDING_JOURNEY_EVENTS_SQL
+
+# CARD-411 / ADR-0056: skill→tool bindings. SQLite is the sole writer.
+SKILL_TOOL_BINDINGS_SQL = """
+CREATE TABLE IF NOT EXISTS skill_binding_meta (
+    skill_id TEXT PRIMARY KEY,
+    tier TEXT NOT NULL DEFAULT 'pack',
+    safety_json TEXT NOT NULL DEFAULT '{}',
+    user_modified INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS skill_tool_bindings (
+    skill_id TEXT NOT NULL,
+    tool_id TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (skill_id, tool_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_skill_tool_bindings_tool ON skill_tool_bindings(tool_id);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SKILL_TOOL_BINDINGS_SQL

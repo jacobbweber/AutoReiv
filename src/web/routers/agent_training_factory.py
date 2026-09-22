@@ -65,6 +65,11 @@ class SaveScaffoldRequest(BaseModel):
     skill_id: str
     skill_content: str
     auto_pin: bool = True
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tier: Optional[str] = None
+    safety: Optional[Dict[str, Any]] = None
+    requires_tools: Optional[List[str]] = None
 
 
 
@@ -1011,24 +1016,35 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     agent_dir = packs_dir / clean_agent_id
     agent_dir.mkdir(parents=True, exist_ok=True)
 
-    skills_dir = agent_dir / "skills" / clean_skill_id
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    skill_file = skills_dir / "SKILL.md"
-    skill_file.write_text(req.skill_content.strip() + "\n", encoding="utf-8")
+    from src.application.skills.runbook_frontmatter import InvalidSkillTierError, UnknownCatalogToolError
+    from src.application.skills.workshop import catalog_tool_ids, persist_workshop_skill
 
-    extracted_tools: List[str] = []
+    tool_registry = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
+    store = getattr(request.app.state, "store", None)
+    db_path = getattr(store, "db_path", None)
     try:
-        if req.skill_content.strip().startswith("---"):
-            parts = req.skill_content.split("---", 2)
-            if len(parts) >= 3:
-                import yaml
-                meta = yaml.safe_load(parts[1]) or {}
-                if isinstance(meta, dict):
-                    t = meta.get("requires_tools") or meta.get("tools") or []
-                    if isinstance(t, list):
-                        extracted_tools = [str(x).strip() for x in t if str(x).strip()]
-    except Exception:
-        extracted_tools = []
+        persisted = persist_workshop_skill(
+            data_root=data_root,
+            agent_id=clean_agent_id,
+            skill_id=clean_skill_id,
+            skill_content=req.skill_content,
+            catalog_ids=catalog_tool_ids(tool_registry),
+            name=req.name,
+            description=req.description,
+            tier=req.tier,
+            safety=req.safety,
+            requires_tools=req.requires_tools,
+            db_path=str(db_path) if db_path else None,
+        )
+    except UnknownCatalogToolError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except InvalidSkillTierError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    skill_file = Path(persisted["pack_skill_path"])
+    display_name = (persisted.get("frontmatter") or {}).get("name") or clean_skill_id.replace("-", " ").replace("_", " ").title()
 
     pack_json_file = agent_dir / "pack.json"
     if pack_json_file.is_file():
@@ -1065,14 +1081,14 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
 
     skills_list = list(pack_data.get("skills") or [])
     existing_skill_entry = next((s for s in skills_list if isinstance(s, dict) and s.get("id") == clean_skill_id), None)
+    # Identity only. Tool bindings are operational SQLite, not pack.json [CARD-411].
     if existing_skill_entry:
-        if extracted_tools:
-            existing_skill_entry["tools"] = list(set(existing_skill_entry.get("tools", []) + extracted_tools))
+        existing_skill_entry.pop("tools", None)
+        existing_skill_entry["name"] = display_name
     else:
         skills_list.append({
             "id": clean_skill_id,
-            "name": clean_skill_id.replace("-", " ").replace("_", " ").title(),
-            "tools": extracted_tools,
+            "name": display_name,
         })
     pack_data["skills"] = skills_list
 
@@ -1093,13 +1109,63 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
                 prof.model = req.model
             if registry.state_store:
                 registry.state_store.save_agent_profile(prof)
+                if req.auto_pin and hasattr(registry.state_store, "mark_agent_user_modified"):
+                    registry.state_store.mark_agent_user_modified(clean_agent_id, modified=True)
 
     return {
         "success": True,
         "agent_id": clean_agent_id,
         "skill_id": clean_skill_id,
         "skill_path": str(skill_file),
+        "skill_store_path": persisted["skill_store_path"],
         "pinned": req.auto_pin,
+        "requires_tools": persisted["requires_tools"],
+        "tier": persisted["tier"],
+        "safety": persisted["safety"],
+        "binding_store": "sqlite",
+        "markdown_content": persisted["markdown"],
     }
+
+
+@router.get("/skills")
+async def list_workshop_skills_route(request: Request) -> Dict[str, Any]:
+    """Skills the Factory picker can open. Every id resolves through the workshop loader [CARD-411]."""
+    from src.application.skills.workshop import list_workshop_skills
+
+    return {"skills": list_workshop_skills(_workshop_data_root(request))}
+
+
+@router.get("/skills/{skill_id:path}")
+async def get_workshop_skill(skill_id: str, request: Request, agent_id: Optional[str] = None) -> Dict[str, Any]:
+    """Load one skill into the Factory workshop (frontmatter + SQLite bindings) [CARD-411]."""
+    from src.application.skills.workshop import accept_skill_id, load_workshop_skill
+
+    clean_skill_id = accept_skill_id(skill_id or "")
+    if not clean_skill_id:
+        raise HTTPException(status_code=400, detail="Invalid skill_id")
+    clean_agent = accept_skill_id(agent_id or "") if agent_id else None
+    if clean_agent and "/" in clean_agent:
+        clean_agent = None
+    store = getattr(request.app.state, "store", None)
+    db_path = getattr(store, "db_path", None)
+    loaded = load_workshop_skill(
+        _workshop_data_root(request),
+        clean_skill_id,
+        agent_id=clean_agent,
+        db_path=str(db_path) if db_path else None,
+    )
+    if loaded is None:
+        raise HTTPException(status_code=404, detail=f"Skill '{clean_skill_id}' not found")
+    return loaded
+
+
+def _workshop_data_root(request: Request):
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    root = getattr(paths, "root", None) if paths is not None else None
+    if root:
+        return Path(root)
+    from src.infrastructure.data.resolver import DataDirResolver
+
+    return DataDirResolver().resolve().root
 
 

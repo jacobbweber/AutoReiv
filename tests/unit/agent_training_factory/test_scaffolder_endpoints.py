@@ -117,6 +117,12 @@ async def test_scaffold_save_and_pin_skill(tmp_path, monkeypatch):
 
     store = SQLiteStateStore(db_path=str(db_path))
     app = create_app(state_store=store)
+    app.state.tool_registry.register_tool(
+        "mcp_blender_render",
+        "Render via Blender",
+        {"type": "object", "properties": {}},
+        lambda **_kwargs: "ok",
+    )
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
