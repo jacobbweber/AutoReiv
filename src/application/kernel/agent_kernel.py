@@ -1454,7 +1454,11 @@ class AgentKernel:
                 done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if done_ev:
                     yield done_ev
-                assistant_msg = ChatMessage(role=Role.ASSISTANT, content=full_content)
+                assistant_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content=full_content,
+                    reasoning=full_reasoning,
+                )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=full_content, is_finished=True)
@@ -1476,11 +1480,12 @@ class AgentKernel:
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
 
-            # Save assistant message with tool calls
+            # Save assistant message with tool calls (+ reasoning for Thinking drawer [CARD-415])
             assistant_msg = ChatMessage(
                 role=Role.ASSISTANT,
                 content=full_content,
                 tool_calls=collected_tool_calls,
+                reasoning=full_reasoning,
             )
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
@@ -1599,6 +1604,7 @@ class AgentKernel:
 
                 yield KernelEvent(
                     event_type=KernelEventType.TOOL_END,
+                    tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                     tool_result=tool_res,
                 )
 

@@ -32,6 +32,10 @@ class ChatMessage(BaseModel):
     tool_call_id: Optional[str] = Field(default=None, description="Matching call ID if role is tool")
     name: Optional[str] = Field(default=None, description="Optional name of author or tool")
     images: Optional[List[Dict[str, Any]]] = Field(default=None, description="Optional multimodal image attachments")
+    reasoning: Optional[str] = Field(
+        default=None,
+        description="Optional chain-of-thought / Thinking Process text for assistant turns [CARD-415]",
+    )
 
 
 class ToolDefinition(BaseModel):

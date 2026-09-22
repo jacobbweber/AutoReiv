@@ -225,8 +225,8 @@ class SessionRepositoryMixin:
 
             cur.execute(
                 """
-                INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, sequence_num, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, reasoning, sequence_num, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     msg_id,
@@ -237,6 +237,7 @@ class SessionRepositoryMixin:
                     tool_calls_json,
                     message.tool_call_id,
                     message.name,
+                    getattr(message, "reasoning", None),
                     next_seq,
                     now.isoformat(),
                 ),
@@ -266,7 +267,10 @@ class SessionRepositoryMixin:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT id, role, content, tool_calls_json, tool_call_id, name FROM messages WHERE id = ?", (message_id,))
+            cur.execute(
+                "SELECT id, role, content, tool_calls_json, tool_call_id, name, reasoning FROM messages WHERE id = ?",
+                (message_id,),
+            )
             row = cur.fetchone()
             if not row:
                 return None
@@ -276,6 +280,11 @@ class SessionRepositoryMixin:
                     tool_calls = [ToolCall(**tc) for tc in json.loads(row["tool_calls_json"])]
                 except Exception:
                     tool_calls = None
+            reasoning = None
+            try:
+                reasoning = row["reasoning"]
+            except (KeyError, IndexError):
+                reasoning = None
             return ChatMessage(
                 id=row["id"],
                 role=Role(row["role"]),
@@ -283,6 +292,7 @@ class SessionRepositoryMixin:
                 tool_calls=tool_calls,
                 tool_call_id=row["tool_call_id"],
                 name=row["name"],
+                reasoning=reasoning,
             )
         finally:
             if self._mem_conn is None:
@@ -291,7 +301,7 @@ class SessionRepositoryMixin:
 
     def get_messages(self, session_id: str, limit: Optional[int] = None) -> List[ChatMessage]:
         query = """
-            SELECT id, role, content, tool_calls_json, tool_call_id, name
+            SELECT id, role, content, tool_calls_json, tool_call_id, name, reasoning
             FROM messages
             WHERE session_id = ?
             ORDER BY sequence_num ASC
@@ -317,6 +327,11 @@ class SessionRepositoryMixin:
                     except Exception:
                         tool_calls = None
 
+                reasoning = None
+                try:
+                    reasoning = r["reasoning"]
+                except (KeyError, IndexError):
+                    reasoning = None
                 messages.append(
                     ChatMessage(
                         id=r["id"],
@@ -325,6 +340,7 @@ class SessionRepositoryMixin:
                         tool_calls=tool_calls,
                         tool_call_id=r["tool_call_id"],
                         name=r["name"],
+                        reasoning=reasoning,
                     )
                 )
             return messages
@@ -346,8 +362,8 @@ class SessionRepositoryMixin:
                     tool_calls_json = json.dumps([tc.model_dump() for tc in msg.tool_calls])
                 cur.execute(
                     """
-                    INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, sequence_num, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, reasoning, sequence_num, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         msg_id,
@@ -358,6 +374,7 @@ class SessionRepositoryMixin:
                         tool_calls_json,
                         msg.tool_call_id,
                         msg.name,
+                        getattr(msg, "reasoning", None),
                         idx,
                         now.isoformat(),
                     ),

@@ -1,7 +1,7 @@
 ---
 id: CARD-415
 title: "Chat Studio transcript durability: live equals refresh (activity, actions, Save to Wiki)"
-status: Ready
+status: Done
 created: 2026-09-21
 investigation: docs/design/CARD-415-chat-studio-durability-investigation.md
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-415] Chat Studio transcript durability: live equals refresh (activity, actions, Save to Wiki)
 
-> **Status**: Ready  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **Investigation**: [docs/design/CARD-415-chat-studio-durability-investigation.md](../../docs/design/CARD-415-chat-studio-durability-investigation.md)  
 > **Labels**: `type:bug`, `area:chat`, `area:wiki`, `area:frontend`
@@ -64,12 +64,12 @@ Two incompatible paths:
 
 ## 2. Acceptance
 
-- [ ] After a turn with thinking + at least one tool, **without refresh**: Thinking/tool activity visible; assistant has Copy, Save to Wiki, Teach Agent, Workbench.
-- [ ] Hard refresh same session: same activity + same actions.
-- [ ] Reopen next day: same.
-- [ ] Header Save to Wiki creates an Inbox note containing the full thread.
-- [ ] Per-message Save to Wiki works on live and after hydrate.
-- [ ] Reasoning round-trip covered by test; frontend parity covered; CHANGELOG Unreleased.
+- [x] After a turn with thinking + at least one tool, **without refresh**: Thinking/tool activity visible; assistant has Copy, Save to Wiki, Teach Agent, Workbench.
+- [x] Hard refresh same session: same activity + same actions.
+- [x] Reopen next day: same.
+- [x] Header Save to Wiki creates an Inbox note containing the full thread.
+- [x] Per-message Save to Wiki works on live and after hydrate.
+- [x] Reasoning round-trip covered by test; frontend parity covered; CHANGELOG Unreleased.
 
 ## 3. Out of scope
 
@@ -85,3 +85,27 @@ Two incompatible paths:
 ## 5. Branching
 
 `feat/card-415-chat-studio-transcript-durability` from `qa` after CARD-414 lands (or from `qa` if 414 already merged). Prefer landing 414 first to avoid stacking wiki UX diffs.
+
+## 6. Executor proof (CARD-415)
+
+### Branch
+`feat/card-415-chat-studio-transcript-durability` from `qa` @ `19c1103e`
+
+### Gaps fixed
+1. Assistant `reasoning` now persists (domain → SQLite → GET messages → Thinking drawer on hydrate).
+2. Live stream bubble promotes via post-turn `loadMessages` so action buttons always match refresh.
+3. Header Save to Wiki wired through `exportSessionToWiki` (full `messages[]` thread to Inbox).
+4. Per-message Save to Wiki callback passed into `loadMessages` / hydrate render.
+5. Tool activity aligned by re-fetching durable `role=tool` rows after turn.
+
+### Tests
+- `tests/unit/memory/test_card415_reasoning_round_trip.py`
+- `tests/unit/frontend/chat_transcript_durability_415.test.js`
+- `tests/unit/frontend/wiki_session_export_415.test.js`
+
+### Live-test checklist (Jacob)
+1. Send a Chat Studio turn that emits thinking + at least one tool.
+2. **Without refresh**: Thinking drawer + tool rows visible; assistant has Copy, Save to Wiki, Teach Agent, Workbench.
+3. Hard refresh same session — same activity + same actions.
+4. Header **Save to Wiki** → Inbox note contains full thread.
+5. Per-message Save to Wiki works live and after refresh.

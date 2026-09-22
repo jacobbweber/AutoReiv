@@ -662,6 +662,7 @@ export function initChatStudio(state, callbacks = {}) {
         openWorkbenchFn: openWorkbench,
         onRefreshWorkbench: refreshWorkbenchArtifactCount,
         onTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
+        exportMessageToWikiFn: callbacks.exportMessageToWiki || null,
         maybeAutoscrollMessagesFn: maybeAutoscrollMessages,
       });
       maybeAutoscrollMessages();
@@ -895,10 +896,27 @@ export function initChatStudio(state, callbacks = {}) {
       const streamingBadge = streamBubble.querySelector('.text-brand-400.animate-pulse');
       if (streamingBadge) streamingBadge.remove();
 
-      if (streamContentEl && accumulatedContent) {
+      // CARD-415: finalize onto the same hydrate path as refresh (actions + tool rows + reasoning)
+      state.isStreaming = false;
+      if (state.activeSessionId) {
+        await loadMessages(state.activeSessionId);
+      } else if (streamContentEl && accumulatedContent) {
         await renderMarkdown(streamContentEl, accumulatedContent, {
           onOpenArtifact: openWorkbench,
           onRefreshWorkbench: refreshWorkbenchArtifactCount,
+        });
+        // Promote ephemeral stream bubble → durable assistant bubble with action row
+        streamBubble.remove();
+        appendMessageBubbleDirect('assistant', accumulatedContent, {
+          messageId: null,
+          reasoning: accumulatedReasoning || '',
+        }, {
+          messagesContainer,
+          activeAgentTitle,
+          renderMarkdownFn: renderMarkdown,
+          openWorkbenchFn: openWorkbench,
+          onTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
+          exportMessageToWikiFn: callbacks.exportMessageToWiki || null,
         });
       }
 

@@ -637,7 +637,7 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
       if (typeof callbacks.exportSessionToWiki === 'function') {
         callbacks.exportSessionToWiki(state.activeSessionId);
       } else {
-        showToast('Saving conversation to Wiki...', 'info');
+        showToast('Save to Wiki is not available (session export unwired)', 'error');
       }
     });
   }
