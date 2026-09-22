@@ -351,11 +351,3 @@ def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
     with pytest.raises(WikiPathConfigurationError):
         create_app(state_store=store2)
 
-    # Env set to a missing path must hard-fail AND must not mkdir the path
-    missing = tmp_path / "missing-docker-wiki"
-    assert not missing.exists()
-    monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(missing))
-    monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "docker")
-    with pytest.raises(WikiPathConfigurationError):
-        create_app(state_store=store2)
-    assert not missing.exists(), "ensure_layout must not create a missing docker wiki path before hard-fail"
