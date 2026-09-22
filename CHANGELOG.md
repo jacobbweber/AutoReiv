@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **CARD-408 View Job shortcut**: Chat multi-phase job strip shows **View Job** beside Copy when a `job_id` is bound. Click opens or focuses Observe Studio, fills the standing-journey search, and loads the phase timeline. Unknown job ids show an error in the Observe viewer. Education "Open in Observe" uses the same path (`src/web/templates/index.html`, `src/web/static/modules/studios/chat/chrome.js`, `src/web/static/modules/studios/chat.js`, `src/web/static/modules/studios/observability.js`, `src/web/static/modules/ui/agent-desktop.js` [CARD-408]).
+
 ### Fixed
 
 - **CARD-410 Browser refresh empty agent pickers**: Restored Agent Desktop studio windows fill Chat, Agent Studio, Factory, Routines, and Observe agent dropdowns after F5 without closing and reopening. `/api/agents` publishes `agents:loaded` (late subscribers replay the roster). The selected agent is kept (`autoreiv_active_agent_id`, plus forge/factory/routines/observe keys). Agent Studio is loaded when its window was restored before the dynamic import finished (`src/web/static/modules/studios/agent_picker.js`, `src/web/static/modules/ui/agent_desktop/agent_hydration.js`, `app.js`, `forge.js`, `chat.js`, `factory.js`, `routines.js`, `observability.js` [CARD-410]).

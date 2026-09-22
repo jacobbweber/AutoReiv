@@ -184,6 +184,19 @@ export const VIEW_BY_TAB = {
 
 export const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
+/**
+ * Map the operator studio name onto a desktop tab id.
+ * "observe" is the Observability window. [CARD-408]
+ * @param {string} tab
+ * @returns {string}
+ */
+export function resolveDesktopStudioTab(tab) {
+  const raw = String(tab || '').trim();
+  if (!raw) return '';
+  if (raw.toLowerCase() === 'observe') return 'observability';
+  return raw;
+}
+
 // Re-export all public API symbols and constants for 100% backward compatibility
 export {
   GRID_SIZE,
@@ -458,10 +471,11 @@ export function initAgentDesktop(opts = {}) {
   };
 
   function openWindow(tab, opts = {}) {
-    if (!tab) return null;
+    const resolved = resolveDesktopStudioTab(tab);
+    if (!resolved) return null;
 
     // CARD-305: Sessions is an in-studio Chat drawer only — redirect hard
-    if (tab === 'sessions') {
+    if (resolved === 'sessions') {
       scrubSessionsFromDesktopPrefs();
       const chatWin = submoduleOpenWindow('chat', opts, ctx);
       const drawer = $('chatSessionsDrawer');
@@ -472,12 +486,13 @@ export function initAgentDesktop(opts = {}) {
     }
 
     // CARD-314: Factory deep-link / dock open must present as a full studio window, not a toast-sized chip.
-    return submoduleOpenWindow(tab, opts, ctx);
+    return submoduleOpenWindow(resolved, opts, ctx);
   }
 
   function onTabChanged(tabName) {
-    if (!tabName) return;
-    if (tabName === 'sessions') {
+    const resolved = resolveDesktopStudioTab(tabName);
+    if (!resolved) return;
+    if (resolved === 'sessions') {
       openWindow('chat', {});
       const drawer = $('chatSessionsDrawer');
       const view = $('view-chat');
@@ -485,14 +500,14 @@ export function initAgentDesktop(opts = {}) {
       if (view) view.classList.add('sessions-drawer-open');
       return;
     }
-    if (!VIEW_BY_TAB[tabName]) return;
-    const win = windows.get(tabName);
+    if (!VIEW_BY_TAB[resolved]) return;
+    const win = windows.get(resolved);
     if (win && !win.minimized) {
-      focusWindow(tabName, ctx);
+      focusWindow(resolved, ctx);
       scheduleSyncHostedViews();
       return;
     }
-    openWindow(tabName, {});
+    openWindow(resolved, {});
   }
 
   function bindGlobal() {
@@ -640,6 +655,7 @@ export function initAgentDesktop(opts = {}) {
   return {
     onTabChanged,
     openWindow: (tab, o) => openWindow(tab, o),
+    openStudio: (studio, params = {}) => openWindow(studio, params),
     closeWindow: (tab) => closeWindow(tab, ctx),
     minimizeWindow: (tab) => minimizeWindow(tab, ctx),
     focusWindow: (tab) => focusWindow(tab, ctx),
