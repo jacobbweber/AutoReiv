@@ -68,6 +68,8 @@ import {
   loadSessions as loadSessionsDirect,
   createNewSession as createNewSessionDirect,
   setupChatChrome,
+  syncChatJobViewButton,
+  bindChatJobViewShortcut,
 } from './chat/chrome.js';
 
 import {
@@ -358,11 +360,13 @@ export function initChatStudio(state, callbacks = {}) {
   function renderJobPhaseStrip() {
     if (!jobPhaseStatusStrip) return;
     if (state.selectedAgentId === 'direct') {
+      syncChatJobViewButton(jobPhaseStatusStrip, '');
       jobPhaseStatusStrip.classList.add('hidden');
       return;
     }
     const boundJobId = (jobPhaseState && (jobPhaseState.jobId || jobPhaseState.job_id)) || '';
     if (!boundJobId) {
+      syncChatJobViewButton(jobPhaseStatusStrip, '');
       jobPhaseStatusStrip.classList.add('hidden');
       return;
     }
@@ -377,6 +381,7 @@ export function initChatStudio(state, callbacks = {}) {
     if (jobEl) jobEl.textContent = view.jobStatusLabel;
     if (jobIdEl) { jobIdEl.textContent = boundJobId; jobIdEl.classList.remove('hidden'); }
     if (copyJobBtn) { copyJobBtn.dataset.jobId = boundJobId; copyJobBtn.classList.remove('hidden'); }
+    syncChatJobViewButton(jobPhaseStatusStrip, boundJobId);
     if (phaseEl) { phaseEl.textContent = view.phaseLabel || 'Phase'; phaseEl.classList.toggle('hidden', !view.phaseLabel); }
     if (agentEl) { agentEl.textContent = view.agentLabel || ''; agentEl.classList.toggle('hidden', !view.agentLabel); }
     if (reactEl) { reactEl.textContent = view.reactState || ''; reactEl.className = reactStateToneClass(view.reactState); }
@@ -395,6 +400,10 @@ export function initChatStudio(state, callbacks = {}) {
       showToast(`Copied ${id}`, 'success');
     });
   }
+
+  bindChatJobViewShortcut(jobPhaseStatusStrip, {
+    switchTab: callbacks.switchTab,
+  });
 
   function updateJobPhaseFromEvent(eventType, ev) {
     jobPhaseState = applyJobPhaseEvent(jobPhaseState, eventType, ev);

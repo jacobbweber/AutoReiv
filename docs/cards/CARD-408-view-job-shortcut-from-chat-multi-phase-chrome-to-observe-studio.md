@@ -1,7 +1,7 @@
 ---
 id: CARD-408
 title: "View Job Shortcut from Chat Multi-Phase Chrome to Observe Studio"
-status: Ready
+status: In Review
 created: 2026-09-21
 adr: none
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-408] View Job Shortcut from Chat Multi-Phase Chrome to Observe Studio
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:feature`, `area:ui`, `area:chat`, `area:observability`  
@@ -84,4 +84,29 @@ When a multi-phase job is running in Chat Studio and its `job_id` is displayed a
 - Start a multi-phase job in Chat Studio.
 - Click **"View Job"**.
 - Confirm Observe Studio window opens in focus with the job ID populated and execution status visible.
+
+---
+
+## 7. Landed behavior
+
+The job id and Copy control live on the Chat job strip `#jobPhaseStatusStrip` in `src/web/templates/index.html` (filled from `renderJobPhaseStrip` in `src/web/static/modules/studios/chat.js`). That strip is the multi-phase chrome this card names.
+
+- **View Job** is `button.chat-job-chrome-view-btn` (`data-testid="chat-job-chrome-view-btn"`), immediately after Copy. It stays hidden until a `job_id` is bound, same as Copy.
+- Click calls `openObserveJob` (`src/web/static/modules/studios/observability.js`): `switchTab('observability')` opens or focuses the Observe window (`openStudio('observe')` on the desktop resolves to that same tab), writes the id into `#standingJourneyJobIdInput`, opens the Standing Journey section, and loads `GET /api/observability/standing-journey?job_id=`.
+- A missing or unknown id does not throw. HTTP failures (including 404) replace the timeline with `Failed to load standing journey: …`. A blank id does not switch studios.
+- Education **Open in Observe** uses `openObserveJob` as well, so there is one lookup path.
+
+---
+
+## 8. Human Verification Runbook
+
+About two minutes in the running AutoReiv UI.
+
+1. Open Chat Studio and send a prompt that mints a multi-phase job (a goal with more than one phase). Wait until the strip under the Chat header shows a job id and **Copy**.
+2. Confirm **View Job** is beside **Copy**. It should not be there on a plain Direct chat with no job id.
+3. Click **View Job**.
+4. Expected: the Observe window comes forward (opens if it was closed, un-minimizes if it was minimized). Standing Journey Timeline is open. The search box contains that same job id. The timeline shows phases, or a clear `Failed to load standing journey` line if the job cannot be read. The desktop does not freeze and the browser console has no new page error.
+5. Negative check: in that same Observe search box, replace the id with `job_does_not_exist` and click **Load Journey**. Expected: the timeline shows the failure text and Observe stays usable.
+
+Reply `merge to qa` when that matches what you see.
 
