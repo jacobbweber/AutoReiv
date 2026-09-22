@@ -1,7 +1,7 @@
 ---
 id: CARD-418
 title: "Skill Studio Extract from Factory (Lifecycle + Tool Scoping Surface)"
-status: In Review
+status: Done
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-418] Skill Studio Extract from Factory (Lifecycle + Tool Scoping Surface)
 
-> **Status**: In Review  
+> **Status**: Done
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted** — Accept before **build**)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:skills`  
