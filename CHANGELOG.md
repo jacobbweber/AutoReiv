@@ -2,6 +2,8 @@
 
 ### Added
 
+- **CARD-420 Skill Studio Build/Review**: Skill Studio **Build** and **Review** submit a versioned form packet (`skill_studio_authoring_packet` v1) to a visible standing job owned by `developer`. Observe opens on that `job_id`; **Open in Chat** shows the same id. A second Build/Review for the same skill resumes the open job. **Accept** writes proposed field patches into the draft; **Reject** leaves the draft unchanged. **Save skill** is still the only writer for the skill store and SQLite `skill_tool_bindings`. Cheap lint (frontmatter, catalog tool ids, contract linter) stays in the form and does not mint a job. Agent Studio skill pills are unchanged (`src/application/skills/developer_authoring.py`, `src/web/routers/skill_authoring.py`, `src/web/static/modules/studios/skill_authoring.js`, `src/web/static/modules/studios/skill_studio.js`, `src/web/templates/index.html` [CARD-420]).
+
 - **CARD-418 Skill Studio**: Agent Desktop dock window labeled Skill Studio. It is the skill write surface: existing-skill picker, new skill, structured metadata, tool catalog, and save. Save writes the skill store and SQLite `skill_tool_bindings` the same way as CARD-411. A save with no agent id does not pin a pack or write tool rows into `pack.json` (`src/web/static/modules/studios/skill_studio.js`, `src/web/templates/index.html`, `src/web/static/modules/ui/agent-desktop.js` [CARD-418]).
 
 ### Changed

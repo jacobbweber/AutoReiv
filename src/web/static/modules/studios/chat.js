@@ -981,6 +981,19 @@ export function initChatStudio(state, callbacks = {}) {
     switchEngineChannel,
     syncActiveProjectIndicator,
     updateJobPhaseFromEvent,
+    showStandingJob: (job) => {
+      const id = String((job && (job.jobId || job.job_id)) || '').trim();
+      if (!id) return null;
+      updateJobPhaseFromEvent('job_created', {
+        job_id: id,
+        status: (job && (job.status || job.jobStatus)) || 'queued',
+        agent_id: (job && (job.agentId || job.agent_id)) || 'developer',
+        phase_name: 'Author',
+        phase_count: 1,
+        index: 0,
+      });
+      return { jobId: id, agentId: (job && (job.agentId || job.agent_id)) || 'developer' };
+    },
     resetJobPhaseStrip,
     updateJobChromeFromEvent,
     remountInlineJobChrome,

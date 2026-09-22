@@ -641,6 +641,19 @@ export function formatStandingJourneyEvent(ev) {
   if (kind === 'verifier_status') return `Verifier: ${e.verifier_status || ''} (phase ${e.phase_index})`;
   if (kind === 'phase') return `Phase ${e.phase_index}: ${e.name || ''} [${e.status || ''}]`;
   if (kind === 'job' || kind === 'job_created') return `Job ${e.job_id || ''}: ${e.goal || ''}`;
+  if (kind === 'skill_studio_authoring_packet') {
+    const payload = e.payload || {};
+    const blockers = payload.blocker_count != null ? payload.blocker_count : 0;
+    return `Skill Studio ${payload.intent || 'build'} packet for ${payload.skill_id || 'skill'} (${blockers} lint blockers)`;
+  }
+  if (kind === 'skill_studio_authoring_proposal') {
+    const count = e.payload && e.payload.patch_count != null ? e.payload.patch_count : 0;
+    return `Developer proposed ${count} field patch(es)`;
+  }
+  if (kind === 'skill_studio_authoring_decision') {
+    const decision = (e.payload && e.payload.decision) || 'decision';
+    return `Operator ${decision} (draft only; Save still writes the skill)`;
+  }
   return kind;
 }
 

@@ -1,7 +1,7 @@
 ---
 id: CARD-420
 title: "Developer-Mediated Authoring v1 (Visible Build/Review Job + Apply-Back)"
-status: Ready
+status: In Review
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-420] Developer-Mediated Authoring v1 (Visible Build/Review Job + Apply-Back)
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted**)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:agents`, `area:skills`  
@@ -101,11 +101,86 @@ This card is ADR-0057 build-order step 3. It does **not** build Tools Studio.
 
 ---
 
-## 7. Open refine points (say **continue** to lock before **build**)
+## 7. Locked at build (2026-09-22)
 
-| # | Question | Default if Jacob says **build** without further note |
-|---|----------|------------------------------------------------------|
-| 1 | Skill Studio only vs Agent Studio Build in same card | **Skill Studio only** in v1 |
-| 2 | Observe-first vs Chat-first for watching the job | Prefer **Observe** with Chat link if both exist |
-| 3 | Auto-save after Accept vs Accept-to-draft then Save | **Accept-to-draft**, operator still Saves |
+Jacob said **build** with no further refine. These defaults are the implementation:
+
+| # | Question | Locked |
+|---|----------|--------|
+| 1 | Skill Studio only vs Agent Studio Build in same card | **Skill Studio only** |
+| 2 | Observe-first vs Chat-first for watching the job | **Observe** first. **Open in Chat** selects `developer` and shows the same `job_id` on the Chat job strip (View Job still opens Observe) |
+| 3 | Auto-save after Accept vs Accept-to-draft then Save | **Accept-to-draft**. Operator still clicks **Save skill** |
+
+## 8. Packet schema v1
+
+Schema name: `skill_studio_authoring_packet`. Version: `1`.
+
+```json
+{
+  "schema": "skill_studio_authoring_packet",
+  "version": 1,
+  "studio": "skill",
+  "intent": "build",
+  "agent_id": "developer",
+  "draft": {
+    "skill_id": "wiki_digest",
+    "name": "Wiki Digest",
+    "description": "File a short wiki digest",
+    "tier": "pack",
+    "safety": {
+      "read_only": true,
+      "requires_hitl": false,
+      "untrusted_input_allowed": false
+    },
+    "requires_tools": [],
+    "markdown": "---\\nname: Wiki Digest\\n---\\n",
+    "intent_notes": "",
+    "source_context": ""
+  },
+  "lint": { "cheap": true, "blockers": [] },
+  "llm_rewrite": false
+}
+```
+
+`intent` is `build` or `review`. Patch fields the operator may Accept: `name`, `description`, `tier`, `safety`, `requires_tools`, `markdown`. `skill_id` and agent allowlists are refused.
+
+The packet is stored on the standing job phase input (`template_id` `skill_studio_developer_authoring`, `agent_id` `developer`, session `skill-studio:{skill_id}`) and copied onto a standing-journey event `skill_studio_authoring_packet`. A second Build or Review for the same skill id resumes that open job.
+
+Proposed patches live on that same phase output. Accept and Reject record `skill_studio_authoring_decision` on the job. Neither writes the skill store or `skill_tool_bindings`.
+
+HTTP (Skill Studio is the only caller):
+
+| Method | Path | Effect |
+|--------|------|--------|
+| POST | `/api/skill_studio/authoring/lint` | Cheap lint. No job. |
+| POST | `/api/skill_studio/authoring/jobs` | Create or resume the visible developer job. |
+| GET | `/api/skill_studio/authoring/jobs/{job_id}` | Packet plus current proposals. |
+| POST | `/api/skill_studio/authoring/jobs/{job_id}/proposals` | Attach field patches (developer or a live-test fixture). |
+| POST | `/api/skill_studio/authoring/jobs/{job_id}/decision` | `accept` or `reject`. Does not save the skill. |
+
+Cheap lint checks YAML frontmatter, catalog tool ids, and `SkillContractCompiler`. **Generate / Refine Runbook** is unchanged and is not Build.
+
+## 9. Verification notes
+
+Automated:
+
+- `tests/integration/operator_contracts/test_oc420_skill_studio_developer_authoring.py` — lint does not mint a job; Build creates one durable job; Observe returns it for `developer`; Review resumes the same id; unknown patch fields are refused; Accept does not write `skill_tool_bindings`.
+- `tests/unit/frontend/card_420_skill_authoring.test.js` — packet shape, Build URL is not the silent runbook endpoint, Accept updates the draft, Reject leaves it, Agent Studio pills are untouched.
+
+The job stays `queued`. This card does not mark it done and does not run a silent LLM rewrite.
+
+### Live test
+
+1. Open Skill Studio. Enter a skill name (or load a skill). Click **Build** or **Review**.
+2. Observe opens on that `job_id`. The timeline shows a developer job and a Skill Studio packet line for the skill id. **Open in Chat** shows the same id on the Chat job strip. You do not type the id.
+3. Attach a fixture patch (the queued job does not call the model by itself):
+
+```bash
+curl -s -X POST "http://127.0.0.1:8000/api/skill_studio/authoring/jobs/JOB_ID/proposals" \
+  -H "Content-Type: application/json" \
+  -d '{"patches":[{"field":"description","value":"Shorter trigger text"}]}'
+```
+
+4. Within a few seconds Skill Studio shows the patch. **Accept** changes the description in the form. **Save skill** still writes the skill store and SQLite bindings. **Reject** leaves the form as it was.
+5. Break frontmatter or type a tool id that is not in the catalog, then leave the runbook field. The amber cheap-lint panel updates and does not open a second job. Agent Studio skill pills are unchanged.
 
