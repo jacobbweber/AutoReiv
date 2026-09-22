@@ -1,7 +1,7 @@
 ---
 id: CARD-411
 title: "Skill Runbook YAML Frontmatter, Tool Binding UI, and Forge vs Factory Separation"
-status: In Review
+status: Done
 created: 2026-09-21
 updated: 2026-09-22
 adr: ADR-0056
@@ -15,7 +15,7 @@ labels:
 
 # [CARD-411] Skill Runbook YAML Frontmatter, Tool Binding UI, and Forge vs Factory Separation
 
-> **Status**: In Review  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **Decided**: 2026-09-22 — Option A, full scope (Jacob). ADR-0056 is Accepted; CARD-414 wiki/SQLite cutover is on `qa`. The old "blocked until ADR-0056" banner is retired.  
 > **UX pass**: 2026-09-22 — Factory layout (assigned skills → col 1; existing-skill picker → col 2; quiet Tier; safety help). Selecting an Existing skill loads via the workshop resolver (skill store, pack skills, platform-packs, bundled seeds). Still In Review; do not mark Done until retest.  
