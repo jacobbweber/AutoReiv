@@ -123,9 +123,9 @@ This card delivers **analysis + decision**, not code:
 1. Completed ownership **inventory matrix** (below) reviewed with Jacob
 2. Options A–D compared against decision criteria (below)
 3. Required mapping docs (seeder/reconciler paths, FKs/stable IDs, boot flow, wiki UX, failure modes) cited to concrete files
-4. Product forks answered (section 7)
-5. Migration phase plan agreed (section 8) — favoring additive schema + **dual-read validation**; dual-write only if explicitly bounded
-6. Operator contracts listed for any future cutover (section 9)
+4. Product forks answered (section 6)
+5. Migration phase plan agreed (section 7) — favoring additive schema + **dual-read validation**; dual-write only if explicitly bounded
+6. Operator contracts listed for any future cutover (section 8)
 7. ADR draft authored under `docs/adr/` only after walkthrough; set Accepted only with Jacob's OK
 8. CARD-411 relationship decision: block / defer / narrow scope
 
@@ -292,15 +292,14 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 
 ## 12. Acceptance criteria (planning / decision)
 
-- [ ] Inventory matrix reviewed with Jacob (`continue` iterations OK)
-- [ ] Options A–D scored against decision criteria; option selected or hybrid named
-- [ ] Product forks (section 6) answered
-- [ ] Mapping brief cites concrete paths above
-- [ ] ADR drafted (`Proposed`) and walked; **Accepted** only with Jacob OK
-- [ ] CARD-411 blocked/deferred/narrowed decision recorded on both cards
-- [ ] Operator contracts OC-S1..S6 written as test stubs or card references for the build successor
-- [ ] `adr:` frontmatter updated from `none` when ADR exists
-- [ ] No product code landed under this card
+- [ ] **REQ-413-001 (Ubiquitous)**: THE DECISION PHASE SHALL review the ownership inventory matrix with Jacob; `continue` iterations remain planning only.
+- [ ] **REQ-413-002 (Ubiquitous)**: THE DECISION PHASE SHALL score Options A–D against every stated criterion and name the selected option or hybrid.
+- [ ] **REQ-413-003 (Event-driven)**: WHEN Jacob answers the product forks, THE CARD SHALL record those answers and their trade-offs.
+- [ ] **REQ-413-004 (Ubiquitous)**: THE DESIGN BRIEF SHALL map and cite the concrete seeder, reconciler, schema, boot, import/export, backup/restore, and wiki paths above.
+- [ ] **REQ-413-005 (State-driven)**: WHILE the ADR has not completed Jacob's walkthrough, THE ADR SHALL remain Proposed and this card SHALL keep `adr: none` until an ADR exists.
+- [ ] **REQ-413-006 (Event-driven)**: WHEN the ADR is accepted, THE CARD SHALL link it and SHALL record the CARD-411 blocked/deferred/narrowed decision on both cards.
+- [ ] **REQ-413-007 (Ubiquitous)**: THE BUILD SUCCESSOR SHALL reference operator contracts OC-S1..OC-S6 before cutover.
+- [ ] **REQ-413-008 (Unwanted behavior)**: WHILE this planning card is active, THE REPOSITORY SHALL receive no product implementation, mass migration, or AppData deletion under CARD-413.
 
 ---
 
