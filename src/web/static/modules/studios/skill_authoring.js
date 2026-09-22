@@ -1,7 +1,8 @@
 /**
  * Skill Studio developer-mediated authoring [CARD-420].
- * Build/Review opens a visible developer standing job. Accept updates the draft.
- * Save stays on the existing Skill Studio path. Cheap lint does not mint a job.
+ * Ask developer opens one visible developer standing job (intent build).
+ * Accept updates the draft. Save stays on the existing Skill Studio path.
+ * Cheap lint does not mint a job.
  */
 
 import { $, escapeHtml } from '../dom.js';
@@ -236,17 +237,14 @@ export function proposalPanelHtml(proposals) {
 }
 
 /**
- * Wire Skill Studio Build/Review. Accept updates the draft through writeDraft.
+ * Wire Skill Studio Ask developer. Accept updates the draft through writeDraft.
  * It does not call the skill save endpoint.
  */
 export function bindSkillStudioAuthoring({ callbacks = {}, showToast, collectDraft, writeDraft }) {
-  const skillStudioBuildBtn = $('skillStudioBuildBtn');
-  const skillStudioReviewBtn = $('skillStudioReviewBtn');
+  const skillStudioAskDeveloperBtn = $('skillStudioAskDeveloperBtn');
   const skillStudioLintPanel = $('skillStudioLintPanel');
   const skillStudioAuthoringBar = $('skillStudioAuthoringBar');
-  const skillStudioAuthoringStatus = $('skillStudioAuthoringStatus');
-  const skillStudioWatchBtn = $('skillStudioWatchBtn');
-  const skillStudioChatBtn = $('skillStudioChatBtn');
+  const skillStudioJobId = $('skillStudioJobId');
   const skillStudioProposalPanel = $('skillStudioProposalPanel');
   const skillStudioProposalBody = $('skillStudioProposalBody');
   const skillStudioAcceptBtn = $('skillStudioAcceptBtn');
@@ -281,10 +279,7 @@ export function bindSkillStudioAuthoring({ callbacks = {}, showToast, collectDra
   function showAuthoringJob(result) {
     authoringJobId = result.jobId;
     if (skillStudioAuthoringBar) skillStudioAuthoringBar.classList.remove('hidden');
-    if (skillStudioAuthoringStatus) {
-      const verb = result.resumed ? 'Resumed' : 'Opened';
-      skillStudioAuthoringStatus.textContent = `${verb} developer job ${result.jobId}. Watch it in Observe. Save still writes this skill.`;
-    }
+    if (skillStudioJobId) skillStudioJobId.textContent = result.jobId;
   }
 
   function showProposals(proposals) {
@@ -320,52 +315,33 @@ export function bindSkillStudioAuthoring({ callbacks = {}, showToast, collectDra
     await openObserveJob(authoringJobId, { switchTab: callbacks.switchTab });
   }
 
-  async function openAuthoringChat() {
-    if (!authoringJobId) return;
-    if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
-    const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
-    if (chat && typeof chat.switchSelectedAgent === 'function') {
-      await chat.switchSelectedAgent('developer');
-    }
-    if (chat && typeof chat.showStandingJob === 'function') {
-      chat.showStandingJob({
-        jobId: authoringJobId,
-        status: 'queued',
-        agentId: 'developer',
-      });
-    }
-  }
-
-  async function handleAuthoring(intent) {
+  async function handleAuthoring() {
     const draft = collectDraft();
     if (!draft.skill_id) {
-      showToast('Enter a skill name before Build or Review.', 'warning');
+      showToast('Enter a skill name before asking the developer.', 'warning');
       if (factorySkillNameInput) factorySkillNameInput.focus();
       return;
     }
-    const buttons = [skillStudioBuildBtn, skillStudioReviewBtn];
-    buttons.forEach((btn) => {
-      if (!btn) return;
-      btn.disabled = true;
-      btn.classList.add('opacity-50', 'cursor-not-allowed');
-    });
+    if (skillStudioAskDeveloperBtn) {
+      skillStudioAskDeveloperBtn.disabled = true;
+      skillStudioAskDeveloperBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
     try {
       const lint = await runCheapLint(draft);
       showLint(lint.blockers);
-      const result = await submitSkillAuthoring(draft, intent);
+      const result = await submitSkillAuthoring(draft, 'build');
       showAuthoringJob(result);
       startAuthoringPoll();
       await watchAuthoringJob();
-      showToast(`${intent === 'review' ? 'Review' : 'Build'} opened ${result.jobId}`, 'success');
+      showToast(`Asked developer. Job ${result.jobId}`, 'success');
     } catch (err) {
       console.error('[SkillStudio] Authoring failed:', err);
-      showToast(`Build/Review failed: ${err.message}`, 'error');
+      showToast(`Ask developer failed: ${err.message}`, 'error');
     } finally {
-      buttons.forEach((btn) => {
-        if (!btn) return;
-        btn.disabled = false;
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-      });
+      if (skillStudioAskDeveloperBtn) {
+        skillStudioAskDeveloperBtn.disabled = false;
+        skillStudioAskDeveloperBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
     }
   }
 
@@ -398,17 +374,8 @@ export function bindSkillStudioAuthoring({ callbacks = {}, showToast, collectDra
     }
   }
 
-  if (skillStudioBuildBtn) {
-    skillStudioBuildBtn.addEventListener('click', () => { handleAuthoring('build'); });
-  }
-  if (skillStudioReviewBtn) {
-    skillStudioReviewBtn.addEventListener('click', () => { handleAuthoring('review'); });
-  }
-  if (skillStudioWatchBtn) {
-    skillStudioWatchBtn.addEventListener('click', () => { watchAuthoringJob(); });
-  }
-  if (skillStudioChatBtn) {
-    skillStudioChatBtn.addEventListener('click', () => { openAuthoringChat(); });
+  if (skillStudioAskDeveloperBtn) {
+    skillStudioAskDeveloperBtn.addEventListener('click', () => { handleAuthoring(); });
   }
   if (skillStudioAcceptBtn) {
     skillStudioAcceptBtn.addEventListener('click', () => { handleAcceptPatches(); });

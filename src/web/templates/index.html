@@ -3743,21 +3743,21 @@
           <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
             <div id="skillStudioActionBar" class="mb-3 p-3 sm:p-3.5 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-shrink-0">
               <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 min-w-0 flex-1">
-                <button type="button" id="skillStudioBuildBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-build">
+                <button type="button" id="skillStudioAskDeveloperBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-ask-developer">
                   <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
-                  <span>Build</span>
-                </button>
-                <button type="button" id="skillStudioReviewBtn" class="px-4 py-2 bg-sky-950/70 hover:bg-sky-900/80 text-sky-200 hover:text-white rounded-xl text-xs font-semibold border border-sky-500/30 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-review">
-                  <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                  <span>Review</span>
-                </button>
-                <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center justify-center space-x-2 shrink-0">
-                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                  <span>Generate / Refine Runbook</span>
+                  <span>Ask developer</span>
                 </button>
                 <button type="button" id="factorySaveSkillBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-save">
                   <i data-lucide="save" class="w-3.5 h-3.5"></i>
                   <span>Save skill</span>
+                </button>
+                <button type="button" id="factoryGenerateRunbookBtn" class="px-2.5 py-1.5 bg-transparent hover:bg-white/[0.04] text-slate-400 hover:text-slate-200 border border-white/[0.08] rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1.5 shrink-0" data-testid="skill-studio-generate">
+                  <i data-lucide="sparkles" class="w-3 h-3"></i>
+                  <span>Generate / Refine Runbook</span>
+                </button>
+                <button type="button" id="skillStudioDeleteBtn" class="hidden px-2.5 py-1.5 bg-transparent hover:bg-rose-950/40 text-rose-300/80 hover:text-rose-200 border border-rose-500/20 rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1.5 shrink-0" data-testid="skill-studio-delete">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
+                  <span>Delete skill</span>
                 </button>
               </div>
               <div class="flex items-center space-x-2 shrink-0 justify-end">
@@ -3767,11 +3767,7 @@
             </div>
             <div id="skillStudioLintPanel" class="hidden mb-3 px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-950/30" data-testid="skill-studio-lint"></div>
             <div id="skillStudioAuthoringBar" class="hidden mb-3 p-3 rounded-2xl border border-sky-500/30 bg-sky-950/30 space-y-2" data-testid="skill-studio-authoring">
-              <p id="skillStudioAuthoringStatus" class="text-[11px] text-sky-100"></p>
-              <div class="flex flex-wrap items-center gap-2">
-                <button type="button" id="skillStudioWatchBtn" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-semibold" data-testid="skill-studio-watch">Watch in Observe</button>
-                <button type="button" id="skillStudioChatBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 text-[11px] font-semibold" data-testid="skill-studio-chat">Open in Chat</button>
-              </div>
+              <p class="text-[11px] text-sky-100">Developer job <span id="skillStudioJobId" class="font-mono" data-testid="skill-studio-job-id"></span></p>
               <div id="skillStudioProposalPanel" class="hidden space-y-2 pt-1" data-testid="skill-studio-proposal">
                 <div id="skillStudioProposalBody"></div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -3882,6 +3878,13 @@
                   </details>
                 </div>
 
+                <div class="space-y-1.5" data-testid="skill-studio-source-context">
+                  <label for="factorySourceContextInput" class="block text-[11px] font-semibold text-slate-400">External Source Context &amp; Reference Notes</label>
+                  <textarea id="factorySourceContextInput" rows="4" placeholder="Paste API documentation, cheat sheets, manual notes, or example commands so the runbook generator uses real parameters and accurate commands..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500 leading-relaxed resize-y"></textarea>
+                  <input type="hidden" id="factoryIntakeContextInput" value="">
+                  <p class="text-[10px] text-slate-500">Grounding context prevents the LLM from hallucinating fake tool names or syntax.</p>
+                </div>
+
                 <!-- Live SKILL.md Editor -->
                 <div>
                   <div class="flex items-center justify-between mb-1">
@@ -3930,14 +3933,6 @@
                 <div id="factoryCapabilitiesContainer" class="flex-1 overflow-y-auto max-h-[350px] bg-[#08090c]/60 rounded-xl border border-white/[0.04] p-2 space-y-2">
                   <div class="text-[11px] text-slate-500 italic p-2">Loading capabilities...</div>
                 </div>
-              </div>
-
-              <!-- Source Context Notes (Grounding) -->
-              <div class="space-y-1.5 pt-2 border-t border-white/[0.04]">
-                <label for="factorySourceContextInput" class="block text-[11px] font-semibold text-slate-400">External Source Context &amp; Reference Notes</label>
-                <textarea id="factorySourceContextInput" rows="5" placeholder="Paste API documentation, cheat sheets, manual notes, or example commands so the runbook generator uses real parameters and accurate commands..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500 leading-relaxed resize-y"></textarea>
-                <input type="hidden" id="factoryIntakeContextInput" value="">
-                <p class="text-[10px] text-slate-500">Grounding context prevents the LLM from hallucinating fake tool names or syntax.</p>
               </div>
 
             </div>

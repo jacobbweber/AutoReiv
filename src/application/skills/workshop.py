@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
@@ -12,18 +13,17 @@ from src.application.skills.runbook_frontmatter import (
     frontmatter_view,
     split_skill_markdown,
 )
-from src.application.skills.user_catalog import PackJailError, UserSkillCatalog
+from src.application.skills.user_catalog import ARCHIVE_DIRNAME, PackJailError, UserSkillCatalog
 from src.infrastructure.data.resolver import repo_root
 from src.infrastructure.memory.repositories.skill_bindings import (
     SkillToolBindingRepository,
     operational_db_path,
     sqlite_tools_for_skills,
 )
+from src.infrastructure.skills.seed import BUNDLED_PACK_IDS
 
 # Same jail as user skill packs: letters, digits, dot, underscore, hyphen, nested segments.
-_SKILL_ID_RE = re.compile(
-    r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
-)
+_SKILL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$")
 _SKIP_SEGMENTS = frozenset({"snapshots", "_archive", ".", ".."})
 
 
@@ -104,11 +104,60 @@ def locate_skill_markdown(
     return catalog.resolve_pack_scoped_skill_md(clean)
 
 
-def _row_for_skill_file(path: Path, skill_id: str, source: str) -> dict[str, str]:
+def operator_skill_deletable(data_root: Path, skill_id: str, path: Optional[Path] = None) -> bool:
+    """True only for an operator skill-store file that is not a bundled seed."""
+    clean = accept_skill_id(skill_id) or ""
+    if not clean or clean in BUNDLED_PACK_IDS or clean.split("/")[0] in BUNDLED_PACK_IDS:
+        return False
+    if path is None:
+        return False
+    skills_root = (Path(data_root) / "skills").resolve()
+    try:
+        relative = Path(path).resolve().relative_to(skills_root)
+    except ValueError:
+        return False
+    if ARCHIVE_DIRNAME in relative.parts:
+        return False
+    return Path(path).is_file()
+
+
+def clear_operator_skill_side_effects(
+    data_root: Path,
+    skill_id: str,
+    db_path: Optional[str] = None,
+) -> None:
+    """After the user-pack delete, drop pack projections and SQLite bindings for that id."""
+    clean = accept_skill_id(skill_id)
+    if not clean:
+        return
+    packs_root = (Path(data_root) / "packs").resolve()
+    if packs_root.is_dir():
+        for agent_dir in packs_root.iterdir():
+            if not agent_dir.is_dir():
+                continue
+            target = (agent_dir / "skills" / clean).resolve()
+            try:
+                target.relative_to(packs_root)
+            except ValueError:
+                continue
+            if target.is_dir():
+                shutil.rmtree(target)
+    resolved_db = operational_db_path(db_path or os.environ.get("AUTOREIV_DB_PATH"))
+    if resolved_db:
+        SkillToolBindingRepository(db_path=resolved_db).delete(clean)
+
+
+def _row_for_skill_file(path: Path, skill_id: str, source: str, data_root: Path) -> dict[str, Any]:
     view = frontmatter_view(_read_text(path) or "")
     name = str(view.get("name") or "").strip() or skill_id
     description = str(view.get("description") or "").strip()
-    return {"id": skill_id, "name": name, "description": description, "source": source}
+    return {
+        "id": skill_id,
+        "name": name,
+        "description": description,
+        "source": source,
+        "deletable": operator_skill_deletable(data_root, skill_id, path) if source == "store" else False,
+    }
 
 
 def list_workshop_skills(data_root: Path) -> list[dict[str, str]]:
@@ -121,7 +170,7 @@ def list_workshop_skills(data_root: Path) -> list[dict[str, str]]:
             return
         if not path.is_file():
             return
-        found[skill_id] = _row_for_skill_file(path, skill_id, source)
+        found[skill_id] = _row_for_skill_file(path, skill_id, source, root)
 
     skills_root = root / "skills"
     if skills_root.is_dir():
@@ -189,6 +238,7 @@ def load_workshop_skill(
     view["skill_id"] = clean
     view["path"] = str(path)
     view["markdown_content"] = raw
+    view["deletable"] = operator_skill_deletable(data_root, clean, path)
     return view
 
 

@@ -46,11 +46,15 @@ describe('Factory layout UX [CARD-411]', () => {
     expect(col2).toContain('id="factorySkillNameInput"');
     expect(col2).toContain('id="factorySkillMarkdownEditor"');
     expect(col2).toContain('id="factoryRequiredToolsChips"');
+    expect(col2).toContain('id="factorySourceContextInput"');
+    expect(col2.indexOf('factorySourceContextInput')).toBeLessThan(
+      col2.indexOf('factorySkillMarkdownEditor'),
+    );
   });
 
   it('column 3 stays tools and grounding only', () => {
     expect(col3).toContain('id="factoryCapabilitiesContainer"');
-    expect(col3).toContain('id="factorySourceContextInput"');
+    expect(col3).not.toContain('id="factorySourceContextInput"');
     expect(col3).not.toContain('Assigned Skills');
     expect(col3).not.toContain('factoryExistingSkillSelect');
   });

@@ -15,6 +15,7 @@ export function indexListedSkills(listed = [], assignedIds = []) {
         id,
         name: String(row.name || id).trim() || id,
         source: assigned.has(id) ? 'assigned' : (row.source || 'workshop'),
+        deletable: row.deletable === true,
       };
     })
     .sort((a, b) => {

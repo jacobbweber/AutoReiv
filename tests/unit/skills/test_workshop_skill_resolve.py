@@ -50,6 +50,8 @@ def test_seed_skill_resolves_without_a_data_dir_copy(tmp_path: Path):
     assert "markdown_content" in loaded
     assert "# Agent Coordination" in loaded["markdown_content"]
     assert loaded["binding_source"] == "frontmatter"
+    assert loaded["deletable"] is False
+    assert listed["coordination"]["deletable"] is False
 
 
 def test_pack_home_and_skill_store_and_dotted_id(tmp_path: Path):
@@ -69,17 +71,21 @@ def test_pack_home_and_skill_store_and_dotted_id(tmp_path: Path):
     assert locate_skill_markdown(tmp_path, "My.Skill") == dotted
     assert locate_skill_markdown(tmp_path, "group/notes") == nested
 
-    listed = {row["id"] for row in list_workshop_skills(tmp_path)}
-    assert "pack-only" in listed
-    assert "My.Skill" in listed
-    assert "group/notes" in listed
-    assert "not-a-skill" not in listed
+    rows = {row["id"]: row for row in list_workshop_skills(tmp_path)}
+    assert "pack-only" in rows
+    assert "My.Skill" in rows
+    assert "group/notes" in rows
+    assert "not-a-skill" not in rows
+    assert rows["My.Skill"]["deletable"] is True
+    assert rows["group/notes"]["deletable"] is True
+    assert rows["pack-only"]["deletable"] is False
 
     loaded = load_workshop_skill(tmp_path, "My.Skill", db_path=str(tmp_path / "no.db"))
     assert loaded is not None
     assert loaded["name"] == "Dotted Notes"
     assert loaded["requires_tools"] == ["inspect_widget"]
     assert "Keep-the-body." in loaded["markdown_content"]
+    assert loaded["deletable"] is True
 
 
 def test_unknown_and_unsafe_ids_do_not_resolve(tmp_path: Path):

@@ -80,8 +80,8 @@ This card is ADR-0057 build-order step 3. It does **not** build Tools Studio.
 
 ## 5. Acceptance criteria (EARS)
 
-- **[REQ-420-001]** WHEN the operator activates **Build** or **Review** on Skill Studio with a draft skill, THE SYSTEM SHALL create or resume a **visible** standing job/conversation assigned to the `developer` agent and attach a structured form packet describing the draft.
-- **[REQ-420-002]** WHEN that job is created, THE SYSTEM SHALL expose a watchable operator path (Observe and/or Chat with `job_id`) without requiring the operator to invent the job id by hand.
+- **[REQ-420-001]** WHEN the operator activates **Ask developer** on Skill Studio with a draft skill, THE SYSTEM SHALL create or resume a **visible** standing job/conversation assigned to the `developer` agent and attach a structured form packet describing the draft. (Chrome pass: one button, intent `build`. The jobs API still accepts `review`.)
+- **[REQ-420-002]** WHEN that job is created, THE SYSTEM SHALL open Observe on that `job_id` and show the id on the Skill Studio job strip, without requiring the operator to invent the id. The strip does not keep Watch or Open in Chat buttons.
 - **[REQ-420-003]** WHEN the developer returns approved field patches and the operator Accepts, THE SYSTEM SHALL apply those patches into the Skill Studio draft (and persist only through the existing Skill Studio / CARD-411 save path when the operator saves).
 - **[REQ-420-004]** WHEN only cheap lint runs (frontmatter / catalog ids / contract linter), THE SYSTEM MAY report in-form without opening a developer job; THE SYSTEM SHALL NOT use silent-only LLM rewrite as the default Build path.
 - **[REQ-420-005]** THE SYSTEM SHALL NOT change Agent Studio skill toggle pills or Skill Studio SQLite binding ownership as part of this card.
@@ -93,8 +93,8 @@ This card is ADR-0057 build-order step 3. It does **not** build Tools Studio.
 - Unit/Vitest: packet shape; Build → job create stub; Accept → draft fields updated; lint-only path does not mint a full mediation job.
 - Manual live test:
 
-1. Open Skill Studio, load or draft a skill, click **Build** (or **Review**).
-2. Observe/Chat shows a visible developer job with the packet context.
+1. Open Skill Studio, load or draft a skill, click **Ask developer**.
+2. Observe opens on that job. The Skill Studio strip shows the same `job_…` id.
 3. After developer suggests patches (or a test fixture injects them), Accept updates Studio fields; Reject leaves them alone.
 4. Save still writes skill store + `skill_tool_bindings` as before.
 5. Cheap lint (bad tool id / broken frontmatter) still surfaces in-form without requiring a full silent LLM pass.
@@ -164,16 +164,19 @@ Cheap lint checks YAML frontmatter, catalog tool ids, and `SkillContractCompiler
 
 Automated:
 
-- `tests/integration/operator_contracts/test_oc420_skill_studio_developer_authoring.py` — lint does not mint a job; Build creates one durable job; Observe returns it for `developer`; Review resumes the same id; unknown patch fields are refused; Accept does not write `skill_tool_bindings`.
-- `tests/unit/frontend/card_420_skill_authoring.test.js` — packet shape, Build URL is not the silent runbook endpoint, Accept updates the draft, Reject leaves it, Agent Studio pills are untouched.
+- `tests/integration/operator_contracts/test_oc420_skill_studio_developer_authoring.py` — lint does not mint a job; the authoring post creates one durable job; Observe returns it for `developer`; a second post for the same skill resumes the same id; unknown patch fields are refused; Accept does not write `skill_tool_bindings`.
+- `tests/unit/frontend/card_420_skill_authoring.test.js` — packet shape, Ask developer is the only job button, the job strip has no Observe/Chat jump buttons, delete requires confirm and refuses a non-deletable skill, Accept updates the draft, Reject leaves it, Save ownership and Agent Studio pills are untouched.
+- `tests/unit/skills/test_skills_studio_archive_delete.py` — confirmed delete of an operator skill also drops that id’s pack copy and SQLite bindings; a bundled seed such as `wiki` stays (409) without `confirm_seed`.
 
 The job stays `queued`. This card does not mark it done and does not run a silent LLM rewrite.
 
-### Live test
+### Live test (chrome pass, still In Review)
 
-1. Open Skill Studio. Enter a skill name (or load a skill). Click **Build** or **Review**.
-2. Observe opens on that `job_id`. The timeline shows a developer job and a Skill Studio packet line for the skill id. **Open in Chat** shows the same id on the Chat job strip. You do not type the id.
-3. Attach a fixture patch (the queued job does not call the model by itself):
+1. Pull `feat/card-420-developer-mediated-authoring-v1`, reload serve, hard-refresh the browser.
+2. Open Skill Studio. Enter a skill name (or load a skill). Click **Ask developer**. There is no separate Build or Review button.
+3. Observe opens once on that `job_id`. The Skill Studio strip shows the same id and does not keep **Watch in Observe** or **Open in Chat**. You do not type the id.
+4. **Save skill** is still the durable write. **Generate / Refine Runbook** is the smaller outline control. External source context and reference notes sit above the SKILL.md editor.
+5. Attach a fixture patch (the queued job does not call the model by itself):
 
 ```bash
 curl -s -X POST "http://127.0.0.1:8000/api/skill_studio/authoring/jobs/JOB_ID/proposals" \
@@ -181,6 +184,20 @@ curl -s -X POST "http://127.0.0.1:8000/api/skill_studio/authoring/jobs/JOB_ID/pr
   -d '{"patches":[{"field":"description","value":"Shorter trigger text"}]}'
 ```
 
-4. Within a few seconds Skill Studio shows the patch. **Accept** changes the description in the form. **Save skill** still writes the skill store and SQLite bindings. **Reject** leaves the form as it was.
-5. Break frontmatter or type a tool id that is not in the catalog, then leave the runbook field. The amber cheap-lint panel updates and does not open a second job. Agent Studio skill pills are unchanged.
+6. Within a few seconds Skill Studio shows the patch. **Accept** changes the description in the form. **Save skill** still writes the skill store and SQLite bindings. **Reject** leaves the form as it was.
+7. Break frontmatter or type a tool id that is not in the catalog, then leave the runbook field. The amber cheap-lint panel updates and does not open a second job. Agent Studio skill pills are unchanged.
+8. Load a skill you saved in the skill store. **Delete skill** asks you to confirm, then the form clears and the skill leaves the picker. A bundled seed such as `wiki` does not offer delete.
+
+## 10. Chrome pass (locked after the job-wire live test)
+
+Still In Review. Same branch. Jacob locked this layout after the developer job wire worked:
+
+| Control | Locked |
+|---------|--------|
+| **Ask developer** | One primary button. Same job path as Build, intent `build`. |
+| **Save skill** | Unchanged durable write. |
+| **Generate / Refine Runbook** | Quieter secondary control. |
+| Job strip | `job_…` id only. Observe opens once on success. No permanent jump buttons. |
+| Source context | Above the SKILL.md editor, with metadata and tools. |
+| **Delete skill** | Confirm dialog. Existing user-pack delete. Hidden when the skill is not an operator store file, or when it is a bundled seed. After delete, clear the workshop selection. Also drops that id’s pack copies and SQLite bindings. |
 

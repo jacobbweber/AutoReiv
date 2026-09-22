@@ -6,6 +6,8 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+import { indexListedSkills } from '../../../src/web/static/modules/studios/factory/skill_scope.js';
+import { applyLoadedSkillView, skillDeleteRequest } from '../../../src/web/static/modules/studios/factory/workshop_meta.js';
 import { formatStandingJourneyEvent } from '../../../src/web/static/modules/studios/observability.js';
 import {
   AUTHORING_JOBS_URL,
@@ -158,21 +160,59 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(rejected.draft.markdown).toBe(draft.markdown);
   });
 
-  it('Skill Studio exposes Build/Review and does not retarget Agent Studio pills [REQ-420-002, REQ-420-005]', () => {
-    expect(skillView).toContain('id="skillStudioBuildBtn"');
-    expect(skillView).toContain('id="skillStudioReviewBtn"');
-    expect(skillView).toContain('Watch in Observe');
-    expect(skillView).toContain('Open in Chat');
+  it('Ask developer is the one job control; pills and Save stay put [REQ-420-002, REQ-420-005]', () => {
+    expect(skillView).toContain('id="skillStudioAskDeveloperBtn"');
+    expect(skillView).toContain('>Ask developer</span>');
+    expect(skillView).not.toContain('id="skillStudioBuildBtn"');
+    expect(skillView).not.toContain('id="skillStudioReviewBtn"');
+    expect(skillView).not.toContain('id="skillStudioWatchBtn"');
+    expect(skillView).not.toContain('id="skillStudioChatBtn"');
+    expect(skillView).not.toContain('Watch in Observe');
+    expect(skillView).not.toContain('Open in Chat');
+    expect(skillView).toContain('id="skillStudioJobId"');
+    expect(skillView).toContain('data-testid="skill-studio-job-id"');
     expect(skillView).toContain('id="skillStudioAcceptBtn"');
     expect(skillView).toContain('id="skillStudioRejectBtn"');
     expect(skillView).toContain('data-testid="skill-studio-lint"');
     expect(skillView).toContain('id="factorySaveSkillBtn"');
+    expect(skillView).toContain('>Save skill</span>');
+    expect(skillView).toContain('id="factoryGenerateRunbookBtn"');
+    expect(skillView).toContain('data-testid="skill-studio-generate"');
+    const generateBtn = skillView.slice(
+      skillView.indexOf('id="factoryGenerateRunbookBtn"'),
+      skillView.indexOf('id="skillStudioDeleteBtn"'),
+    );
+    expect(generateBtn).toContain('text-[11px]');
+    expect(generateBtn).toContain('bg-transparent');
+    expect(generateBtn).not.toContain('bg-sky-600');
+    expect(generateBtn).not.toContain('bg-emerald-600');
+
+    const sourceIdx = skillView.indexOf('id="factorySourceContextInput"');
+    const editorIdx = skillView.indexOf('id="factorySkillMarkdownEditor"');
+    const toolsIdx = skillView.indexOf('3. Capabilities');
+    expect(sourceIdx).toBeGreaterThan(-1);
+    expect(sourceIdx).toBeLessThan(editorIdx);
+    expect(sourceIdx).toBeLessThan(toolsIdx);
+
+    expect(skillView).toContain('id="skillStudioDeleteBtn"');
+    expect(skillView).toContain('>Delete skill</span>');
+    expect(skillView).toContain('data-testid="skill-studio-delete"');
 
     expect(skillStudio).toContain('bindSkillStudioAuthoring');
     expect(skillStudio).toContain('/api/agent_training_factory/scaffold/save');
+    expect(skillStudio).toContain('skillDeleteRequest');
+    expect(skillStudio).toContain('window.confirm');
+    expect(skillStudio).not.toContain('confirm_seed');
     expect(skillStudio).not.toContain('allowed_skill');
-    expect(authoring).toContain('submitSkillAuthoring');
+    expect(authoring).toContain("submitSkillAuthoring(draft, 'build')");
+    expect(authoring).toContain('skillStudioAskDeveloperBtn');
+    expect(authoring).not.toContain('skillStudioBuildBtn');
+    expect(authoring).not.toContain('skillStudioReviewBtn');
+    expect(authoring).not.toContain('skillStudioWatchBtn');
+    expect(authoring).not.toContain('skillStudioChatBtn');
+    expect(authoring).not.toContain('openAuthoringChat');
     expect(authoring).toContain('openObserveJob');
+    expect(authoring).toContain('skillStudioJobId');
     expect(authoring).toContain("submitAuthoringDecision(authoringJobId, 'accept')");
     expect(authoring).toContain("submitAuthoringDecision(authoringJobId, 'reject')");
     const acceptFn = authoring.slice(
@@ -183,6 +223,7 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(acceptFn).not.toContain('handleSaveSkill');
     expect(acceptFn).toContain('writeDraft');
 
+    expect(pills).not.toContain('skillStudioAskDeveloperBtn');
     expect(pills).not.toContain('skillStudioBuildBtn');
     expect(pills).not.toContain('/api/skill_studio/authoring/jobs');
 
@@ -194,6 +235,42 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
       kind: 'skill_studio_authoring_packet',
       payload: { intent: 'build', skill_id: 'wiki_digest', blocker_count: 1 },
     })).toContain('Skill Studio build packet');
+  });
+
+  it('delete confirms, encodes the id, and refuses protected skills', () => {
+    const blocked = skillDeleteRequest('wiki', { confirmed: true, deletable: false });
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.url).toBeNull();
+
+    const unconfirmed = skillDeleteRequest('notes', { confirmed: false, deletable: true });
+    expect(unconfirmed.allowed).toBe(false);
+
+    const planned = skillDeleteRequest('group/notes', { confirmed: true, deletable: true });
+    expect(planned.allowed).toBe(true);
+    expect(planned.method).toBe('DELETE');
+    expect(planned.url).toBe('/api/skills/user-packs/group/notes?confirm=true');
+    expect(planned.url).not.toContain('confirm_seed');
+
+    const loaded = applyLoadedSkillView({
+      skill_id: 'notes',
+      name: 'Notes',
+      deletable: true,
+      markdown_content: '# Notes\n',
+    }, 'notes');
+    expect(loaded.deletable).toBe(true);
+    const seed = applyLoadedSkillView({ skill_id: 'wiki', name: 'Wiki' }, 'wiki');
+    expect(seed.deletable).toBe(false);
+
+    const options = indexListedSkills(
+      [
+        { id: 'notes', name: 'Notes', source: 'store', deletable: true },
+        { id: 'wiki', name: 'Wiki', source: 'store', deletable: false },
+      ],
+      ['notes'],
+    );
+    expect(options.find((row) => row.id === 'notes').deletable).toBe(true);
+    expect(options.find((row) => row.id === 'notes').source).toBe('assigned');
+    expect(options.find((row) => row.id === 'wiki').deletable).toBe(false);
   });
 
   it('cheap lint refuses a response that minted a job [REQ-420-004]', async () => {
