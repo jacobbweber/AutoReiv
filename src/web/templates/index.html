@@ -3765,30 +3765,46 @@
                 <label for="factoryAgentPromptInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Role Persona / System Instructions</label>
                 <textarea id="factoryAgentPromptInput" rows="6" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
               </div>
-            </div>
 
-            <!-- COLUMN 2: SKILLS & RUNBOOK (lg:col-span-5) -->
-            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
-              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-                <div class="flex items-center space-x-2">
-                  <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
-                  <h3 class="text-xs font-bold text-white uppercase tracking-wider">2. Skills &amp; Runbook</h3>
-                </div>
-                <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
-              </div>
-
-              <!-- Currently Assigned Skills Pills -->
-              <div class="space-y-1.5">
+              <!-- Assigned skills: agent↔skill scoping only (not the skill editor) [CARD-411 UX] -->
+              <div class="space-y-1.5 pt-1 border-t border-white/[0.04]" data-testid="factory-assigned-skills">
                 <div class="flex items-center justify-between">
                   <label class="text-[11px] font-semibold text-slate-400">Assigned Skills (Active on Agent)</label>
-                  <button type="button" id="factoryNewSkillFormBtn" class="text-[10px] text-brand-400 hover:text-brand-300 font-semibold flex items-center space-x-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>
-                    <span>New Skill Form</span>
-                  </button>
+                  <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
                 </div>
                 <div id="factoryCurrentSkillsList" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-[#08090c]/60 rounded-xl border border-white/[0.04]">
                   <span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>
                 </div>
+                <p class="text-[10px] text-slate-500">Pinned to this agent. Author or edit a runbook in column 2.</p>
+              </div>
+            </div>
+
+            <!-- COLUMN 2: SKILL WORKSHOP (lg:col-span-5) -->
+            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
+                  <h3 class="text-xs font-bold text-white uppercase tracking-wider">2. Skill Workshop</h3>
+                </div>
+                <span id="factoryWorkshopSkillBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300" data-testid="factory-workshop-badge">New skill</span>
+              </div>
+
+              <!-- Existing skill picker + New Skill [CARD-411 UX] -->
+              <div class="space-y-2" data-testid="factory-skill-picker-row">
+                <div class="flex flex-col sm:flex-row sm:items-end gap-2">
+                  <div class="flex-1 min-w-0 space-y-1.5">
+                    <label for="factoryExistingSkillSelect" class="block text-[11px] font-semibold text-slate-400">Existing skill</label>
+                    <input type="search" id="factoryExistingSkillFilter" placeholder="Filter skills by name or id..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" data-testid="factory-existing-skill-filter" autocomplete="off">
+                    <select id="factoryExistingSkillSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono" data-testid="factory-existing-skill">
+                      <option value="">— Select a skill to edit —</option>
+                    </select>
+                  </div>
+                  <button type="button" id="factoryNewSkillFormBtn" class="shrink-0 px-3 py-2 rounded-xl bg-brand-950/50 hover:bg-brand-900/60 border border-brand-500/30 text-brand-300 hover:text-white text-[11px] font-semibold flex items-center justify-center space-x-1.5 transition" data-testid="factory-new-skill">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>+ New Skill</span>
+                  </button>
+                </div>
+                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Column 1 shows which skills are pinned to the agent.</p>
               </div>
 
               <!-- Author Skill Form -->
@@ -3820,28 +3836,48 @@
                   <input type="hidden" id="factoryIntakeDeliverableType" value="skill">
                 </div>
 
-                <div id="factorySkillMetaPanel" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-[#08090c]/70 border border-white/[0.06]" data-testid="factory-skill-meta">
-                  <div>
-                    <label for="factorySkillTierSelect" class="block text-[11px] font-semibold text-slate-400 mb-1">Tier</label>
-                    <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
-                      <option value="pack">pack</option>
-                      <option value="platform">platform</option>
-                      <option value="user">user</option>
-                    </select>
-                  </div>
-                  <fieldset class="space-y-1">
+                <div id="factorySkillMetaPanel" class="space-y-3 p-3 rounded-xl bg-[#08090c]/70 border border-white/[0.06]" data-testid="factory-skill-meta">
+                  <fieldset class="space-y-2.5">
                     <legend class="text-[11px] font-semibold text-slate-400 mb-1">Safety</legend>
-                    <label class="flex items-center gap-2 text-[11px] text-slate-300"><input id="factorySkillSafetyReadOnly" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="read_only"> Read only</label>
-                    <label class="flex items-center gap-2 text-[11px] text-slate-300"><input id="factorySkillSafetyHitl" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="requires_hitl"> Requires approval</label>
-                    <label class="flex items-center gap-2 text-[11px] text-slate-300"><input id="factorySkillSafetyUntrusted" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="untrusted_input_allowed"> Untrusted input</label>
+                    <label class="flex flex-col gap-0.5 text-[11px] text-slate-300">
+                      <span class="inline-flex items-center gap-2 font-medium">
+                        <input id="factorySkillSafetyHitl" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="requires_hitl">
+                        Requires approval
+                      </span>
+                      <span class="text-[10px] text-slate-500 pl-6 leading-snug">Pause for human approval before sensitive work.</span>
+                    </label>
+                    <label class="flex flex-col gap-0.5 text-[11px] text-slate-300">
+                      <span class="inline-flex items-center gap-2 font-medium">
+                        <input id="factorySkillSafetyReadOnly" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="read_only">
+                        Read only
+                      </span>
+                      <span class="text-[10px] text-slate-500 pl-6 leading-snug">Declares this runbook should not change the host or data; lint/contract flag, not a hard kernel lock on every tool.</span>
+                    </label>
+                    <label class="flex flex-col gap-0.5 text-[11px] text-slate-300">
+                      <span class="inline-flex items-center gap-2 font-medium">
+                        <input id="factorySkillSafetyUntrusted" type="checkbox" class="rounded border-white/[0.2] bg-[#08090c] text-brand-500" data-safety="untrusted_input_allowed">
+                        Untrusted input
+                      </span>
+                      <span class="text-[10px] text-slate-500 pl-6 leading-snug">Allows ingesting untrusted external content; if on with mutating tools, Requires approval must also be on (linter enforces that).</span>
+                    </label>
                   </fieldset>
-                  <div class="sm:col-span-2">
+                  <div>
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-[11px] font-semibold text-slate-400">Required tools</span>
                       <span class="text-[10px] text-slate-500">Picker in column 3 writes <span class="font-mono">requires_tools</span></span>
                     </div>
                     <div id="factoryRequiredToolsChips" class="flex flex-wrap gap-1.5 min-h-[28px]" data-testid="factory-required-tools"></div>
                   </div>
+                  <details class="rounded-lg border border-white/[0.04] bg-[#0e1015]/50 px-2.5 py-2" data-testid="factory-skill-tier-advanced">
+                    <summary class="text-[11px] text-slate-500 cursor-pointer select-none">Advanced: Tier (legacy taxonomy)</summary>
+                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Runtime scoping uses the assigned-skills list in column 1.</p>
+                    <label for="factorySkillTierSelect" class="sr-only">Tier</label>
+                    <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                      <option value="pack">pack</option>
+                      <option value="platform">platform</option>
+                      <option value="user">user</option>
+                    </select>
+                  </details>
                 </div>
 
                 <!-- Live SKILL.md Editor -->

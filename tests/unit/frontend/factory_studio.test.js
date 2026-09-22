@@ -79,11 +79,15 @@ describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
     expect(html).toContain('id="factoryAgentNameInput"');
     expect(html).toContain('id="factoryAgentPromptInput"');
     expect(html).not.toContain('id="factoryAgentModelSelect"');
-
-    // Column 2: Skills & Runbook
     expect(html).toContain('id="factoryCurrentSkillsList"');
     expect(html).toContain('id="factoryAssignedSkillsCount"');
+    expect(html).toContain('data-testid="factory-assigned-skills"');
+
+    // Column 2: Skill Workshop
+    expect(html).toContain('id="factoryExistingSkillSelect"');
+    expect(html).toContain('id="factoryExistingSkillFilter"');
     expect(html).toContain('id="factoryNewSkillFormBtn"');
+    expect(html).toContain('id="factoryWorkshopSkillBadge"');
     expect(html).toContain('id="factorySkillNameInput"');
     expect(html).toContain('id="factorySkillIdInput"');
     expect(html).toMatch(/id="factorySkillIdInput"[^>]*readonly/);

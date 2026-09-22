@@ -18,6 +18,7 @@ labels:
 > **Status**: In Review  
 > **Created**: 2026-09-21  
 > **Decided**: 2026-09-22 — Option A, full scope (Jacob). ADR-0056 is Accepted; CARD-414 wiki/SQLite cutover is on `qa`. The old "blocked until ADR-0056" banner is retired.  
+> **UX pass**: 2026-09-22 — Factory layout (assigned skills → col 1; existing-skill picker → col 2; quiet Tier; safety help). Still In Review; do not mark Done until retest.  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) Hybrid C+  
 > **Labels**: `type:feat`, `type:refactor`, `area:ux`, `area:skills`, `area:forge`  
 
@@ -52,6 +53,7 @@ Decided 2026-09-22. Do not reopen Option B.
 ### Agent Training Factory — sole capability workshop
 
 - Structured controls: name, description (trigger), tier (`platform` / `pack` / `user`), safety (`read_only`, `requires_hitl`, `untrusted_input_allowed`).
+- **Layout (live-test UX pass 2026-09-22)**: Column 1 = agent brief + **Assigned Skills** under Role Persona (scope chips only). Column 2 = **Skill Workshop** with Existing skill picker + **+ New Skill** (one runbook at a time). Column 3 = tools/catalog + grounding. Tier is collapsed under Advanced (legacy taxonomy; does not change agent↔skill scoping). Safety checkboxes show short operator help text.
 - Column 3 catalog checkboxes are the only tool multi-select. Adding or removing a tool rewrites `requires_tools` in the SKILL.md textarea. Ids that are not in the platform tool catalog are dropped in the editor and rejected by save (`400`).
 - Save writes the same SKILL.md bytes to the skill store (`{data}/skills/<id>/SKILL.md`) and the agent pack home (`{data}/packs/<agent>/skills/<id>/SKILL.md`).
 - Tool bindings are replaced in operational SQLite (`skill_binding_meta` + `skill_tool_bindings`). An empty tool list still writes a meta row so removals stick.
@@ -70,16 +72,21 @@ Forge skill row
     Body (readonly)
     [ Open in Factory Workshop ] [ Validate ] [ Cancel ]
 
+Factory column 1
+  Target agent | Name | Role Persona
+  Assigned Skills (active on agent)   <-- scope only, not the editor
+
 Factory column 2
-  Name | Skill id
-  Description (<= 60)
-  Tier select | Safety checkboxes
-  Required tools chips (remove unchecks column 3)
-  SKILL.md textarea (frontmatter rewritten from the controls)
+  Existing skill picker | [ + New Skill ]
+  Name | Skill id | Description | Intent
+  Safety (+ help) | Required tools chips
+  Advanced: Tier (legacy)
+  SKILL.md textarea
 
 Factory column 3
   Catalog tool checkboxes  <-- single add/remove lever
-  [ Save & Pin ]
+  Grounding notes
+  [ Save & Pin ] (top action bar)
 ```
 
 ### API
@@ -139,10 +146,13 @@ Still present, on purpose: `PUT /api/skills/user-packs/{id}` remains for non-For
 1. Start serve from this branch (`feat/card-411-forge-factory-skill-bindings`). Open Agent Studio.
 2. Confirm a skill row says **Inspect**, not Edit Runbook. There is no Save, Archive, Delete, or New runbook.
 3. Inspect a skill. Name, description, tier, safety, and required tools are visible and not editable. **Open in Factory Workshop** lands in Factory with that skill loaded.
-4. In Factory, tick one catalog tool that this skill did not have. The SKILL.md box gains that id under `requires_tools`. Untick it and the id leaves the frontmatter.
-5. Tick a real catalog tool, **Save & Pin Skill to Agent**.
-6. Open `{data}/skills/<skill_id>/SKILL.md` and confirm `requires_tools` lists that tool. Confirm `packs/<agent>/pack.json` does not list that tool under `skills[].tools`.
-7. Optional SQL: `SELECT tool_id FROM skill_tool_bindings WHERE skill_id = '<skill_id>';` returns the tool.
-8. Start a chat turn with an agent that has this skill. The tool is available (or the binding is the row from step 7).
+4. In Factory column 1: Assigned Skills sit under Role Persona (empty for a new agent). Chips are scope labels, not the editor.
+5. In Factory column 2: use **Existing skill** to load a runbook, or **+ New Skill** to clear the form. Assigned Skills must not appear at the top of column 2.
+6. Confirm Safety help text under each checkbox, and Tier only under **Advanced: Tier (legacy taxonomy)**.
+7. Tick one catalog tool that this skill did not have. The SKILL.md box gains that id under `requires_tools`. Untick it and the id leaves the frontmatter.
+8. Tick a real catalog tool, **Save & Pin Skill to Agent**.
+9. Open `{data}/skills/<skill_id>/SKILL.md` and confirm `requires_tools` lists that tool. Confirm `packs/<agent>/pack.json` does not list that tool under `skills[].tools`.
+10. Optional SQL: `SELECT tool_id FROM skill_tool_bindings WHERE skill_id = '<skill_id>';` returns the tool.
+11. Start a chat turn with an agent that has this skill. The tool is available (or the binding is the row from step 10).
 
 Reply **merge to qa** after that passes.
