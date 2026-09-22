@@ -65,9 +65,10 @@ describe('Capabilities & Scaffolding Workshop Studio [CARD-386]', () => {
     expect(html).toContain('id="factoryIntakeTalkToForgeBtn"');
     expect(html).toContain('1. Talk it out with Forge');
     expect(html).toContain('id="factoryGenerateRunbookBtn"');
-    expect(html).toContain('2. ✨ Generate / Refine Runbook');
+    expect(html).toContain('Generate / Refine Runbook');
     expect(html).toContain('id="factorySaveSkillBtn"');
-    expect(html).toContain('3. 💾 Save &amp; Pin Skill to Agent');
+    expect(html).toContain('Save skill');
+    expect(html).toContain('Edit skills in Skill Studio');
     expect(html).toContain('id="factoryGenerateStatusText"');
     expect(html).toContain('id="factorySaveFeedbackMsg"');
 

@@ -100,7 +100,7 @@ export function createSkillScopeUI({
       const pill = document.createElement('span');
       pill.className = 'inline-flex items-center space-x-1.5 px-2 py-1 rounded-lg text-xs font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300';
       pill.dataset.skillId = sid;
-      pill.title = 'Pinned to this agent (edit via Existing skill in column 2)';
+      pill.title = 'Pinned to this agent. Edit in Skill Studio.';
       pill.innerHTML = `
         <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
         <span>${escapeHtml(sid)}</span>

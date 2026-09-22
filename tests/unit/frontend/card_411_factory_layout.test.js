@@ -86,8 +86,10 @@ describe('Factory layout UX [CARD-411]', () => {
     expect(skillScope).toContain('Pinned to this agent');
     expect(skillScope).not.toContain('factory-skill-open-btn');
     expect(skillScope).toContain('onLoadSkill');
-    expect(factoryJs).toContain('createSkillScopeUI');
-    expect(factoryJs).toContain('refreshEditableSkillOptions');
+    const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
+    expect(skillStudio).toContain('createSkillScopeUI');
+    expect(skillStudio).toContain('refreshEditableSkillOptions');
+    expect(factoryJs).not.toContain('/api/agent_training_factory/scaffold/save');
   });
 });
 

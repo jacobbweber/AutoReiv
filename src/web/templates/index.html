@@ -168,6 +168,10 @@
             <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-emerald-400"></i>
             <span id="navFactory">Factory</span>
           </button>
+          <button id="tab-skill-studio" data-tab="skill-studio" data-studio="skill-studio" role="tab" aria-selected="false" aria-controls="view-skill-studio" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Skill Studio</span>
+          </button>
           <button id="tab-routines" data-tab="routines" role="tab" aria-selected="false" aria-controls="view-routines" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
             <i data-lucide="clock" class="w-3.5 h-3.5"></i>
             <span>Routines</span>
@@ -1412,9 +1416,9 @@
                 <div class="flex flex-wrap items-center gap-2 pt-1">
                   <button id="studioOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" data-testid="forge-open-factory">
                     <i data-lucide="hammer" class="w-3.5 h-3.5"></i>
-                    <span>Author skill in Factory</span>
+                    <span>Author skill in Skill Studio</span>
                   </button>
-                  <span class="text-[10px] text-slate-500">Skill runbooks and tool bindings are authored in the Agent Training Factory.</span>
+                  <span class="text-[10px] text-slate-500">Skill runbooks and tool bindings are authored in Skill Studio.</span>
                 </div>
               </div>
 
@@ -1563,7 +1567,7 @@
               </div>
               <div id="studioRunbookLintStatus" class="hidden rounded-lg p-2.5 text-xs transition-all"></div>
               <div class="flex flex-wrap items-center gap-2">
-                <button id="studioRunbookOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold" data-testid="forge-runbook-open-factory">Open in Factory Workshop</button>
+                <button id="studioRunbookOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold" data-testid="forge-runbook-open-factory">Open in Skill Studio</button>
                 <button id="studioRunbookValidateBtn" type="button" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-brand-300 rounded-lg text-xs font-semibold border border-white/[0.08] flex items-center space-x-1.5">
                   <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
                   <span>Validate runbook</span>
@@ -3668,20 +3672,13 @@
             </div>
             <div>
               <div class="flex items-center space-x-2">
-                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Agent &amp; Skill Scaffolder</h2>
+                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Factory</h2>
                 <span id="factoryActiveStatusPill" class="px-2 py-0.5 rounded-full text-[10px] font-mono border bg-[#13161f] border-white/[0.08] text-slate-300">
                   Ready
                 </span>
               </div>
-              <p class="text-[11px] text-slate-400 hidden sm:block">Scaffold agent packs, bind capabilities, and author Matt Pocock SKILL.md runbooks</p>
+              <p class="text-[11px] text-slate-400 hidden sm:block">Agent brief and assigned skills. Author runbooks in Skill Studio.</p>
             </div>
-          </div>
-
-          <!-- Studio Actions -->
-          <div class="flex items-center space-x-2">
-            <button type="button" id="factoryRefreshBtn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Factory State">
-              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-            </button>
           </div>
         </div>
 
@@ -3698,29 +3695,17 @@
               </button>
 
               <!-- Step 2: Generate / Refine Runbook -->
-              <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center justify-center space-x-2 shrink-0">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                <span>2. ✨ Generate / Refine Runbook</span>
+              <button type="button" id="factoryOpenSkillStudioBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="factory-open-skill-studio">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span>Edit skills in Skill Studio</span>
               </button>
-
-              <!-- Step 3: Save & Pin Skill to Agent -->
-              <button type="button" id="factorySaveSkillBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 shrink-0">
-                <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                <span>3. 💾 Save &amp; Pin Skill to Agent</span>
-              </button>
-            </div>
-
-            <!-- Status & Feedback Area -->
-            <div class="flex items-center space-x-2 shrink-0 justify-end">
-              <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
-              <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
             </div>
           </div>
 
           <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">
             
             <!-- COLUMN 1: AGENT BRIEF (lg:col-span-3) -->
-            <div id="factoryIntakeAgentCard" class="lg:col-span-3 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+            <div id="factoryIntakeAgentCard" class="lg:col-span-12 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
@@ -3775,12 +3760,54 @@
                 <div id="factoryCurrentSkillsList" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-[#08090c]/60 rounded-xl border border-white/[0.04]">
                   <span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>
                 </div>
-                <p class="text-[10px] text-slate-500">Pinned to this agent. Author or edit a runbook in column 2.</p>
+                <p class="text-[10px] text-slate-500">Pinned to this agent. Author or edit the runbook in Skill Studio.</p>
               </div>
             </div>
 
-            <!-- COLUMN 2: SKILL WORKSHOP (lg:col-span-5) -->
-            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+      <section id="view-skill-studio" role="tabpanel" aria-labelledby="tab-skill-studio" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full min-h-0 overflow-hidden relative hidden" data-card="418">
+        <div id="skillStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden" data-testid="skill-studio">
+          <div class="px-4 md:px-6 py-3 bg-[#0e1015]/90 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3 flex-shrink-0 backdrop-blur-md z-10">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-xl bg-sky-950/60 border border-sky-500/30 flex items-center justify-center text-sky-400 shadow-sm shadow-sky-500/10">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Skill Studio</h2>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Pick or create a skill, set metadata, and scope tools. Save writes the skill store and SQLite bindings.</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" id="factoryRefreshBtn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Skill Studio">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
+            <div id="skillStudioActionBar" class="mb-3 p-3 sm:p-3.5 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-shrink-0">
+              <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 min-w-0 flex-1">
+                <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center justify-center space-x-2 shrink-0">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                  <span>Generate / Refine Runbook</span>
+                </button>
+                <button type="button" id="factorySaveSkillBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-save">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                  <span>Save skill</span>
+                </button>
+              </div>
+              <div class="flex items-center space-x-2 shrink-0 justify-end">
+                <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
+                <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">
+            <!-- COLUMN 2: SKILL WORKSHOP (lg:col-span-7) -->
+            <div class="lg:col-span-7 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
@@ -3804,7 +3831,7 @@
                     <span>+ New Skill</span>
                   </button>
                 </div>
-                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Column 1 shows which skills are pinned to the agent.</p>
+                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Assigned skills stay on the Factory agent brief.</p>
               </div>
 
               <!-- Author Skill Form -->
@@ -3864,13 +3891,13 @@
                   <div>
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-[11px] font-semibold text-slate-400">Required tools</span>
-                      <span class="text-[10px] text-slate-500">Picker in column 3 writes <span class="font-mono">requires_tools</span></span>
+                      <span class="text-[10px] text-slate-500">The tool catalog writes <span class="font-mono">requires_tools</span></span>
                     </div>
                     <div id="factoryRequiredToolsChips" class="flex flex-wrap gap-1.5 min-h-[28px]" data-testid="factory-required-tools"></div>
                   </div>
                   <details class="rounded-lg border border-white/[0.04] bg-[#0e1015]/50 px-2.5 py-2" data-testid="factory-skill-tier-advanced">
                     <summary class="text-[11px] text-slate-500 cursor-pointer select-none">Advanced: Tier (legacy taxonomy)</summary>
-                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Runtime scoping uses the assigned-skills list in column 1.</p>
+                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Runtime scoping uses the assigned-skills list on the Factory agent brief.</p>
                     <label for="factorySkillTierSelect" class="sr-only">Tier</label>
                     <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
                       <option value="pack">pack</option>
@@ -3891,8 +3918,8 @@
               </div>
             </div>
 
-            <!-- COLUMN 3: CAPABILITIES & GROUNDING (lg:col-span-4) -->
-            <div class="lg:col-span-4 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+            <!-- COLUMN 3: CAPABILITIES & GROUNDING (lg:col-span-5) -->
+            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
@@ -3939,13 +3966,12 @@
               </div>
 
             </div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-
-      <!-- ===========<!-- ==================== SESSION ARTIFACT INSPECTOR MODAL [REQ-ART-005] ==================== -->
+      <!-- ==================== SESSION ARTIFACT INSPECTOR MODAL [REQ-ART-005] ==================== -->
       <div id="artifactModal" role="dialog" aria-modal="true" aria-labelledby="artifactModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
         <div id="artifactModalCard" class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
           
