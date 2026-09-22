@@ -6,6 +6,10 @@
 
 ### Changed
 
+- **CARD-419 Agent Studio skill toggle pills**: Agent Studio turns skills on and off with toggle pills. On adds the skill id to the agent's durable `allowed_skill` list; off removes it. Save still writes that list through the existing agent profile API. Clicking a pill does not open Skill Studio. Each skill row has **Open in Skill Studio**. Factory's allowed-skills strip is display-only and links to Skill Studio (`src/web/static/modules/studios/forge/skill_pills.js`, `src/web/static/modules/studios/forge/runbook.js`, `src/web/static/modules/studios/forge.js`, `src/web/static/modules/studios/factory/skill_scope.js`, `src/web/templates/index.html` [CARD-419]).
+
+- **CARD-419 Agent Studio Inspect removed**: Agent Studio no longer has an Inspect button or an inline runbook viewer (`#studioRunbookEditor`). Viewing and editing a skill stays in Skill Studio (`src/web/static/modules/studios/forge/runbook.js`, `src/web/templates/index.html` [CARD-419]).
+
 - **CARD-418 Factory cutover (thin shell)**: Factory keeps the agent brief and the display-only assigned-skills list, and links to Skill Studio. Forge **Open in Factory Workshop** and **Author skill in Factory** now open Skill Studio and load the selected skill by id (`src/web/static/modules/studios/factory.js`, `src/web/static/modules/studios/forge/runbook.js`, `src/application/skills/workshop.py`, `src/web/routers/agent_training_factory.py` [CARD-418]).
 
 ## [0.40.0] - 2026-09-22

@@ -95,7 +95,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#forgePurposeSelect')).toHaveCount(0);
     await expect(page.locator('#forgeModelSelect')).toHaveCount(0);
     await expect(page.locator('#tab-skills')).toHaveCount(0);
-    await expect(page.locator('#studioRunbookBody')).toBeAttached();
+    await expect(page.locator('#forgeSkillsSection')).toBeAttached();
+    await expect(page.locator('#studioRunbookBody')).toHaveCount(0);
+    await expect(page.locator('#studioRunbookEditor')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Agent Studio' })).toBeAttached();
 
     // 4. Settings Studio

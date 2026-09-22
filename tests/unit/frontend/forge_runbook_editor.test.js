@@ -1,6 +1,6 @@
 /**
- * CARD-167: Agent Studio Skill Runbook Editor Close and Cancel Dismiss Controls.
- * Verifies that #studioRunbookEditor provides top-right close 'x' and bottom Cancel button.
+ * CARD-167 close/cancel lived on the Agent Studio inline runbook inspector.
+ * CARD-419 removed that inspector. Skill detail is Open in Skill Studio only.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -13,25 +13,22 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-describe('Agent Studio Runbook Editor Dismiss Controls [CARD-167]', () => {
-  it('index.html contains #studioRunbookCloseBtn and #studioRunbookCancelBtn inside #studioRunbookEditor', () => {
-    const html = read('src/web/templates/index.html');
-    expect(html).toContain('id="studioRunbookEditor"');
-    expect(html).toContain('id="studioRunbookCloseBtn"');
-    expect(html).toContain('id="studioRunbookCancelBtn"');
+describe('Agent Studio has no inline runbook inspector [CARD-419]', () => {
+  const html = read('src/web/templates/index.html');
+  const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
+
+  it('index.html does not mount #studioRunbookEditor or its dismiss controls', () => {
+    expect(html).not.toContain('id="studioRunbookEditor"');
+    expect(html).not.toContain('id="studioRunbookCloseBtn"');
+    expect(html).not.toContain('id="studioRunbookCancelBtn"');
+    expect(html).not.toContain('studio-runbook-open-btn');
   });
 
-  it('forge.js wires #studioRunbookCloseBtn and #studioRunbookCancelBtn to hideRunbookEditor()', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
-    expect(forgeJs).toContain('studioRunbookCloseBtn');
-    expect(forgeJs).toContain('studioRunbookCancelBtn');
-    expect(forgeJs).toMatch(/studioRunbookCloseBtn.*addEventListener\(['"]click['"],\s*(?:\(\)\s*=>\s*\{?\s*)?hideRunbookEditor/);
-    expect(forgeJs).toMatch(/studioRunbookCancelBtn.*addEventListener\(['"]click['"],\s*(?:\(\)\s*=>\s*\{?\s*)?hideRunbookEditor/);
-  });
-
-  it('forge.js passes clicked skill row to openRunbookEditor and mounts #studioRunbookEditor adjacent to target row [CARD-200, REQ-SKILL-021]', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
-    expect(forgeJs).toContain("btn.closest('.forge-skill-row')");
-    expect(forgeJs).toMatch(/targetRow\.after\(studioRunbookEditor\)|targetRow\.appendChild\(studioRunbookEditor\)/);
+  it('forge does not open or mount an inline runbook viewer', () => {
+    expect(forgeJs).not.toContain('hideRunbookEditor');
+    expect(forgeJs).not.toContain('openRunbookEditor');
+    expect(forgeJs).not.toContain('studioRunbookEditor');
+    expect(forgeJs).toContain('Open in Skill Studio');
+    expect(forgeJs).toContain('forge-skill-pill');
   });
 });
