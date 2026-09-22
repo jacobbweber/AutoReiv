@@ -3,7 +3,7 @@ id: CARD-416
 title: "Wiki establish: scrub polluted 01_Notes taxonomy dirs; keep Notes empty"
 status: Ready
 created: 2026-09-21
-investigation: scratch/CARD-wiki-notes-scrub-investigation.md
+investigation: docs/design/CARD-416-wiki-notes-scrub-investigation.md
 labels:
   - type:bug
   - area:wiki
@@ -14,7 +14,7 @@ labels:
 
 > **Status**: Ready  
 > **Created**: 2026-09-21  
-> **Investigation**: [scratch/CARD-wiki-notes-scrub-investigation.md](../../scratch/CARD-wiki-notes-scrub-investigation.md)  
+> **Investigation**: [docs/design/CARD-416-wiki-notes-scrub-investigation.md](../../docs/design/CARD-416-wiki-notes-scrub-investigation.md)  
 > **Labels**: `type:bug`, `area:wiki`, `area:test`
 
 ---
