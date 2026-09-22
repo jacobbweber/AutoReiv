@@ -1788,8 +1788,22 @@
             <div><span class="text-slate-500">Path:</span> <span id="dataDirRoot">-</span></div>
             <div><span class="text-slate-500">db:</span> <span id="dataDirDb">-</span></div>
             <div><span class="text-slate-500">wiki:</span> <span id="dataDirWiki">-</span></div>
+            <div><span class="text-slate-500">wiki status:</span> <span id="dataDirWikiStatus">-</span></div>
             <div><span class="text-slate-500">skills:</span> <span id="dataDirSkills">-</span></div>
           </dl>
+          <div class="pt-3 mt-2 border-t border-white/[0.06] space-y-2" data-card="414">
+            <h4 class="text-xs font-bold text-slate-200">Wiki vault path (ADR-0056)</h4>
+            <p class="text-[11px] text-slate-400">Local installs require an explicit path — no suggested default. Scaffold only after you confirm. Docker/daemon requires <code class="font-mono text-slate-400">AUTOREIV_WIKI_PATH</code> + volume at deploy time.</p>
+            <input id="wikiPathInput" type="text" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all" placeholder="Absolute path — leave empty until you choose" autocomplete="off" />
+            <label class="flex items-center gap-2 text-[11px] text-slate-300">
+              <input id="wikiScaffoldConfirm" type="checkbox" class="rounded border-white/20 bg-[#08090c]" />
+              Confirm scaffold numbered vault layout at this path
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" id="saveWikiPathBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save wiki path</button>
+            </div>
+            <p id="wikiPathStatusMsg" class="text-[11px] text-slate-400 hidden"></p>
+          </div>
           <div class="flex flex-wrap items-center gap-2 pt-2">
             <button type="button" id="backupDataDirBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
               Backup data dir

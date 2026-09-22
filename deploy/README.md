@@ -108,3 +108,16 @@ Docker mounts a named volume `autoreiv-data` to `/data` in the container. The ca
 - `/data/wiki/` (PARA-Wiki storage)
 - `/data/packs/` (Agent packs & memory)
 - `/data/skills/` (Seeded and custom skills)
+
+## Wiki path (ADR-0056 / CARD-414)
+
+Docker/daemon deployments **must** set:
+
+- `AUTOREIV_DEPLOY_MODE=docker` (or `daemon`)
+- `AUTOREIV_WIKI_PATH` to the in-container mount (e.g. `/data/wiki`)
+- A volume mount for that path
+
+Process/container start **hard-fails** if the wiki path is unset, missing, or unreadable. There is no host folder picker inside the container.
+
+Local Windows/Linux: configure an explicit wiki path in Settings (no suggested default); scaffold only after confirm.
+

@@ -1,6 +1,7 @@
 # ==============================================================================
 # AutoReiv Control Plane - Docker Compose Manifest [REQ-DEPLOY-005]
 # Persistent volume mounts for database & PARA-Wiki storage
+# CARD-414: AUTOREIV_WIKI_PATH + wiki volume are REQUIRED. Process hard-fails if unset/unreadable.
 # ==============================================================================
 
 services:
@@ -15,6 +16,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - AUTOREIV_DATA_DIR=/data
+      # ADR-0056 / CARD-414: wiki is required in docker/daemon mode (hard-fail if missing)
+      - AUTOREIV_DEPLOY_MODE=docker
+      - AUTOREIV_WIKI_PATH=${AUTOREIV_WIKI_PATH:-/data/wiki}
       - PORT=8000
       - HOST=0.0.0.0
       # Local & Self-Hosted Providers
@@ -43,6 +47,9 @@ services:
       - GATEWAY_DEFAULT_TIMEOUT_SECONDS=${GATEWAY_DEFAULT_TIMEOUT_SECONDS:-180.0}
     volumes:
       - autoreiv-data:/data
+      # Host wiki vault (required). Example Windows: D:/AutoReivWiki:/data/wiki
+      # Example Linux: /var/lib/autoreiv/wiki:/data/wiki
+      - ${AUTOREIV_WIKI_HOST_PATH:-autoreiv-wiki}:/data/wiki
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -54,3 +61,4 @@ services:
 
 volumes:
   autoreiv-data:
+  autoreiv-wiki:

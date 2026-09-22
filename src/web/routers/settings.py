@@ -56,14 +56,86 @@ router = APIRouter(tags=["Settings"])
 @router.get("/api/data-dir")
 async def get_data_dir(request: Request):
     """Resolved user data directory paths [REQ-DATA-001, REQ-DATA-002]."""
+    from src.infrastructure.data.wiki_gate import (
+        configured_wiki_path,
+        inspect_wiki_path,
+        resolve_deploy_mode,
+    )
+
     paths = getattr(request.app.state, "data_dir_paths", None)
     if paths is None:
         return {"root": "", "db_path": "", "wiki_path": "", "skills_path": ""}
+    explicit = configured_wiki_path()
+    status = inspect_wiki_path(explicit, deploy_mode=resolve_deploy_mode())
     return {
         "root": str(paths.root),
         "db_path": str(paths.db_path),
-        "wiki_path": str(paths.wiki_path),
+        "wiki_path": str(explicit) if explicit else "",
+        "wiki_structural_path": str(paths.wiki_path),
         "skills_path": str(paths.skills_path),
+        "wiki_status": status.status,
+        "wiki_message": status.message,
+        "wiki_exists": status.exists,
+        "deploy_mode": status.deploy_mode,
+    }
+
+
+class WikiPathBody(BaseModel):
+    path: str
+    confirm_scaffold: bool = False
+
+
+@router.put("/api/settings/wiki-path")
+async def put_wiki_path(request: Request, body: WikiPathBody):
+    """Persist explicit wiki path; scaffold layout only after confirm [ADR-0056]."""
+    from src.domain.wiki.store import WikiStore
+    from src.infrastructure.data.resolver import WIKI_PATH_SETTING_KEY, WIKI_SCAFFOLD_CONFIRMED_KEY
+    from src.infrastructure.data.wiki_gate import inspect_wiki_path, resolve_deploy_mode
+
+    raw = (body.path or "").strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Wiki path is required (no suggested default)")
+    path = Path(raw).expanduser()
+    store = getattr(request.app.state, "store", None)
+    if store is None:
+        raise HTTPException(status_code=500, detail="Store unavailable")
+    store.set_setting(WIKI_PATH_SETTING_KEY, str(path))
+    os.environ["AUTOREIV_WIKI_PATH"] = str(path)
+    request.app.state.wiki_path = str(path)
+    scaffolded = False
+    if body.confirm_scaffold:
+        path.mkdir(parents=True, exist_ok=True)
+        store.set_setting(WIKI_SCAFFOLD_CONFIRMED_KEY, True)
+        try:
+            WikiStore(root_dir=path, auto_seed=False).scaffold(seed_starter=False, auto_migrate=False)
+            scaffolded = True
+        except Exception as exc:
+            logger = __import__("logging").getLogger(__name__)
+            logger.warning("Wiki scaffold soft-failed: %s", exc)
+            scaffolded = True
+    status = inspect_wiki_path(path, deploy_mode=resolve_deploy_mode())
+    return {
+        "status": "updated",
+        "wiki_path": str(path),
+        "wiki_status": status.status,
+        "wiki_message": status.message,
+        "scaffolded": scaffolded,
+    }
+
+
+@router.get("/api/settings/wiki-path")
+async def get_wiki_path(request: Request):
+    """Wiki path status for Settings UI [ADR-0056]."""
+    from src.infrastructure.data.wiki_gate import configured_wiki_path, inspect_wiki_path, resolve_deploy_mode
+
+    path = configured_wiki_path()
+    status = inspect_wiki_path(path, deploy_mode=resolve_deploy_mode())
+    return {
+        "wiki_path": str(path) if path else "",
+        "wiki_status": status.status,
+        "wiki_message": status.message,
+        "wiki_exists": status.exists,
+        "deploy_mode": status.deploy_mode,
     }
 
 
@@ -707,7 +779,10 @@ async def refresh_models(request: Request, req: Optional[HardwareFitQueryRequest
 async def customize_agent(request: Request, agent_id: str, custom: AgentCustomization):
     store = request.app.state.store
     custom.agent_id = agent_id
+    custom.user_modified = True
     store.save_agent_override(custom)
+    if hasattr(store, "mark_agent_user_modified"):
+        store.mark_agent_user_modified(custom.agent_id, modified=True)
     return {"status": "saved", "customization": custom.model_dump()}
 
 
