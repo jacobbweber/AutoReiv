@@ -1383,7 +1383,7 @@
                   <h3 class="text-xs font-bold text-slate-200">Assigned Skills</h3>
                   <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-indigo-950 text-indigo-300 border border-indigo-700/60">SKILLS</span>
                 </div>
-                <span class="text-[10px] text-slate-500">SOP runbooks (SKILL.md) that guide agent reasoning and mount declared tools.</span>
+                <span class="text-[10px] text-slate-500" data-testid="forge-skill-scope">On allows the skill for this agent. Off removes it. The pill does not open an editor.</span>
               </div>
 
               <!-- Platform Enforced Runtime Baseline Chips [CARD-330 / CARD-389] -->
@@ -1408,7 +1408,7 @@
                     <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-400"></i>
                     <h4 class="text-[11px] font-bold text-slate-300">Platform Skills & Tools</h4>
                   </div>
-                  <span class="text-[10px] text-slate-500">Shared platform runbooks available for activation</span>
+                  <span class="text-[10px] text-slate-500">Toggle a platform skill on or off for this agent</span>
                 </div>
                 <div id="forgeSkillsGrid" class="space-y-2 pt-1">
                   <!-- Platform skill rows with declared tool chips -->
@@ -1534,7 +1534,7 @@
                   <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
               </div>
-              <p class="text-[11px] text-slate-400">Agent Studio shows identity and which skills this agent may run. Edit the runbook, frontmatter, and required tools in the Factory workshop.</p>
+              <p class="text-[11px] text-slate-400">Agent Studio shows identity and which skills this agent may run. Edit the runbook, frontmatter, and required tools in Skill Studio.</p>
               <p id="studioRunbookPath" class="text-[10px] font-mono text-slate-500 truncate"></p>
               <div id="studioRunbookMeta" class="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="forge-runbook-meta">
                 <div>
@@ -3751,16 +3751,16 @@
                 <textarea id="factoryAgentPromptInput" rows="6" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
               </div>
 
-              <!-- Assigned skills: agent↔skill scoping only (not the skill editor) [CARD-411 UX] -->
+              <!-- Allowed skills: display of the agent allowlist. On/off is Agent Studio pills [CARD-419]. -->
               <div class="space-y-1.5 pt-1 border-t border-white/[0.04]" data-testid="factory-assigned-skills">
                 <div class="flex items-center justify-between">
-                  <label class="text-[11px] font-semibold text-slate-400">Assigned Skills (Active on Agent)</label>
+                  <label class="text-[11px] font-semibold text-slate-400">Skills allowed for this agent</label>
                   <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
                 </div>
                 <div id="factoryCurrentSkillsList" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-[#08090c]/60 rounded-xl border border-white/[0.04]">
                   <span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>
                 </div>
-                <p class="text-[10px] text-slate-500">Pinned to this agent. Author or edit the runbook in Skill Studio.</p>
+                <p class="text-[10px] text-slate-500">Display only. Turn skills on or off in Agent Studio.</p>
               </div>
             </div>
 
@@ -3897,7 +3897,7 @@
                   </div>
                   <details class="rounded-lg border border-white/[0.04] bg-[#0e1015]/50 px-2.5 py-2" data-testid="factory-skill-tier-advanced">
                     <summary class="text-[11px] text-slate-500 cursor-pointer select-none">Advanced: Tier (legacy taxonomy)</summary>
-                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Runtime scoping uses the assigned-skills list on the Factory agent brief.</p>
+                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Turn skills on or off with the toggle pills in Agent Studio.</p>
                     <label for="factorySkillTierSelect" class="sr-only">Tier</label>
                     <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
                       <option value="pack">pack</option>

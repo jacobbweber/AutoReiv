@@ -1,7 +1,7 @@
 ---
 id: CARD-419
 title: "Agent Studio Skill Toggle Pills (Agent↔Skill Scoping Only)"
-status: Ready
+status: In Review
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-419] Agent Studio Skill Toggle Pills (Agent↔Skill Scoping Only)
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted**)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:agents`, `area:skills`  
@@ -80,5 +80,15 @@ After CARD-418, Factory still shows a display-only assigned-skills list; Agent S
 
 ## 6. Verification
 
-- Vitest: pill toggle updates allowlist model / save payload; no editor open on toggle.
-- Manual: Agent Studio → toggle two skills → reload → state sticks; Open in Skill Studio still works from Inspect; Skill Studio save unchanged.
+- Vitest: `tests/unit/frontend/card_419_skill_toggle_pills.test.js` — pill toggle updates the `allowed_skill` payload; pill activation does not open an editor; persisted allowlist restores pressed state. Related Forge/Factory studio tests stayed green.
+- Durable path: pills read and write the existing agent `allowed_skill` list on profile save (`PUT/POST /api/agents`). No second store.
+- Skill Studio save (`POST /api/agent_training_factory/scaffold/save`) is unchanged.
+- Factory assigned-skills strip is display-only (`role="status"`) plus a separate **Open in Skill Studio** link. It is not an on/off control.
+- Manual live test (say **merge to qa** only after this):
+
+1. Open Agent Studio and select an agent.
+2. Turn two skill pills on (and one off if it was already on). Save the agent.
+3. Hard refresh. The same pills are on or off.
+4. Click a pill again. Skill Studio does not open. Click **Inspect**, then **Open in Skill Studio**. Skill Studio opens on that skill. The row link **Open in Skill Studio** does the same without using the pill.
+5. In Skill Studio, save a skill the same way as before. The save path is unchanged.
+6. Open Factory. The allowed-skills strip shows the saved list and does not toggle skills. **Open in Skill Studio** on a chip opens that skill.

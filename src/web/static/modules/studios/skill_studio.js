@@ -121,6 +121,13 @@ export function initSkillStudio(_state, callbacks = {}) {
     getAgentId: () => pinAgentId,
     onLoadSkill: (skillId, agentId) => { loadExistingSkill(skillId, agentId); },
     onNewSkill: () => resetNewSkillForm({ clearPicker: false }),
+    onOpenInSkillStudio: (skillId) => {
+      if (typeof callbacks.openSkillStudio === 'function') {
+        callbacks.openSkillStudio(pinAgentId || null, skillId || null);
+        return;
+      }
+      loadExistingSkill(skillId, pinAgentId);
+    },
     elements: () => ({
       factoryCurrentSkillsList,
       factoryAssignedSkillsCount,

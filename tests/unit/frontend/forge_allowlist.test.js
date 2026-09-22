@@ -79,7 +79,8 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     expect(html).toContain('forgeRunbooksGrid');
     expect(html).toContain('studioRunbookBody');
     const forgeJs = read('src/web/static/modules/studios/forge.js');
-    expect(forgeJs).toContain('forge-skill-checkbox');
+    expect(forgeJs).toContain('forge-skill-pill');
+    expect(forgeJs).not.toContain('forge-skill-checkbox');
     expect(forgeJs).toContain('allowed_skill');
     expect(forgeJs).not.toContain('loadAgentWorkflows');
     expect(forgeJs).not.toContain('studioWorkflowsList');

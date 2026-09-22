@@ -9,6 +9,7 @@ import { escapeHtml } from '../../utils/formatters.js';
 import { formatSafetyLabel } from '../../utils/skill_frontmatter.js';
 import { showToast } from '../../ui/toast.js';
 import { renderBaselineTools } from './tools.js';
+import { applySkillPillToggle, paintSkillPill } from './skill_pills.js';
 
 export const CANONICAL_RUNBOOK_TEMPLATE = `# Operating Principles
 1. Always verify assumptions against actual runtime state.
@@ -38,9 +39,9 @@ export function skillRowHtml(skill, home, archived = false) {
   const name = skill.name || id;
   const desc = skill.description || '';
   const archivedAttr = archived ? ' data-archived="1"' : '';
-  const checkbox = archived
-    ? ''
-    : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox rounded border-slate-700 text-brand-500 focus:ring-brand-500/20 bg-slate-950 h-4 w-4 shrink-0 mt-0.5" data-home="${escapeHtml(home)}">`;
+  const scopeControl = archived
+    ? `<span class="inline-flex items-center px-2.5 py-1 rounded-full border border-slate-800 bg-slate-950/80 text-[11px] font-semibold text-slate-500" data-skill-id="${escapeHtml(id)}" data-archived="1">Archived</span>`
+    : `<button type="button" class="forge-skill-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition bg-slate-900/70 border-slate-700 text-slate-400 aria-pressed:bg-emerald-950/80 aria-pressed:border-emerald-500/70 aria-pressed:text-emerald-100" role="switch" aria-pressed="false" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}" data-testid="forge-skill-pill" aria-label="Allow ${escapeHtml(name)} for this agent"><span class="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true"></span><span>${escapeHtml(name)}</span></button>`;
 
   const rawTools = Array.isArray(skill.tools) ? skill.tools : [];
   const toolNames = rawTools
@@ -68,19 +69,24 @@ export function skillRowHtml(skill, home, archived = false) {
     `
     : '';
 
+  const openStudio = archived
+    ? ''
+    : `<button type="button" class="forge-skill-open-studio px-2 py-1 rounded bg-transparent hover:bg-slate-800 text-[10px] font-semibold text-slate-400 hover:text-sky-300 border border-transparent hover:border-slate-700 transition" data-skill-id="${escapeHtml(id)}" data-testid="forge-skill-open-studio">Open in Skill Studio</button>`;
+
   return `
     <div class="forge-skill-row rounded-lg bg-slate-900/60 border border-slate-800 p-2.5" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}">
       <div class="flex items-start gap-2">
-        <label class="flex items-start space-x-2.5 flex-1 min-w-0 cursor-pointer">
-          ${checkbox}
+        <div class="flex items-start gap-2 flex-1 min-w-0">
+          ${scopeControl}
           <div class="flex-1 min-w-0">
-            <span class="font-mono text-slate-200 inline text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+            ${archived ? `<span class="font-mono text-slate-400 inline text-[11px] font-semibold truncate">${escapeHtml(name)}</span>` : ''}
             ${reqIndicator}
             <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight mt-0.5">${escapeHtml(desc)}</span>
           </div>
-        </label>
+        </div>
         <div class="flex items-center space-x-1.5 shrink-0">
           <button type="button" class="studio-runbook-open-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700 transition" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Inspect</button>
+          ${openStudio}
         </div>
       </div>
       ${toolsChipsHtml}
@@ -89,12 +95,19 @@ export function skillRowHtml(skill, home, archived = false) {
 }
 
 export function applySkillChecks(lastAllowedSkills = new Set()) {
-  $queryAll('.forge-skill-checkbox').forEach((cb) => {
-    cb.checked = lastAllowedSkills.has(cb.value);
+  const allowed = lastAllowedSkills instanceof Set
+    ? lastAllowedSkills
+    : new Set(lastAllowedSkills || []);
+  $queryAll('.forge-skill-pill').forEach((btn) => {
+    paintSkillPill(btn, allowed.has(btn.dataset.skillId || ''));
   });
 }
 
-export function bindSkillRowHandlers(root, { onOpenRunbook = null } = {}) {
+export function bindSkillRowHandlers(root, {
+  onOpenRunbook = null,
+  onToggleSkill = null,
+  onOpenSkillStudio = null,
+} = {}) {
   if (!root) return;
   const forgeStorageEnabled = $('forgeStorageEnabled');
   const forgeStorageTypeContainer = $('forgeStorageTypeContainer');
@@ -113,12 +126,27 @@ export function bindSkillRowHandlers(root, { onOpenRunbook = null } = {}) {
       }
     });
   });
-  root.querySelectorAll('.forge-skill-checkbox').forEach((cb) => {
-    cb.addEventListener('change', () => {
-      if (cb.value === 'sqlite-storage') {
-        if (forgeStorageEnabled) forgeStorageEnabled.checked = cb.checked;
-        if (forgeStorageTypeContainer) forgeStorageTypeContainer.classList.toggle('hidden', !cb.checked);
-      }
+  root.querySelectorAll('.forge-skill-pill').forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      applySkillPillToggle(btn, {
+        onToggleSkill: (skillId, pressed) => {
+          if (skillId === 'sqlite-storage') {
+            if (forgeStorageEnabled) forgeStorageEnabled.checked = pressed;
+            if (forgeStorageTypeContainer) forgeStorageTypeContainer.classList.toggle('hidden', !pressed);
+          }
+          if (typeof onToggleSkill === 'function') onToggleSkill(skillId, pressed);
+        },
+      });
+    });
+  });
+  root.querySelectorAll('.forge-skill-open-studio').forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const skillId = btn.dataset.skillId || '';
+      if (typeof onOpenSkillStudio === 'function') onOpenSkillStudio(skillId);
     });
   });
 }
@@ -350,11 +378,21 @@ export async function openRunbookEditor(packId, archived, targetRow = null) {
   }
 }
 
+function skillRowHandlerOpts(options = {}) {
+  return {
+    onOpenRunbook: options.onOpenRunbook || null,
+    onToggleSkill: options.onToggleSkill || null,
+    onOpenSkillStudio: options.onOpenSkillStudio || null,
+  };
+}
+
 export function renderPlatformSkills({
   cachedPlatformSkills = [],
   cachedArchivedSkills = [],
   lastAllowedSkills = new Set(),
   onOpenRunbook = null,
+  onToggleSkill = null,
+  onOpenSkillStudio = null,
 } = {}) {
   const forgeSkillsGrid = $('forgeSkillsGrid');
   if (!forgeSkillsGrid) return;
@@ -367,7 +405,7 @@ export function renderPlatformSkills({
     ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Archived</h4>${archived.map((s) => skillRowHtml(s, 'archived', true)).join('')}</div>`
     : '';
   forgeSkillsGrid.innerHTML = `${platformHtml}${archivedHtml}`;
-  bindSkillRowHandlers(forgeSkillsGrid, { onOpenRunbook });
+  bindSkillRowHandlers(forgeSkillsGrid, skillRowHandlerOpts({ onOpenRunbook, onToggleSkill, onOpenSkillStudio }));
   applySkillChecks(lastAllowedSkills);
 }
 
@@ -375,6 +413,8 @@ export function renderPackSkills({
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
   onOpenRunbook = null,
+  onToggleSkill = null,
+  onOpenSkillStudio = null,
 } = {}) {
   const forgeRunbooksGrid = $('forgeRunbooksGrid');
   if (!forgeRunbooksGrid) return;
@@ -383,7 +423,7 @@ export function renderPackSkills({
     ? packSkills.map((s) => skillRowHtml(s, 'pack', false)).join('')
     : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
   forgeRunbooksGrid.innerHTML = packHtml;
-  bindSkillRowHandlers(forgeRunbooksGrid, { onOpenRunbook });
+  bindSkillRowHandlers(forgeRunbooksGrid, skillRowHandlerOpts({ onOpenRunbook, onToggleSkill, onOpenSkillStudio }));
   applySkillChecks(lastAllowedSkills);
 }
 
@@ -393,10 +433,25 @@ export function renderNestedHomes({
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
   onOpenRunbook = null,
+  onToggleSkill = null,
+  onOpenSkillStudio = null,
 } = {}) {
   renderBaselineTools();
-  renderPlatformSkills({ cachedPlatformSkills, cachedArchivedSkills, lastAllowedSkills, onOpenRunbook });
-  renderPackSkills({ activeForgeAgent, lastAllowedSkills, onOpenRunbook });
+  renderPlatformSkills({
+    cachedPlatformSkills,
+    cachedArchivedSkills,
+    lastAllowedSkills,
+    onOpenRunbook,
+    onToggleSkill,
+    onOpenSkillStudio,
+  });
+  renderPackSkills({
+    activeForgeAgent,
+    lastAllowedSkills,
+    onOpenRunbook,
+    onToggleSkill,
+    onOpenSkillStudio,
+  });
 }
 
 export async function loadPlatformSkills({
@@ -404,6 +459,8 @@ export async function loadPlatformSkills({
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
   onOpenRunbook = null,
+  onToggleSkill = null,
+  onOpenSkillStudio = null,
   onLoaded = null,
 } = {}) {
   let platformSkills = [];
@@ -439,6 +496,8 @@ export async function loadPlatformSkills({
     activeForgeAgent,
     lastAllowedSkills,
     onOpenRunbook,
+    onToggleSkill,
+    onOpenSkillStudio,
   });
 
   return { platformSkills, archivedSkills, catalog: updatedCatalog };

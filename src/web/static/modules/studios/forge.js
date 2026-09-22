@@ -6,6 +6,7 @@
  * - scaffold.js: Quick presets, quick scaffold modal, candidate queue, same-job origin resumption
  * - tools.js: OS baseline tools, capability gaps backlog, remote MCP server management, credential grants
  * - runbook.js: Read-only runbook inspector, char counter, capability lint view, Open in Skill Studio [CARD-411, CARD-418]
+ * - skill_pills.js: Agent↔skill toggle pills; on/off writes allowed_skill only [CARD-419]
  * - config.js: Per-agent LLM providers, model discovery, avatar preview, routines, telemetry, brain drawer, tones
  */
 
@@ -64,6 +65,11 @@ import {
   applySkillChecks,
   openRunbookEditor,
 } from './forge/runbook.js';
+import {
+  allowlistForSave,
+  pillsFromPersistedAgent,
+  pressedSkillIds,
+} from './forge/skill_pills.js';
 
 import {
   setupAgentModelConfig,
@@ -155,13 +161,34 @@ export function initAgentForge(state, callbacks = {}) {
     return activeForgeAgent;
   }
 
+  function onToggleSkill(skillId, pressed) {
+    if (!skillId) return;
+    if (pressed) lastAllowedSkills.add(skillId);
+    else lastAllowedSkills.delete(skillId);
+  }
+
+  function onOpenSkillStudio(skillId) {
+    const agentId = getActiveAgentId();
+    if (typeof callbacks.openSkillStudio === 'function') {
+      callbacks.openSkillStudio(agentId, skillId || null);
+    }
+  }
+
+  function skillScopeHandlers() {
+    return {
+      onOpenRunbook: (packId, isArchived, row) => openRunbookEditor(packId, isArchived, row),
+      onToggleSkill,
+      onOpenSkillStudio,
+    };
+  }
+
   function renderNestedHomesWrapper() {
     renderNestedHomes({
       cachedPlatformSkills,
       cachedArchivedSkills,
       activeForgeAgent,
       lastAllowedSkills,
-      onOpenRunbook: (packId, isArchived, row) => openRunbookEditor(packId, isArchived, row),
+      ...skillScopeHandlers(),
     });
   }
 
@@ -170,7 +197,7 @@ export function initAgentForge(state, callbacks = {}) {
       cachedSkillsCatalog,
       activeForgeAgent,
       lastAllowedSkills,
-      onOpenRunbook: (packId, isArchived, row) => openRunbookEditor(packId, isArchived, row),
+      ...skillScopeHandlers(),
       onLoaded: ({ platformSkills, archivedSkills, catalog }) => {
         cachedPlatformSkills = platformSkills;
         cachedArchivedSkills = archivedSkills;
@@ -291,13 +318,7 @@ export function initAgentForge(state, callbacks = {}) {
       }
     }
 
-    lastAllowedSkills = new Set(agent.allowed_skill || []);
-    if (agent.storage_enabled) {
-      lastAllowedSkills.add('sqlite-storage');
-    }
-    if (agent.allow_wiki_access === false) {
-      lastAllowedSkills.delete('wiki');
-    }
+    lastAllowedSkills = new Set(pillsFromPersistedAgent(agent));
     applySkillChecks(lastAllowedSkills);
 
     loadAgentTelemetry(agent.id);
@@ -381,13 +402,12 @@ export function initAgentForge(state, callbacks = {}) {
           .replace(/^-|-$/g, '');
       }
 
-      const checkedSkills = [];
-      $queryAll('.forge-skill-checkbox:checked').forEach((cb) => checkedSkills.push(cb.value));
-
       const isStorage = Boolean(forgeStorageEnabled && forgeStorageEnabled.checked);
-      if (isStorage && !checkedSkills.includes('sqlite-storage')) {
-        checkedSkills.push('sqlite-storage');
-      }
+      const pillNodes = typeof document !== 'undefined'
+        ? document.querySelectorAll('.forge-skill-pill[data-skill-id]')
+        : [];
+      const fromPills = pillNodes.length ? pressedSkillIds(pillNodes) : [...lastAllowedSkills];
+      const checkedSkills = allowlistForSave(fromPills, { storageEnabled: isStorage });
 
       // Skill-first tool derivation: capabilities are declared strictly by skills
       const allSkills = [
@@ -602,10 +622,11 @@ export function initAgentForge(state, callbacks = {}) {
   if (forgeStorageEnabled && forgeStorageTypeContainer) {
     forgeStorageEnabled.addEventListener('change', () => {
       forgeStorageTypeContainer.classList.toggle('hidden', !forgeStorageEnabled.checked);
-      const storageSkillCheckbox = document.querySelector('.forge-skill-checkbox[value="sqlite-storage"]');
-      if (storageSkillCheckbox) {
-        storageSkillCheckbox.checked = forgeStorageEnabled.checked;
+      const storageSkillPill = document.querySelector('.forge-skill-pill[data-skill-id="sqlite-storage"]');
+      if (storageSkillPill) {
+        storageSkillPill.setAttribute('aria-pressed', forgeStorageEnabled.checked ? 'true' : 'false');
       }
+      onToggleSkill('sqlite-storage', forgeStorageEnabled.checked);
     });
   }
 
