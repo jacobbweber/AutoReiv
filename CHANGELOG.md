@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-### Added
+## [0.40.0] - 2026-09-22`n`n### Added
 
 - **CARD-411 Forge / Factory skill split**: Agent Studio inspects a skill runbook (name, description, tier, safety, required tools) and opens **Factory Workshop** for edits. Factory is the only writer: structured metadata and the tool picker update `requires_tools` with catalog tool ids, and save writes the skill body to the skill store plus tool bindings in operational SQLite (`skill_tool_bindings`). `pack.json` is not a live binding source. Forge no longer saves, archives, deletes, or creates runbooks (`src/application/skills/runbook_frontmatter.py`, `src/application/skills/workshop.py`, `src/infrastructure/memory/repositories/skill_bindings.py`, `src/web/static/modules/studios/forge/runbook.js`, `src/web/static/modules/studios/factory.js` [CARD-411]).
 
