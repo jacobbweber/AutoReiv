@@ -4,9 +4,10 @@
  */
 
 import { $, isMobile, safeCreateIcons } from '../dom.js';
-import { escapeHtml, formatAgentSelectOption } from '../utils/formatters.js';
+import { escapeHtml } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
-import { storageGet, storageSet } from '../utils/storage.js';
+import { storageSet } from '../utils/storage.js';
+import { publishAgentsLoaded } from '../state/store.js';
 import { showToast } from '../ui/toast.js';
 
 // Re-export all decomposed submodules for complete backward compatibility [REQ-ARCH-003, CARD-397]
@@ -497,27 +498,7 @@ export function initChatStudio(state, callbacks = {}) {
     try {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      state.agents = await res.json();
-      const chatAgents = agentsVisibleInChat(state.agents);
-
-      const savedAgentId = storageGet('autoreiv_active_agent_id');
-      const visibleIds = chatAgents.map((a) => a.id);
-      if (savedAgentId && visibleIds.includes(savedAgentId)) {
-        state.selectedAgentId = savedAgentId;
-      } else if (!state.selectedAgentId || !visibleIds.includes(state.selectedAgentId)) {
-        state.selectedAgentId = visibleIds.includes('autoreiv') ? 'autoreiv' : (chatAgents.length > 0 ? chatAgents[0].id : 'autoreiv');
-      }
-
-      if (agentSelect) {
-        agentSelect.innerHTML = '';
-        chatAgents.forEach((agent) => {
-          const opt = document.createElement('option');
-          opt.value = agent.id;
-          opt.textContent = formatAgentSelectOption(agent);
-          agentSelect.appendChild(opt);
-        });
-        agentSelect.value = state.selectedAgentId;
-      }
+      publishAgentsLoaded(await res.json());
 
       if (trainAgentTargetSelect) {
         populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, state.selectedAgentId || 'autoreiv');

@@ -8,6 +8,9 @@
  */
 
 import { $, $query, $queryAll, isMobile, safeCreateIcons } from '../dom.js';
+import { eventBus, EVENTS } from '../events/event-bus.js';
+import { bindStudioAgentPickers } from '../studios/agent_picker.js';
+import { hydrateRestoredStudioPicker } from './agent_desktop/agent_hydration.js';
 
 // Static contract preservation [CARD-207, CARD-344]:
 // Window shell/handles elevate above hosted views: style.zIndex = String(win.z + 2)
@@ -335,6 +338,15 @@ export function initAgentDesktop(opts = {}) {
     toast(gridOverlay ? 'Grid overlay on' : 'Grid overlay off', 'info', 900);
   }
 
+  function hydrateStudioAgentPicker(tab) {
+    hydrateRestoredStudioPicker(tab, {
+      state: opts.state,
+      eventBus,
+      eventName: EVENTS.AGENTS_LOADED,
+      bind: (_tab, agents) => bindStudioAgentPickers(agents, { state: opts.state }),
+    });
+  }
+
   // Unified context container passed to submodules
   const ctx = {
     root,
@@ -371,6 +383,7 @@ export function initAgentDesktop(opts = {}) {
     scheduleSyncHostedViewsFn: scheduleSyncHostedViews,
     isMobileFn: isMobile,
     switchTabFn: switchTab,
+    hydrateStudioAgentPickerFn: hydrateStudioAgentPicker,
     createWindowShellFn: (launcher, c) => createWindowShell(launcher, c),
     applyRectFn: (win) => applyRect(win, ctx),
     applyMobileLayoutFn: () => applyMobileLayout(ctx),
@@ -562,6 +575,7 @@ export function initAgentDesktop(opts = {}) {
     windows,
     root,
     openWindow: (tab, o) => openWindow(tab, o),
+    hydrateStudioAgentPicker,
     minimizeWindow: (tab) => minimizeWindow(tab, ctx),
     toast,
     updateDockScrollChromeFn: () => updateDockScrollChrome({ dock, dockApps, dockScrollPrev, dockScrollNext }),

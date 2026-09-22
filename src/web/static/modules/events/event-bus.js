@@ -7,6 +7,7 @@ export const EVENTS = Object.freeze({
   AGENT_SAVED: 'agent:saved',
   AGENT_DELETED: 'agent:deleted',
   AGENTS_RELOAD: 'agents:reload',
+  AGENTS_LOADED: 'agents:loaded',
   TAB_SWITCH: 'tab:switch',
   ROUTINE_OPEN_MODAL: 'routine:open_modal',
   WIKI_EXPORT: 'wiki:export',

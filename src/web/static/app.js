@@ -3,7 +3,9 @@
  */
 
 import { $, $queryAll, isMobile, safeCreateIcons } from './modules/dom.js';
-import { state } from './modules/state/store.js';
+import { state, subscribeAgentsLoaded } from './modules/state/store.js';
+import { bindStudioAgentPickers, PICKER_KEYS } from './modules/studios/agent_picker.js';
+import { storageGet } from './modules/utils/storage.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
 import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
 import { initChatStudio } from './modules/studios/chat.js';
@@ -21,6 +23,14 @@ import { eventBus, EVENTS } from './modules/events/event-bus.js';
 import { setupModal, handleEscapeKey } from './modules/ui/modal.js';
 
 export function initApp() {
+  try {
+    subscribeAgentsLoaded((agents) => {
+      bindStudioAgentPickers(agents, { state });
+    });
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to subscribe agent roster picker:', err);
+  }
+
   try {
     initThemeEngine();
   } catch (err) {
@@ -314,6 +324,11 @@ export function initApp() {
         import('./modules/studios/forge.js')
           .then((m) => {
             forgeCtrl = m.initAgentForge(state, sharedCallbacks);
+            const agentsWindow = document.getElementById('desktopWin-agents');
+            if (agentsWindow || state.activeTab === 'agents') {
+              const stored = storageGet(PICKER_KEYS.agents);
+              forgeCtrl.loadAgentForge(stored || undefined);
+            }
           })
           .catch((err) => {
             console.error('[AutoReiv UI] Failed to initialize Agent Studio:', err);
