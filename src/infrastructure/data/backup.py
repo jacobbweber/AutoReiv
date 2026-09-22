@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 SKIP_DIR_NAMES = frozenset({".git", ".venv", "venv", "__pycache__", "node_modules", "backups"})
 DB_ARCHIVE_NAME = "autoreiv.db"
+MANIFEST_NAME = "backup-manifest.json"
 
 
 class DataDirRestoreError(ValueError):
@@ -197,6 +199,81 @@ class DataDirBackupService:
             return True
         return False
 
+
+    def build_manifest(
+        self,
+        *,
+        include_wiki_content: bool = False,
+        written_members: Optional[set[str]] = None,
+    ) -> dict[str, Any]:
+        """ADR-0056 manifest: DBs, wiki URI, digests, pack set, provenance."""
+        import hashlib
+
+        from src.infrastructure.data.wiki_gate import configured_wiki_path, resolve_deploy_mode
+
+        def _digest(path: Path) -> Optional[str]:
+            if not path.is_file():
+                return None
+            h = hashlib.sha256()
+            try:
+                with open(path, "rb") as f:
+                    for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                        h.update(chunk)
+                return h.hexdigest()
+            except OSError:
+                return None
+
+        wiki = configured_wiki_path() or self.paths.wiki_path
+        packs = []
+        packs_root = self.paths.packs_path
+        if packs_root and Path(packs_root).is_dir():
+            for sub in sorted(Path(packs_root).iterdir()):
+                if not sub.is_dir():
+                    continue
+                entry: dict[str, Any] = {"agent_id": sub.name, "path": str(sub)}
+                for suffix in ("_storage.db", "_memory.db"):
+                    # snake-ish match
+                    for db in sub.glob(f"*{suffix}"):
+                        role = "storage" if suffix.endswith("storage.db") else "memory"
+                        entry.setdefault("databases", []).append(
+                            {"role": role, "path": str(db), "sha256": _digest(db)}
+                        )
+                if (sub / "pack.json").is_file():
+                    entry["pack_json"] = True
+                packs.append(entry)
+
+        manifest = {
+            "schema_version": 1,
+            "kind": "autoreiv-backup-manifest",
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "deploy_mode": resolve_deploy_mode(),
+            "data_root": str(self.paths.root),
+            "operational_db": {
+                "role": "operational",
+                "path": str(self.paths.db_path),
+                "sha256": _digest(self.paths.db_path) if self.paths.db_path.is_file() else None,
+            },
+            "wiki": {
+                "uri": str(wiki) if wiki else None,
+                "include_content": bool(include_wiki_content),
+                "sha256": None,
+            },
+            "packs": packs,
+            "members": sorted(written_members) if written_members else [],
+            "provenance": {
+                "app": "AutoReiv",
+                "adr": "0056",
+                "card": "CARD-414",
+            },
+        }
+        return manifest
+
+    def _write_manifest_member(self, zf: zipfile.ZipFile, written: set[str], *, include_wiki_content: bool = False) -> None:
+        manifest = self.build_manifest(include_wiki_content=include_wiki_content, written_members=written)
+        payload = json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8")
+        zf.writestr(MANIFEST_NAME, payload)
+        written.add(MANIFEST_NAME)
+
     def _backup_zip(self, dest: Path) -> Path:
         dest.parent.mkdir(parents=True, exist_ok=True)
         tmp = dest.with_name(dest.name + ".partial")
@@ -224,6 +301,7 @@ class DataDirBackupService:
                         self._write_sqlite_member(zf, db, rel_db)
                         written.add(rel_db)
                 self._add_external_wiki(zf, written)
+                self._write_manifest_member(zf, written)
             tmp.replace(dest)
             logger.info("Wrote data dir backup %s", dest)
             return dest
@@ -330,7 +408,22 @@ class DataDirBackupService:
                 _safe_extract(zf, staging)
         except zipfile.BadZipFile as exc:
             raise DataDirRestoreError(f"Not a valid zip archive: {src}") from exc
-        return _find_tree_root(staging)
+        tree = _find_tree_root(staging)
+        manifest_path = tree / MANIFEST_NAME
+        if not manifest_path.is_file():
+            # nested?
+            alt = staging / MANIFEST_NAME
+            if alt.is_file():
+                manifest_path = alt
+        if manifest_path.is_file():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                wiki_uri = (manifest.get("wiki") or {}).get("uri")
+                if wiki_uri:
+                    logger.info("Restore manifest wiki URI: %s (will not invent a second wiki)", wiki_uri)
+            except (json.JSONDecodeError, OSError) as exc:
+                raise DataDirRestoreError(f"Invalid backup-manifest.json: {exc}") from exc
+        return tree
 
     def _replace_tree(self, source_tree: Path) -> None:
         root = self.paths.root
