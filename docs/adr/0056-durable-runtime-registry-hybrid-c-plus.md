@@ -87,7 +87,7 @@ For each platform artifact keyed by **stable id** (`agent_id`, skill id, tool na
 | 1 | Skills editing | **Studios primary**; files remain readable under the skill store; direct file edits set `user_modified` |
 | 2 | Built-in customization | **Layered overrides** + explicit **Fork to custom pack** for large divergence; no silent in-place clobber of seed |
 | 3 | DB topology | **One** operational `autoreiv.db` + per-agent `*_storage.db` / `*_memory.db` (no platform DB split in v1) |
-| 4 | Wiki first-run | **Deployment-mode aware** (see section 4.4): local Windows/Linux require explicit path with **no suggested path**; Docker/daemon require wiki via **compose/env + volume** (no host folder picker inside the container) |
+| 4 | Wiki first-run | **Deployment-mode aware** (see section 4.4): local Windows/Linux require explicit path with **no suggested path**; Docker/daemon require wiki via **compose/env + volume** and **hard-fail start** if missing (no host folder picker inside the container) |
 | 5 | Backup vs wiki content | Manifest **always** records configured wiki URI; **including wiki file content is opt-in** |
 | 6 | Missing wiki path | **Fail visibly** + reconnect/migrate only — **never** silent recreate elsewhere |
 
@@ -113,7 +113,7 @@ AutoReiv targets **Windows and Linux**, including local serve, OS daemon, and **
    - wiki living under `AUTOREIV_DATA_DIR` with an explicit durable `wiki_path` / documented convention that is set at deploy time (not invented at runtime).
 3. A browser **cannot** mount a host directory into the container. There is **no** OS folder picker inside Docker. First-run prompt in Docker means Settings/onboarding UI that tells the operator to set compose env + volume, or a degraded/unready state until configured.
 4. If wiki path/volume is missing at runtime: **fail visibly** (wiki subsystem fail-closed; onboarding/Settings banner; health/ready signal may report degraded). Do **not** silently create `/data/wiki` (or similar) as a substitute for deploy configuration.
-5. Recommended Compose posture for production: **require** wiki volume + env at deploy time so a fresh stack is intentional. Optional allow-boot-for-diagnostics remains acceptable if wiki stays fail-closed until configured (Jacob chooses exact start policy before Accept).
+5. **Hard-fail start if wiki missing** (Jacob lock): process/container start MUST fail closed when AUTOREIV_WIKI_PATH (or the documented deploy-time wiki path) is unset, unreadable, or the volume mount is absent. Compose MUST document required env + volume. No boot-for-diagnostics exception in Docker/daemon mode.
 
 #### Shared invariants
 
@@ -157,6 +157,7 @@ OC-S1..S6 as defined on CARD-413 / the design brief (idempotent reconcile + user
 * Operators who relied on editing platform pack files in AppData as the “live source” must learn Studio-primary + `user_modified` semantics.
 * First-run wiki with **no suggestion** increases first-run friction on local installs (accepted by Jacob) in exchange for explicit ownership.
 * Docker Compose requires intentional wiki volume/env at deploy time; operators cannot use a host folder picker inside the container.
+* Docker/daemon **hard-fails start** when wiki path/volume is missing (accepted by Jacob).
 
 ### Migration posture (implementation successor; not this ADR alone)
 

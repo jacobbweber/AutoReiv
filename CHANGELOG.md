@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- ADR-0056 Proposed: Docker/daemon hard-fail start when wiki path/volume missing (docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md [CARD-413]).
+
 - ADR-0056 Proposed refinement: deployment-mode wiki config (`docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md` [CARD-413]): Windows/Linux local require explicit wiki path with no suggestion; Docker Compose/daemon require wiki via env + volume mount; no silent fallback vault.
 
 - ADR-0056 Proposed: Hybrid C+ durable runtime registry (`docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md`, `docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md` [CARD-413]): SQLite-canonical control plane; filesystem wiki + pack interchange; versioned reconcile with `user_modified`; wiki first-run picker with no suggested path; CARD-411 deferred until Accept.

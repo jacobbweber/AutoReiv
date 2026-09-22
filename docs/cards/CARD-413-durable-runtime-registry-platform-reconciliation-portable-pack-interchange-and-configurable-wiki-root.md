@@ -358,7 +358,7 @@ Architecture: **Hybrid C+** per [ADR-0056](../adr/0056-durable-runtime-registry-
 | 1 | Skills editing | Studios primary; readable files; direct edits set `user_modified` |
 | 2 | Built-in customization | Layered overrides + explicit Fork to custom |
 | 3 | DB topology | One `autoreiv.db` + per-agent storage/memory DBs |
-| 4 | Wiki first-run | Deployment-mode aware: local = explicit path, no suggestion; Docker/daemon = compose env + volume required (no host picker) |
+| 4 | Wiki first-run | Deployment-mode aware: local = explicit path, no suggestion; Docker/daemon = compose env + volume required; **hard-fail start if wiki missing** |
 | 5 | Backup wiki content | Manifest always records wiki URI; file content **opt-in** |
 | 6 | Missing wiki path | Fail visibly + reconnect/migrate only |
 
