@@ -1,7 +1,7 @@
 ---
 id: CARD-414
 title: "Implement Hybrid C+ Durable Runtime Registry, Versioned Reconciliation, Manifest Backup, and Deployment-Mode Wiki"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -15,7 +15,7 @@ labels:
 
 # [CARD-414] Implement Hybrid C+ Durable Runtime Registry, Versioned Reconciliation, Manifest Backup, and Deployment-Mode Wiki
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Accepted**)  
 > **Parent planning**: [CARD-413](./CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md) (Done)  
