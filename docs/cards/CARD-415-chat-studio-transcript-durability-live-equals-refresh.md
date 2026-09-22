@@ -1,7 +1,7 @@
 ---
 id: CARD-415
 title: "Chat Studio transcript durability: live equals refresh (activity, actions, Save to Wiki)"
-status: In Review
+status: Done
 created: 2026-09-21
 investigation: docs/design/CARD-415-chat-studio-durability-investigation.md
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-415] Chat Studio transcript durability: live equals refresh (activity, actions, Save to Wiki)
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **Investigation**: [docs/design/CARD-415-chat-studio-durability-investigation.md](../../docs/design/CARD-415-chat-studio-durability-investigation.md)  
 > **Labels**: `type:bug`, `area:chat`, `area:wiki`, `area:frontend`
