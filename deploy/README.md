@@ -79,6 +79,12 @@ For development or ad-hoc local testing without registering a system service:
 
 ## 3. Docker & Docker Compose
 
+> [!IMPORTANT]
+> CARD-414 / ADR-0056: Docker mode **hard-fails** if `AUTOREIV_WIKI_PATH` is unset, missing, or unreadable.
+> Set `AUTOREIV_WIKI_HOST_PATH` to a host folder (Windows example: `D:/AutoReivWiki`) before `docker compose up`.
+> The image does **not** pre-create `/data/wiki`; the compose volume/bind mount must provide it.
+
+
 Target: Containerized environments and cross-platform server hosting.
 
 ### Starting AutoReiv
