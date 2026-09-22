@@ -60,7 +60,10 @@ class SettingsService:
 
     def save_agent_customization(self, customization: AgentCustomization) -> None:
         """Persist agent persona/tone/tool overrides."""
+        customization.user_modified = True
         self.state_store.save_agent_override(customization)
+        if hasattr(self.state_store, "mark_agent_user_modified"):
+            self.state_store.mark_agent_user_modified(customization.agent_id, modified=True)
 
     def get_agent_customization(self, agent_id: str) -> Optional[AgentCustomization]:
         """Fetch agent overrides from SQLite."""

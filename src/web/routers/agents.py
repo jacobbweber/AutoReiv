@@ -449,7 +449,10 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             allowed_credentials=profile.allowed_credentials,
             mcp_servers=profile.mcp_servers,
         )
+        customization.user_modified = True
         store.save_agent_override(customization)
+        if hasattr(store, "mark_agent_user_modified"):
+            store.mark_agent_user_modified(customization.agent_id, modified=True)
     else:
         registry.register_custom_agent(profile)
         # Mirror into agent_overrides so operator customizations have an authoritative record
@@ -482,7 +485,10 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
                 allowed_credentials=profile.allowed_credentials,
                 mcp_servers=profile.mcp_servers,
             )
-            store.save_agent_override(customization)
+            customization.user_modified = True
+        store.save_agent_override(customization)
+        if hasattr(store, "mark_agent_user_modified"):
+            store.mark_agent_user_modified(customization.agent_id, modified=True)
 
     # CARD-381 / CARD-389: Synchronize user-data packs/<agent_id>/pack.json
     data_dir = _data_dir_root(request)
@@ -759,7 +765,10 @@ async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
         store = request.app.state.store
         customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
         customization.mcp_servers = profile.mcp_servers
+        customization.user_modified = True
         store.save_agent_override(customization)
+        if hasattr(store, "mark_agent_user_modified"):
+            store.mark_agent_user_modified(customization.agent_id, modified=True)
     else:
         registry.register_custom_agent(profile)
 
@@ -824,7 +833,10 @@ async def delete_agent_mcp_server(request: Request, agent_id: str, server_name: 
         store = request.app.state.store
         customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
         customization.mcp_servers = profile.mcp_servers
+        customization.user_modified = True
         store.save_agent_override(customization)
+        if hasattr(store, "mark_agent_user_modified"):
+            store.mark_agent_user_modified(customization.agent_id, modified=True)
     else:
         registry.register_custom_agent(profile)
 

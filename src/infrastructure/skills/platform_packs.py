@@ -1,7 +1,9 @@
-"""Seed-if-missing Platform Agent Packs (Assistant, AutoReiv).
+"""Platform Agent Pack seed + Hybrid C+ reconciliation [ADR-0056 / CARD-414].
 
-Copy from repo ``platform-packs/`` into ``$DATA_DIR/packs/`` when missing.
-Never overwrite an existing dest. Do not scan ``agent-packs/``.
+First install: copy from repo ``platform-packs/`` into ``$DATA_DIR/packs/`` when missing.
+Upgrades: SQLite is the sole writer for profiles/bindings; hash-gated seed apply;
+never overwrite when ``user_modified``; never prune operator skill dirs (retired list only).
+``pack.json`` is an export projection, not a boot source of truth.
 """
 
 from __future__ import annotations
@@ -26,6 +28,49 @@ RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
     "homelab-admin",
     "finance",
 )
+
+
+def compute_platform_seed_hash(pack_data: dict, src_pack_dir: Optional[Path] = None) -> str:
+    """Stable content hash of platform seed (prompt + skills + tools) [ADR-0056]."""
+    import hashlib
+    import json as _json
+
+    payload = {
+        "system_prompt": pack_data.get("system_prompt") or "",
+        "allowed_skill": list(pack_data.get("allowed_skill") or []),
+        "pack_tool_names": list(pack_data.get("pack_tool_names") or []),
+        "allowed_tool_names": list(pack_data.get("allowed_tool_names") or []),
+        "skills": list(pack_data.get("skills") or []),
+    }
+    skill_bodies: dict[str, str] = {}
+    if src_pack_dir is not None:
+        skills_root = Path(src_pack_dir) / "skills"
+        if skills_root.is_dir():
+            for skill_dir in sorted(skills_root.iterdir()):
+                skill_md = skill_dir / "SKILL.md" if skill_dir.is_dir() else None
+                if skill_md and skill_md.is_file():
+                    try:
+                        skill_bodies[skill_dir.name] = skill_md.read_text(encoding="utf-8")
+                    except OSError:
+                        pass
+    payload["skill_bodies"] = skill_bodies
+    raw = _json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _is_user_modified(profile: Any, store: Any = None) -> bool:
+    if bool(getattr(profile, "user_modified", False)):
+        return True
+    if store is not None and hasattr(store, "get_agent_override"):
+        try:
+            ov = store.get_agent_override(getattr(profile, "id", None) or getattr(profile, "agent_id", None))
+            if ov is not None and bool(getattr(ov, "user_modified", False)):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 RETIRED_TOOL_NAMES: tuple[str, ...] = (
     "get_or_create_weekly_note",
     "log_daily_work_item",
@@ -246,21 +291,76 @@ def install_platform_agent_packs(
                         except Exception:
                             pass
 
-                    # Union merge: keep existing tools (and user pack tools) without clobbering operator grants
-                    current_tools = list(getattr(existing, "allowed_tool_names", None) or [])
-                    final_tools = list(current_tools)
-                    for t in user_pack_tools:
-                        if t not in final_tools:
-                            final_tools.append(t)
-                    for t in merged_tools:
-                        if t not in final_tools:
-                            final_tools.append(t)
-                    # Filter out permanently retired tools
-                    final_tools = [
-                        t
-                        for t in final_tools
-                        if t not in RETIRED_TOOL_NAMES
-                    ]
+                    seed_hash = compute_platform_seed_hash(pack_data, src)
+                    seed_version = str(pack_data.get("version") or pack_data.get("seed_version") or "1")
+                    stored_hash = getattr(existing, "seed_content_hash", None)
+                    user_mod = _is_user_modified(existing, service.store)
+
+                    # ADR-0056: never overwrite operator-touched profiles; dual-read drift only.
+                    if user_mod:
+                        if stored_hash and stored_hash != seed_hash:
+                            logger.info(
+                                "Upstream seed update available for %s (user_modified=true); skipping overwrite",
+                                pack_id,
+                            )
+                        # Still drop permanently retired tools from live allowlist
+                        current_tools = list(getattr(existing, "allowed_tool_names", None) or [])
+                        filtered = [t for t in current_tools if t not in RETIRED_TOOL_NAMES]
+                        if filtered != current_tools:
+                            existing.allowed_tool_names = filtered
+                            if service.store and hasattr(service.store, "save_custom_agent_profile"):
+                                # preserve user_modified
+                                existing.user_modified = True
+                                service.store.save_custom_agent_profile(existing)
+                        # Copy missing skill bodies only (never prune extras)
+                        src_skills = src / "skills"
+                        dest_skills = dest / "skills"
+                        if src_skills.is_dir():
+                            dest_skills.mkdir(parents=True, exist_ok=True)
+                            for s in src_skills.iterdir():
+                                if s.is_dir() and not (dest_skills / s.name).exists():
+                                    shutil.copytree(s, dest_skills / s.name)
+                        continue
+
+                    # Idempotent: same seed hash → no SQLite rewrite, no FS churn
+                    if stored_hash and stored_hash == seed_hash:
+                        continue
+
+                    # First Hybrid C+ boot (no stored hash): dual-read — if live already
+                    # diverges from seed, mark user_modified and do not clobber.
+                    if not stored_hash:
+                        live_prompt = getattr(existing, "system_prompt", None) or ""
+                        live_skills = list(getattr(existing, "allowed_skill", None) or [])
+                        live_tools = [
+                            t for t in (getattr(existing, "allowed_tool_names", None) or [])
+                            if t not in RETIRED_TOOL_NAMES
+                        ]
+                        seed_prompt = new_prompt or ""
+                        seed_skills = list(new_allowed_skill or [])
+                        seed_tools = [t for t in merged_tools if t not in RETIRED_TOOL_NAMES]
+                        diverged = (
+                            live_prompt != seed_prompt
+                            or live_skills != seed_skills
+                            or set(live_tools) != set(seed_tools)
+                        )
+                        if diverged:
+                            existing.user_modified = True
+                            existing.seed_content_hash = seed_hash
+                            existing.seed_version = seed_version
+                            if service.store and hasattr(service.store, "save_custom_agent_profile"):
+                                service.store.save_custom_agent_profile(existing)
+                            logger.info(
+                                "Cutover: marked %s user_modified (live diverged from seed); skipping overwrite",
+                                pack_id,
+                            )
+                            continue
+
+                    # Seed proposes tools only when not user_modified (SQLite sole writer)
+                    final_tools = list(merged_tools)
+                    for tname in user_pack_tools:
+                        if tname not in final_tools:
+                            final_tools.append(tname)
+                    final_tools = [t for t in final_tools if t not in RETIRED_TOOL_NAMES]
 
                     changed = False
                     if new_prompt and getattr(existing, "system_prompt", None) != new_prompt:
@@ -275,70 +375,44 @@ def install_platform_agent_packs(
                     if getattr(existing, "allowed_tool_names", None) != final_tools:
                         existing.allowed_tool_names = final_tools
                         changed = True
+                    existing.seed_content_hash = seed_hash
+                    existing.seed_version = seed_version
+                    existing.user_modified = False
+                    changed = True
 
                     if changed and service.store and hasattr(service.store, "save_custom_agent_profile"):
                         service.store.save_custom_agent_profile(existing)
-                        logger.info("Synchronized agent pack profile for %s", pack_id)
-                    # CARD-269 / CARD-381: Refresh operator override without wiping custom tools
+                        logger.info("Applied hash-gated platform seed for %s", pack_id)
                     if (
                         service.store
                         and hasattr(service.store, "get_agent_override")
                         and hasattr(service.store, "save_agent_override")
                     ):
                         ov = service.store.get_agent_override(pack_id)
-                        if ov is not None:
-                            ov_changed = False
-                            if new_prompt and getattr(ov, "system_prompt", None) != new_prompt:
-                                ov.system_prompt = new_prompt
-                                ov_changed = True
-                            if getattr(ov, "allowed_tool_names", None) != final_tools:
-                                ov.allowed_tool_names = final_tools
-                                ov_changed = True
-                            if getattr(ov, "pack_tool_names", None) != new_pack_tools:
-                                ov.pack_tool_names = new_pack_tools
-                                ov_changed = True
-                            if getattr(ov, "allowed_skill", None) != new_allowed_skill:
-                                ov.allowed_skill = new_allowed_skill
-                                ov_changed = True
-                            if ov_changed:
-                                service.store.save_agent_override(ov)
-                                logger.info("Synchronized agent_overrides for %s", pack_id)
+                        if ov is not None and not bool(getattr(ov, "user_modified", False)):
+                            ov.system_prompt = new_prompt
+                            ov.allowed_tool_names = final_tools
+                            ov.pack_tool_names = new_pack_tools
+                            ov.allowed_skill = new_allowed_skill
+                            ov.seed_content_hash = seed_hash
+                            ov.seed_version = seed_version
+                            ov.user_modified = False
+                            service.store.save_agent_override(ov)
 
-                    if dest.exists():
-                        # Non-destructive pack.json update: keep operator customizations intact
-                        if (dest / "pack.json").is_file():
-                            try:
-                                with open(dest / "pack.json", "r", encoding="utf-8") as dpf:
-                                    dest_data = json.load(dpf)
-                                dest_data["allowed_tool_names"] = final_tools
-                                dest_data["pack_tool_names"] = new_pack_tools
-                                dest_data["allowed_skill"] = new_allowed_skill
-                                if "skills" in pack_data:
-                                    dest_data["skills"] = list(pack_data["skills"])
-                                if dest_data.get("purpose") == "code":
-                                    dest_data["purpose"] = "task_execution"
-                                dest_data["origin"] = "pack"
-                                if new_prompt:
-                                    dest_data["system_prompt"] = new_prompt
-                                with open(dest / "pack.json", "w", encoding="utf-8") as dpf:
-                                    json.dump(dest_data, dpf, indent=2)
-                            except Exception:
-                                if (src / "pack.json").is_file():
-                                    shutil.copy2(src / "pack.json", dest / "pack.json")
-                        elif (src / "pack.json").is_file():
-                            shutil.copy2(src / "pack.json", dest / "pack.json")
-                        src_skills = src / "skills"
-                        dest_skills = dest / "skills"
-                        if src_skills.is_dir():
-                            dest_skills.mkdir(parents=True, exist_ok=True)
-                            for s in src_skills.iterdir():
-                                if s.is_dir():
-                                    shutil.copytree(s, dest_skills / s.name, dirs_exist_ok=True)
-                            for d in list(dest_skills.iterdir()):
-                                if d.is_dir() and not (src_skills / d.name).is_dir():
-                                    shutil.rmtree(d, ignore_errors=True)
-                        elif dest_skills.is_dir():
-                            shutil.rmtree(dest_skills, ignore_errors=True)
+                    # Skill store: copy missing / update non-user skill dirs; NEVER prune extras
+                    # (pack.json is export projection — do not treat as boot source of truth)
+                    src_skills = src / "skills"
+                    dest_skills = dest / "skills"
+                    if src_skills.is_dir():
+                        dest_skills.mkdir(parents=True, exist_ok=True)
+                        for s in src_skills.iterdir():
+                            if s.is_dir():
+                                target = dest_skills / s.name
+                                if not target.exists():
+                                    shutil.copytree(s, target)
+                                else:
+                                    # Refresh stock skill bodies only when not user_modified (already gated)
+                                    shutil.copytree(s, target, dirs_exist_ok=True)
                 except Exception:
                     logger.exception("Failed to sync updated prompt for %s", pack_id)
             continue
@@ -357,8 +431,20 @@ def install_platform_agent_packs(
                 except Exception:
                     pass
             profile = service.import_path(dest)
-            if profile and getattr(profile, "origin", None) != AgentOrigin.PACK:
-                profile.origin = AgentOrigin.PACK
+            if profile is not None:
+                if getattr(profile, "origin", None) != AgentOrigin.PACK:
+                    profile.origin = AgentOrigin.PACK
+                if (src / "pack.json").is_file():
+                    try:
+                        with open(src / "pack.json", "r", encoding="utf-8") as pf:
+                            seed_data = json.load(pf)
+                        profile.seed_content_hash = compute_platform_seed_hash(seed_data, src)
+                        profile.seed_version = str(
+                            seed_data.get("version") or seed_data.get("seed_version") or "1"
+                        )
+                        profile.user_modified = False
+                    except Exception:
+                        pass
                 if service.store and hasattr(service.store, "save_agent_profile"):
                     service.store.save_agent_profile(profile)
             installed.append(pack_id)
