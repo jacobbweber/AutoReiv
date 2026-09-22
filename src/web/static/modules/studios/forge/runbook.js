@@ -139,6 +139,39 @@ export function renderPlatformSkills({
   applySkillChecks(lastAllowedSkills);
 }
 
+export function operatorSkillPillModel(row) {
+  const source = row && typeof row === 'object' ? row : {};
+  const id = String(source.id || '').trim();
+  const required = Array.isArray(source.requires_tools)
+    ? source.requires_tools.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const tools = Array.isArray(source.tools) && source.tools.length ? source.tools : required;
+  return {
+    id,
+    name: String(source.name || id),
+    description: String(source.description || ''),
+    requires_tools: required,
+    tools,
+  };
+}
+
+export function renderOperatorSkills({
+  cachedOperatorSkills = [],
+  lastAllowedSkills = new Set(),
+  onToggleSkill = null,
+  onOpenSkillStudio = null,
+} = {}) {
+  const forgeOperatorSkillsGrid = $('forgeOperatorSkillsGrid');
+  if (!forgeOperatorSkillsGrid) return;
+  const skills = (cachedOperatorSkills || []).map(operatorSkillPillModel).filter((row) => row.id);
+  const html = skills.length
+    ? skills.map((skill) => skillRowHtml(skill, 'operator', false)).join('')
+    : '<p class="text-[10px] text-slate-500 px-1">No operator skills in the skill store yet.</p>';
+  forgeOperatorSkillsGrid.innerHTML = html;
+  bindSkillRowHandlers(forgeOperatorSkillsGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
+  applySkillChecks(lastAllowedSkills);
+}
+
 export function renderPackSkills({
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
@@ -158,6 +191,7 @@ export function renderPackSkills({
 
 export function renderNestedHomes({
   cachedPlatformSkills = [],
+  cachedOperatorSkills = [],
   cachedArchivedSkills = [],
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
@@ -168,6 +202,12 @@ export function renderNestedHomes({
   renderPlatformSkills({
     cachedPlatformSkills,
     cachedArchivedSkills,
+    lastAllowedSkills,
+    onToggleSkill,
+    onOpenSkillStudio,
+  });
+  renderOperatorSkills({
+    cachedOperatorSkills,
     lastAllowedSkills,
     onToggleSkill,
     onOpenSkillStudio,
@@ -189,17 +229,22 @@ export async function loadPlatformSkills({
   onLoaded = null,
 } = {}) {
   let platformSkills = [];
+  let operatorSkills = [];
   let archivedSkills = [];
   let updatedCatalog = cachedSkillsCatalog;
   try {
     if (cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.platform_skills)) {
       platformSkills = cachedSkillsCatalog.platform_skills;
+      operatorSkills = Array.isArray(cachedSkillsCatalog.operator_skills)
+        ? cachedSkillsCatalog.operator_skills
+        : [];
     } else {
       const catRes = await fetch('/api/skills/catalog');
       if (catRes.ok) {
         const catData = await catRes.json();
         updatedCatalog = catData;
         platformSkills = catData.platform_skills || [];
+        operatorSkills = catData.operator_skills || [];
       }
     }
     const archRes = await fetch('/api/skills/archived-packs');
@@ -212,11 +257,12 @@ export async function loadPlatformSkills({
   }
 
   if (typeof onLoaded === 'function') {
-    onLoaded({ platformSkills, archivedSkills, catalog: updatedCatalog });
+    onLoaded({ platformSkills, operatorSkills, archivedSkills, catalog: updatedCatalog });
   }
 
   renderNestedHomes({
     cachedPlatformSkills: platformSkills,
+    cachedOperatorSkills: operatorSkills,
     cachedArchivedSkills: archivedSkills,
     activeForgeAgent,
     lastAllowedSkills,
@@ -224,7 +270,7 @@ export async function loadPlatformSkills({
     onOpenSkillStudio,
   });
 
-  return { platformSkills, archivedSkills, catalog: updatedCatalog };
+  return { platformSkills, operatorSkills, archivedSkills, catalog: updatedCatalog };
 }
 
 /**

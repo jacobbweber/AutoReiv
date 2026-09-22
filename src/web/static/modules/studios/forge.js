@@ -148,6 +148,7 @@ export function initAgentForge(state, callbacks = {}) {
   let activeForgeAgent = null;
   let cachedSkillsCatalog = null;
   let cachedPlatformSkills = [];
+  let cachedOperatorSkills = [];
   let cachedArchivedSkills = [];
   let lastAllowedSkills = new Set();
   let currentAgentMcpServers = [];
@@ -183,6 +184,7 @@ export function initAgentForge(state, callbacks = {}) {
   function renderNestedHomesWrapper() {
     renderNestedHomes({
       cachedPlatformSkills,
+      cachedOperatorSkills,
       cachedArchivedSkills,
       activeForgeAgent,
       lastAllowedSkills,
@@ -196,8 +198,9 @@ export function initAgentForge(state, callbacks = {}) {
       activeForgeAgent,
       lastAllowedSkills,
       ...skillScopeHandlers(),
-      onLoaded: ({ platformSkills, archivedSkills, catalog }) => {
+      onLoaded: ({ platformSkills, operatorSkills, archivedSkills, catalog }) => {
         cachedPlatformSkills = platformSkills;
+        cachedOperatorSkills = operatorSkills || [];
         cachedArchivedSkills = archivedSkills;
         cachedSkillsCatalog = catalog;
       },

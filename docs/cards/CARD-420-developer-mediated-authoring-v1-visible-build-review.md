@@ -204,5 +204,5 @@ Skill Studio does not show **Ask developer**, a job id strip, or Accept/Reject, 
 2. Open Skill Studio. The action bar is **Save skill**, **Generate / Refine Runbook**, and **Delete skill** when the loaded skill can be deleted. There is no **Ask developer** button, no job id, and no Accept or Reject.
 3. External source context and reference notes sit above the SKILL.md editor.
 4. **Save skill** still writes the skill store and SQLite bindings. **Delete skill** asks you to confirm, then the form clears. A bundled seed such as `wiki` does not offer delete.
-5. Agent Studio skill pills are unchanged.
+5. Agent Studio skill pills for platform and pack skills are unchanged. A skill saved in Skill Studio also appears under **Operator skills** after you reopen Agent Studio, and its pill writes `allowed_skill` only.
 

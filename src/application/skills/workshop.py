@@ -156,6 +156,7 @@ def _row_for_skill_file(path: Path, skill_id: str, source: str, data_root: Path)
         "name": name,
         "description": description,
         "source": source,
+        "requires_tools": list(view.get("requires_tools") or []),
         "deletable": operator_skill_deletable(data_root, skill_id, path) if source == "store" else False,
     }
 
@@ -212,6 +213,28 @@ def list_workshop_skills(data_root: Path) -> list[dict[str, str]]:
                 add(skill_id, skill_file, "seed")
 
     return [found[key] for key in sorted(found)]
+
+
+def operator_store_skills(data_root: Path) -> list[dict[str, Any]]:
+    """Operator skill-store files. Platform seeds and pack homes stay out of this list."""
+    rows: list[dict[str, Any]] = []
+    for row in list_workshop_skills(data_root):
+        if row.get("source") != "store" or row.get("deletable") is not True:
+            continue
+        skill_id = str(row.get("id") or "").strip()
+        if not skill_id:
+            continue
+        tools = [str(item).strip() for item in (row.get("requires_tools") or []) if str(item).strip()]
+        rows.append(
+            {
+                "id": skill_id,
+                "name": str(row.get("name") or skill_id),
+                "description": str(row.get("description") or ""),
+                "requires_tools": tools,
+                "tools": [{"name": tool_id} for tool_id in tools],
+            }
+        )
+    return rows
 
 
 def load_workshop_skill(

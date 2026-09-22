@@ -228,6 +228,7 @@ async def get_skills_catalog(request: Request):
         REQUIRED_PLATFORM_TOOLS,
     )
     from src.application.skills.manifest import TOOL_GROUP_TIERS, get_hierarchical_tool_groups
+    from src.application.skills.workshop import operator_store_skills
 
     tool_reg = request.app.state.tool_reg
     tools_def_list = tool_reg.list_tools()
@@ -281,12 +282,14 @@ async def get_skills_catalog(request: Request):
     ]
 
     store = getattr(request.app.state, "store", None)
+    operator_skills = operator_store_skills(data_dir) if data_dir is not None else []
     return {
         "tools": tools_list,
         "tiers": [t.model_dump() for t in TOOL_GROUP_TIERS],
         "skill_packs": skill_packs,
         "baseline_tools": baseline_tools,
         "platform_skills": platform_skills,
+        "operator_skills": operator_skills,
         "fleet_skills": fleet_skills,
         "pack_owned_skills": sorted(pack_owned),
         "purposes": [p.value for p in ModelPurpose],

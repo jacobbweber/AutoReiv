@@ -9,6 +9,7 @@ from src.application.skills.workshop import (
     list_workshop_skills,
     load_workshop_skill,
     locate_skill_markdown,
+    operator_store_skills,
 )
 
 _RUNBOOK = """---
@@ -87,6 +88,13 @@ def test_pack_home_and_skill_store_and_dotted_id(tmp_path: Path):
     assert "Keep-the-body." in loaded["markdown_content"]
     assert loaded["deletable"] is True
 
+    operator = {row["id"]: row for row in operator_store_skills(tmp_path)}
+    assert set(operator) == {"My.Skill", "group/notes"}
+    assert operator["My.Skill"]["requires_tools"] == ["inspect_widget"]
+    assert operator["My.Skill"]["tools"] == [{"name": "inspect_widget"}]
+    assert "pack-only" not in operator
+    assert "coordination" not in operator
+
 
 def test_unknown_and_unsafe_ids_do_not_resolve(tmp_path: Path):
     assert locate_skill_markdown(tmp_path, "not-a-real-skill") is None
@@ -141,6 +149,17 @@ async def test_get_workshop_skill_opens_seed_pack_and_dotted_ids(tmp_path, monke
         nested_res = await ac.get("/api/agent_training_factory/skills/group/notes")
         assert nested_res.status_code == 200
         assert nested_res.json()["skill_id"] == "group/notes"
+
+        catalog = await ac.get("/api/skills/catalog")
+        assert catalog.status_code == 200
+        payload = catalog.json()
+        operator_ids = {row["id"] for row in payload["operator_skills"]}
+        platform_ids = {row["id"] for row in payload["platform_skills"]}
+        assert "My.Skill" in operator_ids
+        assert "group/notes" in operator_ids
+        assert "coordination" not in operator_ids
+        assert "My.Skill" not in platform_ids
+        assert "coordination" in platform_ids
 
         missing = await ac.get("/api/agent_training_factory/skills/not-a-real-skill")
         assert missing.status_code == 404
