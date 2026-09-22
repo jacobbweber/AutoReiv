@@ -10,7 +10,7 @@ import { initChatStudio } from './modules/studios/chat.js';
 import { initRoutinesStudio } from './modules/studios/routines.js';
 import { initObservability } from './modules/studios/observability.js';
 import { initSettingsStudio } from './modules/studios/settings.js';
-import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
+import { initWikiStudio, exportMessageToWiki, exportSessionToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
@@ -240,6 +240,7 @@ export function initApp() {
     showToast: (msg, type, dur) => showToast(msg, type, dur),
     openRoutineModal: (routine, agentId) => routinesCtrl?.openRoutineModal(routine, agentId),
     exportMessageToWiki: (content) => exportMessageToWiki(state, content),
+    exportSessionToWiki: (sessionId) => exportSessionToWiki(state, sessionId),
     onAgentSaved: async () => {
       await chatCtrl?.loadAgents();
     },

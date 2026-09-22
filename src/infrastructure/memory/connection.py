@@ -138,6 +138,7 @@ class SQLiteConnectionManager:
             ("custom_agents", "user_modified", "INTEGER NOT NULL DEFAULT 0"),
             ("custom_agents", "seed_version", "TEXT"),
             ("custom_agents", "seed_content_hash", "TEXT"),
+            ("messages", "reasoning", "TEXT"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

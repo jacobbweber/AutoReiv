@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS messages (
     tool_calls_json TEXT,
     tool_call_id TEXT,
     name TEXT,
+    reasoning TEXT,
     sequence_num INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

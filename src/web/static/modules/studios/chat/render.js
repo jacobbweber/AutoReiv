@@ -391,6 +391,40 @@ export function renderSkillProposalCard(proposal, {
   return el;
 }
 
+
+/** Thinking Process drawer HTML for durable assistant rows [CARD-415]. */
+export function buildReasoningDrawerHtml(reasoning) {
+  const text = (reasoning || '').trim();
+  if (!text) return '';
+  return `
+    <div class="reasoning-drawer rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs mb-2" data-reasoning-drawer="true">
+      <button type="button" class="reasoning-toggle flex items-center justify-between w-full px-3 py-2 bg-amber-900/20 text-amber-300 font-semibold cursor-pointer">
+        <span class="flex items-center gap-1.5">
+          <i data-lucide="brain" class="w-3.5 h-3.5"></i>
+          <span>Thinking Process</span>
+        </span>
+        <span class="reasoning-indicator text-[10px] uppercase font-mono">Show</span>
+      </button>
+      <div class="reasoning-content hidden p-3 font-mono text-[11px] text-amber-100 whitespace-pre-wrap max-h-60 overflow-y-auto"></div>
+    </div>
+  `;
+}
+
+export function wireReasoningDrawer(rootEl, reasoning) {
+  if (!rootEl) return;
+  const drawer = rootEl.querySelector?.('.reasoning-drawer') || rootEl;
+  const contentEl = drawer.querySelector?.('.reasoning-content');
+  const toggle = drawer.querySelector?.('.reasoning-toggle');
+  const indicator = drawer.querySelector?.('.reasoning-indicator');
+  if (contentEl && reasoning) contentEl.textContent = reasoning;
+  if (toggle && contentEl && indicator) {
+    toggle.addEventListener('click', () => {
+      const isHidden = contentEl.classList.toggle('hidden');
+      indicator.textContent = isHidden ? 'Show' : 'Hide';
+    });
+  }
+}
+
 export function appendMessageBubble(role, content, options = null, extraOptions = {}) {
   const isEl = (el) => Boolean(el && ((typeof HTMLElement !== 'undefined' && el instanceof HTMLElement) || el.nodeType === 1));
   const messagesContainer = isEl(options) ? options : (extraOptions?.messagesContainer || options?.messagesContainer || null);
@@ -459,6 +493,11 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
     `;
   }
 
+  const reasoningText = !isUser
+    ? (actualOptions?.reasoning || extraOptions?.reasoning || '')
+    : '';
+  const reasoningHtml = !isUser ? buildReasoningDrawerHtml(reasoningText) : '';
+
   bubble.innerHTML = `
     <div class="${
       isUser
@@ -468,6 +507,7 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
       <div class="text-xs font-bold uppercase tracking-wider mb-1 opacity-70">
         ${isUser ? 'You' : escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}
       </div>
+      ${reasoningHtml}
       <div class="msg-body prose prose-invert text-sm break-words leading-relaxed">
       </div>
       ${attachmentsHtml}
@@ -476,6 +516,9 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
   `;
 
   messagesContainer.appendChild(bubble);
+  if (reasoningText) {
+    wireReasoningDrawer(bubble, reasoningText);
+  }
   const bodyEl = bubble.querySelector('.msg-body');
   if (typeof renderMarkdownFn === 'function') {
     renderMarkdownFn(bodyEl, content || '');
@@ -630,8 +673,9 @@ export function renderMessageItem(msg, _idx, _allMessages, {
   // 3. Assistant Message
   if (role === 'assistant') {
     const content = (msg.content || '').trim();
-    if (!content) return;
-    appendMessageBubbleFn('assistant', content, { messageId: msg.id || null }, {
+    // Allow reasoning-only rows to still surface Thinking drawer [CARD-415]
+    if (!content && !(msg.reasoning || '').trim()) return;
+    appendMessageBubbleFn('assistant', content || '', { messageId: msg.id || null, reasoning: msg.reasoning || '' }, {
       messagesContainer,
       activeAgentTitle,
       renderMarkdownFn,

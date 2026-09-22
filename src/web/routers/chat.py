@@ -1474,6 +1474,7 @@ async def get_session_messages(request: Request, session_id: str):
             "name": m.name,
             "tool_calls": [tc.model_dump() for tc in m.tool_calls] if m.tool_calls else None,
             "tool_call_id": m.tool_call_id,
+            "reasoning": getattr(m, "reasoning", None),
         }
         for m in msgs
     ]
