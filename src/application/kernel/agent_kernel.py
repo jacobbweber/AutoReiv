@@ -1604,6 +1604,7 @@ class AgentKernel:
 
                 yield KernelEvent(
                     event_type=KernelEventType.TOOL_END,
+                    tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                     tool_result=tool_res,
                 )
 
