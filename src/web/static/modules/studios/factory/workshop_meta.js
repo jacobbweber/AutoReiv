@@ -111,7 +111,8 @@ export function createSkillWorkshop({
       factoryToolSearchInput,
     } = els();
     try {
-      const resp = await fetch(`/api/agent_training_factory/skills/${encodeURIComponent(skillId)}${query ? `?${query}` : ''}`);
+      const encoded = String(skillId).split('/').map((part) => encodeURIComponent(part)).join('/');
+      const resp = await fetch(`/api/agent_training_factory/skills/${encoded}${query ? `?${query}` : ''}`);
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
       setIdentityLocked(true);

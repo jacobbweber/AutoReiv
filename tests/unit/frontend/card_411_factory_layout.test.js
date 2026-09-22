@@ -64,6 +64,24 @@ describe('Factory layout UX [CARD-411]', () => {
     expect(html).toContain('Requires approval must also be on (linter enforces that).');
   });
 
+  it('picker options come from skills the loader can open', async () => {
+    const { indexListedSkills } = await import(
+      '../../../src/web/static/modules/studios/factory/skill_scope.js'
+    );
+    const options = indexListedSkills(
+      [
+        { id: 'coordination', name: 'Agent Coordination', source: 'seed' },
+        { id: 'wiki-knowledge', name: 'Wiki Knowledge', source: 'platform' },
+      ],
+      ['coordination', 'missing-skill'],
+    );
+    expect(options.map((row) => row.id)).toEqual(['coordination', 'wiki-knowledge']);
+    expect(options[0].source).toBe('assigned');
+    expect(options.some((row) => row.id === 'missing-skill')).toBe(false);
+    const scope = read('src/web/static/modules/studios/factory/skill_scope.js');
+    expect(scope).toContain('/api/agent_training_factory/skills');
+  });
+
   it('assigned skills are display-only; picker loads the workshop', () => {
     expect(skillScope).toContain('Pinned to this agent');
     expect(skillScope).not.toContain('factory-skill-open-btn');

@@ -18,7 +18,7 @@ labels:
 > **Status**: In Review  
 > **Created**: 2026-09-21  
 > **Decided**: 2026-09-22 — Option A, full scope (Jacob). ADR-0056 is Accepted; CARD-414 wiki/SQLite cutover is on `qa`. The old "blocked until ADR-0056" banner is retired.  
-> **UX pass**: 2026-09-22 — Factory layout (assigned skills → col 1; existing-skill picker → col 2; quiet Tier; safety help). Still In Review; do not mark Done until retest.  
+> **UX pass**: 2026-09-22 — Factory layout (assigned skills → col 1; existing-skill picker → col 2; quiet Tier; safety help). Selecting an Existing skill loads via the workshop resolver (skill store, pack skills, platform-packs, bundled seeds). Still In Review; do not mark Done until retest.  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) Hybrid C+  
 > **Labels**: `type:feat`, `type:refactor`, `area:ux`, `area:skills`, `area:forge`  
 

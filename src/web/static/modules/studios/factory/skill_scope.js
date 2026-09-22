@@ -5,6 +5,24 @@
 
 import { escapeHtml, safeCreateIcons } from '../../dom.js';
 
+export function indexListedSkills(listed = [], assignedIds = []) {
+  const assigned = new Set((assignedIds || []).map((id) => String(id || '').trim()).filter(Boolean));
+  return (listed || [])
+    .filter((row) => row && String(row.id || '').trim())
+    .map((row) => {
+      const id = String(row.id).trim();
+      return {
+        id,
+        name: String(row.name || id).trim() || id,
+        source: assigned.has(id) ? 'assigned' : (row.source || 'workshop'),
+      };
+    })
+    .sort((a, b) => {
+      if (a.source === 'assigned' && b.source !== 'assigned') return -1;
+      if (b.source === 'assigned' && a.source !== 'assigned') return 1;
+      return a.id.localeCompare(b.id);
+    });
+}
 export function mergeEditableSkillOptions({
   assignedIds = [],
   platformSkills = [],
@@ -136,37 +154,17 @@ export function createSkillScopeUI({
 
   async function refreshEditableSkillOptions(selectedId = null) {
     const assignedIds = getAssignedSkills() || [];
-    let platformSkills = [];
-    let packOwnedIds = [];
-    let userPacks = [];
+    let listed = [];
     try {
-      const catRes = await fetch('/api/skills/catalog');
-      if (catRes.ok) {
-        const data = await catRes.json();
-        platformSkills = data.platform_skills || [];
-        packOwnedIds = data.pack_owned_skills || [];
+      const res = await fetch('/api/agent_training_factory/skills');
+      if (res.ok) {
+        const data = await res.json();
+        listed = data.skills || [];
       }
     } catch {
-      // Catalog is optional enrichment; assigned skills still populate the picker.
+      listed = [];
     }
-    try {
-      const packRes = await fetch('/api/skills/user-packs');
-      if (packRes.ok) {
-        const data = await packRes.json();
-        userPacks = data.packs || [];
-      }
-    } catch {
-      // User packs optional.
-    }
-    setEditableOptions(
-      mergeEditableSkillOptions({
-        assignedIds,
-        platformSkills,
-        packOwnedIds,
-        userPacks,
-      }),
-      selectedId,
-    );
+    setEditableOptions(indexListedSkills(listed, assignedIds), selectedId);
   }
 
   function selectSkillInPicker(skillId) {

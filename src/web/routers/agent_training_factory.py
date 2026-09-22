@@ -1127,24 +1127,29 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     }
 
 
-@router.get("/skills/{skill_id}")
+@router.get("/skills")
+async def list_workshop_skills_route(request: Request) -> Dict[str, Any]:
+    """Skills the Factory picker can open. Every id resolves through the workshop loader [CARD-411]."""
+    from src.application.skills.workshop import list_workshop_skills
+
+    return {"skills": list_workshop_skills(_workshop_data_root(request))}
+
+
+@router.get("/skills/{skill_id:path}")
 async def get_workshop_skill(skill_id: str, request: Request, agent_id: Optional[str] = None) -> Dict[str, Any]:
     """Load one skill into the Factory workshop (frontmatter + SQLite bindings) [CARD-411]."""
-    import re
+    from src.application.skills.workshop import accept_skill_id, load_workshop_skill
 
-    from src.application.skills.workshop import load_workshop_skill
-    from src.infrastructure.data.resolver import DataDirResolver
-
-    clean_skill_id = re.sub(r"[^a-zA-Z0-9_\-]", "", (skill_id or "").lower().strip())
+    clean_skill_id = accept_skill_id(skill_id or "")
     if not clean_skill_id:
         raise HTTPException(status_code=400, detail="Invalid skill_id")
-    clean_agent = None
-    if agent_id:
-        clean_agent = re.sub(r"[^a-zA-Z0-9_\-]", "", agent_id.lower().strip()) or None
+    clean_agent = accept_skill_id(agent_id or "") if agent_id else None
+    if clean_agent and "/" in clean_agent:
+        clean_agent = None
     store = getattr(request.app.state, "store", None)
     db_path = getattr(store, "db_path", None)
     loaded = load_workshop_skill(
-        DataDirResolver().resolve().root,
+        _workshop_data_root(request),
         clean_skill_id,
         agent_id=clean_agent,
         db_path=str(db_path) if db_path else None,
@@ -1152,5 +1157,15 @@ async def get_workshop_skill(skill_id: str, request: Request, agent_id: Optional
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Skill '{clean_skill_id}' not found")
     return loaded
+
+
+def _workshop_data_root(request: Request):
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    root = getattr(paths, "root", None) if paths is not None else None
+    if root:
+        return Path(root)
+    from src.infrastructure.data.resolver import DataDirResolver
+
+    return DataDirResolver().resolve().root
 
 
