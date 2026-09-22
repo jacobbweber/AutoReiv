@@ -1,6 +1,6 @@
 /**
  * Agent Studio: Read-only runbook inspector & skill hierarchy [CARD-411].
- * Inspects SKILL.md metadata. Authoring and tool bindings live in the Factory workshop.
+ * Inspects SKILL.md metadata. Authoring and tool bindings live in Skill Studio.
  * Keeps the character budget, ADR-0054 lint view, and Platform/Pack skill rows.
  */
 
@@ -449,7 +449,7 @@ export async function loadPlatformSkills({
  */
 export function setupRunbookEditor({
   getActiveAgentId = null,
-  openFactoryWorkshop = null,
+  openSkillStudio = null,
 } = {}) {
   const studioRunbookCloseBtn = $('studioRunbookCloseBtn');
   const studioRunbookCancelBtn = $('studioRunbookCancelBtn');
@@ -458,16 +458,16 @@ export function setupRunbookEditor({
   const studioRunbookOpenFactoryBtn = $('studioRunbookOpenFactoryBtn');
   const studioOpenFactoryBtn = $('studioOpenFactoryBtn');
 
-  function openFactory(agentId, skillId) {
-    if (typeof openFactoryWorkshop === 'function') {
-      openFactoryWorkshop(agentId || '', skillId || null);
+  function openSkillStudioWindow(agentId, skillId) {
+    if (typeof openSkillStudio === 'function') {
+      openSkillStudio(agentId || '', skillId || null);
       return;
     }
-    if (typeof window !== 'undefined' && typeof window.openFactoryWorkshopForSkill === 'function') {
-      window.openFactoryWorkshopForSkill({ agentId: agentId || '', skillId: skillId || null });
+    if (typeof window !== 'undefined' && typeof window.openSkillStudioForSkill === 'function') {
+      window.openSkillStudioForSkill({ agentId: agentId || '', skillId: skillId || null });
       return;
     }
-    showToast('Factory workshop is not ready yet', 'error');
+    showToast('Skill Studio is not ready yet', 'error');
   }
 
   if (studioRunbookCloseBtn) {
@@ -497,14 +497,14 @@ export function setupRunbookEditor({
         return;
       }
       const agentId = typeof getActiveAgentId === 'function' ? (getActiveAgentId() || '') : '';
-      openFactory(agentId, activeRunbookId);
+      openSkillStudioWindow(agentId, activeRunbookId);
     });
   }
 
   if (studioOpenFactoryBtn) {
     studioOpenFactoryBtn.addEventListener('click', () => {
       const agentId = typeof getActiveAgentId === 'function' ? (getActiveAgentId() || '') : '';
-      openFactory(agentId, null);
+      openSkillStudioWindow(agentId, null);
     });
   }
 

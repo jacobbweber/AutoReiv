@@ -58,7 +58,7 @@ class ScaffoldRunbookRequest(BaseModel):
 
 
 class SaveScaffoldRequest(BaseModel):
-    agent_id: str
+    agent_id: Optional[str] = None
     agent_name: Optional[str] = None
     role_persona: Optional[str] = None
     model: Optional[str] = None
@@ -998,23 +998,28 @@ description: {clean_trigger}
 
 @router.post("/scaffold/save")
 async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> Dict[str, Any]:
-    """Persist authored SKILL.md and auto-pin it to target agent pack manifest."""
-    import re
-    if not req.agent_id or not req.skill_id:
-        raise HTTPException(status_code=400, detail="agent_id and skill_id are required")
+    """Persist authored SKILL.md to the skill store and SQLite bindings.
 
-    clean_agent_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.agent_id.lower().strip())
+    When agent_id is present, also pin the skill on that agent pack. Skill Studio
+    can save without an agent brief [CARD-418]. pack.json is not the binding writer.
+    """
+    import re
+    if not req.skill_id:
+        raise HTTPException(status_code=400, detail="skill_id is required")
+
+    clean_agent_id = ""
+    if req.agent_id and str(req.agent_id).strip():
+        clean_agent_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.agent_id.lower().strip())
+        if not clean_agent_id:
+            raise HTTPException(status_code=400, detail="Invalid agent_id format")
     clean_skill_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.skill_id.lower().strip())
 
-    if not clean_agent_id or not clean_skill_id:
-        raise HTTPException(status_code=400, detail="Invalid agent_id or skill_id format")
+    if not clean_skill_id:
+        raise HTTPException(status_code=400, detail="Invalid skill_id format")
 
     from src.infrastructure.data.resolver import DataDirResolver
     resolver = DataDirResolver()
     data_root = resolver.resolve().root
-    packs_dir = data_root / "packs"
-    agent_dir = packs_dir / clean_agent_id
-    agent_dir.mkdir(parents=True, exist_ok=True)
 
     from src.application.skills.runbook_frontmatter import InvalidSkillTierError, UnknownCatalogToolError
     from src.application.skills.workshop import catalog_tool_ids, persist_workshop_skill
@@ -1025,7 +1030,7 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     try:
         persisted = persist_workshop_skill(
             data_root=data_root,
-            agent_id=clean_agent_id,
+            agent_id=clean_agent_id or None,
             skill_id=clean_skill_id,
             skill_content=req.skill_content,
             catalog_ids=catalog_tool_ids(tool_registry),
@@ -1043,9 +1048,45 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    skill_file = Path(persisted["pack_skill_path"])
+    skill_file = Path(persisted["pack_skill_path"] or persisted["skill_store_path"])
     display_name = (persisted.get("frontmatter") or {}).get("name") or clean_skill_id.replace("-", " ").replace("_", " ").title()
 
+    if clean_agent_id:
+        _pin_saved_skill_on_agent(
+            request,
+            agent_dir=data_root / "packs" / clean_agent_id,
+            clean_agent_id=clean_agent_id,
+            clean_skill_id=clean_skill_id,
+            display_name=display_name,
+            req=req,
+        )
+
+    return {
+        "success": True,
+        "agent_id": clean_agent_id or None,
+        "skill_id": clean_skill_id,
+        "skill_path": str(skill_file),
+        "skill_store_path": persisted["skill_store_path"],
+        "pinned": bool(clean_agent_id and req.auto_pin),
+        "requires_tools": persisted["requires_tools"],
+        "tier": persisted["tier"],
+        "safety": persisted["safety"],
+        "binding_store": "sqlite",
+        "markdown_content": persisted["markdown"],
+    }
+
+
+def _pin_saved_skill_on_agent(
+    request: Request,
+    *,
+    agent_dir: Path,
+    clean_agent_id: str,
+    clean_skill_id: str,
+    display_name: str,
+    req: SaveScaffoldRequest,
+) -> None:
+    """Pin a saved skill on one agent pack. Does not write tool bindings into pack.json."""
+    agent_dir.mkdir(parents=True, exist_ok=True)
     pack_json_file = agent_dir / "pack.json"
     if pack_json_file.is_file():
         try:
@@ -1111,20 +1152,6 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
                 registry.state_store.save_agent_profile(prof)
                 if req.auto_pin and hasattr(registry.state_store, "mark_agent_user_modified"):
                     registry.state_store.mark_agent_user_modified(clean_agent_id, modified=True)
-
-    return {
-        "success": True,
-        "agent_id": clean_agent_id,
-        "skill_id": clean_skill_id,
-        "skill_path": str(skill_file),
-        "skill_store_path": persisted["skill_store_path"],
-        "pinned": req.auto_pin,
-        "requires_tools": persisted["requires_tools"],
-        "tier": persisted["tier"],
-        "safety": persisted["safety"],
-        "binding_store": "sqlite",
-        "markdown_content": persisted["markdown"],
-    }
 
 
 @router.get("/skills")

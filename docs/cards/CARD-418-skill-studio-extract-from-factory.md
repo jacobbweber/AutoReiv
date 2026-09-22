@@ -1,7 +1,7 @@
 ---
 id: CARD-418
 title: "Skill Studio Extract from Factory (Lifecycle + Tool Scoping Surface)"
-status: Ready
+status: In Review
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-418] Skill Studio Extract from Factory (Lifecycle + Tool Scoping Surface)
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted** — Accept before **build**)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:skills`  
@@ -67,6 +67,19 @@ This is slice 1 of ADR-0057 / CARD-417 build order. It does **not** implement de
 
 ---
 
+## Cutover (chosen during build)
+
+**Thin Factory shell.** Factory stays on the dock for the agent brief and the display-only assigned-skills list (CARD-411 column 1). Skill pick/create, metadata, tool scoping, generate, and save live only in Skill Studio. Factory’s action bar is **Edit skills in Skill Studio**.
+
+An alias that turned the Factory dock into Skill Studio was not used. The agent brief is not a skill write UI, and Agent Studio does not own it yet. Keeping the brief on Factory does not add a second binding writer.
+
+What died in this slice:
+
+- Factory columns 2 and 3 as an editor on the Factory screen
+- Forge labels **Open in Factory Workshop** and **Author skill in Factory**
+- `window.openFactoryWorkshopForSkill` (Forge calls `openSkillStudio`)
+- Save requiring the agent-brief column. With no agent id, save still writes the skill store and SQLite and does not pin a pack.
+
 ## 5. Acceptance criteria (EARS)
 
 - **[REQ-418-001]** WHEN the operator opens Skill Studio from the dock, THE SYSTEM SHALL present skill pick/create + tool scoping without requiring the Factory agent-brief column to author a skill.
@@ -78,5 +91,13 @@ This is slice 1 of ADR-0057 / CARD-417 build order. It does **not** implement de
 
 ## 6. Verification
 
-- Vitest: Skill Studio mount / deep-link populate.
-- Manual: dock → pick skill → tick tool → save → skill store + SQLite row; Forge Inspect → Open in Skill Studio.
+- Vitest: `tests/unit/frontend/card_418_skill_studio.test.js` (dock open, deep-link hydrate, Factory is not a second writer).
+- Pytest: `tests/unit/web/test_card_418_skill_studio_save.py` and CARD-411 binding test stay green.
+- Manual live test (say **merge to qa** only after this):
+
+1. Start the app and open the Agent Desktop dock.
+2. Click **Skill Studio**. The window shows the existing-skill picker, **+ New Skill**, metadata, SKILL.md, and the tool catalog. It does not show the Factory agent-brief fields.
+3. Pick a catalog skill. Name, description, and required tools fill in. You do not see “Skill not found”.
+4. Tick one catalog tool and click **Save skill**. The skill store `SKILL.md` updates and `skill_tool_bindings` has that tool. `pack.json` does not gain a tools list for the skill.
+5. In Agents, inspect a skill and click **Open in Skill Studio**. Skill Studio opens with that skill loaded.
+6. Open **Factory**. You see the agent brief and assigned skills, plus **Edit skills in Skill Studio**. Factory has no save button for the runbook.

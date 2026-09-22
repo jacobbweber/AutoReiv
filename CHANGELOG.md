@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Added
+
+- **CARD-418 Skill Studio**: Agent Desktop dock window labeled Skill Studio. It is the skill write surface: existing-skill picker, new skill, structured metadata, tool catalog, and save. Save writes the skill store and SQLite `skill_tool_bindings` the same way as CARD-411. A save with no agent id does not pin a pack or write tool rows into `pack.json` (`src/web/static/modules/studios/skill_studio.js`, `src/web/templates/index.html`, `src/web/static/modules/ui/agent-desktop.js` [CARD-418]).
+
+### Changed
+
+- **CARD-418 Factory cutover (thin shell)**: Factory keeps the agent brief and the display-only assigned-skills list, and links to Skill Studio. Forge **Open in Factory Workshop** and **Author skill in Factory** now open Skill Studio and load the selected skill by id (`src/web/static/modules/studios/factory.js`, `src/web/static/modules/studios/forge/runbook.js`, `src/application/skills/workshop.py`, `src/web/routers/agent_training_factory.py` [CARD-418]).
+
 ## [0.40.0] - 2026-09-22
 
 ### Added

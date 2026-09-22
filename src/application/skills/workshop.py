@@ -195,7 +195,7 @@ def load_workshop_skill(
 def persist_workshop_skill(
     *,
     data_root: Path,
-    agent_id: str,
+    agent_id: Optional[str],
     skill_id: str,
     skill_content: str,
     catalog_ids: Iterable[str],
@@ -206,8 +206,9 @@ def persist_workshop_skill(
     requires_tools: Optional[Sequence[str]] = None,
     db_path: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Write one SKILL.md projection to the skill store and the agent pack home, and bind tools in SQLite.
+    """Write one SKILL.md projection to the skill store and bind tools in SQLite.
 
+    When agent_id is set, also copy the runbook into that agent's pack home.
     Raises UnknownCatalogToolError before any write when a tool id is not in the catalog.
     """
     catalog = list(catalog_ids)
@@ -224,11 +225,16 @@ def persist_workshop_skill(
         rendered += "\n"
 
     store_file = data_root / "skills" / skill_id / "SKILL.md"
-    pack_file = data_root / "packs" / agent_id / "skills" / skill_id / "SKILL.md"
     store_file.parent.mkdir(parents=True, exist_ok=True)
-    pack_file.parent.mkdir(parents=True, exist_ok=True)
     store_file.write_text(rendered, encoding="utf-8")
-    pack_file.write_text(rendered, encoding="utf-8")
+
+    pack_path: Optional[str] = None
+    clean_agent = (agent_id or "").strip()
+    if clean_agent:
+        pack_file = data_root / "packs" / clean_agent / "skills" / skill_id / "SKILL.md"
+        pack_file.parent.mkdir(parents=True, exist_ok=True)
+        pack_file.write_text(rendered, encoding="utf-8")
+        pack_path = str(pack_file)
 
     resolved_db = operational_db_path(db_path or os.environ.get("AUTOREIV_DB_PATH"))
     record = SkillToolBindingRepository(db_path=resolved_db).replace(
@@ -244,7 +250,7 @@ def persist_workshop_skill(
         "tier": record.get("tier") or view["tier"],
         "safety": record.get("safety") or view["safety"],
         "skill_store_path": str(store_file),
-        "pack_skill_path": str(pack_file),
+        "pack_skill_path": pack_path,
         "binding_store": "sqlite",
     }
 
