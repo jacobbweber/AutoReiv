@@ -18,7 +18,7 @@ labels:
 
 > **Status**: Ready (planning / decision — **no product code** until Jacob says **build** after forks are locked)
 > **Created**: 2026-09-22
-> **ADR Reference**: none yet (may need ADR amendment under ADR-0056 ownership + new UX ADR)
+> **ADR Reference**: none yet (forks locked 2026-09-22; ADR outline optional before build) (may need ADR amendment under ADR-0056 ownership + new UX ADR)
 > **Labels**: `type:architecture`, `type:planning`, `area:ux`, `area:studios`, `area:skills`, `area:agents`, `area:tools`
 > **Depends on**: CARD-411 Done (Option A Forge/Factory split + SQLite skill tool bindings on `qa` / `v0.40.0`)
 
@@ -105,16 +105,41 @@ Standards already in product (must keep):
 
 ## 2. Product-policy forks (Jacob must lock before build)
 
-| # | Fork | Options | Assistant lean |
+| # | Fork | Options | Status |
 |---|------|---------|----------------|
-| 1 | Studio topology | **A)** Three studios (Agent / Skill / Tools). **B)** Keep Factory name but hide agent half. **C)** Two studios only (Agent + Skill); Tools later. | **A** |
-| 2 | Agent↔skill UI | Toggle pills vs checkboxes vs chips-as-editor | **Toggle pills** |
-| 3 | Build/Review UX | **A)** Visible developer job/conversation. **B)** Invisible backend fill. **C)** Both (A default, B for lint-only). | **C with A default** |
-| 4 | Custom tools policy | **A)** Custom capabilities only via MCP server. **B)** Allow naked scripts with guardrails. **C)** Defer Tools Studio v1 to catalog+MCP attach only. | **C then A** |
-| 5 | Tier taxonomy | **A)** Hide now, remove later. **B)** Remove from operator UI + data in same program. **C)** Keep forever. | **A** (matches CARD-411 quiet Advanced) |
-| 6 | Storage/interchange | Leave ADR-0056 packs as-is vs plan `agents/`/`skills/`/`tools/` materialization | **Defer** to follow-on after Studios UX lands |
+| 1 | Studio topology | **A)** Three studios (Agent / Skill / Tools). **B)** Keep Factory name but hide agent half. **C)** Two studios only (Agent + Skill); Tools later. | **LOCKED: A** |
+| 2 | Agent↔skill UI | Toggle pills vs checkboxes vs chips-as-editor | **LOCKED: toggle pills** |
+| 3 | Build/Review UX | **A)** Visible developer job/conversation. **B)** Invisible backend fill. **C)** Both (A default, B for lint-only). | **LOCKED: C with A default** |
+| 4 | Custom tools policy | **A)** Custom capabilities only via MCP server. **B)** Allow naked scripts with guardrails. **C)** Defer Tools Studio v1 to catalog+MCP attach only. | **LOCKED: C then A** |
+| 5 | Tier taxonomy | **A)** Hide now, remove later. **B)** Remove from operator UI + data in same program. **C)** Keep forever. | **LOCKED: A** |
+| 6 | Storage/interchange | Leave ADR-0056 packs as-is vs plan `agents/`/`skills/`/`tools/` materialization | **LOCKED: Defer** |
 
 ---
+
+
+---
+
+## Locked decisions (Jacob 2026-09-22)
+
+All six recommended forks are **locked**. Planning may continue (ADR outline, successor card slice); **no product code** until Jacob says **build**.
+
+| # | Decision |
+|---|----------|
+| 1 | **Three studios**: Agent Studio, Skill Studio, Tools Studio. Skill Studio = today’s Factory col 2+3 promoted; Tools is new; Factory-as-all-in-one fades. |
+| 2 | **Agent↔skill UI**: toggle **pills** on/off in Agent Studio. Chips that open a skill editor are not the scoping lever; skill editing lives only in Skill Studio. |
+| 3 | **Build/Review UX**: **visible developer job/conversation as default**; invisible path only for cheap lint (valid frontmatter, catalog tool ids). Studio form remains the draft; developer returns suggested field patches / blockers the operator can accept. |
+| 4 | **Custom tools policy**: Tools Studio **v1 = catalog + MCP attach/status**; then **custom capabilities via MCP only**. No naked script factory in v1. |
+| 5 | **Tier**: keep **quiet/hidden** in operator UX now; remove from operator model in a later thin card. |
+| 6 | **Storage/interchange**: **defer** `agents/` / `skills/` / `tools/` monolith folder redesign; stay on ADR-0056 until Studios UX lands. |
+
+### Recommended build order (after **build**)
+
+1. Skill Studio extract (Factory col 2+3 → Skill Studio; deep-link from Forge Inspect).
+2. Agent Studio skill toggle pills; remove residual skill-edit chrome.
+3. Developer mediation v1 (Build/Review → visible job with form packet; apply approved patches back to Studio).
+4. Tools Studio v1 (catalog + MCP attach/status).
+5. Optional: tier removal; interchange folder planning under ADR-0056.
+
 
 ## 3. Acceptance criteria (planning card)
 
