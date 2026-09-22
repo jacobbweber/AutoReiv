@@ -1,7 +1,7 @@
 ---
 id: CARD-408
 title: "View Job Shortcut from Chat Multi-Phase Chrome to Observe Studio"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-408] View Job Shortcut from Chat Multi-Phase Chrome to Observe Studio
 
-> **Status**: In Review  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:feature`, `area:ui`, `area:chat`, `area:observability`  
