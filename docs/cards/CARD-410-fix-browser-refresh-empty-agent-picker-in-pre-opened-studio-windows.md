@@ -1,7 +1,7 @@
 ---
 id: CARD-410
 title: "Fix Browser Refresh Empty Agent Picker in Pre-Opened Studio Windows"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-410] Fix Browser Refresh Empty Agent Picker in Pre-Opened Studio Windows
 
-> **Status**: In Review  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:bug`, `area:ux`, `area:studios`  
