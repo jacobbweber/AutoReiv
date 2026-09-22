@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-413 ownership audit and recommended Hybrid C+ architecture (docs/design/CARD-413-ownership-audit-and-recommended-architecture.md, docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md [CARD-413]): deep current-state ownership map; intent synthesis; one recommended architecture (pending Jacob); CARD-411 defer until ADR; no product code.
+
 - CARD-412 Phase 1+2 build (	ests/integration/operator_contracts/, src/web/static/modules/studios/settings.js, src/application/settings/settings_service.py, src/web/routers/observability.py, src/domain/wiki/frontmatter.py [CARD-412]):
   - **OC-1**: Save Provider also persists default_context_window via /api/settings/matrix; settings dump uses JSON mode.
   - **OC-2**: Observe session-metrics export fail-closed on empty markdown/read-back; wiki frontmatter uses model_dump for Pydantic metas.

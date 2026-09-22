@@ -120,7 +120,7 @@ Schema anchors (`src/infrastructure/memory/schema.py`): `settings`, `agent_overr
 
 This card delivers **analysis + decision**, not code:
 
-1. Completed ownership **inventory matrix** (below) reviewed with Jacob
+1. Completed ownership **inventory matrix** (below) + deep audit brief under `docs/design/` — reviewed with Jacob
 2. Options A–D compared against decision criteria (below)
 3. Required mapping docs (seeder/reconciler paths, FKs/stable IDs, boot flow, wiki UX, failure modes) cited to concrete files
 4. Product forks answered (section 6)
@@ -140,6 +140,19 @@ Fragile ownership patterns to **retire in the eventual build** (not deleted by t
 - Silent wiki mkdir / legacy string fallbacks that hide a broken configured path
 - One-shot mass delete of AppData content as a "migration"
 - Folding this decision into CARD-411 implementation
+
+---
+
+## 1b. Recommended architecture (pending Jacob)
+
+> **Audit complete (2026-09-21 ET).** Full brief:
+> [`docs/design/CARD-413-ownership-audit-and-recommended-architecture.md`](../design/CARD-413-ownership-audit-and-recommended-architecture.md)
+>
+> **Recommendation**: Hybrid **C+** — SQLite canonical for mutable runtime registry (profiles, bindings, settings, jobs); filesystem canonical for wiki + pack **interchange**; repo canonical for platform defaults; reconcile via stable id + version/hash + `user_modified` (no silent overwrite/fallback); keep per-agent `storage.db` / `memory.db` + one operational `autoreiv.db`; manifest backup/restore; wiki first-run picker + fail-visible missing path.
+>
+> **Status**: Ready (planning). **`adr: none`** — ADR remains Proposed/none until Jacob walkthrough Accepts.
+> **CARD-411**: defer / read-only until ADR Accepted.
+> **Next**: Jacob reviews forks in the brief (≤6 defaults listed); reply **`continue`** to refine, or after ADR Accept proceed on a build successor — not this card alone.
 
 ---
 
@@ -291,6 +304,13 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 ---
 
 ## 12. Acceptance criteria (planning / decision)
+
+### Planning progress (executor)
+
+- [x] Deep ownership audit + ownership map + C+ recommendation written to `docs/design/CARD-413-ownership-audit-and-recommended-architecture.md` (REQ-413-004 cite map).
+- [ ] REQ-413-001..003 still need Jacob walkthrough / fork answers / option scoring sign-off.
+- [x] CARD-411 defer/read-only recommendation recorded in brief + this card §1b / §11.
+
 
 - [ ] **REQ-413-001 (Ubiquitous)**: THE DECISION PHASE SHALL review the ownership inventory matrix with Jacob; `continue` iterations remain planning only.
 - [ ] **REQ-413-002 (Ubiquitous)**: THE DECISION PHASE SHALL score Options A–D against every stated criterion and name the selected option or hybrid.
