@@ -35,6 +35,7 @@ Jacob’s product intent (local-first, operator-owned, Studio-driven, wiki as hu
 * Human-friendly wiki Markdown vaults.
 * Backup/restore **provenance** (manifest), not blind zip-only.
 * Migration cost bounded enough to execute with operator contracts OC-S1..S6.
+* **Windows + Linux** deploy targets, including local serve, OS daemon, and **Docker Compose** with env/volume configuration.
 
 ---
 
@@ -86,18 +87,40 @@ For each platform artifact keyed by **stable id** (`agent_id`, skill id, tool na
 | 1 | Skills editing | **Studios primary**; files remain readable under the skill store; direct file edits set `user_modified` |
 | 2 | Built-in customization | **Layered overrides** + explicit **Fork to custom pack** for large divergence; no silent in-place clobber of seed |
 | 3 | DB topology | **One** operational `autoreiv.db` + per-agent `*_storage.db` / `*_memory.db` (no platform DB split in v1) |
-| 4 | Wiki first-run | **Folder picker with no suggested path** — operator must choose a folder; scaffold numbered layout only after confirm |
+| 4 | Wiki first-run | **Deployment-mode aware** (see section 4.4): local Windows/Linux require explicit path with **no suggested path**; Docker/daemon require wiki via **compose/env + volume** (no host folder picker inside the container) |
 | 5 | Backup vs wiki content | Manifest **always** records configured wiki URI; **including wiki file content is opt-in** |
 | 6 | Missing wiki path | **Fail visibly** + reconnect/migrate only — **never** silent recreate elsewhere |
 
 Also locked: export → import **round-trips** skills + tool bindings + stable IDs; migrations are **forward-only** with restore-from-pre-cutover backup as rollback.
 
-### 4.4 Wiki UX invariants
+### 4.4 Wiki UX invariants (deployment-mode aware)
 
-1. First run / empty wiki config: **required folder picker**, no prefilled suggestion.
-2. Persist chosen path as durable setting (distinct from env override).
-3. If configured path missing/unreadable: fail closed in UI + reconnect/migrate — `ensure_layout` must **not** create a different fallback vault.
-4. Settings Studio: editable path + status (exists / missing / external), not read-only display only.
+AutoReiv targets **Windows and Linux**, including local serve, OS daemon, and **Docker Compose** deployments. Wiki configuration MUST be explicit in every mode. Silent `mkdir` of a fallback vault is forbidden.
+
+#### Local Windows / Linux (machine-local control plane)
+
+1. First run / empty wiki config: operator **must** set an explicit wiki path before the wiki is usable.
+2. **No suggested path** (Jacob lock). Scaffold the numbered vault layout only after the path is confirmed and writable.
+3. Prefer Settings first-run / blocking gate. Native OS folder browse is optional and only where a desktop bridge exists; a plain validated path field is acceptable for the web UI.
+4. Persist chosen path as durable setting (distinct from env override). Env may still override for advanced operators.
+5. If configured path missing/unreadable: **fail visibly** + reconnect/migrate - never create a different fallback vault.
+
+#### Docker Compose / headless daemon
+
+1. Wiki content is a **volume** (or a subdirectory of the data volume). Compose MUST document required env and mounts.
+2. Required deploy configuration (at least one):
+   - `AUTOREIV_WIKI_PATH` pointing at the in-container mount path, or
+   - wiki living under `AUTOREIV_DATA_DIR` with an explicit durable `wiki_path` / documented convention that is set at deploy time (not invented at runtime).
+3. A browser **cannot** mount a host directory into the container. There is **no** OS folder picker inside Docker. First-run prompt in Docker means Settings/onboarding UI that tells the operator to set compose env + volume, or a degraded/unready state until configured.
+4. If wiki path/volume is missing at runtime: **fail visibly** (wiki subsystem fail-closed; onboarding/Settings banner; health/ready signal may report degraded). Do **not** silently create `/data/wiki` (or similar) as a substitute for deploy configuration.
+5. Recommended Compose posture for production: **require** wiki volume + env at deploy time so a fresh stack is intentional. Optional allow-boot-for-diagnostics remains acceptable if wiki stays fail-closed until configured (Jacob chooses exact start policy before Accept).
+
+#### Shared invariants
+
+- Settings Studio shows editable path / status (exists, missing, external, docker-mounted) - not read-only display only.
+- Backup manifest always records configured wiki URI; including wiki file bytes remains **opt-in**.
+- Cross-platform path handling must honor Windows and POSIX roots via existing `DataDirResolver` rules; checkout live-tree refuse remains in force.
+
 
 ### 4.5 Interchange
 
@@ -115,7 +138,7 @@ Backups include a manifest enumerating operational DB, per-agent storage/memory 
 
 ### 4.8 Operator contracts before cutover
 
-OC-S1..S6 as defined on CARD-413 / the design brief (idempotent reconcile + user edits survive; export/import fidelity; manifest backup/restore; migration preserves refs; wiki path persist + fail-visible missing; first-run picker with no duplicate fallback wiki). Proof home: `tests/integration/operator_contracts/` per ADR-0055.
+OC-S1..S6 as defined on CARD-413 / the design brief (idempotent reconcile + user edits survive; export/import fidelity; manifest backup/restore; migration preserves refs; wiki path persist + fail-visible missing; first-run explicit wiki config (local path gate / Docker env+volume) with no duplicate fallback wiki). Proof home: `tests/integration/operator_contracts/` per ADR-0055.
 
 ---
 
@@ -132,7 +155,8 @@ OC-S1..S6 as defined on CARD-413 / the design brief (idempotent reconcile + user
 
 * Migration work touches boot, Forge, Settings, backup, and pack services — must be phased.
 * Operators who relied on editing platform pack files in AppData as the “live source” must learn Studio-primary + `user_modified` semantics.
-* First-run wiki with **no suggestion** increases first-run friction (accepted by Jacob) in exchange for explicit ownership.
+* First-run wiki with **no suggestion** increases first-run friction on local installs (accepted by Jacob) in exchange for explicit ownership.
+* Docker Compose requires intentional wiki volume/env at deploy time; operators cannot use a host folder picker inside the container.
 
 ### Migration posture (implementation successor; not this ADR alone)
 
