@@ -90,8 +90,13 @@ def create_app(
         resolve_deploy_mode,
     )
 
-    # Prefer caller wiki_path (tests), else env/durable setting — never invent a silent vault.
-    if wiki_path and wiki_path.replace("\\", "/").strip() not in LEGACY_WIKI_STRINGS:
+    # Prefer caller wiki_path (tests), else env/durable setting.
+    # Local + unset: adopt data_root/wiki (single folder); Docker/daemon still hard-fails.
+    caller_wiki = bool(
+        wiki_path and wiki_path.replace("\\", "/").strip() not in LEGACY_WIKI_STRINGS
+    )
+    env_wiki_before = (os.environ.get("AUTOREIV_WIKI_PATH") or "").strip() or None
+    if caller_wiki:
         resolved_wiki_path = wiki_path
         os.environ["AUTOREIV_WIKI_PATH"] = resolved_wiki_path
     elif wiki_is_explicitly_configured():
@@ -99,14 +104,14 @@ def create_app(
         os.environ["AUTOREIV_WIKI_PATH"] = resolved_wiki_path
     else:
         resolved_wiki_path = str(data_paths.wiki_path)
-        # Leave AUTOREIV_WIKI_PATH unset so gate sees unset for local/docker correctly.
+        # Leave unset until local adoption or docker hard-fail below.
         os.environ.pop("AUTOREIV_WIKI_PATH", None)
 
     os.environ["AUTOREIV_DB_PATH"] = resolved_db_path
     store = state_store or SQLiteStateStore(db_path=resolved_db_path)
     store.initialize_db()
 
-    # ADR-0056 / CARD-414: Docker/daemon hard-fail if wiki missing; local fail-visible.
+    # ADR-0056 / CARD-414: Docker/daemon hard-fail if wiki missing; local may auto-adopt.
     setting_wiki = None
     try:
         raw_wiki_setting = store.get_setting("wiki_path")
@@ -117,6 +122,37 @@ def create_app(
                 resolved_wiki_path = setting_wiki
     except Exception:
         pass
+
+    deploy_mode = resolve_deploy_mode()
+    if (
+        deploy_mode == "local"
+        and not caller_wiki
+        and not setting_wiki
+        and not env_wiki_before
+    ):
+        adopted = str(data_paths.wiki_path)
+        resolved_wiki_path = adopted
+        os.environ["AUTOREIV_WIKI_PATH"] = adopted
+        try:
+            store.set_setting("wiki_path", adopted)
+            setting_wiki = adopted
+        except Exception:
+            logger.warning("Could not persist local default wiki_path setting", exc_info=True)
+        try:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            DataDirResolver().ensure_layout(data_paths, scaffold_wiki=True)
+        except Exception:
+            logger.warning("ensure_layout for local default wiki soft-failed", exc_info=True)
+        try:
+            from src.domain.wiki.store import WikiStore
+
+            WikiStore(root_dir=adopted, auto_seed=False).scaffold(
+                seed_starter=False, auto_migrate=False
+            )
+        except Exception:
+            logger.warning("Local default wiki scaffold soft-failed", exc_info=True)
+
     try:
         wiki_status = enforce_wiki_path_for_boot(setting_wiki_path=setting_wiki)
     except WikiPathConfigurationError as exc:

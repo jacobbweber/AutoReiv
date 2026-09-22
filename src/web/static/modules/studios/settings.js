@@ -185,14 +185,21 @@ export function initSettingsStudio(state, _callbacks = {}) {
       const wikiStatusEl = $('dataDirWikiStatus');
       const skillsEl = $('dataDirSkills');
       if (dbEl) dbEl.textContent = data.db_path || '-';
-      if (wikiEl) wikiEl.textContent = data.wiki_path || '(not configured)';
+      if (wikiEl) wikiEl.textContent = data.wiki_path || data.wiki_structural_path || '(not configured)';
       if (wikiStatusEl) wikiStatusEl.textContent = data.wiki_status || '-';
       if (skillsEl) skillsEl.textContent = data.skills_path || '-';
       const srcEl = $('dataDirMigrateSource');
       if (srcEl) srcEl.value = data.root || '';
       const wikiInput = $('wikiPathInput');
-      // Never prefill a suggested path — only show what is already configured.
-      if (wikiInput && data.wiki_path) wikiInput.value = data.wiki_path;
+      // Prefill configured path, else structural data_root/wiki default from API.
+      if (wikiInput) {
+        const pref = data.wiki_path || data.wiki_structural_path || '';
+        if (pref) wikiInput.value = pref;
+      }
+      const confirmEl = $('wikiScaffoldConfirm');
+      if (confirmEl && confirmEl.checked === false && !(data.wiki_path)) {
+        confirmEl.checked = true;
+      }
       const msg = $('wikiPathStatusMsg');
       if (msg && data.wiki_message) {
         msg.textContent = data.wiki_message;
@@ -211,7 +218,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
     const path = (input && input.value ? input.value : '').trim();
     if (!path) {
       if (msg) {
-        msg.textContent = 'Wiki path is required — no suggested default.';
+        msg.textContent = 'Enter a wiki folder path (default lives under your data directory).';
         msg.classList.remove('hidden');
         msg.classList.add('text-rose-400');
       }

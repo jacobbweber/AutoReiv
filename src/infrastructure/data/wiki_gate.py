@@ -1,7 +1,8 @@
 """Deployment-mode wiki path gate [ADR-0056 / CARD-414].
 
-Local Windows/Linux: explicit path required; no suggested path; no silent fallback vault.
-Docker/daemon: AUTOREIV_WIKI_PATH (or documented deploy path) required; hard-fail start if missing.
+Local Windows/Linux: default wiki folder is data_root/wiki when unset (adopt + persist on boot).
+Do not invent a second vault name (e.g. wiki-vault). Docker/daemon unchanged: AUTOREIV_WIKI_PATH
+(or documented deploy path) required; hard-fail start if missing/unreadable.
 """
 
 from __future__ import annotations
@@ -60,7 +61,7 @@ def configured_wiki_path(
     setting_wiki_path: Optional[str] = None,
     env_wiki_path: Optional[str] = None,
 ) -> Optional[Path]:
-    """Explicit wiki path from env (preferred) or durable setting. No default suggestion."""
+    """Explicit wiki path from env (preferred) or durable setting. Local default is applied by create_app."""
     raw = env_wiki_path
     if raw is None:
         raw = os.environ.get(ENV_WIKI_PATH)
@@ -98,7 +99,7 @@ def inspect_wiki_path(
             readable=False,
             deploy_mode=mode,
             status="unset",
-            message="Wiki path not configured. Choose an explicit folder in Settings (no default).",
+            message="Wiki path not configured. Local default is a wiki folder under the data directory.",
         )
     exists = path.exists()
     readable = False
@@ -136,7 +137,7 @@ def enforce_wiki_path_for_boot(
     """Gate wiki for process start.
 
     Docker/daemon: raise WikiPathConfigurationError if unset/missing/unreadable.
-    Local: return status; unset is allowed (wiki fail-closed) when allow_unset_local.
+    Local: return status; unset is allowed here (create_app may auto-adopt data_root/wiki).
     """
     mode = resolve_deploy_mode(in_docker=in_docker)
     path = configured_wiki_path(setting_wiki_path=setting_wiki_path)

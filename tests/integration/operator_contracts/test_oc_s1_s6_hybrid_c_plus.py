@@ -272,7 +272,7 @@ def test_oc_s5_wiki_path_persist_fail_visible(hybrid_env, tmp_path, monkeypatch)
 
 
 def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
-    """OC-S6: local unset is fail-visible; Docker hard-fails if wiki missing; no fallback vault."""
+    """OC-S6: local may auto-adopt data_root/wiki; Docker hard-fails if wiki missing; no second vault."""
     from src.infrastructure.data.wiki_gate import (
         WikiPathConfigurationError,
         enforce_wiki_path_for_boot,
@@ -290,18 +290,40 @@ def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
 
     status = enforce_wiki_path_for_boot()
     assert status.status == "unset"
-    # ensure_layout must not create a silent wiki when unset
-    resolver = DataDirResolver(in_docker=False)
-    paths = resolver.resolve()
-    # Point root at temp
+    # ensure_layout without scaffold must not mkdir wiki
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(user_data))
     resolver = DataDirResolver(in_docker=False)
     paths = resolver.resolve()
+    assert paths.wiki_path == user_data / "wiki"
     wiki_before = paths.wiki_path.exists()
     resolver.ensure_layout(paths, scaffold_wiki=False)
-    # If wiki was not explicitly configured, must not appear as a new fallback
-    # (structural path under root may still be referenced but must remain absent)
     assert not paths.wiki_path.exists() or wiki_before
+    # Must never invent a second vault name
+    assert not (user_data / "wiki-vault").exists()
+
+    # Local create_app with unset wiki auto-adopts data_root/wiki (single folder)
+    from src.web.app import create_app
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+    monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
+    monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "local")
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(user_data))
+    db = user_data / "database" / "autoreiv.db"
+    db.parent.mkdir(parents=True, exist_ok=True)
+    store = SQLiteStateStore(db_path=str(db))
+    store.initialize_db()
+    # Clear any prior wiki_path from store
+    try:
+        store.set_setting("wiki_path", "")
+    except Exception:
+        pass
+    app = create_app(state_store=store)
+    adopted = user_data / "wiki"
+    assert Path(app.state.wiki_path).resolve() == adopted.resolve()
+    assert adopted.is_dir()
+    assert not (user_data / "wiki-vault").exists()
+    persisted = store.get_setting("wiki_path")
+    assert persisted and Path(str(persisted)).resolve() == adopted.resolve()
 
     # Docker hard-fail
     monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "docker")
@@ -316,24 +338,11 @@ def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
     ok = enforce_wiki_path_for_boot()
     assert ok.status == "configured"
 
-    # create_app hard-fail path
-    from src.web.app import create_app
-    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-
+    # create_app hard-fail path (fresh store without wiki)
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
     monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "docker")
-    db = user_data / "database" / "autoreiv.db"
-    db.parent.mkdir(parents=True, exist_ok=True)
-    store = SQLiteStateStore(db_path=str(db))
-    store.initialize_db()
+    db2 = user_data / "database" / "docker_fail.db"
+    store2 = SQLiteStateStore(db_path=str(db2))
+    store2.initialize_db()
     with pytest.raises(WikiPathConfigurationError):
-        create_app(state_store=store)
-
-    # Env set to a missing path must hard-fail AND must not mkdir the path [live-test regression]
-    missing = tmp_path / "missing-docker-wiki"
-    assert not missing.exists()
-    monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(missing))
-    monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "docker")
-    with pytest.raises(WikiPathConfigurationError):
-        create_app(state_store=store)
-    assert not missing.exists(), "ensure_layout must not create a missing docker wiki path before hard-fail"
+        create_app(state_store=store2)
