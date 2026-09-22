@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- ADR-0056 Proposed: Hybrid C+ durable runtime registry (`docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md`, `docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md` [CARD-413]): SQLite-canonical control plane; filesystem wiki + pack interchange; versioned reconcile with `user_modified`; wiki first-run picker with no suggested path; CARD-411 deferred until Accept.
+
 - CARD-413 ownership audit and recommended Hybrid C+ architecture (docs/design/CARD-413-ownership-audit-and-recommended-architecture.md, docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md [CARD-413]): deep current-state ownership map; intent synthesis; one recommended architecture (pending Jacob); CARD-411 defer until ADR; no product code.
 
 - CARD-412 Phase 1+2 build (	ests/integration/operator_contracts/, src/web/static/modules/studios/settings.js, src/application/settings/settings_service.py, src/web/routers/observability.py, src/domain/wiki/frontmatter.py [CARD-412]):

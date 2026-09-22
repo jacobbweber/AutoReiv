@@ -3,7 +3,7 @@ id: CARD-413
 title: "Durable Runtime Registry, Platform Reconciliation, Portable Pack Interchange, and Configurable Wiki Root"
 status: Ready
 created: 2026-09-21
-adr: none
+adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
   - type:architecture
   - type:planning
@@ -17,7 +17,7 @@ labels:
 
 > **Status**: Ready (planning / decision only — **no implementation on this card**)
 > **Created**: 2026-09-21
-> **ADR Reference**: none (ADR draft/accept is a **deliverable of this card's decision phase**, not a prerequisite)
+> **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Proposed** — Accept pending Jacob)
 > **Labels**: `type:architecture`, `type:planning`, `area:storage`, `area:packs`, `area:wiki`, `area:data-dir`
 > **Branch**: `feat/card-413-storage-architecture-planning` (docs-only; do not push)
 
@@ -346,3 +346,23 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 - `src/web/app.py` — `create_app` → `bootstrap_data_dir`
 - Repo seed tree: `platform-packs/`
 - `.agents/rules/checkout-hygiene.md` — no live packs/DBs/wiki in checkout
+
+---
+
+## Policy decisions locked (2026-09-21)
+
+Architecture: **Hybrid C+** per [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Proposed**).
+
+| # | Fork | Locked decision |
+|---|------|-----------------|
+| 1 | Skills editing | Studios primary; readable files; direct edits set `user_modified` |
+| 2 | Built-in customization | Layered overrides + explicit Fork to custom |
+| 3 | DB topology | One `autoreiv.db` + per-agent storage/memory DBs |
+| 4 | Wiki first-run | Folder picker with **no suggested path** (operator must choose) |
+| 5 | Backup wiki content | Manifest always records wiki URI; file content **opt-in** |
+| 6 | Missing wiki path | Fail visibly + reconnect/migrate only |
+
+Also locked: export/import round-trips skills + bindings + stable IDs; forward-only migration with backup restore as rollback; CARD-411 deferred until ADR **Accepted**.
+
+Exact next phrases: reply **continue** to refine the Proposed ADR; say clearly that you **Accept ADR-0056** when ready (then we mark Accepted and plan the implementation successor). Do **not** say **build** until Accept + successor card.
+
