@@ -9,6 +9,9 @@
 
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
+import { publishAgentsLoaded } from '../state/store.js';
+import { storageSet } from '../utils/storage.js';
+import { PICKER_KEYS } from './agent_picker.js';
 
 // ==================== Scaffolder Helpers & Gap Bindings ====================
 export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgentId = '') {
@@ -147,22 +150,8 @@ export function initFactoryStudio(state, callbacks = {}) {
       if (resp.ok) {
         const data = await resp.json();
         loadedAgents = Array.isArray(data) ? data : (data.agents || []);
-        if (factoryAgentSelect) {
-          factoryAgentSelect.innerHTML = '';
-          const newOpt = document.createElement('option');
-          newOpt.value = '__new__';
-          newOpt.textContent = '+ Create New Agent';
-          factoryAgentSelect.appendChild(newOpt);
-
-          loadedAgents.forEach((ag) => {
-            if (ag.id === 'agent_builder' || ag.id === 'agent-builder') return;
-            const opt = document.createElement('option');
-            opt.value = ag.id;
-            opt.textContent = `${ag.name || ag.id} (${ag.id})`;
-            if (ag.id === preferredAgentId) opt.selected = true;
-            factoryAgentSelect.appendChild(opt);
-          });
-        }
+        if (preferredAgentId) storageSet(PICKER_KEYS.factory, preferredAgentId);
+        publishAgentsLoaded(loadedAgents);
         onAgentSelectChanged();
       }
     } catch (err) {

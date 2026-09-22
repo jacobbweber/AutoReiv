@@ -55,11 +55,19 @@ describe('CARD-388 Chat Studio Agent Selector & Restoration', () => {
     expect(visible.map((a) => a.id)).toEqual(['autoreiv', 'developer', 'tutor', 'direct']);
   });
 
-  it('chat.js populates agentSelect dropdown cleanly and handles agent switching [REQ-388-003, REQ-388-005]', () => {
-    expect(chatJs).toMatch(/formatAgentSelectOption\(agent\)/);
+  it('chat.js populates agentSelect dropdown cleanly and handles agent switching [REQ-388-003, REQ-388-005, CARD-410]', () => {
+    const pickerJs = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/agent_picker.js'),
+      'utf-8'
+    );
+    expect(pickerJs).toMatch(/agentsVisibleInChat\(list\)/);
+    expect(pickerJs).toMatch(/formatAgentSelectOption/);
+    expect(pickerJs).toContain("getElementById('agentSelect')");
+    expect(pickerJs).not.toMatch(/dualEngineAgentsVisibleInChat/);
+    expect(chatJs).toMatch(/publishAgentsLoaded\(/);
     expect(chatJs).toMatch(/agentSelect\.addEventListener\('change'/);
+    expect(chatJs).not.toMatch(/agentSelect\.innerHTML/);
     expect(chatJs).not.toMatch(/renderEngineSelectorPills/);
-    // Negative assertion: no binary-lock filtering on dualEngineAgentsVisibleInChat in loadAgents
-    expect(chatJs).toMatch(/const chatAgents = agentsVisibleInChat\(state\.agents\);/);
+    expect(chatJs).not.toMatch(/dualEngineAgentsVisibleInChat\(state\.agents\)/);
   });
 });

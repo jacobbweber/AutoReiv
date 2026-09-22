@@ -4,6 +4,7 @@
 
 import { $, $query } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+import { publishAgentsLoaded } from '../state/store.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from '../ui/toast.js';
 
@@ -150,22 +151,11 @@ export function initObservability(state, _callbacks = {}) {
 
   async function populateAgentKpiSelect() {
     if (!observeAgentKpiSelect) return;
-    const prev = observeAgentKpiSelect.value;
     try {
       const res = await fetch('/api/agents');
       if (!res.ok) return;
       const agents = await res.json();
-      const opts = ['<option value="">All agents</option>'];
-      (Array.isArray(agents) ? agents : []).forEach((a) => {
-        const id = a.id || a.agent_id || '';
-        if (!id) return;
-        const label = a.name || id;
-        opts.push(`<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`);
-      });
-      observeAgentKpiSelect.innerHTML = opts.join('');
-      if ([...observeAgentKpiSelect.options].some((o) => o.value === prev)) {
-        observeAgentKpiSelect.value = prev;
-      }
+      publishAgentsLoaded(Array.isArray(agents) ? agents : []);
     } catch (err) {
       console.warn('[AutoReiv UI] Failed to list agents for KPI filter:', err);
     }

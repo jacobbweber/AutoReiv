@@ -5,6 +5,7 @@
 import { $, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
+import { publishAgentsLoaded } from '../state/store.js';
 
 
 export function getHumanCronPreview(cronStr) {
@@ -237,7 +238,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       const res = await fetch('/api/agents');
       if (res.ok) {
         const data = await res.json();
-        state.agents = Array.isArray(data) ? data : [];
+        publishAgentsLoaded(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('[AutoReiv Routines] Failed to fetch /api/agents:', err);
@@ -247,12 +248,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
 
   async function populateRoutinesFilterAgents(_routinesIgnored) {
     if (!routinesFilterAgent) return;
-    const prev = routinesFilterAgent.value;
-    const agents = await fetchAllAgentsForRoutines();
-    routinesFilterAgent.innerHTML = '<option value="">All agents</option>' + agents.map((a) =>
-      `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)} (${escapeHtml(a.id)})</option>`
-    ).join('');
-    if (prev && agents.some((a) => a.id === prev)) routinesFilterAgent.value = prev;
+    await fetchAllAgentsForRoutines();
   }
 
 

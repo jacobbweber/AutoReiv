@@ -103,6 +103,7 @@ describe('Agent Studio pack UI [CARD-119]', () => {
 
   it('forge.js saves show_in_chat and fills pack-owned from pack_tool_names', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
+    const pickerJs = read('src/web/static/modules/studios/agent_picker.js');
     expect(forgeJs).toContain('show_in_chat');
     expect(forgeJs).toContain('pack_tool_names');
     expect(forgeJs).toContain('/api/agents/import-pack');
@@ -110,7 +111,8 @@ describe('Agent Studio pack UI [CARD-119]', () => {
     expect(forgeJs).toContain('No pack-owned skills yet.');
     expect(forgeJs).not.toContain('Pack Studio');
     expect(forgeJs).not.toContain('Hermes');
-    expect(forgeJs).toContain("a.id !== 'agent-builder'");
+    expect(forgeJs).toContain('isStudioAgentVisible');
+    expect(pickerJs).toContain("a.id !== 'agent-builder'");
   });
 
   it('chat.js filters both pickers with show_in_chat !== false and skips hidden ids [CARD-383]', () => {

@@ -540,6 +540,13 @@ export function openWindow(tab, { focusComposer: doFocus = false } = {}, ctx) {
 
   if (typeof scheduleSyncHostedViewsFn === 'function') scheduleSyncHostedViewsFn();
   if (typeof schedulePersistFn === 'function') schedulePersistFn();
+  if (typeof ctx.hydrateStudioAgentPickerFn === 'function') {
+    try {
+      ctx.hydrateStudioAgentPickerFn(tab);
+    } catch (err) {
+      console.warn('[AutoReiv Desktop] Agent picker hydration failed:', err);
+    }
+  }
   return win;
 }
 
