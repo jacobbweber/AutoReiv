@@ -86,18 +86,14 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
     expect(typeof forgeModule.openLabArtifactPreview).toBe('function');
     expect(typeof forgeModule.closeLabArtifactPreview).toBe('function');
 
-    // Runbook & capability linting
-    expect(typeof forgeModule.CANONICAL_RUNBOOK_TEMPLATE).toBe('string');
+    // Skill rows: pills and Open in Skill Studio. Inline inspector is gone [CARD-419].
     expect(typeof forgeModule.skillRowHtml).toBe('function');
     expect(typeof forgeModule.applySkillChecks).toBe('function');
     expect(typeof forgeModule.bindSkillRowHandlers).toBe('function');
-    expect(typeof forgeModule.updateRunbookCharCount).toBe('function');
-    expect(typeof forgeModule.clearRunbookLintStatus).toBe('function');
-    expect(typeof forgeModule.renderRunbookLintReport).toBe('function');
-    expect(typeof forgeModule.validateActiveRunbook).toBe('function');
-    expect(typeof forgeModule.hideRunbookEditor).toBe('function');
-    expect(typeof forgeModule.applyRunbook).toBe('function');
-    expect(typeof forgeModule.openRunbookEditor).toBe('function');
+    expect(forgeModule.CANONICAL_RUNBOOK_TEMPLATE).toBeUndefined();
+    expect(forgeModule.openRunbookEditor).toBeUndefined();
+    expect(forgeModule.hideRunbookEditor).toBeUndefined();
+    expect(forgeModule.validateActiveRunbook).toBeUndefined();
     expect(typeof forgeModule.renderPlatformSkills).toBe('function');
     expect(typeof forgeModule.renderPackSkills).toBe('function');
     expect(typeof forgeModule.renderNestedHomes).toBe('function');

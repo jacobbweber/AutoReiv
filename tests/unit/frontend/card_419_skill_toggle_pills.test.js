@@ -53,7 +53,8 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(row).toContain('aria-pressed="false"');
     expect(row).not.toContain('forge-skill-checkbox');
     expect(row).not.toContain('type="checkbox"');
-    expect(row).toContain('studio-runbook-open-btn');
+    expect(row).not.toContain('studio-runbook-open-btn');
+    expect(row).not.toContain('>Inspect<');
     expect(row).toContain('forge-skill-open-studio');
     expect(row).toContain('Open in Skill Studio');
     expect(row).toContain('declared tool');
@@ -64,8 +65,14 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
 
     expect(html).toContain('id="forgeSkillsSection"');
     expect(html).toContain('data-testid="forge-skill-scope"');
+    expect(html).not.toContain('id="studioRunbookEditor"');
+    expect(html).not.toContain('studio-runbook-open-btn');
     expect(runbook).not.toContain('forge-skill-checkbox');
+    expect(runbook).not.toContain('studio-runbook-open-btn');
+    expect(runbook).not.toContain('openRunbookEditor');
+    expect(runbook).toContain('Open in Skill Studio');
     expect(forge).not.toContain('forge-skill-checkbox');
+    expect(forge).not.toContain('openRunbookEditor');
   });
 
   it('toggle updates the allowlist payload and does not open an editor [REQ-419-002, REQ-419-003]', () => {

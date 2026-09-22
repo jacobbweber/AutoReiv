@@ -1,44 +1,19 @@
 /**
- * Agent Studio: Read-only runbook inspector & skill hierarchy [CARD-411].
- * Inspects SKILL.md metadata. Authoring and tool bindings live in Skill Studio.
- * Keeps the character budget, ADR-0054 lint view, and Platform/Pack skill rows.
+ * Agent Studio skill rows [CARD-411, CARD-419].
+ * Toggle pills scope allowed_skill. Open in Skill Studio is the only skill detail link.
+ * There is no inline runbook inspector in Agent Studio.
  */
 
-import { $, $queryAll, safeCreateIcons } from '../../dom.js';
+import { $, $queryAll } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
-import { formatSafetyLabel } from '../../utils/skill_frontmatter.js';
 import { showToast } from '../../ui/toast.js';
 import { renderBaselineTools } from './tools.js';
 import { applySkillPillToggle, paintSkillPill } from './skill_pills.js';
-
-export const CANONICAL_RUNBOOK_TEMPLATE = `# Operating Principles
-1. Always verify assumptions against actual runtime state.
-2. Structure output concisely with clear next steps.
-
-## Available Tools
-- \`activate_skill\`: Activate relevant procedural runbooks.
-
-## Done-When
-- Operational checks complete with zero errors.
-- Verification criteria satisfied.
-`;
-
-let activeRunbookId = '';
-let activeRunbookArchived = false;
-
-export function getActiveRunbookId() {
-  return activeRunbookId;
-}
-
-export function getActiveRunbookArchived() {
-  return activeRunbookArchived;
-}
 
 export function skillRowHtml(skill, home, archived = false) {
   const id = skill.id || '';
   const name = skill.name || id;
   const desc = skill.description || '';
-  const archivedAttr = archived ? ' data-archived="1"' : '';
   const scopeControl = archived
     ? `<span class="inline-flex items-center px-2.5 py-1 rounded-full border border-slate-800 bg-slate-950/80 text-[11px] font-semibold text-slate-500" data-skill-id="${escapeHtml(id)}" data-archived="1">Archived</span>`
     : `<button type="button" class="forge-skill-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition bg-slate-900/70 border-slate-700 text-slate-400 aria-pressed:bg-emerald-950/80 aria-pressed:border-emerald-500/70 aria-pressed:text-emerald-100" role="switch" aria-pressed="false" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}" data-testid="forge-skill-pill" aria-label="Allow ${escapeHtml(name)} for this agent"><span class="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true"></span><span>${escapeHtml(name)}</span></button>`;
@@ -85,7 +60,6 @@ export function skillRowHtml(skill, home, archived = false) {
           </div>
         </div>
         <div class="flex items-center space-x-1.5 shrink-0">
-          <button type="button" class="studio-runbook-open-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700 transition" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Inspect</button>
           ${openStudio}
         </div>
       </div>
@@ -104,7 +78,6 @@ export function applySkillChecks(lastAllowedSkills = new Set()) {
 }
 
 export function bindSkillRowHandlers(root, {
-  onOpenRunbook = null,
   onToggleSkill = null,
   onOpenSkillStudio = null,
 } = {}) {
@@ -112,20 +85,6 @@ export function bindSkillRowHandlers(root, {
   const forgeStorageEnabled = $('forgeStorageEnabled');
   const forgeStorageTypeContainer = $('forgeStorageTypeContainer');
 
-  root.querySelectorAll('.studio-runbook-open-btn').forEach((btn) => {
-    btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const row = btn.closest('.forge-skill-row');
-      const packId = btn.dataset.packId;
-      const isArchived = btn.dataset.archived === '1';
-      if (typeof onOpenRunbook === 'function') {
-        onOpenRunbook(packId, isArchived, row);
-      } else {
-        openRunbookEditor(packId, isArchived, row);
-      }
-    });
-  });
   root.querySelectorAll('.forge-skill-pill').forEach((btn) => {
     btn.addEventListener('click', (event) => {
       event.preventDefault();
@@ -151,236 +110,8 @@ export function bindSkillRowHandlers(root, {
   });
 }
 
-export function setRunbookActionVisibility() {
-  const studioRunbookOpenFactoryBtn = $('studioRunbookOpenFactoryBtn');
-  if (studioRunbookOpenFactoryBtn) {
-    studioRunbookOpenFactoryBtn.classList.toggle('hidden', !activeRunbookId);
-  }
-}
-
-function renderInspectorTools(toolIds) {
-  const studioRunbookTools = $('studioRunbookTools');
-  if (!studioRunbookTools) return;
-  const ids = Array.isArray(toolIds) ? toolIds.filter(Boolean) : [];
-  if (!ids.length) {
-    studioRunbookTools.innerHTML = '<span class="text-[10px] text-slate-500 italic">No required tools</span>';
-    return;
-  }
-  studioRunbookTools.innerHTML = ids.map((toolId) => (
-    `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-950 text-slate-300 border border-slate-800">${escapeHtml(toolId)}</span>`
-  )).join('');
-}
-
-function lockRunbookFields() {
-  ['studioRunbookName', 'studioRunbookBlurb', 'studioRunbookTier', 'studioRunbookSafety', 'studioRunbookBody'].forEach((id) => {
-    const el = $(id);
-    if (el) el.readOnly = true;
-  });
-}
-
-export function updateRunbookCharCount() {
-  const studioRunbookCharCount = $('studioRunbookCharCount');
-  const studioRunbookBody = $('studioRunbookBody');
-  if (!studioRunbookCharCount || !studioRunbookBody) return;
-  const len = studioRunbookBody.value.length;
-  const limit = 8000;
-  studioRunbookCharCount.textContent = `${len.toLocaleString()} / ${limit.toLocaleString()} chars`;
-  if (len > limit) {
-    studioRunbookCharCount.classList.add('text-rose-400');
-    studioRunbookCharCount.classList.remove('text-slate-500');
-  } else {
-    studioRunbookCharCount.classList.remove('text-rose-400');
-    studioRunbookCharCount.classList.add('text-slate-500');
-  }
-}
-
-export function clearRunbookLintStatus() {
-  const studioRunbookLintStatus = $('studioRunbookLintStatus');
-  if (!studioRunbookLintStatus) return;
-  studioRunbookLintStatus.innerHTML = '';
-  studioRunbookLintStatus.className = 'hidden rounded-lg p-2.5 text-xs transition-all';
-}
-
-export function renderRunbookLintReport(report) {
-  const studioRunbookLintStatus = $('studioRunbookLintStatus');
-  if (!studioRunbookLintStatus) return;
-  studioRunbookLintStatus.classList.remove('hidden');
-
-  if (report.valid && (!report.violations || report.violations.length === 0)) {
-    studioRunbookLintStatus.className = 'rounded-lg p-3 text-xs bg-emerald-950/60 border border-emerald-700/60 text-emerald-200 transition-all flex items-center justify-between';
-    const toolsCount = report.contract ? report.contract.tools_count : 0;
-    studioRunbookLintStatus.innerHTML = `
-      <div class="flex items-center space-x-2">
-        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-        <span class="font-medium">Runbook contract valid! Clean ADR-0054 compliance (${toolsCount} declared tool${toolsCount === 1 ? '' : 's'}).</span>
-      </div>
-      <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 uppercase">PASS</span>
-    `;
-    safeCreateIcons();
-    return;
-  }
-
-  const errorCount = report.error_count || 0;
-  const warnCount = report.warning_count || 0;
-  const isError = errorCount > 0;
-
-  studioRunbookLintStatus.className = isError
-    ? 'rounded-lg p-3 text-xs bg-rose-950/60 border border-rose-700/60 text-rose-200 transition-all space-y-2'
-    : 'rounded-lg p-3 text-xs bg-amber-950/60 border border-amber-700/60 text-amber-200 transition-all space-y-2';
-
-  const header = `
-    <div class="flex items-center justify-between border-b ${isError ? 'border-rose-800/80' : 'border-amber-800/80'} pb-1.5 mb-1.5">
-      <div class="flex items-center space-x-2">
-        <i data-lucide="${isError ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 ${isError ? 'text-rose-400' : 'text-amber-400'} shrink-0"></i>
-        <span class="font-semibold">${isError ? 'Contract Violations Found' : 'Contract Warnings'} (${errorCount} error${errorCount === 1 ? '' : 's'}, ${warnCount} warning${warnCount === 1 ? '' : 's'})</span>
-      </div>
-      <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${isError ? 'bg-rose-900/80 text-rose-300 border border-rose-600/50' : 'bg-amber-900/80 text-amber-300 border border-amber-600/50'} uppercase">${isError ? 'FAIL' : 'WARN'}</span>
-    </div>
-  `;
-
-  const violationsList = (report.violations || []).map((v) => {
-    const isErr = (v.severity || '').toLowerCase() === 'error';
-    const badgeClass = isErr ? 'bg-rose-900/80 text-rose-300 border-rose-700/60' : 'bg-amber-900/80 text-amber-300 border-amber-700/60';
-    return `
-      <div class="flex items-start space-x-2 text-[11px] leading-snug">
-        <span class="px-1 py-0.2 rounded font-mono font-bold text-[9px] border uppercase shrink-0 ${badgeClass}">${escapeHtml(v.rule_id || v.rule || 'LINT')}</span>
-        <span class="text-slate-200 flex-1">${escapeHtml(v.message)}</span>
-      </div>
-    `;
-  }).join('');
-
-  studioRunbookLintStatus.innerHTML = `${header}<div class="space-y-1.5">${violationsList}</div>`;
-  safeCreateIcons();
-}
-
-export async function validateActiveRunbook(isPreSave = false) {
-  const studioRunbookName = $('studioRunbookName');
-  const studioRunbookBlurb = $('studioRunbookBlurb');
-  const studioRunbookBody = $('studioRunbookBody');
-  const studioRunbookValidateBtn = $('studioRunbookValidateBtn');
-
-  const name = studioRunbookName ? studioRunbookName.value.trim() : '';
-  const description = studioRunbookBlurb ? studioRunbookBlurb.value.trim() : '';
-  const instructions = studioRunbookBody ? studioRunbookBody.value : '';
-
-  if (!instructions.trim()) {
-    showToast('Runbook body cannot be empty', 'error');
-    return false;
-  }
-
-  if (studioRunbookValidateBtn) {
-    studioRunbookValidateBtn.disabled = true;
-  }
-
-  try {
-    const res = await fetch('/api/skills/lint', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, instructions }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.detail || `HTTP ${res.status}`);
-    }
-
-    renderRunbookLintReport(data);
-
-    if (!data.valid && !isPreSave) {
-      showToast(`Runbook validation failed: ${data.error_count} error(s)`, 'error');
-    } else if (data.valid && !isPreSave) {
-      showToast('Runbook passed contract validation', 'success');
-    }
-
-    return data.valid;
-  } catch (err) {
-    showToast(`Lint check error: ${err.message || err}`, 'error');
-    return false;
-  } finally {
-    if (studioRunbookValidateBtn) {
-      studioRunbookValidateBtn.disabled = false;
-    }
-  }
-}
-
-export function hideRunbookEditor() {
-  activeRunbookId = '';
-  activeRunbookArchived = false;
-  const studioRunbookEditor = $('studioRunbookEditor');
-  const studioRunbookName = $('studioRunbookName');
-  const studioRunbookBlurb = $('studioRunbookBlurb');
-  const studioRunbookBody = $('studioRunbookBody');
-  const studioRunbookPath = $('studioRunbookPath');
-
-  if (studioRunbookEditor) studioRunbookEditor.classList.add('hidden');
-  if (studioRunbookName) studioRunbookName.value = '';
-  if (studioRunbookBlurb) studioRunbookBlurb.value = '';
-  if (studioRunbookBody) studioRunbookBody.value = '';
-  if (studioRunbookPath) studioRunbookPath.textContent = '';
-  const studioRunbookTier = $('studioRunbookTier');
-  const studioRunbookSafety = $('studioRunbookSafety');
-  if (studioRunbookTier) studioRunbookTier.value = '';
-  if (studioRunbookSafety) studioRunbookSafety.value = '';
-  renderInspectorTools([]);
-  clearRunbookLintStatus();
-  updateRunbookCharCount();
-  setRunbookActionVisibility();
-}
-
-export function applyRunbook(data, archivedHint, targetRow = null) {
-  const studioRunbookEditor = $('studioRunbookEditor');
-  const studioRunbookName = $('studioRunbookName');
-  const studioRunbookBlurb = $('studioRunbookBlurb');
-  const studioRunbookBody = $('studioRunbookBody');
-  const studioRunbookPath = $('studioRunbookPath');
-
-  const manifest = data.manifest || {};
-  const frontmatter = data.frontmatter || {};
-  activeRunbookId = manifest.id || activeRunbookId;
-  activeRunbookArchived = Boolean(archivedHint || data.archived || manifest.origin === 'archived');
-  lockRunbookFields();
-  if (studioRunbookName) studioRunbookName.value = frontmatter.name || manifest.name || data.name || '';
-  if (studioRunbookBlurb) studioRunbookBlurb.value = frontmatter.description || manifest.description || data.description || '';
-  const studioRunbookTier = $('studioRunbookTier');
-  const studioRunbookSafety = $('studioRunbookSafety');
-  if (studioRunbookTier) studioRunbookTier.value = frontmatter.tier || 'pack';
-  if (studioRunbookSafety) studioRunbookSafety.value = formatSafetyLabel(frontmatter.safety);
-  renderInspectorTools(frontmatter.requires_tools || []);
-  const bodyContent = data.instructions || '';
-  if (studioRunbookBody) {
-    studioRunbookBody.value = bodyContent || CANONICAL_RUNBOOK_TEMPLATE;
-  }
-  if (studioRunbookPath) studioRunbookPath.textContent = manifest.path || '';
-  updateRunbookCharCount();
-  clearRunbookLintStatus();
-  if (studioRunbookEditor) {
-    if (targetRow) {
-      targetRow.after(studioRunbookEditor);
-    }
-    studioRunbookEditor.classList.remove('hidden');
-    studioRunbookEditor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-  setRunbookActionVisibility();
-  safeCreateIcons();
-}
-
-export async function openRunbookEditor(packId, archived, targetRow = null) {
-  if (!packId) return;
-  try {
-    const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(packId)}`);
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || `HTTP ${res.status}`);
-    }
-    const data = await res.json();
-    applyRunbook(data, archived, targetRow);
-  } catch (err) {
-    showToast(String(err.message || err), 'error');
-  }
-}
-
 function skillRowHandlerOpts(options = {}) {
   return {
-    onOpenRunbook: options.onOpenRunbook || null,
     onToggleSkill: options.onToggleSkill || null,
     onOpenSkillStudio: options.onOpenSkillStudio || null,
   };
@@ -390,7 +121,6 @@ export function renderPlatformSkills({
   cachedPlatformSkills = [],
   cachedArchivedSkills = [],
   lastAllowedSkills = new Set(),
-  onOpenRunbook = null,
   onToggleSkill = null,
   onOpenSkillStudio = null,
 } = {}) {
@@ -405,14 +135,13 @@ export function renderPlatformSkills({
     ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Archived</h4>${archived.map((s) => skillRowHtml(s, 'archived', true)).join('')}</div>`
     : '';
   forgeSkillsGrid.innerHTML = `${platformHtml}${archivedHtml}`;
-  bindSkillRowHandlers(forgeSkillsGrid, skillRowHandlerOpts({ onOpenRunbook, onToggleSkill, onOpenSkillStudio }));
+  bindSkillRowHandlers(forgeSkillsGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
   applySkillChecks(lastAllowedSkills);
 }
 
 export function renderPackSkills({
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
-  onOpenRunbook = null,
   onToggleSkill = null,
   onOpenSkillStudio = null,
 } = {}) {
@@ -423,7 +152,7 @@ export function renderPackSkills({
     ? packSkills.map((s) => skillRowHtml(s, 'pack', false)).join('')
     : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
   forgeRunbooksGrid.innerHTML = packHtml;
-  bindSkillRowHandlers(forgeRunbooksGrid, skillRowHandlerOpts({ onOpenRunbook, onToggleSkill, onOpenSkillStudio }));
+  bindSkillRowHandlers(forgeRunbooksGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
   applySkillChecks(lastAllowedSkills);
 }
 
@@ -432,7 +161,6 @@ export function renderNestedHomes({
   cachedArchivedSkills = [],
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
-  onOpenRunbook = null,
   onToggleSkill = null,
   onOpenSkillStudio = null,
 } = {}) {
@@ -441,14 +169,12 @@ export function renderNestedHomes({
     cachedPlatformSkills,
     cachedArchivedSkills,
     lastAllowedSkills,
-    onOpenRunbook,
     onToggleSkill,
     onOpenSkillStudio,
   });
   renderPackSkills({
     activeForgeAgent,
     lastAllowedSkills,
-    onOpenRunbook,
     onToggleSkill,
     onOpenSkillStudio,
   });
@@ -458,7 +184,6 @@ export async function loadPlatformSkills({
   cachedSkillsCatalog = null,
   activeForgeAgent = null,
   lastAllowedSkills = new Set(),
-  onOpenRunbook = null,
   onToggleSkill = null,
   onOpenSkillStudio = null,
   onLoaded = null,
@@ -495,7 +220,6 @@ export async function loadPlatformSkills({
     cachedArchivedSkills: archivedSkills,
     activeForgeAgent,
     lastAllowedSkills,
-    onOpenRunbook,
     onToggleSkill,
     onOpenSkillStudio,
   });
@@ -504,17 +228,12 @@ export async function loadPlatformSkills({
 }
 
 /**
- * Sets up the read-only runbook inspector, Factory handoff, validate, and input listeners [CARD-411].
+ * Section-level Open in Skill Studio. Per-skill links are bound on each pill row [CARD-419].
  */
 export function setupRunbookEditor({
   getActiveAgentId = null,
   openSkillStudio = null,
 } = {}) {
-  const studioRunbookCloseBtn = $('studioRunbookCloseBtn');
-  const studioRunbookCancelBtn = $('studioRunbookCancelBtn');
-  const studioRunbookValidateBtn = $('studioRunbookValidateBtn');
-  const studioRunbookBody = $('studioRunbookBody');
-  const studioRunbookOpenFactoryBtn = $('studioRunbookOpenFactoryBtn');
   const studioOpenFactoryBtn = $('studioOpenFactoryBtn');
 
   function openSkillStudioWindow(agentId, skillId) {
@@ -529,48 +248,10 @@ export function setupRunbookEditor({
     showToast('Skill Studio is not ready yet', 'error');
   }
 
-  if (studioRunbookCloseBtn) {
-    studioRunbookCloseBtn.addEventListener('click', () => hideRunbookEditor());
-  }
-
-  if (studioRunbookCancelBtn) {
-    studioRunbookCancelBtn.addEventListener('click', () => hideRunbookEditor());
-  }
-
-  if (studioRunbookValidateBtn) {
-    studioRunbookValidateBtn.addEventListener('click', () => {
-      validateActiveRunbook(false);
-    });
-  }
-
-  if (studioRunbookBody) {
-    studioRunbookBody.addEventListener('input', () => {
-      updateRunbookCharCount();
-    });
-  }
-
-  if (studioRunbookOpenFactoryBtn) {
-    studioRunbookOpenFactoryBtn.addEventListener('click', () => {
-      if (!activeRunbookId) {
-        showToast('Open a runbook first', 'error');
-        return;
-      }
-      const agentId = typeof getActiveAgentId === 'function' ? (getActiveAgentId() || '') : '';
-      openSkillStudioWindow(agentId, activeRunbookId);
-    });
-  }
-
   if (studioOpenFactoryBtn) {
     studioOpenFactoryBtn.addEventListener('click', () => {
       const agentId = typeof getActiveAgentId === 'function' ? (getActiveAgentId() || '') : '';
       openSkillStudioWindow(agentId, null);
     });
   }
-
-  return {
-    openRunbookEditor,
-    hideRunbookEditor,
-    validateActiveRunbook,
-    applyRunbook,
-  };
 }

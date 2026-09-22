@@ -74,10 +74,11 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     expect(html).not.toContain('Hermes');
   });
 
-  it('CARD-117 skill ticks and runbook editor remain', () => {
+  it('CARD-117 skill ticks remain; inline runbook inspector does not [CARD-419]', () => {
     const html = read('src/web/templates/index.html');
     expect(html).toContain('forgeRunbooksGrid');
-    expect(html).toContain('studioRunbookBody');
+    expect(html).not.toContain('studioRunbookBody');
+    expect(html).not.toContain('id="studioRunbookEditor"');
     const forgeJs = read('src/web/static/modules/studios/forge.js');
     expect(forgeJs).toContain('forge-skill-pill');
     expect(forgeJs).not.toContain('forge-skill-checkbox');
@@ -99,8 +100,9 @@ describe('CARD-118 one Agent Studio', () => {
     expect(html).not.toContain('Agent Forge Studio');
     expect(html).not.toContain('Workflow Studio');
     expect(html).toContain('Agent Studio');
-        expect(html).toContain('studioRunbookBody');
-    expect(html).toContain('studioRunbookOpenFactoryBtn');
+    expect(html).not.toContain('studioRunbookBody');
+    expect(html).not.toContain('studioRunbookOpenFactoryBtn');
+    expect(html).toContain('Author skill in Skill Studio');
     expect(html).not.toContain('studioNewRunbookBtn');
     expect(html).not.toContain('studioRunbookArchiveBtn');
     expect(html).not.toContain('studioRunbookDeleteBtn');
@@ -120,11 +122,13 @@ describe('CARD-118 one Agent Studio', () => {
     expect(app).not.toContain('Hermes');
   });
 
-  it('Agent Studio inspects a runbook and opens Factory instead of saving it [CARD-411]', () => {
+  it('Agent Studio opens Skill Studio instead of inspecting or saving a runbook [CARD-411, CARD-419]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
-    expect(forgeJs).toContain('studio-runbook-open-btn');
-    expect(forgeJs).toContain('/api/skills/user-packs');
-    expect(forgeJs).toContain('studioRunbookOpenFactoryBtn');
+    expect(forgeJs).not.toContain('studio-runbook-open-btn');
+    expect(forgeJs).not.toContain('/api/skills/user-packs');
+    expect(forgeJs).not.toContain('studioRunbookOpenFactoryBtn');
+    expect(forgeJs).toContain('Open in Skill Studio');
+    expect(forgeJs).toContain('openSkillStudio');
     expect(forgeJs).not.toContain('studioRunbookSaveBtn');
     expect(forgeJs).not.toContain("method: 'PUT'");
     expect(forgeJs).not.toContain('Failed to load Agent Forge');

@@ -5,7 +5,7 @@
  * - proposals.js: Architectural governance proposals inbox, category badges, remedy execution, synthesis
  * - scaffold.js: Quick presets, quick scaffold modal, candidate queue, same-job origin resumption
  * - tools.js: OS baseline tools, capability gaps backlog, remote MCP server management, credential grants
- * - runbook.js: Read-only runbook inspector, char counter, capability lint view, Open in Skill Studio [CARD-411, CARD-418]
+ * - runbook.js: Skill toggle rows and Open in Skill Studio [CARD-411, CARD-418, CARD-419]
  * - skill_pills.js: Agent↔skill toggle pills; on/off writes allowed_skill only [CARD-419]
  * - config.js: Per-agent LLM providers, model discovery, avatar preview, routines, telemetry, brain drawer, tones
  */
@@ -63,7 +63,6 @@ import {
   loadPlatformSkills,
   renderNestedHomes,
   applySkillChecks,
-  openRunbookEditor,
 } from './forge/runbook.js';
 import {
   allowlistForSave,
@@ -176,7 +175,6 @@ export function initAgentForge(state, callbacks = {}) {
 
   function skillScopeHandlers() {
     return {
-      onOpenRunbook: (packId, isArchived, row) => openRunbookEditor(packId, isArchived, row),
       onToggleSkill,
       onOpenSkillStudio,
     };

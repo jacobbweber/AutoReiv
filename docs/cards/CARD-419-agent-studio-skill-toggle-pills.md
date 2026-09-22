@@ -65,6 +65,7 @@ After CARD-418, Factory still shows a display-only assigned-skills list; Agent S
 ## 4. What dies (Beat 4)
 
 - Agent Studio skill chips/checkboxes that open editors or imply skill authorship.
+- Agent Studio **Inspect** button and the inline runbook viewer (`#studioRunbookEditor`). Skill detail stays in Skill Studio.
 - Expectation that Factory assigned-skills strip is the primary place to turn skills on/off for an agent.
 
 ---
@@ -75,6 +76,7 @@ After CARD-418, Factory still shows a display-only assigned-skills list; Agent S
 - **[REQ-419-002]** WHEN a skill pill is turned on or off and the agent profile is saved (or auto-persisted per existing Forge save path), THE SYSTEM SHALL update the durable agent↔skill allowlist accordingly.
 - **[REQ-419-003]** WHEN the operator activates a skill pill, THE SYSTEM SHALL NOT open Skill Studio or a runbook editor unless they explicitly use an **Open in Skill Studio** affordance.
 - **[REQ-419-004]** AFTER browser refresh, THE SYSTEM SHALL show pill on/off state matching the persisted allowlist.
+- **[REQ-419-005]** WHEN the operator views skills in Agent Studio, THE SYSTEM SHALL NOT present an Inspect control or an inline runbook viewer. **Open in Skill Studio** remains the control that opens the skill.
 
 ---
 
@@ -84,11 +86,11 @@ After CARD-418, Factory still shows a display-only assigned-skills list; Agent S
 - Durable path: pills read and write the existing agent `allowed_skill` list on profile save (`PUT/POST /api/agents`). No second store.
 - Skill Studio save (`POST /api/agent_training_factory/scaffold/save`) is unchanged.
 - Factory assigned-skills strip is display-only (`role="status"`) plus a separate **Open in Skill Studio** link. It is not an on/off control.
-- Manual live test (say **merge to qa** only after this):
+- Live test (2026-09-22): pills and Open in Skill Studio passed. Jacob then dropped Inspect from Agent Studio on this branch.
+- Re-verify on Jarvis:
 
 1. Open Agent Studio and select an agent.
-2. Turn two skill pills on (and one off if it was already on). Save the agent.
-3. Hard refresh. The same pills are on or off.
-4. Click a pill again. Skill Studio does not open. Click **Inspect**, then **Open in Skill Studio**. Skill Studio opens on that skill. The row link **Open in Skill Studio** does the same without using the pill.
-5. In Skill Studio, save a skill the same way as before. The save path is unchanged.
-6. Open Factory. The allowed-skills strip shows the saved list and does not toggle skills. **Open in Skill Studio** on a chip opens that skill.
+2. The skills section shows toggle pills and **Open in Skill Studio**. There is no **Inspect** button and no inline runbook panel.
+3. Click a pill. Skill Studio does not open. Pill state still saves with the agent.
+4. Click **Open in Skill Studio** on a skill. Skill Studio opens on that skill. Skill Studio view and save are unchanged.
+5. Open Factory. The allowed-skills strip still only displays the list and links to Skill Studio.

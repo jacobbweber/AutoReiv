@@ -1527,54 +1527,6 @@
               </div>
             </div>
 
-            <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-[#141721]/60 border border-white/[0.08] space-y-3" data-mode="readonly">
-              <div class="flex items-center justify-between pb-1 border-b border-white/[0.06]">
-                <span class="text-xs font-bold text-slate-200">Skill runbook (read-only)</span>
-                <button id="studioRunbookCloseBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition" title="Close runbook inspector">
-                  <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-              </div>
-              <p class="text-[11px] text-slate-400">Agent Studio shows identity and which skills this agent may run. Edit the runbook, frontmatter, and required tools in Skill Studio.</p>
-              <p id="studioRunbookPath" class="text-[10px] font-mono text-slate-500 truncate"></p>
-              <div id="studioRunbookMeta" class="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="forge-runbook-meta">
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookName">Name</label>
-                  <input id="studioRunbookName" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-medium cursor-default" placeholder="runbook name">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookBlurb">Description</label>
-                  <input id="studioRunbookBlurb" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 cursor-default" placeholder="frontmatter description">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookTier">Tier</label>
-                  <input id="studioRunbookTier" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 font-mono cursor-default" data-testid="forge-runbook-tier">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookSafety">Safety</label>
-                  <input id="studioRunbookSafety" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 cursor-default" data-testid="forge-runbook-safety">
-                </div>
-              </div>
-              <div>
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Required tools</span>
-                <div id="studioRunbookTools" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 rounded-lg bg-[#0d0f17] border border-white/[0.06]" data-testid="forge-runbook-tools"></div>
-              </div>
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block" for="studioRunbookBody">SKILL.md body</label>
-                  <span id="studioRunbookCharCount" class="text-[10px] font-mono text-slate-500"></span>
-                </div>
-                <textarea id="studioRunbookBody" rows="10" readonly class="w-full min-h-[12rem] bg-[#0d0f17] border border-white/[0.06] rounded-lg p-3 text-xs text-slate-300 font-mono leading-relaxed resize-y cursor-default" placeholder="Playbook instructions."></textarea>
-              </div>
-              <div id="studioRunbookLintStatus" class="hidden rounded-lg p-2.5 text-xs transition-all"></div>
-              <div class="flex flex-wrap items-center gap-2">
-                <button id="studioRunbookOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold" data-testid="forge-runbook-open-factory">Open in Skill Studio</button>
-                <button id="studioRunbookValidateBtn" type="button" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-brand-300 rounded-lg text-xs font-semibold border border-white/[0.08] flex items-center space-x-1.5">
-                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
-                  <span>Validate runbook</span>
-                </button>
-                <button id="studioRunbookCancelBtn" type="button" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold border border-white/[0.08]">Cancel</button>
-              </div>
-            </div>
                 <details class="rounded-xl bg-[#0e1015]/70 border border-white/[0.06] shadow-sm" data-card="311" id="forgeTelemetryDetails" data-section="telemetry">
               <summary class="flex items-center justify-between px-4 py-2.5 cursor-pointer text-xs font-bold text-slate-200 list-none">
                 <span>Agent Telemetry &amp; Lifetime Stats</span>
