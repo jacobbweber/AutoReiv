@@ -1,7 +1,8 @@
 # [ADR-0056] Durable Runtime Registry (Hybrid C+): SQLite Canonical Control Plane, Filesystem Wiki & Pack Interchange, Versioned Platform Reconciliation
 
-> **Status**: Proposed  
+> **Status**: Accepted  
 > **Date**: 2026-09-21  
+> **Accepted**: 2026-09-21 (Jacob: Accept ADR-0056 with Docker hard-fail rule)  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-413 ownership audit  
 > **Related Cards**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md) (blocked / deferred until this ADR is Accepted), [CARD-412](../cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md) / [ADR-0055](./0055-operator-contract-testing-and-suite-hygiene.md)  
@@ -172,6 +173,6 @@ OC-S1..S6 as defined on CARD-413 / the design brief (idempotent reconcile + user
 
 ## 6. Compliance
 
-* Status remains **Proposed** until Jacob explicitly Accepts.
-* No product implementation under CARD-413 scaffolding alone; implementation requires Accept + successor **build** card(s).
+* Status is **Accepted** (2026-09-21).
+* No product implementation under CARD-413 scaffolding alone; implementation requires successor **build** card(s) (CARD-414+).
 * Agents must not reintroduce silent AppData re-seed mirrors or silent wiki fallbacks after Accept.

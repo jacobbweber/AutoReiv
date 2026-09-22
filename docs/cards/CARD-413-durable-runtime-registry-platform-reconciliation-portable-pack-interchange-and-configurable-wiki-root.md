@@ -1,7 +1,7 @@
 ---
 id: CARD-413
 title: "Durable Runtime Registry, Platform Reconciliation, Portable Pack Interchange, and Configurable Wiki Root"
-status: Ready
+status: Done
 created: 2026-09-21
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -15,9 +15,9 @@ labels:
 
 # [CARD-413] Durable Runtime Registry, Platform Reconciliation, Portable Pack Interchange, and Configurable Wiki Root
 
-> **Status**: Ready (planning / decision only — **no implementation on this card**)
+> **Status**: Done (planning / decision complete — ADR-0056 Accepted; implementation on CARD-414)
 > **Created**: 2026-09-21
-> **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Proposed** — Accept pending Jacob)
+> **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Accepted** 2026-09-21)
 > **Labels**: `type:architecture`, `type:planning`, `area:storage`, `area:packs`, `area:wiki`, `area:data-dir`
 > **Branch**: `feat/card-413-storage-architecture-planning` (docs-only; do not push)
 
@@ -150,7 +150,7 @@ Fragile ownership patterns to **retire in the eventual build** (not deleted by t
 >
 > **Recommendation**: Hybrid **C+** — SQLite canonical for mutable runtime registry (profiles, bindings, settings, jobs); filesystem canonical for wiki + pack **interchange**; repo canonical for platform defaults; reconcile via stable id + version/hash + `user_modified` (no silent overwrite/fallback); keep per-agent `storage.db` / `memory.db` + one operational `autoreiv.db`; manifest backup/restore; wiki first-run picker + fail-visible missing path.
 >
-> **Status**: Ready (planning). **`adr: none`** — ADR remains Proposed/none until Jacob walkthrough Accepts.
+> **Status**: Done (planning). **`adr: none`** — ADR remains Proposed/none until Jacob walkthrough Accepts.
 > **CARD-411**: defer / read-only until ADR Accepted.
 > **Next**: Jacob reviews forks in the brief (≤6 defaults listed); reply **`continue`** to refine, or after ADR Accept proceed on a build successor — not this card alone.
 
@@ -351,7 +351,7 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 
 ## Policy decisions locked (2026-09-21)
 
-Architecture: **Hybrid C+** per [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Proposed**).
+Architecture: **Hybrid C+** per [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Accepted**).
 
 | # | Fork | Locked decision |
 |---|------|-----------------|
@@ -366,3 +366,10 @@ Also locked: export/import round-trips skills + bindings + stable IDs; forward-o
 
 Exact next phrases: reply **continue** to refine the Proposed ADR; say clearly that you **Accept ADR-0056** when ready (then we mark Accepted and plan the implementation successor). Do **not** say **build** until Accept + successor card.
 
+---
+
+## Decision outcome
+
+**ADR-0056 Accepted** on 2026-09-21. Planning decision phase for CARD-413 is complete.
+
+Implementation is **not** performed on CARD-413. Use successor **CARD-414** (and follow-ons if sliced). Reply **build CARD-414** to start implementation. CARD-411 remains deferred / read-only until CARD-414 cutover lands enough canonical SQLite ownership for editors.

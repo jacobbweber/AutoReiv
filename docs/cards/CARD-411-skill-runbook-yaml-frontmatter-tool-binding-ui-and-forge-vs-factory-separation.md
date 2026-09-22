@@ -14,6 +14,8 @@ labels:
 
 # [CARD-411] Skill Runbook YAML Frontmatter, Tool Binding UI, and Forge vs Factory Separation
 
+
+> **Blocked / deferred**: Do not **build** full editor scope until ADR-0056 cutover (CARD-414) establishes SQLite-canonical bindings. Read-only inspector work only if explicitly narrowed.
 > **Status**: Ready  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  

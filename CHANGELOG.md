@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- ADR-0056 **Accepted** (Hybrid C+ durable runtime registry) and CARD-414 Ready implementation scaffold (`docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md`, `docs/cards/CARD-414-implement-hybrid-c-plus-durable-runtime-registry-and-deployment-mode-wiki.md`, `docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md` [CARD-413]/CARD-414]): Docker/daemon hard-fail if wiki missing; local explicit wiki path with no suggestion; CARD-411 remains deferred.
+
 - ADR-0056 Proposed: Docker/daemon hard-fail start when wiki path/volume missing (docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md [CARD-413]).
 
 - ADR-0056 Proposed refinement: deployment-mode wiki config (`docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md` [CARD-413]): Windows/Linux local require explicit wiki path with no suggestion; Docker Compose/daemon require wiki via env + volume mount; no silent fallback vault.
