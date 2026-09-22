@@ -3743,10 +3743,6 @@
           <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
             <div id="skillStudioActionBar" class="mb-3 p-3 sm:p-3.5 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-shrink-0">
               <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 min-w-0 flex-1">
-                <button type="button" id="skillStudioAskDeveloperBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-ask-developer">
-                  <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
-                  <span>Ask developer</span>
-                </button>
                 <button type="button" id="factorySaveSkillBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-save">
                   <i data-lucide="save" class="w-3.5 h-3.5"></i>
                   <span>Save skill</span>
@@ -3763,17 +3759,6 @@
               <div class="flex items-center space-x-2 shrink-0 justify-end">
                 <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
                 <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
-              </div>
-            </div>
-            <div id="skillStudioLintPanel" class="hidden mb-3 px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-950/30" data-testid="skill-studio-lint"></div>
-            <div id="skillStudioAuthoringBar" class="hidden mb-3 p-3 rounded-2xl border border-sky-500/30 bg-sky-950/30 space-y-2" data-testid="skill-studio-authoring">
-              <p class="text-[11px] text-sky-100">Developer job <span id="skillStudioJobId" class="font-mono" data-testid="skill-studio-job-id"></span></p>
-              <div id="skillStudioProposalPanel" class="hidden space-y-2 pt-1" data-testid="skill-studio-proposal">
-                <div id="skillStudioProposalBody"></div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <button type="button" id="skillStudioAcceptBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold" data-testid="skill-studio-accept">Accept</button>
-                  <button type="button" id="skillStudioRejectBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 text-[11px] font-semibold" data-testid="skill-studio-reject">Reject</button>
-                </div>
               </div>
             </div>
             <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">

@@ -1,5 +1,5 @@
 /**
- * CARD-420: Skill Studio Build/Review packet, visible job, accept-to-draft.
+ * CARD-420: authoring packet helpers stay; Skill Studio does not show Ask developer.
  * REQ-420-001..005
  */
 
@@ -160,20 +160,20 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(rejected.draft.markdown).toBe(draft.markdown);
   });
 
-  it('Ask developer is the one job control; pills and Save stay put [REQ-420-002, REQ-420-005]', () => {
-    expect(skillView).toContain('id="skillStudioAskDeveloperBtn"');
-    expect(skillView).toContain('>Ask developer</span>');
+  it('Skill Studio shows Generate, Save, and Delete, not Ask developer [REQ-420-005]', () => {
+    expect(skillView).not.toContain('id="skillStudioAskDeveloperBtn"');
+    expect(skillView).not.toContain('>Ask developer</span>');
     expect(skillView).not.toContain('id="skillStudioBuildBtn"');
     expect(skillView).not.toContain('id="skillStudioReviewBtn"');
     expect(skillView).not.toContain('id="skillStudioWatchBtn"');
     expect(skillView).not.toContain('id="skillStudioChatBtn"');
+    expect(skillView).not.toContain('id="skillStudioJobId"');
+    expect(skillView).not.toContain('id="skillStudioAuthoringBar"');
+    expect(skillView).not.toContain('id="skillStudioAcceptBtn"');
+    expect(skillView).not.toContain('id="skillStudioRejectBtn"');
+    expect(skillView).not.toContain('id="skillStudioLintPanel"');
     expect(skillView).not.toContain('Watch in Observe');
     expect(skillView).not.toContain('Open in Chat');
-    expect(skillView).toContain('id="skillStudioJobId"');
-    expect(skillView).toContain('data-testid="skill-studio-job-id"');
-    expect(skillView).toContain('id="skillStudioAcceptBtn"');
-    expect(skillView).toContain('id="skillStudioRejectBtn"');
-    expect(skillView).toContain('data-testid="skill-studio-lint"');
     expect(skillView).toContain('id="factorySaveSkillBtn"');
     expect(skillView).toContain('>Save skill</span>');
     expect(skillView).toContain('id="factoryGenerateRunbookBtn"');
@@ -198,30 +198,20 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(skillView).toContain('>Delete skill</span>');
     expect(skillView).toContain('data-testid="skill-studio-delete"');
 
-    expect(skillStudio).toContain('bindSkillStudioAuthoring');
+    expect(skillStudio).not.toContain('bindSkillStudioAuthoring');
+    expect(skillStudio).not.toContain('openObserveJob');
+    expect(skillStudio).not.toContain('skillStudioAskDeveloperBtn');
     expect(skillStudio).toContain('/api/agent_training_factory/scaffold/save');
     expect(skillStudio).toContain('skillDeleteRequest');
     expect(skillStudio).toContain('window.confirm');
     expect(skillStudio).not.toContain('confirm_seed');
     expect(skillStudio).not.toContain('allowed_skill');
-    expect(authoring).toContain("submitSkillAuthoring(draft, 'build')");
-    expect(authoring).toContain('skillStudioAskDeveloperBtn');
-    expect(authoring).not.toContain('skillStudioBuildBtn');
-    expect(authoring).not.toContain('skillStudioReviewBtn');
-    expect(authoring).not.toContain('skillStudioWatchBtn');
-    expect(authoring).not.toContain('skillStudioChatBtn');
-    expect(authoring).not.toContain('openAuthoringChat');
-    expect(authoring).toContain('openObserveJob');
-    expect(authoring).toContain('skillStudioJobId');
-    expect(authoring).toContain("submitAuthoringDecision(authoringJobId, 'accept')");
-    expect(authoring).toContain("submitAuthoringDecision(authoringJobId, 'reject')");
-    const acceptFn = authoring.slice(
-      authoring.indexOf('async function handleAcceptPatches'),
-      authoring.indexOf('async function handleRejectPatches'),
-    );
-    expect(acceptFn).not.toContain('scaffold/save');
-    expect(acceptFn).not.toContain('handleSaveSkill');
-    expect(acceptFn).toContain('writeDraft');
+    expect(authoring).toContain('submitSkillAuthoring');
+    expect(authoring).toContain('applyAuthoringPatches');
+    expect(authoring).not.toContain('bindSkillStudioAuthoring');
+    expect(authoring).not.toContain('skillStudioAskDeveloperBtn');
+    expect(authoring).not.toContain('openObserveJob');
+    expect(authoring).not.toContain('scaffold/save');
 
     expect(pills).not.toContain('skillStudioAskDeveloperBtn');
     expect(pills).not.toContain('skillStudioBuildBtn');

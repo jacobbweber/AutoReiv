@@ -10,7 +10,6 @@ import { showToast } from '../ui/toast.js';
 import { toSnakeCase } from '../utils/slug.js';
 import { createSkillWorkshop, skillDeleteRequest } from './factory/workshop_meta.js';
 import { createSkillScopeUI } from './factory/skill_scope.js';
-import { bindSkillStudioAuthoring } from './skill_authoring.js';
 
 export const SKILL_STUDIO_TAB = 'skill-studio';
 export const SKILL_STUDIO_LABEL = 'Skill Studio';
@@ -551,52 +550,6 @@ export function initSkillStudio(_state, callbacks = {}) {
     }
   }
 
-  function collectDraft() {
-    const fields = workshopFields();
-    const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
-    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || toSnakeCase(skillName);
-    return {
-      skill_id: skillId,
-      name: fields.name || skillName,
-      description: fields.description,
-      tier: fields.tier,
-      safety: fields.safety,
-      requires_tools: fields.requires_tools,
-      markdown: (factorySkillMarkdownEditor && factorySkillMarkdownEditor.value) || '',
-      intent_notes: (factorySkillIntentInput && factorySkillIntentInput.value) || '',
-      source_context: (factorySourceContextInput && factorySourceContextInput.value) || '',
-    };
-  }
-
-  function writeDraftToForm(draft) {
-    if (factorySkillNameInput) factorySkillNameInput.value = draft.name || '';
-    if (factorySkillTriggerInput) {
-      factorySkillTriggerInput.value = draft.description || '';
-      if (factorySkillTriggerCharCount) {
-        factorySkillTriggerCharCount.textContent = `${(draft.description || '').length}/60`;
-      }
-    }
-    if (factorySkillTierSelect && draft.tier) factorySkillTierSelect.value = draft.tier;
-    if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = Boolean(draft.safety && draft.safety.read_only);
-    if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = Boolean(draft.safety && draft.safety.requires_hitl);
-    if (factorySkillSafetyUntrusted) {
-      factorySkillSafetyUntrusted.checked = Boolean(draft.safety && draft.safety.untrusted_input_allowed);
-    }
-    if (factorySkillIntentInput && draft.intent_notes != null) factorySkillIntentInput.value = draft.intent_notes;
-    if (factorySourceContextInput && draft.source_context != null) factorySourceContextInput.value = draft.source_context;
-    selectedTools = new Set(draft.requires_tools || []);
-    if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = draft.markdown || '';
-    renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
-    syncFrontmatter();
-  }
-
-  const authoring = bindSkillStudioAuthoring({
-    callbacks,
-    showToast,
-    collectDraft,
-    writeDraft: writeDraftToForm,
-  });
-
   if (factorySkillNameInput) {
     factorySkillNameInput.addEventListener('input', () => {
       if (!skillIdentityLocked && factorySkillIdInput) {
@@ -702,7 +655,7 @@ export function initSkillStudio(_state, callbacks = {}) {
     loadSkillStudio,
     queueDeepLink,
     syncAgentScope,
-    stopPolling: () => authoring.stop(),
+    stopPolling: () => {},
   };
   activeController = controller;
   return controller;

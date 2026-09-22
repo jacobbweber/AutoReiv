@@ -86,18 +86,14 @@ This card is ADR-0057 build-order step 3. It does **not** build Tools Studio.
 - **[REQ-420-004]** WHEN only cheap lint runs (frontmatter / catalog ids / contract linter), THE SYSTEM MAY report in-form without opening a developer job; THE SYSTEM SHALL NOT use silent-only LLM rewrite as the default Build path.
 - **[REQ-420-005]** THE SYSTEM SHALL NOT change Agent Studio skill toggle pills or Skill Studio SQLite binding ownership as part of this card.
 
+Operator surface for this branch (section 11): **Generate / Refine Runbook**, **Save skill**, **Delete skill**, and source context above the editor. REQ-420-001 through REQ-420-003 stay in the authoring module. Skill Studio does not show Ask developer, a job strip, or Accept/Reject until a later pass actually runs the developer.
+
 ---
 
 ## 6. Verification
 
-- Unit/Vitest: packet shape; Build → job create stub; Accept → draft fields updated; lint-only path does not mint a full mediation job.
-- Manual live test:
-
-1. Open Skill Studio, load or draft a skill, click **Ask developer**.
-2. Observe opens on that job. The Skill Studio strip shows the same `job_…` id.
-3. After developer suggests patches (or a test fixture injects them), Accept updates Studio fields; Reject leaves them alone.
-4. Save still writes skill store + `skill_tool_bindings` as before.
-5. Cheap lint (bad tool id / broken frontmatter) still surfaces in-form without requiring a full silent LLM pass.
+- Unit/Vitest: packet shape; job helper posts a job and does not call the silent runbook endpoint; Accept helper updates a draft object and does not save; Skill Studio template has no Ask developer controls.
+- Manual live test: section 11.
 
 ---
 
@@ -148,7 +144,7 @@ The packet is stored on the standing job phase input (`template_id` `skill_studi
 
 Proposed patches live on that same phase output. Accept and Reject record `skill_studio_authoring_decision` on the job. Neither writes the skill store or `skill_tool_bindings`.
 
-HTTP (Skill Studio is the only caller):
+HTTP (routes stay mounted; Skill Studio does not call them in this pass):
 
 | Method | Path | Effect |
 |--------|------|--------|
@@ -165,28 +161,14 @@ Cheap lint checks YAML frontmatter, catalog tool ids, and `SkillContractCompiler
 Automated:
 
 - `tests/integration/operator_contracts/test_oc420_skill_studio_developer_authoring.py` — lint does not mint a job; the authoring post creates one durable job; Observe returns it for `developer`; a second post for the same skill resumes the same id; unknown patch fields are refused; Accept does not write `skill_tool_bindings`.
-- `tests/unit/frontend/card_420_skill_authoring.test.js` — packet shape, Ask developer is the only job button, the job strip has no Observe/Chat jump buttons, delete requires confirm and refuses a non-deletable skill, Accept updates the draft, Reject leaves it, Save ownership and Agent Studio pills are untouched.
+- `tests/unit/frontend/card_420_skill_authoring.test.js` — packet and job helpers remain; Skill Studio template and bindings have no Ask developer button, job strip, or Accept/Reject; delete still requires confirm; Save ownership and Agent Studio pills are untouched.
 - `tests/unit/skills/test_skills_studio_archive_delete.py` — confirmed delete of an operator skill also drops that id’s pack copy and SQLite bindings; a bundled seed such as `wiki` stays (409) without `confirm_seed`.
 
-The job stays `queued`. This card does not mark it done and does not run a silent LLM rewrite.
+The authoring job API still leaves a created job `queued`. This card does not run the developer model. Skill Studio does not open Observe for that path.
 
-### Live test (chrome pass, still In Review)
+### Live test
 
-1. Pull `feat/card-420-developer-mediated-authoring-v1`, reload serve, hard-refresh the browser.
-2. Open Skill Studio. Enter a skill name (or load a skill). Click **Ask developer**. There is no separate Build or Review button.
-3. Observe opens once on that `job_id`. The Skill Studio strip shows the same id and does not keep **Watch in Observe** or **Open in Chat**. You do not type the id.
-4. **Save skill** is still the durable write. **Generate / Refine Runbook** is the smaller outline control. External source context and reference notes sit above the SKILL.md editor.
-5. Attach a fixture patch (the queued job does not call the model by itself):
-
-```bash
-curl -s -X POST "http://127.0.0.1:8000/api/skill_studio/authoring/jobs/JOB_ID/proposals" \
-  -H "Content-Type: application/json" \
-  -d '{"patches":[{"field":"description","value":"Shorter trigger text"}]}'
-```
-
-6. Within a few seconds Skill Studio shows the patch. **Accept** changes the description in the form. **Save skill** still writes the skill store and SQLite bindings. **Reject** leaves the form as it was.
-7. Break frontmatter or type a tool id that is not in the catalog, then leave the runbook field. The amber cheap-lint panel updates and does not open a second job. Agent Studio skill pills are unchanged.
-8. Load a skill you saved in the skill store. **Delete skill** asks you to confirm, then the form clears and the skill leaves the picker. A bundled seed such as `wiki` does not offer delete.
+Use section 11.
 
 ## 10. Chrome pass (locked after the job-wire live test)
 
@@ -200,4 +182,27 @@ Still In Review. Same branch. Jacob locked this layout after the developer job w
 | Job strip | `job_…` id only. Observe opens once on success. No permanent jump buttons. |
 | Source context | Above the SKILL.md editor, with metadata and tools. |
 | **Delete skill** | Confirm dialog. Existing user-pack delete. Hidden when the skill is not an operator store file, or when it is a bundled seed. After delete, clear the workshop selection. Also drops that id’s pack copies and SQLite bindings. |
+
+## 11. Operator surface for this merge (locked)
+
+Still In Review. Same branch. Jacob removed the visible Ask developer path after the queued job did not run the developer.
+
+Skill Studio shows:
+
+- **Generate / Refine Runbook** (quiet secondary)
+- **Save skill**
+- **Delete skill** with confirm, operator-owned skills only
+- External source context and intent/reference notes above the SKILL.md editor
+
+Skill Studio does not show **Ask developer**, a job id strip, or Accept/Reject, and it does not open Observe from that path.
+
+`developer_authoring` and `/api/skill_studio/authoring/*` stay in the tree for a later wire, when mediation actually runs the developer. A queued Observe job is not that wire.
+
+### Re-verify
+
+1. Pull `feat/card-420-developer-mediated-authoring-v1`, reload serve, hard-refresh the browser.
+2. Open Skill Studio. The action bar is **Save skill**, **Generate / Refine Runbook**, and **Delete skill** when the loaded skill can be deleted. There is no **Ask developer** button, no job id, and no Accept or Reject.
+3. External source context and reference notes sit above the SKILL.md editor.
+4. **Save skill** still writes the skill store and SQLite bindings. **Delete skill** asks you to confirm, then the form clears. A bundled seed such as `wiki` does not offer delete.
+5. Agent Studio skill pills are unchanged.
 
