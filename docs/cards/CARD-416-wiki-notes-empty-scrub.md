@@ -1,7 +1,7 @@
 ---
 id: CARD-416
 title: "Wiki establish: scrub polluted 01_Notes taxonomy dirs; keep Notes empty"
-status: In Review
+status: Done
 created: 2026-09-21
 investigation: docs/design/CARD-416-wiki-notes-scrub-investigation.md
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-416] Wiki establish: scrub polluted 01_Notes taxonomy dirs; keep Notes empty
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **Investigation**: [docs/design/CARD-416-wiki-notes-scrub-investigation.md](../../docs/design/CARD-416-wiki-notes-scrub-investigation.md)  
 > **Labels**: `type:bug`, `area:wiki`, `area:test`
