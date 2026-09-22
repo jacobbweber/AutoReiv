@@ -15,10 +15,10 @@ labels:
 
 # [CARD-413] Durable Runtime Registry, Platform Reconciliation, Portable Pack Interchange, and Configurable Wiki Root
 
-> **Status**: Ready (planning / decision only — **no implementation on this card**)  
-> **Created**: 2026-09-21  
-> **ADR Reference**: none (ADR draft/accept is a **deliverable of this card's decision phase**, not a prerequisite)  
-> **Labels**: `type:architecture`, `type:planning`, `area:storage`, `area:packs`, `area:wiki`, `area:data-dir`  
+> **Status**: Ready (planning / decision only — **no implementation on this card**)
+> **Created**: 2026-09-21
+> **ADR Reference**: none (ADR draft/accept is a **deliverable of this card's decision phase**, not a prerequisite)
+> **Labels**: `type:architecture`, `type:planning`, `area:storage`, `area:packs`, `area:wiki`, `area:data-dir`
 > **Branch**: `feat/card-413-storage-architecture-planning` (docs-only; do not push)
 
 ---
@@ -70,9 +70,9 @@ Live user data root (not the git checkout):
 
 Resolution order (`src/infrastructure/data/resolver.py`):
 
-1. `AUTOREIV_DATA_DIR` env  
-2. Persisted SQLite setting `data_dir`  
-3. Platform default  
+1. `AUTOREIV_DATA_DIR` env
+2. Persisted SQLite setting `data_dir`
+3. Platform default
 4. **Refuse** live root inside git checkout (CARD-294 / `is_checkout_live_tree_path` → fall back to platform default)
 
 Canonical layout under root (`DataDirPaths`):
@@ -89,30 +89,30 @@ Canonical layout under root (`DataDirPaths`):
 
 Per-agent DBs (`resolve_agent_storage_path` / `resolve_agent_memory_path`):
 
-- `packs/<id>/<snake>_storage.db` — domain/application storage  
+- `packs/<id>/<snake>_storage.db` — domain/application storage
 - `packs/<id>/<snake>_memory.db` — cognitive memory (must not share storage path)
 
 Boot / seed / reconcile (concrete call chain):
 
-1. `create_app` → `bootstrap_data_dir(...)` (`src/web/app.py`)  
-2. `bootstrap_data_dir` → `ensure_layout` → optional migrate → `seed_bundled_skill_packs` → `seed_platform_pack_folders` → prune bled skills / orphan DBs (`resolver.py`)  
-3. `BuiltinAgentRegistry` boot path → `install_platform_agent_packs` (`src/infrastructure/agents/registry.py`, `src/infrastructure/skills/platform_packs.py`)  
-4. `DeclarativePackReconciler.reconcile` — purge **retired** platform ids from SQLite + disk; preserve custom (`src/infrastructure/skills/reconciler.py`)  
-5. Platform pack install: copy-if-missing from repo `platform-packs/` → `$DATA_DIR/packs/`; for **existing** platform agents, **sync** `system_prompt` / skill lists / tools from repo into SQLite **and** rewrite `pack.json`; `copytree(..., dirs_exist_ok=True)` for skills; **delete** dest skill dirs not present in repo source  
+1. `create_app` → `bootstrap_data_dir(...)` (`src/web/app.py`)
+2. `bootstrap_data_dir` → `ensure_layout` → optional migrate → `seed_bundled_skill_packs` → `seed_platform_pack_folders` → prune bled skills / orphan DBs (`resolver.py`)
+3. `BuiltinAgentRegistry` boot path → `install_platform_agent_packs` (`src/infrastructure/agents/registry.py`, `src/infrastructure/skills/platform_packs.py`)
+4. `DeclarativePackReconciler.reconcile` — purge **retired** platform ids from SQLite + disk; preserve custom (`src/infrastructure/skills/reconciler.py`)
+5. Platform pack install: copy-if-missing from repo `platform-packs/` → `$DATA_DIR/packs/`; for **existing** platform agents, **sync** `system_prompt` / skill lists / tools from repo into SQLite **and** rewrite `pack.json`; `copytree(..., dirs_exist_ok=True)` for skills; **delete** dest skill dirs not present in repo source
 
 Wiki:
 
-- Default `root/wiki`; `WikiStore` falls back via `LEGACY_WIKI_STRINGS` + resolver (`src/domain/wiki/store.py`)  
-- Settings Studio surfaces `wiki_path` as read-only status text today (`settings.js`) — **no first-run folder picker / explicit reconnect UX**  
-- `ensure_layout` **mkdir** default wiki — silent create, not fail-closed on missing configured path  
+- Default `root/wiki`; `WikiStore` falls back via `LEGACY_WIKI_STRINGS` + resolver (`src/domain/wiki/store.py`)
+- Settings Studio surfaces `wiki_path` as read-only status text today (`settings.js`) — **no first-run folder picker / explicit reconnect UX**
+- `ensure_layout` **mkdir** default wiki — silent create, not fail-closed on missing configured path
 
 Import/export:
 
-- `AgentPackService.export_folder` / `export_zip` / `import_path` (`src/application/agent_packs/service.py`) — filesystem interchange around `pack.json` + skills  
+- `AgentPackService.export_folder` / `export_zip` / `import_path` (`src/application/agent_packs/service.py`) — filesystem interchange around `pack.json` + skills
 
 Backup/restore:
 
-- `DataDirBackupService` zips data tree; special-cases external wiki + SQLite snapshot (`src/infrastructure/data/backup.py`)  
+- `DataDirBackupService` zips data tree; special-cases external wiki + SQLite snapshot (`src/infrastructure/data/backup.py`)
 
 Schema anchors (`src/infrastructure/memory/schema.py`): `settings`, `agent_overrides`, `custom_agents`, jobs/routines/sessions, plus many operational tables — **profiles dual-written** with filesystem packs.
 
@@ -120,26 +120,26 @@ Schema anchors (`src/infrastructure/memory/schema.py`): `settings`, `agent_overr
 
 This card delivers **analysis + decision**, not code:
 
-1. Completed ownership **inventory matrix** (below) reviewed with Jacob  
-2. Options A–D compared against decision criteria (below)  
-3. Required mapping docs (seeder/reconciler paths, FKs/stable IDs, boot flow, wiki UX, failure modes) cited to concrete files  
-4. Product forks answered (section 7)  
-5. Migration phase plan agreed (section 8) — favoring additive schema + **dual-read validation**; dual-write only if explicitly bounded  
-6. Operator contracts listed for any future cutover (section 9)  
-7. ADR draft authored under `docs/adr/` only after walkthrough; set Accepted only with Jacob's OK  
-8. CARD-411 relationship decision: block / defer / narrow scope  
+1. Completed ownership **inventory matrix** (below) reviewed with Jacob
+2. Options A–D compared against decision criteria (below)
+3. Required mapping docs (seeder/reconciler paths, FKs/stable IDs, boot flow, wiki UX, failure modes) cited to concrete files
+4. Product forks answered (section 7)
+5. Migration phase plan agreed (section 8) — favoring additive schema + **dual-read validation**; dual-write only if explicitly bounded
+6. Operator contracts listed for any future cutover (section 9)
+7. ADR draft authored under `docs/adr/` only after walkthrough; set Accepted only with Jacob's OK
+8. CARD-411 relationship decision: block / defer / narrow scope
 
 ### Beat 4 — What dies today (intent to retire; deletion deferred until build)
 
 Fragile ownership patterns to **retire in the eventual build** (not deleted by this planning card):
 
-- Treat AppData pack/skill trees as silently re-seedable mirrors of `platform-packs/`  
-- Boot-time **prompt/skill sync that overwrites** operator-visible files without `user_modified` / hash gates  
-- **Prune** of user skill folders solely because repo seed omitted them  
-- Dual canonical truth (SQLite profile **and** `pack.json`) without a single writer  
-- Silent wiki mkdir / legacy string fallbacks that hide a broken configured path  
-- One-shot mass delete of AppData content as a "migration"  
-- Folding this decision into CARD-411 implementation  
+- Treat AppData pack/skill trees as silently re-seedable mirrors of `platform-packs/`
+- Boot-time **prompt/skill sync that overwrites** operator-visible files without `user_modified` / hash gates
+- **Prune** of user skill folders solely because repo seed omitted them
+- Dual canonical truth (SQLite profile **and** `pack.json`) without a single writer
+- Silent wiki mkdir / legacy string fallbacks that hide a broken configured path
+- One-shot mass delete of AppData content as a "migration"
+- Folding this decision into CARD-411 implementation
 
 ---
 
@@ -173,16 +173,16 @@ Fragile ownership patterns to **retire in the eventual build** (not deleted by t
 
 ### Decision criteria
 
-- Upgrade/reseed **idempotence** (second boot = no churn)  
-- User **editability** (files vs UI)  
-- Export/import **fidelity** (skills, bindings, stable IDs)  
-- Corruption/locking **blast radius**  
-- Migrations complexity  
-- Observability (what changed, why)  
-- Cross-platform paths  
-- Backup/restore **atomicity**  
-- Local-first ownership  
-- Performance  
+- Upgrade/reseed **idempotence** (second boot = no churn)
+- User **editability** (files vs UI)
+- Export/import **fidelity** (skills, bindings, stable IDs)
+- Corruption/locking **blast radius**
+- Migrations complexity
+- Observability (what changed, why)
+- Cross-platform paths
+- Backup/restore **atomicity**
+- Local-first ownership
+- Performance
 - Concurrency (multi-studio / multi-process)
 
 ---
@@ -215,29 +215,29 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 
 ## 6. Major product forks (questions for Jacob)
 
-1. **Skills editing**: directly editable as files on disk, or only via UI with export-as-files?  
-2. **Built-in customization**: override-in-place vs fork-to-custom pack vs layered overlay?  
-3. **DB topology**: one operational DB vs separate `storage.db` / `memory.db` (platform-level) in addition to per-agent DBs?  
-4. **Wiki default path + first-run UX**: always picker? suggest under data root? OneDrive/Documents?  
-5. **Backup includes wiki?** always / opt-in / by-reference path only?  
-6. **Missing wiki path**: fail visibly (recommended) vs read-only mode vs explicit "reconnect" only — **no silent re-create elsewhere**?  
-7. **Export/import fidelity**: must round-trip skills + tool bindings + stable IDs?  
+1. **Skills editing**: directly editable as files on disk, or only via UI with export-as-files?
+2. **Built-in customization**: override-in-place vs fork-to-custom pack vs layered overlay?
+3. **DB topology**: one operational DB vs separate `storage.db` / `memory.db` (platform-level) in addition to per-agent DBs?
+4. **Wiki default path + first-run UX**: always picker? suggest under data root? OneDrive/Documents?
+5. **Backup includes wiki?** always / opt-in / by-reference path only?
+6. **Missing wiki path**: fail visibly (recommended) vs read-only mode vs explicit "reconnect" only — **no silent re-create elsewhere**?
+7. **Export/import fidelity**: must round-trip skills + tool bindings + stable IDs?
 8. **Migration rollback / downgrade**: support N-1 downgrade or forward-only with backup restore?
 
 ---
 
 ## 7. Migration phases (future build card; plan now)
 
-1. Read-only inventory/audit (this card)  
-2. ADR Proposed → walkthrough → Accepted  
-3. Additive schema + **dual-read validation** (avoid unbounded dual-write)  
-4. Migration dry-run + report  
-5. Backup (manifest)  
-6. Migration execute  
-7. Verification operator contracts  
-8. Cutover (single writer)  
-9. Prune old seed paths  
-10. Rollback drill documented  
+1. Read-only inventory/audit (this card)
+2. ADR Proposed → walkthrough → Accepted
+3. Additive schema + **dual-read validation** (avoid unbounded dual-write)
+4. Migration dry-run + report
+5. Backup (manifest)
+6. Migration execute
+7. Verification operator contracts
+8. Cutover (single writer)
+9. Prune old seed paths
+10. Rollback drill documented
 
 **Note**: Dual-write is **not** automatically good — only if explicitly bounded with a kill switch and comparison metrics.
 
@@ -269,12 +269,12 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 
 ## 10. Out of scope (this card)
 
-- No product implementation  
-- No immediate mass migration  
-- No one-shot delete of AppData content  
-- No folding CARD-411 implementation into this decision  
-- No Accepted ADR without Jacob walkthrough  
-- No push / merge / tag  
+- No product implementation
+- No immediate mass migration
+- No one-shot delete of AppData content
+- No folding CARD-411 implementation into this decision
+- No Accepted ADR without Jacob walkthrough
+- No push / merge / tag
 
 ---
 
@@ -282,9 +282,9 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 
 **CARD-411** (skill runbook YAML frontmatter, tool binding UI, Forge vs Factory separation) **depends on ownership**:
 
-- If skills remain FS-canonical, Forge/Factory editors are file writers with reconcile rules  
-- If skills become DB-canonical, editors write DB and export projects files  
-- Tool binding UI must target the **single** canonical binding store  
+- If skills remain FS-canonical, Forge/Factory editors are file writers with reconcile rules
+- If skills become DB-canonical, editors write DB and export projects files
+- Tool binding UI must target the **single** canonical binding store
 
 **Recommendation for discussion**: **Defer CARD-411 build** (or narrow to read-only inspector) until CARD-413 ADR is Accepted. Keep CARD-411 Ready but blocked on ADR outcome.
 
@@ -292,22 +292,22 @@ Mark ADR `Proposed` only after Jacob walkthrough; Accept only on explicit approv
 
 ## 12. Acceptance criteria (planning / decision)
 
-- [ ] Inventory matrix reviewed with Jacob (`continue` iterations OK)  
-- [ ] Options A–D scored against decision criteria; option selected or hybrid named  
-- [ ] Product forks (section 6) answered  
-- [ ] Mapping brief cites concrete paths above  
-- [ ] ADR drafted (`Proposed`) and walked; **Accepted** only with Jacob OK  
-- [ ] CARD-411 blocked/deferred/narrowed decision recorded on both cards  
-- [ ] Operator contracts OC-S1..S6 written as test stubs or card references for the build successor  
-- [ ] `adr:` frontmatter updated from `none` when ADR exists  
-- [ ] No product code landed under this card  
+- [ ] Inventory matrix reviewed with Jacob (`continue` iterations OK)
+- [ ] Options A–D scored against decision criteria; option selected or hybrid named
+- [ ] Product forks (section 6) answered
+- [ ] Mapping brief cites concrete paths above
+- [ ] ADR drafted (`Proposed`) and walked; **Accepted** only with Jacob OK
+- [ ] CARD-411 blocked/deferred/narrowed decision recorded on both cards
+- [ ] Operator contracts OC-S1..S6 written as test stubs or card references for the build successor
+- [ ] `adr:` frontmatter updated from `none` when ADR exists
+- [ ] No product code landed under this card
 
 ---
 
 ## 13. Human verification runbook (for this planning card)
 
-1. Open `docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md`  
-2. Confirm status Ready, adr none, Four Beats present  
+1. Open `docs/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md`
+2. Confirm status Ready, adr none, Four Beats present
 3. Reply **`continue`** to refine forks/options, or after ADR acceptance reply **`build`** on the **implementation successor** (not this scaffold alone)
 
 ---
