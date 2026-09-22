@@ -5,7 +5,7 @@
 > **Accepted**: 2026-09-21 (Jacob: Accept ADR-0056 with Docker hard-fail rule)  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-413 ownership audit  
-> **Related Cards**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md) (blocked / deferred until this ADR is Accepted), [CARD-412](../cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md) / [ADR-0055](./0055-operator-contract-testing-and-suite-hygiene.md)  
+> **Related Cards**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md) (Option A build unblocked 2026-09-22), [CARD-412](../cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md) / [ADR-0055](./0055-operator-contract-testing-and-suite-hygiene.md)  
 > **Design brief**: [CARD-413 ownership audit & recommended architecture](../design/CARD-413-ownership-audit-and-recommended-architecture.md)  
 > **Supersedes / Softens**: Boot-time treatment of AppData `packs/` trees as silently re-seedable mirrors of repo `platform-packs/`; silent wiki mkdir / legacy path fallback as configuration substitutes
 
@@ -138,7 +138,7 @@ Backups include a manifest enumerating operational DB, per-agent storage/memory 
 
 ### 4.7 CARD-411
 
-**Defer build** (or explicitly narrow to read-only inspector only) until this ADR is **Accepted**. Editors must target the single canonical binding store (SQLite under C+).
+**Build unblocked (2026-09-22).** This ADR is Accepted and the CARD-414 cutover is on `qa`. Jacob locked Option A: Forge is agent identity and RBAC plus a read-only runbook inspector; Factory is the sole writer of skill bodies and tool bindings. Bindings persist in operational SQLite (`skill_tool_bindings` / `skill_binding_meta`). AppData `pack.json` is not a second live source of truth for those bindings.
 
 ### 4.8 Operator contracts before cutover
 

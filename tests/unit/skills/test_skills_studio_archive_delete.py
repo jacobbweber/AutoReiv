@@ -155,18 +155,18 @@ def test_delete_rejects_path_traversal_outside_skills_jail():
     assert skills.is_dir()
 
 
-def test_agent_studio_runbook_editor_has_archive_delete_not_builtin_python_packs():
-    js = (REPO_ROOT / "src" / "web" / "static" / "modules" / "studios" / "forge.js").read_text(encoding="utf-8")
+def test_agent_studio_runbook_inspector_is_not_a_write_path_card_411():
+    """CARD-411: Forge no longer archives or deletes skill runbooks. Factory is the writer."""
+    js = (REPO_ROOT / "src" / "web" / "static" / "modules" / "studios" / "forge" / "runbook.js").read_text(encoding="utf-8")
     html = (REPO_ROOT / "src" / "web" / "templates" / "index.html").read_text(encoding="utf-8")
     view_start = html.find('id="view-agents"')
     view_end = html.find("</section>", view_start)
     studio_html = html[view_start:view_end] if view_start != -1 else html
     combined = js + "\n" + studio_html
-    assert "archive" in combined.lower()
-    assert "unarchive" in combined.lower()
-    assert "delete" in combined.lower()
-    assert "studioRunbookArchiveBtn" in combined
-    assert "studioRunbookDeleteBtn" in combined
+    assert "studioRunbookOpenFactoryBtn" in combined
+    assert "studioRunbookArchiveBtn" not in combined
+    assert "studioRunbookDeleteBtn" not in combined
+    assert "method: 'PUT'" not in js
     assert "Skills Studio" not in html
     assert "Agent Forge" not in html
     for builtin in ("WikiTools", "execute_code", "handoff"):

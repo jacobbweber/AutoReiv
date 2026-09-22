@@ -12,6 +12,7 @@ import { showToast } from '../ui/toast.js';
 import { publishAgentsLoaded } from '../state/store.js';
 import { storageSet } from '../utils/storage.js';
 import { PICKER_KEYS } from './agent_picker.js';
+import { createSkillWorkshop } from './factory/workshop_meta.js';
 
 // ==================== Scaffolder Helpers & Gap Bindings ====================
 export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgentId = '') {
@@ -114,6 +115,11 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factorySkillMarkdownEditor = $('factorySkillMarkdownEditor');
   const factorySaveSkillBtn = $('factorySaveSkillBtn');
   const factorySaveFeedbackMsg = $('factorySaveFeedbackMsg');
+  const factorySkillTierSelect = $('factorySkillTierSelect');
+  const factorySkillSafetyReadOnly = $('factorySkillSafetyReadOnly');
+  const factorySkillSafetyHitl = $('factorySkillSafetyHitl');
+  const factorySkillSafetyUntrusted = $('factorySkillSafetyUntrusted');
+  const factoryRequiredToolsChips = $('factoryRequiredToolsChips');
 
   // DOM Elements - Column 3: Capabilities & Grounding
   const factoryToolSearchInput = $('factoryToolSearchInput');
@@ -130,6 +136,7 @@ export function initFactoryStudio(state, callbacks = {}) {
   let currentCapabilities = [];
   let selectedTools = new Set();
   let assignedSkills = [];
+  let skillIdentityLocked = false;
 
   // Deep-link helper for CARD-314
   if (typeof window !== 'undefined') {
@@ -138,6 +145,14 @@ export function initFactoryStudio(state, callbacks = {}) {
         callbacks.openFactoryStudio(agentId);
       }
       setAgentScope(agentId);
+    };
+    window.openFactoryWorkshopForSkill = ({ agentId = null, skillId = null } = {}) => {
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(agentId, skillId);
+        return;
+      }
+      if (agentId) setAgentScope(agentId);
+      if (skillId) loadExistingSkill(skillId, agentId);
     };
   }
 
@@ -247,11 +262,17 @@ export function initFactoryStudio(state, callbacks = {}) {
     factoryCurrentSkillsList.innerHTML = '';
     assignedSkills.forEach((sid) => {
       const pill = document.createElement('span');
-      pill.className = 'inline-flex items-center space-x-1.5 px-2 py-1 rounded-lg text-xs font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300';
+      pill.className = 'factory-skill-open-btn inline-flex items-center space-x-1.5 px-2 py-1 rounded-lg text-xs font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300 cursor-pointer hover:border-brand-500/50';
+      pill.dataset.skillId = sid;
+      pill.title = 'Open in workshop';
       pill.innerHTML = `
         <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
         <span>${escapeHtml(sid)}</span>
       `;
+      pill.addEventListener('click', () => {
+        const agentId = (factoryAgentIdInput && factoryAgentIdInput.value.trim()) || '';
+        loadExistingSkill(sid, agentId);
+      });
       factoryCurrentSkillsList.appendChild(pill);
     });
     safeCreateIcons({ root: factoryCurrentSkillsList });
@@ -269,8 +290,39 @@ export function initFactoryStudio(state, callbacks = {}) {
     }
     if (factorySkillIntentInput) factorySkillIntentInput.value = '';
     if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = '';
+    if (factorySkillTierSelect) factorySkillTierSelect.value = 'pack';
+    if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = false;
+    if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = false;
+    if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = false;
+    skillIdentityLocked = false;
+    selectedTools = new Set();
+    workshop.renderRequiredToolChips();
     if (factorySaveFeedbackMsg) factorySaveFeedbackMsg.classList.add('hidden');
   }
+
+  const workshop = createSkillWorkshop({
+    showToast,
+    getCapabilities: () => currentCapabilities,
+    getSelectedTools: () => selectedTools,
+    setSelectedTools: (next) => { selectedTools = next; },
+    setIdentityLocked: (value) => { skillIdentityLocked = value; },
+    renderCapabilities: (filter) => renderCapabilities(filter),
+    updateSelectedToolBadge: () => updateSelectedToolBadge(),
+    elements: () => ({
+      factorySkillNameInput,
+      factorySkillIdInput,
+      factorySkillTriggerInput,
+      factorySkillTriggerCharCount,
+      factorySkillTierSelect,
+      factorySkillSafetyReadOnly,
+      factorySkillSafetyHitl,
+      factorySkillSafetyUntrusted,
+      factorySkillMarkdownEditor,
+      factoryRequiredToolsChips,
+      factoryToolSearchInput,
+    }),
+  });
+  const { workshopFields, syncFrontmatter, loadExistingSkill } = workshop;
 
   async function handleGenerateRunbook() {
     const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
@@ -324,6 +376,7 @@ export function initFactoryStudio(state, callbacks = {}) {
       if (factorySkillMarkdownEditor) {
         factorySkillMarkdownEditor.value = data.markdown_content || '';
       }
+      syncFrontmatter();
       showToast(`✨ Generated runbook for ${skillName}!`, 'success');
     } catch (err) {
       console.error('[FactoryStudio] Failed to generate runbook:', err);
@@ -345,6 +398,8 @@ export function initFactoryStudio(state, callbacks = {}) {
     const rolePersona = (factoryAgentPromptInput && factoryAgentPromptInput.value.trim()) || '';
     const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
     const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || toSnakeCase(skillName);
+    const fields = workshopFields();
+    syncFrontmatter();
     const content = (factorySkillMarkdownEditor && factorySkillMarkdownEditor.value.trim()) || '';
 
     if (!agentId) {
@@ -379,6 +434,11 @@ export function initFactoryStudio(state, callbacks = {}) {
           skill_id: skillId,
           skill_content: content,
           auto_pin: true,
+          name: fields.name || skillName,
+          description: fields.description,
+          tier: fields.tier,
+          safety: fields.safety,
+          requires_tools: fields.requires_tools,
         }),
       });
 
@@ -387,7 +447,10 @@ export function initFactoryStudio(state, callbacks = {}) {
         throw new Error(errData.detail || `Server returned ${resp.status}`);
       }
 
-      await resp.json();
+      const saved = await resp.json();
+      if (factorySkillMarkdownEditor && saved.markdown_content) {
+        factorySkillMarkdownEditor.value = saved.markdown_content;
+      }
       if (!assignedSkills.includes(skillId)) {
         assignedSkills.push(skillId);
       }
@@ -486,7 +549,7 @@ export function initFactoryStudio(state, callbacks = {}) {
           } else {
             selectedTools.delete(tool.name);
           }
-          updateSelectedToolBadge();
+          syncFrontmatter();
         });
 
         toolsList.appendChild(item);
@@ -516,7 +579,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         count++;
       }
     });
-    updateSelectedToolBadge();
+    syncFrontmatter();
     showToast(count > 0 ? `Selected ${count} matching tool(s)` : 'All matching tools are already selected', 'info');
   }
 
@@ -532,7 +595,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         count++;
       }
     });
-    updateSelectedToolBadge();
+    syncFrontmatter();
     showToast(count > 0 ? `Cleared ${count} tool(s)` : 'No tools were selected in current view', 'info');
   }
 
@@ -566,7 +629,7 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
 
     renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
-    updateSelectedToolBadge();
+    syncFrontmatter();
     if (addedCount > 0) {
       showToast(`Auto-suggested and selected ${addedCount} tool(s)`, 'success');
     } else {
@@ -602,9 +665,10 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   if (factorySkillNameInput) {
     factorySkillNameInput.addEventListener('input', () => {
-      if (factorySkillIdInput) {
+      if (!skillIdentityLocked && factorySkillIdInput) {
         factorySkillIdInput.value = toSnakeCase(factorySkillNameInput.value);
       }
+      syncFrontmatter();
     });
   }
 
@@ -619,8 +683,14 @@ export function initFactoryStudio(state, callbacks = {}) {
           factorySkillTriggerCharCount.className = 'text-[10px] font-mono text-slate-500';
         }
       }
+      syncFrontmatter();
     });
   }
+
+  [factorySkillTierSelect, factorySkillSafetyReadOnly, factorySkillSafetyHitl, factorySkillSafetyUntrusted].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('change', () => syncFrontmatter());
+  });
 
   if (factoryGenerateRunbookBtn) {
     factoryGenerateRunbookBtn.addEventListener('click', handleGenerateRunbook);
@@ -681,8 +751,9 @@ export function initFactoryStudio(state, callbacks = {}) {
   // Public Controller API
   // ----------------------------------------------------
   return {
-    loadFactoryStudio: async (preferredAgentId = null) => {
+    loadFactoryStudio: async (preferredAgentId = null, skillId = null) => {
       await Promise.all([loadAgents(preferredAgentId), loadCapabilities()]);
+      if (skillId) await loadExistingSkill(skillId, preferredAgentId);
     },
     setAgentScope,
     stopPolling: () => {},

@@ -269,10 +269,10 @@ export function initApp() {
         await chatCtrl.startNewAgentAuthoring();
       }
     },
-    openFactoryStudio: (agentId = null) => {
+    openFactoryStudio: (agentId = null, skillId = null) => {
       switchTab('factory');
       if (factoryCtrl && typeof factoryCtrl.loadFactoryStudio === 'function') {
-        factoryCtrl.loadFactoryStudio(agentId);
+        factoryCtrl.loadFactoryStudio(agentId, skillId);
       }
     },
     onTalkToForge: async (targetAgentId = null) => {

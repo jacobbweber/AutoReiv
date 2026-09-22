@@ -5,7 +5,7 @@
  * - proposals.js: Architectural governance proposals inbox, category badges, remedy execution, synthesis
  * - scaffold.js: Quick presets, quick scaffold modal, candidate queue, same-job origin resumption
  * - tools.js: OS baseline tools, capability gaps backlog, remote MCP server management, credential grants
- * - runbook.js: Runbook markdown authoring, char counter, mechanical capability linting, platform/pack skills
+ * - runbook.js: Read-only runbook inspector, char counter, capability lint view, Open in Factory [CARD-411]
  * - config.js: Per-agent LLM providers, model discovery, avatar preview, routines, telemetry, brain drawer, tones
  */
 
@@ -672,7 +672,12 @@ export function initAgentForge(state, callbacks = {}) {
   });
 
   setupRunbookEditor({
-    onRefreshSkills: loadPlatformSkillsWrapper,
+    getActiveAgentId,
+    openFactoryWorkshop: (agentId, skillId) => {
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(agentId, skillId);
+      }
+    },
   });
 
   setupAgentModelConfig();

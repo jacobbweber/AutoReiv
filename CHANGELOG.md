@@ -2,6 +2,8 @@
 
 ### Added
 
+- **CARD-411 Forge / Factory skill split**: Agent Studio inspects a skill runbook (name, description, tier, safety, required tools) and opens **Factory Workshop** for edits. Factory is the only writer: structured metadata and the tool picker update `requires_tools` with catalog tool ids, and save writes the skill body to the skill store plus tool bindings in operational SQLite (`skill_tool_bindings`). `pack.json` is not a live binding source. Forge no longer saves, archives, deletes, or creates runbooks (`src/application/skills/runbook_frontmatter.py`, `src/application/skills/workshop.py`, `src/infrastructure/memory/repositories/skill_bindings.py`, `src/web/static/modules/studios/forge/runbook.js`, `src/web/static/modules/studios/factory.js` [CARD-411]).
+
 - **CARD-408 View Job shortcut**: Chat multi-phase job strip shows **View Job** beside Copy when a `job_id` is bound. Click opens or focuses Observe Studio, fills the standing-journey search, and loads the phase timeline. Unknown job ids show an error in the Observe viewer. Education "Open in Observe" uses the same path (`src/web/templates/index.html`, `src/web/static/modules/studios/chat/chrome.js`, `src/web/static/modules/studios/chat.js`, `src/web/static/modules/studios/observability.js`, `src/web/static/modules/ui/agent-desktop.js` [CARD-408]).
 
 ### Fixed
