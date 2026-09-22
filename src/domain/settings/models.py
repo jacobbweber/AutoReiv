@@ -106,6 +106,9 @@ class AgentCustomization(BaseModel):
     allowed_credentials: Optional[list[str]] = None
     mcp_servers: Optional[list[MCPServerConfig]] = None
     origin: Optional[str] = None
+    user_modified: Optional[bool] = None
+    seed_version: Optional[str] = None
+    seed_content_hash: Optional[str] = None
 
 
 class MCPServerConfig(BaseModel):

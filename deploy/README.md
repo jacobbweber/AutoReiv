@@ -79,6 +79,12 @@ For development or ad-hoc local testing without registering a system service:
 
 ## 3. Docker & Docker Compose
 
+> [!IMPORTANT]
+> CARD-414 / ADR-0056: Docker mode **hard-fails** if `AUTOREIV_WIKI_PATH` is unset, missing, or unreadable.
+> Set `AUTOREIV_WIKI_HOST_PATH` to a host folder (Windows example: `D:/AutoReivWiki`) before `docker compose up`.
+> The image does **not** pre-create `/data/wiki`; the compose volume/bind mount must provide it.
+
+
 Target: Containerized environments and cross-platform server hosting.
 
 ### Starting AutoReiv
@@ -108,3 +114,16 @@ Docker mounts a named volume `autoreiv-data` to `/data` in the container. The ca
 - `/data/wiki/` (PARA-Wiki storage)
 - `/data/packs/` (Agent packs & memory)
 - `/data/skills/` (Seeded and custom skills)
+
+## Wiki path (ADR-0056 / CARD-414)
+
+Docker/daemon deployments **must** set:
+
+- `AUTOREIV_DEPLOY_MODE=docker` (or `daemon`)
+- `AUTOREIV_WIKI_PATH` to the in-container mount (e.g. `/data/wiki`)
+- A volume mount for that path
+
+Process/container start **hard-fails** if the wiki path is unset, missing, or unreadable. There is no host folder picker inside the container.
+
+Local Windows/Linux: configure an explicit wiki path in Settings (no suggested default); scaffold only after confirm.
+

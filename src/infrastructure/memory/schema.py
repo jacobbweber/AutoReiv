@@ -224,6 +224,9 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     visibility TEXT DEFAULT 'public',
     fleet TEXT,
     origin TEXT NOT NULL DEFAULT 'custom',
+    user_modified INTEGER NOT NULL DEFAULT 0,
+    seed_version TEXT,
+    seed_content_hash TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -259,6 +262,9 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     max_training_retries INTEGER DEFAULT 2,
     mcp_servers_json TEXT DEFAULT '[]',
     allowed_credentials_json TEXT DEFAULT '[]',
+    user_modified INTEGER NOT NULL DEFAULT 0,
+    seed_version TEXT,
+    seed_content_hash TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

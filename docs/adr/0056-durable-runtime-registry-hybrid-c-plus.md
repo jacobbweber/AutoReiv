@@ -9,6 +9,9 @@
 > **Design brief**: [CARD-413 ownership audit & recommended architecture](../design/CARD-413-ownership-audit-and-recommended-architecture.md)  
 > **Supersedes / Softens**: Boot-time treatment of AppData `packs/` trees as silently re-seedable mirrors of repo `platform-packs/`; silent wiki mkdir / legacy path fallback as configuration substitutes
 
+> **Amendment (2026-09-21, live-test UX)**: Local mode defaults the wiki folder to `{data_root}/wiki` on first boot when unset (persist `wiki_path`, scaffold that one folder). Do **not** create a second vault name (e.g. `wiki-vault`). Docker/daemon hard-fail when unset/missing/unreadable is **unchanged**. Settings UI uses plain “Wiki folder” language (no ADR/card friction copy).
+
+
 ---
 
 ## 1. Context & Problem Statement
@@ -88,7 +91,7 @@ For each platform artifact keyed by **stable id** (`agent_id`, skill id, tool na
 | 1 | Skills editing | **Studios primary**; files remain readable under the skill store; direct file edits set `user_modified` |
 | 2 | Built-in customization | **Layered overrides** + explicit **Fork to custom pack** for large divergence; no silent in-place clobber of seed |
 | 3 | DB topology | **One** operational `autoreiv.db` + per-agent `*_storage.db` / `*_memory.db` (no platform DB split in v1) |
-| 4 | Wiki first-run | **Deployment-mode aware** (see section 4.4): local Windows/Linux require explicit path with **no suggested path**; Docker/daemon require wiki via **compose/env + volume** and **hard-fail start** if missing (no host folder picker inside the container) |
+| 4 | Wiki first-run | **Deployment-mode aware** (see section 4.4): local Windows/Linux **default to `{data_root}/wiki`** when unset (persist + scaffold that one folder); Docker/daemon require wiki via **compose/env + volume** and **hard-fail start** if missing (no host folder picker inside the container) |
 | 5 | Backup vs wiki content | Manifest **always** records configured wiki URI; **including wiki file content is opt-in** |
 | 6 | Missing wiki path | **Fail visibly** + reconnect/migrate only — **never** silent recreate elsewhere |
 
@@ -100,11 +103,11 @@ AutoReiv targets **Windows and Linux**, including local serve, OS daemon, and **
 
 #### Local Windows / Linux (machine-local control plane)
 
-1. First run / empty wiki config: operator **must** set an explicit wiki path before the wiki is usable.
-2. **No suggested path** (Jacob lock). Scaffold the numbered vault layout only after the path is confirmed and writable.
-3. Prefer Settings first-run / blocking gate. Native OS folder browse is optional and only where a desktop bridge exists; a plain validated path field is acceptable for the web UI.
+1. First run / empty wiki config: **default** to `{data_root}/wiki` (e.g. `%LOCALAPPDATA%\AutoReiv\wiki`). Adopt on boot: persist `wiki_path`, create/scaffold **that one folder**.
+2. Do **not** create or suggest a second vault name (e.g. `wiki-vault`).
+3. Settings shows plain “Wiki folder” with the path filled; operator may change it. Optional “Create standard folder layout if missing” defaults checked on adopt/save.
 4. Persist chosen path as durable setting (distinct from env override). Env may still override for advanced operators.
-5. If configured path missing/unreadable: **fail visibly** + reconnect/migrate - never create a different fallback vault.
+5. If configured path missing/unreadable: **fail visibly** + reconnect/migrate — never create a different fallback vault.
 
 #### Docker Compose / headless daemon
 
@@ -156,7 +159,7 @@ OC-S1..S6 as defined on CARD-413 / the design brief (idempotent reconcile + user
 
 * Migration work touches boot, Forge, Settings, backup, and pack services — must be phased.
 * Operators who relied on editing platform pack files in AppData as the “live source” must learn Studio-primary + `user_modified` semantics.
-* First-run wiki with **no suggestion** increases first-run friction on local installs (accepted by Jacob) in exchange for explicit ownership.
+* Local first-run now defaults to `{data_root}/wiki` (amendment 2026-09-21) to reduce friction while keeping a single explicit owned path.
 * Docker Compose requires intentional wiki volume/env at deploy time; operators cannot use a host folder picker inside the container.
 * Docker/daemon **hard-fails start** when wiki path/volume is missing (accepted by Jacob).
 

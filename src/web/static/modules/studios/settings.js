@@ -182,14 +182,71 @@ export function initSettingsStudio(state, _callbacks = {}) {
       rootEl.textContent = data.root || '-';
       const dbEl = $('dataDirDb');
       const wikiEl = $('dataDirWiki');
+      const wikiStatusEl = $('dataDirWikiStatus');
       const skillsEl = $('dataDirSkills');
       if (dbEl) dbEl.textContent = data.db_path || '-';
-      if (wikiEl) wikiEl.textContent = data.wiki_path || '-';
+      if (wikiEl) wikiEl.textContent = data.wiki_path || data.wiki_structural_path || '(not configured)';
+      if (wikiStatusEl) wikiStatusEl.textContent = data.wiki_status || '-';
       if (skillsEl) skillsEl.textContent = data.skills_path || '-';
       const srcEl = $('dataDirMigrateSource');
       if (srcEl) srcEl.value = data.root || '';
+      const wikiInput = $('wikiPathInput');
+      // Prefill configured path, else structural data_root/wiki default from API.
+      if (wikiInput) {
+        const pref = data.wiki_path || data.wiki_structural_path || '';
+        if (pref) wikiInput.value = pref;
+      }
+      const confirmEl = $('wikiScaffoldConfirm');
+      if (confirmEl && confirmEl.checked === false && !(data.wiki_path)) {
+        confirmEl.checked = true;
+      }
+      const msg = $('wikiPathStatusMsg');
+      if (msg && data.wiki_message) {
+        msg.textContent = data.wiki_message;
+        msg.classList.remove('hidden');
+        msg.classList.toggle('text-rose-400', data.wiki_status === 'missing' || data.wiki_status === 'unset' || data.wiki_status === 'docker_required');
+      }
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load data dir:', err);
+    }
+  }
+
+  async function saveWikiPath() {
+    const input = $('wikiPathInput');
+    const confirmEl = $('wikiScaffoldConfirm');
+    const msg = $('wikiPathStatusMsg');
+    const path = (input && input.value ? input.value : '').trim();
+    if (!path) {
+      if (msg) {
+        msg.textContent = 'Enter a wiki folder path (default lives under your data directory).';
+        msg.classList.remove('hidden');
+        msg.classList.add('text-rose-400');
+      }
+      return;
+    }
+    try {
+      const res = await fetch('/api/settings/wiki-path', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path,
+          confirm_scaffold: Boolean(confirmEl && confirmEl.checked),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      if (msg) {
+        msg.textContent = data.wiki_message || 'Wiki path saved.';
+        msg.classList.remove('hidden', 'text-rose-400');
+      }
+      await loadDataDir();
+    } catch (err) {
+      console.error('[AutoReiv UI] Save wiki path failed:', err);
+      if (msg) {
+        msg.textContent = `Save failed: ${err.message}`;
+        msg.classList.remove('hidden');
+        msg.classList.add('text-rose-400');
+      }
     }
   }
 
@@ -339,6 +396,10 @@ export function initSettingsStudio(state, _callbacks = {}) {
   const migrateDataDirBtn = $('migrateDataDirBtn');
   if (migrateDataDirBtn) {
     migrateDataDirBtn.addEventListener('click', () => migrateDataDir());
+  }
+  const saveWikiPathBtn = $('saveWikiPathBtn');
+  if (saveWikiPathBtn) {
+    saveWikiPathBtn.addEventListener('click', () => saveWikiPath());
   }
   const backupDataDirBtn = $('backupDataDirBtn');
   if (backupDataDirBtn) {

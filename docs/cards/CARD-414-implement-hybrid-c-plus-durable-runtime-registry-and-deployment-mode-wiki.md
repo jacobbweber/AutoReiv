@@ -1,7 +1,7 @@
 ---
 id: CARD-414
 title: "Implement Hybrid C+ Durable Runtime Registry, Versioned Reconciliation, Manifest Backup, and Deployment-Mode Wiki"
-status: Ready
+status: Done
 created: 2026-09-21
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -15,7 +15,7 @@ labels:
 
 # [CARD-414] Implement Hybrid C+ Durable Runtime Registry, Versioned Reconciliation, Manifest Backup, and Deployment-Mode Wiki
 
-> **Status**: Ready  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) (**Accepted**)  
 > **Parent planning**: [CARD-413](./CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md) (Done)  
@@ -108,3 +108,15 @@ Phased implementation (prefer additive schema + dual-read validation; avoid unbo
 4. Backup with manifest → restore → DBs + wiki URI policy correct.
 5. Docker compose without wiki env/volume → container/process **fails start** with clear error.
 6. Docker compose with wiki volume + env → starts; wiki usable.
+
+
+## 6. Live-test steps (Jacob)
+
+1. **Checkout** `feat/card-414-hybrid-c-plus-runtime-registry` on Jarvis (`D:\Projects\Active\AutoReiv`). If only box apply artifacts exist, apply patch/bundle from `/workspace/card414-apply/` first (do not push).
+2. **Fresh local data dir**: unset wiki → Settings shows unset / fail-visible; set an explicit path + confirm scaffold → `00_Inbox/` appears only after confirm. No suggested default path.
+3. **Operator edit survive**: remove a tool from a platform agent in Settings/Forge; add a custom skill folder under `packs/<id>/skills/`; restart twice → tool stays removed; custom skill dir not pruned; `user_modified` stays true.
+4. **Export/import**: export agent pack zip → import → stable id + tools/skills match.
+5. **Backup**: create backup zip → confirm `backup-manifest.json` lists operational DB, wiki URI, packs; restore dry-run / restore on a temp data dir.
+6. **Docker**: `AUTOREIV_DEPLOY_MODE=docker` without `AUTOREIV_WIKI_PATH` → process **fails start**. With wiki volume + env → starts and wiki usable.
+7. **OC suite**: `uv run python -m pytest tests/integration/operator_contracts/ -q` → OC-1..3 and OC-S1..S6 green.
+

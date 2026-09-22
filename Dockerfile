@@ -31,18 +31,20 @@ COPY --from=builder /install /usr/local
 # Copy application source code, packs, templates, and metadata
 COPY --chown=autoreiv:autoreiv src/ ./src/
 COPY --chown=autoreiv:autoreiv platform-packs/ ./platform-packs/
-COPY --chown=autoreiv:autoreiv agent-packs/ ./agent-packs/
 COPY --chown=autoreiv:autoreiv templates/ ./templates/
 COPY --chown=autoreiv:autoreiv pyproject.toml ./
 COPY --chown=autoreiv:autoreiv README.md ./
 
-# Create persistent data mount directories
-RUN mkdir -p /data/database /data/wiki /data/packs /data/skills && \
+# Persistent data mount points. Do NOT mkdir /data/wiki here [ADR-0056 / CARD-414]:
+# Docker/daemon hard-fail requires a missing configured wiki path to stay missing until the operator mounts it.
+RUN mkdir -p /data/database /data/packs /data/skills && \
     chown -R autoreiv:autoreiv /data
 
 # Default environment configuration
 ENV PYTHONUNBUFFERED=1 \
     AUTOREIV_DATA_DIR=/data \
+    AUTOREIV_DEPLOY_MODE=docker \
+    AUTOREIV_WIKI_PATH=/data/wiki \
     OLLAMA_HOST=http://host.docker.internal:11434 \
     OLLAMA_MODEL=qwen2.5:7b \
     PORT=8000 \

@@ -46,6 +46,65 @@ class SettingsRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+
+    def _write_seed_provenance(
+        self,
+        *,
+        table: str,
+        id_col: str,
+        row_id: str,
+        user_modified: object = None,
+        seed_version: object = None,
+        seed_content_hash: object = None,
+        conn=None,
+    ) -> None:
+        """CARD-414: persist ADR-0056 seed provenance without rewriting full INSERT bodies."""
+        own = conn is None
+        if own:
+            conn = self._get_connection()
+        try:
+            sets = []
+            vals = []
+            if user_modified is not None:
+                sets.append("user_modified = ?")
+                vals.append(1 if user_modified else 0)
+            if seed_version is not None or seed_version == "":
+                sets.append("seed_version = ?")
+                vals.append(seed_version if seed_version != "" else None)
+            if seed_content_hash is not None or seed_content_hash == "":
+                sets.append("seed_content_hash = ?")
+                vals.append(seed_content_hash if seed_content_hash != "" else None)
+            if not sets:
+                return
+            vals.append(row_id)
+            conn.execute(
+                f"UPDATE {table} SET {', '.join(sets)} WHERE {id_col} = ?",
+                tuple(vals),
+            )
+            if own:
+                conn.commit()
+        finally:
+            if own and self._mem_conn is None:
+                conn.close()
+
+    def mark_agent_user_modified(self, agent_id: str, *, modified: bool = True) -> None:
+        """Studio/Forge divergence from seed → user_modified [ADR-0056]."""
+        conn = self._get_connection()
+        try:
+            flag = 1 if modified else 0
+            conn.execute(
+                "UPDATE custom_agents SET user_modified = ? WHERE id = ?",
+                (flag, agent_id),
+            )
+            conn.execute(
+                "UPDATE agent_overrides SET user_modified = ? WHERE agent_id = ?",
+                (flag, agent_id),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
     def save_agent_override(self, customization: AgentCustomization) -> None:
         now_str = datetime.now(timezone.utc).isoformat()
         tools_json = (
@@ -145,6 +204,15 @@ class SettingsRepositoryMixin:
                     now_str,
                 ),
             )
+            self._write_seed_provenance(
+                table="agent_overrides",
+                id_col="agent_id",
+                row_id=customization.agent_id,
+                user_modified=getattr(customization, "user_modified", None),
+                seed_version=getattr(customization, "seed_version", None),
+                seed_content_hash=getattr(customization, "seed_content_hash", None),
+                conn=conn,
+            )
             conn.commit()
         finally:
             if self._mem_conn is None:
@@ -159,7 +227,8 @@ class SettingsRepositoryMixin:
                 SELECT agent_id, name, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json,
+                       user_modified, seed_version, seed_content_hash
                 FROM agent_overrides WHERE agent_id = ?
                 """,
                 (agent_id,),
@@ -222,6 +291,13 @@ class SettingsRepositoryMixin:
                     credentials = json.loads(r["allowed_credentials_json"])
                 except Exception:
                     credentials = []
+            user_modified = (
+                bool(r["user_modified"])
+                if "user_modified" in r.keys() and r["user_modified"] is not None
+                else None
+            )
+            seed_version = r["seed_version"] if "seed_version" in r.keys() else None
+            seed_content_hash = r["seed_content_hash"] if "seed_content_hash" in r.keys() else None
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 name=name,
@@ -249,6 +325,9 @@ class SettingsRepositoryMixin:
                 max_training_retries=max_training_retries,
                 mcp_servers=mcp_servers,
                 allowed_credentials=credentials,
+                user_modified=user_modified,
+                seed_version=seed_version,
+                seed_content_hash=seed_content_hash,
             )
         finally:
             if self._mem_conn is None:
@@ -487,6 +566,15 @@ class SettingsRepositoryMixin:
                     now_str,
                 ),
             )
+            self._write_seed_provenance(
+                table="custom_agents",
+                id_col="id",
+                row_id=profile.id,
+                user_modified=getattr(profile, "user_modified", None),
+                seed_version=getattr(profile, "seed_version", None),
+                seed_content_hash=getattr(profile, "seed_content_hash", None),
+                conn=conn,
+            )
             conn.commit()
         finally:
             if self._mem_conn is None:
@@ -501,7 +589,8 @@ class SettingsRepositoryMixin:
                 SELECT id, name, description, system_prompt, origin, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at,
+                       user_modified, seed_version, seed_content_hash
                 FROM custom_agents WHERE id = ?
                 """,
                 (agent_id,),
@@ -582,6 +671,13 @@ class SettingsRepositoryMixin:
             tone_val = (
                 AgentTone(r["tone"]) if r["tone"] in [t.value for t in AgentTone] else (r["tone"] or AgentTone.DEFAULT)
             )
+            user_modified = (
+                bool(r["user_modified"])
+                if "user_modified" in r.keys() and r["user_modified"] is not None
+                else False
+            )
+            seed_version = r["seed_version"] if "seed_version" in r.keys() else None
+            seed_content_hash = r["seed_content_hash"] if "seed_content_hash" in r.keys() else None
             return AgentProfile(
                 id=r["id"],
                 name=r["name"],
@@ -615,6 +711,9 @@ class SettingsRepositoryMixin:
                 allow_wiki_access=True,
                 allowed_credentials=credentials,
                 mcp_servers=mcp_servers,
+                user_modified=user_modified,
+                seed_version=seed_version,
+                seed_content_hash=seed_content_hash,
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
             )
