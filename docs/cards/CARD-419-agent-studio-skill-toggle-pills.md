@@ -1,7 +1,7 @@
 ---
 id: CARD-419
 title: "Agent Studio Skill Toggle Pills (Agent↔Skill Scoping Only)"
-status: In Review
+status: Done
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-419] Agent Studio Skill Toggle Pills (Agent↔Skill Scoping Only)
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted**)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:agents`, `area:skills`  
