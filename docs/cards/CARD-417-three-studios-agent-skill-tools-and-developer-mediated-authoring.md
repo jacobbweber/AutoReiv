@@ -3,7 +3,7 @@ id: CARD-417
 title: "Three Studios: Agent / Skill / Tools Lifecycle Surfaces and Developer-Mediated Authoring"
 status: Ready
 created: 2026-09-22
-adr: none
+adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
   - type:architecture
   - type:planning
@@ -18,7 +18,7 @@ labels:
 
 > **Status**: Ready (planning / decision — **no product code** until Jacob says **build** after forks are locked)
 > **Created**: 2026-09-22
-> **ADR Reference**: none yet (forks locked 2026-09-22; ADR outline optional before build) (may need ADR amendment under ADR-0056 ownership + new UX ADR)
+> **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Proposed** 2026-09-22; forks locked)
 > **Labels**: `type:architecture`, `type:planning`, `area:ux`, `area:studios`, `area:skills`, `area:agents`, `area:tools`
 > **Depends on**: CARD-411 Done (Option A Forge/Factory split + SQLite skill tool bindings on `qa` / `v0.40.0`)
 
@@ -172,3 +172,7 @@ All six recommended forks are **locked**. Planning may continue (ADR outline, su
 
 Jacob (paraphrase): designing an agent is its own need; skills need their own space with tool scoping; tools/MCP need a future studio; one screen forces friction; developer agent should be source of truth for good agents/skills/tools; unsure how Studio UI ↔ developer LLM loop should feel (ticket/conversation vs invisible). CARD-411 layout direction was endorsed minus populate bug (fixed before merge).
 
+## Successor cards
+
+- [CARD-418](./CARD-418-skill-studio-extract-from-factory.md) — Skill Studio extract (slice 1).
+- Later (not scaffolded yet): Agent skill pills; developer mediation v1; Tools Studio v1.

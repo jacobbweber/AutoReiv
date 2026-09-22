@@ -1,0 +1,109 @@
+# [ADR-0057] Three Studios and Developer-Mediated Authoring
+
+> **Status**: Proposed  
+> **Date**: 2026-09-22  
+> **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
+> **Consulted**: CARD-417 planning; CARD-411 Option A live test  
+> **Related Cards**: [CARD-417](../cards/CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md) (forks locked), [CARD-418](../cards/CARD-418-skill-studio-extract-from-factory.md) (first implementation slice), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md), [ADR-0056](./0056-durable-runtime-registry-hybrid-c-plus.md)  
+> **Supersedes / Softens**: Long-term “Agent Training Factory does agent + skill + tools on one screen” as the operator authoring model
+
+---
+
+## 1. Context & Problem Statement
+
+AutoReiv’s durable primitives are **agents**, **skills (runbooks)**, and **tools (capabilities / MCP)**, with scoping edges agent↔skill and skill↔tool. CARD-411 locked Option A write paths (Forge inspect-only for runbooks; Factory writes skill bodies + SQLite tool bindings). Live testing still showed friction: one Factory screen forces three different lifecycle jobs together.
+
+Jacob locked CARD-417 product forks (2026-09-22): three studios; skill toggle pills; Build/Review defaults to a **visible** developer job; Tools Studio v1 is catalog + MCP attach then MCP-only custom; tier stays quiet; storage folder redesign deferred under ADR-0056.
+
+This ADR records those decisions as platform policy so implementation cards stay coherent.
+
+---
+
+## 2. Decision Drivers
+
+* Single-lever Studios: one place per primitive’s lifecycle.
+* Non-developer operators still get Matt Pocock / “good agent” quality via the **developer** specialist.
+* SQLite remains sole writer for bindings (ADR-0056); no revival of `pack.json` as live binding truth.
+* Thin, shippable slices; no theatre Studios without durable state and proof.
+* Visible trust for LLM-mediated edits (watchable job/conversation).
+
+---
+
+## 3. Considered Options
+
+| Option | Summary | Outcome |
+|--------|---------|---------|
+| Keep all-in-one Factory | Polish three columns forever | **Rejected** — structural friction |
+| Two studios (Agent + Skill); Tools later | Delay Tools Studio | Softened into phased **A** (Tools is studio 3, v1 thin) |
+| Invisible-only LLM fill | Studio button, no thread | **Rejected as default** — poor teachability; allowed only for cheap lint |
+| Three studios + visible developer mediation | Agent / Skill / Tools; Build opens developer job | **Chosen** |
+
+---
+
+## 4. Decision Outcome (Proposed — awaiting Accept)
+
+### 4.1 Studio topology
+
+| Studio | Owns | Does not own |
+|--------|------|--------------|
+| **Agent Studio** | Agent identity, preferences, “good agent” standards, **skill on/off toggles (pills)** | Skill body, frontmatter, tool bindings |
+| **Skill Studio** | Skill lifecycle, structured frontmatter, tool scoping onto the skill, Save to skill store + SQLite bindings | Agent identity editing (deep-link to Agent Studio) |
+| **Tools Studio** | Tool catalog, MCP attach/status; later MCP-only custom capability lifecycle | Skill runbook authorship; agent RBAC |
+
+Factory’s three-column scaffolder is a **transitional** UI. Implementation extracts Skill Studio first; agent brief leaves that surface over subsequent cards; Tools Studio is new dock surface.
+
+### 4.2 Scoping UI
+
+- Agent↔skill: **toggle pills** (not chips-as-editor).
+- Skill↔tool: catalog multi-select / checkboxes in Skill Studio (CARD-411 path retained).
+
+### 4.3 Developer-mediated authoring
+
+- Studio fields are the operator **draft**.
+- **Build / Review** submits a structured packet to the **developer** specialist as a **visible standing job / conversation** (default).
+- Operator may watch Observe/Chat, reply with context, and accept field patches back into the Studio.
+- **Invisible** path allowed only for **cheap lint** (valid frontmatter, catalog tool ids, contract linter). Full LLM rewrite must not be silent-only.
+
+### 4.4 Tools policy
+
+- **v1**: catalog browse + MCP server attach/status/test hooks.
+- **Then**: custom deterministic capabilities **via MCP server** only (no naked script factory in v1).
+- Exact MCP deploy/attach mechanics are implementation-card scope under this policy.
+
+### 4.5 Explicitly deferred
+
+- Removing tier from data model (UI already quiet).
+- Monolith `agents/` / `skills/` / `tools/` folder redesign (ADR-0056 remains ownership source).
+
+### 4.6 Binding & storage invariants (unchanged)
+
+- Operational SQLite writes skill/tool bindings.
+- Skill bodies live in the filesystem skill store / pack skill trees as ADR-0056 allows.
+- Export/import round-trips bindings + stable ids.
+
+---
+
+## 5. Consequences
+
+### Positive
+
+* Clear operator mental model matching the three primitives.
+* Quality gated by developer specialist without hiding the work.
+* Aligns with CARD-411 Option A and ADR-0056.
+
+### Negative / risks
+
+* More dock surfaces and deep-links to maintain.
+* Developer mediation needs reliable form↔job packet schema and apply-back UX.
+* Tools Studio v1 may feel thin until MCP custom path lands.
+
+### Follow-up
+
+* Accept this ADR → implement via thin cards starting at CARD-418 (Skill Studio extract).
+* Later: Agent pills, developer mediation v1, Tools Studio v1, optional tier kill.
+
+---
+
+## 6. Accept / Reject
+
+Reply **Accept ADR-0057** or **Reject ADR-0057** (with reason). Until Accepted, CARD-418+ may be scaffolded Ready but must not **build** product code against this ADR as final policy.
