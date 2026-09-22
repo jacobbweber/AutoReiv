@@ -30,6 +30,9 @@ ENV_DATA_DIR = "AUTOREIV_DATA_DIR"
 ENV_DB_PATH = "AUTOREIV_DB_PATH"
 ENV_WIKI_PATH = "AUTOREIV_WIKI_PATH"
 ENV_BACKUP_DIR = "AUTOREIV_BACKUP_DIR"
+ENV_DEPLOY_MODE = "AUTOREIV_DEPLOY_MODE"
+WIKI_PATH_SETTING_KEY = "wiki_path"
+WIKI_SCAFFOLD_CONFIRMED_KEY = "wiki_scaffold_confirmed"
 
 _LEGACY_DB_REL = Path("data") / "autoreiv.db"
 _LEGACY_WIKI_REL = Path("data") / "wiki"
@@ -153,15 +156,57 @@ class DataDirResolver:
             return None
         return path
 
+
+    def _peek_setting_wiki_path(self) -> Optional[str]:
+        """Read wiki_path from the active data root DB when DATA_DIR is set.
+
+        Never fall through to platform_default AppData when AUTOREIV_DATA_DIR (or an
+        explicit setting_data_dir) isolates the root — that leak made Docker/unset
+        hard-fail tests and fresh temp roots inherit the live wiki path.
+        """
+        candidates: list[Path] = []
+        env_data = os.environ.get(ENV_DATA_DIR)
+        if env_data and str(env_data).strip():
+            candidates.append(Path(str(env_data).strip()).expanduser() / "database" / "autoreiv.db")
+        if self.setting_data_dir and str(self.setting_data_dir).strip():
+            candidates.append(Path(str(self.setting_data_dir).strip()).expanduser() / "database" / "autoreiv.db")
+        env_db = os.environ.get(ENV_DB_PATH)
+        if env_db and str(env_db).strip():
+            candidates.append(Path(str(env_db).strip()).expanduser())
+        if not candidates:
+            candidates.extend(
+                (
+                    self.platform_default() / "database" / "autoreiv.db",
+                    self.legacy_db_path(),
+                )
+            )
+        seen: set[str] = set()
+        for db_path in candidates:
+            key = str(db_path).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            value = _read_sqlite_setting(db_path, WIKI_PATH_SETTING_KEY)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return None
+
     def _explicit_wiki_path(self) -> Optional[Path]:
+        """Env wins, then durable wiki_path setting. Structural default is root/wiki when unset."""
         raw = os.environ.get(ENV_WIKI_PATH)
-        if raw is None or not str(raw).strip():
-            return None
-        stripped = str(raw).strip()
-        path = Path(stripped).expanduser()
-        if self._is_legacy_wiki(path, stripped):
-            return None
-        return path
+        if raw is not None and str(raw).strip():
+            stripped = str(raw).strip()
+            path = Path(stripped).expanduser()
+            if self._is_legacy_wiki(path, stripped):
+                return None
+            return path
+        peeked = self._peek_setting_wiki_path()
+        if peeked:
+            path = Path(peeked).expanduser()
+            if self._is_legacy_wiki(path, peeked):
+                return None
+            return path
+        return None
 
     def _peek_setting_data_dir(self) -> Optional[str]:
         candidates = (
@@ -235,10 +280,14 @@ class DataDirResolver:
             backups_path=backups_path,
         )
 
-    def ensure_layout(self, paths: DataDirPaths) -> None:
+    def ensure_layout(self, paths: DataDirPaths, *, scaffold_wiki: bool = False) -> None:
         paths.root.mkdir(parents=True, exist_ok=True)
         paths.db_path.parent.mkdir(parents=True, exist_ok=True)
-        paths.wiki_path.mkdir(parents=True, exist_ok=True)
+        # ADR-0056: only mkdir the resolved wiki path (data_root/wiki or explicit).
+        # Never invent a second vault name. Callers pass scaffold_wiki=True for local default adoption.
+        explicit_wiki = self._explicit_wiki_path()
+        if explicit_wiki is not None or scaffold_wiki:
+            paths.wiki_path.mkdir(parents=True, exist_ok=True)
         paths.skills_path.mkdir(parents=True, exist_ok=True)
         paths.agents_path.mkdir(parents=True, exist_ok=True)
         paths.job_templates_path.mkdir(parents=True, exist_ok=True)
@@ -454,6 +503,12 @@ def reconcile_sqlite_databases(source: Path, dest: Path) -> None:
         cur.execute("DETACH DATABASE source_db")
     finally:
         conn.close()
+
+
+def wiki_is_explicitly_configured(resolver: Optional["DataDirResolver"] = None) -> bool:
+    """True when AUTOREIV_WIKI_PATH or durable wiki_path setting is set [ADR-0056]."""
+    r = resolver or DataDirResolver()
+    return r._explicit_wiki_path() is not None
 
 
 def bootstrap_data_dir(

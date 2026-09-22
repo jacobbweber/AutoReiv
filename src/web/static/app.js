@@ -3,14 +3,16 @@
  */
 
 import { $, $queryAll, isMobile, safeCreateIcons } from './modules/dom.js';
-import { state } from './modules/state/store.js';
+import { state, subscribeAgentsLoaded } from './modules/state/store.js';
+import { bindStudioAgentPickers, PICKER_KEYS } from './modules/studios/agent_picker.js';
+import { storageGet } from './modules/utils/storage.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
 import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
 import { initChatStudio } from './modules/studios/chat.js';
 import { initRoutinesStudio } from './modules/studios/routines.js';
 import { initObservability } from './modules/studios/observability.js';
 import { initSettingsStudio } from './modules/studios/settings.js';
-import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
+import { initWikiStudio, exportMessageToWiki, exportSessionToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
@@ -21,6 +23,14 @@ import { eventBus, EVENTS } from './modules/events/event-bus.js';
 import { setupModal, handleEscapeKey } from './modules/ui/modal.js';
 
 export function initApp() {
+  try {
+    subscribeAgentsLoaded((agents) => {
+      bindStudioAgentPickers(agents, { state });
+    });
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to subscribe agent roster picker:', err);
+  }
+
   try {
     initThemeEngine();
   } catch (err) {
@@ -240,6 +250,7 @@ export function initApp() {
     showToast: (msg, type, dur) => showToast(msg, type, dur),
     openRoutineModal: (routine, agentId) => routinesCtrl?.openRoutineModal(routine, agentId),
     exportMessageToWiki: (content) => exportMessageToWiki(state, content),
+    exportSessionToWiki: (sessionId) => exportSessionToWiki(state, sessionId),
     onAgentSaved: async () => {
       await chatCtrl?.loadAgents();
     },
@@ -258,10 +269,10 @@ export function initApp() {
         await chatCtrl.startNewAgentAuthoring();
       }
     },
-    openFactoryStudio: (agentId = null) => {
+    openFactoryStudio: (agentId = null, skillId = null) => {
       switchTab('factory');
       if (factoryCtrl && typeof factoryCtrl.loadFactoryStudio === 'function') {
-        factoryCtrl.loadFactoryStudio(agentId);
+        factoryCtrl.loadFactoryStudio(agentId, skillId);
       }
     },
     onTalkToForge: async (targetAgentId = null) => {
@@ -313,6 +324,11 @@ export function initApp() {
         import('./modules/studios/forge.js')
           .then((m) => {
             forgeCtrl = m.initAgentForge(state, sharedCallbacks);
+            const agentsWindow = document.getElementById('desktopWin-agents');
+            if (agentsWindow || state.activeTab === 'agents') {
+              const stored = storageGet(PICKER_KEYS.agents);
+              forgeCtrl.loadAgentForge(stored || undefined);
+            }
           })
           .catch((err) => {
             console.error('[AutoReiv UI] Failed to initialize Agent Studio:', err);

@@ -22,6 +22,7 @@ export function renderDock({
   toast,
   updateDockScrollChromeFn,
   dockLaunchers = [],
+  hydrateStudioAgentPicker,
 }) {
   if (!dockApps) return;
   dockApps.innerHTML = dockLaunchers.map(
@@ -44,6 +45,7 @@ export function renderDock({
         return;
       }
       openWindow(tab, { focusComposer: tab === 'chat' });
+      if (typeof hydrateStudioAgentPicker === 'function') hydrateStudioAgentPicker(tab);
       if (tab === 'chat' && typeof toast === 'function') toast('Chat window', 'info', 1000);
     });
   });

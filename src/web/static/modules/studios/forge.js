@@ -5,14 +5,25 @@
  * - proposals.js: Architectural governance proposals inbox, category badges, remedy execution, synthesis
  * - scaffold.js: Quick presets, quick scaffold modal, candidate queue, same-job origin resumption
  * - tools.js: OS baseline tools, capability gaps backlog, remote MCP server management, credential grants
- * - runbook.js: Runbook markdown authoring, char counter, mechanical capability linting, platform/pack skills
+ * - runbook.js: Read-only runbook inspector, char counter, capability lint view, Open in Factory [CARD-411]
  * - config.js: Per-agent LLM providers, model discovery, avatar preview, routines, telemetry, brain drawer, tones
  */
 
 import { $, $queryAll, safeCreateIcons } from '../dom.js';
 import { formatAgentSelectOption } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
+import { publishAgentsLoaded } from '../state/store.js';
+import { storageGet, storageSet } from '../utils/storage.js';
 import { PRESETS_DEFAULTS } from './settings.js';
+import {
+  PICKER_KEYS,
+  bindStudioAgentPickers,
+  fillAgentSelect,
+  isStudioAgentVisible,
+  sortStudioAgentsAlphabetically,
+} from './agent_picker.js';
+
+export { isStudioAgentVisible, sortStudioAgentsAlphabetically };
 
 // Re-export all decomposed submodules for complete backward compatibility [CARD-398]
 export * from './forge/lab_monitor.js';
@@ -70,47 +81,14 @@ import {
 export { formatAgentSelectOption };
 
 /**
- * Sorts agents alphabetically by display name (A to Z) [CARD-202].
- */
-export function sortStudioAgentsAlphabetically(agents = []) {
-  return [...(agents || [])].sort((a, b) => {
-    const nameA = formatAgentSelectOption(a).toLowerCase();
-    const nameB = formatAgentSelectOption(b).toLowerCase();
-    return nameA.localeCompare(nameB);
-  });
-}
-
-/**
- * Determines whether an agent is visible in the Agent Forge selector [CARD-202, CARD-339].
- */
-export function isStudioAgentVisible(a) {
-  if (!a) return false;
-  const id = a.id || '';
-  if (a.id !== 'agent-builder' && !['assistant', 'wiki'].includes(id)) {
-    return true;
-  }
-  return false;
-}
-
-/**
  * Populates agent select element with alphabetical sorted options [CARD-202].
  */
 export function populateForgeAgentSelectOptions(selectEl, agents = [], selectedId = null) {
   if (!selectEl) return null;
-  selectEl.innerHTML = '';
-  const sorted = sortStudioAgentsAlphabetically(agents);
-  sorted.forEach((a) => {
-    const opt = document.createElement('option');
-    opt.value = a.id;
-    opt.textContent = formatAgentSelectOption(a);
-    selectEl.appendChild(opt);
+  return fillAgentSelect(selectEl, sortStudioAgentsAlphabetically(agents), {
+    selectedId,
+    label: formatAgentSelectOption,
   });
-  if (selectedId && sorted.some((a) => a.id === selectedId)) {
-    selectEl.value = selectedId;
-  } else if (sorted.length > 0) {
-    selectEl.value = sorted[0].id;
-  }
-  return selectEl.value;
 }
 
 /**
@@ -226,17 +204,20 @@ export function initAgentForge(state, callbacks = {}) {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const agents = await res.json();
-      state.agents = agents;
+      if (targetAgentId) {
+        storageSet(PICKER_KEYS.agents, targetAgentId);
+        if (forgeAgentSelect) forgeAgentSelect.value = '';
+      }
+      publishAgentsLoaded(agents);
+      bindStudioAgentPickers(agents, { state });
       const studioAgents = agents.filter(isStudioAgentVisible);
-
-      if (forgeAgentSelect) {
-        const selectedId = targetAgentId || forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);
-        populateForgeAgentSelectOptions(forgeAgentSelect, studioAgents, selectedId);
-
-        const targetAgent = studioAgents.find((a) => a.id === forgeAgentSelect.value) || studioAgents[0];
-        if (targetAgent) {
-          await renderAgentToForge(targetAgent);
-        }
+      const selectedId = (forgeAgentSelect && forgeAgentSelect.value)
+        || targetAgentId
+        || storageGet(PICKER_KEYS.agents)
+        || (studioAgents[0] ? studioAgents[0].id : null);
+      const targetAgent = studioAgents.find((a) => a.id === selectedId) || studioAgents[0];
+      if (targetAgent) {
+        await renderAgentToForge(targetAgent);
       }
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load Agent Studio:', err);
@@ -632,6 +613,7 @@ export function initAgentForge(state, callbacks = {}) {
   if (forgeAgentSelect) {
     forgeAgentSelect.addEventListener('change', () => {
       const selectedId = forgeAgentSelect.value;
+      if (selectedId) storageSet(PICKER_KEYS.agents, selectedId);
       const agent = (state.agents || []).find((a) => a.id === selectedId);
       if (agent) renderAgentToForge(agent);
     });
@@ -690,7 +672,12 @@ export function initAgentForge(state, callbacks = {}) {
   });
 
   setupRunbookEditor({
-    onRefreshSkills: loadPlatformSkillsWrapper,
+    getActiveAgentId,
+    openFactoryWorkshop: (agentId, skillId) => {
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(agentId, skillId);
+      }
+    },
   });
 
   setupAgentModelConfig();

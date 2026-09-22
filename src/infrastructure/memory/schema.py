@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS messages (
     tool_calls_json TEXT,
     tool_call_id TEXT,
     name TEXT,
+    reasoning TEXT,
     sequence_num INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -224,6 +225,9 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     visibility TEXT DEFAULT 'public',
     fleet TEXT,
     origin TEXT NOT NULL DEFAULT 'custom',
+    user_modified INTEGER NOT NULL DEFAULT 0,
+    seed_version TEXT,
+    seed_content_hash TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -259,6 +263,9 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     max_training_retries INTEGER DEFAULT 2,
     mcp_servers_json TEXT DEFAULT '[]',
     allowed_credentials_json TEXT DEFAULT '[]',
+    user_modified INTEGER NOT NULL DEFAULT 0,
+    seed_version TEXT,
+    seed_content_hash TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -564,3 +571,26 @@ CREATE INDEX IF NOT EXISTS idx_standing_journey_job ON standing_journey_events(j
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + STANDING_JOURNEY_EVENTS_SQL
+
+# CARD-411 / ADR-0056: skill→tool bindings. SQLite is the sole writer.
+SKILL_TOOL_BINDINGS_SQL = """
+CREATE TABLE IF NOT EXISTS skill_binding_meta (
+    skill_id TEXT PRIMARY KEY,
+    tier TEXT NOT NULL DEFAULT 'pack',
+    safety_json TEXT NOT NULL DEFAULT '{}',
+    user_modified INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS skill_tool_bindings (
+    skill_id TEXT NOT NULL,
+    tool_id TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (skill_id, tool_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_skill_tool_bindings_tool ON skill_tool_bindings(tool_id);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SKILL_TOOL_BINDINGS_SQL

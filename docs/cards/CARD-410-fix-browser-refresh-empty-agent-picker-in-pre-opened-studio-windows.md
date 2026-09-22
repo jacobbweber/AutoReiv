@@ -1,7 +1,7 @@
 ---
 id: CARD-410
 title: "Fix Browser Refresh Empty Agent Picker in Pre-Opened Studio Windows"
-status: Ready
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-410] Fix Browser Refresh Empty Agent Picker in Pre-Opened Studio Windows
 
-> **Status**: Ready  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:bug`, `area:ux`, `area:studios`  
@@ -31,14 +31,16 @@ Jacob is forced to close the open studio window and reopen it from the desktop d
 
 ## 2. What AutoReiv Does Now (Beat 2: Current Behavior & Root Cause)
 
-1. **Window Hydration Race**:
-   On page load, `agent_desktop/prefs.js` and `agent-desktop.js` restore open windows from `localStorage` (`openTabs` / window states).
-2. **Asynchronous Roster Fetch Delay**:
-   The `/api/agents` catalog fetch in `app.js` runs asynchronously in parallel.
-3. **Missing Re-Population Trigger**:
-   When restored studio DOM elements mount, the agent roster is not yet available in the global store or the studio's local cache. Once `/api/agents` resolves, pre-rendered `<select>` elements in already-opened windows are not refreshed or notified to re-populate their options.
-4. **Dock Reopen Workaround**:
-   Clicking the dock launcher triggers a fresh studio open flow, which re-reads the now-cached agent roster and populates the picker, creating the impression that a window close/reopen cycle is required.
+Confirmed on `qa` before the fix:
+
+1. **Agent Studio misses the restore tick**:
+   `forge.js` is loaded with a dynamic `import()`. `initAgentDesktop` restores `localStorage` `openWindows` synchronously and calls `switchTab('agents')` while `forgeCtrl` is still null, so `loadAgentForge()` does not run. When the module arrives, `initAgentForge()` does not load the roster. `#forgeAgentSelect` stays empty until a later tab switch (close the window and open it from the dock).
+2. **One-shot picker fills**:
+   Chat, Factory, Routines, and Observe each wrote their `<select>` inside their own `/api/agents` fetch. Nothing published `agents:loaded`, and a subscriber that mounted after the response (Agent Studio) was not replayed.
+3. **Forge selection was not stored**:
+   Chat already kept `autoreiv_active_agent_id`. Agent Studio, Factory, the Routines filter, and the Observe KPI filter did not, so a reload could not put the prior agent back.
+4. **Dock reopen workaround**:
+   Opening the studio again calls `switchTab` after `forgeCtrl` exists, so the picker finally fills.
 
 ---
 
@@ -78,8 +80,16 @@ Jacob is forced to close the open studio window and reopen it from the desktop d
 - Vitest unit test in `tests/unit/frontend/`: Simulate window hydration from localStorage before `/api/agents` resolves, trigger `agents:loaded` event, and assert `<select>` element contains expected option elements.
 - Vitest test in `tests/unit/frontend/agent_desktop.test.js`: Verify restored window callbacks correctly trigger studio agent binding.
 
-### Manual Verification
-1. Open Agent Studio (Forge) and Chat Studio on the desktop.
-2. Select an agent (e.g. `AutoReiv`).
-3. Press `F5` / `Ctrl+F5` to reload the page.
-4. Verify: Both windows restore with populated agent dropdowns and `AutoReiv` selected. Zero need to close and reopen the windows.
+### Automated proof
+- `tests/unit/frontend/agent_picker_refresh_410.test.js` — pickers stay empty until `agents:loaded`, then Chat / Agent Studio / Factory / Routines / Observe options appear with the stored agent selected. A subscriber that attaches after the roster is already in memory still fills `#forgeAgentSelect` (the dynamic-import race). Negative: no options before the event, and `assistant` / `wiki` / `agent-builder` stay out of the Agent Studio and Chat pickers.
+- `tests/unit/frontend/agent_desktop.test.js` — a restored `agents` window runs the hydration callback once; the picker fills when the roster arrives, without creating a second window. Dock launch calls the same hydration hook.
+
+Operator contracts (OC-1..OC-3) are not the lock for this bug. It is an in-browser window restore race, not a settings write, wiki inbox note, or observe report. No new OC row.
+
+### Manual verification (Jacob)
+1. Start AutoReiv and open the desktop (`/` on the serve port).
+2. From the dock, open **Agents** (Agent Studio) and **Chat**. Optionally also open Factory, Routines, and Observe.
+3. In Chat and in Agent Studio, choose an agent (for example `AutoReiv`, or another agent if you want to prove it is not just the first row).
+4. Press `F5` or `Ctrl+F5`.
+5. Expect: those windows are back, each agent dropdown lists the roster, and the agent you chose is still selected. Do not close or reopen the windows.
+6. Expect the same after a dock click on a studio that was already open: the picker stays populated. It must not be the only way to get options.

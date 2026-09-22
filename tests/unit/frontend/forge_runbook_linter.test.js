@@ -43,9 +43,10 @@ describe('Integrated Runbook Editor & Mechanical Capability Linter [CARD-390]', 
     expect(forgeJs).toContain("fetch('/api/skills/lint'");
   });
 
-  it('[REQ-390-005] forge.js guards pre-save validation before persisting runbooks', () => {
-    expect(forgeJs).toContain('await validateActiveRunbook(true)');
-    expect(forgeJs).toContain('confirm(');
+  it('[CARD-411] Forge does not persist runbooks; validation stays read-only', () => {
+    expect(forgeJs).not.toContain('await validateActiveRunbook(true)');
+    expect(forgeJs).not.toContain("method: 'PUT'");
+    expect(forgeJs).toContain('studioRunbookOpenFactoryBtn');
   });
 
   it('[REQ-390-005] forge.js wires validate button and textarea input listeners', () => {

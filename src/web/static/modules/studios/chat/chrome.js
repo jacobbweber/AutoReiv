@@ -8,6 +8,76 @@ import { $, safeCreateIcons } from '../../dom.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
 import { filterToolsList, formatContextBudgetBadge, querySessionContext } from './stream.js';
 import { loadJourneyTimeline } from './journey.js';
+import { openObserveJob } from '../observability.js';
+
+/** CARD-408: View Job sits beside Copy on the Chat job strip. */
+export const CHAT_JOB_VIEW_BTN_SELECTOR = '.chat-job-chrome-view-btn';
+
+/**
+ * Navigation payload for View Job. Blank ids do not navigate.
+ * @param {string} jobId
+ * @returns {{ studio: 'observe', tab: 'observability', jobId: string } | null}
+ */
+export function buildViewJobShortcut(jobId) {
+  const id = String(jobId || '').trim();
+  if (!id) return null;
+  return {
+    studio: 'observe',
+    tab: 'observability',
+    jobId: id,
+  };
+}
+
+/**
+ * Show View Job only while a job id is bound. Hidden otherwise.
+ * @param {ParentNode|null} root
+ * @param {string} jobId
+ */
+export function syncChatJobViewButton(root, jobId) {
+  if (!root || typeof root.querySelector !== 'function') return null;
+  const btn = root.querySelector(CHAT_JOB_VIEW_BTN_SELECTOR);
+  if (!btn) return null;
+  const id = String(jobId || '').trim();
+  if (btn.classList && typeof btn.classList.toggle === 'function') {
+    btn.classList.toggle('hidden', !id);
+  }
+  if (btn.dataset) {
+    if (id) btn.dataset.jobId = id;
+    else delete btn.dataset.jobId;
+  }
+  return btn;
+}
+
+/**
+ * Delegated click on the job strip. Calls `onViewJob` when provided (tests);
+ * otherwise opens Observe with the bound job id.
+ * @param {HTMLElement|null} root
+ * @param {{ onViewJob?: Function, switchTab?: Function }} [handlers]
+ * @returns {boolean}
+ */
+export function bindChatJobViewShortcut(root, handlers = {}) {
+  if (!root || typeof root.addEventListener !== 'function') return false;
+  if (root.dataset && root.dataset.viewJobBound === '1') return false;
+  if (root.dataset) root.dataset.viewJobBound = '1';
+  const onViewJob = handlers.onViewJob;
+  const switchTab = handlers.switchTab;
+  root.addEventListener('click', (ev) => {
+    const target = ev && ev.target;
+    const btn = target && typeof target.closest === 'function'
+      ? target.closest(CHAT_JOB_VIEW_BTN_SELECTOR)
+      : null;
+    if (!btn) return;
+    const id = (btn.dataset && btn.dataset.jobId) || '';
+    const nav = buildViewJobShortcut(id);
+    if (!nav) return;
+    if (typeof onViewJob === 'function') {
+      onViewJob(nav);
+      return;
+    }
+    void openObserveJob(nav.jobId, { switchTab });
+  });
+  return true;
+}
 
 export function renderSessionList({
   sessionList,
@@ -637,7 +707,7 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
       if (typeof callbacks.exportSessionToWiki === 'function') {
         callbacks.exportSessionToWiki(state.activeSessionId);
       } else {
-        showToast('Saving conversation to Wiki...', 'info');
+        showToast('Save to Wiki is not available (session export unwired)', 'error');
       }
     });
   }

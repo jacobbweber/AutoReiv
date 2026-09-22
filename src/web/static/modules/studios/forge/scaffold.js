@@ -148,10 +148,8 @@ export async function resumeOriginAfterForgeApprove(data, callbacks = {}) {
       callbacks.switchTab('chat');
     }
     const obs = typeof callbacks.getObsCtrl === 'function' ? callbacks.getObsCtrl() : null;
-    const input = $('standingJourneyJobIdInput');
-    if (input) input.value = jobId;
     if (obs && typeof obs.loadStandingJourney === 'function') {
-      await obs.loadStandingJourney();
+      await obs.loadStandingJourney(jobId);
     }
   } catch (err) {
     console.warn('CARD-251 origin resume after Forge Approve soft-fail:', err);

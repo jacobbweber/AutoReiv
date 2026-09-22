@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   DOCK_LAUNCHERS,
   cascadeOffset,
@@ -20,6 +20,12 @@ import {
   GRID_SIZE,
   PREFS_KEY,
 } from '../../../src/web/static/modules/ui/agent-desktop.js';
+import { renderDock } from '../../../src/web/static/modules/ui/agent_desktop/dock.js';
+import { openWindow } from '../../../src/web/static/modules/ui/agent_desktop/window.js';
+import { hydrateRestoredStudioPicker } from '../../../src/web/static/modules/ui/agent_desktop/agent_hydration.js';
+import { bindStudioAgentPickers, PICKER_KEYS } from '../../../src/web/static/modules/studios/agent_picker.js';
+import { EVENTS, eventBus } from '../../../src/web/static/modules/events/event-bus.js';
+import { publishAgentsLoaded, state } from '../../../src/web/static/modules/state/store.js';
 
 function installMemoryLocalStorage() {
   const store = new Map();
@@ -157,5 +163,178 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
       { id: 'coder', name: 'Coder' },
     ]);
     expect(collectAgentsFromDom({})).toEqual([]);
+  });
+});
+
+describe('CARD-410 restored window agent binding', () => {
+  const agents = [
+    { id: 'developer', name: 'Developer', show_in_chat: true },
+    { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },
+  ];
+  let prevDocument;
+  let prevAgents;
+  let prevSelected;
+  let forgeSelect;
+
+  beforeEach(() => {
+    installMemoryLocalStorage();
+    prevDocument = globalThis.document;
+    prevAgents = state.agents;
+    prevSelected = state.selectedAgentId;
+    state.agents = [];
+    state.selectedAgentId = 'autoreiv';
+    eventBus.clear(EVENTS.AGENTS_LOADED);
+    localStorage.setItem(PICKER_KEYS.agents, 'autoreiv');
+    localStorage.setItem(PICKER_KEYS.chat, 'autoreiv');
+    forgeSelect = {
+      id: 'forgeAgentSelect',
+      dataset: {},
+      options: [],
+      _value: '',
+      appendChild(opt) {
+        this.options.push(opt);
+      },
+      addEventListener() {},
+      get value() {
+        return this._value;
+      },
+      set value(v) {
+        this._value = v == null ? '' : String(v);
+      },
+    };
+    let html = '';
+    Object.defineProperty(forgeSelect, 'innerHTML', {
+      configurable: true,
+      get() {
+        return html;
+      },
+      set(v) {
+        html = String(v);
+        forgeSelect.options.length = 0;
+      },
+    });
+    const agentSelect = {
+      id: 'agentSelect',
+      dataset: {},
+      options: [],
+      _value: '',
+      appendChild(opt) {
+        this.options.push(opt);
+      },
+      addEventListener() {},
+      get value() {
+        return this._value;
+      },
+      set value(v) {
+        this._value = v == null ? '' : String(v);
+      },
+    };
+    let agentHtml = '';
+    Object.defineProperty(agentSelect, 'innerHTML', {
+      configurable: true,
+      get() {
+        return agentHtml;
+      },
+      set(v) {
+        agentHtml = String(v);
+        agentSelect.options.length = 0;
+      },
+    });
+    globalThis.document = {
+      getElementById(id) {
+        if (id === 'forgeAgentSelect') return forgeSelect;
+        if (id === 'agentSelect') return agentSelect;
+        return null;
+      },
+      createElement() {
+        return { value: '', textContent: '' };
+      },
+    };
+  });
+
+  afterEach(() => {
+    eventBus.clear(EVENTS.AGENTS_LOADED);
+    state.agents = prevAgents;
+    state.selectedAgentId = prevSelected;
+    globalThis.document = prevDocument;
+  });
+
+  function restoredWindowCtx(hydrateStudioAgentPickerFn) {
+    return {
+      windows: new Map([
+        ['agents', { minimized: false, maximized: false, rect: { x: 0, y: 0, w: 800, h: 600 }, el: { classList: { remove() {} }, setAttribute() {} } }],
+      ]),
+      launcherForTabFn: () => ({ tab: 'agents', label: 'Agents', defaultSize: { w: 820, h: 580 } }),
+      createWindowShellFn: () => {
+        throw new Error('restored window must be reused');
+      },
+      focusWindowFn() {},
+      applyRectFn() {},
+      applyMobileLayoutFn() {},
+      updateDockActiveFn() {},
+      root: { classList: { add() {} } },
+      viewportSizeFn: () => ({ width: 1200, height: 800, dockH: 72 }),
+      switchTabFn() {},
+      scheduleSyncHostedViewsFn() {},
+      schedulePersistFn() {},
+      isMobileFn: () => false,
+      hydrateStudioAgentPickerFn,
+    };
+  }
+
+  it('restored window callback fills the agent picker when the roster arrives [REQ-410-001, REQ-410-002]', () => {
+    const boundTabs = [];
+    const win = openWindow('agents', {}, restoredWindowCtx((tab) => {
+      boundTabs.push(tab);
+      hydrateRestoredStudioPicker(tab, {
+        state,
+        eventBus,
+        eventName: EVENTS.AGENTS_LOADED,
+        bind: (_tab, roster) => bindStudioAgentPickers(roster, { state }),
+      });
+    }));
+
+    expect(win).toBeTruthy();
+    expect(boundTabs).toEqual(['agents']);
+    expect(forgeSelect.options.map((opt) => opt.value)).toEqual([]);
+
+    publishAgentsLoaded(agents);
+
+    expect(forgeSelect.options.map((opt) => opt.value)).toEqual(['autoreiv', 'developer']);
+    expect(forgeSelect.value).toBe('autoreiv');
+    expect(forgeSelect.options.map((opt) => opt.value)).not.toContain('assistant');
+  });
+
+  it('dock launch hydrates the studio agent picker [REQ-410-003]', () => {
+    const hydrated = [];
+    const opened = [];
+    const btn = {
+      getAttribute(name) {
+        if (name === 'data-dock-tab') return 'agents';
+        return 'dock-agents';
+      },
+      addEventListener(type, fn) {
+        if (type === 'click') btn.onClick = fn;
+      },
+    };
+    const dockApps = {
+      innerHTML: '',
+      querySelectorAll() {
+        return [btn];
+      },
+    };
+    renderDock({
+      dockApps,
+      windows: new Map(),
+      root: { getAttribute() { return ''; } },
+      openWindow: (tab) => opened.push(tab),
+      minimizeWindow() {},
+      toast() {},
+      dockLaunchers: [{ id: 'dock-agents', tab: 'agents', label: 'Agents', icon: 'users' }],
+      hydrateStudioAgentPicker: (tab) => hydrated.push(tab),
+    });
+    btn.onClick();
+    expect(opened).toEqual(['agents']);
+    expect(hydrated).toEqual(['agents']);
   });
 });

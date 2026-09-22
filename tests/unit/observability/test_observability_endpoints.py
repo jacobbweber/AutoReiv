@@ -55,10 +55,25 @@ def obs_client_fixture(tmp_path):
     )
 
     wiki_service_mock = MagicMock()
+    filed_path = f"00_Inbox/performance_audit_{session.id}.md"
     wiki_service_mock.create_note.return_value = {
         "success": True,
-        "path": f"00_Inbox/performance_audit_{session.id}.md",
+        "path": filed_path,
     }
+
+    def _get_note(path):
+        return {
+            "success": True,
+            "path": path,
+            "content": (
+                "# Performance & Cost Audit\n\n"
+                "| Metric | Value |\n"
+                "| Total Tokens | 1620 |\n"
+            ),
+            "title": "audit",
+        }
+
+    wiki_service_mock.get_note.side_effect = _get_note
 
     app = FastAPI()
     app.state.store = store
@@ -115,3 +130,6 @@ def test_export_observability_audit_to_inbox(obs_client_fixture):
     assert kwargs["domain"] == "engineering"
     assert kwargs["topic"] == "performance"
     assert "performance" in kwargs["tags"]
+    assert kwargs.get("content"), "export must pass non-empty markdown content"
+    assert "Performance" in kwargs["content"] or "Audit" in kwargs["content"]
+    assert "Total Tokens" in kwargs["content"] or "total tokens" in kwargs["content"].lower()

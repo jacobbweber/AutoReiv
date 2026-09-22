@@ -353,7 +353,9 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
                 if tool not in scoped:
                     scoped.append(tool)
 
-        # Check pack-declared skills from agent pack manifest
+        # CARD-411: SQLite skill bindings are canonical. pack.json tools apply only
+        # when that skill has never been saved by the Factory workshop.
+        bound = _append_sqlite_skill_tools(scoped, effective_skills)
         if agent_id:
             try:
                 from src.infrastructure.data.resolver import DataDirResolver
@@ -363,10 +365,14 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
                     import json
                     pdata = json.loads(pack_json_file.read_text(encoding="utf-8"))
                     for sk in pdata.get("skills") or []:
-                        if isinstance(sk, dict) and sk.get("id") in effective_skills:
-                            for t in sk.get("tools") or []:
-                                if t and t not in scoped:
-                                    scoped.append(str(t))
+                        if not isinstance(sk, dict):
+                            continue
+                        sid = sk.get("id")
+                        if sid not in effective_skills or sid in bound:
+                            continue
+                        for t in sk.get("tools") or []:
+                            if t and t not in scoped:
+                                scoped.append(str(t))
             except Exception:
                 pass
         return scoped
@@ -386,7 +392,23 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
         if clean_tool and clean_tool not in scoped:
             scoped.append(clean_tool)
 
+    _append_sqlite_skill_tools(scoped, [str(sid).strip() for sid in allowed_skills])
     return scoped
+
+
+def _append_sqlite_skill_tools(scoped: list[str], skill_ids: list[str]) -> dict[str, list[str]]:
+    """Mount tools from operational SQLite. Returns the skills that have a binding row."""
+    try:
+        from src.infrastructure.memory.repositories.skill_bindings import sqlite_tools_for_skills
+
+        bound = sqlite_tools_for_skills(skill_ids)
+    except Exception:
+        return {}
+    for tools in bound.values():
+        for tool in tools:
+            if tool and tool not in scoped:
+                scoped.append(tool)
+    return bound
 
 
 def is_visible_in_chat(agent: Any) -> bool:

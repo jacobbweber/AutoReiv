@@ -132,6 +132,13 @@ class SQLiteConnectionManager:
             ("routine_runs", "job_id", "TEXT"),
             ("jobs", "success_rule", "TEXT NOT NULL DEFAULT ''"),
             ("agent_overrides", "name", "TEXT"),
+            ("agent_overrides", "user_modified", "INTEGER NOT NULL DEFAULT 0"),
+            ("agent_overrides", "seed_version", "TEXT"),
+            ("agent_overrides", "seed_content_hash", "TEXT"),
+            ("custom_agents", "user_modified", "INTEGER NOT NULL DEFAULT 0"),
+            ("custom_agents", "seed_version", "TEXT"),
+            ("custom_agents", "seed_content_hash", "TEXT"),
+            ("messages", "reasoning", "TEXT"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

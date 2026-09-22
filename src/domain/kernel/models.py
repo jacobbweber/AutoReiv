@@ -118,6 +118,18 @@ class AgentProfile(BaseModel):
     mcp_servers: List[MCPServerConfig] = Field(
         default_factory=list, description="Per-agent remote or local MCP server connections [CARD-183]"
     )
+
+    # ADR-0056 / CARD-414: seed provenance + operator ownership
+    user_modified: bool = Field(
+        default=False,
+        description="True when operator/Studio diverged from last applied platform seed [ADR-0056]",
+    )
+    seed_version: Optional[str] = Field(
+        default=None, description="Last applied platform seed version string [ADR-0056]"
+    )
+    seed_content_hash: Optional[str] = Field(
+        default=None, description="Content hash of last applied platform seed [ADR-0056]"
+    )
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

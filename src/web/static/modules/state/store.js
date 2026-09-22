@@ -73,6 +73,38 @@ export function updateState(updater) {
 }
 
 /**
+ * Publish a freshly fetched agent roster and notify studio pickers.
+ * Listeners run synchronously before this returns. [CARD-410]
+ * @param {Array<object>} agents
+ * @returns {Array<object>}
+ */
+export function publishAgentsLoaded(agents) {
+  const list = Array.isArray(agents) ? agents : [];
+  state.agents = list;
+  eventBus.emit(EVENTS.AGENTS_LOADED, list);
+  return list;
+}
+
+/**
+ * Subscribe to roster broadcasts. If a roster is already in memory, the handler
+ * runs immediately so a studio that mounts after the fetch still fills its picker.
+ * @param {Function} handler
+ * @returns {Function} Unsubscribe
+ */
+export function subscribeAgentsLoaded(handler) {
+  if (typeof handler !== 'function') return () => {};
+  const unsubscribe = eventBus.on(EVENTS.AGENTS_LOADED, handler);
+  if (Array.isArray(state.agents) && state.agents.length) {
+    try {
+      handler(state.agents);
+    } catch (err) {
+      console.warn('[AutoReiv Store] agents:loaded replay failed:', err);
+    }
+  }
+  return unsubscribe;
+}
+
+/**
  * Subscribe to changes in global application state.
  * @param {Function} listener
  * @returns {Function} Unsubscribe callback

@@ -58,7 +58,8 @@ def test_checkout_root_contains_no_stray_wiki_folders_card_382(tmp_path: Path, m
     fake_user_data = tmp_path / "userdata"
     fake_user_data.mkdir(parents=True)
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(fake_user_data))
-    monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
+    monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(fake_user_data / "wiki"))
+    monkeypatch.delenv("AUTOREIV_DEPLOY_MODE", raising=False)
 
     store = WikiStore()
     store.scaffold()

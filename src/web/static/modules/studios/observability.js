@@ -4,6 +4,7 @@
 
 import { $, $query } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+import { publishAgentsLoaded } from '../state/store.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from '../ui/toast.js';
 
@@ -61,6 +62,9 @@ export function expandObsSection(name) {
   if (det) det.open = true;
   return det;
 }
+
+/** Desktop tab id for Observe Studio. Operator label is "observe". [CARD-408] */
+export const OBSERVE_STUDIO_TAB = 'observability';
 
 
 export function initObservability(state, _callbacks = {}) {
@@ -150,22 +154,11 @@ export function initObservability(state, _callbacks = {}) {
 
   async function populateAgentKpiSelect() {
     if (!observeAgentKpiSelect) return;
-    const prev = observeAgentKpiSelect.value;
     try {
       const res = await fetch('/api/agents');
       if (!res.ok) return;
       const agents = await res.json();
-      const opts = ['<option value="">All agents</option>'];
-      (Array.isArray(agents) ? agents : []).forEach((a) => {
-        const id = a.id || a.agent_id || '';
-        if (!id) return;
-        const label = a.name || id;
-        opts.push(`<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`);
-      });
-      observeAgentKpiSelect.innerHTML = opts.join('');
-      if ([...observeAgentKpiSelect.options].some((o) => o.value === prev)) {
-        observeAgentKpiSelect.value = prev;
-      }
+      publishAgentsLoaded(Array.isArray(agents) ? agents : []);
     } catch (err) {
       console.warn('[AutoReiv UI] Failed to list agents for KPI filter:', err);
     }
@@ -196,10 +189,7 @@ export function initObservability(state, _callbacks = {}) {
       .join('');
     host.querySelectorAll('.standing-journey-chip').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const input = $('standingJourneyJobIdInput');
-        if (input) input.value = btn.getAttribute('data-job-id') || '';
-        expandObsSection('journey');
-        loadStandingJourney();
+        loadStandingJourney(btn.getAttribute('data-job-id') || '');
       });
     });
   }
@@ -654,37 +644,114 @@ export function formatStandingJourneyEvent(ev) {
   return kind;
 }
 
-export async function loadStandingJourney() {
-  const input = $('standingJourneyJobIdInput');
-  const statusEl = $('standingJourneyStatus');
-  const box = $('standingJourneyTimeline');
-  const jobId = input ? input.value.trim() : '';
-  if (!jobId) {
+function observeJobViewer(opts = {}) {
+  const has = (key) => Object.prototype.hasOwnProperty.call(opts, key);
+  return {
+    input: has('inputEl') ? opts.inputEl : $('standingJourneyJobIdInput'),
+    statusEl: has('statusEl') ? opts.statusEl : $('standingJourneyStatus'),
+    box: has('timelineEl') ? opts.timelineEl : $('standingJourneyTimeline'),
+  };
+}
+
+/**
+ * Fill the Observe job search and load the standing journey.
+ * Missing or failed jobs stay in the viewer; this does not throw.
+ * [CARD-408 / REQ-408-003 / REQ-408-004]
+ * @param {string} [jobId]
+ * @param {{ inputEl?: HTMLInputElement|null, statusEl?: HTMLElement|null, timelineEl?: HTMLElement|null, fetchFn?: Function, expand?: boolean }} [opts]
+ */
+export async function inspectObserveJob(jobId, opts = {}) {
+  const { input, statusEl, box } = observeJobViewer(opts);
+  const fetchFn = typeof opts.fetchFn === 'function' ? opts.fetchFn : (...args) => fetch(...args);
+  const explicit = jobId == null ? '' : String(jobId).trim();
+  if (explicit && input) input.value = explicit;
+  const id = explicit || (input && input.value ? String(input.value).trim() : '');
+  if (!id) {
     if (statusEl) statusEl.textContent = 'Enter a job_id to load the standing journey.';
-    return;
+    return { ok: false, reason: 'missing_job_id', jobId: '' };
   }
-  expandObsSection('journey');
-  if (statusEl) statusEl.textContent = `Loading standing journey for ${jobId}…`;
+  if (opts.expand !== false) {
+    try {
+      const section = expandObsSection('journey');
+      if (section && typeof section.scrollIntoView === 'function') {
+        section.scrollIntoView({ block: 'nearest' });
+      }
+    } catch (err) {
+      console.warn('[AutoReiv UI] Observe journey section expand failed:', err);
+    }
+  }
+  if (statusEl) statusEl.textContent = `Loading standing journey for ${id}…`;
   if (box) box.innerHTML = '<div class="text-slate-400 italic animate-pulse">Loading journey…</div>';
   try {
-    const res = await fetch(`/api/observability/standing-journey?job_id=${encodeURIComponent(jobId)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetchFn(`/api/observability/standing-journey?job_id=${encodeURIComponent(id)}`);
+    if (!res || !res.ok) {
+      const status = res && res.status != null ? res.status : 'error';
+      let detail = '';
+      if (res && typeof res.json === 'function') {
+        try {
+          const body = await res.json();
+          const msg = body && (body.detail || body.message);
+          if (msg) detail = `: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
+        } catch {
+          /* non-JSON error body */
+        }
+      }
+      throw new Error(`HTTP ${status}${detail}`);
+    }
     const data = await res.json();
-    renderStandingJourneyTimeline(data);
-    const resumeBit = data.resumed_from_checkpoint ? '; resumed_from_checkpoint' : '';
+    renderStandingJourneyTimeline(data, box);
+    const resumeBit = data && data.resumed_from_checkpoint ? '; resumed_from_checkpoint' : '';
+    const events = (data && data.timeline) || [];
+    const spans = (data && data.spans) || [];
     if (statusEl) {
-      statusEl.textContent = `Loaded ${ (data.timeline || []).length } events / ${(data.spans || []).length} spans${resumeBit}`;
+      statusEl.textContent = `Loaded ${events.length} events / ${spans.length} spans${resumeBit}`;
     }
+    return { ok: true, jobId: id, eventCount: events.length };
   } catch (err) {
-    if (statusEl) statusEl.textContent = `Load failed: ${err.message || err}`;
+    const message = err && err.message ? err.message : String(err);
+    if (statusEl) statusEl.textContent = `Load failed: ${message}`;
     if (box) {
-      box.innerHTML = `<div class="text-rose-300">Failed to load standing journey: ${escapeHtml(String(err.message || err))}</div>`;
+      box.innerHTML = `<div class="text-rose-300">Failed to load standing journey: ${escapeHtml(message)}</div>`;
     }
+    return { ok: false, jobId: id, error: message };
   }
 }
 
-export function renderStandingJourneyTimeline(data) {
-  const box = $('standingJourneyTimeline');
+/** Load standing journey from the search input, or from an explicit job id. */
+export function loadStandingJourney(jobIdOverride) {
+  return inspectObserveJob(jobIdOverride);
+}
+
+/**
+ * Open or focus Observe Studio and inspect `jobId`.
+ * Blank ids do not switch studios. [CARD-408]
+ * @param {string} jobId
+ * @param {{ switchTab?: Function, fetchFn?: Function, inputEl?: HTMLInputElement|null, statusEl?: HTMLElement|null, timelineEl?: HTMLElement|null }} [opts]
+ */
+export function openObserveJob(jobId, opts = {}) {
+  const id = String(jobId || '').trim();
+  if (!id) {
+    return Promise.resolve({
+      ok: false,
+      reason: 'missing_job_id',
+      studio: 'observe',
+      tab: OBSERVE_STUDIO_TAB,
+      jobId: '',
+    });
+  }
+  if (typeof opts.switchTab === 'function') {
+    opts.switchTab(OBSERVE_STUDIO_TAB);
+  }
+  return inspectObserveJob(id, opts).then((result) => ({
+    studio: 'observe',
+    tab: OBSERVE_STUDIO_TAB,
+    ...result,
+    jobId: id,
+  }));
+}
+
+export function renderStandingJourneyTimeline(data, boxOverride) {
+  const box = boxOverride !== undefined ? boxOverride : $('standingJourneyTimeline');
   if (!box) return;
   const timeline = (data && data.timeline) || [];
   if (!timeline.length) {

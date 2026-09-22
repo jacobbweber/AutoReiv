@@ -13,6 +13,7 @@ import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { buildChatStreamPayload, isJobPhaseChromeEvent } from './chat.js';
+import { openObserveJob } from './observability.js';
 
 export const EDUCATION_SESSIONS_KEY = 'autoreiv.education.sessions.v1';
 export const EDUCATION_ASK_MARKER = '[Education Studio]';
@@ -659,18 +660,7 @@ export function initEducationStudio(state, callbacks = {}) {
 
   function openInObserve(jobId) {
     const id = jobId || lastJobId;
-    if (typeof callbacks.switchTab === 'function') callbacks.switchTab('observability');
-    const input = $('standingJourneyJobIdInput');
-    if (input && id) {
-      input.value = id;
-    }
-    const obsCtrl = typeof callbacks.getObsCtrl === 'function' ? callbacks.getObsCtrl() : null;
-    if (obsCtrl && typeof obsCtrl.loadStandingJourney === 'function') {
-      obsCtrl.loadStandingJourney();
-    } else {
-      const loadBtn = $('standingJourneyLoadBtn');
-      if (loadBtn) loadBtn.click();
-    }
+    return openObserveJob(id, { switchTab: callbacks.switchTab });
   }
 
   function setSelectedWiki(path, title) {

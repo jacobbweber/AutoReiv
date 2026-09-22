@@ -69,7 +69,7 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(html).toContain('id="educationSessionsRefreshBtn"');
     expect(educationJs).toContain('Open in Chat');
     expect(educationJs).toContain('Open in Observe');
-    expect(educationJs).toContain('standingJourneyJobIdInput');
+    expect(educationJs).toContain('openObserveJob');
   });
 
   it('wires ask → standing Chat/Job mint path (236) with copyable job_id [REQ-EDU-SHELL-002]', () => {

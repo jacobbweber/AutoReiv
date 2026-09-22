@@ -352,6 +352,16 @@ class UserSkillCatalog:
         tools_meta = []
         for tool in parsed.get("tools") or []:
             tools_meta.append({"name": tool.name, "description": tool.description})
+        frontmatter_view: Dict[str, Any] = {}
+        markdown = ""
+        try:
+            from src.application.skills.runbook_frontmatter import frontmatter_view as _frontmatter_view
+
+            markdown = path.read_text(encoding="utf-8")
+            frontmatter_view = _frontmatter_view(markdown)
+        except Exception:
+            frontmatter_view = {}
+            markdown = ""
         return {
             "success": True,
             "manifest": {
@@ -363,6 +373,8 @@ class UserSkillCatalog:
             },
             "instructions": parsed.get("instructions", ""),
             "tools": tools_meta,
+            "frontmatter": frontmatter_view,
+            "markdown": markdown,
         }
 
     def save_pack(

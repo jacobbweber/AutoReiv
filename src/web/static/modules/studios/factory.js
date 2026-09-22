@@ -1,14 +1,19 @@
 /**
- * Capabilities & Scaffolding Workshop Studio Controller [CARD-386]
+ * Capabilities & Scaffolding Workshop Studio Controller [CARD-386 / CARD-411]
  *
- * Replaces the legacy 8-phase synthetic tool factory with a 3-column workbench:
- * Column 1: Agent Brief (New or Existing)
- * Column 2: Skills & Runbook (Matt Pocock SKILL.md with Auto-Pin)
- * Column 3: Capabilities & Grounding (Live MCP tool inspector & source context)
+ * 3-column workbench:
+ * Column 1: Agent Brief + Assigned skills (agent↔skill scoping only)
+ * Column 2: Skill Workshop (existing-skill picker + one runbook form)
+ * Column 3: Capabilities & Grounding (tool catalog + source context)
  */
 
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
+import { publishAgentsLoaded } from '../state/store.js';
+import { storageSet } from '../utils/storage.js';
+import { PICKER_KEYS } from './agent_picker.js';
+import { createSkillWorkshop } from './factory/workshop_meta.js';
+import { createSkillScopeUI } from './factory/skill_scope.js';
 
 // ==================== Scaffolder Helpers & Gap Bindings ====================
 export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgentId = '') {
@@ -94,10 +99,13 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factoryAgentNameInput = $('factoryAgentNameInput');
   const factoryAgentPromptInput = $('factoryAgentPromptInput');
 
-  // DOM Elements - Column 2: Skills & Runbook
+  // DOM Elements - Column 1 assigned skills + Column 2 workshop
   const factoryCurrentSkillsList = $('factoryCurrentSkillsList');
   const factoryAssignedSkillsCount = $('factoryAssignedSkillsCount');
+  const factoryExistingSkillSelect = $('factoryExistingSkillSelect');
+  const factoryExistingSkillFilter = $('factoryExistingSkillFilter');
   const factoryNewSkillFormBtn = $('factoryNewSkillFormBtn');
+  const factoryWorkshopSkillBadge = $('factoryWorkshopSkillBadge');
   const factorySkillNameInput = $('factorySkillNameInput');
   const factorySkillIdInput = $('factorySkillIdInput');
   if (factorySkillIdInput) {
@@ -111,6 +119,11 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factorySkillMarkdownEditor = $('factorySkillMarkdownEditor');
   const factorySaveSkillBtn = $('factorySaveSkillBtn');
   const factorySaveFeedbackMsg = $('factorySaveFeedbackMsg');
+  const factorySkillTierSelect = $('factorySkillTierSelect');
+  const factorySkillSafetyReadOnly = $('factorySkillSafetyReadOnly');
+  const factorySkillSafetyHitl = $('factorySkillSafetyHitl');
+  const factorySkillSafetyUntrusted = $('factorySkillSafetyUntrusted');
+  const factoryRequiredToolsChips = $('factoryRequiredToolsChips');
 
   // DOM Elements - Column 3: Capabilities & Grounding
   const factoryToolSearchInput = $('factoryToolSearchInput');
@@ -127,6 +140,7 @@ export function initFactoryStudio(state, callbacks = {}) {
   let currentCapabilities = [];
   let selectedTools = new Set();
   let assignedSkills = [];
+  let skillIdentityLocked = false;
 
   // Deep-link helper for CARD-314
   if (typeof window !== 'undefined') {
@@ -135,6 +149,14 @@ export function initFactoryStudio(state, callbacks = {}) {
         callbacks.openFactoryStudio(agentId);
       }
       setAgentScope(agentId);
+    };
+    window.openFactoryWorkshopForSkill = ({ agentId = null, skillId = null } = {}) => {
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(agentId, skillId);
+        return;
+      }
+      if (agentId) setAgentScope(agentId);
+      if (skillId) loadExistingSkill(skillId, agentId);
     };
   }
 
@@ -147,22 +169,8 @@ export function initFactoryStudio(state, callbacks = {}) {
       if (resp.ok) {
         const data = await resp.json();
         loadedAgents = Array.isArray(data) ? data : (data.agents || []);
-        if (factoryAgentSelect) {
-          factoryAgentSelect.innerHTML = '';
-          const newOpt = document.createElement('option');
-          newOpt.value = '__new__';
-          newOpt.textContent = '+ Create New Agent';
-          factoryAgentSelect.appendChild(newOpt);
-
-          loadedAgents.forEach((ag) => {
-            if (ag.id === 'agent_builder' || ag.id === 'agent-builder') return;
-            const opt = document.createElement('option');
-            opt.value = ag.id;
-            opt.textContent = `${ag.name || ag.id} (${ag.id})`;
-            if (ag.id === preferredAgentId) opt.selected = true;
-            factoryAgentSelect.appendChild(opt);
-          });
-        }
+        if (preferredAgentId) storageSet(PICKER_KEYS.factory, preferredAgentId);
+        publishAgentsLoaded(loadedAgents);
         onAgentSelectChanged();
       }
     } catch (err) {
@@ -238,37 +246,16 @@ export function initFactoryStudio(state, callbacks = {}) {
         assignedSkills = agent.allowed_skill ? [...agent.allowed_skill] : (agent.skills ? [...agent.skills] : []);
       }
     }
-    renderAssignedSkills();
+    skillScope?.renderAssignedSkills();
+    skillScope?.refreshEditableSkillOptions(
+      factoryExistingSkillSelect ? factoryExistingSkillSelect.value : '',
+    );
   }
 
   // ----------------------------------------------------
-  // Column 2: Skills & Runbook
+  // Column 2: Skill Workshop
   // ----------------------------------------------------
-  function renderAssignedSkills() {
-    if (!factoryCurrentSkillsList) return;
-    if (factoryAssignedSkillsCount) {
-      factoryAssignedSkillsCount.textContent = `${assignedSkills.length} Assigned`;
-    }
-
-    if (!assignedSkills || assignedSkills.length === 0) {
-      factoryCurrentSkillsList.innerHTML = '<span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>';
-      return;
-    }
-
-    factoryCurrentSkillsList.innerHTML = '';
-    assignedSkills.forEach((sid) => {
-      const pill = document.createElement('span');
-      pill.className = 'inline-flex items-center space-x-1.5 px-2 py-1 rounded-lg text-xs font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300';
-      pill.innerHTML = `
-        <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
-        <span>${escapeHtml(sid)}</span>
-      `;
-      factoryCurrentSkillsList.appendChild(pill);
-    });
-    safeCreateIcons({ root: factoryCurrentSkillsList });
-  }
-
-  function resetNewSkillForm() {
+  function resetNewSkillForm({ clearPicker = true } = {}) {
     if (factorySkillNameInput) factorySkillNameInput.value = '';
     if (factorySkillIdInput) {
       factorySkillIdInput.value = '';
@@ -280,8 +267,62 @@ export function initFactoryStudio(state, callbacks = {}) {
     }
     if (factorySkillIntentInput) factorySkillIntentInput.value = '';
     if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = '';
+    if (factorySkillTierSelect) factorySkillTierSelect.value = 'pack';
+    if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = false;
+    if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = false;
+    if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = false;
+    skillIdentityLocked = false;
+    selectedTools = new Set();
+    workshop.renderRequiredToolChips();
     if (factorySaveFeedbackMsg) factorySaveFeedbackMsg.classList.add('hidden');
+    if (clearPicker) skillScope.clearPickerSelection();
+    else skillScope.setWorkshopBadge('New skill');
   }
+
+  const workshop = createSkillWorkshop({
+    showToast,
+    getCapabilities: () => currentCapabilities,
+    getSelectedTools: () => selectedTools,
+    setSelectedTools: (next) => { selectedTools = next; },
+    setIdentityLocked: (value) => { skillIdentityLocked = value; },
+    renderCapabilities: (filter) => renderCapabilities(filter),
+    updateSelectedToolBadge: () => updateSelectedToolBadge(),
+    elements: () => ({
+      factorySkillNameInput,
+      factorySkillIdInput,
+      factorySkillTriggerInput,
+      factorySkillTriggerCharCount,
+      factorySkillTierSelect,
+      factorySkillSafetyReadOnly,
+      factorySkillSafetyHitl,
+      factorySkillSafetyUntrusted,
+      factorySkillMarkdownEditor,
+      factoryRequiredToolsChips,
+      factoryToolSearchInput,
+    }),
+  });
+  const { workshopFields, syncFrontmatter, loadExistingSkill: loadWorkshopSkill } = workshop;
+
+  async function loadExistingSkill(skillId, agentId) {
+    await loadWorkshopSkill(skillId, agentId);
+    skillScope.selectSkillInPicker(skillId);
+  }
+
+  const skillScope = createSkillScopeUI({
+    getAssignedSkills: () => assignedSkills,
+    getAgentId: () => (factoryAgentIdInput && factoryAgentIdInput.value.trim()) || '',
+    onLoadSkill: (skillId, agentId) => { loadExistingSkill(skillId, agentId); },
+    onNewSkill: () => resetNewSkillForm({ clearPicker: false }),
+    elements: () => ({
+      factoryCurrentSkillsList,
+      factoryAssignedSkillsCount,
+      factoryExistingSkillSelect,
+      factoryExistingSkillFilter,
+      factoryNewSkillFormBtn,
+      factoryWorkshopSkillBadge,
+    }),
+  });
+  skillScope.bindEvents();
 
   async function handleGenerateRunbook() {
     const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
@@ -335,6 +376,7 @@ export function initFactoryStudio(state, callbacks = {}) {
       if (factorySkillMarkdownEditor) {
         factorySkillMarkdownEditor.value = data.markdown_content || '';
       }
+      syncFrontmatter();
       showToast(`✨ Generated runbook for ${skillName}!`, 'success');
     } catch (err) {
       console.error('[FactoryStudio] Failed to generate runbook:', err);
@@ -356,6 +398,8 @@ export function initFactoryStudio(state, callbacks = {}) {
     const rolePersona = (factoryAgentPromptInput && factoryAgentPromptInput.value.trim()) || '';
     const skillName = (factorySkillNameInput && factorySkillNameInput.value.trim()) || '';
     const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || toSnakeCase(skillName);
+    const fields = workshopFields();
+    syncFrontmatter();
     const content = (factorySkillMarkdownEditor && factorySkillMarkdownEditor.value.trim()) || '';
 
     if (!agentId) {
@@ -390,6 +434,11 @@ export function initFactoryStudio(state, callbacks = {}) {
           skill_id: skillId,
           skill_content: content,
           auto_pin: true,
+          name: fields.name || skillName,
+          description: fields.description,
+          tier: fields.tier,
+          safety: fields.safety,
+          requires_tools: fields.requires_tools,
         }),
       });
 
@@ -398,11 +447,16 @@ export function initFactoryStudio(state, callbacks = {}) {
         throw new Error(errData.detail || `Server returned ${resp.status}`);
       }
 
-      await resp.json();
+      const saved = await resp.json();
+      if (factorySkillMarkdownEditor && saved.markdown_content) {
+        factorySkillMarkdownEditor.value = saved.markdown_content;
+      }
       if (!assignedSkills.includes(skillId)) {
         assignedSkills.push(skillId);
       }
-      renderAssignedSkills();
+      skillScope.renderAssignedSkills();
+      await skillScope.refreshEditableSkillOptions(skillId);
+      skillScope.selectSkillInPicker(skillId);
 
       if (factorySaveFeedbackMsg) {
         factorySaveFeedbackMsg.textContent = `✓ Saved & Pinned ${skillId} to ${agentId}!`;
@@ -497,7 +551,7 @@ export function initFactoryStudio(state, callbacks = {}) {
           } else {
             selectedTools.delete(tool.name);
           }
-          updateSelectedToolBadge();
+          syncFrontmatter();
         });
 
         toolsList.appendChild(item);
@@ -527,7 +581,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         count++;
       }
     });
-    updateSelectedToolBadge();
+    syncFrontmatter();
     showToast(count > 0 ? `Selected ${count} matching tool(s)` : 'All matching tools are already selected', 'info');
   }
 
@@ -543,7 +597,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         count++;
       }
     });
-    updateSelectedToolBadge();
+    syncFrontmatter();
     showToast(count > 0 ? `Cleared ${count} tool(s)` : 'No tools were selected in current view', 'info');
   }
 
@@ -577,7 +631,7 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
 
     renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
-    updateSelectedToolBadge();
+    syncFrontmatter();
     if (addedCount > 0) {
       showToast(`Auto-suggested and selected ${addedCount} tool(s)`, 'success');
     } else {
@@ -613,9 +667,10 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   if (factorySkillNameInput) {
     factorySkillNameInput.addEventListener('input', () => {
-      if (factorySkillIdInput) {
+      if (!skillIdentityLocked && factorySkillIdInput) {
         factorySkillIdInput.value = toSnakeCase(factorySkillNameInput.value);
       }
+      syncFrontmatter();
     });
   }
 
@@ -630,8 +685,14 @@ export function initFactoryStudio(state, callbacks = {}) {
           factorySkillTriggerCharCount.className = 'text-[10px] font-mono text-slate-500';
         }
       }
+      syncFrontmatter();
     });
   }
+
+  [factorySkillTierSelect, factorySkillSafetyReadOnly, factorySkillSafetyHitl, factorySkillSafetyUntrusted].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('change', () => syncFrontmatter());
+  });
 
   if (factoryGenerateRunbookBtn) {
     factoryGenerateRunbookBtn.addEventListener('click', handleGenerateRunbook);
@@ -639,10 +700,6 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   if (factorySaveSkillBtn) {
     factorySaveSkillBtn.addEventListener('click', handleSaveSkill);
-  }
-
-  if (factoryNewSkillFormBtn) {
-    factoryNewSkillFormBtn.addEventListener('click', resetNewSkillForm);
   }
 
   if (factoryToolSearchInput) {
@@ -692,8 +749,9 @@ export function initFactoryStudio(state, callbacks = {}) {
   // Public Controller API
   // ----------------------------------------------------
   return {
-    loadFactoryStudio: async (preferredAgentId = null) => {
+    loadFactoryStudio: async (preferredAgentId = null, skillId = null) => {
       await Promise.all([loadAgents(preferredAgentId), loadCapabilities()]);
+      if (skillId) await loadExistingSkill(skillId, preferredAgentId);
     },
     setAgentScope,
     stopPolling: () => {},

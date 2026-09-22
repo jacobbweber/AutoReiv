@@ -38,7 +38,7 @@ This wins over conflicting older “continue alone = approval” wording.
 1. **No code without an active card** — see `.agents/rules/single-card.md`.
 2. **One card / one plan** — no multi-feature `implementation_plan.md`.
 3. **Card contract + Four Beats + Socratic options before tests/code** — see `.agents/rules/sdd-ears.md` and skill `sdd-workflow`. (Specs & RTM are retired and archived).
-4. **Test-locked delivery** — comprehensive unit, integration, and Playwright tests must pass before In Review/merge; no theatrical TDD red-phase dogma, but zero code ships untested; include negative assertions against regressions and run the Scavenger Pass. See `.agents/rules/tdd-invariants.md`.
+4. **Test-locked delivery** - prefer **operator contracts** (durable settings, wiki inbox deliverables, observe/report jobs) and **Bucket A invariants** over whitebox unit theater or Playwright volume; zero code ships untested; negative assertions against regressions; Scavenger Pass. See [ADR-0055](docs/adr/0055-operator-contract-testing-and-suite-hygiene.md), .agents/rules/operator-contract-testing.md, and .agents/rules/tdd-invariants.md.
 5. **Session hygiene** — `feat/*` from `qa`; conventional commits; update `CHANGELOG.md` `[Unreleased]`; do not push/merge/tag unless he asks; do not reset local `qa` to origin.
 
 ---

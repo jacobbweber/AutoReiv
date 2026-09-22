@@ -40,7 +40,7 @@ class SettingsService:
 
     def save_purpose_matrix(self, matrix: ModelPurposeMatrix) -> None:
         """Persist the purpose routing matrix to SQLite."""
-        self.state_store.set_setting("purpose_matrix", matrix.model_dump())
+        self.state_store.set_setting("purpose_matrix", matrix.model_dump(mode="json"))
         apply = getattr(self.gateway, "set_max_concurrent_generations", None)
         if callable(apply):
             apply(matrix.max_concurrent_generations)
@@ -60,7 +60,10 @@ class SettingsService:
 
     def save_agent_customization(self, customization: AgentCustomization) -> None:
         """Persist agent persona/tone/tool overrides."""
+        customization.user_modified = True
         self.state_store.save_agent_override(customization)
+        if hasattr(self.state_store, "mark_agent_user_modified"):
+            self.state_store.mark_agent_user_modified(customization.agent_id, modified=True)
 
     def get_agent_customization(self, agent_id: str) -> Optional[AgentCustomization]:
         """Fetch agent overrides from SQLite."""

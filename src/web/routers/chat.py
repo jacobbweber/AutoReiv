@@ -564,6 +564,8 @@ async def _stream_turn_bound(
             if event.event_type == KernelEventType.TOOL_END:
                 call_info = event.tool_call or {}
                 tool_name = call_info.get('name', '') if isinstance(call_info, dict) else ''
+                if not tool_name and event.tool_result is not None:
+                    tool_name = getattr(event.tool_result, "tool_name", "") or ""
                 out_text = event.tool_result.output if event.tool_result else ''
                 if provenanced_wiki_paths is not None:
                     for p in collect_provenanced_paths_from_tool_result(tool_name, out_text):
@@ -1474,6 +1476,7 @@ async def get_session_messages(request: Request, session_id: str):
             "name": m.name,
             "tool_calls": [tc.model_dump() for tc in m.tool_calls] if m.tool_calls else None,
             "tool_call_id": m.tool_call_id,
+            "reasoning": getattr(m, "reasoning", None),
         }
         for m in msgs
     ]
