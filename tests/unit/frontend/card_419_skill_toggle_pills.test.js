@@ -173,17 +173,12 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     const saved = allowlistForSave(turnedOn.allowed_skill, { storageEnabled: false });
     expect(saved).toContain('dock-notes');
 
-    expect(html).toContain('id="forgeOperatorSkillsGrid"');
-    expect(html).toContain('>Operator skills</h4>');
-    expect(html).toContain('Skill store');
-    const platformAt = html.indexOf('id="forgePlatformBox"');
-    const operatorAt = html.indexOf('id="forgeOperatorBox"');
-    const packAt = html.indexOf('id="forgePackBox"');
-    expect(platformAt).toBeLessThan(operatorAt);
-    expect(operatorAt).toBeLessThan(packAt);
+    expect(html).toContain('id="forgeSkillsGrid"');
+    expect(html).not.toContain('id="forgeOperatorBox"');
+    expect(html).not.toContain('>Operator skills</h4>');
 
     expect(runbook).toContain('operator_skills');
-    expect(runbook).toContain('renderOperatorSkills');
+    expect(runbook).toContain('renderAssignedSkills');
     expect(runbook).toContain("skillRowHtml(skill, 'operator', false)");
     expect(runbook).toContain('platformSkills = catData.platform_skills');
     expect(forge).toContain('cachedOperatorSkills');

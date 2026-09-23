@@ -124,7 +124,6 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMemoryRetentionDaysLabel = $('forgeMemoryRetentionDaysLabel');
   const forgePinnedMemory = $('forgePinnedMemory');
   const forgeSystemPrompt = $('forgeSystemPrompt');
-  const forgePackBoxTitle = $('forgePackBoxTitle');
   const forgeCredentialGrantsList = $('forgeCredentialGrantsList');
   const saveAgentBtn = $('saveAgentBtn');
   const deleteAgentBtn = $('deleteAgentBtn');
@@ -289,9 +288,6 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeMemoryRetentionDays) forgeMemoryRetentionDays.value = retentionDays;
     if (forgeMemoryRetentionDaysLabel) forgeMemoryRetentionDaysLabel.textContent = `${retentionDays} days`;
     if (forgePinnedMemory) forgePinnedMemory.value = agent.pinned_memory || '';
-    if (forgePackBoxTitle) {
-      forgePackBoxTitle.textContent = 'Custom Agent Pack Skills & Tools';
-    }
 
     renderNestedHomesWrapper();
     updateAvatarPreview(agent.avatar_icon || 'bot');

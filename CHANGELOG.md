@@ -7,6 +7,7 @@
 
 ### Changed
 
+- **CARD-430 Agent Studio one skill list**: Assigned Skills is one list. Each row keeps the allowlist toggle and Open in Skill Studio, and shows a home label (Platform, Operator, or Pack). Archived rows stay in that list and are marked Archived. The three boxes `#forgePlatformBox`, `#forgeOperatorBox`, and `#forgePackBox` are gone. Skill files are not moved between `$DATA_DIR/skills/` and `packs/<id>/skills/`. OS baseline chips stay (`src/web/static/modules/studios/forge/runbook.js`, `src/web/templates/index.html` [CARD-430]).
 - **CARD-429 classification labels**: Skill Studio no longer shows the Advanced tier dropdown. Save still writes `tier: pack` and does not use tier to allow or deny a skill. Factory capabilities label shipped callables `Platform` in one group. Agent Studio always-on chips list all seven `REQUIRED_PLATFORM_TOOLS` (`recall_agent_memory`, `memorize_fact` included). The caption says Direct mounts none. `platform-packs/README.md` lists `autoreiv`, `direct`, `developer`, and `tutor` ([CARD-429]).
 - **CARD-429 routines**: Paused routines `skill-eval-sleep` and `skill-curator` target `developer`. The plan engine no longer has an agent-builder-only prompt ([CARD-429]).
 

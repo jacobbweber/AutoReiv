@@ -117,7 +117,7 @@ Leftover `custom_agents` and `agent_overrides` rows for `agent-builder` are dele
 
 | Card | What it is |
 | --- | --- |
-| [CARD-430](./CARD-430-agent-studio-one-skill-list.md) | One Agent Studio skill list. Disk homes stay. |
+| [CARD-430](./CARD-430-agent-studio-one-skill-list.md) | In Review. One Agent Studio skill list. Disk homes stay. |
 | [CARD-431](./CARD-431-unregister-save-agent-specification.md) | Optional. Unregister `save_agent_specification` if nothing still calls it. |
 | [CARD-432](./CARD-432-scrub-historical-agent-builder-rows.md) | Optional. Point old session and job rows at `developer`. |
 | [CARD-433](./CARD-433-user-modified-developer-prompt-authoring-sentence.md) | Optional. Append one authoring sentence onto a `user_modified` developer prompt. |

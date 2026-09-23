@@ -14,22 +14,22 @@ function read(rel) {
 }
 
 describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
-  it('index.html contains Platform Skills & Tools and Custom Agent Pack Skills & Tools headers', () => {
+  it('index.html has one Assigned Skills list and no fleet box [CARD-430]', () => {
     const html = read('src/web/templates/index.html');
-    expect(html).toContain('id="forgePlatformBox"');
-    expect(html).toContain('Platform Skills & Tools');
-    expect(html).toContain('id="forgePackBox"');
-    expect(html).toContain('id="forgePackBoxTitle"');
-    expect(html).toContain('Custom Agent Pack Skills & Tools');
+    expect(html).toContain('id="forgeSkillsGrid"');
+    expect(html).toContain('data-testid="forge-assigned-skills"');
+    expect(html).not.toContain('id="forgePlatformBox"');
+    expect(html).not.toContain('id="forgePackBox"');
     expect(html).not.toContain('id="forgeFleetBox"');
     expect(html).not.toContain('Also ticked');
   });
 
-  it('forge.js removes "Also ticked" and renders clean nested skill accordions without dynamic platform filtering', () => {
+  it('forge.js removes "Also ticked" and renders one skill list [CARD-430]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('renderNestedHomes');
-    expect(forgeJs).toContain('renderPlatformSkills');
-    expect(forgeJs).toContain('renderPackSkills');
+    expect(forgeJs).toContain('renderAssignedSkills');
+    expect(forgeJs).not.toContain('renderPlatformSkills');
+    expect(forgeJs).not.toContain('renderPackSkills');
     expect(forgeJs).not.toContain('renderFleetSkills');
     expect(forgeJs).not.toContain('packOwnedIds');
     expect(forgeJs).not.toContain('Also ticked');

@@ -94,8 +94,10 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
     expect(forgeModule.openRunbookEditor).toBeUndefined();
     expect(forgeModule.hideRunbookEditor).toBeUndefined();
     expect(forgeModule.validateActiveRunbook).toBeUndefined();
-    expect(typeof forgeModule.renderPlatformSkills).toBe('function');
-    expect(typeof forgeModule.renderPackSkills).toBe('function');
+    expect(typeof forgeModule.renderAssignedSkills).toBe('function');
+    expect(typeof forgeModule.assignedSkillListHtml).toBe('function');
+    expect(forgeModule.renderPlatformSkills).toBeUndefined();
+    expect(forgeModule.renderPackSkills).toBeUndefined();
     expect(typeof forgeModule.renderNestedHomes).toBe('function');
     expect(typeof forgeModule.loadPlatformSkills).toBe('function');
 

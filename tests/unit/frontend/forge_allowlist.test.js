@@ -40,7 +40,8 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     expect(forgeJs).toContain('forge-skill-row');
     expect(forgeJs).not.toContain('forge-skill-recommend-tools-btn');
     expect(forgeJs).not.toContain('renderAllowedTools');
-    expect(forgeJs).toContain('No pack-owned skills yet.');
+    expect(forgeJs).toContain('renderAssignedSkills');
+    expect(forgeJs).not.toContain('No pack-owned skills yet.');
     expect(forgeJs).toContain("'platform'");
     expect(forgeJs).toContain("'pack'");
     expect(forgeJs).not.toContain('forge-skill-expand');
@@ -57,8 +58,9 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     const html = read('src/web/templates/index.html');
     expect(html).toContain('id="forgeSkillsSection"');
     expect(html).toContain('id="forgeBaselineBox"');
-    expect(html).toContain('id="forgePlatformBox"');
-    expect(html).toContain('id="forgePackBox"');
+    expect(html).toContain('id="forgeSkillsGrid"');
+    expect(html).not.toContain('id="forgePlatformBox"');
+    expect(html).not.toContain('id="forgePackBox"');
     expect(html).not.toContain('id="forgeToolsSection"');
     expect(html).not.toContain('Ticked schemas go to the model');
     expect(html).toContain('forgeSystemPrompt');
@@ -76,7 +78,7 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
 
   it('CARD-117 skill ticks remain; inline runbook inspector does not [CARD-419]', () => {
     const html = read('src/web/templates/index.html');
-    expect(html).toContain('forgeRunbooksGrid');
+    expect(html).toContain('forgeSkillsGrid');
     expect(html).not.toContain('studioRunbookBody');
     expect(html).not.toContain('id="studioRunbookEditor"');
     const forgeJs = read('src/web/static/modules/studios/forge.js');
@@ -134,7 +136,8 @@ describe('CARD-118 one Agent Studio', () => {
     expect(forgeJs).not.toContain('Failed to load Agent Forge');
     expect(forgeJs).not.toContain('Agent Forge Studio');
     expect(forgeJs).not.toContain('Hermes');
-    expect(forgeJs).toContain('No pack-owned skills yet.');
+    expect(forgeJs).toContain('assignedSkillListHtml');
+    expect(forgeJs).not.toContain('No pack-owned skills yet.');
     expect(forgeJs).toContain('allowed_skill');
   });
 });

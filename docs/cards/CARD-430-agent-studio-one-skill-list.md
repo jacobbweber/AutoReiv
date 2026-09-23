@@ -1,7 +1,7 @@
 ---
 id: CARD-430
 title: "Agent Studio one skill list"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -13,13 +13,13 @@ labels:
 
 # [CARD-430] Agent Studio one skill list
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Found during**: [CARD-429](./CARD-429-classification-simplification.md)
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md)
 > **Parent**: [CARD-429](./CARD-429-classification-simplification.md)
 
-Planning only. Say **continue** to change this card. Say **build** before any product code. Say **merge to qa** only after In Review and a live look.
+Built on `feat/card-429-classification-simplification` because Jacob said **build** on that branch. Say **merge to qa** after a live look. Do not merge from this card alone.
 
 ---
 
@@ -28,7 +28,7 @@ Planning only. Say **continue** to change this card. Say **build** before any pr
 | Jacob reply | Meaning |
 | --- | --- |
 | **`continue`** | Refine this card. No product code. |
-| **`build`** | Implement on `feat/card-430-*` from `qa`. |
+| **`build`** | Done on `feat/card-429-classification-simplification` (stacked with CARD-429). |
 | **`merge to qa`** | After In Review and a live test. |
 
 ---

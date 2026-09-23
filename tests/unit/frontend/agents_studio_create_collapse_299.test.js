@@ -28,9 +28,10 @@ describe('CARD-299 Agents Studio create flow and collapsible sections', () => {
     expect(html).toMatch(/<summary>Capabilities<\/summary>/);
   });
 
-  it('labels Platform and Custom Agent Pack Skills & Tools', () => {
-    expect(html).toContain('Platform Skills & Tools');
-    expect(html).toContain('Custom Agent Pack Skills & Tools');
-    expect(forgeJs).toContain("Custom Agent Pack Skills & Tools");
+  it('uses one Assigned Skills list instead of three box headings [CARD-430]', () => {
+    expect(html).toContain('id="forgeSkillsGrid"');
+    expect(html).not.toContain('Platform Skills & Tools');
+    expect(html).not.toContain('Custom Agent Pack Skills & Tools');
+    expect(forgeJs).not.toContain('Custom Agent Pack Skills & Tools');
   });
 });
