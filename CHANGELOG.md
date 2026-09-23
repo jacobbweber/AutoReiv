@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.41.0] - 2026-09-23
+
 ### Added
 
 - **CARD-423 custom tool packaging**: Custom tools can be native or MCP-backed. Native tools register through `register_native_tool` or `POST /api/tools/native`, persist in the `native_custom_tools` setting, and run in the existing subprocess sandbox after ToolPolicyGate. They do not attach an MCP server. HITL defaults on; high risk cannot turn it off. MCP tools still attach through `/api/settings/mcp` or `/api/agents/{id}/mcp` and show in Tools Studio under that server name. Catalog badges read Platform, Native custom, or MCP · server. A folder path stays chat context (`plan_native_folder`); Tools Studio has no folder picker. The CARD-422 packaging dropdown stays a note. Developer runbooks: `platform-packs/developer/skills/native-tool-engineering/SKILL.md` and a dual-lane section in `mcp-engineering` (`src/application/tools/native_packaging.py`, `src/web/routers/native_tools.py`, `src/web/static/modules/studios/tools_studio_catalog.js` [CARD-423]).
