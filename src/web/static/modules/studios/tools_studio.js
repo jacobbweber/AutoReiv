@@ -1,7 +1,8 @@
 /**
  * Tools Studio — catalog browse, MCP attach, and tool intent [CARD-421, CARD-422].
  * Create, modify, and delete intents go through the form and the developer.
- * There is no code editor. Packaging preference is a note only.
+ * There is no code editor. Packaging preference is a note for the developer.
+ * Native and MCP lanes are built by the developer, not by this form.
  * Platform attach uses /api/settings/mcp*. Agent attach uses /api/agents/{id}/mcp*.
  * MCP hosting stays in Settings.
  */

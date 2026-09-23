@@ -42,6 +42,36 @@ function isMcpNamespace(ns) {
   return ns.source === 'mcp' || String(ns.id || '').startsWith('mcp:');
 }
 
+function catalogSource(ns) {
+  if (isMcpNamespace(ns)) return 'mcp';
+  const raw = String((ns && ns.source) || '');
+  if (raw === 'native_custom' || raw === 'native') return 'native_custom';
+  return 'platform';
+}
+
+/**
+ * Operator-facing origin [REQ-423-005].
+ * @param {object} group
+ * @returns {string}
+ */
+export function originLabel(group) {
+  if (!group) return 'Platform';
+  if (group.originLabel) return String(group.originLabel);
+  if (group.source === 'native_custom') return 'Native custom';
+  if (group.source === 'mcp') {
+    const server = String(group.serverName || group.name || 'server').trim() || 'server';
+    return `MCP · ${server}`;
+  }
+  return 'Platform';
+}
+
+function groupKind(group) {
+  if (!group) return 'platform';
+  if (group.source === 'mcp') return 'mcp';
+  if (group.source === 'native_custom') return 'native';
+  return 'platform';
+}
+
 /**
  * Group live tools under the MCP server that lists them.
  * Platform / built-in namespaces stay in their own groups.
@@ -69,6 +99,7 @@ export function buildCatalogGroups({
       name: String(server.name),
       serverName: String(server.name),
       source: 'mcp',
+      originLabel: `MCP · ${server.name}`,
       scope,
       agentId: ownerId || '',
       mounted: Boolean(server.is_mounted),
@@ -88,17 +119,24 @@ export function buildCatalogGroups({
   (Array.isArray(namespaces) ? namespaces : []).forEach((ns) => {
     if (!ns) return;
     const mcp = isMcpNamespace(ns);
+    const source = catalogSource(ns);
     const tools = (Array.isArray(ns.tools) ? ns.tools : [])
       .map(toolRecord)
       .filter(Boolean)
       .filter((tool) => !claimed.has(tool.name));
     if (!tools.length) return;
+    const serverName = mcp
+      ? String(ns.server_name || ns.name || '').replace(/^MCP:\s*/i, '')
+      : '';
     groups.push({
       id: String(ns.id || ns.name || (mcp ? 'mcp' : 'platform')),
       name: String(ns.name || ns.id || (mcp ? 'MCP' : 'Platform')),
-      serverName: mcp ? String(ns.name || '').replace(/^MCP:\s*/i, '') : '',
-      source: mcp ? 'mcp' : 'platform',
-      scope: mcp ? 'catalog' : 'platform',
+      serverName,
+      source,
+      originLabel: String(ns.origin_label || '') || (source === 'native_custom'
+        ? 'Native custom'
+        : (mcp ? `MCP · ${serverName || 'server'}` : 'Platform')),
+      scope: mcp ? 'catalog' : (source === 'native_custom' ? 'native' : 'platform'),
       agentId: '',
       mounted: null,
       enabled: true,
@@ -111,7 +149,7 @@ export function buildCatalogGroups({
 
 /**
  * Search plus source/status filters in the spirit of Routines Studio.
- * source: '' | 'platform' | 'mcp'
+ * source: '' | 'platform' | 'native' | 'mcp'
  * status: '' | 'available' | 'mounted' | 'configured'
  *
  * @param {object[]} groups
@@ -127,12 +165,11 @@ export function filterCatalogGroups(groups, filters = {}) {
 
   list.forEach((group) => {
     if (!group) return;
-    const isMcp = group.source === 'mcp';
-    if (source === 'platform' && isMcp) return;
-    if (source === 'mcp' && !isMcp) return;
-    if (status === 'available' && isMcp) return;
-    if (status === 'mounted' && (!isMcp || group.mounted !== true)) return;
-    if (status === 'configured' && (!isMcp || group.mounted !== false)) return;
+    const kind = groupKind(group);
+    if (source && kind !== source) return;
+    if (status === 'available' && kind !== 'platform') return;
+    if (status === 'mounted' && (group.source !== 'mcp' || group.mounted !== true)) return;
+    if (status === 'configured' && (group.source !== 'mcp' || group.mounted !== false)) return;
 
     const nameHit = Boolean(q) && String(group.name || '').toLowerCase().includes(q);
     const tools = (Array.isArray(group.tools) ? group.tools : []).filter((tool) => {
@@ -171,8 +208,11 @@ export function renderCatalogMarkup(groups) {
     const scopeNote = group.scope === 'agent' && group.agentId
       ? ` <span class="text-[10px] text-slate-500">Agent ${escapeHtml(group.agentId)}</span>`
       : '';
+    const origin = group.source === 'native_custom'
+      ? 'native_custom'
+      : (group.source === 'mcp' ? 'mcp' : 'platform');
     const rows = group.tools.map((tool) => `
-      <div class="px-3 py-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" data-testid="tools-studio-catalog-row" data-tool-name="${escapeHtml(tool.name)}" data-source="${escapeHtml(group.source)}"${serverAttr}>
+      <div class="px-3 py-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" data-testid="tools-studio-catalog-row" data-tool-name="${escapeHtml(tool.name)}" data-source="${escapeHtml(group.source)}" data-origin="${escapeHtml(origin)}"${serverAttr}>
         <div class="min-w-0 flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
           <span class="font-mono text-[11px] text-slate-100">${escapeHtml(tool.name)}</span>
           ${tool.description ? `<span class="text-[11px] text-slate-400">${escapeHtml(tool.description)}</span>` : ''}
@@ -183,14 +223,15 @@ export function renderCatalogMarkup(groups) {
         </div>
       </div>`).join('');
     return `
-      <section class="bg-[#13161f]/80 border border-white/[0.06] rounded-xl overflow-hidden" data-testid="tools-studio-catalog-group" data-source="${escapeHtml(group.source)}"${serverAttr}>
+      <section class="bg-[#13161f]/80 border border-white/[0.06] rounded-xl overflow-hidden" data-testid="tools-studio-catalog-group" data-source="${escapeHtml(group.source)}" data-origin="${escapeHtml(origin)}"${serverAttr}>
         <header class="px-3 py-2 bg-white/[0.02] border-b border-white/[0.04] flex items-center justify-between gap-2">
           <div class="min-w-0">
             <span class="text-xs font-semibold text-white">${escapeHtml(group.name)}</span>
             ${scopeNote}
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/[0.06]">${escapeHtml(statusLabel(group))}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/[0.06]" data-testid="tools-studio-origin-label">${escapeHtml(originLabel(group))}</span>
+            ${group.source === 'mcp' ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/[0.06]">${escapeHtml(statusLabel(group))}</span>` : ''}
             <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/50 text-cyan-300 border border-cyan-500/20">${group.tools.length}</span>
           </div>
         </header>

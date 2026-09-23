@@ -2,8 +2,8 @@
 
 Talk opens a new developer chat that already contains the form context.
 Submit starts a standing job and runs one developer turn on that chat.
-A queued job with no turn is not success. Packaging preference is recorded
-as plain intent and is not applied (CARD-423).
+A queued job with no turn is not success. Packaging preference stays a note
+on this packet. CARD-423 lanes are built by the developer, not by this form.
 """
 
 from __future__ import annotations
@@ -108,6 +108,9 @@ def format_developer_prompt(packet: Mapping[str, Any]) -> str:
         f"Runtime hint: {draft.get('runtime_hint') or 'none'}\n"
         f"Path or context: {draft.get('path_context') or 'none'}\n"
         f"Packaging preference (note only, not a completed package): {packaging}\n\n"
+        "Both lanes exist. Native: register_native_tool in native-tool-engineering (no MCP server). "
+        "MCP: mcp-engineering, then attach; Tools Studio groups tools under that server name. "
+        "A filesystem path in this message is developer chat context, not a Tools Studio folder picker.\n\n"
         "Reply in this chat with the next concrete step. "
         "Tools Studio did not include implementation code and did not write a tool file."
     )

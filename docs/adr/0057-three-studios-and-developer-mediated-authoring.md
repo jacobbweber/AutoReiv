@@ -49,7 +49,7 @@ This ADR records those decisions as platform policy so implementation cards stay
 |--------|------|--------------|
 | **Agent Studio** | Agent identity, preferences, “good agent” standards, **skill on/off toggles (pills)** | Skill body, frontmatter, tool bindings |
 | **Skill Studio** | Skill lifecycle, structured frontmatter, tool scoping onto the skill, Save to skill store + SQLite bindings | Agent identity editing (deep-link to Agent Studio) |
-| **Tools Studio** | Tool catalog, MCP attach/status; later MCP-only custom capability lifecycle | Skill runbook authorship; agent RBAC |
+| **Tools Studio** | Tool catalog, MCP attach/status, and custom tools on either lane: native AutoReiv tools or MCP-backed tools (CARD-423) | Skill runbook authorship; agent RBAC; MCP hosting (stays in Settings) |
 
 Factory’s three-column scaffolder is a **transitional** UI. Implementation extracts Skill Studio first; agent brief leaves that surface over subsequent cards; Tools Studio is new dock surface.
 

@@ -394,6 +394,16 @@ class BuiltinAgentRegistry:
         mcp_engineering_tools.register_tools(tool_registry)
         agent_registry.mcp_engineering_tools = mcp_engineering_tools
 
+        from src.application.skills.native_tool_engineering import NativeToolEngineeringTools
+
+        native_tool_engineering = NativeToolEngineeringTools(
+            state_store=store,
+            tool_registry=tool_registry,
+            agent_registry=agent_registry,
+        )
+        native_tool_engineering.register_tools(tool_registry)
+        agent_registry.native_tool_engineering = native_tool_engineering
+
         # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
         from src.application.skills.user_catalog import UserSkillCatalog
 
