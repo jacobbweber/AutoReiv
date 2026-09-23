@@ -1,7 +1,7 @@
 ---
 id: CARD-427
 title: "Developer chat skill_view does not open pack skill runbooks"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-427] Developer chat skill_view does not open pack skill runbooks
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-23  
 > **Found during**: CARD-426 implementation  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md)  
@@ -82,3 +82,9 @@ Follow-up: [CARD-428](./CARD-428-list-user-skill-packs-omits-pack-runbooks.md). 
 
 - Replacing a `user_modified` skill file with the seed copy.
 - Migrating `packs/<id>/tools/*.py` through the CARD-423 sandbox.
+
+---
+
+## Done
+
+Merged to local qa on 2026-09-23.
