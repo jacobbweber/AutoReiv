@@ -9,6 +9,11 @@ CARD-425 exception: a named additive grant may append ``native-tool-engineering`
 and ``register_native_tool`` / ``plan_native_folder`` onto a user_modified developer
 allowlist. That grant does not rewrite the prompt, other allowlist entries, or MCP
 servers, and it is recorded once so a later removal stays removed.
+
+CARD-426 exception: when that developer's live ``native-tool-engineering/SKILL.md``
+is missing the legacy-loader warning marker, boot appends only the seed warning
+block. It does not replace the file, the prompt, or any other skill body. If the
+marker or the warning heading is already present, the file is left alone.
 """
 
 from __future__ import annotations
@@ -178,6 +183,106 @@ def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, 
             tool_names,
             pack_id,
         )
+
+
+# CARD-426 / ADR-0056 exception. Append-only warning on one skill file.
+NATIVE_TOOL_ENGINEERING_SKILL_ID = "native-tool-engineering"
+LEGACY_LOADER_WARNING_MARKER = "<!-- autoreiv:native-tool-legacy-loader -->"
+LEGACY_LOADER_WARNING_HEADING = "## Not the legacy pack loader"
+
+
+def skill_body_has_legacy_loader_warning(text: str) -> bool:
+    """True when the live runbook already carries the legacy-loader warning."""
+    if LEGACY_LOADER_WARNING_MARKER in (text or ""):
+        return True
+    for line in (text or "").replace("\r\n", "\n").split("\n"):
+        if line.strip() == LEGACY_LOADER_WARNING_HEADING:
+            return True
+    return False
+
+
+def extract_legacy_loader_warning_block(seed_text: str) -> str:
+    """Seed warning section, from its heading through the line before the next heading.
+
+    Empty when the seed is missing the heading or the stable marker. Callers must
+    not invent a warning block.
+    """
+    lines = (seed_text or "").replace("\r\n", "\n").split("\n")
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip() == LEGACY_LOADER_WARNING_HEADING:
+            start = index
+            break
+    if start is None:
+        return ""
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    block = "\n".join(lines[start:end]).strip()
+    if LEGACY_LOADER_WARNING_MARKER not in block:
+        return ""
+    return block + "\n"
+
+
+def append_legacy_loader_warning_block(live_text: str, block: str) -> str:
+    """Append the warning. Return the original text when it is already present."""
+    if skill_body_has_legacy_loader_warning(live_text):
+        return live_text
+    warning = (block or "").replace("\r\n", "\n").strip("\n")
+    if not warning or LEGACY_LOADER_WARNING_MARKER not in warning:
+        return live_text
+    warning = warning + "\n"
+    if live_text.endswith("\n\n"):
+        return live_text + warning
+    if live_text.endswith("\n"):
+        return live_text + "\n" + warning
+    return live_text + "\n\n" + warning
+
+
+def refresh_user_modified_native_tool_engineering_warning(dest_pack: Path, seed_pack: Path) -> bool:
+    """Append the seed legacy-loader warning onto one user_modified developer skill [CARD-426].
+
+    Does not replace the file. A body that already has the marker or the warning
+    heading is left byte-for-byte alone. Other skill files are not opened.
+    """
+    live = Path(dest_pack) / "skills" / NATIVE_TOOL_ENGINEERING_SKILL_ID / "SKILL.md"
+    seed = Path(seed_pack) / "skills" / NATIVE_TOOL_ENGINEERING_SKILL_ID / "SKILL.md"
+    if not live.is_file() or not seed.is_file():
+        return False
+    try:
+        live_text = live.read_text(encoding="utf-8")
+        seed_text = seed.read_text(encoding="utf-8")
+    except OSError:
+        logger.warning(
+            "Could not read native-tool-engineering skill for legacy-loader warning refresh",
+            exc_info=True,
+        )
+        return False
+    if skill_body_has_legacy_loader_warning(live_text):
+        return False
+    block = extract_legacy_loader_warning_block(seed_text)
+    if not block:
+        logger.warning("Seed native-tool-engineering skill has no legacy-loader warning block; skip append")
+        return False
+    updated = append_legacy_loader_warning_block(live_text, block)
+    if updated == live_text:
+        return False
+    try:
+        live.write_text(updated, encoding="utf-8")
+    except OSError:
+        logger.warning(
+            "Could not append legacy-loader warning onto %s",
+            live,
+            exc_info=True,
+        )
+        return False
+    logger.info(
+        "Appended legacy-loader warning onto user_modified developer skill %s; operator text left in place",
+        live,
+    )
+    return True
 
 
 def _is_user_modified(profile: Any, store: Any = None) -> bool:
@@ -442,6 +547,11 @@ def install_platform_agent_packs(
                             for s in src_skills.iterdir():
                                 if s.is_dir() and not (dest_skills / s.name).exists():
                                     shutil.copytree(s, dest_skills / s.name)
+                        if pack_id == "developer":
+                            try:
+                                refresh_user_modified_native_tool_engineering_warning(dest, src)
+                            except Exception:
+                                logger.exception("Legacy-loader warning refresh failed for user_modified developer")
                         apply_user_modified_additive_skill_grants(
                             pack_id=pack_id,
                             pack_data=pack_data,

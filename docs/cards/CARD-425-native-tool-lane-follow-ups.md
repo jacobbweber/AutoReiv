@@ -96,4 +96,4 @@ Follow-up: [CARD-426](./CARD-426-refresh-native-tool-engineering-skill-on-user-m
 
 ## Done
 
-Merged to local qa on 2026-09-23. CARD-426 remains Ready for refreshing user-modified native-tool-engineering runbook text. Draft GitHub PR was a side-effect only.
+Merged to local qa on 2026-09-23. [CARD-426](./CARD-426-refresh-native-tool-engineering-skill-on-user-modified.md) is In Review: append the legacy-loader warning onto a user-modified native-tool-engineering skill without replacing the file. Draft GitHub PR was a side-effect only.

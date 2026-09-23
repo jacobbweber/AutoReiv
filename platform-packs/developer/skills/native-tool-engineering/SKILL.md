@@ -30,6 +30,8 @@ The Tools Studio packaging dropdown is a **note** on the developer brief. It doe
 
 ## Not the legacy pack loader
 
+<!-- autoreiv:native-tool-legacy-loader -->
+
 `packs/<id>/tools/*.py` is a legacy in-process loader. Those modules run inside the AutoReiv process. Tools Studio labels them **Legacy pack tool**. They are not **Native custom**. They do not use `native_custom_tools`, the sandbox worker, or ToolPolicyGate HITL.
 
 Do not drop a new tool in that folder and call it a native custom tool. Native custom tools go through this skill and `register_native_tool`.

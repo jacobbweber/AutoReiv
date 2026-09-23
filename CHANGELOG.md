@@ -31,6 +31,8 @@
 
 ### Fixed
 
+- **CARD-426 user-modified native-tool-engineering warning**: When the developer profile is `user_modified` and the live `packs/developer/skills/native-tool-engineering/SKILL.md` is missing the legacy-loader warning marker `<!-- autoreiv:native-tool-legacy-loader -->` and the heading `## Not the legacy pack loader`, pack sync appends only that seed warning section. Operator text in the file, the developer prompt, and other skill bodies stay. If the marker or the heading is already present, the file is left alone. Tools Studio **Legacy pack tool** labels do not read this file (`src/infrastructure/skills/platform_packs.py` [CARD-426]).
+
 - **CARD-425 user-modified developer allowlist**: When the developer profile is `user_modified` and the seed includes `native-tool-engineering`, pack sync appends that skill id and `register_native_tool` / `plan_native_folder` to the allowlist. The existing prompt, other allowlist entries, and MCP servers stay. The grant is recorded once in `platform_user_modified_skill_grants`, so a later removal stays removed (`src/infrastructure/skills/platform_packs.py` [CARD-425]).
 
 - **CARD-424 MCP disable unmounts**: Saving a platform or agent MCP server with `enabled: false` unmounts that server. Enable mounts it again. The save `mounted` flag and the list `is_mounted` / tool list match the live manager. Tools Studio shows **Disabled** after a successful disable, and **Disabled (still mounted, N tools)** only when unmount fails, with that failure shown to the operator (`src/web/mcp_mount_reconcile.py`, `src/web/routers/settings.py`, `src/web/routers/agents.py`, `src/web/static/modules/studios/tools_studio.js`, `src/web/static/modules/studios/tools_studio_catalog.js` [CARD-424]).
