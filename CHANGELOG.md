@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.42.0] - 2026-09-23
+
 ### Added
 
 - **CARD-429 Developer capability authoring**: The developer pack allowlist includes `capability-authoring`, `proposals`, and `build-agent-pack`. Chat with Developer can propose and commit skills and tools and scaffold an agent pack (`propose_skill`, `propose_tool`, `commit_skill_pack`, `list_available_skills_and_tools`, `scaffold_agent_pack`). `save_agent_specification` is not on the developer allowlist. A `user_modified` developer receives the new skill ids through the additive grant without a prompt rewrite. Runbook: `platform-packs/developer/skills/capability-authoring/SKILL.md` ([CARD-429], [ADR-0058](docs/adr/0058-retire-agent-builder-into-developer.md)).
