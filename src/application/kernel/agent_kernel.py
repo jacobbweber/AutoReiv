@@ -59,6 +59,7 @@ BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
         "handoff_to_agent",
         "get_session_info",
         "lookup_agents",
+        "skill_view",
     }
 )
 
@@ -508,6 +509,7 @@ class AgentKernel:
         skill_block = render_skill_index(
             getattr(agent, "allowed_skill", None),
             self.user_skill_catalog,
+            agent_id=getattr(agent, "id", None),
         )
         if skill_block:
             base_prompt = f"{base_prompt}\n\n{skill_block}"
@@ -797,6 +799,16 @@ class AgentKernel:
                 # Named native custom tools and the authoring tools stay visible [CARD-423].
                 if name and name.lower() in text_l and (name in native_names or name in AUTHORING_TOOL_NAMES):
                     return (0, -overlap, name)
+
+                # Opening a named allowlisted runbook keeps skill_view inside the turn cap [CARD-427].
+                if name == "skill_view":
+                    allowed_ids = {
+                        str(sid).strip().lower()
+                        for sid in (getattr(agent, "allowed_skill", None) or [])
+                        if str(sid).strip()
+                    }
+                    if any(sid in text_l for sid in allowed_ids):
+                        return (0, 0, name)
 
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = any(

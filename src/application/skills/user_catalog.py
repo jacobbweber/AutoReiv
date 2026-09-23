@@ -41,8 +41,12 @@ TRACKED_PACK_FILES = (SKILL_MD_NAME, PLAYBOOK_NOTES_MD, NOTES_JSONL)
 LAST_USED_NAME = ".last_used"
 
 
-def render_skill_index(allowed_skill, catalog=None) -> str:
-    """Name + blurb for ticked runbooks only. Empty allowlist injects nothing."""
+def render_skill_index(allowed_skill, catalog=None, agent_id=None) -> str:
+    """Name + blurb for ticked runbooks only. Empty allowlist injects nothing.
+
+    Operator-store manifests win. Allowlisted pack runbooks that are not copied
+    into ``$DATA_DIR/skills/`` still contribute a name and blurb [CARD-427].
+    """
     ids = [str(s).strip() for s in (allowed_skill or []) if str(s).strip()]
     if not ids:
         return ""
@@ -56,10 +60,16 @@ def render_skill_index(allowed_skill, catalog=None) -> str:
     lines = []
     for skill_id in ids:
         manifest = by_id.get(skill_id)
-        if manifest is None:
-            continue
-        name = (manifest.name or skill_id).strip()
-        blurb = (manifest.description or "").strip()
+        name = ""
+        blurb = ""
+        if manifest is not None:
+            name = (manifest.name or skill_id).strip()
+            blurb = (manifest.description or "").strip()
+        else:
+            entry = _pack_index_entry(catalog, skill_id, agent_id)
+            if entry is None:
+                continue
+            name, blurb = entry
         if blurb:
             lines.append(f"- {name}: {blurb}")
         else:
@@ -72,6 +82,24 @@ def render_skill_index(allowed_skill, catalog=None) -> str:
         "Do not open a skill id that is not listed here."
     )
     return chr(10).join([header] + lines)
+
+
+def _pack_index_entry(catalog, skill_id: str, agent_id: Optional[str]) -> Optional[tuple]:
+    """Name and description for one pack runbook. Body stays out of the index."""
+    if catalog is None:
+        return None
+    reader = getattr(catalog, "pack_skill_index_entry", None)
+    if not callable(reader):
+        return None
+    try:
+        found = reader(skill_id, agent_id=agent_id)
+    except Exception:
+        return None
+    if not found:
+        return None
+    name = str(found[0] or skill_id).strip() or skill_id
+    blurb = str(found[1] or "").strip()
+    return name, blurb
 
 
 class PackJailError(ValueError):
@@ -187,12 +215,25 @@ class UserSkillCatalog:
         Stub JSON tools stay in the runbook payload. They are not registered as callables.
         """
         manifest = self._manifest_by_id(pack_id)
-        if manifest is None:
-            return {
-                "success": False,
-                "error": f"Unknown skill '{pack_id}'.",
-            }
-        loaded = DynamicSkillLoader.load_skill_from_markdown(manifest.path)
+        source_path: Optional[str] = None
+        result_id = pack_id
+        fallback_name = pack_id
+        fallback_desc = ""
+        if manifest is not None:
+            source_path = manifest.path
+            result_id = manifest.id
+            fallback_name = manifest.name
+            fallback_desc = manifest.description
+        else:
+            # Same live file Skill Studio opens. Do not copy it into $DATA_DIR/skills/.
+            live = self.resolve_chat_skill_md(pack_id)
+            if live is None or not live.is_file():
+                return {
+                    "success": False,
+                    "error": f"Unknown skill '{pack_id}'.",
+                }
+            source_path = str(live)
+        loaded = DynamicSkillLoader.load_skill_from_markdown(source_path)
         if not loaded:
             return {"success": False, "error": f"Failed to load SKILL.md for pack '{pack_id}'."}
 
@@ -203,10 +244,10 @@ class UserSkillCatalog:
             tools_meta.append({"name": tool.name, "description": tool.description})
         return {
             "success": True,
-            "id": manifest.id,
-            "name": loaded.get("name", manifest.name),
-            "description": loaded.get("description", manifest.description),
-            "path": loaded.get("path", manifest.path),
+            "id": result_id,
+            "name": loaded.get("name", fallback_name),
+            "description": loaded.get("description", fallback_desc),
+            "path": loaded.get("path", source_path),
             "instructions": loaded.get("instructions", ""),
             "tools": tools_meta,
             "skipped_tools": skipped,
@@ -333,6 +374,43 @@ class UserSkillCatalog:
             return repo_seed
 
         return None
+
+    def resolve_chat_skill_md(self, pack_id: str, agent_id: Optional[str] = None) -> Optional[Path]:
+        """Live SKILL.md for chat: operator store, this agent's pack, then any pack or seed.
+
+        Read-only. A pack runbook is not copied into ``$DATA_DIR/skills/`` [CARD-427].
+        """
+        if self.skills_dir is None:
+            return None
+        chosen = (agent_id or self._chat_agent_id() or "").strip() or None
+        from src.application.skills.workshop import locate_skill_markdown
+
+        found = locate_skill_markdown(self.skills_dir.parent, pack_id, agent_id=chosen)
+        if found is not None and found.is_file():
+            return found
+        return None
+
+    def pack_skill_index_entry(self, pack_id: str, agent_id: Optional[str] = None) -> Optional[tuple]:
+        """Frontmatter name and description for a pack runbook. Omits the body."""
+        path = self.resolve_chat_skill_md(pack_id, agent_id=agent_id)
+        if path is None:
+            return None
+        parsed = DynamicSkillLoader.load_skill_from_markdown(str(path))
+        if not parsed:
+            return None
+        name = str(parsed.get("name") or pack_id).strip() or pack_id
+        description = str(parsed.get("description") or "").strip()
+        return name, description
+
+    def _chat_agent_id(self) -> Optional[str]:
+        try:
+            from src.application.kernel.tool_registry import get_tool_context
+
+            agent_id = (get_tool_context() or {}).get("agent_id")
+        except Exception:
+            return None
+        text = str(agent_id or "").strip()
+        return text or None
 
     def read_pack(self, pack_id: str) -> Dict[str, Any]:
         """Read SKILL.md for Agent Studio. Parses tools; does not mount them."""
@@ -602,7 +680,10 @@ class UserSkillCatalog:
                 "properties": {
                     "pack_id": {
                         "type": "string",
-                        "description": "Skill id (directory slug under $DATA_DIR/skills).",
+                        "description": (
+                            "Allowlisted skill id. Opens the operator skill store copy when one exists, "
+                            "otherwise the agent pack runbook. Does not copy a pack file into $DATA_DIR/skills."
+                        ),
                     },
                 },
                 "required": ["pack_id"],

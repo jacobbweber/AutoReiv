@@ -1,7 +1,7 @@
 ---
 id: CARD-427
 title: "Developer chat skill_view does not open pack skill runbooks"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -12,11 +12,12 @@ labels:
 
 # [CARD-427] Developer chat skill_view does not open pack skill runbooks
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-23  
 > **Found during**: CARD-426 implementation  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md)  
-> **Parent**: [CARD-426](./CARD-426-refresh-native-tool-engineering-skill-on-user-modified.md)
+> **Parent**: [CARD-426](./CARD-426-refresh-native-tool-engineering-skill-on-user-modified.md)  
+> **Review note (2026-09-23)**: Developer chat `skill_view` reads `packs/developer/skills/native-tool-engineering/SKILL.md` through the same locator Skill Studio uses. The chat skill index lists that runbook. The open does not copy the file into `$DATA_DIR/skills/` and does not rewrite the developer prompt. Say **merge to qa** after a live test.
 
 ---
 
@@ -48,7 +49,7 @@ CARD-426 appends the legacy-loader warning onto `$DATA_DIR/packs/developer/skill
 
 ## 3. What will change (Beat 3)
 
-Decide how a developer chat turn opens `packs/developer/skills/native-tool-engineering/SKILL.md` so the agent receives the legacy-loader warning, without copying that file into `$DATA_DIR/skills/` and without rewriting the operator prompt.
+`skill_view` and the chat skill index resolve an allowlisted runbook with `locate_skill_markdown` (operator skill store, then that agent's pack, then any pack). The body returned to the chat turn is the pack file, including the CARD-426 warning when that file has it. `skill_view` is callable on a chat turn when the agent has an allowlist. It is not written onto the stored tool allowlist. The operator prompt text stays the prompt text.
 
 ---
 
@@ -67,8 +68,13 @@ Decide how a developer chat turn opens `packs/developer/skills/native-tool-engin
 
 ## 6. Verification
 
-1. On a `user_modified` developer whose pack skill contains the legacy-loader warning, start a developer chat and open `native-tool-engineering`. The warning text is in the tool result. The prompt text you edited is unchanged.
+1. On a `user_modified` developer whose pack skill contains the legacy-loader warning, start a developer chat and ask it to open `native-tool-engineering` with `skill_view`. The tool result includes your sentence and the legacy-loader warning (`<!-- autoreiv:native-tool-legacy-loader -->`, `## Not the legacy pack loader`, Legacy pack tool). The prompt text you edited is unchanged.
 2. Confirm `$DATA_DIR/skills/native-tool-engineering/SKILL.md` was not created by that open.
+3. Confirm another skill file under `packs/developer/skills/` is unchanged.
+
+Automated proof: `tests/integration/operator_contracts/test_oc427_developer_chat_pack_skill_view.py` (OC-427).
+
+Follow-up: [CARD-428](./CARD-428-list-user-skill-packs-omits-pack-runbooks.md). `list_user_skill_packs` still lists `$DATA_DIR/skills` only. The chat index now also lists allowlisted pack runbooks.
 
 ---
 

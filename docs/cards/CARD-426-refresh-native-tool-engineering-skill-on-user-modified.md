@@ -102,4 +102,4 @@ Chat `skill_view` still opens `$DATA_DIR/skills/<id>/SKILL.md` only, and the cha
 
 ## Done
 
-Merged to local qa on 2026-09-23. Follow-up [CARD-427](./CARD-427-developer-chat-skill-view-does-not-open-pack-skill-runbooks.md) remains open for chat skill_view pack runbooks. Draft GitHub PR was a side-effect only.
+Merged to local qa on 2026-09-23. Follow-up [CARD-427](./CARD-427-developer-chat-skill-view-does-not-open-pack-skill-runbooks.md) is In Review: developer chat `skill_view` opens the pack runbook. Draft GitHub PR was a side-effect only.
