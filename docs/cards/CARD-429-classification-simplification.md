@@ -1,7 +1,7 @@
 ---
 id: CARD-429
 title: "Classification simplification for agents, skills, tools, and packs"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0058-retire-agent-builder-into-developer.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-429] Classification simplification for agents, skills, tools, and packs
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md), [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md), [ADR-0058](../adr/0058-retire-agent-builder-into-developer.md)
 > **Operator contract**: `tests/integration/operator_contracts/test_oc429_retire_agent_builder.py`

@@ -1,7 +1,7 @@
 ---
 id: CARD-430
 title: "Agent Studio one skill list"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-430] Agent Studio one skill list
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Found during**: [CARD-429](./CARD-429-classification-simplification.md)
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md)
