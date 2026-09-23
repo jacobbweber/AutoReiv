@@ -2,7 +2,6 @@
 Built-in Agent Registry & Bootstrapper [REQ-AGENTS-001].
 """
 
-import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -14,8 +13,6 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.agents.profiles import BUILTIN_PROFILES, canonical_agent_id, get_builtin_profile
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-
-logger = logging.getLogger(__name__)
 
 
 class BuiltinAgentRegistry:
@@ -394,6 +391,16 @@ class BuiltinAgentRegistry:
         mcp_engineering_tools.register_tools(tool_registry)
         agent_registry.mcp_engineering_tools = mcp_engineering_tools
 
+        from src.application.skills.native_tool_engineering import NativeToolEngineeringTools
+
+        native_tool_engineering = NativeToolEngineeringTools(
+            state_store=store,
+            tool_registry=tool_registry,
+            agent_registry=agent_registry,
+        )
+        native_tool_engineering.register_tools(tool_registry)
+        agent_registry.native_tool_engineering = native_tool_engineering
+
         # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
         from src.application.skills.user_catalog import UserSkillCatalog
 
@@ -414,67 +421,11 @@ class BuiltinAgentRegistry:
                 tool_registry,
             )
 
-        # 15. User & Promoted Agent Pack Tools (e.g. Hyper-V, custom agents)
+        # 15. Legacy in-process pack tools (packs/<id>/tools/*.py) [CARD-425].
+        # Not the CARD-423 native custom lane. See legacy_pack_tools.py.
         if skills_dir:
-            import importlib.util
+            from src.infrastructure.agents.legacy_pack_tools import load_legacy_pack_tools
 
-            data_root = Path(skills_dir).parent
-            packs_dir = data_root / "packs"
-            if packs_dir.is_dir():
-                for pack_folder in packs_dir.iterdir():
-                    if not pack_folder.is_dir():
-                        continue
-                    tools_dir = pack_folder / "tools"
-                    if not tools_dir.is_dir():
-                        continue
-                    for tool_file in sorted(tools_dir.glob("*.py")):
-                        if tool_file.name.startswith("__"):
-                            continue
-                        t_name = tool_file.stem
-                        if t_name not in tool_registry:
-                            loaded_handler = None
-                            try:
-                                spec = importlib.util.spec_from_file_location(f"pack_tool_{t_name}", str(tool_file))
-                                if spec and spec.loader:
-                                    mod = importlib.util.module_from_spec(spec)
-                                    spec.loader.exec_module(mod)
-                                    if hasattr(mod, t_name):
-                                        loaded_handler = getattr(mod, t_name)
-                            except Exception as exc:
-                                logger.warning("Failed to load pack tool %s: %s", tool_file, exc)
-
-                            def _make_handler(tool_id: str, agent_id: str):
-                                def _handler(action: str = "status", **kwargs):
-                                    return {
-                                        "success": True,
-                                        "action": action,
-                                        "agent": agent_id,
-                                        "tool": tool_id,
-                                        "details": kwargs,
-                                    }
-
-                                return _handler
-
-                            handler = loaded_handler or _make_handler(t_name, pack_folder.name)
-                            desc = f"Automated capability tool for {pack_folder.name}."
-                            if loaded_handler and getattr(loaded_handler, "__doc__", None):
-                                lines = [ln.strip() for ln in loaded_handler.__doc__.strip().split("\n") if ln.strip()]
-                                if lines:
-                                    desc = lines[0]
-
-                            tool_registry.register_tool(
-                                name=t_name,
-                                description=desc,
-                                parameters={
-                                    "type": "object",
-                                    "properties": {
-                                        "action": {
-                                            "type": "string",
-                                            "description": "Action to perform (e.g. status, list, create)",
-                                        },
-                                    },
-                                },
-                                handler=handler,
-                            )
+            load_legacy_pack_tools(Path(skills_dir).parent / "packs", tool_registry)
 
         return agent_registry, tool_registry

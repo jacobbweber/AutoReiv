@@ -58,7 +58,7 @@ class ScaffoldRunbookRequest(BaseModel):
 
 
 class SaveScaffoldRequest(BaseModel):
-    agent_id: str
+    agent_id: Optional[str] = None
     agent_name: Optional[str] = None
     role_persona: Optional[str] = None
     model: Optional[str] = None
@@ -833,20 +833,37 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
     tools = tool_registry.list_tools() if tool_registry else []
 
     from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
+    from src.application.tools.native_packaging import catalog_origin_label, load_native_tool_names
+    from src.infrastructure.agents.legacy_pack_tools import LEGACY_PACK_TOOL_ORIGIN
 
+    store = getattr(request.app.state, "store", None)
+    native_names = load_native_tool_names(store)
     namespaces: Dict[str, Dict[str, Any]] = {}
 
     for tool in tools:
         t_name = tool.name
         t_desc = tool.description or ""
         t_params = tool.parameters or {}
+        server_name = ""
+        tool_origin = ""
+        if tool_registry is not None and hasattr(tool_registry, "get_tool_origin"):
+            tool_origin = tool_registry.get_tool_origin(t_name)
 
-        if t_name.startswith("mcp_"):
+        if t_name in native_names:
+            ns_id = "native_custom"
+            ns_name = "Native custom"
+            ns_source = "native_custom"
+        elif t_name.startswith("mcp_"):
             parts = t_name.split("_")
             server_key = parts[1] if len(parts) > 1 else "generic"
+            server_name = server_key
             ns_id = f"mcp:{server_key}"
             ns_name = f"MCP: {server_key.title()}"
             ns_source = "mcp"
+        elif tool_origin == LEGACY_PACK_TOOL_ORIGIN:
+            ns_id = "legacy_pack_tool"
+            ns_name = "Legacy pack tool"
+            ns_source = "legacy_pack_tool"
         elif any(t_name in t_list for t_list in PLATFORM_SKILL_TOOLS.values()):
             matched_skill = next((s for s, t_list in PLATFORM_SKILL_TOOLS.items() if t_name in t_list), "platform")
             ns_id = f"platform:{matched_skill}"
@@ -862,11 +879,14 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
             ns_name = "Built-in Primitives"
             ns_source = "builtin"
 
+        origin_source = "platform" if ns_source in {"builtin", "dynamic", "platform"} else ns_source
         if ns_id not in namespaces:
             namespaces[ns_id] = {
                 "id": ns_id,
                 "name": ns_name,
                 "source": ns_source,
+                "server_name": server_name,
+                "origin_label": catalog_origin_label(origin_source, server_name),
                 "tools": [],
             }
         namespaces[ns_id]["tools"].append({
@@ -874,6 +894,8 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
             "description": t_desc,
             "parameters": t_params,
             "is_high_risk": getattr(tool, "is_high_risk", False),
+            "origin": origin_source,
+            "origin_label": catalog_origin_label(origin_source, server_name),
         })
 
     return {
@@ -998,23 +1020,28 @@ description: {clean_trigger}
 
 @router.post("/scaffold/save")
 async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> Dict[str, Any]:
-    """Persist authored SKILL.md and auto-pin it to target agent pack manifest."""
-    import re
-    if not req.agent_id or not req.skill_id:
-        raise HTTPException(status_code=400, detail="agent_id and skill_id are required")
+    """Persist authored SKILL.md to the skill store and SQLite bindings.
 
-    clean_agent_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.agent_id.lower().strip())
+    When agent_id is present, also pin the skill on that agent pack. Skill Studio
+    can save without an agent brief [CARD-418]. pack.json is not the binding writer.
+    """
+    import re
+    if not req.skill_id:
+        raise HTTPException(status_code=400, detail="skill_id is required")
+
+    clean_agent_id = ""
+    if req.agent_id and str(req.agent_id).strip():
+        clean_agent_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.agent_id.lower().strip())
+        if not clean_agent_id:
+            raise HTTPException(status_code=400, detail="Invalid agent_id format")
     clean_skill_id = re.sub(r"[^a-zA-Z0-9_\-]", "", req.skill_id.lower().strip())
 
-    if not clean_agent_id or not clean_skill_id:
-        raise HTTPException(status_code=400, detail="Invalid agent_id or skill_id format")
+    if not clean_skill_id:
+        raise HTTPException(status_code=400, detail="Invalid skill_id format")
 
     from src.infrastructure.data.resolver import DataDirResolver
     resolver = DataDirResolver()
     data_root = resolver.resolve().root
-    packs_dir = data_root / "packs"
-    agent_dir = packs_dir / clean_agent_id
-    agent_dir.mkdir(parents=True, exist_ok=True)
 
     from src.application.skills.runbook_frontmatter import InvalidSkillTierError, UnknownCatalogToolError
     from src.application.skills.workshop import catalog_tool_ids, persist_workshop_skill
@@ -1025,7 +1052,7 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     try:
         persisted = persist_workshop_skill(
             data_root=data_root,
-            agent_id=clean_agent_id,
+            agent_id=clean_agent_id or None,
             skill_id=clean_skill_id,
             skill_content=req.skill_content,
             catalog_ids=catalog_tool_ids(tool_registry),
@@ -1043,9 +1070,45 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    skill_file = Path(persisted["pack_skill_path"])
+    skill_file = Path(persisted["pack_skill_path"] or persisted["skill_store_path"])
     display_name = (persisted.get("frontmatter") or {}).get("name") or clean_skill_id.replace("-", " ").replace("_", " ").title()
 
+    if clean_agent_id:
+        _pin_saved_skill_on_agent(
+            request,
+            agent_dir=data_root / "packs" / clean_agent_id,
+            clean_agent_id=clean_agent_id,
+            clean_skill_id=clean_skill_id,
+            display_name=display_name,
+            req=req,
+        )
+
+    return {
+        "success": True,
+        "agent_id": clean_agent_id or None,
+        "skill_id": clean_skill_id,
+        "skill_path": str(skill_file),
+        "skill_store_path": persisted["skill_store_path"],
+        "pinned": bool(clean_agent_id and req.auto_pin),
+        "requires_tools": persisted["requires_tools"],
+        "tier": persisted["tier"],
+        "safety": persisted["safety"],
+        "binding_store": "sqlite",
+        "markdown_content": persisted["markdown"],
+    }
+
+
+def _pin_saved_skill_on_agent(
+    request: Request,
+    *,
+    agent_dir: Path,
+    clean_agent_id: str,
+    clean_skill_id: str,
+    display_name: str,
+    req: SaveScaffoldRequest,
+) -> None:
+    """Pin a saved skill on one agent pack. Does not write tool bindings into pack.json."""
+    agent_dir.mkdir(parents=True, exist_ok=True)
     pack_json_file = agent_dir / "pack.json"
     if pack_json_file.is_file():
         try:
@@ -1111,20 +1174,6 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
                 registry.state_store.save_agent_profile(prof)
                 if req.auto_pin and hasattr(registry.state_store, "mark_agent_user_modified"):
                     registry.state_store.mark_agent_user_modified(clean_agent_id, modified=True)
-
-    return {
-        "success": True,
-        "agent_id": clean_agent_id,
-        "skill_id": clean_skill_id,
-        "skill_path": str(skill_file),
-        "skill_store_path": persisted["skill_store_path"],
-        "pinned": req.auto_pin,
-        "requires_tools": persisted["requires_tools"],
-        "tier": persisted["tier"],
-        "safety": persisted["safety"],
-        "binding_store": "sqlite",
-        "markdown_content": persisted["markdown"],
-    }
 
 
 @router.get("/skills")

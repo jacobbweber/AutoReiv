@@ -50,7 +50,7 @@ AutoReiv is structured into 7 purpose-built studios accessible via a responsive 
    - Model Purpose Matrix routing tasks to optimal local or cloud models.
 
 6. **System documentation (no Docs Studio ship)**:
-   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, factory, forge, observability, projects, prompts, routines, settings, skills, wiki).
+   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, factory, forge, observability, projects, prompts, routines, settings, skill-studio, tools-studio, wiki).
    - Architecture/ADR truth lives under `docs/adr`, `docs/architecture`, and `steering/*`; operators browse the repo / Projects surfaces rather than a dedicated Docs Studio canvas.
    - Historical CARD-018/019 "documentation browser" intent remains **not** a separate `docs.js` studio — do not treat product copy as claiming one.
 

@@ -189,6 +189,10 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "deploy_mcp_container",
         "register_mcp_service",
     ),
+    "native-tool-engineering": (
+        "register_native_tool",
+        "plan_native_folder",
+    ),
 }
 
 

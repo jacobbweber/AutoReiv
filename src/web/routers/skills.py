@@ -167,6 +167,20 @@ async def delete_user_pack(
         raise HTTPException(status_code=404, detail=result.get("error", f"Pack '{pack_id}' not found"))
     if not result.get("success"):
         raise HTTPException(status_code=400, detail=result.get("error", "Failed to delete pack"))
+    from pathlib import Path
+
+    from src.application.skills.workshop import clear_operator_skill_side_effects
+
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    data_root = getattr(paths, "root", None) if paths is not None else None
+    store = getattr(request.app.state, "store", None)
+    db_path = getattr(store, "db_path", None) if store is not None else None
+    if data_root is not None:
+        clear_operator_skill_side_effects(
+            Path(data_root),
+            pack_id,
+            db_path=str(db_path) if db_path else None,
+        )
     return result
 
 

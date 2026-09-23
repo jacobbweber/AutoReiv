@@ -27,8 +27,8 @@
 │   └── archive_artifacts/       # Historical 3-file specs & legacy rtm.json
 ├── src/                         # Production application source code
 │   ├── domain/                  # Pure business entities and domain logic (zero external dependencies)
-│   ├── application/             # Use cases, orchestrators, ports/interfaces
-│   ├── infrastructure/          # Adapters, databases, external API clients
+│   ├── application/             # Use cases, orchestrators, ports/interfaces (native custom tools: application/tools/native_packaging.py)
+│   ├── infrastructure/          # Adapters, databases, external API clients (legacy in-process pack tools: infrastructure/agents/legacy_pack_tools.py)
 │   ├── cli/                     # Command-line entry points
 │   └── web/                     # FastAPI backend application & static assets
 │       ├── app.py               # Unified FastAPI server & REST routes
@@ -38,7 +38,7 @@
 │               ├── dom.js       # Defensive DOM helpers ($, $query, $on)
 │               ├── state/       # Reactive state store (store.js)
 │               ├── services/    # HTTP API client wrappers (api.js)
-│               ├── studios/     # 7 Modular UI studios (chat, routines, observability, forge, settings, docs, wiki)
+│               ├── studios/     # Modular UI studios (chat, routines, observability, forge, settings, skill studio, tools studio intent + catalog, wiki)
 │               └── utils/       # Pure functions (physics.js, formatters.js, debounce.js, storage.js)
 ├── tests/                       # Automated test suites
 │   ├── unit/                    # Fast, isolated unit tests (Pytest + Vitest)

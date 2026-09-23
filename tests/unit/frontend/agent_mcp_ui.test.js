@@ -1,6 +1,6 @@
 /**
- * CARD-183: Agent Studio Remote MCP Server Inspector and Configuration [REQ-MCP-AGENT-003].
- * Verifies UI controls and bindings in index.html and forge.js.
+ * CARD-183 / CARD-421: Agent Studio shows MCP status and opens Tools Studio.
+ * The full attach form lives in Tools Studio (one writer).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -13,44 +13,31 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-describe('Agent Studio Remote MCP Servers UI [CARD-183]', () => {
+describe('Agent Studio MCP status shell [CARD-183, CARD-421]', () => {
   const indexHtml = read('src/web/templates/index.html');
   const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js');
+  const toolsJs = read('src/web/static/modules/studios/tools_studio.js')
+    + read('src/web/static/modules/studios/tools_studio_catalog.js');
 
-  it('renders Remote MCP Servers card and modal form in index.html [REQ-MCP-AGENT-003]', () => {
+  it('renders status and Open in Tools Studio, not a second attach form [REQ-421-005]', () => {
     expect(indexHtml).toContain('id="forgeMcpServersCard"');
     expect(indexHtml).toContain('id="forgeMcpServerCountBadge"');
-    expect(indexHtml).toContain('id="forgeAddMcpServerBtn"');
-    expect(indexHtml).toContain('id="forgeMcpServerForm"');
-    expect(indexHtml).toContain('id="forgeMcpNameInput"');
-    expect(indexHtml).toContain('id="forgeMcpTransportSelect"');
-    expect(indexHtml).toContain('id="forgeMcpUrlInput"');
-    expect(indexHtml).toContain('id="forgeMcpCommandInput"');
-    expect(indexHtml).toContain('id="forgeMcpHeadersInput"');
-    expect(indexHtml).toContain('id="forgeMcpEnabledCheckbox"');
-    expect(indexHtml).toContain('id="forgeMcpTestBtn"');
-    expect(indexHtml).toContain('id="forgeMcpSaveBtn"');
-    expect(indexHtml).toContain('id="forgeMcpTestResult"');
+    expect(indexHtml).toContain('id="forgeOpenToolsStudioBtn"');
     expect(indexHtml).toContain('id="forgeMcpServerList"');
+    expect(indexHtml).not.toContain('id="forgeAddMcpServerBtn"');
+    expect(indexHtml).not.toContain('id="forgeMcpServerForm"');
+    expect(indexHtml).not.toContain('id="forgeMcpSaveBtn"');
+    expect(indexHtml).not.toContain('id="forgeMcpTestBtn"');
   });
 
-  it('binds MCP elements and includes loadAgentMcpServers in forge.js [REQ-MCP-AGENT-003]', () => {
-    expect(forgeJs).toContain("forgeMcpServersCard");
-    expect(forgeJs).toContain("forgeMcpServerCountBadge");
-    expect(forgeJs).toContain("forgeAddMcpServerBtn");
-    expect(forgeJs).toContain("forgeMcpServerForm");
-    expect(forgeJs).toContain("forgeMcpNameInput");
-    expect(forgeJs).toContain("forgeMcpTransportSelect");
-    expect(forgeJs).toContain("forgeMcpUrlInput");
-    expect(forgeJs).toContain("forgeMcpSaveBtn");
-    expect(forgeJs).toContain("forgeMcpTestBtn");
-    expect(forgeJs).toContain("loadAgentMcpServers");
-    expect(forgeJs).toContain("renderAgentMcpServers");
-    expect(forgeJs).toContain("mcp_servers");
-  });
-
-  it('probes remote MCP server via API endpoint [REQ-MCP-AGENT-003]', () => {
-    expect(forgeJs).toContain("/api/agents/${encodeURIComponent(agentId)}/mcp/test");
-    expect(forgeJs).toContain("/api/agents/${encodeURIComponent(agentId)}/mcp");
+  it('loads agent MCP status and leaves writes to Tools Studio [REQ-421-003]', () => {
+    expect(forgeJs).toContain('loadAgentMcpServers');
+    expect(forgeJs).toContain('renderAgentMcpServers');
+    expect(forgeJs).toContain('forgeOpenToolsStudioBtn');
+    expect(forgeJs).toContain('/api/agents/${encodeURIComponent(agentId)}/mcp');
+    expect(forgeJs).not.toContain('/mcp/test');
+    expect(forgeJs).not.toContain('forgeMcpSaveBtn');
+    expect(toolsJs).toContain('/api/agents/${id}/mcp');
+    expect(toolsJs).toContain('mcpEndpoints');
   });
 });

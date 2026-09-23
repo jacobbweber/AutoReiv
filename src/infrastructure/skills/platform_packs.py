@@ -4,6 +4,16 @@ First install: copy from repo ``platform-packs/`` into ``$DATA_DIR/packs/`` when
 Upgrades: SQLite is the sole writer for profiles/bindings; hash-gated seed apply;
 never overwrite when ``user_modified``; never prune operator skill dirs (retired list only).
 ``pack.json`` is an export projection, not a boot source of truth.
+
+CARD-425 exception: a named additive grant may append ``native-tool-engineering``
+and ``register_native_tool`` / ``plan_native_folder`` onto a user_modified developer
+allowlist. That grant does not rewrite the prompt, other allowlist entries, or MCP
+servers, and it is recorded once so a later removal stays removed.
+
+CARD-426 exception: when that developer's live ``native-tool-engineering/SKILL.md``
+is missing the legacy-loader warning marker, boot appends only the seed warning
+block. It does not replace the file, the prompt, or any other skill body. If the
+marker or the warning heading is already present, the file is left alone.
 """
 
 from __future__ import annotations
@@ -56,6 +66,223 @@ def compute_platform_seed_hash(pack_data: dict, src_pack_dir: Optional[Path] = N
     payload["skill_bodies"] = skill_bodies
     raw = _json.dumps(payload, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+# CARD-425 / ADR-0056 exception. Append-only, once per skill id.
+USER_MODIFIED_SKILL_GRANT_SETTING = "platform_user_modified_skill_grants"
+USER_MODIFIED_ADDITIVE_SKILL_GRANTS: dict[str, dict[str, tuple[str, ...]]] = {
+    "developer": {
+        "native-tool-engineering": ("register_native_tool", "plan_native_folder"),
+    },
+}
+
+
+def _append_missing(current: list[str] | None, extras: Iterable[str]) -> tuple[list[str], bool]:
+    merged = list(current or [])
+    changed = False
+    for item in extras:
+        text = str(item or "").strip()
+        if text and text not in merged:
+            merged.append(text)
+            changed = True
+    return merged, changed
+
+
+def _patch_allowlist(obj: Any, skill_ids: list[str], tool_names: list[str], *, only_present_fields: bool) -> bool:
+    """Append skill ids and tool names. Never assigns prompt or MCP servers."""
+    changed = False
+    for field, extras in (
+        ("allowed_skill", skill_ids),
+        ("allowed_tool_names", tool_names),
+        ("pack_tool_names", tool_names),
+    ):
+        current = getattr(obj, field, None)
+        if only_present_fields and current is None:
+            continue
+        merged, field_changed = _append_missing(list(current or []), extras)
+        if field_changed:
+            setattr(obj, field, merged)
+            changed = True
+    return changed
+
+
+def _recorded_skill_grants(store: Any, pack_id: str) -> set[str]:
+    if store is None or not hasattr(store, "get_setting"):
+        return set()
+    raw = store.get_setting(USER_MODIFIED_SKILL_GRANT_SETTING) or {}
+    if not isinstance(raw, dict):
+        return set()
+    recorded = raw.get(pack_id) or []
+    if not isinstance(recorded, list):
+        return set()
+    return {str(item) for item in recorded if str(item).strip()}
+
+
+def _record_skill_grants(store: Any, pack_id: str, skill_ids: list[str]) -> None:
+    if store is None or not hasattr(store, "get_setting") or not hasattr(store, "set_setting"):
+        return
+    raw = store.get_setting(USER_MODIFIED_SKILL_GRANT_SETTING) or {}
+    if not isinstance(raw, dict):
+        raw = {}
+    current = [str(item) for item in (raw.get(pack_id) or []) if str(item).strip()]
+    for skill_id in skill_ids:
+        if skill_id not in current:
+            current.append(skill_id)
+    raw[pack_id] = current
+    store.set_setting(USER_MODIFIED_SKILL_GRANT_SETTING, raw)
+
+
+def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, store: Any) -> None:
+    """Append named seed skills onto a user_modified allowlist [CARD-425 / REQ-425-001].
+
+    Leaves ``system_prompt``, unrelated tools, and MCP servers in place.
+    Records each granted skill id so a later operator removal is not put back.
+    """
+    spec = USER_MODIFIED_ADDITIVE_SKILL_GRANTS.get(pack_id) or {}
+    if not spec or store is None:
+        return
+    seed_skills = {str(item) for item in (pack_data.get("allowed_skill") or [])}
+    already = _recorded_skill_grants(store, pack_id)
+    pending = [
+        (skill_id, tool_names)
+        for skill_id, tool_names in spec.items()
+        if skill_id in seed_skills and skill_id not in already
+    ]
+    if not pending:
+        return
+
+    skill_ids = [skill_id for skill_id, _tool_names in pending]
+    tool_names: list[str] = []
+    for _skill_id, names in pending:
+        for name in names:
+            if name not in tool_names:
+                tool_names.append(name)
+
+    raw = store.get_agent_profile(pack_id) if hasattr(store, "get_agent_profile") else None
+    override = store.get_agent_override(pack_id) if hasattr(store, "get_agent_override") else None
+    if raw is None and override is None:
+        return
+
+    changed = False
+    if raw is not None and hasattr(store, "save_custom_agent_profile"):
+        if _patch_allowlist(raw, skill_ids, tool_names, only_present_fields=False):
+            raw.user_modified = True
+            store.save_custom_agent_profile(raw)
+            changed = True
+    if override is not None and hasattr(store, "save_agent_override"):
+        if _patch_allowlist(override, skill_ids, tool_names, only_present_fields=True):
+            override.user_modified = True
+            store.save_agent_override(override)
+            changed = True
+
+    _record_skill_grants(store, pack_id, skill_ids)
+    if changed:
+        logger.info(
+            "Appended skill %s and tools %s onto user_modified %s allowlist; prompt and other entries left in place",
+            skill_ids,
+            tool_names,
+            pack_id,
+        )
+
+
+# CARD-426 / ADR-0056 exception. Append-only warning on one skill file.
+NATIVE_TOOL_ENGINEERING_SKILL_ID = "native-tool-engineering"
+LEGACY_LOADER_WARNING_MARKER = "<!-- autoreiv:native-tool-legacy-loader -->"
+LEGACY_LOADER_WARNING_HEADING = "## Not the legacy pack loader"
+
+
+def skill_body_has_legacy_loader_warning(text: str) -> bool:
+    """True when the live runbook already carries the legacy-loader warning."""
+    if LEGACY_LOADER_WARNING_MARKER in (text or ""):
+        return True
+    for line in (text or "").replace("\r\n", "\n").split("\n"):
+        if line.strip() == LEGACY_LOADER_WARNING_HEADING:
+            return True
+    return False
+
+
+def extract_legacy_loader_warning_block(seed_text: str) -> str:
+    """Seed warning section, from its heading through the line before the next heading.
+
+    Empty when the seed is missing the heading or the stable marker. Callers must
+    not invent a warning block.
+    """
+    lines = (seed_text or "").replace("\r\n", "\n").split("\n")
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip() == LEGACY_LOADER_WARNING_HEADING:
+            start = index
+            break
+    if start is None:
+        return ""
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    block = "\n".join(lines[start:end]).strip()
+    if LEGACY_LOADER_WARNING_MARKER not in block:
+        return ""
+    return block + "\n"
+
+
+def append_legacy_loader_warning_block(live_text: str, block: str) -> str:
+    """Append the warning. Return the original text when it is already present."""
+    if skill_body_has_legacy_loader_warning(live_text):
+        return live_text
+    warning = (block or "").replace("\r\n", "\n").strip("\n")
+    if not warning or LEGACY_LOADER_WARNING_MARKER not in warning:
+        return live_text
+    warning = warning + "\n"
+    if live_text.endswith("\n\n"):
+        return live_text + warning
+    if live_text.endswith("\n"):
+        return live_text + "\n" + warning
+    return live_text + "\n\n" + warning
+
+
+def refresh_user_modified_native_tool_engineering_warning(dest_pack: Path, seed_pack: Path) -> bool:
+    """Append the seed legacy-loader warning onto one user_modified developer skill [CARD-426].
+
+    Does not replace the file. A body that already has the marker or the warning
+    heading is left byte-for-byte alone. Other skill files are not opened.
+    """
+    live = Path(dest_pack) / "skills" / NATIVE_TOOL_ENGINEERING_SKILL_ID / "SKILL.md"
+    seed = Path(seed_pack) / "skills" / NATIVE_TOOL_ENGINEERING_SKILL_ID / "SKILL.md"
+    if not live.is_file() or not seed.is_file():
+        return False
+    try:
+        live_text = live.read_text(encoding="utf-8")
+        seed_text = seed.read_text(encoding="utf-8")
+    except OSError:
+        logger.warning(
+            "Could not read native-tool-engineering skill for legacy-loader warning refresh",
+            exc_info=True,
+        )
+        return False
+    if skill_body_has_legacy_loader_warning(live_text):
+        return False
+    block = extract_legacy_loader_warning_block(seed_text)
+    if not block:
+        logger.warning("Seed native-tool-engineering skill has no legacy-loader warning block; skip append")
+        return False
+    updated = append_legacy_loader_warning_block(live_text, block)
+    if updated == live_text:
+        return False
+    try:
+        live.write_text(updated, encoding="utf-8")
+    except OSError:
+        logger.warning(
+            "Could not append legacy-loader warning onto %s",
+            live,
+            exc_info=True,
+        )
+        return False
+    logger.info(
+        "Appended legacy-loader warning onto user_modified developer skill %s; operator text left in place",
+        live,
+    )
+    return True
 
 
 def _is_user_modified(profile: Any, store: Any = None) -> bool:
@@ -320,6 +547,16 @@ def install_platform_agent_packs(
                             for s in src_skills.iterdir():
                                 if s.is_dir() and not (dest_skills / s.name).exists():
                                     shutil.copytree(s, dest_skills / s.name)
+                        if pack_id == "developer":
+                            try:
+                                refresh_user_modified_native_tool_engineering_warning(dest, src)
+                            except Exception:
+                                logger.exception("Legacy-loader warning refresh failed for user_modified developer")
+                        apply_user_modified_additive_skill_grants(
+                            pack_id=pack_id,
+                            pack_data=pack_data,
+                            store=service.store,
+                        )
                         continue
 
                     # Idempotent: same seed hash → no SQLite rewrite, no FS churn

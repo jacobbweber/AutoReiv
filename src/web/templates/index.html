@@ -168,6 +168,14 @@
             <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-emerald-400"></i>
             <span id="navFactory">Factory</span>
           </button>
+          <button id="tab-skill-studio" data-tab="skill-studio" data-studio="skill-studio" role="tab" aria-selected="false" aria-controls="view-skill-studio" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Skill Studio</span>
+          </button>
+          <button id="tab-tools-studio" data-tab="tools-studio" data-studio="tools-studio" role="tab" aria-selected="false" aria-controls="view-tools-studio" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="wrench" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Tools Studio</span>
+          </button>
           <button id="tab-routines" data-tab="routines" role="tab" aria-selected="false" aria-controls="view-routines" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
             <i data-lucide="clock" class="w-3.5 h-3.5"></i>
             <span>Routines</span>
@@ -1379,7 +1387,7 @@
                   <h3 class="text-xs font-bold text-slate-200">Assigned Skills</h3>
                   <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-indigo-950 text-indigo-300 border border-indigo-700/60">SKILLS</span>
                 </div>
-                <span class="text-[10px] text-slate-500">SOP runbooks (SKILL.md) that guide agent reasoning and mount declared tools.</span>
+                <span class="text-[10px] text-slate-500" data-testid="forge-skill-scope">On allows the skill for this agent. Off removes it. The pill does not open an editor.</span>
               </div>
 
               <!-- Platform Enforced Runtime Baseline Chips [CARD-330 / CARD-389] -->
@@ -1404,7 +1412,7 @@
                     <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-400"></i>
                     <h4 class="text-[11px] font-bold text-slate-300">Platform Skills & Tools</h4>
                   </div>
-                  <span class="text-[10px] text-slate-500">Shared platform runbooks available for activation</span>
+                  <span class="text-[10px] text-slate-500">Toggle a platform skill on or off for this agent</span>
                 </div>
                 <div id="forgeSkillsGrid" class="space-y-2 pt-1">
                   <!-- Platform skill rows with declared tool chips -->
@@ -1412,9 +1420,23 @@
                 <div class="flex flex-wrap items-center gap-2 pt-1">
                   <button id="studioOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" data-testid="forge-open-factory">
                     <i data-lucide="hammer" class="w-3.5 h-3.5"></i>
-                    <span>Author skill in Factory</span>
+                    <span>Author skill in Skill Studio</span>
                   </button>
-                  <span class="text-[10px] text-slate-500">Skill runbooks and tool bindings are authored in the Agent Training Factory.</span>
+                  <span class="text-[10px] text-slate-500">Skill runbooks and tool bindings are authored in Skill Studio.</span>
+                </div>
+              </div>
+
+              <!-- Operator skill store. Not platform seeds [CARD-420 hotfix]. -->
+              <div id="forgeOperatorBox" class="space-y-2 pt-3 border-t border-white/[0.06]" data-testid="forge-operator-skills">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
+                    <h4 class="text-[11px] font-bold text-slate-300">Operator skills</h4>
+                  </div>
+                  <span class="text-[10px] text-slate-500">Skill store. Toggle on or off for this agent</span>
+                </div>
+                <div id="forgeOperatorSkillsGrid" class="space-y-2 pt-1">
+                  <!-- Operator skill-store rows -->
                 </div>
               </div>
 
@@ -1442,65 +1464,13 @@
                   <h3 class="text-xs font-bold text-slate-200">Remote MCP Servers</h3>
                   <span id="forgeMcpServerCountBadge" class="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">0</span>
                 </div>
-                <button id="forgeAddMcpServerBtn" type="button" class="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                  <span>Add Remote Server</span>
+                <button id="forgeOpenToolsStudioBtn" type="button" data-testid="forge-open-tools-studio" class="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition shadow-sm">
+                  Open in Tools Studio
                 </button>
               </div>
-              <p class="text-[11px] text-slate-400">Attach external MCP microservices running in Docker or on remote hosts over HTTP/SSE. Scoped exclusively to this agent.</p>
-              
-              <!-- Form for adding / editing server (hidden by default) -->
-              <div id="forgeMcpServerForm" class="hidden p-3 rounded-lg bg-[#141721]/60 border border-white/[0.08] space-y-3">
-                <div class="flex items-center justify-between pb-1 border-b border-white/[0.06]">
-                  <span id="forgeMcpServerFormTitle" class="text-xs font-bold text-slate-200">Add Remote MCP Server</span>
-                  <button id="forgeMcpServerFormCloseBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                  </button>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Server Name</label>
-                    <input id="forgeMcpNameInput" type="text" placeholder="e.g. hyperv-remote" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
-                  </div>
-                  <div>
-                    <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Transport</label>
-                    <select id="forgeMcpTransportSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
-                      <option value="sse">HTTP / SSE (Remote Service)</option>
-                      <option value="stdio">stdio (Local Subprocess)</option>
-                    </select>
-                  </div>
-                </div>
-                <div id="forgeMcpUrlGroup">
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Remote URL (Endpoint)</label>
-                  <input id="forgeMcpUrlInput" type="text" placeholder="http://192.168.1.50:8080/sse or http://localhost:8080/sse" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
-                </div>
-                <div id="forgeMcpCommandGroup" class="hidden">
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Local Command (Executable / Script)</label>
-                  <input id="forgeMcpCommandInput" type="text" placeholder="python d:/path/to/server.py" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Custom Headers (JSON)</label>
-                  <input id="forgeMcpHeadersInput" type="text" placeholder='{"Authorization": "Bearer ..."} (optional)' class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
-                </div>
-                <div class="flex items-center justify-between pt-1">
-                  <label class="flex items-center space-x-2 cursor-pointer">
-                    <input id="forgeMcpEnabledCheckbox" type="checkbox" checked class="rounded bg-[#141721] border-white/[0.08] text-cyan-500 focus:ring-cyan-500">
-                    <span class="text-xs text-slate-300">Enabled</span>
-                  </label>
-                  <div class="flex items-center space-x-2">
-                    <button id="forgeMcpTestBtn" type="button" class="px-2.5 py-1.5 bg-[#141721] hover:bg-slate-800 text-cyan-300 border border-cyan-800/60 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
-                      <i data-lucide="activity" class="w-3.5 h-3.5"></i>
-                      <span>Test Probe</span>
-                    </button>
-                    <button id="forgeMcpSaveBtn" type="button" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition">
-                      Save Server
-                    </button>
-                  </div>
-                </div>
-                <div id="forgeMcpTestResult" class="hidden p-2.5 rounded text-xs font-mono border"></div>
-              </div>
+              <p class="text-[11px] text-slate-400">Mounted servers for this agent. Attach, test, enable, or remove them in Tools Studio.</p>
 
-              <!-- List of attached servers -->
+              <!-- Status list. Attach actions live in Tools Studio. -->
               <div id="forgeMcpServerList" class="space-y-2 pt-1">
                 <p id="forgeMcpServerEmpty" class="text-[11px] text-slate-500">No remote MCP servers configured for this agent.</p>
               </div>
@@ -1523,54 +1493,6 @@
               </div>
             </div>
 
-            <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-[#141721]/60 border border-white/[0.08] space-y-3" data-mode="readonly">
-              <div class="flex items-center justify-between pb-1 border-b border-white/[0.06]">
-                <span class="text-xs font-bold text-slate-200">Skill runbook (read-only)</span>
-                <button id="studioRunbookCloseBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition" title="Close runbook inspector">
-                  <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-              </div>
-              <p class="text-[11px] text-slate-400">Agent Studio shows identity and which skills this agent may run. Edit the runbook, frontmatter, and required tools in the Factory workshop.</p>
-              <p id="studioRunbookPath" class="text-[10px] font-mono text-slate-500 truncate"></p>
-              <div id="studioRunbookMeta" class="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="forge-runbook-meta">
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookName">Name</label>
-                  <input id="studioRunbookName" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-medium cursor-default" placeholder="runbook name">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookBlurb">Description</label>
-                  <input id="studioRunbookBlurb" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 cursor-default" placeholder="frontmatter description">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookTier">Tier</label>
-                  <input id="studioRunbookTier" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 font-mono cursor-default" data-testid="forge-runbook-tier">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block" for="studioRunbookSafety">Safety</label>
-                  <input id="studioRunbookSafety" type="text" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 cursor-default" data-testid="forge-runbook-safety">
-                </div>
-              </div>
-              <div>
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Required tools</span>
-                <div id="studioRunbookTools" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 rounded-lg bg-[#0d0f17] border border-white/[0.06]" data-testid="forge-runbook-tools"></div>
-              </div>
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block" for="studioRunbookBody">SKILL.md body</label>
-                  <span id="studioRunbookCharCount" class="text-[10px] font-mono text-slate-500"></span>
-                </div>
-                <textarea id="studioRunbookBody" rows="10" readonly class="w-full min-h-[12rem] bg-[#0d0f17] border border-white/[0.06] rounded-lg p-3 text-xs text-slate-300 font-mono leading-relaxed resize-y cursor-default" placeholder="Playbook instructions."></textarea>
-              </div>
-              <div id="studioRunbookLintStatus" class="hidden rounded-lg p-2.5 text-xs transition-all"></div>
-              <div class="flex flex-wrap items-center gap-2">
-                <button id="studioRunbookOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold" data-testid="forge-runbook-open-factory">Open in Factory Workshop</button>
-                <button id="studioRunbookValidateBtn" type="button" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-brand-300 rounded-lg text-xs font-semibold border border-white/[0.08] flex items-center space-x-1.5">
-                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
-                  <span>Validate runbook</span>
-                </button>
-                <button id="studioRunbookCancelBtn" type="button" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold border border-white/[0.08]">Cancel</button>
-              </div>
-            </div>
                 <details class="rounded-xl bg-[#0e1015]/70 border border-white/[0.06] shadow-sm" data-card="311" id="forgeTelemetryDetails" data-section="telemetry">
               <summary class="flex items-center justify-between px-4 py-2.5 cursor-pointer text-xs font-bold text-slate-200 list-none">
                 <span>Agent Telemetry &amp; Lifetime Stats</span>
@@ -2147,13 +2069,13 @@
                 <i data-lucide="plug" class="w-4 h-4 text-brand-400 shrink-0"></i>
                 <span class="truncate">Model Context Protocol (MCP) Servers</span>
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Mount external stdio tool servers (GitHub, SQLite, Postgres, Filesystem) with dynamic 3-Tier Tool Resolution.</p>
+              <p class="text-xs text-slate-400 mt-0.5">Attach, test, and remove MCP servers in Tools Studio. This page keeps hosting and a short attach status.</p>
             </div>
-            <button id="addMcpServerBtn" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>Add MCP Server</span>
+            <button type="button" id="settingsOpenToolsStudioBtn" data-testid="settings-open-tools-studio" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Open in Tools Studio
             </button>
           </div>
+          <p id="settingsMcpAttachStatus" data-testid="settings-mcp-attach-status" class="text-xs text-slate-300">Loading attach status…</p>
 
           <!-- Hosted MCP Server Status Banner [CARD-392] -->
           <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs flex flex-col gap-2.5 overflow-hidden">
@@ -2180,69 +2102,8 @@
             </p>
           </div>
 
-          <!-- Add MCP Server Form (Collapsible) -->
-          <div id="mcpServerFormContainer" class="hidden p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-4 text-xs">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">Server Name (Identifier)</label>
-                <input id="mcpServerNameInput" type="text" placeholder="e.g. sqlite-db, blender" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
-              </div>
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">Transport</label>
-                <select id="mcpServerTransportSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
-                  <option value="stdio" selected>stdio (Local Subprocess)</option>
-                  <option value="sse">HTTP / SSE (Remote Service)</option>
-                </select>
-              </div>
-            </div>
-            <div id="mcpServerCommandGroup">
-              <label class="font-medium text-slate-300 block mb-1">Command (executable + arguments)</label>
-              <input id="mcpServerCommandInput" type="text" placeholder="e.g. uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
-            </div>
-            <div id="mcpServerUrlGroup" class="hidden">
-              <label class="font-medium text-slate-300 block mb-1">Remote URL (Endpoint)</label>
-              <input id="mcpServerUrlInput" type="text" placeholder="e.g. http://localhost:8080/sse or http://127.0.0.1:9191" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
-            </div>
-            <div id="mcpServerHeadersGroup" class="hidden">
-              <label class="font-medium text-slate-300 block mb-1">Custom Headers (JSON, Optional)</label>
-              <input id="mcpServerHeadersInput" type="text" placeholder='{"Authorization": "Bearer ..."}' class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
-            </div>
-
-            <!-- Environment Variables Section [REQ-MCP-007, REQ-MCP-009] -->
-            <div class="space-y-2 pt-1 border-t border-white/[0.06]">
-              <div class="flex items-center justify-between">
-                <label class="font-medium text-slate-300 flex items-center space-x-1.5">
-                  <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i>
-                  <span>Environment Variables &amp; Secrets (Optional)</span>
-                </label>
-                <button type="button" id="addMcpEnvRowBtn" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold flex items-center space-x-1">
-                  <i data-lucide="plus" class="w-3 h-3"></i>
-                  <span>Add Variable</span>
-                </button>
-              </div>
-              <div id="mcpEnvRows" class="space-y-2">
-                <!-- Dynamically added Key/Value rows -->
-              </div>
-            </div>
-
-            <!-- Diagnostic Handshake Result Preview Box [REQ-MCP-008, REQ-MCP-009] -->
-            <div id="mcpTestResultBox" class="hidden p-3 rounded-xl border border-white/[0.06] bg-[#08090c] text-xs"></div>
-
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-white/[0.06]">
-              <button type="button" id="testMcpServerBtn" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all">
-                <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                <span>Test Handshake &amp; Discover</span>
-              </button>
-              <div class="flex items-center space-x-2 self-end sm:self-auto">
-                <button type="button" id="cancelMcpServerBtn" class="px-3 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 rounded-lg text-xs font-medium border border-white/[0.08] transition-all">Cancel</button>
-                <button type="button" id="saveMcpServerBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save &amp; Mount</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Active MCP Servers List -->
-          <div id="mcpServerList" class="space-y-2">
-            <div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No external MCP servers configured. Click 'Add MCP Server' to mount tools.</div>
+          <div id="mcpServerList" class="space-y-2" data-testid="settings-mcp-status-list">
+            <div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No platform MCP servers attached. Open Tools Studio to attach one.</div>
           </div>
         </div>
 
@@ -3668,20 +3529,13 @@
             </div>
             <div>
               <div class="flex items-center space-x-2">
-                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Agent &amp; Skill Scaffolder</h2>
+                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Factory</h2>
                 <span id="factoryActiveStatusPill" class="px-2 py-0.5 rounded-full text-[10px] font-mono border bg-[#13161f] border-white/[0.08] text-slate-300">
                   Ready
                 </span>
               </div>
-              <p class="text-[11px] text-slate-400 hidden sm:block">Scaffold agent packs, bind capabilities, and author Matt Pocock SKILL.md runbooks</p>
+              <p class="text-[11px] text-slate-400 hidden sm:block">Agent brief and assigned skills. Author runbooks in Skill Studio.</p>
             </div>
-          </div>
-
-          <!-- Studio Actions -->
-          <div class="flex items-center space-x-2">
-            <button type="button" id="factoryRefreshBtn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Factory State">
-              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-            </button>
           </div>
         </div>
 
@@ -3698,29 +3552,17 @@
               </button>
 
               <!-- Step 2: Generate / Refine Runbook -->
-              <button type="button" id="factoryGenerateRunbookBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center justify-center space-x-2 shrink-0">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                <span>2. ✨ Generate / Refine Runbook</span>
+              <button type="button" id="factoryOpenSkillStudioBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="factory-open-skill-studio">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span>Edit skills in Skill Studio</span>
               </button>
-
-              <!-- Step 3: Save & Pin Skill to Agent -->
-              <button type="button" id="factorySaveSkillBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 shrink-0">
-                <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                <span>3. 💾 Save &amp; Pin Skill to Agent</span>
-              </button>
-            </div>
-
-            <!-- Status & Feedback Area -->
-            <div class="flex items-center space-x-2 shrink-0 justify-end">
-              <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
-              <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
             </div>
           </div>
 
           <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">
             
             <!-- COLUMN 1: AGENT BRIEF (lg:col-span-3) -->
-            <div id="factoryIntakeAgentCard" class="lg:col-span-3 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+            <div id="factoryIntakeAgentCard" class="lg:col-span-12 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
@@ -3766,21 +3608,67 @@
                 <textarea id="factoryAgentPromptInput" rows="6" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
               </div>
 
-              <!-- Assigned skills: agent↔skill scoping only (not the skill editor) [CARD-411 UX] -->
+              <!-- Allowed skills: display of the agent allowlist. On/off is Agent Studio pills [CARD-419]. -->
               <div class="space-y-1.5 pt-1 border-t border-white/[0.04]" data-testid="factory-assigned-skills">
                 <div class="flex items-center justify-between">
-                  <label class="text-[11px] font-semibold text-slate-400">Assigned Skills (Active on Agent)</label>
+                  <label class="text-[11px] font-semibold text-slate-400">Skills allowed for this agent</label>
                   <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
                 </div>
                 <div id="factoryCurrentSkillsList" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-[#08090c]/60 rounded-xl border border-white/[0.04]">
                   <span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>
                 </div>
-                <p class="text-[10px] text-slate-500">Pinned to this agent. Author or edit a runbook in column 2.</p>
+                <p class="text-[10px] text-slate-500">Display only. Turn skills on or off in Agent Studio.</p>
               </div>
             </div>
 
-            <!-- COLUMN 2: SKILL WORKSHOP (lg:col-span-5) -->
-            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+      <section id="view-skill-studio" role="tabpanel" aria-labelledby="tab-skill-studio" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full min-h-0 overflow-hidden relative hidden" data-card="418">
+        <div id="skillStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden" data-testid="skill-studio">
+          <div class="px-4 md:px-6 py-3 bg-[#0e1015]/90 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3 flex-shrink-0 backdrop-blur-md z-10">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-xl bg-sky-950/60 border border-sky-500/30 flex items-center justify-center text-sky-400 shadow-sm shadow-sky-500/10">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Skill Studio</h2>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Pick or create a skill, set metadata, and scope tools. Save writes the skill store and SQLite bindings.</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" id="factoryRefreshBtn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Skill Studio">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
+            <div id="skillStudioActionBar" class="mb-3 p-3 sm:p-3.5 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-shrink-0">
+              <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 min-w-0 flex-1">
+                <button type="button" id="factorySaveSkillBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="skill-studio-save">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                  <span>Save skill</span>
+                </button>
+                <button type="button" id="factoryGenerateRunbookBtn" class="px-2.5 py-1.5 bg-transparent hover:bg-white/[0.04] text-slate-400 hover:text-slate-200 border border-white/[0.08] rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1.5 shrink-0" data-testid="skill-studio-generate">
+                  <i data-lucide="sparkles" class="w-3 h-3"></i>
+                  <span>Generate / Refine Runbook</span>
+                </button>
+                <button type="button" id="skillStudioDeleteBtn" class="hidden px-2.5 py-1.5 bg-transparent hover:bg-rose-950/40 text-rose-300/80 hover:text-rose-200 border border-rose-500/20 rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1.5 shrink-0" data-testid="skill-studio-delete">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
+                  <span>Delete skill</span>
+                </button>
+              </div>
+              <div class="flex items-center space-x-2 shrink-0 justify-end">
+                <span id="factoryGenerateStatusText" class="text-xs font-medium text-brand-300 hidden">Generating standard runbook...</span>
+                <span id="factorySaveFeedbackMsg" class="text-xs font-medium text-emerald-400 hidden"></span>
+              </div>
+            </div>
+            <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">
+            <!-- COLUMN 2: SKILL WORKSHOP (lg:col-span-7) -->
+            <div class="lg:col-span-7 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="book-open" class="w-4 h-4 text-sky-400"></i>
@@ -3804,7 +3692,7 @@
                     <span>+ New Skill</span>
                   </button>
                 </div>
-                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Column 1 shows which skills are pinned to the agent.</p>
+                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Assigned skills stay on the Factory agent brief.</p>
               </div>
 
               <!-- Author Skill Form -->
@@ -3864,13 +3752,13 @@
                   <div>
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-[11px] font-semibold text-slate-400">Required tools</span>
-                      <span class="text-[10px] text-slate-500">Picker in column 3 writes <span class="font-mono">requires_tools</span></span>
+                      <span class="text-[10px] text-slate-500">The tool catalog writes <span class="font-mono">requires_tools</span></span>
                     </div>
                     <div id="factoryRequiredToolsChips" class="flex flex-wrap gap-1.5 min-h-[28px]" data-testid="factory-required-tools"></div>
                   </div>
                   <details class="rounded-lg border border-white/[0.04] bg-[#0e1015]/50 px-2.5 py-2" data-testid="factory-skill-tier-advanced">
                     <summary class="text-[11px] text-slate-500 cursor-pointer select-none">Advanced: Tier (legacy taxonomy)</summary>
-                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Runtime scoping uses the assigned-skills list in column 1.</p>
+                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Turn skills on or off with the toggle pills in Agent Studio.</p>
                     <label for="factorySkillTierSelect" class="sr-only">Tier</label>
                     <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
                       <option value="pack">pack</option>
@@ -3878,6 +3766,13 @@
                       <option value="user">user</option>
                     </select>
                   </details>
+                </div>
+
+                <div class="space-y-1.5" data-testid="skill-studio-source-context">
+                  <label for="factorySourceContextInput" class="block text-[11px] font-semibold text-slate-400">External Source Context &amp; Reference Notes</label>
+                  <textarea id="factorySourceContextInput" rows="4" placeholder="Paste API documentation, cheat sheets, manual notes, or example commands so the runbook generator uses real parameters and accurate commands..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500 leading-relaxed resize-y"></textarea>
+                  <input type="hidden" id="factoryIntakeContextInput" value="">
+                  <p class="text-[10px] text-slate-500">Grounding context prevents the LLM from hallucinating fake tool names or syntax.</p>
                 </div>
 
                 <!-- Live SKILL.md Editor -->
@@ -3891,8 +3786,8 @@
               </div>
             </div>
 
-            <!-- COLUMN 3: CAPABILITIES & GROUNDING (lg:col-span-4) -->
-            <div class="lg:col-span-4 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
+            <!-- COLUMN 3: CAPABILITIES & GROUNDING (lg:col-span-5) -->
+            <div class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
               <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
@@ -3930,22 +3825,13 @@
                 </div>
               </div>
 
-              <!-- Source Context Notes (Grounding) -->
-              <div class="space-y-1.5 pt-2 border-t border-white/[0.04]">
-                <label for="factorySourceContextInput" class="block text-[11px] font-semibold text-slate-400">External Source Context &amp; Reference Notes</label>
-                <textarea id="factorySourceContextInput" rows="5" placeholder="Paste API documentation, cheat sheets, manual notes, or example commands so the runbook generator uses real parameters and accurate commands..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-purple-500 leading-relaxed resize-y"></textarea>
-                <input type="hidden" id="factoryIntakeContextInput" value="">
-                <p class="text-[10px] text-slate-500">Grounding context prevents the LLM from hallucinating fake tool names or syntax.</p>
-              </div>
-
+            </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-
-      <!-- ===========<!-- ==================== SESSION ARTIFACT INSPECTOR MODAL [REQ-ART-005] ==================== -->
+      <!-- ==================== SESSION ARTIFACT INSPECTOR MODAL [REQ-ART-005] ==================== -->
       <div id="artifactModal" role="dialog" aria-modal="true" aria-labelledby="artifactModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
         <div id="artifactModalCard" class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
           
@@ -4002,6 +3888,191 @@
 
         </div>
       </div>
+
+      <!-- ==================== VIEW: TOOLS STUDIO [CARD-421] ==================== -->
+      <section id="view-tools-studio" role="tabpanel" aria-labelledby="tab-tools-studio" aria-hidden="true" class="tab-view flex-1 hidden flex-col min-h-0 overflow-hidden relative" data-card="421">
+        <div id="toolsStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden" data-testid="tools-studio">
+          <div class="px-4 md:px-6 py-3 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+            <div>
+              <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="wrench" class="w-4 h-4 text-cyan-400"></i>
+                <span>Tools Studio</span>
+              </h2>
+              <p class="text-[11px] text-slate-400 mt-0.5">Browse the live tool catalog, attach MCP servers, and send create, modify, or delete intent to the developer. This studio does not take tool code. Binding a tool onto a skill stays in Skill Studio. Hosting AutoReiv as an MCP server stays in Settings.</p>
+            </div>
+          </div>
+          <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
+            <form id="toolsStudioIntentForm" data-testid="tools-studio-intent-form" data-card="422" class="mb-4 p-4 rounded-xl bg-[#0e1015]/80 border border-white/[0.06] space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-100">Tool intent</h3>
+                  <p class="text-[11px] text-slate-500">Describe the tool. Talk opens a new developer chat with this form filled in. Submit runs that intent as a developer job. Neither control writes tool code.</p>
+                </div>
+                <button type="button" id="toolsStudioNewIntentBtn" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-200 border border-white/[0.08]">New tool intent</button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label for="toolsStudioIntentSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Intent</label>
+                  <select id="toolsStudioIntentSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                    <option value="create">Create</option>
+                    <option value="modify">Modify</option>
+                    <option value="delete">Delete</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="toolsStudioToolNameInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Tool name</label>
+                  <input id="toolsStudioToolNameInput" type="text" placeholder="Required for modify and delete" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+              <div>
+                <label for="toolsStudioBehaviorInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">What the tool should do</label>
+                <textarea id="toolsStudioBehaviorInput" rows="3" placeholder="Describe the behavior. Do not paste implementation code." class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"></textarea>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label for="toolsStudioLanguageInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Language hint</label>
+                  <input id="toolsStudioLanguageInput" type="text" placeholder="Optional, for example Python" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                  <label for="toolsStudioRuntimeInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Runtime hint</label>
+                  <input id="toolsStudioRuntimeInput" type="text" placeholder="Optional runtime note" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label for="toolsStudioPathInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Path or context</label>
+                  <input id="toolsStudioPathInput" type="text" placeholder="Plain text path or note for the developer" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                  <label for="toolsStudioPackagingSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Packaging note</label>
+                  <select id="toolsStudioPackagingSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                    <option value="">Unspecified</option>
+                    <option value="native">Native AutoReiv tool (note only)</option>
+                    <option value="mcp">MCP-backed tool (note only)</option>
+                  </select>
+                  <p class="text-[10px] text-slate-500 mt-1">Recorded for the developer as a note only. This screen does not write the tool. Native and MCP lanes both exist for the developer to build.</p>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" id="toolsStudioTalkBtn" data-testid="tools-studio-talk" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold">Talk to developer</button>
+                <button type="button" id="toolsStudioSubmitBtn" data-testid="tools-studio-submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">Submit to developer</button>
+              </div>
+              <div id="toolsStudioAuthoringStatus" class="hidden" data-testid="tools-studio-authoring-status"></div>
+            </form>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+              <div class="p-4 rounded-xl bg-[#0e1015]/80 border border-white/[0.06] space-y-3" data-testid="tools-studio-catalog-pane">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-100">Tool catalog</h3>
+                  <p class="text-[11px] text-slate-500">Platform tools stay in their own groups. MCP tools group under the server that provides them when that list is available.</p>
+                </div>
+                <div id="toolsStudioFilterBar" class="flex flex-wrap items-end gap-2" data-testid="tools-studio-filters">
+                  <div class="flex-1 min-w-[10rem]">
+                    <label for="toolsStudioFilterSearch" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Search</label>
+                    <input id="toolsStudioFilterSearch" type="search" placeholder="Tool name or description" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div class="w-full sm:w-36">
+                    <label for="toolsStudioFilterSource" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Source</label>
+                    <select id="toolsStudioFilterSource" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">All sources</option>
+                      <option value="platform">Platform</option>
+                      <option value="native">Native custom</option>
+                      <option value="mcp">MCP</option>
+                    </select>
+                  </div>
+                  <div class="w-full sm:w-44">
+                    <label for="toolsStudioFilterStatus" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Status</label>
+                    <select id="toolsStudioFilterStatus" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">Any status</option>
+                      <option value="available">Platform tools</option>
+                      <option value="mounted">Mounted MCP</option>
+                      <option value="configured">Configured, not mounted</option>
+                    </select>
+                  </div>
+                  <button type="button" id="toolsStudioFilterClearBtn" class="px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-300 border border-white/[0.08]">Clear</button>
+                </div>
+                <div id="toolsStudioCatalog" class="space-y-2" data-testid="tools-studio-catalog">
+                  <div class="text-[11px] text-slate-500 italic p-2">Loading catalog…</div>
+                </div>
+              </div>
+
+              <div class="p-4 rounded-xl bg-[#0e1015]/80 border border-white/[0.06] space-y-3" data-testid="tools-studio-mcp-pane">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <h3 class="text-xs font-bold text-slate-100">MCP attach</h3>
+                    <p class="text-[11px] text-slate-500">Platform servers use Settings storage. Agent servers stay on that agent.</p>
+                  </div>
+                  <button type="button" id="toolsStudioAddMcpBtn" class="shrink-0 px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold">Add MCP server</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label for="toolsStudioScopeSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Scope</label>
+                    <select id="toolsStudioScopeSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="platform">Platform</option>
+                      <option value="agent">Agent</option>
+                    </select>
+                  </div>
+                  <div id="toolsStudioAgentField" class="hidden">
+                    <label for="toolsStudioAgentSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Agent</label>
+                    <select id="toolsStudioAgentSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">Select an agent</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="toolsStudioMcpForm" class="hidden p-3 rounded-lg bg-[#141721]/70 border border-white/[0.08] space-y-3">
+                  <span id="toolsStudioMcpFormTitle" class="text-xs font-bold text-slate-200">Add MCP server</span>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label for="toolsStudioMcpNameInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Server name</label>
+                      <input id="toolsStudioMcpNameInput" type="text" placeholder="e.g. github" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                      <label for="toolsStudioMcpTransportSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Transport</label>
+                      <select id="toolsStudioMcpTransportSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <option value="stdio" selected>stdio (local command)</option>
+                        <option value="sse">HTTP / SSE</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="toolsStudioMcpCommandGroup">
+                    <label for="toolsStudioMcpCommandInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Command</label>
+                    <input id="toolsStudioMcpCommandInput" type="text" placeholder="uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div id="toolsStudioMcpUrlGroup" class="hidden">
+                    <label for="toolsStudioMcpUrlInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Remote URL</label>
+                    <input id="toolsStudioMcpUrlInput" type="text" placeholder="http://127.0.0.1:8080/sse" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div id="toolsStudioMcpHeadersGroup" class="hidden">
+                    <label for="toolsStudioMcpHeadersInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Headers JSON</label>
+                    <input id="toolsStudioMcpHeadersInput" type="text" placeholder='{"Authorization": "Bearer ..."}' class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Environment</span>
+                      <button type="button" id="toolsStudioAddEnvRowBtn" class="text-[11px] text-cyan-300">Add variable</button>
+                    </div>
+                    <div id="toolsStudioMcpEnvRows" class="space-y-2"></div>
+                  </div>
+                  <label class="flex items-center gap-2 text-xs text-slate-300">
+                    <input id="toolsStudioMcpEnabledCheckbox" type="checkbox" checked class="rounded bg-[#08090c] border-white/[0.08] text-cyan-500">
+                    <span>Enabled</span>
+                  </label>
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <button type="button" id="toolsStudioMcpTestBtn" class="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-200 border border-indigo-500/30 text-xs font-semibold">Test handshake</button>
+                    <div class="flex items-center gap-2">
+                      <button type="button" id="toolsStudioMcpCancelBtn" class="px-2.5 py-1.5 rounded-lg bg-white/[0.04] text-slate-300 border border-white/[0.08] text-xs">Cancel</button>
+                      <button type="button" id="toolsStudioMcpSaveBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Save</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="toolsStudioMcpTestResult" class="hidden" data-testid="tools-studio-mcp-result"></div>
+                <div id="toolsStudioMcpList" class="space-y-2" data-testid="tools-studio-mcp-list">
+                  <p class="text-[11px] text-slate-500 italic">Loading MCP servers…</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- ==================== MANAGE TONES MODAL [REQ-TONE-005] ==================== -->
       <div id="manageTonesModal" role="dialog" aria-modal="true" aria-labelledby="manageTonesModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
@@ -4820,7 +4891,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.82"></script>
+  <script type="module" src="/static/app.js?v=2.0.84"></script>
 </body>
 </html>
 

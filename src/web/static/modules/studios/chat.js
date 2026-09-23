@@ -953,6 +953,31 @@ export function initChatStudio(state, callbacks = {}) {
     if (promptInput) promptInput.value = 'I am ready to create a new agent.';
   }
 
+  async function openDeveloperSession(sessionId, composerText = '') {
+    const id = String(sessionId || '').trim();
+    if (!id) return null;
+    state.selectedAgentId = 'developer';
+    storageSet('autoreiv_active_agent_id', 'developer');
+    updateEngineSelectorUi('developer');
+    updateActiveAgentHeader();
+    state.activeSessionId = id;
+    storageSet('autoreiv_active_session_id', id);
+    await loadSessions();
+    await selectSession(id);
+    const needle = String(composerText || '').trim().slice(0, 80);
+    const visible = Boolean(
+      needle && (state.messages || []).some((msg) => String((msg && msg.content) || '').includes(needle)),
+    );
+    if (promptInput) {
+      if (!visible && composerText) {
+        promptInput.value = composerText;
+        promptInput.dispatchEvent(new Event('input'));
+      }
+      promptInput.focus();
+    }
+    return id;
+  }
+
   async function resumeParkedJob() {
     if (state.activeSessionId) {
       await refreshPendingHitl();
@@ -977,10 +1002,24 @@ export function initChatStudio(state, callbacks = {}) {
     openWorkbench,
     closeWorkbench,
     startNewAgentAuthoring,
+    openDeveloperSession,
     resumeParkedJob,
     switchEngineChannel,
     syncActiveProjectIndicator,
     updateJobPhaseFromEvent,
+    showStandingJob: (job) => {
+      const id = String((job && (job.jobId || job.job_id)) || '').trim();
+      if (!id) return null;
+      updateJobPhaseFromEvent('job_created', {
+        job_id: id,
+        status: (job && (job.status || job.jobStatus)) || 'queued',
+        agent_id: (job && (job.agentId || job.agent_id)) || 'developer',
+        phase_name: 'Author',
+        phase_count: 1,
+        index: 0,
+      });
+      return { jobId: id, agentId: (job && (job.agentId || job.agent_id)) || 'developer' };
+    },
     resetJobPhaseStrip,
     updateJobChromeFromEvent,
     remountInlineJobChrome,

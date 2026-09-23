@@ -46,11 +46,15 @@ describe('Factory layout UX [CARD-411]', () => {
     expect(col2).toContain('id="factorySkillNameInput"');
     expect(col2).toContain('id="factorySkillMarkdownEditor"');
     expect(col2).toContain('id="factoryRequiredToolsChips"');
+    expect(col2).toContain('id="factorySourceContextInput"');
+    expect(col2.indexOf('factorySourceContextInput')).toBeLessThan(
+      col2.indexOf('factorySkillMarkdownEditor'),
+    );
   });
 
   it('column 3 stays tools and grounding only', () => {
     expect(col3).toContain('id="factoryCapabilitiesContainer"');
-    expect(col3).toContain('id="factorySourceContextInput"');
+    expect(col3).not.toContain('id="factorySourceContextInput"');
     expect(col3).not.toContain('Assigned Skills');
     expect(col3).not.toContain('factoryExistingSkillSelect');
   });
@@ -86,8 +90,10 @@ describe('Factory layout UX [CARD-411]', () => {
     expect(skillScope).toContain('Pinned to this agent');
     expect(skillScope).not.toContain('factory-skill-open-btn');
     expect(skillScope).toContain('onLoadSkill');
-    expect(factoryJs).toContain('createSkillScopeUI');
-    expect(factoryJs).toContain('refreshEditableSkillOptions');
+    const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
+    expect(skillStudio).toContain('createSkillScopeUI');
+    expect(skillStudio).toContain('refreshEditableSkillOptions');
+    expect(factoryJs).not.toContain('/api/agent_training_factory/scaffold/save');
   });
 });
 

@@ -19,19 +19,20 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
     + read('src/web/static/modules/studios/factory/workshop_meta.js')
     + read('src/web/static/modules/studios/factory/skill_scope.js');
 
-  it('Forge inspector is read-only and opens the Factory workshop', () => {
-    expect(html).toContain('id="studioRunbookOpenFactoryBtn"');
-    expect(html).toContain('Open in Factory Workshop');
-    expect(html).toContain('id="studioRunbookTier"');
-    expect(html).toContain('id="studioRunbookSafety"');
-    expect(html).toContain('id="studioRunbookTools"');
-    expect(html).toContain('readonly');
+  it('Agent Studio does not inspect runbooks inline and opens Skill Studio [CARD-419]', () => {
+    expect(html).not.toContain('id="studioRunbookEditor"');
+    expect(html).not.toContain('id="studioRunbookOpenFactoryBtn"');
+    expect(html).toContain('Author skill in Skill Studio');
+    expect(runbook).toContain('Open in Skill Studio');
+    expect(html).not.toContain('Open in Factory Workshop');
     expect(html).not.toContain('id="studioRunbookSaveBtn"');
     expect(html).not.toContain('id="studioRunbookArchiveBtn"');
     expect(html).not.toContain('id="studioRunbookDeleteBtn"');
     expect(html).not.toContain('id="studioNewRunbookBtn"');
-    expect(runbook).toContain('studioRunbookOpenFactoryBtn');
-    expect(runbook).toContain('openFactoryWorkshop');
+    expect(runbook).not.toContain('studio-runbook-open-btn');
+    expect(runbook).not.toContain('studioRunbookOpenFactoryBtn');
+    expect(runbook).toContain('openSkillStudio');
+    expect(runbook).not.toContain('openFactoryWorkshop');
     expect(runbook).not.toContain("method: 'PUT'");
     expect(runbook).not.toContain("'/archive'");
     expect(runbook).not.toContain('/unarchive');

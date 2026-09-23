@@ -5,6 +5,56 @@
 
 import { applyWorkshopMetadata } from '../../utils/skill_frontmatter.js';
 
+/**
+ * Map a workshop GET payload onto Skill Studio fields [CARD-418 / CARD-411].
+ * A catalog-resolvable skill has no "not found" detail.
+ * @param {object} data
+ * @param {string} skillId
+ */
+export function applyLoadedSkillView(data = {}, skillId = '') {
+  const payload = data && typeof data === 'object' ? data : {};
+  const detail = typeof payload.detail === 'string' ? payload.detail : '';
+  const description = String(payload.description || '').slice(0, 60);
+  const requiresTools = Array.isArray(payload.requires_tools)
+    ? payload.requires_tools.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  return {
+    ok: !detail,
+    notFound: /not found/i.test(detail),
+    detail,
+    name: String(payload.name || skillId || ''),
+    skillId: String(payload.skill_id || skillId || ''),
+    description,
+    tier: String(payload.tier || 'pack'),
+    safety: {
+      read_only: Boolean(payload.safety && payload.safety.read_only),
+      requires_hitl: Boolean(payload.safety && payload.safety.requires_hitl),
+      untrusted_input_allowed: Boolean(payload.safety && payload.safety.untrusted_input_allowed),
+    },
+    requiresTools,
+    markdown: String(payload.markdown_content || ''),
+    deletable: Boolean(payload.deletable),
+  };
+}
+
+/**
+ * Plan a Skill Studio delete against the existing user-pack endpoint.
+ * Refuses unless the loaded skill is deletable and the operator confirmed.
+ * Never sends confirm_seed.
+ */
+export function skillDeleteRequest(skillId, { confirmed = false, deletable = false } = {}) {
+  const clean = String(skillId || '').trim();
+  if (!clean || deletable !== true || confirmed !== true) {
+    return { allowed: false, method: 'DELETE', url: null };
+  }
+  const encoded = clean.split('/').map((part) => encodeURIComponent(part)).join('/');
+  return {
+    allowed: true,
+    method: 'DELETE',
+    url: `/api/skills/user-packs/${encoded}?confirm=true`,
+  };
+}
+
 export function createSkillWorkshop({
   showToast,
   getCapabilities,
@@ -94,7 +144,7 @@ export function createSkillWorkshop({
   }
 
   async function loadExistingSkill(skillId, agentId) {
-    if (!skillId) return;
+    if (!skillId) return null;
     const params = new URLSearchParams();
     if (agentId) params.set('agent_id', agentId);
     const query = params.toString();
@@ -114,27 +164,28 @@ export function createSkillWorkshop({
       const encoded = String(skillId).split('/').map((part) => encodeURIComponent(part)).join('/');
       const resp = await fetch(`/api/agent_training_factory/skills/${encoded}${query ? `?${query}` : ''}`);
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+      const view = applyLoadedSkillView(data, skillId);
+      if (!resp.ok || view.notFound) throw new Error(view.detail || data.detail || `HTTP ${resp.status}`);
       setIdentityLocked(true);
-      if (factorySkillNameInput) factorySkillNameInput.value = data.name || skillId;
-      if (factorySkillIdInput) factorySkillIdInput.value = data.skill_id || skillId;
+      if (factorySkillNameInput) factorySkillNameInput.value = view.name;
+      if (factorySkillIdInput) factorySkillIdInput.value = view.skillId;
       if (factorySkillTriggerInput) {
-        const description = String(data.description || '').slice(0, 60);
-        factorySkillTriggerInput.value = description;
-        if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = `${description.length}/60`;
+        factorySkillTriggerInput.value = view.description;
+        if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = `${view.description.length}/60`;
       }
-      if (factorySkillTierSelect) factorySkillTierSelect.value = data.tier || 'pack';
-      const safety = data.safety || {};
-      if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = Boolean(safety.read_only);
-      if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = Boolean(safety.requires_hitl);
-      if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = Boolean(safety.untrusted_input_allowed);
-      setSelectedTools(new Set(Array.isArray(data.requires_tools) ? data.requires_tools : []));
-      if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = data.markdown_content || '';
+      if (factorySkillTierSelect) factorySkillTierSelect.value = view.tier;
+      if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = view.safety.read_only;
+      if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = view.safety.requires_hitl;
+      if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = view.safety.untrusted_input_allowed;
+      setSelectedTools(new Set(view.requiresTools));
+      if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = view.markdown;
       renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
       syncFrontmatter();
       showToast(`Opened ${skillId} in the workshop`, 'success');
+      return view;
     } catch (err) {
       showToast(`Could not open skill: ${err.message || err}`, 'error');
+      return null;
     }
   }
 

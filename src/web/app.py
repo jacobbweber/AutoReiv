@@ -54,15 +54,18 @@ from src.web.routers.education_priming import router as education_priming_router
 from src.web.routers.gaps import router as gaps_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.mcp_server import router as mcp_server_router
+from src.web.routers.native_tools import router as native_tools_router
 from src.web.routers.observability import router as observability_router
 from src.web.routers.projects import router as projects_router
 from src.web.routers.prompts import router as prompts_router
 from src.web.routers.remote_hosts import router as remote_hosts_router
 from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
+from src.web.routers.skill_authoring import router as skill_authoring_router
 from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
+from src.web.routers.tools_authoring import router as tools_authoring_router
 from src.web.routers.wiki import router as wiki_router
 
 logger = logging.getLogger(__name__)
@@ -313,6 +316,19 @@ def create_app(
     if hasattr(registry, "mcp_engineering_tools"):
         registry.mcp_engineering_tools.mcp_manager = mcp_manager
 
+    from src.application.tools.native_packaging import NativeCustomToolService
+
+    native_custom_tools = NativeCustomToolService(
+        store=store,
+        tool_registry=tool_reg,
+        agent_registry=registry,
+        policy_gate=kernel.tool_policy_gate,
+        hitl_engine=kernel.hitl_engine,
+        kernel=kernel,
+    )
+    if hasattr(registry, "native_tool_engineering"):
+        registry.native_tool_engineering.service = native_custom_tools
+
     # 4b. Agent Training Factory Orchestrator [CARD-171, REQ-FACT-016]
     from src.application.agent_training_factory import FactoryOrchestrator
     from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
@@ -381,6 +397,11 @@ def create_app(
             logger.warning(f"Per-agent MCP server auto-mount scan failed: {e}")
 
         try:
+            native_custom_tools.mount_persisted()
+        except Exception:
+            logger.exception("Native custom tool remount failed")
+
+        try:
             yield
         finally:
             await backup_scheduler.stop()
@@ -424,6 +445,7 @@ def create_app(
     app.state.tool_reg = tool_reg
     app.state.tool_registry = tool_reg
     app.state.mcp_manager = mcp_manager
+    app.state.native_custom_tools = native_custom_tools
     app.state.gateway = gateway
     app.state.hw_calc = hw_calc
     app.state.settings_service = settings_service
@@ -539,6 +561,9 @@ def create_app(
     app.include_router(gaps_router)
     app.include_router(agents_router)
     app.include_router(skills_router)
+    app.include_router(skill_authoring_router)
+    app.include_router(tools_authoring_router)
+    app.include_router(native_tools_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)
     app.include_router(education_router)
