@@ -1,7 +1,7 @@
 ---
 id: CARD-428
 title: "list_user_skill_packs omits pack runbooks the chat index lists"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-428] list_user_skill_packs omits pack runbooks the chat index lists
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-23  
 > **Found during**: CARD-427 implementation  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md)  
@@ -78,3 +78,9 @@ Automated proof: `tests/integration/operator_contracts/test_oc428_list_user_skil
 
 - Replacing a `user_modified` skill file with the seed copy.
 - Changing `skill_view` body loading (CARD-427).
+
+---
+
+## Done
+
+Merged to local qa on 2026-09-23.
