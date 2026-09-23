@@ -98,15 +98,28 @@ Kept: `SkillTier` enum, `user_modified` / seed-hash rules, legacy `packs/<id>/to
 
 ## 7. Out of scope
 
-- Collapsing `$DATA_DIR/skills/`, bundled seeds, and `packs/<id>/skills/` into one tree.
-- Changing ADR-0056 `user_modified` / seed-hash rules, except the additive grant already used for developer skills.
+- Collapsing `$DATA_DIR/skills/`, bundled seeds, and `packs/<id>/skills/` into one tree. **Blocked.** [CARD-203](./CARD-203-pure-platform-skill-isolation-and-pack-boundary-guardrails.md) and [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md) keep those homes separate. No successor card.
+- Changing ADR-0056 `user_modified` / seed-hash rules, except the additive grant already used for developer skills. A later prompt sentence is [CARD-433](./CARD-433-user-modified-developer-prompt-authoring-sentence.md), append-only.
 - MCP hosting UI (stays in Settings).
-- Collapsing Agent Studio’s three skill boxes.
-- Rewriting historical session rows that still say `agent-builder`.
-- Removing the `save_agent_specification` Python handler. It is documented as obsolete and is not on the developer allowlist.
+- Collapsing Agent Studio’s three skill boxes. Successor: [CARD-430](./CARD-430-agent-studio-one-skill-list.md).
+- Rewriting historical session rows that still say `agent-builder`. Successor: [CARD-432](./CARD-432-scrub-historical-agent-builder-rows.md).
+- Removing the `save_agent_specification` Python handler. Successor: [CARD-431](./CARD-431-unregister-save-agent-specification.md).
 
 ---
 
 ## 8. SQLite choice
 
 Leftover `custom_agents` and `agent_overrides` rows for `agent-builder` are deleted on boot (`retire_agent_builder_rows`). Routines that still name that id move to `developer`. Sessions and jobs are not rewritten. A row inserted after boot is ignored by `get_agent` and removed on the next purge.
+
+---
+
+## 9. Successors (Ready, not this slice)
+
+| Card | What it is |
+| --- | --- |
+| [CARD-430](./CARD-430-agent-studio-one-skill-list.md) | One Agent Studio skill list. Disk homes stay. |
+| [CARD-431](./CARD-431-unregister-save-agent-specification.md) | Optional. Unregister `save_agent_specification` if nothing still calls it. |
+| [CARD-432](./CARD-432-scrub-historical-agent-builder-rows.md) | Optional. Point old session and job rows at `developer`. |
+| [CARD-433](./CARD-433-user-modified-developer-prompt-authoring-sentence.md) | Optional. Append one authoring sentence onto a `user_modified` developer prompt. |
+
+Merging `$DATA_DIR/skills/` with `packs/<id>/skills/` is not a successor. It stays blocked by CARD-203 and ADR-0056.
