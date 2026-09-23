@@ -348,12 +348,22 @@ def cmd_serve(args: argparse.Namespace) -> int:
     print(f"🚀 Starting AutoReiv Control Plane on http://{args.host}:{args.port}")
     apply_storage_args(args)
 
+    reload_kwargs = {}
+    if args.reload:
+        from src.infrastructure.data.resolver import repo_root
+
+        root = repo_root()
+        reload_kwargs["reload_dirs"] = [
+            str(root / "src"),
+            str(root / "platform-packs"),
+        ]
     uvicorn.run(
         "src.web.app:create_app",
         factory=True,
         host=args.host,
         port=args.port,
         reload=args.reload,
+        **reload_kwargs,
     )
     return 0
 

@@ -5,6 +5,11 @@ Upgrades: SQLite is the sole writer for profiles/bindings; hash-gated seed apply
 never overwrite when ``user_modified``; never prune operator skill dirs (retired list only).
 ``pack.json`` is an export projection, not a boot source of truth.
 
+CARD-436: when a non-user_modified hash-gated seed apply runs, also refresh the live
+``pack.json`` skill projection (skills / allowed_skill / pack_tool_names / system_prompt)
+so Agent Studio ``pack_skills`` matches SQLite without a manual AppData copy.
+
+
 CARD-425 exception: a named additive grant may append ``native-tool-engineering``
 and ``register_native_tool`` / ``plan_native_folder`` onto a user_modified developer
 allowlist. That grant does not rewrite the prompt, other allowlist entries, or MCP
@@ -23,6 +28,7 @@ deleted. It does not rewrite a non-user_modified seed prompt.
 
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 from pathlib import Path
@@ -574,6 +580,51 @@ def sync_checkout_example_user_packs(
     return updated
 
 
+
+def refresh_live_pack_json_skill_projection(dest_pack: Path, pack_data: dict) -> bool:
+    """Merge seed skill projection into live pack.json without wiping local extras.
+
+    SQLite remains sole writer for profiles; pack.json is an export projection used by
+    Agent Studio ``pack_skills``. When a non-user_modified hash-gated seed apply runs,
+    keep that projection honest for skills / allowlist / tools / Learning OS prompt.
+    """
+    dest_json = Path(dest_pack) / "pack.json"
+    if not dest_json.is_file():
+        return False
+    try:
+        live = json.loads(dest_json.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(live, dict):
+        return False
+
+    changed = False
+    for key in (
+        "skills",
+        "allowed_skill",
+        "pack_tool_names",
+        "system_prompt",
+        "description",
+        "name",
+        "tone",
+        "avatar_icon",
+        "purpose",
+        "model",
+        "show_in_chat",
+        "schema_version",
+    ):
+        if key not in pack_data:
+            continue
+        if live.get(key) != pack_data.get(key):
+            live[key] = pack_data.get(key)
+            changed = True
+    if not changed:
+        return False
+    dest_json.write_text(json.dumps(live, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    logger.info("Refreshed live pack.json skill projection for %s", dest_pack.name)
+    return True
+
+
 def install_platform_agent_packs(
     data_dir: Union[str, Path],
     agent_registry: Any,
@@ -792,6 +843,10 @@ def install_platform_agent_packs(
                                 else:
                                     # Refresh stock skill bodies only when not user_modified (already gated)
                                     shutil.copytree(s, target, dirs_exist_ok=True)
+                    try:
+                        refresh_live_pack_json_skill_projection(dest, pack_data)
+                    except Exception:
+                        logger.exception("Failed to refresh live pack.json projection for %s", pack_id)
                 except Exception:
                     logger.exception("Failed to sync updated prompt for %s", pack_id)
             continue
