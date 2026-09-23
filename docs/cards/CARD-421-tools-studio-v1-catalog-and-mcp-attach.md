@@ -117,3 +117,52 @@ Manual live test (say **merge to qa** only after this):
 ## 7. Honest scope note
 
 CARD-420 left developer mediation APIs in tree without a Skill Studio Ask developer button. This card similarly ships a **real** catalog + MCP operator path with durable state. Custom MCP-only capability lifecycle is the **next** Tools slice after v1, not theatre inside this card.
+
+---
+
+## 8. Live discussion capture (2026-09-22 evening)
+
+Jacob asked for plain-English talk-through. Summary of what was clarified and what he wants.
+
+### Plain meanings
+
+- **Tool**: one named thing an agent can call (inputs in, result out).
+- **MCP server (attach)**: an external plug-in box AutoReiv connects to; the box can expose many tools. Not the same as SSH hosts or other machine endpoints saved in Settings.
+- **MCP host**: AutoReiv acting as a plug-in box so other apps call into AutoReiv. Different from attach.
+- **Settings SSH / host endpoints**: how to reach a computer. Not the Tools Studio catalog.
+
+### Jacob vision (desired end state; not all required in the first build)
+
+1. Open Tools Studio and see **all tools and MCP servers** in one place.
+2. Prefer **tools grouped under the MCP server** that provides them when that is the source.
+3. **Search + filtering** in the spirit of Routines Studio (find tools / servers quickly).
+4. Manage tool **lifecycle** (create / modify / delete) **without the operator typing code**.
+5. Operator fills a **form** (what the tool should do, maybe language / constraints) then:
+   - **Submit to developer**, and/or
+   - **Talk to developer** (convenience: open a new developer chat with that form context).
+6. Developer pack should be strong at building AutoReiv tools and MCP servers; may need **new skills / runbooks** for AutoReiv-specific tool and MCP guidance (beyond general MCP knowledge).
+7. Open product fork: **relationship between a tool and an MCP server** when the source is existing scripts / playbooks (for example a Homelab Ansible folder).
+
+### Open forks (lock before or during build; do not invent dual truth)
+
+| # | Fork | Options under discussion | Notes |
+|---|------|--------------------------|-------|
+| T1 | First ship shape | **A)** Browse + attach + search only (thin). **B)** Thin plus form + Talk/Submit to developer in the same card. **C)** Split: CARD-421 thin UI; later card for developer-mediated tool lifecycle. | CARD-420 taught us not to ship Ask developer until the job actually runs. Prefer real mediation or keep the button off. |
+| T2 | MCP attach UI home | **A)** Tools Studio owns platform + agent-scoped attach; Settings and Agent Studio become thin status + Open in Tools Studio. **B)** Tools Studio owns platform + catalog; Agent Studio keeps a small per-agent attach form. | Jacob asked whether MCP attach (and hosting) move here from Settings and Agent Studio. |
+| T3 | MCP hosting UI | **A)** Stay where it is for now. **B)** Move status/controls into Tools Studio later. | Hosting is not the same as attach; do not blur them in v1. |
+| T4 | Scripts / playbooks vs MCP | **A)** Require an MCP server between AutoReiv and local scripts (ADR-0057 custom via MCP direction). **B)** Allow native AutoReiv tools that wrap a folder of scripts with strong guardrails (policy change). **C)** Developer may choose either per request, but the Studio form always records which mode was used. | MCP servers commonly wrap APIs, databases, and local commands/scripts. Pointing a server at a script folder is normal. Native script tools are a separate product risk. |
+| T5 | Required relationship | **A)** Every new custom tool must belong to an MCP server. **B)** Platform/built-in tools need no MCP; only operator-created custom tools require MCP. **C)** Tools may exist without MCP (native), with MCP as optional packaging. | This is the stuck point Jacob named: tool vs MCP vs both required. |
+
+### Working recommendation (not locked)
+
+- Keep **Skill Studio** as the only place that ticks which tools a **skill** may use.
+- Make **Tools Studio** the place that shows tools and plug-in boxes, with search/filter, and (when mediation is real) form-driven create/change via the developer.
+- For Homelab Ansible: default story under current ADR is **developer wraps the folder in an MCP server**, AutoReiv attaches that server, tools appear grouped under it. Revisit native script tools only if Jacob locks T4 toward B or C.
+- Do **not** ship a code editor in Tools Studio.
+- Do **not** revive a silent generate-tool button that only queues a job without running the developer (CARD-420 lesson).
+
+### Still need from Jacob
+
+1. First build: thin browse/attach/search only, or include form + Talk/Submit to developer in CARD-421?
+2. Lock T4 / T5 in plain words: for existing scripts, must there be an MCP server in the middle, or not?
+3. Should MCP **hosting** move into Tools Studio in this card, later, or stay put?
