@@ -1,7 +1,7 @@
 ---
 id: CARD-426
 title: "Refresh native-tool-engineering runbook text on a user-modified developer"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-426] Refresh native-tool-engineering runbook text on a user-modified developer
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-23  
 > **Found during**: CARD-425 implementation  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md)  
@@ -97,3 +97,9 @@ Chat `skill_view` still opens `$DATA_DIR/skills/<id>/SKILL.md` only, and the cha
 
 - Rewriting every `packs/<id>/tools/*.py` module through the CARD-423 sandbox.
 - OS jail for `SandboxedSubprocessWorker`.
+
+---
+
+## Done
+
+Merged to local qa on 2026-09-23. Follow-up [CARD-427](./CARD-427-developer-chat-skill-view-does-not-open-pack-skill-runbooks.md) remains open for chat skill_view pack runbooks. Draft GitHub PR was a side-effect only.
