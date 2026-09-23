@@ -545,7 +545,7 @@ def create_app(
             store.save_routine(r)
         else:
             updated = False
-            if existing_r.agent_id in ("assistant", "wiki"):
+            if existing_r.agent_id in ("assistant", "wiki", "agent-builder"):
                 existing_r.agent_id = r.agent_id
                 updated = True
             if existing_r.next_run_at is None and existing_r.last_run_at is None:

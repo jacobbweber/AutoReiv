@@ -93,12 +93,11 @@ def test_autoreiv_pack_weekly_tasks_and_skills():
 
 def test_builtins_are_only_hidden_agent_builder():
     ids = {p.id for p in BUILTIN_PROFILES}
-    assert ids == {"agent-builder"}
+    assert ids == set()
     assert get_builtin_profile("assistant") is None
     assert get_builtin_profile("autoreiv") is None
     assert get_builtin_profile("developer") is None
-    assert get_builtin_profile("agent-builder") is not None
-    assert get_builtin_profile("agent-builder").show_in_chat is False
+    assert get_builtin_profile("agent-builder") is None
     assert not is_platform_pack("assistant")
     assert is_platform_pack("autoreiv")
     assert is_platform_pack("developer")
@@ -113,7 +112,8 @@ def test_builtins_are_only_hidden_agent_builder():
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     data_dir, registry, _tool_reg = _bootstrap(tmp_path)
     ids = {a.id for a in registry.list_agents()}
-    assert {"autoreiv", "direct", "developer", "tutor", "agent-builder"} <= ids
+    assert {"autoreiv", "direct", "developer", "tutor"} <= ids
+    assert "agent-builder" not in ids
     assert "assistant" not in ids
     assert "wiki" not in ids
     assert "conductor" not in ids

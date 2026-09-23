@@ -193,7 +193,22 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "register_native_tool",
         "plan_native_folder",
     ),
+    "capability-authoring": (
+        "list_available_skills_and_tools",
+        "propose_agent_specification",
+        "propose_skill",
+        "propose_tool",
+        "commit_skill_pack",
+        "list_user_skill_packs",
+        "skill_view",
+        "scaffold_agent_pack",
+        "export_agent_pack",
+        "import_agent_pack",
+    ),
 }
+
+# Developer turn-cap names for capability authoring [CARD-429]. Not save_agent_specification.
+CAPABILITY_AUTHORING_TOOL_NAMES = frozenset(DYNAMIC_SKILL_TOOLS["capability-authoring"])
 
 
 class SkillTier(str, Enum):

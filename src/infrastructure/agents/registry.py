@@ -10,7 +10,12 @@ from src.application.skills.sysadmin_tools import SysadminTools
 from src.application.skills.system_agent_tools import SystemAgentTools
 from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
-from src.domain.agents.profiles import BUILTIN_PROFILES, canonical_agent_id, get_builtin_profile
+from src.domain.agents.profiles import (
+    BUILTIN_PROFILES,
+    RETIRED_LIVE_AGENT_IDS,
+    canonical_agent_id,
+    get_builtin_profile,
+)
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -18,7 +23,8 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 class BuiltinAgentRegistry:
     """
     Registry for managing available agent profiles and bootstrapping
-    the hidden Agent Builder builtin, Platform Agent Packs, custom agents, and authorized tools.
+    Platform Agent Packs, custom agents, and authorized tools.
+    agent-builder is retired [CARD-429] and is never registered.
     """
 
     def __init__(
@@ -30,15 +36,22 @@ class BuiltinAgentRegistry:
         self._profiles: Dict[str, AgentProfile] = {}
         self.state_store = state_store
         self.master_tool_registry = master_tool_registry or ScopedToolRegistry()
+        if self.state_store is not None and hasattr(self.state_store, "retire_agent_builder_rows"):
+            self.state_store.retire_agent_builder_rows()
 
-        for p in profiles or BUILTIN_PROFILES:
+        source = BUILTIN_PROFILES if profiles is None else profiles
+        for p in source:
             self.register_profile(p)
 
     def register_profile(self, profile: AgentProfile) -> None:
+        if profile.id in RETIRED_LIVE_AGENT_IDS:
+            return
         self._profiles[profile.id] = profile
 
     def register_custom_agent(self, profile: AgentProfile) -> None:
         """Persist a custom agent profile and cache in memory."""
+        if profile.id in RETIRED_LIVE_AGENT_IDS:
+            return
         self._profiles[profile.id] = profile
         if self.state_store:
             self.state_store.save_agent_profile(profile)
@@ -56,6 +69,8 @@ class BuiltinAgentRegistry:
 
     def get_agent(self, agent_id: str) -> Optional[AgentProfile]:
         """Fetch agent profile with SQLite custom agent resolution, alias fallback, and override overlay."""
+        if (agent_id or "").strip() in RETIRED_LIVE_AGENT_IDS or canonical_agent_id(agent_id) in RETIRED_LIVE_AGENT_IDS:
+            return None
         profile: Optional[AgentProfile] = None
 
         # 1. Direct match by exact agent_id
@@ -156,8 +171,10 @@ class BuiltinAgentRegistry:
         """List all available agents (built-in baseline merged with custom agents)."""
         agents_map: Dict[str, AgentProfile] = {}
 
-        # 1. Built-in defaults
+        # 1. Built-in defaults (none after CARD-429)
         for p in BUILTIN_PROFILES:
+            if p.id in RETIRED_LIVE_AGENT_IDS:
+                continue
             agents_map[p.id] = p
 
         # 2. In-memory registrations
@@ -173,6 +190,8 @@ class BuiltinAgentRegistry:
         # 4. Resolve overrides for all
         result = []
         for aid in agents_map:
+            if aid in RETIRED_LIVE_AGENT_IDS:
+                continue
             ag = self.get_agent(aid)
             if ag and ag not in result:
                 result.append(ag)
@@ -203,8 +222,9 @@ class BuiltinAgentRegistry:
         skills_dir: Optional[str] = None,
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
-        Bootstrap the agent ecosystem: registers the hidden Agent Builder builtin,
-        initializes platform tool groups, and binds authorized tools to master ScopedToolRegistry.
+        Bootstrap the agent ecosystem: platform packs, tool groups, and the master ScopedToolRegistry.
+        Does not register agent-builder [CARD-429]. Builder HITL tools stay on the master registry
+        for Developer.
         """
         from src.infrastructure.data.resolver import LEGACY_WIKI_STRINGS, DataDirResolver
 

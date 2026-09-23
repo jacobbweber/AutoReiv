@@ -283,7 +283,7 @@ def test_skill_eval_sleep_default_does_not_archive(env):
 def test_skill_curator_routine_is_paused_sibling():
     assert SKILL_CURATOR_ROUTINE in BUILTIN_ROUTINES
     assert SKILL_CURATOR_ROUTINE.enabled is False
-    assert SKILL_CURATOR_ROUTINE.agent_id == "agent-builder"
+    assert SKILL_CURATOR_ROUTINE.agent_id == "developer"
     assert SKILL_CURATOR_ROUTINE.id == ROUTINE_ID
     assert SKILL_CURATOR_ROUTINE.metadata.get("auto_archive") is True
     assert SKILL_CURATOR_ROUTINE.metadata.get("stale_days") == 30

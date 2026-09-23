@@ -64,6 +64,25 @@ BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
 )
 
 
+def _capability_authoring_requested(text: str) -> bool:
+    """True when this turn is asking Developer to scaffold or propose a capability [CARD-429]."""
+    raw = (text or "").lower()
+    if "capability-authoring" in raw or "build-agent-pack" in raw:
+        return True
+    if "propose" in raw and "skill" in raw:
+        return True
+    if "commit" in raw and "skill" in raw:
+        return True
+    if "scaffold" in raw and ("agent" in raw or "pack" in raw):
+        return True
+    from src.application.agent_packs.schema import CAPABILITY_AUTHORING_TOOL_NAMES
+
+    for tool in CAPABILITY_AUTHORING_TOOL_NAMES:
+        if tool in raw or tool.replace("_", " ") in raw:
+            return True
+    return False
+
+
 def parse_nested_park_payload(content: str):
     """Return a nested HITL park dict, or None."""
     try:
@@ -783,7 +802,11 @@ class AgentKernel:
             import re
             user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) if user_content else set()
 
-            from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
+            from src.application.agent_packs.schema import (
+                CAPABILITY_AUTHORING_TOOL_NAMES,
+                DYNAMIC_SKILL_TOOLS,
+                PLATFORM_SKILL_TOOLS,
+            )
             from src.application.tools.native_packaging import AUTHORING_TOOL_NAMES, load_native_tool_names
 
             native_names = load_native_tool_names(self.state_store)
@@ -813,6 +836,13 @@ class AgentKernel:
                 # Naming the catalog tool keeps it inside the turn cap [CARD-428].
                 if name == "list_user_skill_packs" and "list_user_skill_packs" in text_l:
                     return (0, 0, name)
+
+                # Builder HITL stays off the default eight until the turn asks for it [CARD-429].
+                if name in CAPABILITY_AUTHORING_TOOL_NAMES:
+                    if _capability_authoring_requested(text_l):
+                        named = name in text_l or name.replace("_", " ") in text_l
+                        return (0, 0 if named else 1, name)
+                    return (3, 0, name)
 
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = any(

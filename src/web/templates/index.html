@@ -1544,62 +1544,22 @@
                     <h4 class="text-xs font-bold text-emerald-300">AutoReiv OS Baseline</h4>
                     <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">OS BASELINE</span>
                   </div>
-                  <span class="text-[10px] text-slate-400">Platform Required (Always Active) runtime primitives enforced for every agent</span>
+                  <span class="text-[10px] text-slate-400" data-testid="forge-baseline-caption">Platform required tools. Direct mounts none.</span>
                 </div>
                 <div id="forgeBaselineGrid" class="flex flex-wrap gap-2 pt-1">
                   <!-- Baseline tool chips (uncheckable reference) -->
                 </div>
               </div>
 
-              <!-- Platform Skills Sub-Box -->
-              <div id="forgePlatformBox" class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
-                    <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-400"></i>
-                    <h4 class="text-[11px] font-bold text-slate-300">Platform Skills & Tools</h4>
-                  </div>
-                  <span class="text-[10px] text-slate-500">Toggle a platform skill on or off for this agent</span>
-                </div>
-                <div id="forgeSkillsGrid" class="space-y-2 pt-1">
-                  <!-- Platform skill rows with declared tool chips -->
-                </div>
-                <div class="flex flex-wrap items-center gap-2 pt-1">
-                  <button id="studioOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" data-testid="forge-open-factory">
-                    <i data-lucide="hammer" class="w-3.5 h-3.5"></i>
-                    <span>Author skill in Skill Studio</span>
-                  </button>
-                  <span class="text-[10px] text-slate-500">Skill runbooks and tool bindings are authored in Skill Studio.</span>
-                </div>
+              <div id="forgeSkillsGrid" class="space-y-2 pt-1" data-testid="forge-assigned-skills">
+                <!-- One list: platform, operator, and pack rows. Home label is on each row. -->
               </div>
-
-              <!-- Operator skill store. Not platform seeds [CARD-420 hotfix]. -->
-              <div id="forgeOperatorBox" class="space-y-2 pt-3 border-t border-white/[0.06]" data-testid="forge-operator-skills">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
-                    <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
-                    <h4 class="text-[11px] font-bold text-slate-300">Operator skills</h4>
-                  </div>
-                  <span class="text-[10px] text-slate-500">Skill store. Toggle on or off for this agent</span>
-                </div>
-                <div id="forgeOperatorSkillsGrid" class="space-y-2 pt-1">
-                  <!-- Operator skill-store rows -->
-                </div>
-              </div>
-
-              <!-- Dedicated Pack Skills Sub-Box -->
-              <div id="forgePackBox" class="space-y-2 pt-3 border-t border-white/[0.06]">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
-                    <i data-lucide="package" class="w-3.5 h-3.5 text-indigo-400"></i>
-                    <h4 class="text-[11px] font-bold text-slate-300">
-                      <span id="forgePackBoxTitle">Custom Agent Pack Skills & Tools</span>
-                    </h4>
-                  </div>
-                  <span class="text-[10px] text-slate-500">Dedicated runbooks owned by this agent pack</span>
-                </div>
-                <div id="forgeRunbooksGrid" class="space-y-2 pt-1">
-                  <!-- Pack skill rows with declared tool chips -->
-                </div>
+              <div class="flex flex-wrap items-center gap-2 pt-1">
+                <button id="studioOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" data-testid="forge-open-factory">
+                  <i data-lucide="hammer" class="w-3.5 h-3.5"></i>
+                  <span>Author skill in Skill Studio</span>
+                </button>
+                <span class="text-[10px] text-slate-500">Skill runbooks and tool bindings are authored in Skill Studio.</span>
               </div>
             </div>
                 <!-- CARD-183: Dedicated Remote MCP Servers [REQ-MCP-AGENT-003] -->
@@ -3902,16 +3862,6 @@
                     </div>
                     <div id="factoryRequiredToolsChips" class="flex flex-wrap gap-1.5 min-h-[28px]" data-testid="factory-required-tools"></div>
                   </div>
-                  <details class="rounded-lg border border-white/[0.04] bg-[#0e1015]/50 px-2.5 py-2" data-testid="factory-skill-tier-advanced">
-                    <summary class="text-[11px] text-slate-500 cursor-pointer select-none">Advanced: Tier (legacy taxonomy)</summary>
-                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Turn skills on or off with the toggle pills in Agent Studio.</p>
-                    <label for="factorySkillTierSelect" class="sr-only">Tier</label>
-                    <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
-                      <option value="pack">pack</option>
-                      <option value="platform">platform</option>
-                      <option value="user">user</option>
-                    </select>
-                  </details>
                 </div>
 
                 <div class="space-y-1.5" data-testid="skill-studio-source-context">

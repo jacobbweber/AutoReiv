@@ -94,11 +94,11 @@ export function createSkillWorkshop({
   }
 
   function workshopFields() {
-    const { factorySkillNameInput, factorySkillTriggerInput, factorySkillTierSelect } = els();
+    const { factorySkillNameInput, factorySkillTriggerInput } = els();
     return {
       name: (factorySkillNameInput && factorySkillNameInput.value.trim()) || '',
       description: (factorySkillTriggerInput && factorySkillTriggerInput.value.trim()) || '',
-      tier: (factorySkillTierSelect && factorySkillTierSelect.value) || 'pack',
+      tier: 'pack',
       safety: readSafety(),
       requires_tools: Array.from(getSelectedTools()),
     };
@@ -153,7 +153,6 @@ export function createSkillWorkshop({
       factorySkillIdInput,
       factorySkillTriggerInput,
       factorySkillTriggerCharCount,
-      factorySkillTierSelect,
       factorySkillSafetyReadOnly,
       factorySkillSafetyHitl,
       factorySkillSafetyUntrusted,
@@ -173,7 +172,6 @@ export function createSkillWorkshop({
         factorySkillTriggerInput.value = view.description;
         if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = `${view.description.length}/60`;
       }
-      if (factorySkillTierSelect) factorySkillTierSelect.value = view.tier;
       if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = view.safety.read_only;
       if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = view.safety.requires_hitl;
       if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = view.safety.untrusted_input_allowed;

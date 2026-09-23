@@ -1,11 +1,11 @@
 """
-Unit tests for Built-in Agent Profiles [REQ-AGENTS-001, REQ-AGENTS-010].
-Assistant / AutoReiv are Platform Agent Packs (CARD-126). Agent Builder stays a hidden builtin.
+Unit tests for Built-in Agent Profiles [REQ-AGENTS-001, REQ-AGENTS-010, CARD-429].
+Assistant / AutoReiv are Platform Agent Packs. agent-builder is not a live builtin.
 """
 
 from src.domain.agents.profiles import (
-    AGENT_BUILDER_PROFILE,
     BUILTIN_PROFILES,
+    RETIRED_LIVE_AGENT_IDS,
     canonical_agent_id,
     get_builtin_profile,
 )
@@ -100,42 +100,32 @@ def test_get_builtin_profile_lookup_and_aliases():
     assert canonical_agent_id("linux-sysadmin") == "autoreiv"
     assert canonical_agent_id("sysadmin") == "autoreiv"
     assert get_builtin_profile("unknown-agent") is None
-    assert get_builtin_profile("agent-builder") is AGENT_BUILDER_PROFILE
+    assert get_builtin_profile("agent-builder") is None
+    assert "agent-builder" in RETIRED_LIVE_AGENT_IDS
 
 
-def test_agent_builder_profile_definition():
-    agent = AGENT_BUILDER_PROFILE
-    assert agent.id == "agent-builder"
-    assert agent.name == "Agent Builder"
-    assert agent.is_builtin is True
-    assert set(agent.allowed_tool_names) == {
+def test_developer_owns_builder_tools_not_legacy_save():
+    dev = platform_pack_profile("developer")
+    assert "capability-authoring" in dev.allowed_skill
+    assert "proposals" in dev.allowed_skill
+    assert "build-agent-pack" in dev.allowed_skill
+    for name in (
         "list_available_skills_and_tools",
         "propose_agent_specification",
-        "save_agent_specification",
         "propose_skill",
         "propose_tool",
         "commit_skill_pack",
-        "list_user_skill_packs",
-        "skill_view",
-        "lookup_agents",
-        "handoff_to_agent",
-    }
-    assert "propose_workflow" not in agent.allowed_tool_names
-    assert len(agent.allowed_tool_names) < 12
-    assert "execute_code" not in agent.allowed_tool_names
-    assert "cli_exec" not in agent.allowed_tool_names
-    assert "git_commit" not in agent.allowed_tool_names
-    assert "write_card" not in agent.allowed_tool_names
-    assert "write_spec" not in agent.allowed_tool_names
-    assert "write_project_file" not in agent.allowed_tool_names
-    assert "not Conductor" in agent.system_prompt or "You are not Conductor" in agent.system_prompt
-    assert get_builtin_profile("agent-builder") is agent
-    assert agent.show_in_chat is False
+        "scaffold_agent_pack",
+    ):
+        assert name in dev.allowed_tool_names
+    assert "save_agent_specification" not in dev.allowed_tool_names
+    assert "propose_workflow" not in dev.allowed_tool_names
 
 
 def test_sdlc_specialists_are_not_builtins():
     ids = {p.id for p in BUILTIN_PROFILES}
-    assert ids == {"agent-builder"}
+    assert ids == set()
+    assert "agent-builder" not in ids
     assert "assistant" not in ids
     assert "autoreiv" not in ids
     assert "coding" not in ids
@@ -144,7 +134,7 @@ def test_sdlc_specialists_are_not_builtins():
 
 
 def test_agent_builder_hidden_from_chat_platform_packs_visible():
-    assert AGENT_BUILDER_PROFILE.show_in_chat is False
+    assert get_builtin_profile("agent-builder") is None
     assert platform_pack_profile("autoreiv").show_in_chat is True
     assert platform_pack_profile("direct").show_in_chat is True
     assert platform_pack_profile("developer").show_in_chat is True

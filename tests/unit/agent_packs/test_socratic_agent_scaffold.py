@@ -4,8 +4,6 @@ Unit tests for Socratic Agent Discovery and Scaffold Contracts [REQ-FACT-046, RE
 
 from pathlib import Path
 
-from src.domain.agents.profiles import AGENT_BUILDER_PROFILE
-
 
 def test_build_agent_pack_skill_contains_socratic_discovery_and_blueprint():
     skill_path = Path("platform-packs/autoreiv/skills/build-agent-pack/SKILL.md")
@@ -35,7 +33,11 @@ def test_seed_build_agent_pack_matches_platform_pack():
     assert platform_path.read_text(encoding="utf-8") == seed_path.read_text(encoding="utf-8")
 
 
-def test_agent_builder_profile_instructs_socratic_discovery():
-    prompt = AGENT_BUILDER_PROFILE.system_prompt
-    assert "Socratic" in prompt or "clarifying questions" in prompt
-    assert "[IDENTITY & ROLE]" in prompt or "boundary" in prompt.lower()
+def test_developer_capability_skill_documents_scaffold_not_legacy_save():
+    skill_path = Path("platform-packs/developer/skills/capability-authoring/SKILL.md")
+    content = skill_path.read_text(encoding="utf-8")
+    assert "scaffold_agent_pack" in content
+    assert "save_agent_specification" in content
+    assert "not" in content.lower() and "allowlist" in content
+    assert "propose_skill" in content
+    assert "commit_skill_pack" in content

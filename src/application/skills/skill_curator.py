@@ -30,7 +30,7 @@ from src.infrastructure.skills.seed import BUNDLED_PACK_IDS, bundled_seed_root
 logger = logging.getLogger(__name__)
 
 ROUTINE_ID = "skill-curator"
-AGENT_ID = "agent-builder"
+AGENT_ID = "developer"
 SOURCE = "skill-curator"
 STALE_AFTER_DAYS = 30
 ARCHIVE_AFTER_DAYS = 90

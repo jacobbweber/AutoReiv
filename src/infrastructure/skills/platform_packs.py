@@ -73,6 +73,33 @@ USER_MODIFIED_SKILL_GRANT_SETTING = "platform_user_modified_skill_grants"
 USER_MODIFIED_ADDITIVE_SKILL_GRANTS: dict[str, dict[str, tuple[str, ...]]] = {
     "developer": {
         "native-tool-engineering": ("register_native_tool", "plan_native_folder"),
+        # CARD-429: builder HITL + pack scaffold. Does not include save_agent_specification.
+        "capability-authoring": (
+            "list_available_skills_and_tools",
+            "propose_agent_specification",
+            "propose_skill",
+            "propose_tool",
+            "commit_skill_pack",
+            "list_user_skill_packs",
+            "skill_view",
+            "scaffold_agent_pack",
+            "export_agent_pack",
+            "import_agent_pack",
+        ),
+        "proposals": (
+            "propose_skill",
+            "propose_tool",
+            "propose_agent_specification",
+            "list_available_skills_and_tools",
+            "skill_view",
+            "list_user_skill_packs",
+            "commit_skill_pack",
+        ),
+        "build-agent-pack": (
+            "export_agent_pack",
+            "import_agent_pack",
+            "scaffold_agent_pack",
+        ),
     },
 }
 

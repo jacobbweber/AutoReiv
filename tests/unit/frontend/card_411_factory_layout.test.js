@@ -59,10 +59,10 @@ describe('Factory layout UX [CARD-411]', () => {
     expect(col3).not.toContain('factoryExistingSkillSelect');
   });
 
-  it('hides Tier behind advanced disclosure and documents safety flags', () => {
-    expect(html).toContain('data-testid="factory-skill-tier-advanced"');
-    expect(html).toContain('Advanced: Tier (legacy taxonomy)');
-    expect(html).toContain('id="factorySkillTierSelect"');
+  it('has no skill tier dropdown and documents safety flags [CARD-429]', () => {
+    expect(html).not.toContain('data-testid="factory-skill-tier-advanced"');
+    expect(html).not.toContain('Advanced: Tier (legacy taxonomy)');
+    expect(html).not.toContain('id="factorySkillTierSelect"');
     expect(html).toContain('Pause for human approval before sensitive work.');
     expect(html).toContain('lint/contract flag, not a hard kernel lock');
     expect(html).toContain('Requires approval must also be on (linter enforces that).');

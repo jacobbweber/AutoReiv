@@ -29,7 +29,7 @@ export function baselineToolCardHtml(tool) {
   const desc = tObj.description || '';
   return `
     <div class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-950/70 border border-emerald-700/60 text-xs text-slate-200 select-none shadow-sm" title="${escapeHtml(desc)}">
-      <input type="checkbox" checked disabled class="hidden" title="Enforced platform required for all agents">
+      <input type="checkbox" checked disabled class="hidden" title="Platform required tool. Direct mounts none.">
       <i data-lucide="lock" class="w-3 h-3 text-emerald-400 shrink-0"></i>
       <span class="font-mono text-[11px] font-semibold text-emerald-200">${escapeHtml(name)}</span>
       <span class="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 uppercase">OS BASELINE</span>
@@ -46,6 +46,8 @@ export function renderBaselineTools(gridEl = null) {
     { name: 'handoff_to_agent', description: 'Handoff the conversation or task to another agent specialist.' },
     { name: 'lookup_agents', description: 'Query available agents and their capabilities.' },
     { name: 'get_session_info', description: 'Inspect active session metadata and runtime state.' },
+    { name: 'recall_agent_memory', description: 'Recall facts stored for this agent.' },
+    { name: 'memorize_fact', description: 'Store a fact for this agent.' },
   ];
   grid.innerHTML = requiredPrimitives.map((t) => baselineToolCardHtml(t)).join('');
   safeCreateIcons();

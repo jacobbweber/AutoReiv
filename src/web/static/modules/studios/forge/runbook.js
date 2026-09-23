@@ -1,5 +1,5 @@
 /**
- * Agent Studio skill rows [CARD-411, CARD-419].
+ * Agent Studio skill rows [CARD-411, CARD-419, CARD-430].
  * Toggle pills scope allowed_skill. Open in Skill Studio is the only skill detail link.
  * There is no inline runbook inspector in Agent Studio.
  */
@@ -10,12 +10,26 @@ import { showToast } from '../../ui/toast.js';
 import { renderBaselineTools } from './tools.js';
 import { applySkillPillToggle, paintSkillPill } from './skill_pills.js';
 
+const SKILL_HOME_LABELS = {
+  platform: 'Platform',
+  operator: 'Operator',
+  pack: 'Pack',
+};
+
+export function skillHomeLabel(home) {
+  return SKILL_HOME_LABELS[home] || '';
+}
+
 export function skillRowHtml(skill, home, archived = false) {
   const id = skill.id || '';
   const name = skill.name || id;
   const desc = skill.description || '';
+  const homeLabel = skillHomeLabel(home);
+  const homeBadge = homeLabel
+    ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-950 text-slate-300 border border-slate-700" data-testid="forge-skill-home-label">${escapeHtml(homeLabel)}</span>`
+    : '';
   const scopeControl = archived
-    ? `<span class="inline-flex items-center px-2.5 py-1 rounded-full border border-slate-800 bg-slate-950/80 text-[11px] font-semibold text-slate-500" data-skill-id="${escapeHtml(id)}" data-archived="1">Archived</span>`
+    ? `<span class="inline-flex items-center px-2.5 py-1 rounded-full border border-slate-800 bg-slate-950/80 text-[11px] font-semibold text-slate-500" data-skill-id="${escapeHtml(id)}" data-archived="1" data-testid="forge-skill-archived">Archived</span>`
     : `<button type="button" class="forge-skill-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition bg-slate-900/70 border-slate-700 text-slate-400 aria-pressed:bg-emerald-950/80 aria-pressed:border-emerald-500/70 aria-pressed:text-emerald-100" role="switch" aria-pressed="false" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}" data-testid="forge-skill-pill" aria-label="Allow ${escapeHtml(name)} for this agent"><span class="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true"></span><span>${escapeHtml(name)}</span></button>`;
 
   const rawTools = Array.isArray(skill.tools) ? skill.tools : [];
@@ -60,6 +74,7 @@ export function skillRowHtml(skill, home, archived = false) {
           </div>
         </div>
         <div class="flex items-center space-x-1.5 shrink-0">
+          ${homeBadge}
           ${openStudio}
         </div>
       </div>
@@ -117,24 +132,46 @@ function skillRowHandlerOpts(options = {}) {
   };
 }
 
-export function renderPlatformSkills({
+export function assignedSkillListHtml({
+  platformSkills = [],
+  operatorSkills = [],
+  packSkills = [],
+  archivedSkills = [],
+} = {}) {
+  const platform = (platformSkills || []).filter((skill) => skill && skill.id);
+  const operator = (operatorSkills || []).map(operatorSkillPillModel).filter((skill) => skill.id);
+  const pack = (packSkills || []).filter((skill) => skill && skill.id);
+  const archived = (archivedSkills || []).filter((skill) => skill && skill.id);
+  const rows = [
+    ...platform.map((skill) => skillRowHtml(skill, 'platform', false)),
+    ...operator.map((skill) => skillRowHtml(skill, 'operator', false)),
+    ...pack.map((skill) => skillRowHtml(skill, 'pack', false)),
+    ...archived.map((skill) => skillRowHtml(skill, 'archived', true)),
+  ];
+  if (!rows.length) {
+    return '<p class="text-[10px] text-slate-500 px-1" data-testid="forge-skills-empty">No skills for this agent yet.</p>';
+  }
+  return rows.join('');
+}
+
+export function renderAssignedSkills({
   cachedPlatformSkills = [],
+  cachedOperatorSkills = [],
   cachedArchivedSkills = [],
+  activeForgeAgent = null,
   lastAllowedSkills = new Set(),
   onToggleSkill = null,
   onOpenSkillStudio = null,
 } = {}) {
   const forgeSkillsGrid = $('forgeSkillsGrid');
   if (!forgeSkillsGrid) return;
-  const platform = cachedPlatformSkills || [];
-  const archived = cachedArchivedSkills || [];
-  const platformHtml = platform.length
-    ? platform.map((s) => skillRowHtml(s, 'platform', false)).join('')
-    : '<p class="text-[10px] text-slate-500 px-1">No platform runbooks in the skills data dir.</p>';
-  const archivedHtml = archived.length
-    ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Archived</h4>${archived.map((s) => skillRowHtml(s, 'archived', true)).join('')}</div>`
-    : '';
-  forgeSkillsGrid.innerHTML = `${platformHtml}${archivedHtml}`;
+  const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
+  forgeSkillsGrid.innerHTML = assignedSkillListHtml({
+    platformSkills: cachedPlatformSkills,
+    operatorSkills: cachedOperatorSkills,
+    packSkills,
+    archivedSkills: cachedArchivedSkills,
+  });
   bindSkillRowHandlers(forgeSkillsGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
   applySkillChecks(lastAllowedSkills);
 }
@@ -155,40 +192,6 @@ export function operatorSkillPillModel(row) {
   };
 }
 
-export function renderOperatorSkills({
-  cachedOperatorSkills = [],
-  lastAllowedSkills = new Set(),
-  onToggleSkill = null,
-  onOpenSkillStudio = null,
-} = {}) {
-  const forgeOperatorSkillsGrid = $('forgeOperatorSkillsGrid');
-  if (!forgeOperatorSkillsGrid) return;
-  const skills = (cachedOperatorSkills || []).map(operatorSkillPillModel).filter((row) => row.id);
-  const html = skills.length
-    ? skills.map((skill) => skillRowHtml(skill, 'operator', false)).join('')
-    : '<p class="text-[10px] text-slate-500 px-1">No operator skills in the skill store yet.</p>';
-  forgeOperatorSkillsGrid.innerHTML = html;
-  bindSkillRowHandlers(forgeOperatorSkillsGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
-  applySkillChecks(lastAllowedSkills);
-}
-
-export function renderPackSkills({
-  activeForgeAgent = null,
-  lastAllowedSkills = new Set(),
-  onToggleSkill = null,
-  onOpenSkillStudio = null,
-} = {}) {
-  const forgeRunbooksGrid = $('forgeRunbooksGrid');
-  if (!forgeRunbooksGrid) return;
-  const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
-  const packHtml = packSkills.length
-    ? packSkills.map((s) => skillRowHtml(s, 'pack', false)).join('')
-    : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
-  forgeRunbooksGrid.innerHTML = packHtml;
-  bindSkillRowHandlers(forgeRunbooksGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
-  applySkillChecks(lastAllowedSkills);
-}
-
 export function renderNestedHomes({
   cachedPlatformSkills = [],
   cachedOperatorSkills = [],
@@ -199,20 +202,10 @@ export function renderNestedHomes({
   onOpenSkillStudio = null,
 } = {}) {
   renderBaselineTools();
-  renderPlatformSkills({
+  renderAssignedSkills({
     cachedPlatformSkills,
-    cachedArchivedSkills,
-    lastAllowedSkills,
-    onToggleSkill,
-    onOpenSkillStudio,
-  });
-  renderOperatorSkills({
     cachedOperatorSkills,
-    lastAllowedSkills,
-    onToggleSkill,
-    onOpenSkillStudio,
-  });
-  renderPackSkills({
+    cachedArchivedSkills,
     activeForgeAgent,
     lastAllowedSkills,
     onToggleSkill,

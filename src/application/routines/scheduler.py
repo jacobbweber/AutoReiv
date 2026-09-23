@@ -87,7 +87,7 @@ class RoutineScheduler:
                 store.save_routine(r)
             else:
                 updated = False
-                if existing.agent_id in ("assistant", "wiki"):
+                if existing.agent_id in ("assistant", "wiki", "agent-builder"):
                     existing.agent_id = r.agent_id
                     updated = True
                 if existing.next_run_at is None and existing.last_run_at is None:

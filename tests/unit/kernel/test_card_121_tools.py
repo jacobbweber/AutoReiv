@@ -109,7 +109,7 @@ Playbook body.
 
 
 def test_builtin_allowlists_unchanged_for_core():
-    from src.domain.agents.profiles import AGENT_BUILDER_PROFILE, BUILTIN_PROFILES
+    from src.domain.agents.profiles import BUILTIN_PROFILES
     from tests.unit.agent_packs.catalog import platform_pack_profile
 
     autoreiv = platform_pack_profile("autoreiv")
@@ -118,6 +118,7 @@ def test_builtin_allowlists_unchanged_for_core():
     assert "execute_code" not in autoreiv.allowed_tool_names
     developer = platform_pack_profile("developer")
     assert "execute_code" in developer.allowed_tool_names
-    assert "execute_code" not in AGENT_BUILDER_PROFILE.allowed_tool_names
+    assert "propose_skill" in developer.allowed_tool_names
+    assert "skill_view" in developer.allowed_tool_names
+    assert "save_agent_specification" not in developer.allowed_tool_names
     assert not any("execute_code" in p.allowed_tool_names for p in BUILTIN_PROFILES)
-    assert "skill_view" in AGENT_BUILDER_PROFILE.allowed_tool_names

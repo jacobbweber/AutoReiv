@@ -66,7 +66,6 @@ export function initSkillStudio(_state, callbacks = {}) {
   const factorySaveSkillBtn = $('factorySaveSkillBtn');
   const skillStudioDeleteBtn = $('skillStudioDeleteBtn');
   const factorySaveFeedbackMsg = $('factorySaveFeedbackMsg');
-  const factorySkillTierSelect = $('factorySkillTierSelect');
   const factorySkillSafetyReadOnly = $('factorySkillSafetyReadOnly');
   const factorySkillSafetyHitl = $('factorySkillSafetyHitl');
   const factorySkillSafetyUntrusted = $('factorySkillSafetyUntrusted');
@@ -107,7 +106,6 @@ export function initSkillStudio(_state, callbacks = {}) {
       factorySkillIdInput,
       factorySkillTriggerInput,
       factorySkillTriggerCharCount,
-      factorySkillTierSelect,
       factorySkillSafetyReadOnly,
       factorySkillSafetyHitl,
       factorySkillSafetyUntrusted,
@@ -170,7 +168,6 @@ export function initSkillStudio(_state, callbacks = {}) {
     }
     if (factorySkillIntentInput) factorySkillIntentInput.value = '';
     if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = '';
-    if (factorySkillTierSelect) factorySkillTierSelect.value = 'pack';
     if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = false;
     if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = false;
     if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = false;
@@ -574,7 +571,7 @@ export function initSkillStudio(_state, callbacks = {}) {
     });
   }
 
-  [factorySkillTierSelect, factorySkillSafetyReadOnly, factorySkillSafetyHitl, factorySkillSafetyUntrusted].forEach((el) => {
+  [factorySkillSafetyReadOnly, factorySkillSafetyHitl, factorySkillSafetyUntrusted].forEach((el) => {
     if (!el) return;
     el.addEventListener('change', () => syncFrontmatter());
   });

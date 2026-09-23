@@ -28,10 +28,10 @@ describe('CARD-304 Agents Constitution + Training Optimization + collapsed', () 
     expect(html).toContain('Proposed skills and tools from capability gaps');
     expect(html).not.toContain('Self-Scaffold Candidate Queue');
     const train = html.indexOf('Agent Training Optimization');
-    const plat = html.indexOf('id="forgePlatformBox"');
+    const skills = html.indexOf('id="forgeSkillsSection"');
     const caps = html.indexOf('data-section="capabilities"');
     expect(train).toBeGreaterThan(caps);
-    expect(train).toBeLessThan(plat);
+    expect(train).toBeLessThan(skills);
     expect(html).toContain('id="forgeScaffoldOpenFactoryBtn"');
     expect(js).toContain('forgeScaffoldOpenFactoryBtn');
   });

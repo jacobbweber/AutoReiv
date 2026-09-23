@@ -832,7 +832,6 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
     tool_registry = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
     tools = tool_registry.list_tools() if tool_registry else []
 
-    from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
     from src.application.tools.native_packaging import catalog_origin_label, load_native_tool_names
     from src.infrastructure.agents.legacy_pack_tools import LEGACY_PACK_TOOL_ORIGIN
 
@@ -864,22 +863,13 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
             ns_id = "legacy_pack_tool"
             ns_name = "Legacy pack tool"
             ns_source = "legacy_pack_tool"
-        elif any(t_name in t_list for t_list in PLATFORM_SKILL_TOOLS.values()):
-            matched_skill = next((s for s, t_list in PLATFORM_SKILL_TOOLS.items() if t_name in t_list), "platform")
-            ns_id = f"platform:{matched_skill}"
-            ns_name = f"Platform: {matched_skill.title()}"
-            ns_source = "platform"
-        elif any(t_name in t_list for t_list in DYNAMIC_SKILL_TOOLS.values()):
-            matched_skill = next((s for s, t_list in DYNAMIC_SKILL_TOOLS.items() if t_name in t_list), "dynamic")
-            ns_id = f"dynamic:{matched_skill}"
-            ns_name = f"Dynamic: {matched_skill.title()}"
-            ns_source = "dynamic"
         else:
-            ns_id = "builtin"
-            ns_name = "Built-in Primitives"
-            ns_source = "builtin"
+            # Shipped callables are one Platform group. Do not split Dynamic or Built-in Primitives [CARD-429].
+            ns_id = "platform"
+            ns_name = "Platform"
+            ns_source = "platform"
 
-        origin_source = "platform" if ns_source in {"builtin", "dynamic", "platform"} else ns_source
+        origin_source = "platform" if ns_source == "platform" else ns_source
         if ns_id not in namespaces:
             namespaces[ns_id] = {
                 "id": ns_id,

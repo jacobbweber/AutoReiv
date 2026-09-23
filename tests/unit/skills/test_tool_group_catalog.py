@@ -31,7 +31,9 @@ def test_builtin_tool_groups_defined():
     assert pack_map["diagnostics"].name == "AutoReiv Core Platform SRE & Diagnostics"
 
     assert pack_map["orchestration"].tier == "cognition"
-    assert pack_map["agent-builder"].tier == "cognition"
+    assert pack_map["capability-authoring"].tier == "cognition"
+    assert "agent-builder" not in pack_map
+    assert "save_agent_specification" not in pack_map["capability-authoring"].tool_names
 
 
 def test_get_hierarchical_tool_groups():

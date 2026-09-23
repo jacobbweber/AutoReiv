@@ -17,11 +17,11 @@ from src.application.orchestration.skill_proposals import (
 )
 from src.application.skills.agent_builder_tools import AgentBuilderTools
 from src.application.skills.user_catalog import UserSkillCatalog
-from src.domain.agents.profiles import AGENT_BUILDER_PROFILE
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 @pytest.fixture
@@ -279,5 +279,6 @@ async def test_coding_cannot_execute_propose_skill(setup):
     assert result.success is False
     assert "not authorized" in (result.error or "")
     assert setup["store"].get_pending_approvals(session_id="sess_code") == []
-    builder_ok = "propose_skill" in AGENT_BUILDER_PROFILE.allowed_tool_names
-    assert builder_ok
+    developer = platform_pack_profile("developer")
+    assert "propose_skill" in developer.allowed_tool_names
+    assert "save_agent_specification" not in developer.allowed_tool_names

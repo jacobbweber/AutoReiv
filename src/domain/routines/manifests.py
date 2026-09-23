@@ -83,7 +83,7 @@ SKILL_EVAL_SLEEP_ROUTINE = Routine(
         "02:00 local / 2am user-local is wrong for this operator (surprise GPU load). "
         "21:00 UTC is 17:00 EDT -- also wrong. Harvest + gate + propose_skill HITL only."
     ),
-    agent_id="agent-builder",
+    agent_id="developer",
     prompt=SKILL_EVAL_SLEEP_PROMPT,
     schedule_type=ScheduleType.CRON,
     cron_expression="0 21 * * 1-5",
@@ -120,7 +120,7 @@ SKILL_CURATOR_ROUTINE = Routine(
         "Never deletes SKILL.md or bundled seeds. "
         "Enable only when you want auto-archive."
     ),
-    agent_id="agent-builder",
+    agent_id="developer",
     prompt=SKILL_CURATOR_PROMPT,
     schedule_type=ScheduleType.CRON,
     cron_expression="0 21 * * 1-5",

@@ -31,14 +31,13 @@ async def test_agent_forge_crud_api(app):
         assert list_resp.status_code == 200
         agents = list_resp.json()
         ids = {a["id"] for a in agents}
-        assert {"autoreiv", "direct", "developer", "tutor", "agent-builder"} <= ids
+        assert {"autoreiv", "direct", "developer", "tutor"} <= ids
+        assert "agent-builder" not in ids
         assert "assistant" not in ids
         assert "wiki" not in ids
         assert "coding" not in ids
         assert "conductor" not in ids
         assert "review" not in ids
-        ab = next(a for a in agents if a["id"] == "agent-builder")
-        assert ab["show_in_chat"] is False
         ar = next(a for a in agents if a["id"] == "autoreiv")
         assert ar["show_in_chat"] is True
         dev = next(a for a in agents if a["id"] == "developer")
@@ -218,36 +217,13 @@ async def test_builtin_agent_provider_override_persists(app):
         assert reloaded["provider"] == "anthropic"
         assert reloaded["model"] == "claude-3-5-sonnet"
 
-        # Verify true builtin agent (agent-builder) saves provider override to agent_overrides table
-        ab_resp = await ac.get("/api/agents/agent-builder")
-        assert ab_resp.status_code == 200
-        ab_data = ab_resp.json()
-        assert ab_data["is_builtin"] is True
-        assert ab_data["provider"] == "default"
-
-        ab_update = {
-            "name": ab_data["name"],
-            "description": ab_data.get("description") or "",
-            "system_prompt": ab_data["system_prompt"],
-            "provider": "lmstudio",
-            "model": "qwen2.5-coder",
-            "tone": ab_data.get("tone") or "default",
-            "avatar_icon": ab_data.get("avatar_icon") or "bot",
-            "allowed_tool_names": ab_data.get("allowed_tool_names") or [],
-            "max_turns": ab_data.get("max_turns") or 10,
-        }
-        ab_put = await ac.put("/api/agents/agent-builder", json=ab_update)
-        assert ab_put.status_code == 200
-
-        ab_reload = await ac.get("/api/agents/agent-builder")
-        assert ab_reload.status_code == 200
-        assert ab_reload.json()["provider"] == "lmstudio"
-        assert ab_reload.json()["model"] == "qwen2.5-coder"
+        missing = await ac.get("/api/agents/agent-builder")
+        assert missing.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
-    """Stale agent_overrides show_in_chat=1 must not surface Agent Builder in Chat."""
+    """A stale show_in_chat override must not resurrect agent-builder [CARD-429]."""
     from src.domain.settings.models import AgentCustomization
 
     app.state.store.save_agent_override(AgentCustomization(agent_id="agent-builder", show_in_chat=True))
@@ -256,11 +232,9 @@ async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
         list_resp = await ac.get("/api/agents")
         assert list_resp.status_code == 200
         by_id = {a["id"]: a for a in list_resp.json()}
-        assert "agent-builder" in by_id
-        assert by_id["agent-builder"]["show_in_chat"] is False
+        assert "agent-builder" not in by_id
         get_resp = await ac.get("/api/agents/agent-builder")
-        assert get_resp.status_code == 200
-        assert get_resp.json()["show_in_chat"] is False
+        assert get_resp.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -273,7 +247,7 @@ async def test_platform_agents_chat_visibility(app):
         assert listed["direct"]["show_in_chat"] is True
         assert listed["developer"]["show_in_chat"] is True
         assert listed["tutor"]["show_in_chat"] is True
-        assert listed["agent-builder"]["show_in_chat"] is False
+        assert "agent-builder" not in listed
         assert "assistant" not in listed
         assert "wiki" not in listed
 

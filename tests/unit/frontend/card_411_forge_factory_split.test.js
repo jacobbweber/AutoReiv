@@ -39,15 +39,43 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
     expect(runbook).not.toContain('studioRunbookSaveBtn');
   });
 
-  it('Factory workshop edits tier, safety, and required tools', () => {
-    expect(html).toContain('id="factorySkillTierSelect"');
+  it('Factory workshop edits safety and required tools and writes tier pack [CARD-429]', () => {
+    expect(html).not.toContain('id="factorySkillTierSelect"');
+    expect(html).not.toContain('data-testid="factory-skill-tier-advanced"');
     expect(html).toContain('id="factorySkillSafetyHitl"');
     expect(html).toContain('id="factoryRequiredToolsChips"');
     expect(html).toContain('id="factoryExistingSkillSelect"');
-    expect(html).toContain('data-testid="factory-skill-tier-advanced"');
     expect(factory).toContain('requires_tools');
     expect(factory).toContain('applyWorkshopMetadata');
     expect(factory).toContain('/api/agent_training_factory/skills/');
     expect(factory).toContain('syncFrontmatter');
+    expect(factory).toContain("tier: 'pack'");
+  });
+
+  it('save writes tier pack and ignores a leftover tier select [CARD-429]', async () => {
+    const { createSkillWorkshop } = await import(
+      '../../../src/web/static/modules/studios/factory/workshop_meta.js'
+    );
+    const workshop = createSkillWorkshop({
+      showToast: () => {},
+      getCapabilities: () => [],
+      getSelectedTools: () => new Set(['wiki_note_read']),
+      setSelectedTools: () => {},
+      setIdentityLocked: () => {},
+      renderCapabilities: () => {},
+      updateSelectedToolBadge: () => {},
+      elements: () => ({
+        factorySkillNameInput: { value: 'Backup' },
+        factorySkillTriggerInput: { value: 'Backup a host' },
+        factorySkillTierSelect: { value: 'platform' },
+        factorySkillSafetyReadOnly: { checked: false },
+        factorySkillSafetyHitl: { checked: true },
+        factorySkillSafetyUntrusted: { checked: false },
+      }),
+    });
+    const fields = workshop.workshopFields();
+    expect(fields.tier).toBe('pack');
+    expect(fields.tier).not.toBe('platform');
+    expect(fields.requires_tools).toEqual(['wiki_note_read']);
   });
 });
