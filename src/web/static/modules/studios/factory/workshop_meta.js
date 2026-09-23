@@ -33,6 +33,25 @@ export function applyLoadedSkillView(data = {}, skillId = '') {
     },
     requiresTools,
     markdown: String(payload.markdown_content || ''),
+    deletable: Boolean(payload.deletable),
+  };
+}
+
+/**
+ * Plan a Skill Studio delete against the existing user-pack endpoint.
+ * Refuses unless the loaded skill is deletable and the operator confirmed.
+ * Never sends confirm_seed.
+ */
+export function skillDeleteRequest(skillId, { confirmed = false, deletable = false } = {}) {
+  const clean = String(skillId || '').trim();
+  if (!clean || deletable !== true || confirmed !== true) {
+    return { allowed: false, method: 'DELETE', url: null };
+  }
+  const encoded = clean.split('/').map((part) => encodeURIComponent(part)).join('/');
+  return {
+    allowed: true,
+    method: 'DELETE',
+    url: `/api/skills/user-packs/${encoded}?confirm=true`,
   };
 }
 
@@ -125,7 +144,7 @@ export function createSkillWorkshop({
   }
 
   async function loadExistingSkill(skillId, agentId) {
-    if (!skillId) return;
+    if (!skillId) return null;
     const params = new URLSearchParams();
     if (agentId) params.set('agent_id', agentId);
     const query = params.toString();
@@ -163,8 +182,10 @@ export function createSkillWorkshop({
       renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
       syncFrontmatter();
       showToast(`Opened ${skillId} in the workshop`, 'success');
+      return view;
     } catch (err) {
       showToast(`Could not open skill: ${err.message || err}`, 'error');
+      return null;
     }
   }
 

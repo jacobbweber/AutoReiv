@@ -14,7 +14,7 @@ import {
   skillPillPressed,
   toggleSkillInAllowlist,
 } from '../../../src/web/static/modules/studios/forge/skill_pills.js';
-import { skillRowHtml } from '../../../src/web/static/modules/studios/forge/runbook.js';
+import { operatorSkillPillModel, skillRowHtml } from '../../../src/web/static/modules/studios/forge/runbook.js';
 import { factoryAssignedSkillChrome } from '../../../src/web/static/modules/studios/factory/skill_scope.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -150,6 +150,44 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     });
     expect(pressedSkillIds([wiki, sandbox, ghost])).toEqual(['wiki', 'sandbox']);
     expect(forge).toContain('pillsFromPersistedAgent');
+  });
+
+  it('operator skill-store rows render as allowlist pills, not platform seeds', () => {
+    const model = operatorSkillPillModel({
+      id: 'dock-notes',
+      name: 'Dock Notes',
+      description: 'Notes saved from Skill Studio',
+      requires_tools: ['wiki_note_read'],
+    });
+    expect(model.tools).toEqual(['wiki_note_read']);
+    const row = skillRowHtml(model, 'operator', false);
+    expect(row).toContain('forge-skill-pill');
+    expect(row).toContain('data-home="operator"');
+    expect(row).toContain('data-skill-id="dock-notes"');
+    expect(row).toContain('Open in Skill Studio');
+    expect(row).toContain('role="switch"');
+
+    const turnedOn = toggleSkillInAllowlist(['wiki'], 'dock-notes');
+    expect(turnedOn.allowed_skill).toEqual(['wiki', 'dock-notes']);
+    expect(turnedOn.opensSkillStudio).toBe(false);
+    const saved = allowlistForSave(turnedOn.allowed_skill, { storageEnabled: false });
+    expect(saved).toContain('dock-notes');
+
+    expect(html).toContain('id="forgeOperatorSkillsGrid"');
+    expect(html).toContain('>Operator skills</h4>');
+    expect(html).toContain('Skill store');
+    const platformAt = html.indexOf('id="forgePlatformBox"');
+    const operatorAt = html.indexOf('id="forgeOperatorBox"');
+    const packAt = html.indexOf('id="forgePackBox"');
+    expect(platformAt).toBeLessThan(operatorAt);
+    expect(operatorAt).toBeLessThan(packAt);
+
+    expect(runbook).toContain('operator_skills');
+    expect(runbook).toContain('renderOperatorSkills');
+    expect(runbook).toContain("skillRowHtml(skill, 'operator', false)");
+    expect(runbook).toContain('platformSkills = catData.platform_skills');
+    expect(forge).toContain('cachedOperatorSkills');
+    expect(forge).toContain('allowed_skill: checkedSkills');
   });
 
   it('Factory assigned skills stay display-only with a separate Skill Studio link', () => {

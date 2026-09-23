@@ -2,9 +2,16 @@
 
 ### Added
 
+- **CARD-420 authoring module**: A versioned skill packet (`skill_studio_authoring_packet` v1) and `/api/skill_studio/authoring/*` can create or resume a queued standing job for `developer`, store proposals, and record accept or reject without writing the skill store. Skill Studio does not call this path. Agent Studio skill pills are unchanged (`src/application/skills/developer_authoring.py`, `src/web/routers/skill_authoring.py`, `src/web/static/modules/studios/skill_authoring.js` [CARD-420]).
+- **CARD-420 Skill Studio chrome**: **Generate / Refine Runbook** is a quieter secondary control. External source context sits above the SKILL.md editor. **Delete skill** confirms, then uses the existing user-pack delete for an operator skill-store file that is not a bundled seed, and clears that skill’s pack copies and SQLite bindings. Protected seeds stay blocked (`src/application/skills/workshop.py`, `src/web/routers/skills.py`, `src/infrastructure/memory/repositories/skill_bindings.py` [CARD-420]).
+
 - **CARD-418 Skill Studio**: Agent Desktop dock window labeled Skill Studio. It is the skill write surface: existing-skill picker, new skill, structured metadata, tool catalog, and save. Save writes the skill store and SQLite `skill_tool_bindings` the same way as CARD-411. A save with no agent id does not pin a pack or write tool rows into `pack.json` (`src/web/static/modules/studios/skill_studio.js`, `src/web/templates/index.html`, `src/web/static/modules/ui/agent-desktop.js` [CARD-418]).
 
 ### Changed
+
+- **Agent Studio operator skills**: Skills saved in the skill store show up as toggle pills under **Operator skills** in Agent Studio. The catalog field is `operator_skills` on `GET /api/skills/catalog`. Turning a pill on still writes only `allowed_skill`. Platform skills and pack skills stay in their own sections (`src/application/skills/workshop.py`, `src/web/routers/agents.py`, `src/web/static/modules/studios/forge/runbook.js`, `src/web/templates/index.html` [CARD-420]).
+
+- **CARD-420 Skill Studio surface**: Skill Studio no longer shows **Ask developer**, the job id strip, or Accept/Reject, and it does not open Observe from that path. The operator surface is **Generate / Refine Runbook**, **Save skill**, **Delete skill**, and source context above the SKILL.md editor. Visible developer mediation waits until that job actually runs the developer (`src/web/static/modules/studios/skill_studio.js`, `src/web/templates/index.html` [CARD-420]).
 
 - **CARD-419 Agent Studio skill toggle pills**: Agent Studio turns skills on and off with toggle pills. On adds the skill id to the agent's durable `allowed_skill` list; off removes it. Save still writes that list through the existing agent profile API. Clicking a pill does not open Skill Studio. Each skill row has **Open in Skill Studio**. Factory's allowed-skills strip is display-only and links to Skill Studio (`src/web/static/modules/studios/forge/skill_pills.js`, `src/web/static/modules/studios/forge/runbook.js`, `src/web/static/modules/studios/forge.js`, `src/web/static/modules/studios/factory/skill_scope.js`, `src/web/templates/index.html` [CARD-419]).
 

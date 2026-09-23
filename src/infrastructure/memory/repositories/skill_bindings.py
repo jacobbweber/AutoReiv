@@ -123,6 +123,22 @@ class SkillToolBindingRepository:
             "user_modified": True,
         }
 
+    def delete(self, skill_id: str) -> None:
+        """Drop binding rows for one skill. The skill store delete calls this."""
+        clean_id = (skill_id or "").strip()
+        if not clean_id:
+            return
+        conn = self._connect()
+        if conn is None:
+            return
+        try:
+            _ensure_schema(conn)
+            conn.execute("DELETE FROM skill_tool_bindings WHERE skill_id = ?", (clean_id,))
+            conn.execute("DELETE FROM skill_binding_meta WHERE skill_id = ?", (clean_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
     def get(self, skill_id: str) -> Optional[dict[str, Any]]:
         found = self.tools_for_skills([skill_id])
         clean_id = (skill_id or "").strip()

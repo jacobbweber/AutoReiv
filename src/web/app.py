@@ -60,6 +60,7 @@ from src.web.routers.prompts import router as prompts_router
 from src.web.routers.remote_hosts import router as remote_hosts_router
 from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
+from src.web.routers.skill_authoring import router as skill_authoring_router
 from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
@@ -539,6 +540,7 @@ def create_app(
     app.include_router(gaps_router)
     app.include_router(agents_router)
     app.include_router(skills_router)
+    app.include_router(skill_authoring_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)
     app.include_router(education_router)

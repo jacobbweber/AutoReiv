@@ -155,9 +155,47 @@ def test_delete_rejects_path_traversal_outside_skills_jail():
     assert skills.is_dir()
 
 
+def test_delete_bundled_wiki_seed_stays_without_confirm_seed():
+    client = _client()
+    wiki = _skills_root() / "wiki" / "SKILL.md"
+    assert wiki.is_file()
+    res = client.delete("/api/skills/user-packs/wiki", params={"confirm": True})
+    assert res.status_code == 409
+    assert wiki.is_file()
+
+
+def test_confirmed_delete_clears_pack_projection_and_bindings():
+    import os
+
+    client = _client()
+    data = Path(os.environ["AUTOREIV_DATA_DIR"])
+    projection = data / "packs" / "autoreiv" / "skills" / "test-live-pong"
+    projection.mkdir(parents=True)
+    (projection / "SKILL.md").write_text(USER_PACK_MD, encoding="utf-8")
+    other = data / "packs" / "autoreiv" / "skills" / "keep-me"
+    other.mkdir(parents=True)
+    (other / "SKILL.md").write_text(OTHER_PACK_MD, encoding="utf-8")
+
+    from src.infrastructure.memory.repositories.skill_bindings import SkillToolBindingRepository
+
+    repo = SkillToolBindingRepository(db_path=os.environ["AUTOREIV_DB_PATH"])
+    repo.replace("test-live-pong", ["wiki_note_read"])
+    repo.replace("keep-me", ["wiki_note_read"])
+
+    res = client.delete("/api/skills/user-packs/test-live-pong", params={"confirm": True})
+    assert res.status_code == 200
+    assert not (_skills_root() / "test-live-pong").exists()
+    assert not projection.exists()
+    assert (other / "SKILL.md").is_file()
+    assert repo.get("test-live-pong") is None
+    assert repo.get("keep-me") is not None
+
+
 def test_agent_studio_runbook_inspector_is_not_a_write_path_card_411():
     """CARD-411: Forge no longer archives or deletes skill runbooks. Factory is the writer."""
-    js = (REPO_ROOT / "src" / "web" / "static" / "modules" / "studios" / "forge" / "runbook.js").read_text(encoding="utf-8")
+    js = (REPO_ROOT / "src" / "web" / "static" / "modules" / "studios" / "forge" / "runbook.js").read_text(
+        encoding="utf-8"
+    )
     html = (REPO_ROOT / "src" / "web" / "templates" / "index.html").read_text(encoding="utf-8")
     view_start = html.find('id="view-agents"')
     view_end = html.find("</section>", view_start)

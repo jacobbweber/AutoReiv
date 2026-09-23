@@ -8,7 +8,7 @@
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
 import { toSnakeCase } from '../utils/slug.js';
-import { createSkillWorkshop } from './factory/workshop_meta.js';
+import { createSkillWorkshop, skillDeleteRequest } from './factory/workshop_meta.js';
 import { createSkillScopeUI } from './factory/skill_scope.js';
 
 export const SKILL_STUDIO_TAB = 'skill-studio';
@@ -64,6 +64,7 @@ export function initSkillStudio(_state, callbacks = {}) {
   const factoryGenerateStatusText = $('factoryGenerateStatusText');
   const factorySkillMarkdownEditor = $('factorySkillMarkdownEditor');
   const factorySaveSkillBtn = $('factorySaveSkillBtn');
+  const skillStudioDeleteBtn = $('skillStudioDeleteBtn');
   const factorySaveFeedbackMsg = $('factorySaveFeedbackMsg');
   const factorySkillTierSelect = $('factorySkillTierSelect');
   const factorySkillSafetyReadOnly = $('factorySkillSafetyReadOnly');
@@ -91,6 +92,7 @@ export function initSkillStudio(_state, callbacks = {}) {
   let queuedLink = null;
   let pendingSkillId = '';
   let loadGen = 0;
+  let skillDeletable = false;
 
   const workshop = createSkillWorkshop({
     showToast,
@@ -178,11 +180,54 @@ export function initSkillStudio(_state, callbacks = {}) {
     if (factorySaveFeedbackMsg) factorySaveFeedbackMsg.classList.add('hidden');
     if (clearPicker) skillScope.clearPickerSelection();
     else skillScope.setWorkshopBadge('New skill');
+    syncDeleteButton(false);
+  }
+
+  function syncDeleteButton(deletable) {
+    skillDeletable = deletable === true;
+    if (!skillStudioDeleteBtn) return;
+    skillStudioDeleteBtn.classList.toggle('hidden', !skillDeletable);
+    skillStudioDeleteBtn.disabled = !skillDeletable;
   }
 
   async function loadExistingSkill(skillId, agentId) {
-    await loadWorkshopSkill(skillId, agentId || pinAgentId);
-    skillScope.selectSkillInPicker(skillId);
+    const view = await loadWorkshopSkill(skillId, agentId || pinAgentId);
+    if (view && view.ok) {
+      skillScope.selectSkillInPicker(skillId);
+      syncDeleteButton(view.deletable);
+      return view;
+    }
+    syncDeleteButton(false);
+    return null;
+  }
+
+  async function handleDeleteSkill() {
+    const skillId = (factorySkillIdInput && factorySkillIdInput.value.trim()) || '';
+    if (!skillDeletable) {
+      showToast('This skill cannot be deleted from Skill Studio.', 'warning');
+      return;
+    }
+    const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+      ? window.confirm(`Delete skill ${skillId}? This removes it from the skill store.`)
+      : false;
+    const request = skillDeleteRequest(skillId, { confirmed, deletable: skillDeletable });
+    if (!request.allowed || !request.url) return;
+    if (skillStudioDeleteBtn) skillStudioDeleteBtn.disabled = true;
+    try {
+      const resp = await fetch(request.url, { method: request.method });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        const detail = data && (data.detail || data.message);
+        throw new Error(detail || `Server returned ${resp.status}`);
+      }
+      showToast(`Deleted ${skillId}.`, 'success');
+      resetNewSkillForm({ clearPicker: true });
+      await skillScope.refreshEditableSkillOptions('');
+    } catch (err) {
+      console.error('[SkillStudio] Delete failed:', err);
+      showToast(`Delete failed: ${err.message}`, 'error');
+      syncDeleteButton(skillDeletable);
+    }
   }
 
   async function handleGenerateRunbook() {
@@ -540,6 +585,10 @@ export function initSkillStudio(_state, callbacks = {}) {
 
   if (factorySaveSkillBtn) {
     factorySaveSkillBtn.addEventListener('click', handleSaveSkill);
+  }
+
+  if (skillStudioDeleteBtn) {
+    skillStudioDeleteBtn.addEventListener('click', handleDeleteSkill);
   }
 
   if (factoryToolSearchInput) {
