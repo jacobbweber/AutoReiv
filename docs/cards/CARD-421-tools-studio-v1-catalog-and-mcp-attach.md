@@ -16,10 +16,11 @@ labels:
 
 > **Status**: Ready  
 > **Created**: 2026-09-22  
-> **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted**)  
+> **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted**; packaging policy amended 2026-09-22 — dual native + MCP lanes, tighten later)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:tools`, `area:mcp`  
 > **Parent planning**: [CARD-417](./CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md)  
-> **Depends on**: [CARD-418](./CARD-418-skill-studio-extract-from-factory.md) Done; [CARD-419](./CARD-419-agent-studio-skill-toggle-pills.md) Done; [CARD-420](./CARD-420-developer-mediated-authoring-v1-visible-build-review.md) Done
+> **Depends on**: [CARD-418](./CARD-418-skill-studio-extract-from-factory.md) Done; [CARD-419](./CARD-419-agent-studio-skill-toggle-pills.md) Done; [CARD-420](./CARD-420-developer-mediated-authoring-v1-visible-build-review.md) Done  
+> **Successors (written in advance)**: [CARD-422](./CARD-422-tools-studio-form-and-developer-mediation.md) Ready; [CARD-423](./CARD-423-custom-tool-packaging-native-and-mcp.md) Ready
 
 ---
 
@@ -33,11 +34,23 @@ labels:
 
 ---
 
+## Slice map (so unfinished work is never only in chat)
+
+| Card | Status | Ships |
+|------|--------|-------|
+| **CARD-421** (this card) | Ready | Tools Studio dock; catalog browse; tools grouped under MCP when that is the source; Routines-like search/filter; platform + agent-scoped **MCP attach/status/test**; Settings and Agent Studio become thin Open-in-Tools-Studio shells for attach. **No** form, **no** Talk/Submit to developer, **no** code editor, **no** MCP hosting move. |
+| **CARD-422** | Ready (advance) | Form-driven create/modify/delete intent + Talk to developer / Submit to developer that actually opens or runs the developer with form context. Operator never types tool code in the studio. |
+| **CARD-423** | Ready (advance) | Dual packaging lanes: native AutoReiv custom tools **and** MCP-backed custom tools; developer skills/runbooks for AutoReiv tool and MCP building; chat-path context to a folder of scripts is allowed as developer input, not a Tools Studio point-at-folder factory. |
+
+When CARD-421 merges Done, CARD-422 is still Ready — that is the reminder that more Tools Studio work remains.
+
+---
+
 ## 1. Why / Intent (Beat 1)
 
 ADR-0057 locks **Tools Studio** as the third studio: the operator home for **tool catalog browse** and **MCP server attach / status / test**. Skill Studio already owns skill bodies and skill-to-tool binding. Agent Studio owns agent identity and skill on/off pills. Tools and MCP still live split across Settings, Agent Studio (Forge), and the Skill Studio catalog pane, so operators have no single place to answer "what tools exist, and which MCP servers are attached."
 
-This card is ADR-0057 build-order step 4 (Tools Studio v1). It does **not** build custom MCP-only capability authoring, naked script factories, or developer mediation for tools.
+This card is ADR-0057 build-order step 4 (Tools Studio v1). Developer-mediated tool lifecycle and dual packaging (native vs MCP) are **CARD-422** and **CARD-423**, written in advance so the remaining slices stay visible.
 
 ---
 
@@ -47,41 +60,40 @@ This card is ADR-0057 build-order step 4 (Tools Studio v1). It does **not** buil
 - **Platform MCP attach** lives in **Settings** (`settings.js`): list / add / test / delete via `GET|POST|DELETE /api/settings/mcp` and `POST /api/settings/mcp/test` (aliases under `/api/mcp/servers`). Durable store key `mcp_servers`.
 - **Agent-scoped MCP attach** lives in **Agent Studio / Forge** (`forgeMcpServersCard`): list / add / test / mount via `/api/agents/{agent_id}/mcp*`. Persisted on the agent profile as `mcp_servers`.
 - **Skill Studio** still shows the **capability / MCP tool catalog checkboxes** used only to bind tools onto a skill (`skill_tool_bindings` / `requires_tools`). That is skill-to-tool scoping, not tool lifecycle.
-- **Capability registry and scaffold APIs** exist under `/api/capabilities/*` (registry upsert, gap scaffold draft/sandbox/approve). Those are not a Tools Studio operator surface yet, and naked custom-tool scaffolding is **out of policy for v1**.
-- **Hosted MCP server** (`src/web/routers/mcp_server.py`, `/api/mcp/sse`) exposes AutoReiv agents outward. That is not the attach UI this card owns.
+- **Capability registry and scaffold APIs** exist under `/api/capabilities/*` (registry upsert, gap scaffold draft/sandbox/approve). Those are not a Tools Studio operator surface yet.
+- **Hosted MCP server** (`src/web/routers/mcp_server.py`, `/api/mcp/sse`) exposes AutoReiv agents outward. **Locked forever in Settings** for operator UI — this card does not move hosting into Tools Studio.
 
 ---
 
 ## 3. What will change (Beat 3)
 
 1. Add **Tools Studio** as an Agent Desktop dock window (label: **Tools Studio**). New module under `src/web/static/modules/studios/` (for example `tools_studio.js`) plus a `view-tools-studio` panel in `index.html`.
-2. **Catalog pane (read-first):** browse the live tool / capability catalog (platform tools plus mounted MCP tool names), with search and a clear source label (platform vs MCP server). Show mounted / available status when the existing MCP manager already exposes it. This pane does **not** write `skill_tool_bindings`.
-3. **MCP pane:** attach / edit / test / enable-disable / delete MCP servers using the existing durable APIs. Default cutover (confirm or change on **continue** before **build**):
+2. **Catalog pane (read-first):** browse the live tool / capability catalog (platform tools plus mounted MCP tool names). Prefer **grouping tools under the MCP server** that provides them when that is the source; platform tools in their own group. **Search and filtering** in the spirit of Routines Studio. Show mounted / available status when the existing MCP manager already exposes it. This pane does **not** write `skill_tool_bindings`.
+3. **MCP attach pane:** attach / edit / test / enable-disable / delete MCP servers using the existing durable APIs.
    - **Platform MCP** moves its operator home from Settings into Tools Studio (same `/api/settings/mcp*` contracts).
-   - **Agent-scoped MCP** is reachable from Tools Studio with an agent picker (same `/api/agents/{id}/mcp*` contracts), so Tools Studio owns MCP attach/status while Agent Studio can keep a short status strip plus **Open in Tools Studio**.
-4. **Settings cutover:** Settings MCP section becomes a thin shell or link (**Open in Tools Studio**), not a second full writer UI.
-5. **Agent Studio cutover:** Forge remote-MCP card becomes thin (status + open Tools Studio) or stays as a scoped editor only if live test proves agent-context attach must stay inline. Prefer one full MCP form in Tools Studio.
-6. Preserve Skill Studio tool checkboxes for skill-to-tool binding. Deep-link optional: from a catalog row, **Open in Skill Studio** is allowed later; not required for v1.
-7. Proof: Vitest for dock open + catalog render + MCP list hydrate; pytest or existing MCP route tests stay green; no new dual durable store.
+   - **Agent-scoped MCP** is reachable from Tools Studio with an agent picker (same `/api/agents/{id}/mcp*` contracts).
+4. **Settings cutover (attach only):** Settings MCP **attach** section becomes a thin shell or link (**Open in Tools Studio**). **MCP hosting** controls stay in Settings forever.
+5. **Agent Studio cutover:** Forge remote-MCP card becomes thin (status + **Open in Tools Studio**). Prefer one full MCP attach form in Tools Studio.
+6. Preserve Skill Studio tool checkboxes for skill-to-tool binding.
+7. Proof: Vitest for dock open + catalog render + MCP list hydrate; existing MCP route tests stay green; no new dual durable store.
 
-**Out of scope:** custom capability authoring via MCP-only servers beyond attach; capability scaffold approve/sandbox UI; naked script / Ansible / Terraform tool factories; developer Build/Review for tools; tier removal; storage folder redesign; moving skill-to-tool binding out of Skill Studio; changing hosted `/api/mcp` server behavior.
+**Out of scope for CARD-421:** form + Talk/Submit to developer (CARD-422); native custom tool packaging and dual-lane policy UI (CARD-423); capability scaffold approve/sandbox UI; naked script / Ansible folder factory in the studio UI; code editor; moving MCP **hosting** out of Settings; changing hosted `/api/mcp` server behavior; tier removal; storage folder redesign.
 
 ---
 
 ## 4. What dies (Beat 4)
 
-- Expectation that **Settings** is the long-term home for MCP attach.
-- Expectation that **Agent Studio** is the long-term home for full MCP lifecycle forms.
+- Expectation that **Settings** is the long-term home for MCP **attach**.
+- Expectation that **Agent Studio** is the long-term home for full MCP attach forms.
 - Expectation that Skill Studio's tool checklist is where operators **manage** tools (it only **scopes** tools onto a skill).
-- A second independent MCP writer UI after cutover (Settings full form + Tools Studio full form without a thin-shell decision).
+- A second independent MCP **attach** writer UI after cutover (Settings full attach form + Tools Studio full form without a thin-shell decision).
+- Expectation that MCP **hosting** belongs in Tools Studio (it stays in Settings forever).
 
 ---
 
-## Cutover (proposed; lock on continue or at build start)
+## Cutover (locked 2026-09-22)
 
-**Tools Studio is the full MCP + catalog surface.** Settings keeps a one-line MCP status and **Open in Tools Studio**. Agent Studio keeps mounted-count status (and optional deep-link) but drops the full add/test form once Tools Studio covers agent-scoped attach. Skill Studio tool checkboxes stay.
-
-If live test shows agent-scoped attach is too awkward without agent context, keep a **minimal** Forge attach form that still writes only `/api/agents/{id}/mcp*` and link the catalog to Tools Studio. Document the chosen cutover in this card during build.
+**Tools Studio is the full MCP attach + catalog surface.** Settings keeps MCP **hosting** forever, plus a one-line attach status and **Open in Tools Studio**. Agent Studio keeps mounted-count status and **Open in Tools Studio**; drops the full add/test attach form once Tools Studio covers agent-scoped attach. Skill Studio tool checkboxes stay.
 
 ---
 
@@ -91,8 +103,9 @@ If live test shows agent-scoped attach is too awkward without agent context, kee
 - **[REQ-421-002]** WHEN the operator adds, tests, enables, or deletes a **platform** MCP server from Tools Studio, THE SYSTEM SHALL use the existing Settings MCP durable path (`mcp_servers` / `/api/settings/mcp*`) and reflect mount status after success or failure.
 - **[REQ-421-003]** WHEN the operator manages an **agent-scoped** MCP server from Tools Studio (with an agent selected), THE SYSTEM SHALL use `/api/agents/{agent_id}/mcp*` and persist on that agent profile only.
 - **[REQ-421-004]** WHEN the operator views Skill Studio after this card, THE SYSTEM SHALL still bind tools onto skills via the existing catalog checkboxes and SHALL NOT require Tools Studio to write `skill_tool_bindings`.
-- **[REQ-421-005]** AFTER cutover, THE SYSTEM SHALL NOT present two full competing MCP writer UIs (Settings full form and Tools Studio full form both active without a thin-shell link).
-- **[REQ-421-006]** THE SYSTEM SHALL NOT ship a naked custom-tool scaffold / approve factory as part of Tools Studio v1.
+- **[REQ-421-005]** AFTER cutover, THE SYSTEM SHALL NOT present two full competing MCP **attach** writer UIs (Settings full attach form and Tools Studio full form both active without a thin-shell link).
+- **[REQ-421-006]** THE SYSTEM SHALL NOT ship a form + Talk/Submit to developer, a naked custom-tool scaffold factory, or MCP hosting controls as part of Tools Studio v1 (those are CARD-422 / CARD-423 / Settings forever).
+- **[REQ-421-007]** WHEN MCP-provided tools are listed in the catalog, THE SYSTEM SHALL group them under the MCP server that provides them when grouping data is available, and SHALL offer search/filter comparable in spirit to Routines Studio.
 
 ---
 
@@ -100,69 +113,51 @@ If live test shows agent-scoped attach is too awkward without agent context, kee
 
 Automated (during build):
 
-- Vitest: dock opens Tools Studio; catalog rows render from the catalog API used by the pane; MCP list hydrates; Skill Studio binding tests remain green.
+- Vitest: dock opens Tools Studio; catalog rows render; MCP-provided tools group under server when data exists; search/filter narrows the list; MCP list hydrates; Skill Studio binding tests remain green.
 - Existing MCP route tests for `/api/settings/mcp*` and `/api/agents/{id}/mcp*` stay green.
 
 Manual live test (say **merge to qa** only after this):
 
 1. Pull `feat/card-421-*`, reload serve, hard-refresh.
-2. Open **Tools Studio** from the dock. You see catalog browse and MCP attach/status.
-3. Add or test a platform MCP server in Tools Studio. It appears in the list with status. Settings no longer has a second full writer (link or thin status only).
+2. Open **Tools Studio** from the dock. You see catalog browse (with search/filter) and MCP attach/status. MCP tools appear under their server when attached.
+3. Add or test a platform MCP server in Tools Studio. It appears in the list with status. Settings attach writer is thin/link only; hosting still in Settings.
 4. Select an agent and attach or view an agent-scoped MCP server in Tools Studio. Saving updates that agent only.
 5. Open Skill Studio. Tool checkboxes still bind tools onto a skill and save bindings as before.
-6. Open Agent Studio. You do not need the old full Forge MCP form to complete the happy path (status + open Tools Studio is enough unless the documented cutover kept a minimal forge form).
+6. Open Agent Studio. Status + open Tools Studio is enough for the happy path attach flow.
+7. Confirm CARD-422 and CARD-423 still exist as Ready cards (remaining slices).
 
 ---
 
 ## 7. Honest scope note
 
-CARD-420 left developer mediation APIs in tree without a Skill Studio Ask developer button. This card similarly ships a **real** catalog + MCP operator path with durable state. Custom MCP-only capability lifecycle is the **next** Tools slice after v1, not theatre inside this card.
+CARD-420 left developer mediation APIs in tree without a Skill Studio Ask developer button that only queued theatre. This card ships a **real** catalog + MCP attach operator path. Form + Talk/Submit and dual packaging are **CARD-422** and **CARD-423**, not empty buttons on this screen.
 
 ---
 
-## 8. Live discussion capture (2026-09-22 evening)
-
-Jacob asked for plain-English talk-through. Summary of what was clarified and what he wants.
+## 8. Live discussion + locked forks (2026-09-22)
 
 ### Plain meanings
 
 - **Tool**: one named thing an agent can call (inputs in, result out).
 - **MCP server (attach)**: an external plug-in box AutoReiv connects to; the box can expose many tools. Not the same as SSH hosts or other machine endpoints saved in Settings.
-- **MCP host**: AutoReiv acting as a plug-in box so other apps call into AutoReiv. Different from attach.
+- **MCP host**: AutoReiv acting as a plug-in box so other apps call into AutoReiv. Different from attach. **Operator UI stays in Settings forever.**
 - **Settings SSH / host endpoints**: how to reach a computer. Not the Tools Studio catalog.
 
-### Jacob vision (desired end state; not all required in the first build)
+### Jacob answers (locked)
 
-1. Open Tools Studio and see **all tools and MCP servers** in one place.
-2. Prefer **tools grouped under the MCP server** that provides them when that is the source.
-3. **Search + filtering** in the spirit of Routines Studio (find tools / servers quickly).
-4. Manage tool **lifecycle** (create / modify / delete) **without the operator typing code**.
-5. Operator fills a **form** (what the tool should do, maybe language / constraints) then:
-   - **Submit to developer**, and/or
-   - **Talk to developer** (convenience: open a new developer chat with that form context).
-6. Developer pack should be strong at building AutoReiv tools and MCP servers; may need **new skills / runbooks** for AutoReiv-specific tool and MCP guidance (beyond general MCP knowledge).
-7. Open product fork: **relationship between a tool and an MCP server** when the source is existing scripts / playbooks (for example a Homelab Ansible folder).
+1. **Slice call**: Harness Engineer chooses multi-slice; **write successor Ready cards in advance** so unfinished work is never only chat memory.
+2. **Folder path clarification**: Point at a folder means while talking to the developer agent, supply a path and ask for one tool per script/playbook — **not** a Tools Studio folder-picker factory. Objective ask: is forcing MCP for every custom tool worth it? Jacob **leans allow both** (native custom tools and MCP-backed) and can tighten later.
+3. **MCP hosting**: **forever stay in Settings.**
 
-### Open forks (lock before or during build; do not invent dual truth)
+### Locked forks
 
-| # | Fork | Options under discussion | Notes |
-|---|------|--------------------------|-------|
-| T1 | First ship shape | **A)** Browse + attach + search only (thin). **B)** Thin plus form + Talk/Submit to developer in the same card. **C)** Split: CARD-421 thin UI; later card for developer-mediated tool lifecycle. | CARD-420 taught us not to ship Ask developer until the job actually runs. Prefer real mediation or keep the button off. |
-| T2 | MCP attach UI home | **A)** Tools Studio owns platform + agent-scoped attach; Settings and Agent Studio become thin status + Open in Tools Studio. **B)** Tools Studio owns platform + catalog; Agent Studio keeps a small per-agent attach form. | Jacob asked whether MCP attach (and hosting) move here from Settings and Agent Studio. |
-| T3 | MCP hosting UI | **A)** Stay where it is for now. **B)** Move status/controls into Tools Studio later. | Hosting is not the same as attach; do not blur them in v1. |
-| T4 | Scripts / playbooks vs MCP | **A)** Require an MCP server between AutoReiv and local scripts (ADR-0057 custom via MCP direction). **B)** Allow native AutoReiv tools that wrap a folder of scripts with strong guardrails (policy change). **C)** Developer may choose either per request, but the Studio form always records which mode was used. | MCP servers commonly wrap APIs, databases, and local commands/scripts. Pointing a server at a script folder is normal. Native script tools are a separate product risk. |
-| T5 | Required relationship | **A)** Every new custom tool must belong to an MCP server. **B)** Platform/built-in tools need no MCP; only operator-created custom tools require MCP. **C)** Tools may exist without MCP (native), with MCP as optional packaging. | This is the stuck point Jacob named: tool vs MCP vs both required. |
+| # | Fork | Locked choice |
+|---|------|---------------|
+| T1 | First ship shape | **C** — CARD-421 thin UI (browse, group, search/filter, attach). CARD-422 form + Talk/Submit. CARD-423 dual packaging + developer skills. |
+| T2 | MCP attach UI home | **A** — Tools Studio owns platform + agent-scoped attach; Settings and Agent Studio become thin status + Open in Tools Studio for attach. |
+| T3 | MCP hosting UI | **Forever Settings** — never move hosting into Tools Studio. |
+| T4 / T5 | Scripts vs MCP / required relationship | **Allow both** — platform tools need no MCP; custom tools may be native AutoReiv tools **or** MCP-backed; MCP is not required for every custom tool. Tighten later if abuse or complexity warrants. Chat-path to a script folder is developer conversation context, not a studio UI. Implementation of dual lanes is **CARD-423**, not this card. |
 
-### Working recommendation (not locked)
+### Objective note (Harness Engineer, not security-only)
 
-- Keep **Skill Studio** as the only place that ticks which tools a **skill** may use.
-- Make **Tools Studio** the place that shows tools and plug-in boxes, with search/filter, and (when mediation is real) form-driven create/change via the developer.
-- For Homelab Ansible: default story under current ADR is **developer wraps the folder in an MCP server**, AutoReiv attaches that server, tools appear grouped under it. Revisit native script tools only if Jacob locks T4 toward B or C.
-- Do **not** ship a code editor in Tools Studio.
-- Do **not** revive a silent generate-tool button that only queues a job without running the developer (CARD-420 lesson).
-
-### Still need from Jacob
-
-1. First build: thin browse/attach/search only, or include form + Talk/Submit to developer in CARD-421?
-2. Lock T4 / T5 in plain words: for existing scripts, must there be an MCP server in the middle, or not?
-3. Should MCP **hosting** move into Tools Studio in this card, later, or stay put?
+Forcing MCP for every custom tool buys one discovery/auth/transport story and process isolation, and matches industry plug-in boxes. It also adds ceremony (another process, attach config, lifecycle) that is **not always valuable** for a small local helper. Built-in platform tools already call without MCP. Allowing both is the honest product call: prefer MCP when the capability is shared, remote, multi-tool, or should outlive AutoReiv's process; allow native when the helper is local, simple, and owned by AutoReiv. Jacob can tighten to MCP-preferred or MCP-required later without rewriting Tools Studio v1.

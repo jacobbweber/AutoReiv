@@ -178,3 +178,18 @@ Jacob (paraphrase): designing an agent is its own need; skills need their own sp
 - [CARD-419](./CARD-419-agent-studio-skill-toggle-pills.md) — Agent Studio skill toggle pills (slice 2) — **Done**.
 - [CARD-420](./CARD-420-developer-mediated-authoring-v1-visible-build-review.md) — Developer mediation v1 (slice 3) — **Done**.
 - [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) - Tools Studio v1 catalog + MCP attach (slice 4) - **Ready**.
+
+---
+
+## Successor slice map (2026-09-22)
+
+After Tools Studio planning lock:
+
+| Card | Role |
+|------|------|
+| [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) | Tools Studio v1: catalog, group, search/filter, MCP attach |
+| [CARD-422](./CARD-422-tools-studio-form-and-developer-mediation.md) | Form + Talk/Submit to developer (no code in studio) |
+| [CARD-423](./CARD-423-custom-tool-packaging-native-and-mcp.md) | Dual packaging (native + MCP) + developer skills; hosting stays in Settings |
+
+Policy amendment: custom tools may be native or MCP-backed (not MCP-only). MCP hosting UI forever in Settings.
+

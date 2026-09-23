@@ -5,7 +5,7 @@
 > **Date**: 2026-09-22  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-417 planning; CARD-411 Option A live test  
-> **Related Cards**: [CARD-417](../cards/CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md) (forks locked), [CARD-418](../cards/CARD-418-skill-studio-extract-from-factory.md) (first implementation slice), [CARD-421](../cards/CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) (Tools Studio v1), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md), [ADR-0056](./0056-durable-runtime-registry-hybrid-c-plus.md)  
+> **Related Cards**: [CARD-417](../cards/CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md) (forks locked), [CARD-418](../cards/CARD-418-skill-studio-extract-from-factory.md) (first implementation slice), [CARD-421](../cards/CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) (Tools Studio v1), [CARD-422](../cards/CARD-422-tools-studio-form-and-developer-mediation.md), [CARD-423](../cards/CARD-423-custom-tool-packaging-native-and-mcp.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md), [ADR-0056](./0056-durable-runtime-registry-hybrid-c-plus.md)  
 > **Supersedes / Softens**: Long-term “Agent Training Factory does agent + skill + tools on one screen” as the operator authoring model
 
 ---
@@ -14,7 +14,7 @@
 
 AutoReiv’s durable primitives are **agents**, **skills (runbooks)**, and **tools (capabilities / MCP)**, with scoping edges agent↔skill and skill↔tool. CARD-411 locked Option A write paths (Forge inspect-only for runbooks; Factory writes skill bodies + SQLite tool bindings). Live testing still showed friction: one Factory screen forces three different lifecycle jobs together.
 
-Jacob locked CARD-417 product forks (2026-09-22): three studios; skill toggle pills; Build/Review defaults to a **visible** developer job; Tools Studio v1 is catalog + MCP attach then MCP-only custom; tier stays quiet; storage folder redesign deferred under ADR-0056.
+Jacob locked CARD-417 product forks (2026-09-22): three studios; skill toggle pills; Build/Review defaults to a **visible** developer job; Tools Studio v1 is catalog + MCP attach; then form/developer (CARD-422) and dual native/MCP packaging (CARD-423); tier stays quiet; storage folder redesign deferred under ADR-0056.
 
 This ADR records those decisions as platform policy so implementation cards stay coherent.
 
@@ -68,7 +68,8 @@ Factory’s three-column scaffolder is a **transitional** UI. Implementation ext
 ### 4.4 Tools policy
 
 - **v1**: catalog browse + MCP server attach/status/test hooks.
-- **Then**: custom deterministic capabilities **via MCP server** only (no naked script factory in v1).
+- **Then**: custom capabilities via **dual lanes** (amended 2026-09-22 with Jacob): **native** AutoReiv tools **or** **MCP-backed** tools. MCP is not required for every custom tool; tighten later if needed. Tools Studio v1 still has **no** naked script-folder factory UI (chat-path to developer is fine; see CARD-423).
+- **MCP hosting** operator UI stays in **Settings forever** (not Tools Studio).
 - Exact MCP deploy/attach mechanics are implementation-card scope under this policy.
 
 ### 4.5 Explicitly deferred
@@ -96,7 +97,7 @@ Factory’s three-column scaffolder is a **transitional** UI. Implementation ext
 
 * More dock surfaces and deep-links to maintain.
 * Developer mediation needs reliable form↔job packet schema and apply-back UX.
-* Tools Studio v1 may feel thin until MCP custom path lands.
+* Tools Studio v1 may feel thin until CARD-422 (form/developer) and CARD-423 (dual packaging) land.
 
 ### Follow-up
 
