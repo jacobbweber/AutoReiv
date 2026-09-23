@@ -177,4 +177,4 @@ Jacob (paraphrase): designing an agent is its own need; skills need their own sp
 - [CARD-418](./CARD-418-skill-studio-extract-from-factory.md) — Skill Studio extract (slice 1) — **Done**.
 - [CARD-419](./CARD-419-agent-studio-skill-toggle-pills.md) — Agent Studio skill toggle pills (slice 2) — **Done**.
 - [CARD-420](./CARD-420-developer-mediated-authoring-v1-visible-build-review.md) — Developer mediation v1 (slice 3) — **Done**.
-- Later (not scaffolded yet): Tools Studio v1.
+- [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) - Tools Studio v1 catalog + MCP attach (slice 4) - **Ready**.
