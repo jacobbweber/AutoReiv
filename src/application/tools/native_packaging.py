@@ -66,8 +66,11 @@ def load_native_tool_names(store: Any) -> set[str]:
 
 
 def catalog_origin_label(source: str, server_name: str = "") -> str:
-    """Operator-facing catalog label [REQ-423-005]."""
+    """Operator-facing catalog label [REQ-423-005, REQ-425-002]."""
     kind = str(source or "").strip().lower()
+    # Legacy in-process pack modules are not the CARD-423 native custom lane.
+    if kind in {"legacy_pack_tool", "legacy"}:
+        return "Legacy pack tool"
     if kind in {"native_custom", "native"}:
         return "Native custom"
     if kind == "mcp":

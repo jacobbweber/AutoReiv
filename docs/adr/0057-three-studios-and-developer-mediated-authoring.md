@@ -69,6 +69,7 @@ Factory’s three-column scaffolder is a **transitional** UI. Implementation ext
 
 - **v1**: catalog browse + MCP server attach/status/test hooks.
 - **Then**: custom capabilities via **dual lanes** (amended 2026-09-22 with Jacob): **native** AutoReiv tools **or** **MCP-backed** tools. MCP is not required for every custom tool; tighten later if needed. Tools Studio v1 still has **no** naked script-folder factory UI (chat-path to developer is fine; see CARD-423).
+- **Legacy pack modules** (amended 2026-09-23, CARD-425): `packs/<id>/tools/*.py` stays an explicit in-process loader. It is registered with origin `legacy_pack_tool` and catalogued as **Legacy pack tool**. It is not the CARD-423 native custom lane (`native_custom_tools`, sandbox, ToolPolicyGate HITL, catalog origin **Native custom**). This card does not rewrite those modules through the sandbox.
 - **MCP hosting** operator UI stays in **Settings forever** (not Tools Studio).
 - Exact MCP deploy/attach mechanics are implementation-card scope under this policy.
 

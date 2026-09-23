@@ -834,6 +834,7 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
 
     from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
     from src.application.tools.native_packaging import catalog_origin_label, load_native_tool_names
+    from src.infrastructure.agents.legacy_pack_tools import LEGACY_PACK_TOOL_ORIGIN
 
     store = getattr(request.app.state, "store", None)
     native_names = load_native_tool_names(store)
@@ -844,6 +845,9 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
         t_desc = tool.description or ""
         t_params = tool.parameters or {}
         server_name = ""
+        tool_origin = ""
+        if tool_registry is not None and hasattr(tool_registry, "get_tool_origin"):
+            tool_origin = tool_registry.get_tool_origin(t_name)
 
         if t_name in native_names:
             ns_id = "native_custom"
@@ -856,6 +860,10 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
             ns_id = f"mcp:{server_key}"
             ns_name = f"MCP: {server_key.title()}"
             ns_source = "mcp"
+        elif tool_origin == LEGACY_PACK_TOOL_ORIGIN:
+            ns_id = "legacy_pack_tool"
+            ns_name = "Legacy pack tool"
+            ns_source = "legacy_pack_tool"
         elif any(t_name in t_list for t_list in PLATFORM_SKILL_TOOLS.values()):
             matched_skill = next((s for s, t_list in PLATFORM_SKILL_TOOLS.items() if t_name in t_list), "platform")
             ns_id = f"platform:{matched_skill}"

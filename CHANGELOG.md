@@ -15,6 +15,8 @@
 
 ### Changed
 
+- **CARD-425 legacy pack tools**: `packs/<id>/tools/*.py` stays an in-process loader and is labeled **Legacy pack tool** (`origin=legacy_pack_tool`). It is not the CARD-423 native custom lane: it does not write `native_custom_tools`, does not use the sandbox worker, and is not catalogued as Native custom (`src/infrastructure/agents/legacy_pack_tools.py`, `src/web/static/modules/studios/tools_studio_catalog.js` [CARD-425]).
+
 - **CARD-421 MCP attach cutover**: Settings keeps MCP hosting and a one-line platform attach status with **Open in Tools Studio**. Agent Studio keeps the mounted-count status and **Open in Tools Studio**. The full add/test/enable/delete form is only in Tools Studio (`src/web/static/modules/studios/settings.js`, `src/web/static/modules/studios/forge/tools.js` [CARD-421]).
 
 - **Agent Studio operator skills**: Skills saved in the skill store show up as toggle pills under **Operator skills** in Agent Studio. The catalog field is `operator_skills` on `GET /api/skills/catalog`. Turning a pill on still writes only `allowed_skill`. Platform skills and pack skills stay in their own sections (`src/application/skills/workshop.py`, `src/web/routers/agents.py`, `src/web/static/modules/studios/forge/runbook.js`, `src/web/templates/index.html` [CARD-420]).
@@ -28,6 +30,8 @@
 - **CARD-418 Factory cutover (thin shell)**: Factory keeps the agent brief and the display-only assigned-skills list, and links to Skill Studio. Forge **Open in Factory Workshop** and **Author skill in Factory** now open Skill Studio and load the selected skill by id (`src/web/static/modules/studios/factory.js`, `src/web/static/modules/studios/forge/runbook.js`, `src/application/skills/workshop.py`, `src/web/routers/agent_training_factory.py` [CARD-418]).
 
 ### Fixed
+
+- **CARD-425 user-modified developer allowlist**: When the developer profile is `user_modified` and the seed includes `native-tool-engineering`, pack sync appends that skill id and `register_native_tool` / `plan_native_folder` to the allowlist. The existing prompt, other allowlist entries, and MCP servers stay. The grant is recorded once in `platform_user_modified_skill_grants`, so a later removal stays removed (`src/infrastructure/skills/platform_packs.py` [CARD-425]).
 
 - **CARD-424 MCP disable unmounts**: Saving a platform or agent MCP server with `enabled: false` unmounts that server. Enable mounts it again. The save `mounted` flag and the list `is_mounted` / tool list match the live manager. Tools Studio shows **Disabled** after a successful disable, and **Disabled (still mounted, N tools)** only when unmount fails, with that failure shown to the operator (`src/web/mcp_mount_reconcile.py`, `src/web/routers/settings.py`, `src/web/routers/agents.py`, `src/web/static/modules/studios/tools_studio.js`, `src/web/static/modules/studios/tools_studio_catalog.js` [CARD-424]).
 
