@@ -64,6 +64,7 @@ from src.web.routers.skill_authoring import router as skill_authoring_router
 from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
+from src.web.routers.tools_authoring import router as tools_authoring_router
 from src.web.routers.wiki import router as wiki_router
 
 logger = logging.getLogger(__name__)
@@ -541,6 +542,7 @@ def create_app(
     app.include_router(agents_router)
     app.include_router(skills_router)
     app.include_router(skill_authoring_router)
+    app.include_router(tools_authoring_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)
     app.include_router(education_router)

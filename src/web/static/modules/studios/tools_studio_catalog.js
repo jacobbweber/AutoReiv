@@ -172,9 +172,15 @@ export function renderCatalogMarkup(groups) {
       ? ` <span class="text-[10px] text-slate-500">Agent ${escapeHtml(group.agentId)}</span>`
       : '';
     const rows = group.tools.map((tool) => `
-      <div class="px-3 py-1.5 flex flex-col sm:flex-row sm:items-baseline sm:gap-2" data-testid="tools-studio-catalog-row" data-tool-name="${escapeHtml(tool.name)}" data-source="${escapeHtml(group.source)}"${serverAttr}>
-        <span class="font-mono text-[11px] text-slate-100">${escapeHtml(tool.name)}</span>
-        ${tool.description ? `<span class="text-[11px] text-slate-400">${escapeHtml(tool.description)}</span>` : ''}
+      <div class="px-3 py-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" data-testid="tools-studio-catalog-row" data-tool-name="${escapeHtml(tool.name)}" data-source="${escapeHtml(group.source)}"${serverAttr}>
+        <div class="min-w-0 flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
+          <span class="font-mono text-[11px] text-slate-100">${escapeHtml(tool.name)}</span>
+          ${tool.description ? `<span class="text-[11px] text-slate-400">${escapeHtml(tool.description)}</span>` : ''}
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" data-action="tools-studio-modify" data-tool-name="${escapeHtml(tool.name)}" class="px-2 py-1 rounded-lg bg-white/[0.04] text-[11px] text-slate-200 border border-white/[0.08]">Modify</button>
+          <button type="button" data-action="tools-studio-delete-intent" data-tool-name="${escapeHtml(tool.name)}" class="px-2 py-1 rounded-lg bg-white/[0.04] text-[11px] text-rose-200 border border-white/[0.08]">Delete intent</button>
+        </div>
       </div>`).join('');
     return `
       <section class="bg-[#13161f]/80 border border-white/[0.06] rounded-xl overflow-hidden" data-testid="tools-studio-catalog-group" data-source="${escapeHtml(group.source)}"${serverAttr}>
