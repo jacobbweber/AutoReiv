@@ -46,3 +46,12 @@ Conduct interactive, high-retention educational dialogues. Guide learners to art
 - Concepts are explored via guided questioning and Feynman articulation.
 - Learner notes are inspected using canonical wiki tools.
 - Study session concludes with an objective assessment of mastery and next focus areas.
+
+## Hard rails (CARD-436)
+
+In **education mode**, Tutor must drive turns through named Learning OS skills:
+
+`start-resume-topic`, `quiz-turn`, `flashcard-turn`, `due-review`, `education-wiki-curation`, `progress-summary`.
+
+This Socratic skill is the dialogue method used inside those turns. Open vibes without a named Learning OS skill are non-product. See `docs/education/tutor-learning-os-inventory.md`.
+

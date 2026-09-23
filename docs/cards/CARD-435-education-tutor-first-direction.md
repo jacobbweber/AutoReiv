@@ -93,7 +93,7 @@ Scaffolded successor implementation cards (**build order**; earlier = build firs
 
 | Order | Card | Intent |
 | --- | --- | --- |
-| 1 | [CARD-436](./CARD-436-inventory-tutor-learning-os-rails.md) | Inventory + Tutor Learning OS rails (named skills/templates; Studio chrome map). Keep Studio alive. |
+| 1 | [CARD-436](./CARD-436-inventory-tutor-learning-os-rails.md) | Inventory + Tutor Learning OS rails (named skills/templates; Studio chrome map). Keep Studio alive. **In Review** on feat branch. |
 | 2 | [CARD-437](./CARD-437-study-entry-tutor-education-mode-thin-shell.md) | Study entry = Tutor education mode (thin shell). Do **not** remove Education Studio nav/landing yet. |
 | 3 | [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md) | Chat quiz/flashcard turns + durable Learning OS grading (not ephemeral theatre). |
 | 4 | [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md) | Due SRS/reviews surfaced and completed from Tutor education mode / Study. |

@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **CARD-436 Tutor Learning OS rails**: Inventory maps Education Studio chrome to Learning OS modules/APIs/Wiki templates/Tutor skill ids (`docs/education/tutor-learning-os-inventory.md`). Tutor pack gains named skills `start-resume-topic`, `quiz-turn`, `flashcard-turn`, `due-review`, `education-wiki-curation`, `progress-summary` (plus existing `socratic-tutoring`) under `platform-packs/tutor/skills/*/SKILL.md` with hard rails against open vibes. Education Studio chrome stays. Contract: `tests/unit/agent_packs/test_card_436_tutor_learning_os_skills.py` ([CARD-436]).
+
 ## [0.42.0] - 2026-09-23
 
 ### Added

@@ -7,7 +7,7 @@ These four specialists **always install**. They ship with AutoReiv.
 | `autoreiv/` | `autoreiv` / AutoReiv | on | Primary companion, platform SRE, pack scaffold/import/export, wiki and daily tasks. |
 | `direct/` | `direct` / Direct | on | Zero-tool direct chat. Direct mounts no tools. |
 | `developer/` | `developer` / Developer | on | Platform software engineer (full SDLC) plus scaffold, improve, and build for agents, skills, and tools. **Keep id+display `developer`.** Legacy `coding` / `coder` ids are obsolete and are not platform seeds. |
-| `tutor/` | `tutor` / Tutor | on | Socratic tutor grounded in the learner's wiki notes. |
+| `tutor/` | `tutor` / Tutor | on | Education-first Learning OS agent: named skills for start/resume topic, quiz, flashcard, due review, wiki curation, progress summary, plus Socratic dialogue method. |
 
 Seeded ids match `DEFAULT_SEEDED_PACK_IDS`: `autoreiv`, `direct`, `developer`, `tutor`.
 

@@ -1,7 +1,7 @@
 ---
 id: CARD-436
 title: "Inventory + Tutor Learning OS Rails (Named Skills/Templates; Studio Chrome Map)"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-436] Inventory + Tutor Learning OS Rails (Named Skills/Templates; Studio Chrome Map)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none (draft only if lasting Tutor/Learning OS skill contracts change)
@@ -113,3 +113,43 @@ Do **not** write product code until Jacob says **build** on this card.
 - Refine inventory: say **continue**.
 - Start implementation: say **build**.
 - After live proof: say **merge to qa**.
+
+
+---
+
+## Implementation notes (In Review)
+
+**Branch**: `feat/card-436-inventory-tutor-learning-os-rails`
+
+### Delivered
+
+1. **Inventory**: `docs/education/tutor-learning-os-inventory.md` — Studio chrome → Learning OS modules / `/api/education/*` / durable stores / Wiki `education-*` templates / Tutor skill ids / keep|re-home|drop-at-retirement, with honest gaps owned by CARD-437..442.
+2. **Tutor Learning OS rails**: named skills under `platform-packs/tutor/skills/`:
+   - `start-resume-topic`
+   - `quiz-turn`
+   - `flashcard-turn`
+   - `due-review`
+   - `education-wiki-curation`
+   - `progress-summary`
+   - plus existing `socratic-tutoring` (dialogue method; not a rails bypass)
+   Wired in `platform-packs/tutor/pack.json` (`skills` + `allowed_skill`). Hard rails documented in inventory + each SKILL.md + Tutor system prompt.
+3. **Contract test**: `tests/unit/agent_packs/test_card_436_tutor_learning_os_skills.py` (pack ids, SKILL.md resolve, inventory catalogue, Studio chrome not removed).
+4. **Must-not held**: `#tab-education`, `#view-education`, Education bottom-nav, and `education.js` monolith remain.
+
+### Live proof for Jacob
+
+1. Open Education Studio — confirm Ask → course chrome → quiz → Discuss with Tutor still work.
+2. Open Tutor in Agent Studio / skill list — confirm Learning OS skill ids appear (if live pack is `user_modified`, tick new skills once).
+3. `pytest tests/unit/agent_packs/test_card_436_tutor_learning_os_skills.py` green.
+
+### Deferred to successors
+
+- Study/Tutor education-mode thin shell + vibes hard-gate UX → CARD-437
+- Chat quiz/flashcard durable UX → CARD-438
+- Due reviews in Tutor education mode → CARD-439
+- Wiki curation from links/curriculum UX → CARD-440
+- Non-Studio progress surface → CARD-441
+- Retire Education Studio landing → CARD-442
+- No `education_*` agent tools invented on this card (skills cite HTTP contracts)
+
+After live proof: say **merge to qa**.
