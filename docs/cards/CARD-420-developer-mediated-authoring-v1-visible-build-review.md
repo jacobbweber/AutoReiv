@@ -1,7 +1,7 @@
 ---
 id: CARD-420
 title: "Developer-Mediated Authoring v1 (Visible Build/Review Job + Apply-Back)"
-status: In Review
+status: Done
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-420] Developer-Mediated Authoring v1 (Visible Build/Review Job + Apply-Back)
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted**)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:agents`, `area:skills`  
