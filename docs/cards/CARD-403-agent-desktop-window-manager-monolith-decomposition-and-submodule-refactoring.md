@@ -1,7 +1,7 @@
 ---
 id: CARD-403
 title: "Agent Desktop Window Manager Monolith Decomposition and Submodule Refactoring"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-403] Agent Desktop Window Manager Monolith Decomposition and Submodule Refactoring
 
-> **Status**: In Review  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:refactor`, `area:frontend`, `domain:desktop`  
@@ -109,3 +109,16 @@ Decompose `src/web/static/modules/ui/agent-desktop.js` into 6 single-responsibil
 - Submodule file size constraints: `agent-desktop.js` < 1,000 lines, all submodules < 800 lines.
 - Vitest suite `npm run test:unit:frontend` and linting `npm run lint:frontend` must pass 100% green.
 - Verify existing desktop tests: `agent_desktop.test.js`, `desktop_canvas_presets_279.test.js`, `desktop_window_layout.test.js`, etc.
+
+---
+
+## Triage closure (2026-09-23)
+
+Marked **Done** on `qa` tip `97c22bd6`. Acceptance evidence:
+
+- Root coordinator `src/web/static/modules/ui/agent-desktop.js`: **698** lines (`split('\n')`; < 1,000).
+- Submodules under `src/web/static/modules/ui/agent_desktop/` all < 800: `agent_hydration.js` 30, `chrome.js` 109, `dock.js` 123, `layout.js` 268, `prefs.js` 122, `presets.js` 420, `window.js` 777.
+- Contract suite present: `tests/unit/frontend/desktop_monolith_decomposition_403.test.js` (line caps + export checks).
+- CHANGELOG already records the decomposition and re-exports under [CARD-403].
+
+No follow-up Ready card needed; size-cap criteria are met.

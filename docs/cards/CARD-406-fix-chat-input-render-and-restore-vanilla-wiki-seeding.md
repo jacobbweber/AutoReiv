@@ -1,7 +1,7 @@
 ---
 id: CARD-406
 title: "Fix Chat Input Render and Restore Vanilla Wiki Seeding"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-406] Fix Chat Input Render and Restore Vanilla Wiki Seeding
 
-> **Status**: In Review  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:bug`, `area:chat`, `area:wiki`  
@@ -131,3 +131,16 @@ labels:
 - Run fresh wiki seeding test verifying directory layout and template presence.
 - Run frontend linter: `npm run lint:frontend`
 - Run boundary check: `uv run python .agents/skills/boundary-audit/scripts/boundary_check.py`
+
+---
+
+## Triage closure (2026-09-23)
+
+Marked **Done** on `qa` tip `97c22bd6`. Original intent is shipped and further covered by later Done cards:
+
+- **Chat user bubble stay visible (AC-1/AC-2)**: `appendMessageBubble` in `chat/render.js` resolves `messagesContainer` polymorphically; `chat.js` passes it in the 4th-arg options. Covered/extended by [CARD-415](./CARD-415-chat-studio-transcript-durability-live-equals-refresh.md) (live == refresh durability, action rows, Save to Wiki).
+- **Vanilla wiki seeding (AC-3/AC-4)**: numbered `00_Inbox` / `01_Notes` / `02_Resources/_Templates` / `03_Archive`; `_seed_starter_notes_if_empty` is a no-op; tests in `tests/unit/wiki/test_vanilla_wiki_seeding.py`. Empty Notes scrub completed by [CARD-416](./CARD-416-wiki-notes-empty-scrub.md).
+- **No fake starter/weekly mock projects (AC-5)**: vanilla tests assert zero `Server Currency` / `AQS Migration` / `Leaders Life`.
+- **Cron cold-boot (AC-6)**: CRON path returns `False` when `last_run_at is None` (no instant weekly-note-rollover fire).
+
+**Superseded/covered by CARD-415 and CARD-416** for remaining chat-durability and Notes-empty follow-through. No new Ready follow-up.

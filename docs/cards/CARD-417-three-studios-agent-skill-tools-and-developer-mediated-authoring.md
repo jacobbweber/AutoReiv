@@ -1,7 +1,7 @@
 ---
 id: CARD-417
 title: "Three Studios: Agent / Skill / Tools Lifecycle Surfaces and Developer-Mediated Authoring"
-status: Ready
+status: Done
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -16,7 +16,7 @@ labels:
 
 # [CARD-417] Three Studios: Agent / Skill / Tools Lifecycle Surfaces and Developer-Mediated Authoring
 
-> **Status**: Ready (planning / decision — **no product code** until Jacob says **build** after forks are locked)
+> **Status**: Done
 > **Created**: 2026-09-22
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted** 2026-09-22; forks locked)
 > **Labels**: `type:architecture`, `type:planning`, `area:ux`, `area:studios`, `area:skills`, `area:agents`, `area:tools`
@@ -177,7 +177,7 @@ Jacob (paraphrase): designing an agent is its own need; skills need their own sp
 - [CARD-418](./CARD-418-skill-studio-extract-from-factory.md) — Skill Studio extract (slice 1) — **Done**.
 - [CARD-419](./CARD-419-agent-studio-skill-toggle-pills.md) — Agent Studio skill toggle pills (slice 2) — **Done**.
 - [CARD-420](./CARD-420-developer-mediated-authoring-v1-visible-build-review.md) — Developer mediation v1 (slice 3) — **Done**.
-- [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) - Tools Studio v1 catalog + MCP attach (slice 4) - **Ready**.
+- [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) - Tools Studio v1 catalog + MCP attach (slice 4) - **Done**.
 
 ---
 
@@ -193,3 +193,12 @@ After Tools Studio planning lock:
 
 Policy amendment: custom tools may be native or MCP-backed (not MCP-only). MCP hosting UI forever in Settings.
 
+---
+
+## Closed as planning parent (2026-09-23 triage)
+
+Planning acceptance is met on `qa` tip `97c22bd6`: forks 1-6 locked, ADR-0057 Accepted, successor slices written and shipped. No further mega-build from this card.
+
+Shipped successors (all **Done**): CARD-418, CARD-419, CARD-420, CARD-421, CARD-422, CARD-423, CARD-424, CARD-425, CARD-426, CARD-427, CARD-428 (pack runbooks list), CARD-429, CARD-430, CARD-431, CARD-432, CARD-433. Related ADR-0057 follow-through and agent-builder retirement also landed under those cards.
+
+Do not invent a new implementation mega-card from this parent.
