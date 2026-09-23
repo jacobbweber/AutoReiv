@@ -689,8 +689,11 @@ export function initAgentForge(state, callbacks = {}) {
   });
 
   setupAgentMcpControls({
-    getActiveAgent,
-    onServersChanged: (servers) => { currentAgentMcpServers = servers; },
+    openToolsStudio: (agentId) => {
+      if (typeof callbacks.openToolsStudio === 'function') {
+        callbacks.openToolsStudio(agentId, 'agent');
+      }
+    },
   });
 
   setupRunbookEditor({

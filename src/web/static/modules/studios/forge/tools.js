@@ -1,12 +1,12 @@
 /**
- * Agent Studio: Tools, Baseline Callables, Remote MCP & Credential Grants Submodule [CARD-183, CARD-330, CARD-350, CARD-389, CARD-398]
- * Manages OS baseline tool representations, tool badges, capability gap triage,
- * remote MCP server lifecycle (mount, probe, add, delete), and credential vault grants.
+ * Agent Studio: Tools, Baseline Callables, Remote MCP status & Credential Grants [CARD-183, CARD-421]
+ * Full MCP attach lives in Tools Studio. This card shows mounted-count status and opens Tools Studio.
  */
 
 import { $, $queryAll, safeCreateIcons } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
 import { showToast } from '../../ui/toast.js';
+import { renderMcpStatusRowsMarkup } from '../tools_studio_catalog.js';
 
 export function renderToolBadgeHtml(tool, activeAgent = null) {
   const tObj = typeof tool === 'string' ? { name: tool } : (tool || {});
@@ -119,146 +119,17 @@ export async function loadAgentCapabilityGaps(agentId, callbacks = {}) {
   }
 }
 
-export function renderAgentMcpServers(agentId, servers, { getActiveAgent = null, onServersChanged = null } = {}) {
+export function renderAgentMcpServers(_agentId, servers, _opts = {}) {
   const forgeMcpServerList = $('forgeMcpServerList');
   const forgeMcpServerCountBadge = $('forgeMcpServerCountBadge');
   if (!forgeMcpServerList) return;
+  const list = Array.isArray(servers) ? servers : [];
   if (forgeMcpServerCountBadge) {
-    forgeMcpServerCountBadge.textContent = String(servers.length);
+    forgeMcpServerCountBadge.textContent = String(list.length);
   }
-  if (!servers.length) {
-    forgeMcpServerList.innerHTML = '<p id="forgeMcpServerEmpty" class="text-[11px] text-slate-500">No remote MCP servers configured for this agent.</p>';
-    return;
-  }
-
-  forgeMcpServerList.innerHTML = servers.map((s) => {
-    const isMounted = Boolean(s.is_mounted);
-    const isEnabled = s.enabled !== false;
-    const toolCount = s.tool_count || (s.tools ? s.tools.length : 0);
-    const target = s.url || s.command || 'N/A';
-    return `
-      <div class="p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-2" data-server-name="${escapeHtml(s.name)}">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <span class="text-xs font-bold text-slate-200 font-mono">${escapeHtml(s.name)}</span>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-950/70 text-cyan-400 border border-cyan-800/60">${escapeHtml(s.transport || 'sse')}</span>
-            ${isEnabled 
-              ? (isMounted 
-                  ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950/70 text-emerald-400 border border-emerald-800/60 flex items-center space-x-1">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>Mounted (${toolCount} tools)</span>
-                     </span>`
-                  : '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">Enabled</span>')
-              : '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-900 text-slate-500 border border-slate-800">Disabled</span>'
-            }
-          </div>
-          <div class="flex items-center space-x-1.5">
-            ${!isMounted && isEnabled ? `
-              <button type="button" class="btn-mount-server px-2 py-1 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Connect/Mount this MCP server">
-                <i data-lucide="play" class="w-3 h-3"></i>
-                <span>Connect</span>
-              </button>
-            ` : ''}
-            <button type="button" class="btn-probe-server px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/60 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Test connection probe">
-              <i data-lucide="activity" class="w-3 h-3"></i>
-              <span>Probe</span>
-            </button>
-            <button type="button" class="btn-delete-server px-2 py-1 bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Remove this MCP server">
-              <i data-lucide="trash-2" class="w-3 h-3"></i>
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-        <div class="text-[11px] font-mono text-slate-400 truncate">
-          <span class="text-slate-500">Endpoint:</span> ${escapeHtml(target)}
-        </div>
-        <div class="server-probe-result hidden p-2 rounded text-[11px] font-mono border"></div>
-      </div>
-    `;
-  }).join('');
-
-  safeCreateIcons();
-
-  forgeMcpServerList.querySelectorAll('.btn-mount-server').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      const sName = e.currentTarget.dataset.serverName;
-      const card = btn.closest('[data-server-name]');
-      const resultEl = card ? card.querySelector('.server-probe-result') : null;
-      if (resultEl) {
-        resultEl.classList.remove('hidden');
-        resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-slate-900 border-slate-700 text-slate-300';
-        resultEl.textContent = 'Connecting to MCP server...';
-      }
-      try {
-        const mountRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/${encodeURIComponent(sName)}/mount`, {
-          method: 'POST',
-        });
-        const data = await mountRes.json();
-        if (data.status === 'mounted') {
-          await loadAgentMcpServers(agentId, { getActiveAgent, onServersChanged });
-        } else {
-          if (resultEl) {
-            resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-            resultEl.textContent = `Mount failed: ${data.detail || 'Unknown error'}`;
-          }
-        }
-      } catch (err) {
-        if (resultEl) {
-          resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-          resultEl.textContent = `Mount error: ${err.message || err}`;
-        }
-      }
-    });
-  });
-
-  forgeMcpServerList.querySelectorAll('.btn-probe-server').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      const sName = e.currentTarget.dataset.serverName;
-      const card = btn.closest('[data-server-name]');
-      const resultEl = card ? card.querySelector('.server-probe-result') : null;
-      if (resultEl) {
-        resultEl.classList.remove('hidden');
-        resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-slate-900 border-slate-700 text-slate-300';
-        resultEl.textContent = 'Testing connection...';
-      }
-      try {
-        const testRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/${encodeURIComponent(sName)}/probe`, {
-          method: 'POST',
-        });
-        const data = await testRes.json();
-        if (resultEl) {
-          if (data.status === 'ok') {
-            resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-emerald-950/60 border-emerald-800 text-emerald-300';
-            resultEl.textContent = `✓ OK (${data.latency_ms}ms) - ${data.tools_count} tool(s) found: ${(data.tools || []).join(', ')}`;
-          } else {
-            resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-            resultEl.textContent = `✗ Probe failed: ${data.error || 'Unknown error'}`;
-          }
-        }
-      } catch (err) {
-        if (resultEl) {
-          resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-          resultEl.textContent = `✗ Probe error: ${err.message || err}`;
-        }
-      }
-    });
-  });
-
-  forgeMcpServerList.querySelectorAll('.btn-delete-server').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      const sName = e.currentTarget.dataset.serverName;
-      if (!window.confirm(`Remove MCP server '${sName}' from this agent?`)) return;
-      try {
-        const delRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/${encodeURIComponent(sName)}`, {
-          method: 'DELETE',
-        });
-        if (!delRes.ok) throw new Error('Failed to delete server');
-        showToast(`MCP server '${sName}' removed`, 'info');
-        await loadAgentMcpServers(agentId, { getActiveAgent, onServersChanged });
-      } catch (err) {
-        showToast(`Failed to delete server: ${err.message || err}`, 'error');
-      }
-    });
+  forgeMcpServerList.innerHTML = renderMcpStatusRowsMarkup(list, {
+    rowTestId: 'forge-mcp-status-row',
+    emptyHtml: '<p id="forgeMcpServerEmpty" class="text-[11px] text-slate-500">No remote MCP servers configured for this agent.</p>',
   });
 }
 
@@ -346,144 +217,22 @@ export async function loadAgentCredentialGrants(agent) {
 }
 
 /**
- * Wires remote MCP Server add/test/save event listeners.
+ * Opens Tools Studio for this agent's MCP attach. The full form is not on this card. [CARD-421]
+ * @param {{ openToolsStudio?: Function }} [opts]
  */
-export function setupAgentMcpControls({
-  getActiveAgent = null,
-  onServersChanged = null,
-} = {}) {
-  const _forgeMcpServersCard = $('forgeMcpServersCard');
-  const forgeAddMcpServerBtn = $('forgeAddMcpServerBtn');
-  const forgeMcpServerForm = $('forgeMcpServerForm');
-  const forgeMcpServerFormCloseBtn = $('forgeMcpServerFormCloseBtn');
-  const forgeMcpNameInput = $('forgeMcpNameInput');
-  const forgeMcpTransportSelect = $('forgeMcpTransportSelect');
-  const forgeMcpUrlGroup = $('forgeMcpUrlGroup');
-  const forgeMcpUrlInput = $('forgeMcpUrlInput');
-  const forgeMcpCommandGroup = $('forgeMcpCommandGroup');
-  const forgeMcpCommandInput = $('forgeMcpCommandInput');
-  const forgeMcpHeadersInput = $('forgeMcpHeadersInput');
-  const forgeMcpEnabledCheckbox = $('forgeMcpEnabledCheckbox');
-  const forgeMcpTestBtn = $('forgeMcpTestBtn');
-  const forgeMcpSaveBtn = $('forgeMcpSaveBtn');
-  const forgeMcpTestResult = $('forgeMcpTestResult');
-
-  if (forgeAddMcpServerBtn && forgeMcpServerForm) {
-    forgeAddMcpServerBtn.addEventListener('click', () => {
-      forgeMcpServerForm.classList.remove('hidden');
-      if (forgeMcpNameInput) forgeMcpNameInput.value = '';
-      if (forgeMcpUrlInput) forgeMcpUrlInput.value = '';
-      if (forgeMcpCommandInput) forgeMcpCommandInput.value = '';
-      if (forgeMcpHeadersInput) forgeMcpHeadersInput.value = '';
-      if (forgeMcpEnabledCheckbox) forgeMcpEnabledCheckbox.checked = true;
-      if (forgeMcpTestResult) forgeMcpTestResult.classList.add('hidden');
-    });
-  }
-
-  if (forgeMcpServerFormCloseBtn && forgeMcpServerForm) {
-    forgeMcpServerFormCloseBtn.addEventListener('click', () => {
-      forgeMcpServerForm.classList.add('hidden');
-    });
-  }
-
-  if (forgeMcpTransportSelect) {
-    forgeMcpTransportSelect.addEventListener('change', () => {
-      const isStdio = forgeMcpTransportSelect.value === 'stdio';
-      if (forgeMcpUrlGroup) forgeMcpUrlGroup.classList.toggle('hidden', isStdio);
-      if (forgeMcpCommandGroup) forgeMcpCommandGroup.classList.toggle('hidden', !isStdio);
-    });
-  }
-
-  if (forgeMcpTestBtn) {
-    forgeMcpTestBtn.addEventListener('click', async () => {
-      const name = forgeMcpNameInput ? forgeMcpNameInput.value.trim() : 'test-server';
-      const transport = forgeMcpTransportSelect ? forgeMcpTransportSelect.value : 'sse';
-      const url = forgeMcpUrlInput ? forgeMcpUrlInput.value.trim() : '';
-      const command = forgeMcpCommandInput ? forgeMcpCommandInput.value.trim() : '';
-      let headers = null;
-      if (forgeMcpHeadersInput && forgeMcpHeadersInput.value.trim()) {
-        try {
-          headers = JSON.parse(forgeMcpHeadersInput.value.trim());
-        } catch {
-          showToast('Invalid JSON in custom headers', 'warning');
-          return;
-        }
-      }
-      const activeAgent = typeof getActiveAgent === 'function' ? getActiveAgent() : null;
-      const agentId = activeAgent ? activeAgent.id : 'assistant';
-      if (forgeMcpTestResult) {
-        forgeMcpTestResult.classList.remove('hidden');
-        forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-slate-900 border-slate-700 text-slate-300';
-        forgeMcpTestResult.textContent = 'Probing server...';
-      }
-      try {
-        const testRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/test`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, transport, url: url || null, command: command || null, headers, enabled: true }),
-        });
-        const data = await testRes.json();
-        if (forgeMcpTestResult) {
-          if (data.status === 'ok') {
-            forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-emerald-950/60 border-emerald-800 text-emerald-300';
-            forgeMcpTestResult.textContent = `✓ OK (${data.latency_ms}ms) - ${data.tools_count} tool(s) found: ${(data.tools || []).join(', ')}`;
-          } else {
-            forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-            forgeMcpTestResult.textContent = `✗ Probe failed (${data.latency_ms}ms): ${data.error || 'Unknown error'}`;
-          }
-        }
-      } catch (err) {
-        if (forgeMcpTestResult) {
-          forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
-          forgeMcpTestResult.textContent = `✗ Connection error: ${err.message || err}`;
-        }
-      }
-    });
-  }
-
-  if (forgeMcpSaveBtn) {
-    forgeMcpSaveBtn.addEventListener('click', async () => {
-      const name = forgeMcpNameInput ? forgeMcpNameInput.value.trim() : '';
-      if (!name) {
-        showToast('Server name is required', 'warning');
-        return;
-      }
-      const transport = forgeMcpTransportSelect ? forgeMcpTransportSelect.value : 'sse';
-      const url = forgeMcpUrlInput ? forgeMcpUrlInput.value.trim() : '';
-      const command = forgeMcpCommandInput ? forgeMcpCommandInput.value.trim() : '';
-      if (transport === 'sse' && !url) {
-        showToast('Remote URL is required for HTTP/SSE transport', 'warning');
-        return;
-      }
-      let headers = null;
-      if (forgeMcpHeadersInput && forgeMcpHeadersInput.value.trim()) {
-        try {
-          headers = JSON.parse(forgeMcpHeadersInput.value.trim());
-        } catch {
-          showToast('Invalid JSON in custom headers', 'warning');
-          return;
-        }
-      }
-      const enabled = forgeMcpEnabledCheckbox ? forgeMcpEnabledCheckbox.checked : true;
-      const activeAgent = typeof getActiveAgent === 'function' ? getActiveAgent() : null;
-      const agentId = activeAgent ? activeAgent.id : null;
-      if (!agentId) {
-        showToast('No active agent selected', 'error');
-        return;
-      }
-      try {
-        const saveRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, transport, url: url || null, command: command || null, headers, enabled }),
-        });
-        if (!saveRes.ok) throw new Error(`HTTP ${saveRes.status}`);
-        showToast(`MCP server '${name}' saved`, 'success');
-        if (forgeMcpServerForm) forgeMcpServerForm.classList.add('hidden');
-        await loadAgentMcpServers(agentId, { getActiveAgent, onServersChanged });
-      } catch (err) {
-        showToast(`Failed to save server: ${err.message || err}`, 'error');
-      }
-    });
-  }
+export function setupAgentMcpControls({ openToolsStudio = null } = {}) {
+  const forgeOpenToolsStudioBtn = $('forgeOpenToolsStudioBtn');
+  if (!forgeOpenToolsStudioBtn || forgeOpenToolsStudioBtn.dataset.bound === '1') return;
+  forgeOpenToolsStudioBtn.dataset.bound = '1';
+  forgeOpenToolsStudioBtn.addEventListener('click', () => {
+    const select = $('forgeAgentSelect');
+    const agentId = select ? String(select.value || '').trim() : '';
+    if (typeof openToolsStudio === 'function') {
+      openToolsStudio(agentId);
+      return;
+    }
+    if (typeof window !== 'undefined' && typeof window.openToolsStudio === 'function') {
+      window.openToolsStudio({ scope: agentId ? 'agent' : 'platform', agentId: agentId || null });
+    }
+  });
 }

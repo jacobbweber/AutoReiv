@@ -13,6 +13,7 @@ export const PICKER_KEYS = Object.freeze({
   factory: 'autoreiv_factory_selected_agent_id',
   routines: 'autoreiv_routines_filter_agent',
   observability: 'autoreiv_observe_selected_agent_id',
+  tools: 'autoreiv_tools_studio_agent_id',
 });
 
 /**
@@ -239,6 +240,26 @@ export function bindStudioAgentPickers(agents, { state, root } = {}) {
     });
     storageSet(PICKER_KEYS.observability, bound.observability || '');
     remember(observeEl, PICKER_KEYS.observability);
+  }
+
+  const toolsEl = doc.getElementById('toolsStudioAgentSelect');
+  if (toolsEl) {
+    const toolsAgents = sortStudioAgentsAlphabetically(list.filter(isStudioAgentVisible));
+    const toolsIds = ['', ...toolsAgents.map((a) => a.id)];
+    const toolsSelected = resolvePickerSelection({
+      currentValue: toolsEl.value,
+      storedValue: storageGet(PICKER_KEYS.tools),
+      validIds: toolsIds,
+      placeholders: [''],
+      fallback: '',
+    });
+    bound.tools = fillAgentSelect(toolsEl, toolsAgents, {
+      selectedId: toolsSelected,
+      label: formatAgentSelectOption,
+      leading: { value: '', text: 'Select an agent' },
+    });
+    storageSet(PICKER_KEYS.tools, bound.tools || '');
+    remember(toolsEl, PICKER_KEYS.tools);
   }
 
   return bound;

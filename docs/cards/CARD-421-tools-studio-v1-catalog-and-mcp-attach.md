@@ -1,7 +1,7 @@
 ---
 id: CARD-421
 title: "Tools Studio v1 (Catalog Browse + MCP Attach/Status)"
-status: Ready
+status: In Review
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,8 @@ labels:
 
 # [CARD-421] Tools Studio v1 (Catalog Browse + MCP Attach/Status)
 
-> **Status**: Ready  
+> **Status**: In Review  
+> **Review note**: 2026-09-23 — Tools Studio dock, catalog browse (group + search/filter), and platform/agent MCP attach are implemented. Settings and Agent Studio attach writers are status plus Open in Tools Studio. MCP hosting stays in Settings. CARD-422 and CARD-423 stay Ready.  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (**Accepted**; packaging policy amended 2026-09-22 — dual native + MCP lanes, tighten later)  
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:tools`, `area:mcp`  
@@ -38,7 +39,7 @@ labels:
 
 | Card | Status | Ships |
 |------|--------|-------|
-| **CARD-421** (this card) | Ready | Tools Studio dock; catalog browse; tools grouped under MCP when that is the source; Routines-like search/filter; platform + agent-scoped **MCP attach/status/test**; Settings and Agent Studio become thin Open-in-Tools-Studio shells for attach. **No** form, **no** Talk/Submit to developer, **no** code editor, **no** MCP hosting move. |
+| **CARD-421** (this card) | In Review | Tools Studio dock; catalog browse; tools grouped under MCP when that is the source; Routines-like search/filter; platform + agent-scoped **MCP attach/status/test**; Settings and Agent Studio become thin Open-in-Tools-Studio shells for attach. **No** form, **no** Talk/Submit to developer, **no** code editor, **no** MCP hosting move. |
 | **CARD-422** | Ready (advance) | Form-driven create/modify/delete intent + Talk to developer / Submit to developer that actually opens or runs the developer with form context. Operator never types tool code in the studio. |
 | **CARD-423** | Ready (advance) | Dual packaging lanes: native AutoReiv custom tools **and** MCP-backed custom tools; developer skills/runbooks for AutoReiv tool and MCP building; chat-path context to a folder of scripts is allowed as developer input, not a Tools Studio point-at-folder factory. |
 
