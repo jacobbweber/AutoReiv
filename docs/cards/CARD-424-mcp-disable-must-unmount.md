@@ -1,7 +1,7 @@
 ---
 id: CARD-424
 title: "MCP disable must unmount (Tools Studio enable/disable honesty)"
-status: Ready
+status: In Review
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -13,7 +13,8 @@ labels:
 
 # [CARD-424] MCP disable must unmount (Tools Studio enable/disable honesty)
 
-> **Status**: Ready  
+> **Status**: In Review  
+> **Review note**: 2026-09-23 — Platform and agent MCP save unmount when `enabled` is false and mount when true. Save `mounted` and list `is_mounted` follow the live manager. Tools Studio shows plain Disabled after a successful disable, and a warning plus still-mounted wording only when unmount fails.  
 > **Created**: 2026-09-22  
 > **Found during**: CARD-421 live test (Harness Engineer + Jacob) on `feat/card-421-tools-studio-v1-catalog-and-mcp-attach`  
 > **Parent**: [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md)  

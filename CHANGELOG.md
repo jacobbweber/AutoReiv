@@ -23,6 +23,10 @@
 
 - **CARD-418 Factory cutover (thin shell)**: Factory keeps the agent brief and the display-only assigned-skills list, and links to Skill Studio. Forge **Open in Factory Workshop** and **Author skill in Factory** now open Skill Studio and load the selected skill by id (`src/web/static/modules/studios/factory.js`, `src/web/static/modules/studios/forge/runbook.js`, `src/application/skills/workshop.py`, `src/web/routers/agent_training_factory.py` [CARD-418]).
 
+### Fixed
+
+- **CARD-424 MCP disable unmounts**: Saving a platform or agent MCP server with `enabled: false` unmounts that server. Enable mounts it again. The save `mounted` flag and the list `is_mounted` / tool list match the live manager. Tools Studio shows **Disabled** after a successful disable, and **Disabled (still mounted, N tools)** only when unmount fails, with that failure shown to the operator (`src/web/mcp_mount_reconcile.py`, `src/web/routers/settings.py`, `src/web/routers/agents.py`, `src/web/static/modules/studios/tools_studio.js`, `src/web/static/modules/studios/tools_studio_catalog.js` [CARD-424]).
+
 ## [0.40.0] - 2026-09-22
 
 ### Added

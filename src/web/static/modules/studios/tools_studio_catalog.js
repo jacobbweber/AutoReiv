@@ -264,13 +264,9 @@ export function renderMcpServerListMarkup(servers, { scope = 'platform' } = {}) 
   return list.map((server) => {
     const name = String(server.name || '');
     const safe = escapeHtml(name);
+    const badge = mcpServerStatusBadge(server);
     const mounted = Boolean(server.is_mounted);
     const enabled = server.enabled !== false;
-    const count = Number(server.tool_count || (Array.isArray(server.tools) ? server.tools.length : 0)) || 0;
-    let badge = 'Configured';
-    if (!enabled && mounted) badge = `Disabled (still mounted, ${count} tools)`;
-    else if (!enabled) badge = 'Disabled';
-    else if (mounted) badge = `Mounted (${count} tools)`;
     const target = server.url || (Array.isArray(server.command) ? server.command.join(' ') : server.command || '');
     const connect = enabled && !mounted
       ? `<button type="button" data-action="connect" data-server-name="${safe}" class="px-2 py-1 rounded bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px]">Connect</button>`
@@ -358,6 +354,46 @@ export function buildMcpSaveBody(fields = {}) {
       enabled,
     },
   };
+}
+
+/**
+ * Tools Studio attach-row badge. Still-mounted copy is only for a live mount.
+ * @param {object} server
+ * @returns {string}
+ */
+export function mcpServerStatusBadge(server) {
+  const mounted = Boolean(server && server.is_mounted);
+  const enabled = !server || server.enabled !== false;
+  const fromTools = server && Array.isArray(server.tools) ? server.tools.length : 0;
+  const count = Number((server && server.tool_count) || fromTools) || 0;
+  if (!enabled && mounted) return `Disabled (still mounted, ${count} tools)`;
+  if (!enabled) return 'Disabled';
+  if (mounted) return `Mounted (${count} tools)`;
+  return 'Configured';
+}
+
+/**
+ * Toast copy for a MCP save. Disable success is plain. Unmount failure stays a warning.
+ * @param {object} body
+ * @param {object} data
+ * @returns {{ kind: 'success'|'warning', message: string }}
+ */
+export function describeMcpSaveNotice(body, data) {
+  const name = String((body && body.name) || 'server');
+  const disabling = Boolean(body && body.enabled === false);
+  const payload = data && typeof data === 'object' ? data : {};
+  const error = payload.error ? String(payload.error) : '';
+  if (error && disabling) {
+    if (payload.mounted !== false) {
+      return { kind: 'warning', message: `Saved ${name}, but it is still mounted.` };
+    }
+    return { kind: 'warning', message: `Saved ${name}, but unmount failed.` };
+  }
+  if (error && payload.mounted === false) {
+    return { kind: 'warning', message: `Saved ${name}, mount failed.` };
+  }
+  if (disabling) return { kind: 'success', message: `Disabled ${name}.` };
+  return { kind: 'success', message: `Saved ${name}.` };
 }
 
 /**

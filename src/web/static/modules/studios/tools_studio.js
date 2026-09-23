@@ -19,6 +19,7 @@ import {
   mcpEndpoints,
   planToolsStudioDeepLink,
   renderCatalogMarkup,
+  describeMcpSaveNotice,
   renderMcpServerListMarkup,
   serverToSaveBody,
 } from './tools_studio_catalog.js';
@@ -281,10 +282,8 @@ export function initToolsStudio(_state, callbacks = {}) {
     }
     const endpoints = mcpEndpoints(scope, agentId);
     const data = await postJson(endpoints.save, body);
-    const mountedNote = data.mounted === false && data.error
-      ? `Saved ${body.name}, mount failed.`
-      : `Saved ${body.name}.`;
-    showToast(mountedNote, data.mounted === false ? 'warning' : 'success');
+    const notice = describeMcpSaveNotice(body, data);
+    showToast(notice.message, notice.kind === 'warning' ? 'warning' : 'success');
     if (data.error) showResult('error', `<div>${escapeHtml(String(data.error))}</div>`);
     return data;
   }
