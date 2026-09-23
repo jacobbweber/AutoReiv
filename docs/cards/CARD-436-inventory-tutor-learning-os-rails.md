@@ -1,7 +1,7 @@
 ---
 id: CARD-436
 title: "Inventory + Tutor Learning OS Rails (Named Skills/Templates; Studio Chrome Map)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-436] Inventory + Tutor Learning OS Rails (Named Skills/Templates; Studio Chrome Map)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none (draft only if lasting Tutor/Learning OS skill contracts change)
@@ -30,7 +30,7 @@ parent: CARD-435
 |-------------|---------|
 | **`continue`** | Refine inventory targets, skill/template names, or Studio→Tutor map — **still no product code** |
 | **`build`** | Implement this card only (inventory artifact + Tutor Learning OS rail bindings). Do **not** retire Education Studio. |
-| **`merge to qa`** | After In Review + live operator proof on this card |
+| **`merge to qa`** | Completed after live operator proof; merge to `qa` requested 2026-09-23 (EDT) |
 
 Do **not** write product code until Jacob says **build** on this card.
 
@@ -112,12 +112,12 @@ Do **not** write product code until Jacob says **build** on this card.
 
 - Refine inventory: say **continue**.
 - Start implementation: say **build**.
-- After live proof: say **merge to qa**.
+- Live proof complete; **merge to qa** requested 2026-09-23 (EDT).
 
 
 ---
 
-## Implementation notes (In Review)
+## Implementation notes (Done)
 
 **Branch**: `feat/card-436-inventory-tutor-learning-os-rails`
 
@@ -152,4 +152,14 @@ Do **not** write product code until Jacob says **build** on this card.
 - Retire Education Studio landing → CARD-442
 - No `education_*` agent tools invented on this card (skills cite HTTP contracts)
 
-After live proof: say **merge to qa**.
+Live proof complete; **merge to qa** requested 2026-09-23 (EDT).
+
+
+---
+
+## Merge record
+
+- **Status**: Done
+- **Merge note**: Jacob said **merge to qa** after the live Tutor proof.
+- **Date**: 2026-09-23 (EDT)
+- **Target**: qa (no merge to main)
