@@ -1,7 +1,7 @@
 ---
 id: CARD-405
 title: "Agent Memory System Verification, Stress Audit, and Live Walkthrough"
-status: In Review
+status: Done
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-405] Agent Memory System Verification, Stress Audit, and Live Walkthrough
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:test`, `area:memory`, `domain:agents`  
@@ -101,3 +101,9 @@ Jacob needs a thorough, transparent walkthrough and automated stress audit of th
 - Integration tests in `tests/integration/test_agent_memory_lifecycle_walkthrough.py`.
 - Frontend Vitest tests in `tests/unit/frontend/agent_memory_ui.test.js`.
 - All linters and boundary audits pass cleanly.
+
+---
+
+## Closure
+
+Jacob marked this card **Done** on 2026-09-23. The integration walkthrough, frontend memory UI tests, and CHANGELOG CARD-405 entry were already on `qa`. Live Brain-drawer verification is accepted as complete for this card.
