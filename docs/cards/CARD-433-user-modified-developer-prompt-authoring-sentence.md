@@ -1,7 +1,7 @@
 ---
 id: CARD-433
 title: "Append an authoring sentence to a user-modified developer prompt"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-433] Append an authoring sentence to a user-modified developer prompt
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Found during**: [CARD-429](./CARD-429-classification-simplification.md)
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md), [ADR-0058](../adr/0058-retire-agent-builder-into-developer.md)
