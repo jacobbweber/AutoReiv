@@ -21,7 +21,7 @@ labels:
 > **Labels**: `type:feat`, `area:ux`, `area:studios`, `area:tools`, `area:mcp`  
 > **Parent planning**: [CARD-417](./CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md)  
 > **Depends on**: [CARD-418](./CARD-418-skill-studio-extract-from-factory.md) Done; [CARD-419](./CARD-419-agent-studio-skill-toggle-pills.md) Done; [CARD-420](./CARD-420-developer-mediated-authoring-v1-visible-build-review.md) Done  
-> **Successors (written in advance)**: [CARD-422](./CARD-422-tools-studio-form-and-developer-mediation.md) Ready; [CARD-423](./CARD-423-custom-tool-packaging-native-and-mcp.md) Ready
+> **Successors (written in advance)**: [CARD-422](./CARD-422-tools-studio-form-and-developer-mediation.md) Ready; [CARD-423](./CARD-423-custom-tool-packaging-native-and-mcp.md) Ready; [CARD-424](./CARD-424-mcp-disable-must-unmount.md) Ready (disable must unmount)
 
 ---
 
@@ -42,6 +42,7 @@ labels:
 | **CARD-421** (this card) | In Review | Tools Studio dock; catalog browse; tools grouped under MCP when that is the source; Routines-like search/filter; platform + agent-scoped **MCP attach/status/test**; Settings and Agent Studio become thin Open-in-Tools-Studio shells for attach. **No** form, **no** Talk/Submit to developer, **no** code editor, **no** MCP hosting move. |
 | **CARD-422** | Ready (advance) | Form-driven create/modify/delete intent + Talk to developer / Submit to developer that actually opens or runs the developer with form context. Operator never types tool code in the studio. |
 | **CARD-423** | Ready (advance) | Dual packaging lanes: native AutoReiv custom tools **and** MCP-backed custom tools; developer skills/runbooks for AutoReiv tool and MCP building; chat-path context to a folder of scripts is allowed as developer input, not a Tools Studio point-at-folder factory. |
+| **CARD-424** | Ready (follow-up) | Disable must unmount; enable remounts; list status matches reality. Found in CARD-421 live test. |
 
 When CARD-421 merges Done, CARD-422 is still Ready — that is the reminder that more Tools Studio work remains.
 
@@ -162,3 +163,9 @@ CARD-420 left developer mediation APIs in tree without a Skill Studio Ask develo
 ### Objective note (Harness Engineer, not security-only)
 
 Forcing MCP for every custom tool buys one discovery/auth/transport story and process isolation, and matches industry plug-in boxes. It also adds ceremony (another process, attach config, lifecycle) that is **not always valuable** for a small local helper. Built-in platform tools already call without MCP. Allowing both is the honest product call: prefer MCP when the capability is shared, remote, multi-tool, or should outlive AutoReiv's process; allow native when the helper is local, simple, and owned by AutoReiv. Jacob can tighten to MCP-preferred or MCP-required later without rewriting Tools Studio v1.
+
+---
+
+## Follow-up from live test (2026-09-22)
+
+Disable left servers mounted (`enabled: false` without unmount). Captured as [CARD-424](./CARD-424-mcp-disable-must-unmount.md) Ready — not deferred to chat only.
