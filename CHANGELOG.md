@@ -4,6 +4,10 @@
 
 - **CARD-428 Observability Journey Canvas**: Visual end-to-end operational execution trace across 4 architectural swimlanes (UI/Browser, API Gateway, Orchestrator ReAct Loop, Storage & Policy). Built directly into Observability Studio (`observe`) with a timeline scrubber, Play/Pause autoplay controls, synchronized Code Inspector with active line highlighting and IDE links, runtime state transition badges, and formatted Payload Inspector (`src/application/observability/journey_canvas.py`, `src/web/routers/observability.py`, `src/web/static/modules/observability/journey_canvas.js`, `src/web/templates/index.html` [CARD-428]).
 
+### Fixed
+
+- **CARD-427 developer chat pack skill open**: Developer chat `skill_view` opens an allowlisted pack runbook from `packs/<agent>/skills/<id>/SKILL.md` when `$DATA_DIR/skills/<id>/` is absent. The chat skill index lists that runbook's name and blurb. For `native-tool-engineering`, the tool result includes the CARD-426 legacy-loader warning. The open does not copy the file into `$DATA_DIR/skills/` and does not rewrite the developer prompt or other skill bodies (`src/application/skills/user_catalog.py`, `src/application/kernel/agent_kernel.py`, `src/application/agent_packs/schema.py` [CARD-427]).
+
 ## [0.41.0] - 2026-09-23
 
 ### Added

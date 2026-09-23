@@ -357,6 +357,7 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
                 if tool not in scoped:
                     scoped.append(tool)
 
+        _append_skill_view(scoped, allowed_skills)
         # CARD-411: SQLite skill bindings are canonical. pack.json tools apply only
         # when that skill has never been saved by the Factory workshop.
         bound = _append_sqlite_skill_tools(scoped, effective_skills)
@@ -397,7 +398,16 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
             scoped.append(clean_tool)
 
     _append_sqlite_skill_tools(scoped, [str(sid).strip() for sid in allowed_skills])
+    _append_skill_view(scoped, allowed_skills)
     return scoped
+
+
+def _append_skill_view(scoped: list[str], allowed_skills: list[str]) -> None:
+    """Chat opens an allowlisted runbook with skill_view. Do not persist this onto the profile."""
+    if not allowed_skills:
+        return
+    if "skill_view" not in scoped:
+        scoped.append("skill_view")
 
 
 def _append_sqlite_skill_tools(scoped: list[str], skill_ids: list[str]) -> dict[str, list[str]]:
