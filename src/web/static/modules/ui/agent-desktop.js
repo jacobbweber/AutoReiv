@@ -126,6 +126,14 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
     defaultSize: { w: 960, h: 680 },
   },
   {
+    id: 'dock-tools-studio',
+    tab: 'tools-studio',
+    label: 'Tools Studio',
+    icon: 'wrench',
+    subtitle: 'Tool catalog and MCP attach',
+    defaultSize: { w: 960, h: 680 },
+  },
+  {
     id: 'dock-routines',
     tab: 'routines',
     label: 'Routines',
@@ -183,6 +191,7 @@ export const VIEW_BY_TAB = {
   agents: 'view-agents',
   factory: 'view-factory',
   'skill-studio': 'view-skill-studio',
+  'tools-studio': 'view-tools-studio',
   routines: 'view-routines',
   observability: 'view-observability',
   settings: 'view-settings',

@@ -25,6 +25,7 @@ from src.domain.settings.models import (
 )
 from src.infrastructure.data.backup import DataDirBackupService, DataDirRestoreError
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter
+from src.web.mcp_mount_reconcile import mcp_save_http_body, reconcile_saved_mcp_server
 
 logger = logging.getLogger(__name__)
 
@@ -832,7 +833,7 @@ async def list_mcp_servers(request: Request):
 @router.post("/api/settings/mcp")
 @router.post("/api/mcp/servers")
 async def save_mcp_server(request: Request, req: MCPServerConfig):
-    """Save and mount an MCP server configuration [REQ-MCP-005]."""
+    """Save an MCP server. Mount when enabled, unmount when disabled [REQ-MCP-005, CARD-424]."""
     store = request.app.state.store
     servers = store.get_setting("mcp_servers")
     if not isinstance(servers, list):
@@ -845,29 +846,19 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
         servers.append(server_dict)
     store.set_setting("mcp_servers", servers)
 
-    mounted_tools = []
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
-    if mcp_manager and req.enabled:
+    outcome = await reconcile_saved_mcp_server(mcp_manager, req)
+    if outcome["failure"] != "mount" and req.enabled and outcome["tools"]:
         try:
-            tools = await mcp_manager.mount_server(
-                name=req.name,
-                command=req.command,
-                env=req.env,
-                transport=req.transport,
-                url=req.url,
-                headers=req.headers,
-            )
-            mounted_tools = [t.name for t in tools]
-            if tools:
-                from src.infrastructure.mcp.companion_author import author_mcp_companion_skill
+            from src.infrastructure.mcp.companion_author import author_mcp_companion_skill
 
-                data_dir = getattr(request.app.state, "data_dir", None)
-                author_mcp_companion_skill(
-                    server_name=req.name,
-                    tools=tools,
-                    url=req.url,
-                    data_dir=data_dir,
-                )
+            data_dir = getattr(request.app.state, "data_dir", None)
+            author_mcp_companion_skill(
+                server_name=req.name,
+                tools=outcome["tools"],
+                url=req.url,
+                data_dir=data_dir,
+            )
         except Exception as e:
             return {
                 "status": "saved",
@@ -876,13 +867,11 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
                 "error": f"Configuration saved, but tool mounting failed: {e}",
             }
 
-    return {
-        "status": "saved",
-        "name": req.name,
-        "mounted": True,
-        "tools_count": len(mounted_tools),
-        "tools": mounted_tools,
-    }
+    return mcp_save_http_body(
+        req.name,
+        outcome,
+        mount_error="Configuration saved, but tool mounting failed",
+    )
 
 
 @router.delete("/api/settings/mcp/{name}")

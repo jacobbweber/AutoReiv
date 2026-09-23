@@ -28,7 +28,7 @@ End-to-end engineering, testing, containerization, and registration of custom Mo
    - Pydantic models and JSON-RPC 2.0 schema invariants must be verified before deployment.
 
 2. **Single Lever Invariant**:
-   - Automated registration through `register_mcp_service` uses the exact same canonical store (`store.set_setting("mcp_servers", ...)`) and mounting pipeline as manual Settings Studio additions (`#addMcpServerBtn`).
+   - Automated registration through `register_mcp_service` uses the exact same canonical store (`store.set_setting("mcp_servers", ...)`) and mounting pipeline as Tools Studio platform attach (`POST /api/settings/mcp`).
    - Never create parallel or shadow registration endpoints.
 
 3. **Mandatory Container Healthchecks**:

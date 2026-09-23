@@ -24,6 +24,7 @@ const PRIORITY_TABS = [
   'projects',
   'factory',
   'skill-studio',
+  'tools-studio',
   'routines',
   'observability',
   'settings',

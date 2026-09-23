@@ -38,7 +38,7 @@
 │               ├── dom.js       # Defensive DOM helpers ($, $query, $on)
 │               ├── state/       # Reactive state store (store.js)
 │               ├── services/    # HTTP API client wrappers (api.js)
-│               ├── studios/     # 7 Modular UI studios (chat, routines, observability, forge, settings, docs, wiki)
+│               ├── studios/     # Modular UI studios (chat, routines, observability, forge, settings, skill studio, tools studio, wiki)
 │               └── utils/       # Pure functions (physics.js, formatters.js, debounce.js, storage.js)
 ├── tests/                       # Automated test suites
 │   ├── unit/                    # Fast, isolated unit tests (Pytest + Vitest)

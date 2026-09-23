@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from src.domain.kernel.models import AgentTone
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
+from src.web.mcp_mount_reconcile import mcp_save_http_body, reconcile_saved_mcp_server
 
 logger = logging.getLogger(__name__)
 
@@ -747,7 +748,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
 
 @router.post("/api/agents/{agent_id}/mcp")
 async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerConfig):
-    """Save an MCP server configuration for an agent and mount if enabled [REQ-MCP-AGENT-003]."""
+    """Save an agent MCP server. Mount when enabled, unmount when disabled [REQ-MCP-AGENT-003, CARD-424]."""
     registry = request.app.state.registry
     profile = registry.get_agent(agent_id)
     if not profile:
@@ -788,34 +789,13 @@ async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
 
                 logging.getLogger(__name__).warning(f"Failed to sync mcp_servers to {pack_json_file}: {e}")
 
-    mounted_tools = []
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
-    if mcp_manager and req.enabled:
-        try:
-            tools = await mcp_manager.mount_server(
-                name=req.name,
-                command=req.command,
-                env=req.env,
-                transport=req.transport,
-                url=req.url,
-                headers=req.headers,
-            )
-            mounted_tools = [t.name for t in tools]
-        except Exception as e:
-            return {
-                "status": "saved",
-                "name": req.name,
-                "mounted": False,
-                "error": f"Configuration saved, but mounting failed: {e}",
-            }
-
-    return {
-        "status": "saved",
-        "name": req.name,
-        "mounted": req.enabled,
-        "tools_count": len(mounted_tools),
-        "tools": mounted_tools,
-    }
+    outcome = await reconcile_saved_mcp_server(mcp_manager, req)
+    return mcp_save_http_body(
+        req.name,
+        outcome,
+        mount_error="Configuration saved, but mounting failed",
+    )
 
 
 @router.delete("/api/agents/{agent_id}/mcp/{server_name}")

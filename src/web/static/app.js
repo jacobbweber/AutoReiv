@@ -17,6 +17,7 @@ import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
 import { initSkillStudio } from './modules/studios/skill_studio.js';
+import { initToolsStudio } from './modules/studios/tools_studio.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
 import { initThemeEngine } from './modules/ui/theme-engine.js';
 import { studioRegistry } from './modules/studios/registry.js';
@@ -99,6 +100,7 @@ export function initApp() {
   let promptsCtrl = null;
   let factoryCtrl = null;
   let skillCtrl = null;
+  let toolsCtrl = null;
   let educationCtrl = null;
   let luminaCtrl = null;
   let desktopCtrl = null;
@@ -121,7 +123,7 @@ export function initApp() {
       surfaceBtns.cockpit.className = activeSurfaceClass;
     } else if ((tabName === 'wiki' || tabName === 'projects') && surfaceBtns.vault) {
       surfaceBtns.vault.className = activeSurfaceClass;
-    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'factory' || tabName === 'skill-studio' || tabName === 'settings') && surfaceBtns.fleet) {
+    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'factory' || tabName === 'skill-studio' || tabName === 'tools-studio' || tabName === 'settings') && surfaceBtns.fleet) {
       surfaceBtns.fleet.className = activeSurfaceClass;
     }
   }
@@ -181,6 +183,8 @@ export function initApp() {
         factoryCtrl.loadFactoryStudio();
       } else if (tabName === 'skill-studio' && skillCtrl) {
         skillCtrl.loadSkillStudio();
+      } else if (tabName === 'tools-studio' && toolsCtrl) {
+        toolsCtrl.loadToolsStudio();
       } else if (tabName === 'settings' && settingsCtrl) {
         settingsCtrl.loadSettings();
       } else if (tabName === 'wiki' && wikiCtrl) {
@@ -285,6 +289,13 @@ export function initApp() {
       }
       switchTab('skill-studio');
     },
+    openToolsStudio: (agentId = null, scope = null) => {
+      const resolvedScope = scope || (agentId ? 'agent' : 'platform');
+      if (toolsCtrl && typeof toolsCtrl.queueDeepLink === 'function') {
+        toolsCtrl.queueDeepLink({ scope: resolvedScope, agentId });
+      }
+      switchTab('tools-studio');
+    },
     getFactoryCtrl: () => factoryCtrl,
     onTalkToForge: async (targetAgentId = null) => {
       switchTab('chat');
@@ -377,6 +388,12 @@ export function initApp() {
       },
     },
     {
+      name: 'Tools Studio',
+      init: () => {
+        toolsCtrl = initToolsStudio(state, sharedCallbacks);
+      },
+    },
+    {
       name: 'Factory Studio',
       init: () => {
         factoryCtrl = initFactoryStudio(state, sharedCallbacks);
@@ -452,6 +469,9 @@ export function initApp() {
       if (skillCtrl && typeof skillCtrl.stopPolling === 'function') skillCtrl.stopPolling();
     },
     getController: () => skillCtrl,
+  });
+  studioRegistry.register('tools-studio', {
+    getController: () => toolsCtrl,
   });
   studioRegistry.register('settings', {
     getController: () => settingsCtrl,

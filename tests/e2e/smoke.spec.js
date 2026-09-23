@@ -108,10 +108,12 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#saveProvidersBtn')).toBeAttached();
     await expect(page.locator('#saveMatrixBtn')).toHaveCount(0);
     await expect(page.locator('#matrixGeneral')).toHaveCount(0);
-    await expect(page.locator('#addMcpServerBtn')).toBeAttached();
-    await expect(page.locator('#addMcpEnvRowBtn')).toBeAttached();
-    await expect(page.locator('#testMcpServerBtn')).toBeAttached();
+    await expect(page.locator('#settingsOpenToolsStudioBtn')).toBeAttached();
+    await expect(page.locator('#settingsMcpAttachStatus')).toBeAttached();
     await expect(page.locator('#mcpServerList')).toBeAttached();
+    await expect(page.locator('#addMcpServerBtn')).toHaveCount(0);
+    await expect(page.locator('#mcpServerFormContainer')).toHaveCount(0);
+    await expect(page.getByText('Hosted MCP Server Active')).toBeAttached();
 
     // 5. Wiki Vault Studio
     await page.locator('#dock-wiki').click();
