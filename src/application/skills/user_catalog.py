@@ -287,7 +287,11 @@ class UserSkillCatalog:
         return {str(s).strip() for s in (getattr(agent, "allowed_skill", None) or []) if str(s).strip()}
 
     def list_user_skill_packs(self) -> Dict[str, Any]:
-        """Tool handler: catalog list is name + description only. Agent calls see ticked ids only."""
+        """Tool handler: catalog list is name + description only. Agent calls see ticked ids only.
+
+        Allowlisted pack runbooks that are not copied into ``$DATA_DIR/skills/`` are
+        included with name and description only. The runbook body stays out [CARD-428].
+        """
         packs = []
         for manifest in self.list_manifests():
             packs.append(
@@ -302,6 +306,22 @@ class UserSkillCatalog:
         allowed = self._allowed_skill_ids_for_current_agent()
         if allowed is not None:
             packs = [p for p in packs if p["id"] in allowed]
+            known = {p["id"] for p in packs}
+            agent_id = self._chat_agent_id()
+            for skill_id in sorted(allowed):
+                if skill_id in known:
+                    continue
+                found = self.pack_skill_index_entry(skill_id, agent_id=agent_id)
+                if not found:
+                    continue
+                name, description = found
+                packs.append(
+                    {
+                        "id": skill_id,
+                        "name": name,
+                        "description": description,
+                    }
+                )
         return {"packs": packs}
 
     def skill_view(self, pack_id: str) -> Dict[str, Any]:
@@ -663,7 +683,8 @@ class UserSkillCatalog:
             name=LIST_USER_SKILL_PACKS,
             description=(
                 "Optional catalog of this agent's allowed SKILL.md runbooks (name and description only). "
-                "The same index is already in the system prompt. Prefer the prompt list; "
+                "Includes allowlisted pack runbooks that stay under packs/<agent>/skills/ and are not copied "
+                "into $DATA_DIR/skills. The same index is already in the system prompt. Prefer the prompt list; "
                 "do not treat this as a way to discover unticked runbooks."
             ),
             parameters={"type": "object", "properties": {}},

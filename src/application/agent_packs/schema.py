@@ -403,11 +403,14 @@ def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = No
 
 
 def _append_skill_view(scoped: list[str], allowed_skills: list[str]) -> None:
-    """Chat opens an allowlisted runbook with skill_view. Do not persist this onto the profile."""
+    """Chat can list and open allowlisted runbooks. Do not persist these onto the profile."""
     if not allowed_skills:
         return
-    if "skill_view" not in scoped:
-        scoped.append("skill_view")
+    from src.application.skills.user_catalog import LIST_USER_SKILL_PACKS, SKILL_VIEW
+
+    for name in (SKILL_VIEW, LIST_USER_SKILL_PACKS):
+        if name not in scoped:
+            scoped.append(name)
 
 
 def _append_sqlite_skill_tools(scoped: list[str], skill_ids: list[str]) -> dict[str, list[str]]:

@@ -810,6 +810,10 @@ class AgentKernel:
                     if any(sid in text_l for sid in allowed_ids):
                         return (0, 0, name)
 
+                # Naming the catalog tool keeps it inside the turn cap [CARD-428].
+                if name == "list_user_skill_packs" and "list_user_skill_packs" in text_l:
+                    return (0, 0, name)
+
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = any(
                     name in DYNAMIC_SKILL_TOOLS.get(sk, ())

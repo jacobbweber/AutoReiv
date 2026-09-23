@@ -1,7 +1,7 @@
 ---
 id: CARD-428
 title: "list_user_skill_packs omits pack runbooks the chat index lists"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -12,11 +12,12 @@ labels:
 
 # [CARD-428] list_user_skill_packs omits pack runbooks the chat index lists
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-23  
 > **Found during**: CARD-427 implementation  
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md)  
-> **Parent**: [CARD-427](./CARD-427-developer-chat-skill-view-does-not-open-pack-skill-runbooks.md)
+> **Parent**: [CARD-427](./CARD-427-developer-chat-skill-view-does-not-open-pack-skill-runbooks.md)  
+> **Review note (2026-09-23)**: `list_user_skill_packs` includes an allowlisted pack runbook from `packs/<agent>/skills/<id>/SKILL.md` when `$DATA_DIR/skills/<id>/` is absent. The row is the id, name, and description. The call does not copy the file and does not list an id that is off the agent's allowlist. A developer chat turn that names `list_user_skill_packs` can call it. Say **merge to qa** after a live test.
 
 ---
 
@@ -66,8 +67,10 @@ Decide how `list_user_skill_packs` returns the same allowlisted pack runbooks th
 
 ## 6. Verification
 
-1. On a developer whose allowlist includes `native-tool-engineering` and whose pack file is the only copy, call `list_user_skill_packs`. The id is in the result. `$DATA_DIR/skills/native-tool-engineering/` does not exist.
-2. Call it as an agent that does not have that skill ticked. The id is absent.
+1. On a developer whose allowlist includes `native-tool-engineering` and whose pack file is the only copy, ask that chat to call `list_user_skill_packs` by name. The id is in the result, with its name and description, and without the runbook body. `$DATA_DIR/skills/native-tool-engineering/` does not exist.
+2. Call the same tool as an agent that does not have that skill ticked (AutoReiv). The id is absent.
+
+Automated proof: `tests/integration/operator_contracts/test_oc428_list_user_skill_packs_pack_runbooks.py` (OC-428).
 
 ---
 

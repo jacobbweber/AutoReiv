@@ -6,6 +6,8 @@
 
 ### Fixed
 
+- **CARD-428 pack runbooks in list_user_skill_packs**: `list_user_skill_packs` includes an allowlisted skill whose body lives at `packs/<agent>/skills/<id>/SKILL.md` when that folder is absent from `$DATA_DIR/skills/`. The row is the id, name, and description only. The call does not copy the runbook into `$DATA_DIR/skills/` and does not list an id that is not on the agent's allowlist. A developer chat turn that names the tool can call it (`src/application/skills/user_catalog.py`, `src/application/agent_packs/schema.py`, `src/application/kernel/agent_kernel.py` [CARD-428]).
+
 - **CARD-427 developer chat pack skill open**: Developer chat `skill_view` opens an allowlisted pack runbook from `packs/<agent>/skills/<id>/SKILL.md` when `$DATA_DIR/skills/<id>/` is absent. The chat skill index lists that runbook's name and blurb. For `native-tool-engineering`, the tool result includes the CARD-426 legacy-loader warning. The open does not copy the file into `$DATA_DIR/skills/` and does not rewrite the developer prompt or other skill bodies (`src/application/skills/user_catalog.py`, `src/application/kernel/agent_kernel.py`, `src/application/agent_packs/schema.py` [CARD-427]).
 
 ## [0.41.0] - 2026-09-23
