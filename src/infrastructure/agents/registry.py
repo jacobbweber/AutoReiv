@@ -38,6 +38,8 @@ class BuiltinAgentRegistry:
         self.master_tool_registry = master_tool_registry or ScopedToolRegistry()
         if self.state_store is not None and hasattr(self.state_store, "retire_agent_builder_rows"):
             self.state_store.retire_agent_builder_rows()
+        if self.state_store is not None and hasattr(self.state_store, "scrub_historical_agent_builder_rows"):
+            self.state_store.scrub_historical_agent_builder_rows()
 
         source = BUILTIN_PROFILES if profiles is None else profiles
         for p in source:

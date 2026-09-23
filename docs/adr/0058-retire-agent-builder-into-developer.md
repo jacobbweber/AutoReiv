@@ -57,3 +57,7 @@ Python tool classes stay where they are and remain registered on the master tool
 ### CARD-431 follow-up
 
 `save_agent_specification` is not registered. It is not on the tool-policy `REQUIRE_CONFIRM` default or the HITL high-risk name list. The Python method is gone because nothing calls it. `scaffold_agent_pack` remains the pack write. `propose_skill`, `propose_tool`, and `propose_agent_specification` stay registered. `agent-builder` stays unregistered.
+
+### CARD-432 follow-up
+
+Boot rewrites `sessions.agent_id`, `messages.agent_id`, `jobs.agent_id`, and `phases.assigned_agent_id` from `agent-builder` to `developer`. Those rows are not deleted. Message content is not edited. A second boot leaves rows that already say `developer` alone. See [CARD-432](../cards/CARD-432-scrub-historical-agent-builder-rows.md).
