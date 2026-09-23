@@ -28,6 +28,7 @@ def get_tool_context() -> Dict[str, Any]:
 class ToolRegistration:
     definition: ToolDefinition
     handler: Callable[..., Any]
+    origin: str = "platform"
 
 
 class ScopedToolRegistry:
@@ -45,14 +46,28 @@ class ScopedToolRegistry:
         description: str,
         parameters: Dict[str, Any],
         handler: Callable[..., Any],
+        *,
+        origin: str = "platform",
     ) -> None:
-        """Register a tool handler function."""
+        """Register a tool handler function.
+
+        ``origin`` is catalog metadata. ``legacy_pack_tool`` marks the
+        in-process ``packs/<id>/tools/*.py`` loader [CARD-425]. It is not
+        ``native_custom``.
+        """
         definition = ToolDefinition(
             name=name,
             description=description,
             parameters=parameters,
         )
-        self._tools[name] = ToolRegistration(definition=definition, handler=handler)
+        self._tools[name] = ToolRegistration(definition=definition, handler=handler, origin=origin or "platform")
+
+    def get_tool_origin(self, name: str) -> str:
+        """Catalog origin for a registered tool. Empty when the name is absent."""
+        reg = self._tools.get(name)
+        if reg is None:
+            return ""
+        return str(reg.origin or "platform")
 
     def mount_mcp_tool(
         self,

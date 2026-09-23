@@ -28,7 +28,7 @@
 ├── src/                         # Production application source code
 │   ├── domain/                  # Pure business entities and domain logic (zero external dependencies)
 │   ├── application/             # Use cases, orchestrators, ports/interfaces (native custom tools: application/tools/native_packaging.py)
-│   ├── infrastructure/          # Adapters, databases, external API clients
+│   ├── infrastructure/          # Adapters, databases, external API clients (legacy in-process pack tools: infrastructure/agents/legacy_pack_tools.py)
 │   ├── cli/                     # Command-line entry points
 │   └── web/                     # FastAPI backend application & static assets
 │       ├── app.py               # Unified FastAPI server & REST routes

@@ -4,6 +4,11 @@ First install: copy from repo ``platform-packs/`` into ``$DATA_DIR/packs/`` when
 Upgrades: SQLite is the sole writer for profiles/bindings; hash-gated seed apply;
 never overwrite when ``user_modified``; never prune operator skill dirs (retired list only).
 ``pack.json`` is an export projection, not a boot source of truth.
+
+CARD-425 exception: a named additive grant may append ``native-tool-engineering``
+and ``register_native_tool`` / ``plan_native_folder`` onto a user_modified developer
+allowlist. That grant does not rewrite the prompt, other allowlist entries, or MCP
+servers, and it is recorded once so a later removal stays removed.
 """
 
 from __future__ import annotations
@@ -56,6 +61,123 @@ def compute_platform_seed_hash(pack_data: dict, src_pack_dir: Optional[Path] = N
     payload["skill_bodies"] = skill_bodies
     raw = _json.dumps(payload, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+# CARD-425 / ADR-0056 exception. Append-only, once per skill id.
+USER_MODIFIED_SKILL_GRANT_SETTING = "platform_user_modified_skill_grants"
+USER_MODIFIED_ADDITIVE_SKILL_GRANTS: dict[str, dict[str, tuple[str, ...]]] = {
+    "developer": {
+        "native-tool-engineering": ("register_native_tool", "plan_native_folder"),
+    },
+}
+
+
+def _append_missing(current: list[str] | None, extras: Iterable[str]) -> tuple[list[str], bool]:
+    merged = list(current or [])
+    changed = False
+    for item in extras:
+        text = str(item or "").strip()
+        if text and text not in merged:
+            merged.append(text)
+            changed = True
+    return merged, changed
+
+
+def _patch_allowlist(obj: Any, skill_ids: list[str], tool_names: list[str], *, only_present_fields: bool) -> bool:
+    """Append skill ids and tool names. Never assigns prompt or MCP servers."""
+    changed = False
+    for field, extras in (
+        ("allowed_skill", skill_ids),
+        ("allowed_tool_names", tool_names),
+        ("pack_tool_names", tool_names),
+    ):
+        current = getattr(obj, field, None)
+        if only_present_fields and current is None:
+            continue
+        merged, field_changed = _append_missing(list(current or []), extras)
+        if field_changed:
+            setattr(obj, field, merged)
+            changed = True
+    return changed
+
+
+def _recorded_skill_grants(store: Any, pack_id: str) -> set[str]:
+    if store is None or not hasattr(store, "get_setting"):
+        return set()
+    raw = store.get_setting(USER_MODIFIED_SKILL_GRANT_SETTING) or {}
+    if not isinstance(raw, dict):
+        return set()
+    recorded = raw.get(pack_id) or []
+    if not isinstance(recorded, list):
+        return set()
+    return {str(item) for item in recorded if str(item).strip()}
+
+
+def _record_skill_grants(store: Any, pack_id: str, skill_ids: list[str]) -> None:
+    if store is None or not hasattr(store, "get_setting") or not hasattr(store, "set_setting"):
+        return
+    raw = store.get_setting(USER_MODIFIED_SKILL_GRANT_SETTING) or {}
+    if not isinstance(raw, dict):
+        raw = {}
+    current = [str(item) for item in (raw.get(pack_id) or []) if str(item).strip()]
+    for skill_id in skill_ids:
+        if skill_id not in current:
+            current.append(skill_id)
+    raw[pack_id] = current
+    store.set_setting(USER_MODIFIED_SKILL_GRANT_SETTING, raw)
+
+
+def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, store: Any) -> None:
+    """Append named seed skills onto a user_modified allowlist [CARD-425 / REQ-425-001].
+
+    Leaves ``system_prompt``, unrelated tools, and MCP servers in place.
+    Records each granted skill id so a later operator removal is not put back.
+    """
+    spec = USER_MODIFIED_ADDITIVE_SKILL_GRANTS.get(pack_id) or {}
+    if not spec or store is None:
+        return
+    seed_skills = {str(item) for item in (pack_data.get("allowed_skill") or [])}
+    already = _recorded_skill_grants(store, pack_id)
+    pending = [
+        (skill_id, tool_names)
+        for skill_id, tool_names in spec.items()
+        if skill_id in seed_skills and skill_id not in already
+    ]
+    if not pending:
+        return
+
+    skill_ids = [skill_id for skill_id, _tool_names in pending]
+    tool_names: list[str] = []
+    for _skill_id, names in pending:
+        for name in names:
+            if name not in tool_names:
+                tool_names.append(name)
+
+    raw = store.get_agent_profile(pack_id) if hasattr(store, "get_agent_profile") else None
+    override = store.get_agent_override(pack_id) if hasattr(store, "get_agent_override") else None
+    if raw is None and override is None:
+        return
+
+    changed = False
+    if raw is not None and hasattr(store, "save_custom_agent_profile"):
+        if _patch_allowlist(raw, skill_ids, tool_names, only_present_fields=False):
+            raw.user_modified = True
+            store.save_custom_agent_profile(raw)
+            changed = True
+    if override is not None and hasattr(store, "save_agent_override"):
+        if _patch_allowlist(override, skill_ids, tool_names, only_present_fields=True):
+            override.user_modified = True
+            store.save_agent_override(override)
+            changed = True
+
+    _record_skill_grants(store, pack_id, skill_ids)
+    if changed:
+        logger.info(
+            "Appended skill %s and tools %s onto user_modified %s allowlist; prompt and other entries left in place",
+            skill_ids,
+            tool_names,
+            pack_id,
+        )
 
 
 def _is_user_modified(profile: Any, store: Any = None) -> bool:
@@ -320,6 +442,11 @@ def install_platform_agent_packs(
                             for s in src_skills.iterdir():
                                 if s.is_dir() and not (dest_skills / s.name).exists():
                                     shutil.copytree(s, dest_skills / s.name)
+                        apply_user_modified_additive_skill_grants(
+                            pack_id=pack_id,
+                            pack_data=pack_data,
+                            store=service.store,
+                        )
                         continue
 
                     # Idempotent: same seed hash → no SQLite rewrite, no FS churn

@@ -46,6 +46,7 @@ function catalogSource(ns) {
   if (isMcpNamespace(ns)) return 'mcp';
   const raw = String((ns && ns.source) || '');
   if (raw === 'native_custom' || raw === 'native') return 'native_custom';
+  if (raw === 'legacy_pack_tool') return 'legacy_pack_tool';
   return 'platform';
 }
 
@@ -57,6 +58,7 @@ function catalogSource(ns) {
 export function originLabel(group) {
   if (!group) return 'Platform';
   if (group.originLabel) return String(group.originLabel);
+  if (group.source === 'legacy_pack_tool') return 'Legacy pack tool';
   if (group.source === 'native_custom') return 'Native custom';
   if (group.source === 'mcp') {
     const server = String(group.serverName || group.name || 'server').trim() || 'server';
@@ -69,6 +71,13 @@ function groupKind(group) {
   if (!group) return 'platform';
   if (group.source === 'mcp') return 'mcp';
   if (group.source === 'native_custom') return 'native';
+  if (group.source === 'legacy_pack_tool') return 'legacy_pack_tool';
+  return 'platform';
+}
+
+function dataOrigin(group) {
+  const source = group && group.source;
+  if (source === 'native_custom' || source === 'mcp' || source === 'legacy_pack_tool') return source;
   return 'platform';
 }
 
@@ -135,7 +144,9 @@ export function buildCatalogGroups({
       source,
       originLabel: String(ns.origin_label || '') || (source === 'native_custom'
         ? 'Native custom'
-        : (mcp ? `MCP · ${serverName || 'server'}` : 'Platform')),
+        : (source === 'legacy_pack_tool'
+          ? 'Legacy pack tool'
+          : (mcp ? `MCP · ${serverName || 'server'}` : 'Platform'))),
       scope: mcp ? 'catalog' : (source === 'native_custom' ? 'native' : 'platform'),
       agentId: '',
       mounted: null,
@@ -208,9 +219,7 @@ export function renderCatalogMarkup(groups) {
     const scopeNote = group.scope === 'agent' && group.agentId
       ? ` <span class="text-[10px] text-slate-500">Agent ${escapeHtml(group.agentId)}</span>`
       : '';
-    const origin = group.source === 'native_custom'
-      ? 'native_custom'
-      : (group.source === 'mcp' ? 'mcp' : 'platform');
+    const origin = dataOrigin(group);
     const rows = group.tools.map((tool) => `
       <div class="px-3 py-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between" data-testid="tools-studio-catalog-row" data-tool-name="${escapeHtml(tool.name)}" data-source="${escapeHtml(group.source)}" data-origin="${escapeHtml(origin)}"${serverAttr}>
         <div class="min-w-0 flex flex-col sm:flex-row sm:items-baseline sm:gap-2">

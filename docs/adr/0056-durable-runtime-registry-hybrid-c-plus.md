@@ -83,6 +83,7 @@ For each platform artifact keyed by **stable id** (`agent_id`, skill id, tool na
    - **Never** delete skill dirs solely because the repo omitted them when `user_modified` or when the skill is not on the retired list.
 4. Retired platform ids keep an explicit purge list; custom agents must not silently reuse retired id strings.
 5. Tool bindings: **SQLite is the sole writer**. Removals stick. Seed may propose adds only when not `user_modified`, or via explicit “accept upstream.”
+   - **Exception [CARD-425]**: one named additive grant may append `native-tool-engineering` plus `register_native_tool` / `plan_native_folder` onto a `user_modified` developer allowlist. The grant does not rewrite the prompt, other allowlist entries, or MCP servers. The skill id is recorded in the `platform_user_modified_skill_grants` setting. After that record exists, a later removal stays removed.
 
 ### 4.3 Locked product-policy forks (Jacob 2026-09-21)
 

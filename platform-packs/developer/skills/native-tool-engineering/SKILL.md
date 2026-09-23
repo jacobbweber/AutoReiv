@@ -28,6 +28,12 @@ MCP-backed tools are the other lane. Use `mcp-engineering` for those. Do not for
 
 The Tools Studio packaging dropdown is a **note** on the developer brief. It does not write the tool. You do, after the operator can see the job.
 
+## Not the legacy pack loader
+
+`packs/<id>/tools/*.py` is a legacy in-process loader. Those modules run inside the AutoReiv process. Tools Studio labels them **Legacy pack tool**. They are not **Native custom**. They do not use `native_custom_tools`, the sandbox worker, or ToolPolicyGate HITL.
+
+Do not drop a new tool in that folder and call it a native custom tool. Native custom tools go through this skill and `register_native_tool`.
+
 ## Register a native tool
 
 1. Agree the tool name, what `run` returns, and which agents may call it.
