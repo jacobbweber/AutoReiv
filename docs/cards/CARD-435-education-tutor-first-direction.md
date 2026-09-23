@@ -1,0 +1,173 @@
+---
+id: CARD-435
+title: "Education Tutor-First Direction: Learning OS Rails, Wiki Library, Retire Education Studio Landing"
+status: Ready
+created: 2026-09-23
+adr: none
+labels:
+  - type:architecture
+  - type:planning
+  - area:ux
+  - area:education
+  - domain:education
+  - area:tutor
+  - P0
+---
+
+# [CARD-435] Education Tutor-First Direction: Learning OS Rails, Wiki Library, Retire Education Studio Landing
+
+> **Status**: Ready
+> **Created**: 2026-09-23
+> **Baseline**: `qa` @ `752c8f6f` (v0.42.0)
+> **ADR Reference**: none (draft only if successor builds change lasting platform contracts)
+> **Labels**: `type:architecture`, `type:planning`, `area:ux`, `area:education`, `domain:education`, `area:tutor`, `P0`
+> **Supersedes**: [CARD-434](./CARD-434-education-studio-monolith-decomposition.md) (Education Studio monolith decomposition — wrong first build because the page is being retired)
+
+---
+
+## Gate language (exact reply phrases)
+
+This card **requires a decision/design phase before build**.
+
+| Jacob reply | Meaning |
+|-------------|---------|
+| **`continue`** | Discuss, refine inventory, compare options, lock successor slices — **still no product code** |
+| **`build`** | Only after the north-star forks below are locked and successor implementation cards are scaffolded |
+| **`merge to qa`** | Only after In Review + live operator test of eventual implementation card(s) |
+
+Do **not** treat scaffolding this Ready card as approval to implement. Do **not** implement CARD-434.
+
+---
+
+## Locked product north star (verbatim substance)
+
+These decisions are **locked** on this planning card. Successor build cards must obey them.
+
+1. **Learning OS is the Tutor’s operating system** — named skills and templates, not open-chat vibes.
+2. **Wiki is the library / curated corpus** — the durable knowledge surface learners and Tutor skills draw from.
+3. **Lumina Studio stays** — separate video effort later; do not fold Lumina into Education Studio cleanup.
+4. **Education Studio as a dashboard landing page / bottom-nav destination RETIRES** — do not polish it, do not monolith-split it, do not treat `src/web/static/modules/studios/education.js` decomposition as the first Education build.
+5. **Study entry = Tutor in education mode** (or a thin Study entry that is Tutor + course context), **not** the current panel farm.
+6. **Day-one reshape needs** (what successor slices must deliver):
+   - Start / resume topic
+   - Quiz / flashcard turns in chat with durable grading
+   - Due reviews
+   - Wiki curation from links / curriculum
+   - Hard Learning OS rails
+   - Progress you can trust
+7. **CARD-434 (education.js monolith decomposition) is the WRONG first build** because the Education Studio page is being retired. That card is **Superseded** by this planning card.
+
+---
+
+## 1. Four Beats
+
+### Beat 1: What this means
+
+1. Education work after Tools / Agent-builder is **not** “make Education Studio maintainable.” It is **reshape how study starts**: Tutor + Learning OS + Wiki.
+2. The operator/learner should enter study through **Tutor in education mode** (or a thin Study shell that is Tutor plus course context), not a multi-panel Education Studio farm.
+3. Learning OS remains the structured rails (named skills, templates, course/ledger/retrieval/retention contracts already shipped under CARD-237..334 / 315..334). Open chat without rails is not the product.
+4. Wiki remains the curated corpus; day-one must make curation from links/curriculum a first-class Tutor/Learning OS path, not a side panel afterthought.
+5. Lumina Studio is out of scope for this reshape except “leave it alone / later video effort.”
+6. CARD-434’s monolith split of `src/web/static/modules/studios/education.js` is cancelled as a first build: retiring the landing page makes that refactor theatre.
+
+### Beat 2: What AutoReiv does now
+
+1. On tip `752c8f6f`, `src/web/static/modules/studios/education.js` is still a large Education Studio module (~2,569 lines) with Ask, course chrome, quiz/SRS, labs, tutor entry, amplifiers, and session chrome.
+2. Learning OS backend/cards CARD-237..334 / 315..334 are Done on `qa`/`main` (course, ledger, retrieval, retention, tutor, amplifiers, delivery profiles) — the rails exist; the **entry UX** is still the Education Studio panel farm.
+3. Tutor exists as education discuss/Socratic entry inside Education Studio and as agent/skill surfaces elsewhere; it is not yet the sole Study destination.
+4. Wiki is the library surface; Education Studio still owns a lot of learner chrome that should be Tutor turns + durable Learning OS state instead.
+5. Lumina Studio remains a separate studio; do not couple this card to Lumina video work.
+6. CARD-434 was scaffolded Ready to decompose `education.js` into `src/web/static/modules/studios/education/*` submodules. That direction is wrong given retirement of the page.
+
+### Beat 3: What will change
+
+1. **Product entry**: Study / education mode lands on Tutor (education mode) or a thin Study entry = Tutor + course context. Education Studio as dashboard / bottom-nav destination is retired (hide/remove nav + landing; do not polish panels).
+2. **Learning OS as Tutor OS**: Tutor turns invoke named Learning OS skills/templates (start/resume topic, quiz, flashcards, due reviews, wiki curation) with durable state — not freeform chat vibes.
+3. **Durable grading and progress**: Quiz/flashcard turns in chat write durable grades and progress the operator can trust (ledger / Learning OS stores — no ephemeral-only theatre).
+4. **Due reviews**: Surface and run due SRS/review work from Tutor education mode.
+5. **Wiki curation**: From links/curriculum, Tutor/Learning OS paths curate into the Wiki library (exact paths and APIs locked in successor cards).
+6. **Hard rails**: Reject or hard-gate “open chat study” that bypasses Learning OS skill/template contracts.
+7. **Successor cards only after Jacob says build on successors**: this card names slices; it does **not** contain implementation code. Follow-up build cards will be scaffolded later when Jacob says so.
+
+Suggested successor slice names (scaffold later — **not** created by this card):
+
+| Slice (name only) | Intent |
+| --- | --- |
+| Study entry = Tutor education mode (nav + shell) | Retire Education Studio landing/bottom-nav; thin Study → Tutor + course context |
+| Tutor Learning OS rails (named skills/templates) | Bind start/resume, quiz, flashcards, reviews to Learning OS skills — not vibes |
+| Chat quiz/flashcard turns + durable grading | In-chat assessment turns with durable grade/progress records |
+| Due reviews in Tutor education mode | Surface and complete due reviews from Study/Tutor entry |
+| Wiki curation from links/curriculum | Curate corpus into Wiki via Tutor/Learning OS path |
+| Progress you can trust (proof + Studio/operator path) | Operator-visible durable progress; failure modes; no fake progress UI |
+| Education Studio retirement cleanup | Remove dead panel farm / nav once Study entry is proven — **not** a monolith split of the retired page |
+
+### Beat 4: What dies
+
+1. **Education Studio as a destination** — dashboard landing page and bottom-nav entry for “Education” as a panel farm. Do not polish it.
+2. **CARD-434 monolith decomposition** as the next Education build — superseded; do not cut `feat/card-434-*` or port CARD-400’s `education/` submodule split as the first slice.
+3. **Open-chat study vibes** as the product story — Learning OS named skills/templates are the rails.
+4. **Ephemeral quiz/progress theatre** — grades and progress must be durable and operator-trustable.
+5. No change required to Lumina Studio on this card (it stays; video work is later).
+
+---
+
+## 2. Product-policy forks (locked on north star)
+
+| # | Fork | Locked decision |
+|---|------|-----------------|
+| 1 | Study entry | **Tutor in education mode** (or thin Study = Tutor + course context). Not the Education Studio panel farm. |
+| 2 | Education Studio landing / bottom-nav | **Retires**. Do not polish. Do not monolith-split first. |
+| 3 | Learning OS role | **Tutor’s operating system** — named skills/templates. |
+| 4 | Wiki role | **Library / curated corpus**. |
+| 5 | Lumina Studio | **Stays**; separate video effort later. |
+| 6 | CARD-434 | **Superseded** by this card; wrong first build. |
+| 7 | Day-one reshape | Start/resume topic; quiz/flashcard chat turns + durable grading; due reviews; wiki curation from links/curriculum; hard Learning OS rails; progress you can trust. |
+
+Planning may continue (`continue`); **no product code** until Jacob says **build** and successor cards are scaffolded.
+
+---
+
+## 3. Acceptance criteria (planning card)
+
+- **[REQ-435-001]** This card locks the Tutor-first north star (Beats + forks) without inventing a dual Education Studio + Tutor product story.
+- **[REQ-435-002]** CARD-434 is marked **Superseded** with a pointer to this card; file retained; no monolith decomposition work starts from 434.
+- **[REQ-435-003]** Successor implementation slices are named here; actual build cards are scaffolded only after Jacob says to build on successors — **no implementation code in this card**.
+- **[REQ-435-004]** Anti-theatre lock for successors: every slice must specify durable state, Studio/operator path, failure modes, and proof (exact paths and APIs in those later cards).
+- **[REQ-435-005]** Lumina Studio is explicitly out of scope for retirement/reshape on this program except “leave alone / later.”
+
+---
+
+## 4. Constraints
+
+- Docs / planning only on this card until Jacob says **build**.
+- Branch any future implementation off `qa` only; do not merge to `main` from this program’s cards unless Jacob explicitly says so later.
+- Do **not** create GitHub PRs from this scaffolding work; local `qa` docs commit + push only for this card pair.
+- Do **not** bump version for docs-only card scaffolding.
+- Do **not** implement CARD-434 or revive `feat/card-400-education-monolith-decomposition` as the Education first build.
+- Exact reply phrases: **continue** / **build** / **merge to qa**.
+- Plain full sentences and exact paths in successor cards when scaffolded.
+
+---
+
+## 5. Reply Phrases
+
+- Scaffold / planning review: say **continue** if the Four Beats or forks need edits.
+- After successors are scaffolded and forks stay locked: say **build** (on those successor cards — not a mega-build from this parent alone).
+- After live test of an implementation card: say **merge to qa**.
+
+---
+
+## 6. Relationship to CARD-434
+
+| Card | Role |
+|------|------|
+| [CARD-434](./CARD-434-education-studio-monolith-decomposition.md) | **Superseded**. Was Ready to split `src/web/static/modules/studios/education.js` into `src/web/static/modules/studios/education/*`. Wrong first build because Education Studio landing is retiring. |
+| **CARD-435 (this card)** | Planning parent for Tutor-first Study entry, Learning OS rails, Wiki library, Education Studio retirement. |
+
+Do not delete CARD-434. Do not implement it.
+
+---
+
+## Successor cards
+
+None scaffolded yet. After Jacob says **continue** (refine) or asks to scaffold successors / says **build** on successors, create thin Ready build cards from the Beat 3 slice table — one concern per card, no monolith Education Studio split.

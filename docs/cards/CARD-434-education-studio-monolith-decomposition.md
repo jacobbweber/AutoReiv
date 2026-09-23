@@ -1,7 +1,7 @@
 ---
 id: CARD-434
 title: "Education Studio Monolith Decomposition and Submodule Refactoring"
-status: Ready
+status: Superseded
 created: 2026-09-23
 adr: none
 labels:
@@ -13,12 +13,14 @@ labels:
 
 # [CARD-434] Education Studio Monolith Decomposition and Submodule Refactoring
 
-> **Status**: Ready
+> **Status**: Superseded
 > **Created**: 2026-09-23
 > **Baseline**: `qa` / `main` @ `881cb276` (v0.42.0)
 > **Prior attempt**: local `feat/card-400-education-monolith-decomposition` @ `ed1f6a6f` (not merged; 146 commits behind tip)
 > **ADR Reference**: none
 > **Labels**: `type:refactor`, `area:frontend`, `domain:education`, `P0`
+> **Superseded by**: [CARD-435](./CARD-435-education-tutor-first-direction.md) (Education Tutor-first direction)
+> **Supersession note** (2026-09-23): Do **not** implement this card. Education Studio as a dashboard landing / bottom-nav destination is retiring; Tutor in education mode (Learning OS rails + Wiki library) is the product entry. Monolith decomposition of `src/web/static/modules/studios/education.js` is the wrong first build. File retained for history.
 
 ---
 
@@ -61,8 +63,9 @@ Target layout (from CARD-400 tip; adjust only if tip conflicts force it):
 | `education/tutor.js` | Socratic tutor discuss entry | < 800 |
 
 ### Beat 4: What Dies Today
+0. **This card itself is superseded by CARD-435** — do not implement the decomposition below.
 1. The single ~2,569-line inlined Education Studio module body.
-2. The stale CARD-400 "In Review" story on a branch that never landed — superseded by this Ready card (keep the branch only as a patch source until 434 merges, then delete it).
+2. The stale CARD-400 "In Review" story on a branch that never landed — historical only under CARD-434 which is now superseded by CARD-435 (do not merge CARD-400 or CARD-434 decomposition as the Education first build).
 3. No Learning OS pedagogy engines, ledger schema, or Tutor pack behavior changes on this card.
 
 ---
