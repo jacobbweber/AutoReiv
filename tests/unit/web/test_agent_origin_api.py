@@ -29,8 +29,9 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
         assert "origin" in agent_map["autoreiv"]
         assert agent_map["autoreiv"]["origin"] == "pack"
 
-        assert "origin" in agent_map["agent-builder"]
-        assert agent_map["agent-builder"]["origin"] == "system"
+        assert "agent-builder" not in agent_map
+        dev = agent_map["developer"]
+        assert "propose_skill" in (dev.get("allowed_tool_names") or dev.get("allowed_tools") or [])
 
         # 2. Create agent pack and verify origin is "pack"
         custom_payload = {
@@ -52,9 +53,9 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
         del_platform = await ac.delete("/api/agents/autoreiv")
         assert del_platform.status_code in (400, 403)
 
-        # 4. Forbid DELETE on system agent
+        # 4. Retired agent-builder is not a live agent to delete
         del_system = await ac.delete("/api/agents/agent-builder")
-        assert del_system.status_code in (400, 403)
+        assert del_system.status_code == 404
 
         # 5. Allow DELETE on agent pack
         del_custom = await ac.delete("/api/agents/operator-assistant")

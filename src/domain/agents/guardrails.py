@@ -42,6 +42,10 @@ class AgentProfileGuardrail:
             raise AgentValidationError(
                 f"Agent id '{agent_id}' does not match valid kebab-case slug format (lowercase letters, numbers, hyphens only; no spaces or leading/trailing hyphens)."
             )
+        if agent_id == "agent-builder":
+            raise AgentValidationError(
+                "agent-builder is retired. Use the developer pack to scaffold agents and to propose or commit skills and tools."
+            )
 
         # 2. Validate Name & Description
         name = str(payload.get("name", "")).strip()

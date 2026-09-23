@@ -37,58 +37,6 @@ _PLANNER_USER = (
 )
 
 
-
-AGENT_BUILDER_ID = "agent-builder"
-
-_AGENT_BUILDER_PLANNER_USER = (
-    "Decompose the following Agent Builder research goal into 2 to 6 concrete, sequential "
-    "research phases. Linear index only. No graph edges, no depends_on. "
-    "Typical phases: survey existing packs and specialists, draft playbook SOP, "
-    "declare JSON tool stubs, HITL propose. "
-    "Research phases must NOT write SKILL.md or Python under src/. "
-    "Commit via commit_skill_pack is a later step after HITL Approve.\n\n"
-    "GOAL: {goal}\n\n"
-    "Output ONLY a valid JSON object with this schema:\n"
-    "{{\n"
-    '  "phases": [\n'
-    '    {{"name": "Short name of phase 1", "success_rule": "Done when ..."}},\n'
-    '    {{"name": "Short name of phase 2", "success_rule": "Done when ..."}}\n'
-    "  ]\n"
-    "}}\n"
-    "Legacy key 'steps' with title/description is also accepted."
-)
-
-
-def _is_agent_builder(agent: Optional[AgentProfile]) -> bool:
-    return (getattr(agent, "id", "") or "").strip().lower() == AGENT_BUILDER_ID
-
-
-def agent_builder_research_fallback() -> List[PlanStep]:
-    """Linear research phases. Do not write SKILL.md [REQ-BUILD-011]."""
-    return [
-        PlanStep(
-            id="step_1",
-            title="Survey packs and specialists",
-            description="List existing user packs and specialists. Do not write SKILL.md.",
-        ),
-        PlanStep(
-            id="step_2",
-            title="Draft playbook SOP",
-            description="Draft the playbook in conversation. Do not write SKILL.md.",
-        ),
-        PlanStep(
-            id="step_3",
-            title="Declare tools",
-            description="Declare JSON tool stubs. Do not write Python under src/.",
-        ),
-        PlanStep(
-            id="step_4",
-            title="HITL propose",
-            description="Park propose_skill/tool/workflow. Do not commit until approved.",
-        ),
-    ]
-
-
 class PlanAndExecuteEngine:
     """
     Formulates a linear phase list via a no-tool LLM call.
@@ -110,8 +58,7 @@ class PlanAndExecuteEngine:
         """
         plan_id = f"plan_{uuid.uuid4().hex[:8]}"
         content = await self._complete_without_tools(agent, goal)
-        fallback = agent_builder_research_fallback() if _is_agent_builder(agent) else None
-        steps = self._parse_steps_from_response(content, fallback=fallback)
+        steps = self._parse_steps_from_response(content)
         return ExecutionPlan(
             id=plan_id,
             goal=goal,
@@ -142,11 +89,7 @@ class PlanAndExecuteEngine:
                 ChatMessage(role=Role.SYSTEM, content=_PLANNER_SYSTEM),
                 ChatMessage(
                     role=Role.USER,
-                    content=(
-                        _AGENT_BUILDER_PLANNER_USER.format(goal=goal)
-                        if _is_agent_builder(agent)
-                        else _PLANNER_USER.format(goal=goal)
-                    ),
+                    content=_PLANNER_USER.format(goal=goal),
                 ),
             ],
             tools=None,

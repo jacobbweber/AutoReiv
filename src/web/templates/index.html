@@ -1544,7 +1544,7 @@
                     <h4 class="text-xs font-bold text-emerald-300">AutoReiv OS Baseline</h4>
                     <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">OS BASELINE</span>
                   </div>
-                  <span class="text-[10px] text-slate-400">Platform Required (Always Active) runtime primitives enforced for every agent</span>
+                  <span class="text-[10px] text-slate-400" data-testid="forge-baseline-caption">Platform required tools. Direct mounts none.</span>
                 </div>
                 <div id="forgeBaselineGrid" class="flex flex-wrap gap-2 pt-1">
                   <!-- Baseline tool chips (uncheckable reference) -->
@@ -3902,16 +3902,6 @@
                     </div>
                     <div id="factoryRequiredToolsChips" class="flex flex-wrap gap-1.5 min-h-[28px]" data-testid="factory-required-tools"></div>
                   </div>
-                  <details class="rounded-lg border border-white/[0.04] bg-[#0e1015]/50 px-2.5 py-2" data-testid="factory-skill-tier-advanced">
-                    <summary class="text-[11px] text-slate-500 cursor-pointer select-none">Advanced: Tier (legacy taxonomy)</summary>
-                    <p class="text-[10px] text-slate-500 mt-1.5 mb-2 leading-snug">Does not change which agent may run this skill. Turn skills on or off with the toggle pills in Agent Studio.</p>
-                    <label for="factorySkillTierSelect" class="sr-only">Tier</label>
-                    <select id="factorySkillTierSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
-                      <option value="pack">pack</option>
-                      <option value="platform">platform</option>
-                      <option value="user">user</option>
-                    </select>
-                  </details>
                 </div>
 
                 <div class="space-y-1.5" data-testid="skill-studio-source-context">

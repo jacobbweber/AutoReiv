@@ -79,7 +79,8 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
     expect(skillView).toContain('id="factorySkillMarkdownEditor"');
     expect(skillView).toContain('id="factoryCapabilitiesContainer"');
     expect(skillView).toContain('id="factorySaveSkillBtn"');
-    expect(skillView).toContain('data-testid="factory-skill-tier-advanced"');
+    expect(skillView).not.toContain('data-testid="factory-skill-tier-advanced"');
+    expect(skillView).not.toContain('id="factorySkillTierSelect"');
     expect(skillView).not.toContain('id="factoryAgentPromptInput"');
     expect(skillView).not.toContain('id="factoryIntakeAgentCard"');
   });

@@ -1,61 +1,20 @@
 """
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
-Shipped builtin: hidden Agent Builder. Assistant and AutoReiv are Platform Agent Packs
-(platform-packs/, always seeded). Conductor, Coding, and Review stay optional catalog packs.
+
+CARD-429: no live builtin agents. autoreiv, direct, developer, and tutor are
+Platform Agent Packs (platform-packs/, always seeded). The hidden agent-builder
+profile is retired; Developer holds scaffold / propose / commit for agents,
+skills, and tools.
 """
 
 from typing import Dict, List, Optional
 
-from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone
-from src.domain.settings.models import ModelPurpose
+from src.domain.kernel.models import AgentProfile
 
-AGENT_BUILDER_PROFILE = AgentProfile(
-    id="agent-builder",
-    name="Agent Builder",
-    description=(
-        "Talks to the human about skills and tools. "
-        "Researches with Job/Phase and commits approved packs into $DATA_DIR/skills. "
-        "Not Conductor: does not write SDLC cards or hand Ready work to Coding."
-    ),
-    origin=AgentOrigin.SYSTEM,
-    system_prompt=(
-        "You are AutoReiv's Agent Builder. You talk to the human about skills and tools. "
-        "When constructing a new agent, conduct Socratic Discovery by asking 3-4 high-leverage clarifying questions "
-        "covering core specialization, target execution environment, safety guardrails, and tool needs. "
-        "Structure synthesized agent system prompts using the gold-standard blueprint: [IDENTITY & ROLE], "
-        "[DOMAIN BOUNDARIES & REFUSALS], [EXECUTION PROTOCOL], [SAFETY & APPROVALS], [TOOL USAGE RULES], and [OUTPUT FORMAT]. "
-        "You research with Job/Phase. You emit HITL drafts via propose_skill / propose_tool. "
-        "You never auto-write SKILL.md or Python under src/. After Approve, you may commit a pack into "
-        "$DATA_DIR/skills through commit_skill_pack - the same files Agent Studio edits. "
-        "Prefer adding tools/skills to an existing specialist over a new agent when the allowlist would exceed 12. "
-        "You are not Conductor: you do not write SDLC cards or hand Ready work to Coding."
-    ),
-    purpose=ModelPurpose.GENERAL,
-    tone=AgentTone.FRIENDLY,
-    avatar_icon="sparkles",
-    model="default",
-    allowed_tool_names=[
-        "list_available_skills_and_tools",
-        "propose_agent_specification",
-        "save_agent_specification",
-        "propose_skill",
-        "propose_tool",
-        "commit_skill_pack",
-        "list_user_skill_packs",
-        "skill_view",
-        "lookup_agents",
-        "handoff_to_agent",
-    ],
-    pinned_tool_names=["propose_skill", "commit_skill_pack"],
-    max_turns=10,
-    is_builtin=True,
-    show_in_chat=False,
-)
+# Ids that must not appear as live agents. Leftover SQLite rows are purged on boot.
+RETIRED_LIVE_AGENT_IDS = frozenset({"agent-builder"})
 
-
-BUILTIN_PROFILES: List[AgentProfile] = [
-    AGENT_BUILDER_PROFILE,
-]
+BUILTIN_PROFILES: List[AgentProfile] = []
 
 DEFAULT_PLATFORM_AGENT_ID: str = "autoreiv"
 
@@ -75,18 +34,20 @@ LEGACY_AGENT_ALIASES: Dict[str, str] = {
     "forge": "autoreiv",
 }
 
-_PROFILES_MAP: Dict[str, AgentProfile] = {
-    "agent-builder": AGENT_BUILDER_PROFILE,
-}
+_PROFILES_MAP: Dict[str, AgentProfile] = {}
 
 
 def canonical_agent_id(agent_id: str) -> str:
-    """Map legacy alias ids onto assistant / autoreiv / agent-builder."""
+    """Map legacy alias ids onto autoreiv. Retired ids stay themselves."""
     key = (agent_id or "").lower().strip()
+    if key in RETIRED_LIVE_AGENT_IDS:
+        return key
     return LEGACY_AGENT_ALIASES.get(key, key)
 
 
 def get_builtin_profile(agent_id: str) -> Optional[AgentProfile]:
     """Retrieve a built-in agent profile by its ID (supporting legacy aliases)."""
     key = canonical_agent_id(agent_id)
+    if key in RETIRED_LIVE_AGENT_IDS:
+        return None
     return _PROFILES_MAP.get(key)

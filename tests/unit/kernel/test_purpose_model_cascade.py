@@ -18,7 +18,7 @@ from tests.unit.agent_packs.catalog import platform_pack_profile
 def test_builtin_profiles_have_purposes():
     """Verify shipped agents define valid purpose classifications."""
     profile_map = {p.id: p for p in BUILTIN_PROFILES}
-    assert profile_map["agent-builder"].purpose == ModelPurpose.GENERAL
+    assert "agent-builder" not in profile_map
     assert "assistant" not in profile_map
     assert platform_pack_profile("direct").purpose == ModelPurpose.GENERAL
     assert platform_pack_profile("autoreiv").purpose == ModelPurpose.GENERAL

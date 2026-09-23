@@ -865,6 +865,34 @@ class SettingsRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+    def retire_agent_builder_rows(self) -> None:
+        """Drop leftover agent-builder profile rows [CARD-429].
+
+        Choice: delete the custom_agents row and its agent_overrides. Do not
+        recreate the builtin on boot. Historical sessions and jobs stay so old
+        transcripts still open. Any routine that still names agent-builder moves
+        to developer (skill-eval-sleep and skill-curator stay paused).
+        """
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM custom_agents WHERE id = ?", ("agent-builder",))
+            try:
+                cur.execute("DELETE FROM agent_overrides WHERE agent_id = ?", ("agent-builder",))
+            except Exception:
+                pass
+            try:
+                cur.execute(
+                    "UPDATE routines SET agent_id = ? WHERE agent_id = ?",
+                    ("developer", "agent-builder"),
+                )
+            except Exception:
+                pass
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
     def delete_agent_profile(self, agent_id: str, purge_history: bool = False) -> bool:
         import shutil
         from pathlib import Path

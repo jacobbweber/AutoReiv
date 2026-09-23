@@ -27,7 +27,7 @@ from src.domain.observability.models import TelemetryFilter
 from src.infrastructure.data.resolver import DataDirResolver, repo_root
 
 ROUTINE_ID = "skill-eval-sleep"
-AGENT_ID = "agent-builder"
+AGENT_ID = "developer"
 SOURCE = "skill-eval-sleep"
 DEFAULT_LOOKBACK_HOURS = 72
 DEFAULT_MAX_SESSIONS = 20
