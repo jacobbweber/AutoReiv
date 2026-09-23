@@ -713,6 +713,12 @@ class AgentKernel:
         ):
             matched.append("mcp-engineering")
 
+        # Native custom tool lane [CARD-423]
+        if re.search(r"\b(native-tool-engineering|register_native_tool|plan_native_folder)\b", text) or (
+            "native" in text and "tool" in text
+        ):
+            matched.append("native-tool-engineering")
+
         # External MCP server domains [CARD-377]
         for domain in extra_domains or []:
             clean_dom = str(domain).strip().lower()
@@ -776,6 +782,10 @@ class AgentKernel:
             user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) if user_content else set()
 
             from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
+            from src.application.tools.native_packaging import AUTHORING_TOOL_NAMES, load_native_tool_names
+
+            native_names = load_native_tool_names(self.state_store)
+            text_l = (user_content or "").lower()
 
             def _tool_priority(t: Any) -> tuple[int, int, str]:
                 name = getattr(t, "name", "")
@@ -783,6 +793,10 @@ class AgentKernel:
                 name_words = set(re.findall(r"\b[a-z]{3,}\b", name.lower()))
                 desc_words = set(re.findall(r"\b[a-z]{3,}\b", desc))
                 overlap = len((name_words | desc_words) & user_tokens)
+
+                # Named native custom tools and the authoring tools stay visible [CARD-423].
+                if name and name.lower() in text_l and (name in native_names or name in AUTHORING_TOOL_NAMES):
+                    return (0, -overlap, name)
 
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = any(

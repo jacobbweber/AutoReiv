@@ -21,6 +21,16 @@ verification:
 
 End-to-end engineering, testing, containerization, and registration of custom Model Context Protocol (MCP) servers for internal enterprise APIs, databases, hardware, and external services.
 
+## Dual packaging lanes [CARD-423]
+
+MCP is one lane, not the only lane.
+
+- **Platform / built-in tools** already run inside AutoReiv. They do not need an MCP server.
+- **Native custom tools** use the `native-tool-engineering` skill and `register_native_tool`. No MCP server. Sandbox plus ToolPolicyGate / HITL still apply.
+- **MCP-backed custom tools** are this skill. After `register_mcp_service` (or Tools Studio attach on `/api/settings/mcp` or `/api/agents/{id}/mcp`), the tools show in Tools Studio grouped under **that server's name**.
+- MCP **hosting** stays in Settings. Do not move it into Tools Studio.
+- A filesystem path in developer chat ("here is a folder of scripts, one tool per entry") is conversation context. Call `plan_native_folder` or walk the directory yourself. There is no Tools Studio folder picker. Choose native or MCP per the operator's packaging note, then build that lane. The note is not already applied.
+
 ## Operating Principles
 
 1. **Strict Type Safety & Schemas**:

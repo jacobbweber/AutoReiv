@@ -833,17 +833,26 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
     tools = tool_registry.list_tools() if tool_registry else []
 
     from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
+    from src.application.tools.native_packaging import catalog_origin_label, load_native_tool_names
 
+    store = getattr(request.app.state, "store", None)
+    native_names = load_native_tool_names(store)
     namespaces: Dict[str, Dict[str, Any]] = {}
 
     for tool in tools:
         t_name = tool.name
         t_desc = tool.description or ""
         t_params = tool.parameters or {}
+        server_name = ""
 
-        if t_name.startswith("mcp_"):
+        if t_name in native_names:
+            ns_id = "native_custom"
+            ns_name = "Native custom"
+            ns_source = "native_custom"
+        elif t_name.startswith("mcp_"):
             parts = t_name.split("_")
             server_key = parts[1] if len(parts) > 1 else "generic"
+            server_name = server_key
             ns_id = f"mcp:{server_key}"
             ns_name = f"MCP: {server_key.title()}"
             ns_source = "mcp"
@@ -862,11 +871,14 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
             ns_name = "Built-in Primitives"
             ns_source = "builtin"
 
+        origin_source = "platform" if ns_source in {"builtin", "dynamic", "platform"} else ns_source
         if ns_id not in namespaces:
             namespaces[ns_id] = {
                 "id": ns_id,
                 "name": ns_name,
                 "source": ns_source,
+                "server_name": server_name,
+                "origin_label": catalog_origin_label(origin_source, server_name),
                 "tools": [],
             }
         namespaces[ns_id]["tools"].append({
@@ -874,6 +886,8 @@ async def get_factory_capabilities(request: Request) -> Dict[str, Any]:
             "description": t_desc,
             "parameters": t_params,
             "is_high_risk": getattr(tool, "is_high_risk", False),
+            "origin": origin_source,
+            "origin_label": catalog_origin_label(origin_source, server_name),
         })
 
     return {

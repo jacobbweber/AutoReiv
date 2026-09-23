@@ -27,7 +27,7 @@
 │   └── archive_artifacts/       # Historical 3-file specs & legacy rtm.json
 ├── src/                         # Production application source code
 │   ├── domain/                  # Pure business entities and domain logic (zero external dependencies)
-│   ├── application/             # Use cases, orchestrators, ports/interfaces
+│   ├── application/             # Use cases, orchestrators, ports/interfaces (native custom tools: application/tools/native_packaging.py)
 │   ├── infrastructure/          # Adapters, databases, external API clients
 │   ├── cli/                     # Command-line entry points
 │   └── web/                     # FastAPI backend application & static assets
