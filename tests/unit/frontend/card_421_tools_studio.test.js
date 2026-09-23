@@ -139,12 +139,12 @@ describe('Tools Studio dock [CARD-421]', () => {
     expect(toolsView).not.toContain('skill_tool_bindings');
   });
 
-  it('does not ship form, Talk/Submit, or MCP hosting controls [REQ-421-006]', () => {
+  it('does not ship MCP hosting controls or a tool code editor [REQ-421-006]', () => {
     expect(toolsView).not.toContain('Ask developer');
-    expect(toolsView).not.toContain('Talk to developer');
-    expect(toolsView).not.toContain('Submit to developer');
     expect(toolsView).not.toContain('/api/mcp/sse');
     expect(toolsView).not.toContain('Hosted MCP Server');
+    expect(toolsView).not.toContain('id="toolsStudioCodeInput"');
+    expect(toolsView).not.toContain('monaco');
     const studio = read('src/web/static/modules/studios/tools_studio.js');
     expect(studio).not.toContain('skill_tool_bindings');
     expect(studio).not.toContain('Ask developer');

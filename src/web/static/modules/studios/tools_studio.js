@@ -1,6 +1,7 @@
 /**
- * Tools Studio — catalog browse and MCP attach [CARD-421].
- * Catalog is read-only. Skill-to-tool binding stays in Skill Studio.
+ * Tools Studio — catalog browse, MCP attach, and tool intent [CARD-421, CARD-422].
+ * Create, modify, and delete intents go through the form and the developer.
+ * There is no code editor. Packaging preference is a note only.
  * Platform attach uses /api/settings/mcp*. Agent attach uses /api/agents/{id}/mcp*.
  * MCP hosting stays in Settings.
  */
@@ -23,6 +24,15 @@ import {
   renderMcpServerListMarkup,
   serverToSaveBody,
 } from './tools_studio_catalog.js';
+import {
+  TOOLS_AUTHORING_JOBS_URL,
+  TOOLS_AUTHORING_TALK_URL,
+  authoringErrorMessage,
+  intentValidationError,
+  interpretAuthoringSubmit,
+  interpretAuthoringTalk,
+  normalizeToolIntentDraft,
+} from './tools_studio_authoring.js';
 
 export { TOOLS_STUDIO_LABEL, TOOLS_STUDIO_TAB, planToolsStudioDeepLink };
 
@@ -55,6 +65,15 @@ export function initToolsStudio(_state, callbacks = {}) {
   const searchEl = $('toolsStudioFilterSearch');
   const sourceEl = $('toolsStudioFilterSource');
   const statusEl = $('toolsStudioFilterStatus');
+  const intentEl = $('toolsStudioIntentSelect');
+  const toolNameEl = $('toolsStudioToolNameInput');
+  const behaviorEl = $('toolsStudioBehaviorInput');
+  const languageEl = $('toolsStudioLanguageInput');
+  const runtimeEl = $('toolsStudioRuntimeInput');
+  const pathEl = $('toolsStudioPathInput');
+  const packagingEl = $('toolsStudioPackagingSelect');
+  const authoringStatusEl = $('toolsStudioAuthoringStatus');
+  let authoringBusy = false;
 
   let queuedLink = null;
   let shownServers = [];
@@ -243,6 +262,125 @@ export function initToolsStudio(_state, callbacks = {}) {
     syncScopeChrome();
   }
 
+  function readIntentDraft() {
+    return normalizeToolIntentDraft({
+      intent: intentEl ? intentEl.value : 'create',
+      tool_name: toolNameEl ? toolNameEl.value : '',
+      behavior: behaviorEl ? behaviorEl.value : '',
+      language_hint: languageEl ? languageEl.value : '',
+      runtime_hint: runtimeEl ? runtimeEl.value : '',
+      path_context: pathEl ? pathEl.value : '',
+      packaging_preference: packagingEl ? packagingEl.value : '',
+    });
+  }
+
+  function showAuthoringStatus(kind, html) {
+    if (!authoringStatusEl) return;
+    authoringStatusEl.classList.remove('hidden');
+    if (kind === 'ok') {
+      authoringStatusEl.className = 'p-3 rounded-lg border border-emerald-800/80 bg-emerald-950/40 text-emerald-200 text-xs space-y-2';
+    } else if (kind === 'error') {
+      authoringStatusEl.className = 'p-3 rounded-lg border border-rose-800/80 bg-rose-950/40 text-rose-200 text-xs space-y-1';
+    } else {
+      authoringStatusEl.className = 'p-3 rounded-lg border border-white/[0.06] bg-[#08090c] text-slate-300 text-xs';
+    }
+    authoringStatusEl.innerHTML = html;
+  }
+
+  function fillIntent(intent, toolName) {
+    if (intentEl) intentEl.value = intent === 'modify' || intent === 'delete' ? intent : 'create';
+    if (toolNameEl) toolNameEl.value = toolName || '';
+    const form = $('toolsStudioIntentForm');
+    if (form && typeof form.scrollIntoView === 'function') form.scrollIntoView({ block: 'nearest' });
+    if (behaviorEl) behaviorEl.focus();
+  }
+
+  async function openDeveloperChat(plan) {
+    if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
+    const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+    if (chat && typeof chat.openDeveloperSession === 'function') {
+      await chat.openDeveloperSession(plan.sessionId, plan.prompt);
+      return;
+    }
+    const promptInput = $('promptInput');
+    if (promptInput && plan.prompt) {
+      promptInput.value = plan.prompt;
+      promptInput.focus();
+    }
+  }
+
+  async function onTalk() {
+    let draft;
+    try {
+      draft = readIntentDraft();
+    } catch (err) {
+      showAuthoringStatus('error', `<div>${escapeHtml(err.message || String(err))}</div>`);
+      return;
+    }
+    const problem = intentValidationError(draft);
+    if (problem) {
+      showAuthoringStatus('error', `<div>${escapeHtml(problem)}</div>`);
+      showToast(problem, 'warning');
+      return;
+    }
+    if (authoringBusy) return;
+    authoringBusy = true;
+    try {
+      const data = await postJson(TOOLS_AUTHORING_TALK_URL, { intent: draft.intent, draft });
+      const plan = interpretAuthoringTalk(data, draft);
+      showAuthoringStatus('ok', `<div>Opened developer chat <span class="font-mono">${escapeHtml(plan.sessionId)}</span> with this tool intent.</div>`);
+      await openDeveloperChat(plan);
+      showToast('Opened a new developer chat with this tool intent.', 'success');
+    } catch (err) {
+      showAuthoringStatus('error', `<div>${escapeHtml(err.message || String(err))}</div>`);
+      showToast(err.message || String(err), 'error');
+    } finally {
+      authoringBusy = false;
+    }
+  }
+
+  async function onSubmitIntent() {
+    let draft;
+    try {
+      draft = readIntentDraft();
+    } catch (err) {
+      showAuthoringStatus('error', `<div>${escapeHtml(err.message || String(err))}</div>`);
+      return;
+    }
+    const problem = intentValidationError(draft);
+    if (problem) {
+      showAuthoringStatus('error', `<div>${escapeHtml(problem)}</div>`);
+      showToast(problem, 'warning');
+      return;
+    }
+    if (authoringBusy) return;
+    authoringBusy = true;
+    showAuthoringStatus('info', '<div>Asking the developer to run this tool intent…</div>');
+    try {
+      const res = await fetch(TOOLS_AUTHORING_JOBS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent: draft.intent, draft }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(authoringErrorMessage(data, res.status));
+      const plan = interpretAuthoringSubmit(data);
+      const openBtn = `<button type="button" id="toolsStudioOpenDeveloperChatBtn" data-testid="tools-studio-open-developer-chat" class="px-2.5 py-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white text-[11px] font-semibold">Open developer chat</button>`;
+      showAuthoringStatus(
+        'ok',
+        `<div>Developer job <span class="font-mono">${escapeHtml(plan.jobId)}</span> is ${escapeHtml(plan.status)}. Packaging was not applied.</div><div class="whitespace-pre-wrap text-slate-100">${escapeHtml(plan.reply)}</div>${openBtn}`,
+      );
+      const open = $('toolsStudioOpenDeveloperChatBtn');
+      if (open) open.addEventListener('click', () => { openDeveloperChat(plan).catch((err) => showToast(err.message || String(err), 'error')); });
+      showToast(`Developer job ${plan.jobId} is ${plan.status}.`, 'success');
+    } catch (err) {
+      showAuthoringStatus('error', `<div>${escapeHtml(err.message || String(err))}</div>`);
+      showToast(err.message || String(err), 'error');
+    } finally {
+      authoringBusy = false;
+    }
+  }
+
   async function postJson(url, body) {
     const res = await fetch(url, {
       method: 'POST',
@@ -251,8 +389,10 @@ export function initToolsStudio(_state, callbacks = {}) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const detail = data.detail || data.error || `HTTP ${res.status}`;
-      throw new Error(typeof detail === 'string' ? detail : `HTTP ${res.status}`);
+      const detail = data.detail || data.error || data.message;
+      if (typeof detail === 'string' && detail.trim()) throw new Error(detail.trim());
+      if (detail && typeof detail.message === 'string' && detail.message.trim()) throw new Error(detail.message.trim());
+      throw new Error(authoringErrorMessage(data, res.status));
     }
     return data;
   }
@@ -427,6 +567,41 @@ export function initToolsStudio(_state, callbacks = {}) {
       el.addEventListener('input', paintCatalog);
       el.addEventListener('change', paintCatalog);
     });
+    if (catalogEl && !catalogEl.dataset.intentBound) {
+      catalogEl.dataset.intentBound = '1';
+      catalogEl.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!target || typeof target.closest !== 'function') return;
+        const btn = target.closest('[data-action]');
+        if (!btn || !catalogEl.contains(btn)) return;
+        const action = btn.getAttribute('data-action');
+        const toolName = btn.getAttribute('data-tool-name') || '';
+        if (action === 'tools-studio-modify') fillIntent('modify', toolName);
+        else if (action === 'tools-studio-delete-intent') fillIntent('delete', toolName);
+      });
+    }
+    const newIntentBtn = $('toolsStudioNewIntentBtn');
+    if (newIntentBtn) {
+      newIntentBtn.addEventListener('click', () => {
+        fillIntent('create', '');
+        if (behaviorEl) behaviorEl.value = '';
+        if (languageEl) languageEl.value = '';
+        if (runtimeEl) runtimeEl.value = '';
+        if (pathEl) pathEl.value = '';
+        if (packagingEl) packagingEl.value = '';
+      });
+    }
+    const intentForm = $('toolsStudioIntentForm');
+    if (intentForm) {
+      intentForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        onTalk();
+      });
+    }
+    const talkBtn = $('toolsStudioTalkBtn');
+    if (talkBtn) talkBtn.addEventListener('click', () => { onTalk(); });
+    const submitBtn = $('toolsStudioSubmitBtn');
+    if (submitBtn) submitBtn.addEventListener('click', () => { onSubmitIntent(); });
     const clearBtn = $('toolsStudioFilterClearBtn');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {

@@ -1,7 +1,7 @@
 ---
 id: CARD-422
 title: "Tools Studio form + Talk/Submit to developer (no code in studio)"
-status: Ready
+status: In Review
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-422] Tools Studio form + Talk/Submit to developer (no code in studio)
 
-> **Status**: Ready (written in advance so the slice is not forgotten)  
+> **Status**: In Review  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md)  
 > **Depends on**: [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) Done (or In Review complete enough that Tools Studio dock exists)  
@@ -87,4 +87,24 @@ Manual live test after build:
 
 ## 7. Honest scope note
 
-This card is Ready before CARD-421 ships so Jacob always sees the next Tools Studio slice. Do not **build** until CARD-421 is Done unless he explicitly says otherwise.
+CARD-421 is on `qa`. This slice is In Review. CARD-423 stays Ready. Packaging preference on the form is a note for the developer. This card does not build native or MCP runtime lanes.
+
+## 8. What shipped
+
+- Form in Tools Studio: intent (create / modify / delete), tool name, what the tool should do, optional language hint, runtime hint, plain-text path, packaging note. Catalog **Modify** and **Delete intent** fill that form. They do not paste code and they do not delete a catalog row by themselves.
+- **Talk to developer** `POST /api/tools_studio/authoring/talk` creates a new `developer` session and saves the form as the first user message. The studio then opens that chat. It does not mint a job and it does not call the model.
+- **Submit to developer** `POST /api/tools_studio/authoring/jobs` creates a standing job (`tools_studio_developer_mediation`), starts the author phase, and calls `kernel.run_turn` on that same developer session. Success is HTTP 200 only when the turn returns a non-empty reply and the job is no longer `queued` (`done`, or `waiting_approval` if a confirmation is pending). Missing kernel, a raised turn, an empty reply, or a timeout returns HTTP 503 with `ran: false` and closes the job as `failed` or `cancelled`.
+- Timeout uses the standing phase limit (`STANDING_PHASE_LLM_TIMEOUT_SECONDS`, default 300). The request waits for that turn.
+- The reply is the developer’s answer in chat. This form does not write a tool file and does not apply native or MCP packaging.
+
+### Proof
+
+- `tests/integration/operator_contracts/test_oc422_tools_studio_developer_mediation.py`
+- `tests/unit/frontend/card_422_tools_studio_authoring.test.js`
+
+### Live test
+
+1. Open Tools Studio. Confirm the intent form is on the page and there is no code editor. Catalog search, MCP attach, and disable still work.
+2. Fill **What the tool should do**, choose **Talk to developer**. Chat opens on the developer agent in a new session, and the first message already contains the form text.
+3. Submit the same kind of intent. The status line shows a job id and a developer reply, or a clear error. A spinner that ends with no job and no error is a failure of this card.
+4. A packaging note of native or MCP does not create a package.
