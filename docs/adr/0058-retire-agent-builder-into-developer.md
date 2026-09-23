@@ -35,7 +35,7 @@
 
 Chosen option: **Option 2**.
 
-Developer’s pack allowlist gains `capability-authoring`, `proposals`, and `build-agent-pack`, including `propose_skill`, `propose_tool`, `commit_skill_pack`, `list_available_skills_and_tools`, and `scaffold_agent_pack`. `save_agent_specification` stays registered for old callers and is **not** on the Developer allowlist. `scaffold_agent_pack` is the pack write. The runbook is `platform-packs/developer/skills/capability-authoring/SKILL.md`.
+Developer’s pack allowlist gains `capability-authoring`, `proposals`, and `build-agent-pack`, including `propose_skill`, `propose_tool`, `commit_skill_pack`, `list_available_skills_and_tools`, and `scaffold_agent_pack`. CARD-429 left `save_agent_specification` registered and **not** on the Developer allowlist. CARD-431 later removed that registration (see follow-up below). `scaffold_agent_pack` is the pack write. The runbook is `platform-packs/developer/skills/capability-authoring/SKILL.md`.
 
 A `user_modified` developer receives those skill ids through the existing additive grant. The prompt is not rewritten.
 
@@ -52,4 +52,8 @@ Python tool classes stay where they are and remain registered on the master tool
 
 * Old transcripts may still say `agent-builder`. They do not bring the agent back.
 * A `user_modified` developer prompt is not updated. The skill file and allowlist grant carry the new tools.
-* `save_agent_specification` remains in the process registry so a stray call does not crash, but Developer cannot invoke it.
+* CARD-429 left `save_agent_specification` in the process registry so a stray call would not crash, while Developer could not invoke it. CARD-431 removed that registration after no allowlist, job, routine, or in-checkout pending approval still named the tool.
+
+### CARD-431 follow-up
+
+`save_agent_specification` is not registered. It is not on the tool-policy `REQUIRE_CONFIRM` default or the HITL high-risk name list. The Python method is gone because nothing calls it. `scaffold_agent_pack` remains the pack write. `propose_skill`, `propose_tool`, and `propose_agent_specification` stay registered. `agent-builder` stays unregistered.

@@ -1,8 +1,8 @@
 """
 Agent Builder Tools [REQ-FORGE-005] [REQ-BUILD-001 - REQ-BUILD-014].
-Equips the System Agent with meta-tooling to inspect system capabilities,
-propose structured agent specifications, persist new agent profiles, and
-park HITL drafts for skill / tool / workflow packs and commit approved packs to $DATA_DIR/skills.
+Equips Developer with meta-tooling to inspect system capabilities,
+propose structured agent specifications, and park HITL drafts for skill
+and tool packs. Agent packs are written by scaffold_agent_pack.
 """
 
 import re
@@ -17,8 +17,7 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
 class AgentBuilderTools:
     """
-    Tool group providing agent introspection, automated specification authoring,
-    agent profile persistence, and HITL pack drafts.
+    Tool group providing agent introspection, specification drafts, and HITL pack drafts.
     """
 
     def __init__(
@@ -74,23 +73,6 @@ class AgentBuilderTools:
                 "required": ["role", "objective"],
             },
             handler=self.propose_agent_specification,
-        )
-
-        registry.register_tool(
-            name="save_agent_specification",
-            description=(
-                "Do not use for Agent Packs; scaffold_agent_pack is the write. "
-                "Left in the catalog for legacy Agent Builder HITL only. "
-                "Do not persist a specialist pack with this tool."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "spec": {"type": "object", "description": "The complete agent specification dictionary"},
-                },
-                "required": ["spec"],
-            },
-            handler=self.save_agent_specification,
         )
 
         payload_fields = {
@@ -255,49 +237,6 @@ class AgentBuilderTools:
             "model": "default",
             "allowed_tool_names": suggested_tools,
             "max_turns": 10,
-        }
-
-    async def save_agent_specification(
-        self,
-        spec: Optional[Dict[str, Any]] = None,
-        **kwargs,
-    ) -> Dict[str, Any]:
-        """Validate and register a custom agent specification."""
-        from src.domain.agents.guardrails import AgentProfileGuardrail
-
-        agent_data = spec or kwargs
-        if "spec" in agent_data and isinstance(agent_data["spec"], dict):
-            agent_data = agent_data["spec"]
-
-        available_tools = None
-        if self.tool_registry:
-            available_tools = {t.name for t in self.tool_registry.list_tools()}
-
-        profile = AgentProfileGuardrail.validate(agent_data, available_tools=available_tools)
-
-        from src.application.orchestration.skill_proposals import (
-            ALLOWLIST_WARN_AT,
-            sprawl_warning_text,
-        )
-
-        self.agent_registry.register_custom_agent(profile)
-        warning = sprawl_warning_text(
-            agent_registry=self.agent_registry,
-            new_agent_id=profile.id,
-        )
-        allowlist_len = len(list(profile.allowed_tool_names or []))
-        if allowlist_len >= ALLOWLIST_WARN_AT:
-            warning = (
-                f"Allowlist for specialist '{profile.id}' would be {allowlist_len} "
-                f"(>= {ALLOWLIST_WARN_AT}). Prefer adding tools/skills on an existing specialist "
-                "instead of creating a new agent. This is a warning, not a block."
-            )
-        return {
-            "status": "created",
-            "id": profile.id,
-            "name": profile.name,
-            "purpose": profile.purpose.value,
-            "sprawl_warning": warning,
         }
 
     def _draft_kwargs(self, **kwargs: Any) -> Dict[str, Any]:

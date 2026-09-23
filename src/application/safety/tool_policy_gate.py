@@ -29,7 +29,6 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "wiki_note_create",
         "wiki_note_update",
         "wiki_note_organize",
-        "save_agent_specification",
         "execute_code",
         "write_card",
         "write_spec",
