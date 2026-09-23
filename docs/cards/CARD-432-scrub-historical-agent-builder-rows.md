@@ -1,7 +1,7 @@
 ---
 id: CARD-432
 title: "Scrub historical agent-builder session and job rows"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0058-retire-agent-builder-into-developer.md
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-432] Scrub historical agent-builder session and job rows
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Found during**: [CARD-429](./CARD-429-classification-simplification.md)
 > **ADR Reference**: [ADR-0058](../adr/0058-retire-agent-builder-into-developer.md)
