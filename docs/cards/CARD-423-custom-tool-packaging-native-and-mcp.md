@@ -1,7 +1,7 @@
 ---
 id: CARD-423
 title: "Custom tool packaging: native and MCP (dual lanes) + developer skills"
-status: In Review
+status: Done
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-423] Custom tool packaging: native and MCP (dual lanes) + developer skills
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Review note (2026-09-23)**: Both lanes are real. Native tools persist in `native_custom_tools`, mount on the tool registry, and run through ToolPolicyGate plus `SandboxedSubprocessWorker` with no MCP server. MCP tools still use the existing attach APIs and are labeled `MCP · {server}`. The CARD-422 form still does not write a tool. Developer skills: `platform-packs/developer/skills/native-tool-engineering/SKILL.md` and the dual-lane section in `mcp-engineering`. Follow-up: [CARD-425](./CARD-425-native-tool-lane-follow-ups.md).  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md) (packaging policy: allow both; tighten later)  
@@ -102,3 +102,9 @@ Manual live test after build:
 ## 7. Honest scope note
 
 This card exists so allow-both is not a chat-only decision. CARD-421 does not implement dual lanes; it only browses and attaches. CARD-422 collects intent. CARD-423 makes packaging and developer guidance real.
+
+---
+
+## Done
+
+Merged to local qa on 2026-09-22 after live native-lane verification. CARD-425 remains Ready for follow-ups. Draft GitHub PR was a side-effect only.
