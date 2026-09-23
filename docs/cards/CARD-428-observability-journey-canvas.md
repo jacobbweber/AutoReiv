@@ -1,7 +1,7 @@
 ---
 id: CARD-428
 title: "Observability Journey Canvas"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-428] Observability Journey Canvas
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-23  
 > **ADR Reference**: [ADR-0055](../adr/0055-operator-contract-testing-and-suite-hygiene.md)  
 > **Labels**: `type:feature`, `observability`, `ui-ux`
