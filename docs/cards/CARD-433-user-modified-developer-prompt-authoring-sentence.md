@@ -1,7 +1,7 @@
 ---
 id: CARD-433
 title: "Append an authoring sentence to a user-modified developer prompt"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md
 labels:
@@ -12,11 +12,12 @@ labels:
 
 # [CARD-433] Append an authoring sentence to a user-modified developer prompt
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Found during**: [CARD-429](./CARD-429-classification-simplification.md)
 > **ADR Reference**: [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md), [ADR-0058](../adr/0058-retire-agent-builder-into-developer.md)
 > **Parent**: [CARD-429](./CARD-429-classification-simplification.md)
+> **Review note (2026-09-23)**: A `user_modified` developer whose prompt does not mention `scaffold_agent_pack` gets one authoring paragraph. Existing text stays. The append is recorded in `platform_user_modified_prompt_appends`, so deleting that paragraph keeps it deleted. The seed prompt path is unchanged. `save_agent_specification` stays off the allowlist. Say **merge to qa** after a live test.
 
 Optional later slice. Planning only. Say **continue** to change this card. Say **build** before any product code. Say **merge to qa** only after In Review and a live look.
 

@@ -61,3 +61,7 @@ Python tool classes stay where they are and remain registered on the master tool
 ### CARD-432 follow-up
 
 Boot rewrites `sessions.agent_id`, `messages.agent_id`, `jobs.agent_id`, and `phases.assigned_agent_id` from `agent-builder` to `developer`. Those rows are not deleted. Message content is not edited. A second boot leaves rows that already say `developer` alone. See [CARD-432](../cards/CARD-432-scrub-historical-agent-builder-rows.md).
+
+### CARD-433 follow-up
+
+A `user_modified` developer whose system prompt does not already mention `scaffold_agent_pack` receives one authoring paragraph on boot. The existing prompt text stays. The append is recorded in `platform_user_modified_prompt_appends`, so deleting that paragraph keeps it deleted. A developer that is not `user_modified` still takes the seed prompt. `save_agent_specification` stays off the allowlist. See [CARD-433](../cards/CARD-433-user-modified-developer-prompt-authoring-sentence.md).
