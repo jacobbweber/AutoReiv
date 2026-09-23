@@ -1,7 +1,7 @@
 ---
 id: CARD-425
 title: "Native tool lane follow-ups: user-modified developer allowlist and in-process pack tools"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-425] Native tool lane follow-ups: user-modified developer allowlist and in-process pack tools
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-23  
 > **Found during**: CARD-423 implementation  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md), [ADR-0056](../adr/0056-durable-runtime-registry-hybrid-c-plus.md)  
@@ -91,3 +91,9 @@ Follow-up: [CARD-426](./CARD-426-refresh-native-tool-engineering-skill-on-user-m
 
 - Replacing `SandboxedSubprocessWorker` with an OS jail.
 - Tools Studio code editor, folder picker, or moving MCP hosting.
+
+---
+
+## Done
+
+Merged to local qa on 2026-09-23. CARD-426 remains Ready for refreshing user-modified native-tool-engineering runbook text. Draft GitHub PR was a side-effect only.
