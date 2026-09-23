@@ -7,6 +7,7 @@ import { escapeHtml } from '../utils/formatters.js';
 import { publishAgentsLoaded } from '../state/store.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from '../ui/toast.js';
+import { initJourneyCanvas } from '../observability/journey_canvas.js';
 
 /** Standing external verifier outcomes [CARD-216]: verified | skipped_no_checker | failed */
 export const VERIFY_OUTCOME_STATUSES = Object.freeze(['verified', 'skipped_no_checker', 'failed']);
@@ -534,6 +535,7 @@ export function initObservability(state, _callbacks = {}) {
   }
   loadFrictionRecommendations();
   checkArchitecturalProposalsCount();
+  const journeyCanvas = initJourneyCanvas(state, _callbacks);
 
   setInterval(() => {
     const activeTab = $query('.tab-view:not(.hidden)');
@@ -548,6 +550,7 @@ export function initObservability(state, _callbacks = {}) {
     loadStandingJourney,
     loadFrictionRecommendations,
     runFrictionAudit,
+    journeyCanvas,
   };
 }
 

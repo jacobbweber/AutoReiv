@@ -105,7 +105,7 @@ def test_layout_derived_paths(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path / "tree"))
     resolver = DataDirResolver(checkout_root=tmp_path / "co", in_docker=False)
     paths = resolver.resolve()
-    resolver.ensure_layout(paths)
+    resolver.ensure_layout(paths, scaffold_wiki=True)
     assert paths.db_path == paths.root / "database" / "autoreiv.db"
     assert paths.wiki_path == paths.root / "wiki"
     assert paths.skills_path == paths.root / "skills"

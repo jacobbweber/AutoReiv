@@ -39,9 +39,10 @@ def hybrid_env(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(wiki))
     monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "local")
 
+    from starlette.testclient import TestClient
+
     from src.infrastructure.memory.sqlite_store import SQLiteStateStore
     from src.web.app import create_app
-    from starlette.testclient import TestClient
 
     (user_data / "database").mkdir(parents=True, exist_ok=True)
     store = SQLiteStateStore(db_path=str(user_data / "database" / "autoreiv.db"))
@@ -56,9 +57,7 @@ def test_oc_s1_reconcile_idempotent_user_edits_survive(hybrid_env, monkeypatch):
     """OC-S1: built-in reconcile idempotent; user edits survive second boot."""
     from src.infrastructure.skills.platform_packs import (
         ALL_PLATFORM_PACK_IDS,
-        compute_platform_seed_hash,
         install_platform_agent_packs,
-        platform_packs_root,
     )
 
     client, store, user_data, _wiki = hybrid_env
@@ -156,7 +155,7 @@ def test_oc_s2_export_import_fidelity(hybrid_env, tmp_path):
 
 def test_oc_s3_backup_manifest_restore(hybrid_env, tmp_path):
     """OC-S3: backup/restore restores DB(s), wiki URI/policy, manifest."""
-    from src.infrastructure.data.backup import DataDirBackupService, MANIFEST_NAME
+    from src.infrastructure.data.backup import MANIFEST_NAME, DataDirBackupService
     from src.infrastructure.data.resolver import DataDirPaths
 
     client, store, user_data, wiki = hybrid_env
@@ -273,12 +272,11 @@ def test_oc_s5_wiki_path_persist_fail_visible(hybrid_env, tmp_path, monkeypatch)
 
 def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
     """OC-S6: local may auto-adopt data_root/wiki; Docker hard-fails if wiki missing; no second vault."""
+    from src.infrastructure.data.resolver import DataDirResolver
     from src.infrastructure.data.wiki_gate import (
         WikiPathConfigurationError,
         enforce_wiki_path_for_boot,
-        inspect_wiki_path,
     )
-    from src.infrastructure.data.resolver import DataDirResolver
 
     user_data = (tmp_path / "ud").resolve()
     user_data.mkdir()
@@ -302,8 +300,8 @@ def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
     assert not (user_data / "wiki-vault").exists()
 
     # Local create_app with unset wiki auto-adopts data_root/wiki (single folder)
-    from src.web.app import create_app
     from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+    from src.web.app import create_app
 
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
     monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "local")

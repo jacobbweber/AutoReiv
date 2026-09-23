@@ -609,5 +609,56 @@ async def post_dismiss_proposal(
     return result
 
 
+# =========================================================================
+# Journey Canvas Endpoints [CARD-428]
+# =========================================================================
+
+def _get_journey_canvas_service(request: Optional[Request] = None) -> Any:
+    from src.application.observability.journey_canvas import JourneyCanvasService
+    if request and hasattr(request.app.state, "journey_canvas_service"):
+        return request.app.state.journey_canvas_service
+    return JourneyCanvasService()
+
+
+@router.get("/api/observability/journey-canvas/scenarios")
+async def get_journey_canvas_scenarios(request: Request = None):
+    """Returns available canonical and recorded journey scenarios [CARD-428]."""
+    service = _get_journey_canvas_service(request)
+    scenarios = service.list_scenarios()
+    return [s.model_dump(mode="json") for s in scenarios]
+
+
+@router.get("/api/observability/journey-canvas/scenarios/{scenario_id}")
+async def get_journey_canvas_scenario(scenario_id: str, request: Request = None):
+    """Returns detailed steps, swimlanes, and payloads for one scenario [CARD-428]."""
+    service = _get_journey_canvas_service(request)
+    scenario = service.get_scenario(scenario_id)
+    if not scenario:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "scenario not found", "scenario_id": scenario_id},
+        )
+    return scenario.model_dump(mode="json")
+
+
+@router.get("/api/observability/journey-canvas/source")
+async def get_journey_canvas_source(
+    file_path: str,
+    line: int = 1,
+    range_lines: int = 10,
+    request: Request = None,
+):
+    """Safely retrieves repository code snippet with line numbers and active line highlighting [CARD-428]."""
+    service = _get_journey_canvas_service(request)
+    try:
+        snippet = service.get_source_snippet(file_path=file_path, line=line, range_lines=range_lines)
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    return snippet.model_dump(mode="json")
+
+
+
 
 

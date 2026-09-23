@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **CARD-428 Observability Journey Canvas**: Visual end-to-end operational execution trace across 4 architectural swimlanes (UI/Browser, API Gateway, Orchestrator ReAct Loop, Storage & Policy). Built directly into Observability Studio (`observe`) with a timeline scrubber, Play/Pause autoplay controls, synchronized Code Inspector with active line highlighting and IDE links, runtime state transition badges, and formatted Payload Inspector (`src/application/observability/journey_canvas.py`, `src/web/routers/observability.py`, `src/web/static/modules/observability/journey_canvas.js`, `src/web/templates/index.html` [CARD-428]).
+
 ## [0.41.0] - 2026-09-23
 
 ### Added

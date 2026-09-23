@@ -9,7 +9,7 @@ empty seed taxonomy under 01_Notes.
 
 from pathlib import Path
 
-from src.domain.wiki.store import WikiStore, _EMPTY_SEED_TAXONOMY_REL_PATHS
+from src.domain.wiki.store import _EMPTY_SEED_TAXONOMY_REL_PATHS, WikiStore
 
 
 def test_vanilla_wiki_scaffold_seeding(tmp_path: Path):
