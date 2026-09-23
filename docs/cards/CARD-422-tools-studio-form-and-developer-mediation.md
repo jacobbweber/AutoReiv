@@ -1,7 +1,7 @@
 ---
 id: CARD-422
 title: "Tools Studio form + Talk/Submit to developer (no code in studio)"
-status: In Review
+status: Done
 created: 2026-09-22
 adr: docs/adr/0057-three-studios-and-developer-mediated-authoring.md
 labels:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-422] Tools Studio form + Talk/Submit to developer (no code in studio)
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-22  
 > **ADR Reference**: [ADR-0057](../adr/0057-three-studios-and-developer-mediated-authoring.md)  
 > **Depends on**: [CARD-421](./CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) Done (or In Review complete enough that Tools Studio dock exists)  
@@ -108,3 +108,9 @@ CARD-421 is on `qa`. This slice is In Review. CARD-423 stays Ready. Packaging pr
 2. Fill **What the tool should do**, choose **Talk to developer**. Chat opens on the developer agent in a new session, and the first message already contains the form text.
 3. Submit the same kind of intent. The status line shows a job id and a developer reply, or a clear error. A spinner that ends with no job and no error is a failure of this card.
 4. A packaging note of native or MCP does not create a package.
+
+---
+
+## Done
+
+Merged to local qa on 2026-09-22 after live Talk/Submit verification. Draft GitHub PR was a side-effect only.
