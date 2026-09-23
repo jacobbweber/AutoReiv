@@ -34,7 +34,7 @@ async def test_agent_builder_tools_registration(builder_setup):
     tool_names = [t.name for t in tools]
     assert "list_available_skills_and_tools" in tool_names
     assert "propose_agent_specification" in tool_names
-    assert "save_agent_specification" in tool_names
+    assert "save_agent_specification" not in tool_names
     assert "propose_skill" in tool_names
     assert "propose_tool" in tool_names
     assert "propose_workflow" not in tool_names
@@ -70,41 +70,14 @@ async def test_propose_agent_specification(builder_setup):
 
 
 @pytest.mark.asyncio
-async def test_save_agent_specification(builder_setup):
-    skill, agent_reg, tool_reg = builder_setup
-
-    spec = {
-        "id": "postgres-dba",
-        "name": "Postgres DBA",
-        "description": "Database Optimization Specialist",
-        "system_prompt": "You are AutoReiv's Postgres DBA. Optimize queries and analyze schemas.",
-        "purpose": "task_execution",
-        "tone": "technical",
-        "avatar_icon": "database",
-        "allowed_tool_names": [],
-        "max_turns": 10,
-    }
-
-    res = await skill.save_agent_specification(spec)
-    assert res["status"] == "created"
-    assert res["id"] == "postgres-dba"
-    assert res.get("sprawl_warning")
-    assert "postgres-dba" in res["sprawl_warning"]
-
-    # Verify presence in agent registry
-    saved = agent_reg.get_agent("postgres-dba")
-    assert saved is not None
-    assert saved.name == "Postgres DBA"
-
-
-@pytest.mark.asyncio
 async def test_propose_descriptions_are_recommend_not_pack_birth(builder_setup):
     skill, agent_reg, tool_reg = builder_setup
     skill.register_tools(tool_reg)
     by_name = {t.name: t.description.lower() for t in tool_reg.list_tools()}
     assert "do not use this to create the agent" in by_name["propose_agent_specification"]
     assert "i am ready to create a new agent" in by_name["propose_agent_specification"]
-    assert "scaffold_agent_pack is the write" in by_name["save_agent_specification"]
+    assert "scaffold_agent_pack" in by_name["propose_agent_specification"]
+    assert "save_agent_specification" not in by_name
     assert "recommend-capability only" in by_name["propose_tool"]
     assert "not pack birth" in by_name["propose_tool"]
     assert "recommend-capability only" in by_name["propose_skill"]

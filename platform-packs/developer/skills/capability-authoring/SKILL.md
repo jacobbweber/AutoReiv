@@ -34,7 +34,7 @@ Name this skill or the tool (`propose_skill`, `commit_skill_pack`, `scaffold_age
 
 ## Do not use save_agent_specification
 
-`save_agent_specification` is a legacy Agent Builder tool. It is still registered so old callers do not crash, and it is **not** on the developer allowlist. It does not write an agent pack. `scaffold_agent_pack` does.
+`save_agent_specification` is not in the tool catalog and it is not on the developer allowlist. It does not write an agent pack. `scaffold_agent_pack` does.
 
 `$DATA_DIR/skills/` and `packs/<id>/skills/` stay separate. Do not merge them.
 

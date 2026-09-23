@@ -2,7 +2,7 @@
 
 ### Added
 
-- **CARD-429 Developer capability authoring**: The developer pack allowlist includes `capability-authoring`, `proposals`, and `build-agent-pack`. Chat with Developer can propose and commit skills and tools and scaffold an agent pack (`propose_skill`, `propose_tool`, `commit_skill_pack`, `list_available_skills_and_tools`, `scaffold_agent_pack`). `save_agent_specification` stays registered and is not on the developer allowlist. A `user_modified` developer receives the new skill ids through the additive grant without a prompt rewrite. Runbook: `platform-packs/developer/skills/capability-authoring/SKILL.md` ([CARD-429], [ADR-0058](docs/adr/0058-retire-agent-builder-into-developer.md)).
+- **CARD-429 Developer capability authoring**: The developer pack allowlist includes `capability-authoring`, `proposals`, and `build-agent-pack`. Chat with Developer can propose and commit skills and tools and scaffold an agent pack (`propose_skill`, `propose_tool`, `commit_skill_pack`, `list_available_skills_and_tools`, `scaffold_agent_pack`). `save_agent_specification` is not on the developer allowlist. A `user_modified` developer receives the new skill ids through the additive grant without a prompt rewrite. Runbook: `platform-packs/developer/skills/capability-authoring/SKILL.md` ([CARD-429], [ADR-0058](docs/adr/0058-retire-agent-builder-into-developer.md)).
 - **CARD-428 Observability Journey Canvas**: Visual end-to-end operational execution trace across 4 architectural swimlanes (UI/Browser, API Gateway, Orchestrator ReAct Loop, Storage & Policy). Built directly into Observability Studio (`observe`) with a timeline scrubber, Play/Pause autoplay controls, synchronized Code Inspector with active line highlighting and IDE links, runtime state transition badges, and formatted Payload Inspector (`src/application/observability/journey_canvas.py`, `src/web/routers/observability.py`, `src/web/static/modules/observability/journey_canvas.js`, `src/web/templates/index.html` [CARD-428]).
 
 ### Changed
@@ -13,6 +13,7 @@
 
 ### Removed
 
+- **CARD-431 `save_agent_specification`**: The tool is not registered and does not appear in the Tools Studio catalog (`GET /api/agent_training_factory/capabilities`). It is gone from the tool-policy `REQUIRE_CONFIRM` default and the HITL high-risk name list. The handler method is gone. `scaffold_agent_pack` stays registered, and a Developer turn that asks to scaffold an agent pack can still call it. `propose_skill`, `propose_tool`, and `propose_agent_specification` stay. `agent-builder` stays unregistered (`src/application/skills/agent_builder_tools.py`, `src/application/safety/tool_policy_gate.py`, `src/application/kernel/hitl_engine.py` [CARD-431], [ADR-0058](docs/adr/0058-retire-agent-builder-into-developer.md)).
 - **CARD-429 agent-builder**: The hidden builtin profile is not registered. `get_agent("agent-builder")` is None. Boot deletes a leftover `custom_agents` / `agent_overrides` row for that id and does not recreate it. Historical sessions stay. Creating an agent with that id is rejected ([CARD-429], [ADR-0058](docs/adr/0058-retire-agent-builder-into-developer.md)).
 
 ### Fixed

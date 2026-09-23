@@ -1,7 +1,7 @@
 ---
 id: CARD-431
 title: "Unregister save_agent_specification"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: docs/adr/0058-retire-agent-builder-into-developer.md
 labels:
@@ -12,13 +12,14 @@ labels:
 
 # [CARD-431] Unregister save_agent_specification
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Found during**: [CARD-429](./CARD-429-classification-simplification.md)
 > **ADR Reference**: [ADR-0058](../adr/0058-retire-agent-builder-into-developer.md)
 > **Parent**: [CARD-429](./CARD-429-classification-simplification.md)
+> **Operator contract**: `tests/integration/operator_contracts/test_oc431_unregister_save_agent_specification.py`
 
-Optional later slice. Planning only. Say **continue** to change this card. Say **build** before any product code. Say **merge to qa** only after In Review and a live look.
+Say **merge to qa** after a live look. Do not merge from this card alone.
 
 ---
 
@@ -70,13 +71,13 @@ Kept until the scavenger pass is clean: the method body, `propose_agent_specific
 
 ## 6. Human verification runbook
 
-After **build**:
-
 1. Open Tools Studio. `save_agent_specification` is not in the catalog.
 2. Ask Developer to scaffold an agent pack. It can still call `scaffold_agent_pack`.
 3. Chat has no Agent Builder.
 
-If Beat 3 finds a live HITL row, this card stays Ready and the tool stays registered.
+Beat 3 on this checkout: no `*.db` under the workspace or this machine, no `AUTOREIV_DATA_DIR`, and no pack allowlist, job, or routine calls the tool. A fresh boot database has no `pending_approvals` row for it, so REQ-431-003 did not block unregister. The handler method is deleted because nothing calls it.
+
+If a parked approval on a machine this checkout cannot see still names the tool, Approve will not run that handler. Say so before **merge to qa** if that row exists.
 
 ---
 

@@ -838,9 +838,16 @@ class AgentKernel:
                     return (0, 0, name)
 
                 # Builder HITL stays off the default eight until the turn asks for it [CARD-429].
+                # "scaffold an agent pack" must keep scaffold_agent_pack inside the cap [CARD-431].
                 if name in CAPABILITY_AUTHORING_TOOL_NAMES:
                     if _capability_authoring_requested(text_l):
                         named = name in text_l or name.replace("_", " ") in text_l
+                        if (
+                            name == "scaffold_agent_pack"
+                            and "scaffold" in text_l
+                            and ("agent" in text_l or "pack" in text_l)
+                        ):
+                            named = True
                         return (0, 0 if named else 1, name)
                     return (3, 0, name)
 
