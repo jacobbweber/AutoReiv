@@ -99,7 +99,7 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
 
 
 def test_oc429_boot_purges_leftover_agent_builder_row(tmp_path, monkeypatch):
-    """Old SQLite rows are deleted. Historical choice: sessions are not rewritten."""
+    """Old profile rows are deleted. Session and job id rewrite is CARD-432."""
     from src.web.app import create_app
 
     user_data = (tmp_path / "user-data").resolve()

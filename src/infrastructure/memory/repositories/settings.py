@@ -869,9 +869,11 @@ class SettingsRepositoryMixin:
         """Drop leftover agent-builder profile rows [CARD-429].
 
         Choice: delete the custom_agents row and its agent_overrides. Do not
-        recreate the builtin on boot. Historical sessions and jobs stay so old
-        transcripts still open. Any routine that still names agent-builder moves
-        to developer (skill-eval-sleep and skill-curator stay paused).
+        recreate the builtin on boot. Any routine that still names agent-builder
+        moves to developer (skill-eval-sleep and skill-curator stay paused).
+        Historical session, message, job, and phase ids are rewritten by
+        scrub_historical_agent_builder_rows [CARD-432]. That scrub does not
+        delete rows and does not edit message content.
         """
         conn = self._get_connection()
         try:
@@ -888,6 +890,36 @@ class SettingsRepositoryMixin:
                 )
             except Exception:
                 pass
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def scrub_historical_agent_builder_rows(self) -> None:
+        """Point leftover agent-builder ids at developer [CARD-432].
+
+        UPDATE only. Session, message, job, and phase rows stay. Message content
+        stays. A later boot changes nothing once those ids already say developer.
+        """
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE sessions SET agent_id = ? WHERE agent_id = ?",
+                ("developer", "agent-builder"),
+            )
+            cur.execute(
+                "UPDATE messages SET agent_id = ? WHERE agent_id = ?",
+                ("developer", "agent-builder"),
+            )
+            cur.execute(
+                "UPDATE jobs SET agent_id = ? WHERE agent_id = ?",
+                ("developer", "agent-builder"),
+            )
+            cur.execute(
+                "UPDATE phases SET assigned_agent_id = ? WHERE assigned_agent_id = ?",
+                ("developer", "agent-builder"),
+            )
             conn.commit()
         finally:
             if self._mem_conn is None:
