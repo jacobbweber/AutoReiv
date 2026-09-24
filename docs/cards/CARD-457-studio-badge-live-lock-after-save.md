@@ -62,5 +62,5 @@ A saved prompt edit that silently opts the agent out of platform updates, with n
 ## 2. Acceptance criteria (EARS)
 
 - **[REQ-457-001]** WHEN an operator saves a content edit on a platform agent, THE Agent Studio badge SHALL show the skipped state without a restart or manual sync.
-- **[REQ-457-003]** WHEN keep-customizations is off, THE Platform defaults section SHALL say that edits are reset on the next platform update.
+- ~~[REQ-457-003]~~ Moved into CARD-450 as REQ-450-011 (keep-customizations-off notice shipped there).
 - **[REQ-457-002]** WHEN a save changes only max turns or model, THE SYSTEM SHALL NOT show a badge.

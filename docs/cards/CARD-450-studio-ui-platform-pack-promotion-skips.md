@@ -105,6 +105,7 @@ Do not write product code until Jacob says **build** on this card.
 - **[REQ-450-007]** WHEN a pack's last status is `unchanged`, `promoted` or `force_reset` (or it has no entry), THE SYSTEM SHALL NOT show a badge.
 - **[REQ-450-008]** THE Platform defaults section SHALL list that agent's pack-content backups from `GET /api/agents/{id}/pack-content-backups`, newest first. Each entry shows local readable time with an ISO tooltip and a plain-English reason, or an empty-state line when there are none.
 - **[REQ-450-009]** WHEN the operator confirms **Restore** on a backup in its own confirm dialog, THE SYSTEM SHALL call `POST /api/agents/{id}/pack-content-backups/{backup_id}/restore`, refresh the pack's sync-status entry, and re-render the agent. A restored customized agent shows the skip badge again.
+- **[REQ-450-011]** WHEN the global "Keep my agent customizations" setting is off, THE Platform defaults section SHALL say in plain words that edits to the agent's system prompt, skills, and tools are reset on the next restart. WHEN a skipped agent has no newer platform version (`seed_update_available=false`), THE badge SHALL say the agent is customized rather than that an update was skipped.
 - **[REQ-450-010]** WHEN a promotion runs for a subset of packs (`pack_ids`), THE SYSTEM SHALL replace only those packs' entries in the last sync report and keep every other pack's entry.
 
 ---
@@ -179,3 +180,18 @@ Do not write product code until Jacob says **build** on this card.
 - Reset was not run live. Jacob runs it from the UI.
 
 **Follow-ups:** CARD-456 (frontend Vitest/ESLint debt), CARD-457 (badge after Save and keep-customizations-off notice), CARD-458 (lock-migration report merge; restore turned-off-skills record).
+
+### Live-test finding 1 (2026-09-24, 6:32 PM ET)
+
+**What Jacob saw:** He appended "Always follow SOLID and DRY principles." to Developer's prompt, set max turns to 25 and saved. Serve was restarted. Sync-status then said `developer=unchanged` with no badge, and the prompt was stock again.
+
+**Why:**
+- Keep-customizations was still **off**. The server never received a request to turn it on (no `PUT /api/settings/platform-pack-keep-customizations` after the 6:18 PM restart).
+- So the 6:32 PM boot force-reset Developer, as that setting is designed to. Backup `developer-20260924T223203243225`, reason `force_reset_keep_customizations_off`, holds his edit and max turns 25.
+- The report said `unchanged` instead of `force_reset` because serve bootstraps twice. `uvicorn.run("src.web.app:create_app", factory=True)` imports `src.web.app`, which also builds a module-level `app`. The second promotion run found nothing to do and overwrote the report. Tracked in CARD-459.
+
+**Fixes (REQ-450-011):**
+- The Platform defaults section warns when keep-customizations is off.
+- Skip outcomes carry `seed_update_available`. When no newer platform version exists, the badge says "You edited the system prompt, so platform updates will skip this agent until you reset it."
+
+**Still deferred:** a badge that updates on Save without a restart (CARD-457). The live checklist restarts serve after saving.
