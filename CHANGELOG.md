@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Fixed
+
+- **CARD-449 Pack lock granularity**: Scalar edits (`max_turns`, `model`, provider) no longer set `user_modified` / block platform-pack promotion. Prompt lock compares content to `platform_shipped_prompt_hashes`. Operator-disabled skills stay off while new platform skills are added. Automated additive grants / native packaging / Factory auto_pin no longer false-lock agents. One-time lock migration reports under sync-status `lock_migration`. Global setting `platform_pack_keep_customizations` (default true) force-resets pack content when false (after backup). Backups: `GET/POST /api/agents/{id}/pack-content-backups`. Settings toggle in Preferences (with System & Software Updates). Contract: `tests/unit/agent_packs/test_card_449_pack_lock_granularity.py` ([CARD-449]).
+
+
 ### Added
 
 - **CARD-443 Platform pack → AppData promotion**: On startup and `POST /api/platform-packs/sync`, non-`user_modified` platform packs refresh AppData `pack.json` + `skills/*/SKILL.md` from `platform-packs/<id>/` and resync pack-owned SQLite fields (skills/tools; `system_prompt` only when still at shipped-prompt baseline). Preserves `max_turns`/`model`. `user_modified` packs return deterministic `skipped_user_modified` with resolution (`POST /api/agents/<id>/accept-platform-seed`). Status: `GET /api/platform-packs/sync-status`. Module: `src/infrastructure/skills/platform_pack_promotion.py`. Contract: `tests/unit/agent_packs/test_card_443_platform_pack_appdata_sync.py` ([CARD-443]). Follow-up: [CARD-449](docs/cards/CARD-449-scalar-operator-edits-max-turns-must-not-lock-platform-pack-promotion.md).

@@ -797,11 +797,64 @@ async def refresh_models(request: Request, req: Optional[HardwareFitQueryRequest
 async def customize_agent(request: Request, agent_id: str, custom: AgentCustomization):
     store = request.app.state.store
     custom.agent_id = agent_id
-    custom.user_modified = True
+    from src.application.agent_packs.schema import is_platform_pack
+    from src.infrastructure.skills.platform_pack_promotion import should_set_content_lock
+
+    existing = store.get_agent_profile(agent_id) if hasattr(store, "get_agent_profile") else None
+    lock = True
+    if is_platform_pack(agent_id) and existing is not None:
+        lock = should_set_content_lock(
+            existing=existing,
+            new_prompt=getattr(custom, "system_prompt", None),
+            new_skills=list(getattr(custom, "allowed_skill", None) or []) or None,
+            new_tools=list(getattr(custom, "allowed_tool_names", None) or []) or None,
+            store=store,
+            pack_id=agent_id,
+            stock_skills=list(getattr(existing, "allowed_skill", None) or []),
+        )
+    if lock:
+        custom.user_modified = True
+    else:
+        custom.user_modified = bool(getattr(existing, "user_modified", False)) if existing else False
     store.save_agent_override(custom)
     if hasattr(store, "mark_agent_user_modified"):
-        store.mark_agent_user_modified(custom.agent_id, modified=True)
+        store.mark_agent_user_modified(custom.agent_id, modified=bool(custom.user_modified))
     return {"status": "saved", "customization": custom.model_dump()}
+
+
+
+
+@router.get("/api/settings/platform-pack-keep-customizations")
+async def get_platform_pack_keep_customizations(request: Request):
+    """CARD-449: global keep-customizations toggle (default true)."""
+    from src.infrastructure.skills.platform_pack_promotion import (
+        PLATFORM_KEEP_CUSTOMIZATIONS_SETTING,
+        keep_customizations_enabled,
+    )
+    store = request.app.state.store
+    return {
+        "key": PLATFORM_KEEP_CUSTOMIZATIONS_SETTING,
+        "enabled": keep_customizations_enabled(store),
+    }
+
+
+@router.put("/api/settings/platform-pack-keep-customizations")
+async def put_platform_pack_keep_customizations(request: Request):
+    """CARD-449: set keep-customizations; False force-resets pack content on next sync."""
+    from src.infrastructure.skills.platform_pack_promotion import (
+        PLATFORM_KEEP_CUSTOMIZATIONS_SETTING,
+        keep_customizations_enabled,
+    )
+    body = await request.json()
+    enabled = body.get("enabled", True)
+    if isinstance(enabled, str):
+        enabled = enabled.strip().lower() not in {"0", "false", "no", "off"}
+    store = request.app.state.store
+    store.set_setting(PLATFORM_KEEP_CUSTOMIZATIONS_SETTING, bool(enabled))
+    return {
+        "key": PLATFORM_KEEP_CUSTOMIZATIONS_SETTING,
+        "enabled": keep_customizations_enabled(store),
+    }
 
 
 @router.get("/api/settings/mcp")

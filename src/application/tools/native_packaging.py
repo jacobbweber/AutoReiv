@@ -348,11 +348,12 @@ class NativeCustomToolService:
                 names.append(name)
             existing = self.store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
             existing.allowed_tool_names = names
-            existing.user_modified = True
+            # CARD-449: automated native tool grant must not set content lock
+            # existing.user_modified = True
             self.store.save_agent_override(existing)
-            marker = getattr(self.store, "mark_agent_user_modified", None)
-            if callable(marker):
-                marker(agent_id, modified=True)
+            # marker = getattr(self.store, "mark_agent_user_modified", None)
+            # if callable(marker):
+            #     marker(agent_id, modified=True)
             granted.append(agent_id)
         return granted
 
