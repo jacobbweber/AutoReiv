@@ -1,7 +1,7 @@
 ---
 id: CARD-439
 title: "Due Reviews in Tutor Education Mode (SRS / Retention from Study)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-439] Due Reviews in Tutor Education Mode (SRS / Retention from Study)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
@@ -142,6 +142,12 @@ Do **not** write product code until Jacob says **build** on this card.
 6. Force grade failure (unknown `item_id`) — Tutor must not claim durable success.
 7. Education tab — Studio `#educationDueList` / Run retention still present.
 8. Automated: `pytest tests/unit/education/test_card439_due_reviews_in_tutor_education_mode.py -q` and vitest `card_439_due_reviews.test.js`.
+
+### Live proof result / merge note
+
+- **2026-09-23 (ET)**: Live proof accepted; **merge to qa** completed (merge tip `808d998f`).
+- **Status**: Done.
+- Next Ready in Tutor Learning OS order: **CARD-440** (wiki curation), then CARD-441; CARD-446 remains last.
 
 ### After live proof
 
