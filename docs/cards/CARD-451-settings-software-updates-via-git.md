@@ -138,6 +138,8 @@ Do not write product code until Jacob says **build** on this card.
 
 ## 4. Proof / live-test notes
 
+0. **No upstream honesty**: on an unpushed feat branch, Ahead/Behind shows `No upstream`; Check banner warns (not "Up to date"); Update now disabled with reason. Timestamps local with ISO tooltip. No `CARD-` in user copy. Branch picker lists `qa`/`main`/remotes.
+
 1. On Jarvis git checkout at `D:\Projects\Active\AutoReiv`, open Settings -> System & Software Updates: confirm status panel fields (branch, SHA+subject, upstream, ahead/behind, dirty, last fetch).
 2. **Check for updates**: fetch runs; ahead/behind updates; no remote URL field required for the check.
 3. Clean tree behind upstream: **Update now** ff-only succeeds; history shows from->to; serve restarts and still listens on `0.0.0.0:8000`.
@@ -177,6 +179,14 @@ Open questions closed before **build**. Recorded as decisions + EARS below.
 - **[REQ-451-015]** WHILE any chat stream task is active, OR any routine run/last_status is RUNNING, OR any Studio/Factory job is queued/running/waiting_approval, THE SYSTEM SHALL treat the instance as busy for daily auto-update and defer.
 - **[REQ-451-016]** THE SYSTEM SHALL use fixed remote name `origin` only; THE SYSTEM SHALL NOT accept client-supplied remote URLs; THE SYSTEM SHALL show `origin` URL read-only in Settings.
 - **[REQ-451-017]** WHEN Update now is requested, THE SYSTEM SHALL fast-forward the currently checked-out branch from its upstream; THE SYSTEM SHALL NOT use a separate tracked-branch setting.
+
+### Live-test defect fixes (2026-09-24)
+
+- **[REQ-451-018]** WHEN the current branch has no upstream tracking ref, THE SYSTEM SHALL return `ahead`/`behind` (and check `commits_ahead`/`commits_behind`) as null (not 0), surface **No upstream** in the status grid (not `+0 / -0`), and after **Check for updates** show a neutral/warning banner that the branch has no upstream to compare against (never claim up to date). THE SYSTEM SHALL disable **Update now** with a visible reason while no upstream is configured.
+- **[REQ-451-019]** WHEN rendering Last fetch or Update history timestamps in Settings, THE SYSTEM SHALL show the browser's local time in a readable format and keep the full ISO string in a title/tooltip.
+- **[REQ-451-020]** THE System & Software Updates card SHALL NOT show internal card IDs (e.g. `CARD-451`) in operator-visible copy.
+- **[REQ-451-021]** WHEN the branch picker loads, THE SYSTEM SHALL list local and remote-tracking branches from `origin` (including `qa` and `main` when present), not only the current branch.
+
 
 ---
 

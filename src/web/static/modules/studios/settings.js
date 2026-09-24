@@ -1523,8 +1523,39 @@ export function initSettingsStudio(state, callbacks = {}) {
   const saveAutoUpdateStatus = $('saveAutoUpdateStatus');
   const autoUpdateLastResult = $('autoUpdateLastResult');
   const updateHistoryList = $('updateHistoryList');
+  const applyUpdateDisabledReason = $('applyUpdateDisabledReason');
+  const updateBranchListHint = $('updateBranchListHint');
 
   let currentSystemVersion = null;
+
+  function formatLocalTimestamp(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    try {
+      return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch (_e) {
+      return d.toString();
+    }
+  }
+
+  function setTimestampEl(el, iso) {
+    if (!el) return;
+    if (!iso) {
+      el.textContent = 'never';
+      el.removeAttribute('title');
+      return;
+    }
+    el.textContent = formatLocalTimestamp(iso);
+    el.setAttribute('title', iso);
+  }
+
 
   function showUpdateBanner(kind, message, notes) {
     if (!updateStatusBanner) return;
@@ -1563,8 +1594,18 @@ export function initSettingsStudio(state, callbacks = {}) {
     if (systemCommitSubject) systemCommitSubject.textContent = data.subject || '';
     if (systemBranchName) systemBranchName.textContent = data.branch || (data.detached_head ? '(detached)' : '-');
     if (systemAheadBehind) {
-      const up = data.upstream ? ` vs ${data.upstream}` : '';
-      systemAheadBehind.textContent = `+${data.ahead || 0} / -${data.behind || 0}${up}`;
+      if (!data.upstream) {
+        systemAheadBehind.textContent = 'No upstream';
+        systemAheadBehind.className = 'text-amber-400';
+        systemAheadBehind.title = 'This branch has no upstream tracking ref to compare against.';
+      } else {
+        const up = ` vs ${data.upstream}`;
+        const ahead = data.ahead == null ? '?' : data.ahead;
+        const behind = data.behind == null ? '?' : data.behind;
+        systemAheadBehind.textContent = `+${ahead} / -${behind}${up}`;
+        systemAheadBehind.className = 'text-slate-200';
+        systemAheadBehind.title = '';
+      }
     }
     if (systemTreeStatus) {
       if (data.is_dirty) {
@@ -1576,7 +1617,7 @@ export function initSettingsStudio(state, callbacks = {}) {
       }
     }
     if (systemLastFetch) {
-      systemLastFetch.textContent = data.last_fetch_at || 'never';
+      setTimestampEl(systemLastFetch, data.last_fetch_at);
     }
     if (updateRemoteUrl) {
       updateRemoteUrl.value = data.remote_url || '';
@@ -1585,7 +1626,20 @@ export function initSettingsStudio(state, callbacks = {}) {
       updateManualDockerHelper.classList.toggle('hidden', data.deployment_mode !== 'docker');
     }
     const gitOk = data.is_git && data.deployment_mode === 'git';
-    if (applyUpdateBtn) applyUpdateBtn.classList.toggle('hidden', !gitOk);
+    if (applyUpdateBtn) {
+      applyUpdateBtn.classList.toggle('hidden', !gitOk);
+      const noUpstream = gitOk && !data.upstream;
+      applyUpdateBtn.disabled = !!noUpstream;
+      if (applyUpdateDisabledReason) {
+        if (noUpstream) {
+          applyUpdateDisabledReason.textContent = 'Update now disabled: no upstream on this branch.';
+          applyUpdateDisabledReason.classList.remove('hidden');
+        } else {
+          applyUpdateDisabledReason.textContent = '';
+          applyUpdateDisabledReason.classList.add('hidden');
+        }
+      }
+    }
     if (switchBranchBtn) switchBranchBtn.disabled = !gitOk;
     if (updateBranchSelect) updateBranchSelect.disabled = !gitOk;
   }
@@ -1619,8 +1673,11 @@ export function initSettingsStudio(state, callbacks = {}) {
       const data = await res.json();
       if (!data.last_run_at) {
         autoUpdateLastResult.textContent = 'Last auto-update: never';
+        autoUpdateLastResult.removeAttribute('title');
       } else {
-        autoUpdateLastResult.textContent = `Last auto-update: ${data.last_result || '?'} at ${data.last_run_at}${data.last_message ? ' — ' + data.last_message : ''}`;
+        const when = formatLocalTimestamp(data.last_run_at);
+        autoUpdateLastResult.textContent = `Last auto-update: ${data.last_result || '?'} at ${when}${data.last_message ? ' — ' + data.last_message : ''}`;
+        autoUpdateLastResult.setAttribute('title', data.last_run_at);
       }
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load auto-update status:', err);
@@ -1640,7 +1697,9 @@ export function initSettingsStudio(state, callbacks = {}) {
       updateHistoryList.innerHTML = entries
         .map((e) => {
           const sha = e.from_sha && e.to_sha ? `${e.from_sha} → ${e.to_sha}` : '';
-          return `<li><span class="text-slate-500">${e.timestamp || ''}</span> · <span class="text-slate-200">${e.trigger}</span> · <span class="${e.result === 'success' ? 'text-emerald-400' : e.result === 'refused' || e.result === 'deferred' ? 'text-amber-400' : 'text-rose-400'}">${e.result}</span> · ${e.branch || ''} ${sha}<div class="text-slate-500 truncate">${e.message || ''}</div></li>`;
+          const tsLabel = e.timestamp ? formatLocalTimestamp(e.timestamp) : '';
+          const tsTitle = e.timestamp ? ` title="${String(e.timestamp).replace(/"/g, '&quot;')}"` : '';
+          return `<li><span class="text-slate-500"${tsTitle}>${tsLabel}</span> · <span class="text-slate-200">${e.trigger}</span> · <span class="${e.result === 'success' ? 'text-emerald-400' : e.result === 'refused' || e.result === 'deferred' ? 'text-amber-400' : 'text-rose-400'}">${e.result}</span> · ${e.branch || ''} ${sha}<div class="text-slate-500 truncate">${e.message || ''}</div></li>`;
         })
         .join('');
     } catch (err) {
@@ -1652,7 +1711,10 @@ export function initSettingsStudio(state, callbacks = {}) {
     if (!updateBranchSelect) return;
     try {
       const res = await fetch('/api/system/updates/branches');
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (updateBranchListHint) updateBranchListHint.textContent = 'Could not load branches.';
+        return;
+      }
       const data = await res.json();
       const branches = data.branches || [];
       updateBranchSelect.innerHTML = '';
@@ -1662,13 +1724,20 @@ export function initSettingsStudio(state, callbacks = {}) {
         const tags = [];
         if (b.is_current) tags.push('current');
         if (b.is_local) tags.push('local');
-        if (b.is_remote && !b.is_local) tags.push('remote');
+        if (b.is_remote) tags.push('remote');
         opt.textContent = tags.length ? `${b.name} (${tags.join(', ')})` : b.name;
         if (b.is_current) opt.selected = true;
         updateBranchSelect.appendChild(opt);
       });
+      if (updateBranchListHint) {
+        const names = branches.map((b) => b.name);
+        updateBranchListHint.textContent = branches.length
+          ? `${branches.length} branches (includes ${['qa', 'main'].filter((n) => names.includes(n)).join(', ') || 'local/remote refs'})`
+          : 'No branches found.';
+      }
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load branches:', err);
+      if (updateBranchListHint) updateBranchListHint.textContent = 'Could not load branches.';
     }
   }
 
@@ -1718,6 +1787,12 @@ export function initSettingsStudio(state, callbacks = {}) {
         await loadBranchList();
         if (data.error) {
           showUpdateBanner('err', `Check failed: ${data.error}`);
+        } else if (data.no_upstream) {
+          showUpdateBanner(
+            'warn',
+            data.message ||
+              `Branch '${data.channel || 'current'}' has no upstream to compare against.`
+          );
         } else if (data.update_available) {
           const behindTxt = data.commits_behind ? ` (${data.commits_behind} behind)` : '';
           showUpdateBanner('warn', `Update available: ${data.remote_commit || 'newer'}${behindTxt}`, data.release_notes || null);

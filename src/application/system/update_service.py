@@ -275,8 +275,8 @@ class UpdateService:
         is_dirty = False
         subject = ""
         upstream = None
-        ahead = 0
-        behind = 0
+        ahead = None
+        behind = None
         detached = False
         remote_url = ""
         last_fetch = self.state_store.get_setting(SETTING_LAST_FETCH)
@@ -384,15 +384,40 @@ class UpdateService:
                 remote_commit = out
 
         notes = None
-        if refreshed.behind > 0 and refreshed.upstream:
+        if refreshed.upstream and (refreshed.behind or 0) > 0:
             ok, out = self._git_ok(
                 ["log", "--oneline", f"HEAD..{refreshed.upstream}", "--max-count", "10"]
             )
             if ok and out:
                 notes = "\n".join(f"- {line}" for line in out.splitlines() if line.strip())
 
+        no_upstream = not bool(refreshed.upstream)
+        if no_upstream:
+            msg = (
+                f"Branch '{refreshed.branch or 'HEAD'}' has no upstream to compare against. "
+                "Push the branch or set upstream tracking before checking for updates."
+            )
+            return UpdateCheckResult(
+                update_available=False,
+                current_version=refreshed.current_version,
+                current_commit=refreshed.commit,
+                remote_commit=None,
+                commits_behind=None,
+                commits_ahead=None,
+                channel=refreshed.branch,
+                upstream_url=refreshed.remote_url,
+                upstream_ref=None,
+                release_notes=None,
+                checked_at=checked_at,
+                last_fetch_at=checked_at,
+                subject=refreshed.subject,
+                is_dirty=refreshed.is_dirty,
+                no_upstream=True,
+                message=msg,
+            )
+
         return UpdateCheckResult(
-            update_available=refreshed.behind > 0,
+            update_available=(refreshed.behind or 0) > 0,
             current_version=refreshed.current_version,
             current_commit=refreshed.commit,
             remote_commit=remote_commit,
@@ -406,6 +431,8 @@ class UpdateService:
             last_fetch_at=checked_at,
             subject=refreshed.subject,
             is_dirty=refreshed.is_dirty,
+            no_upstream=False,
+            message=None,
         )
 
     # ------------------------------------------------------------------
@@ -429,7 +456,7 @@ class UpdateService:
             return "A git operation is already in progress (merge/rebase/cherry-pick/bisect). Finish or abort it first."
         if not info.upstream:
             return "No upstream is configured for the current branch. Set upstream tracking or switch to a tracked branch."
-        if info.ahead > 0:
+        if info.ahead is not None and info.ahead > 0:
             return (
                 f"Local branch is ahead of upstream by {info.ahead} commit(s). "
                 "Fast-forward only — AutoReiv will not reset, force, or discard local commits."

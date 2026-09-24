@@ -2111,7 +2111,7 @@
                 <input id="updateRemoteUrl" type="text" readonly class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-300 font-mono text-xs" placeholder="(unavailable)" />
               </div>
             </div>
-            <p class="text-[11px] text-slate-500">Upstream is fixed to <code class="text-slate-400">origin</code>. Free-text remote URLs were removed (CARD-451).</p>
+            <p class="text-[11px] text-slate-500">Upstream is fixed to <code class="text-slate-400">origin</code>. The remote URL is shown read-only.</p>
           </div>
 
           <div class="space-y-3">
@@ -2124,6 +2124,7 @@
                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                 <span>Update now</span>
               </button>
+              <span id="applyUpdateDisabledReason" class="text-[11px] text-amber-400 hidden"></span>
             </div>
             <div id="updateStatusBanner" class="p-3 rounded-xl bg-[#08090c] border border-white/[0.06] text-xs hidden shadow-inner">
               <div class="flex items-center space-x-2">
@@ -2147,6 +2148,7 @@
               <div class="flex-1 min-w-[12rem]">
                 <label class="font-medium text-slate-400 block mb-1" for="updateBranchSelect">Switch branch</label>
                 <select id="updateBranchSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500"></select>
+              <p id="updateBranchListHint" class="text-[10px] text-slate-500 mt-1">Loading branches…</p>
               </div>
               <button type="button" id="switchBranchBtn" class="px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 rounded-lg text-xs font-semibold border border-white/[0.08] transition-all">Switch</button>
             </div>

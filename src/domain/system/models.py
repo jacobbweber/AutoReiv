@@ -27,8 +27,14 @@ class SystemVersionInfo(BaseModel):
     platform: Optional[str] = Field(default=None, description="Host OS platform string")
     subject: str = Field(default="", description="HEAD commit subject line [REQ-451-001]")
     upstream: Optional[str] = Field(default=None, description="Upstream tracking ref, e.g. origin/qa")
-    ahead: int = Field(default=0, description="Commits ahead of upstream")
-    behind: int = Field(default=0, description="Commits behind upstream")
+    ahead: Optional[int] = Field(
+        default=None,
+        description="Commits ahead of upstream; null when no upstream [REQ-451-018]",
+    )
+    behind: Optional[int] = Field(
+        default=None,
+        description="Commits behind upstream; null when no upstream [REQ-451-018]",
+    )
     last_fetch_at: Optional[str] = Field(default=None, description="ISO timestamp of last successful fetch")
     remote_name: str = Field(default="origin", description="Fixed remote name")
     remote_url: str = Field(default="", description="Read-only origin URL")
@@ -74,8 +80,22 @@ class UpdateCheckResult(BaseModel):
     latest_version: Optional[str] = Field(default=None)
     current_commit: str = Field(default="")
     remote_commit: Optional[str] = Field(default=None)
-    commits_behind: int = Field(default=0)
-    commits_ahead: int = Field(default=0)
+    commits_behind: Optional[int] = Field(
+        default=None,
+        description="Null when no upstream to compare [REQ-451-018]",
+    )
+    commits_ahead: Optional[int] = Field(
+        default=None,
+        description="Null when no upstream to compare [REQ-451-018]",
+    )
+    no_upstream: bool = Field(
+        default=False,
+        description="True when current branch has no upstream tracking ref",
+    )
+    message: Optional[str] = Field(
+        default=None,
+        description="Operator-facing status message (e.g. no upstream)",
+    )
     channel: str = Field(default="", description="Current branch name")
     upstream_url: str = Field(default="", description="Read-only origin URL")
     upstream_ref: Optional[str] = Field(default=None)
