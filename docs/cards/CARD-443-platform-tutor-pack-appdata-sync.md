@@ -1,7 +1,7 @@
 ---
 id: CARD-443
 title: "Promote Platform Tutor Packs into AppData Local Without Manual Copy"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -16,7 +16,7 @@ related:
 
 # [CARD-443] Promote Platform Tutor Packs into AppData Local Without Manual Copy
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Observed during**: CARD-436 live-test on `feat/card-436-inventory-tutor-learning-os-rails`
 > **ADR Reference**: none (add one only if pack promotion becomes a lasting deployment contract)
@@ -126,7 +126,7 @@ Do not write product code until Jacob says **build** on this card.
 During the CARD-444 sync, AppData `pack.json` and `SKILL.md` were updated and serve was restarted, but Tutor's SQLite-backed agent profile `system_prompt` stayed on the old prompt: `GET /api/agents/tutor` lacks the CARD-444 clause. CARD-443 must also resync the pack `system_prompt` into the stored agent profile without clobbering user edits such as `max_turns=100`.
 
 
-## 7. Implementation note (In Review)
+## 7. Implementation note (Done)
 
 **Branch**: `feat/card-443-platform-pack-appdata-sync`
 
@@ -141,6 +141,8 @@ During the CARD-444 sync, AppData `pack.json` and `SKILL.md` were updated and se
 7. **Generic**: same path for every platform pack id; Tutor is the live acceptance fixture only.
 
 ### Live proof (Jarvis, 2026-09-24 ET)
+
+- Live-tested by Jacob 2026-09-24.
 
 - Backup: `C:\Users\jacob\AppData\Local\AutoReiv\backups\card-443-20260924-083057\`
 - Source: `D:\Projects\Active\AutoReiv\platform-packs\tutor`
