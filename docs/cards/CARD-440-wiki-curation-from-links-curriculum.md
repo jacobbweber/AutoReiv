@@ -1,7 +1,7 @@
 ---
 id: CARD-440
 title: "Wiki Curation from Links / Curriculum (Tutor + Learning OS Path)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-440] Wiki Curation from Links / Curriculum (Tutor + Learning OS Path)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
