@@ -1,7 +1,7 @@
 ---
 id: CARD-443
 title: "Promote Platform Tutor Packs into AppData Local Without Manual Copy"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: none
 labels:
@@ -16,7 +16,7 @@ related:
 
 # [CARD-443] Promote Platform Tutor Packs into AppData Local Without Manual Copy
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Observed during**: CARD-436 live-test on `feat/card-436-inventory-tutor-learning-os-rails`
 > **ADR Reference**: none (add one only if pack promotion becomes a lasting deployment contract)
@@ -124,3 +124,35 @@ Do not write product code until Jacob says **build** on this card.
 ## 6. Finding from CARD-444 live test
 
 During the CARD-444 sync, AppData `pack.json` and `SKILL.md` were updated and serve was restarted, but Tutor's SQLite-backed agent profile `system_prompt` stayed on the old prompt: `GET /api/agents/tutor` lacks the CARD-444 clause. CARD-443 must also resync the pack `system_prompt` into the stored agent profile without clobbering user edits such as `max_turns=100`.
+
+
+## 7. Implementation note (In Review)
+
+**Branch**: `feat/card-443-platform-pack-appdata-sync`
+
+### Design decisions
+
+1. **Trigger**: `install_platform_agent_packs` on app startup (registry bootstrap) and operator `POST /api/platform-packs/sync` (pack reload without full process kill). First-missing copy remains `seed_platform_pack_folders`; upgrades go through `promote_platform_packs` in `src/infrastructure/skills/platform_pack_promotion.py`.
+2. **`user_modified`**: When profile or override `user_modified=true`, refuse overwrite. Return `status=skipped_user_modified` with reason + resolution path. Log at WARNING. Surface via `GET /api/platform-packs/sync-status` and the sync POST response.
+3. **Resolution path**: `POST /api/agents/<pack_id>/accept-platform-seed` clears `user_modified` on `custom_agents` + `agent_overrides` via `mark_agent_user_modified(..., modified=False)`, then promote that pack. Equivalent: `store.mark_agent_user_modified(id, modified=False)` then restart/`POST /api/platform-packs/sync`.
+4. **Shipped-prompt baseline**: setting `platform_shipped_prompt_hashes` maps pack_id → sha256(system_prompt). On clean promote, `system_prompt` is replaced only when stored prompt still matches the baseline (or baseline is unset). Otherwise `system_prompt` is listed in `skipped_fields` and skills/tools still promote (`promoted_partial`).
+5. **Preserved operator fields**: `max_turns` and `model` are never overwritten by promotion.
+6. **Retired stock skills**: On clean promote, AppData skill dirs whose id was in the previous stock `allowed_skill` but not in the new platform seed are removed. Operator-only skill dirs (never in stock allowlist) are preserved.
+7. **Generic**: same path for every platform pack id; Tutor is the live acceptance fixture only.
+
+### Live proof (Jarvis, 2026-09-24 ET)
+
+- Backup: `C:\Users\jacob\AppData\Local\AutoReiv\backups\card-443-20260924-083057\`
+- Source: `D:\Projects\Active\AutoReiv\platform-packs\tutor`
+- Dest: `C:\Users\jacob\AppData\Local\AutoReiv\packs\tutor`
+- Pre: Tutor `user_modified=1` on custom_agents + agent_overrides; SQLite prompt_len=97 without CARD-444; max_turns=100; AppData pack.json already had a short CARD-444 note from morning manual edit.
+- `POST /api/platform-packs/sync` → tutor `skipped_user_modified` with resolution (developer also skipped).
+- `POST /api/agents/tutor/accept-platform-seed` → `promoted`; skills refreshed; SQLite prompt_len=3963 includes CARD-444 clause; max_turns still 100.
+- `GET /api/agents/tutor` skill ids: socratic-tutoring, start-resume-topic, quiz-turn, flashcard-turn, due-review, education-wiki-curation, progress-summary.
+- Non-Tutor: `direct`/`autoreiv` reported `unchanged` on the same sync call.
+
+### Tests
+
+- `tests/unit/agent_packs/test_card_443_platform_pack_appdata_sync.py` (6)
+- Regression: CARD-436 tutor seed sync, CARD-126 platform packs, OC-S1..S6 hybrid, platform pack lifecycle/MCP persistence, CARD-388 restoration.
+

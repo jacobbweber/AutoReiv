@@ -36,6 +36,17 @@ from typing import Any, Iterable, Optional, Union
 
 logger = logging.getLogger(__name__)
 
+# CARD-443: promotion lives in platform_pack_promotion; re-export for stable imports.
+from src.infrastructure.skills import platform_pack_promotion as _pack_promo  # noqa: E402
+
+PLATFORM_PACK_SYNC_REPORT_SETTING = _pack_promo.PLATFORM_PACK_SYNC_REPORT_SETTING
+PLATFORM_SHIPPED_PROMPT_SETTING = _pack_promo.PLATFORM_SHIPPED_PROMPT_SETTING
+PackSyncOutcome = _pack_promo.PackSyncOutcome
+PlatformPackSyncReport = _pack_promo.PlatformPackSyncReport
+get_last_platform_pack_sync_report = _pack_promo.get_last_platform_pack_sync_report
+promote_platform_packs = _pack_promo.promote_platform_packs
+prompt_content_hash = _pack_promo.prompt_content_hash
+
 # Initial Factory Seed Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
 # All seeded packs are simply agent packs once installed.
 DEFAULT_SEEDED_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct", "developer", "tutor")
@@ -509,9 +520,10 @@ def seed_platform_pack_folders(
     checkout_root: Optional[Union[str, Path]] = None,
     pack_ids: Optional[Iterable[str]] = None,
 ) -> list[str]:
-    """Copy platform pack folders into ``packs_path`` when dest is missing.
+    """Copy platform pack folders into ``packs_path`` when dest is missing (first install).
 
-    Never overwrites an existing dest (user copies stay). Returns ids copied.
+    Never overwrites an existing dest. Upgrades / stale repair are owned by
+    ``promote_platform_packs`` [CARD-443]. Returns ids copied.
     """
     dest_root = Path(packs_path)
     dest_root.mkdir(parents=True, exist_ok=True)
@@ -632,20 +644,21 @@ def install_platform_agent_packs(
     *,
     checkout_root: Optional[Union[str, Path]] = None,
 ) -> list[str]:
-    """Copy missing platform packs, then import any id not yet registered.
+    """Copy missing platform packs, promote stale AppData copies, import unregistered ids.
 
-    Existing custom agents are not re-imported, but platform pack prompts are synchronized.
+    CARD-443: upgrade path is ``promote_platform_packs`` (hash-gated, user_modified-safe,
+    shipped-prompt baseline for system_prompt, preserves max_turns/model). First install
+    still uses ``seed_platform_pack_folders`` for missing destinations.
     ``agent-packs/`` is never scanned.
     """
     import json
 
     from src.application.agent_packs.service import AgentPackService
+    from src.domain.kernel.models import AgentOrigin
+    from src.infrastructure.skills.reconciler import DeclarativePackReconciler
 
     root = Path(data_dir)
     packs_path = root / "packs"
-
-    # CARD-367: Run declarative desired-state pack reconciler before seeding
-    from src.infrastructure.skills.reconciler import DeclarativePackReconciler
 
     reconciler = DeclarativePackReconciler(
         data_dir=root,
@@ -655,8 +668,25 @@ def install_platform_agent_packs(
     reconciler.reconcile()
 
     cleanup_orphaned_platform_packs(packs_path, agent_registry=agent_registry)
-    seed_platform_pack_folders(packs_path, checkout_root=checkout_root)
+    seeded = seed_platform_pack_folders(packs_path, checkout_root=checkout_root)
     sync_checkout_example_user_packs(packs_path, checkout_root=checkout_root)
+
+    report = promote_platform_packs(
+        root,
+        agent_registry,
+        tool_registry,
+        checkout_root=checkout_root,
+        pack_ids=ALL_PLATFORM_PACK_IDS,
+    )
+    installed = [
+        r.pack_id
+        for r in report.results
+        if r.status in {"promoted", "promoted_partial"} and r.pack_id in seeded
+    ]
+    for r in report.results:
+        if r.status == "promoted" and r.pack_id not in installed:
+            if "Imported" in (r.reason or ""):
+                installed.append(r.pack_id)
 
     available = None
     if tool_registry is not None and hasattr(tool_registry, "list_tools"):
@@ -667,233 +697,12 @@ def install_platform_agent_packs(
         store=getattr(agent_registry, "state_store", None),
         available_tools=available,
     )
-    installed: list[str] = []
-    from src.domain.kernel.models import AgentOrigin
 
-    for pack_id in ALL_PLATFORM_PACK_IDS:
-        dest = packs_path / pack_id
-        src = platform_packs_root(checkout_root) / pack_id
-        # Factory seed is repo platform-packs/; live brain is always DATA_DIR/packs/.
-        # seed_platform_pack_folders already ran - never fall back to reading the seed as live.
-        if not (dest / "pack.json").is_file():
-            logger.warning("Platform pack %s missing under user data after seed; skip install", pack_id)
-            continue
-        existing = agent_registry.get_agent(pack_id) if agent_registry is not None else None
-        if existing is not None:
-            if getattr(existing, "origin", None) != AgentOrigin.PACK:
-                existing.origin = AgentOrigin.PACK
-                if service.store and hasattr(service.store, "save_custom_agent_profile"):
-                    service.store.save_custom_agent_profile(existing)
-            if (src / "pack.json").is_file():
-                try:
-                    with open(src / "pack.json", "r", encoding="utf-8") as pf:
-                        pack_data = json.load(pf)
-                    new_prompt = pack_data.get("system_prompt")
-                    new_allowed_skill = list(pack_data.get("allowed_skill", []))
-                    new_pack_tools = list(pack_data.get("pack_tool_names", []))
-
-                    from src.application.agent_packs.schema import tools_for_platform_skills
-
-                    platform_tools = tools_for_platform_skills(new_allowed_skill)
-                    merged_tools = list(new_pack_tools) + [t for t in platform_tools if t not in new_pack_tools]
-
-                    # CARD-381: Read live pack.json in user data to discover any operator custom tools
-                    user_pack_tools: list[str] = []
-                    if (dest / "pack.json").is_file():
-                        try:
-                            with open(dest / "pack.json", "r", encoding="utf-8") as upf:
-                                user_pack_data = json.load(upf)
-                            user_pack_tools = list(user_pack_data.get("allowed_tool_names") or [])
-                        except Exception:
-                            pass
-
-                    seed_hash = compute_platform_seed_hash(pack_data, src)
-                    seed_version = str(pack_data.get("version") or pack_data.get("seed_version") or "1")
-                    stored_hash = getattr(existing, "seed_content_hash", None)
-                    user_mod = _is_user_modified(existing, service.store)
-
-                    # ADR-0056: never overwrite operator-touched profiles; dual-read drift only.
-                    if user_mod:
-                        if stored_hash and stored_hash != seed_hash:
-                            logger.info(
-                                "Upstream seed update available for %s (user_modified=true); skipping overwrite",
-                                pack_id,
-                            )
-                        # Still drop permanently retired tools from live allowlist
-                        current_tools = list(getattr(existing, "allowed_tool_names", None) or [])
-                        filtered = [t for t in current_tools if t not in RETIRED_TOOL_NAMES]
-                        if filtered != current_tools:
-                            existing.allowed_tool_names = filtered
-                            if service.store and hasattr(service.store, "save_custom_agent_profile"):
-                                # preserve user_modified
-                                existing.user_modified = True
-                                service.store.save_custom_agent_profile(existing)
-                        # Copy missing skill bodies only (never prune extras)
-                        src_skills = src / "skills"
-                        dest_skills = dest / "skills"
-                        if src_skills.is_dir():
-                            dest_skills.mkdir(parents=True, exist_ok=True)
-                            for s in src_skills.iterdir():
-                                if s.is_dir() and not (dest_skills / s.name).exists():
-                                    shutil.copytree(s, dest_skills / s.name)
-                        if pack_id == "developer":
-                            try:
-                                refresh_user_modified_native_tool_engineering_warning(dest, src)
-                            except Exception:
-                                logger.exception("Legacy-loader warning refresh failed for user_modified developer")
-                        apply_user_modified_additive_skill_grants(
-                            pack_id=pack_id,
-                            pack_data=pack_data,
-                            store=service.store,
-                        )
-                        apply_user_modified_developer_authoring_prompt(
-                            pack_id=pack_id,
-                            store=service.store,
-                        )
-                        continue
-
-                    # Idempotent: same seed hash → no SQLite rewrite, no FS churn
-                    if stored_hash and stored_hash == seed_hash:
-                        continue
-
-                    # First Hybrid C+ boot (no stored hash): dual-read — if live already
-                    # diverges from seed, mark user_modified and do not clobber.
-                    if not stored_hash:
-                        live_prompt = getattr(existing, "system_prompt", None) or ""
-                        live_skills = list(getattr(existing, "allowed_skill", None) or [])
-                        live_tools = [
-                            t for t in (getattr(existing, "allowed_tool_names", None) or [])
-                            if t not in RETIRED_TOOL_NAMES
-                        ]
-                        seed_prompt = new_prompt or ""
-                        seed_skills = list(new_allowed_skill or [])
-                        seed_tools = [t for t in merged_tools if t not in RETIRED_TOOL_NAMES]
-                        diverged = (
-                            live_prompt != seed_prompt
-                            or live_skills != seed_skills
-                            or set(live_tools) != set(seed_tools)
-                        )
-                        if diverged:
-                            existing.user_modified = True
-                            existing.seed_content_hash = seed_hash
-                            existing.seed_version = seed_version
-                            if service.store and hasattr(service.store, "save_custom_agent_profile"):
-                                service.store.save_custom_agent_profile(existing)
-                            logger.info(
-                                "Cutover: marked %s user_modified (live diverged from seed); skipping overwrite",
-                                pack_id,
-                            )
-                            continue
-
-                    # Seed proposes tools only when not user_modified (SQLite sole writer)
-                    final_tools = list(merged_tools)
-                    for tname in user_pack_tools:
-                        if tname not in final_tools:
-                            final_tools.append(tname)
-                    final_tools = [t for t in final_tools if t not in RETIRED_TOOL_NAMES]
-
-                    changed = False
-                    if new_prompt and getattr(existing, "system_prompt", None) != new_prompt:
-                        existing.system_prompt = new_prompt
-                        changed = True
-                    if getattr(existing, "allowed_skill", None) != new_allowed_skill:
-                        existing.allowed_skill = new_allowed_skill
-                        changed = True
-                    if getattr(existing, "pack_tool_names", None) != new_pack_tools:
-                        existing.pack_tool_names = new_pack_tools
-                        changed = True
-                    if getattr(existing, "allowed_tool_names", None) != final_tools:
-                        existing.allowed_tool_names = final_tools
-                        changed = True
-                    existing.seed_content_hash = seed_hash
-                    existing.seed_version = seed_version
-                    existing.user_modified = False
-                    changed = True
-
-                    if changed and service.store and hasattr(service.store, "save_custom_agent_profile"):
-                        service.store.save_custom_agent_profile(existing)
-                        logger.info("Applied hash-gated platform seed for %s", pack_id)
-                    if (
-                        service.store
-                        and hasattr(service.store, "get_agent_override")
-                        and hasattr(service.store, "save_agent_override")
-                    ):
-                        ov = service.store.get_agent_override(pack_id)
-                        if ov is not None and not bool(getattr(ov, "user_modified", False)):
-                            ov.system_prompt = new_prompt
-                            ov.allowed_tool_names = final_tools
-                            ov.pack_tool_names = new_pack_tools
-                            ov.allowed_skill = new_allowed_skill
-                            ov.seed_content_hash = seed_hash
-                            ov.seed_version = seed_version
-                            ov.user_modified = False
-                            service.store.save_agent_override(ov)
-
-                    # Skill store: copy missing / update non-user skill dirs; NEVER prune extras
-                    # (pack.json is export projection — do not treat as boot source of truth)
-                    src_skills = src / "skills"
-                    dest_skills = dest / "skills"
-                    if src_skills.is_dir():
-                        dest_skills.mkdir(parents=True, exist_ok=True)
-                        for s in src_skills.iterdir():
-                            if s.is_dir():
-                                target = dest_skills / s.name
-                                if not target.exists():
-                                    shutil.copytree(s, target)
-                                else:
-                                    # Refresh stock skill bodies only when not user_modified (already gated)
-                                    shutil.copytree(s, target, dirs_exist_ok=True)
-                    try:
-                        refresh_live_pack_json_skill_projection(dest, pack_data)
-                    except Exception:
-                        logger.exception("Failed to refresh live pack.json projection for %s", pack_id)
-                except Exception:
-                    logger.exception("Failed to sync updated prompt for %s", pack_id)
-            continue
-        try:
-            # Heal legacy purpose: "code" before importing
-            dest_json_path = dest / "pack.json"
-            if dest_json_path.is_file():
-                try:
-                    with open(dest_json_path, "r", encoding="utf-8") as dpf:
-                        ddata = json.load(dpf)
-                    if ddata.get("purpose") == "code":
-                        ddata["purpose"] = "task_execution"
-                        ddata["origin"] = "pack"
-                        with open(dest_json_path, "w", encoding="utf-8") as dpf:
-                            json.dump(ddata, dpf, indent=2)
-                except Exception:
-                    pass
-            profile = service.import_path(dest)
-            if profile is not None:
-                if getattr(profile, "origin", None) != AgentOrigin.PACK:
-                    profile.origin = AgentOrigin.PACK
-                if (src / "pack.json").is_file():
-                    try:
-                        with open(src / "pack.json", "r", encoding="utf-8") as pf:
-                            seed_data = json.load(pf)
-                        profile.seed_content_hash = compute_platform_seed_hash(seed_data, src)
-                        profile.seed_version = str(
-                            seed_data.get("version") or seed_data.get("seed_version") or "1"
-                        )
-                        profile.user_modified = False
-                    except Exception:
-                        pass
-                if service.store and hasattr(service.store, "save_agent_profile"):
-                    service.store.save_agent_profile(profile)
-            installed.append(pack_id)
-            logger.info("Imported agent pack %s", pack_id)
-        except Exception:
-            logger.exception("Failed to import agent pack %s from %s", pack_id, dest)
-
-    # Discover and import any existing user packs in $DATA_DIR/packs/ that are not yet in the registry
     if packs_path.is_dir():
         for sub in sorted(packs_path.iterdir()):
             if not sub.is_dir() or sub.name in ALL_PLATFORM_PACK_IDS or sub.name in RETIRED_PLATFORM_PACK_IDS:
                 continue
             if (sub / "pack.json").is_file():
-                # CARD-367 Ghost Import Loop Elimination:
-                # Do not auto-import packs that represent abandoned platform seeds
                 try:
                     with open(sub / "pack.json", "r", encoding="utf-8") as pf:
                         pack_data = json.load(pf)
@@ -913,7 +722,6 @@ def install_platform_agent_packs(
                     except Exception:
                         logger.exception("Failed to import user pack %s from %s", sub.name, sub)
                 else:
-                    # CARD-269: refresh user pack Instructions from data/packs/<id>/pack.json
                     try:
                         with open(sub / "pack.json", "r", encoding="utf-8") as pf:
                             pack_data = json.load(pf)
@@ -931,8 +739,6 @@ def install_platform_agent_packs(
                                 if ov is not None:
                                     ov.system_prompt = new_prompt
                                     service.store.save_agent_override(ov)
-                            elif service.store and hasattr(service.store, "save_agent_override"):
-                                pass
                             logger.info("Synchronized user pack Instructions for %s", sub.name)
                     except Exception:
                         logger.exception("Failed to sync user pack prompt for %s", sub.name)
