@@ -346,7 +346,14 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(html).toContain('Discuss with Tutor');
     expect(educationJs).toContain('educationDiscussTutorBtn');
     expect(educationJs).toContain('discussWithTutor');
-    expect(educationJs).toContain('/api/education/tutor/context');
+    // CARD-437: discussWithTutor delegates to study_entry (durable tutor/context + course/start)
+    expect(educationJs).toContain('enterTutorEducationMode');
+    expect(educationJs).toContain("from './study_entry.js'");
+    const studyJs = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/study_entry.js'),
+      'utf-8',
+    );
+    expect(studyJs).toContain('/api/education/tutor/context');
   });
 
   it('exposes Dual Coding player with prose, diagram canvas, and complete action [CARD-321 / REQ-EDU-DUAL-002]', () => {
