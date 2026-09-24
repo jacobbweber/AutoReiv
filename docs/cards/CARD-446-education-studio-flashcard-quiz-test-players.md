@@ -1,7 +1,7 @@
 ---
 id: CARD-446
 title: "Education Studio Operator + Players (Parent Program; ADR-0059 Amendment)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: ADR-0059
 labels:
@@ -16,7 +16,7 @@ parent: CARD-435
 
 # [CARD-446] Education Studio Operator + Players (Parent Program; ADR-0059 Amendment)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Baseline**: `qa` after CARD-441 Done + ADR-0059 operator+players amendment
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) (amended: Studio = operator + players)
@@ -57,11 +57,11 @@ Do **not** write product code from this parent until Jacob says **`build`** on a
 
 | Order | Card | Intent | Status |
 | --- | --- | --- | --- |
-| Parent | **CARD-446 (this card)** | Lock Studio = operator + players; point successors; no product code | In Review |
-| 1 (next build) | [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) | Relocate Due / Progress / Wiki curate (+ topic/course selection saved in Studio) out of chat strip into Education Studio; wire Tutor awareness of Studio active topic/course (Projects Studio ↔ Developer parallel) | Ready |
-| 2 | [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md) | Flashcard / quiz / test **players** on Education Studio; durable Learning OS grades | In Review |
+| Parent | **CARD-446 (this card)** | Lock Studio = operator + players; point successors; no product code | Done |
+| 1 (next build) | [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) | Relocate Due / Progress / Wiki curate (+ topic/course selection saved in Studio) out of chat strip into Education Studio; wire Tutor awareness of Studio active topic/course (Projects Studio ↔ Developer parallel) | Done |
+| 2 | [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md) | Flashcard / quiz / test **players** on Education Studio; durable Learning OS grades | Done |
 
-Say **`build`** on **CARD-447** to start product code for this wave.
+CARD-447 and CARD-448 are **Done**; this parent program closes after both implementation slices landed.
 
 ---
 

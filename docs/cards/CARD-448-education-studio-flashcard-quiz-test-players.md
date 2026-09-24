@@ -1,7 +1,7 @@
 ---
 id: CARD-448
 title: "Education Studio Flashcard / Quiz / Test Players (Interactive Decks)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: ADR-0059
 labels:
@@ -14,7 +14,7 @@ parent: CARD-446
 
 # [CARD-448] Education Studio Flashcard / Quiz / Test Players (Interactive Decks)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Baseline**: `qa` after CARD-441 Done + ADR-0059 operator+players amendment
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)
