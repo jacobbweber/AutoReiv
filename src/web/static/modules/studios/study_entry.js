@@ -2,6 +2,7 @@
  * CARD-437: Study Entry = Tutor education mode (thin shell).
  * CARD-439: Due reviews surface in Tutor education mode (Learning OS mastery/due).
  * CARD-440: Wiki curation from links / curriculum in Tutor education mode.
+ * CARD-441: Trustable progress (course/mastery/due) on Tutor strip — not Studio-only.
  * Reuses Chat + Tutor agent + Learning OS course APIs. Does not retire Education Studio.
  */
 
@@ -14,6 +15,7 @@ export const STUDY_TUTOR_AGENT_ID = 'tutor';
 export const STUDY_LEARNING_OS_SKILL = 'start-resume-topic';
 export const STUDY_DUE_REVIEW_SKILL = 'due-review';
 export const STUDY_WIKI_CURATION_SKILL = 'education-wiki-curation';
+export const STUDY_PROGRESS_SKILL = 'progress-summary';
 export const STUDY_EDUCATION_MODE_MARKER = '[Tutor Education Mode]';
 
 /** @type {{ active: boolean, topic: string, courseId: string, skillId: string, agentId: string } | null} */
@@ -139,6 +141,7 @@ export function clearStudyEducationMode() {
   }
   renderStudyEducationModeChrome(null);
   hideStudyDueReviewsPanel();
+  hideStudyProgressPanel();
   hideStudyWikiCuratePanel();
 }
 
@@ -320,6 +323,205 @@ export async function openDueReviewsInEducationMode(opts = {}) {
 
 
 
+
+
+export function buildProgressSummaryPrompt(topic, courseId = '') {
+  const t = String(topic || '').trim() || 'current topic';
+  const courseBit = courseId ? ` course_id=${courseId}` : '';
+  return (
+    `${STUDY_EDUCATION_MODE_MARKER} skill=${STUDY_PROGRESS_SKILL}${courseBit}\n` +
+    `Summarize trustable Learning OS progress for topic "${t}" using skill "${STUDY_PROGRESS_SKILL}". ` +
+    `Call education_progress_summary (GET /api/education/progress). Cite course status/step, mastery pass/miss/due counts from the tool result. ` +
+    `If empty, say so honestly. Never invent mastery percentages. Education Studio is not required to view progress.`
+  );
+}
+
+/**
+ * Fetch trustable progress from Learning OS (course + mastery + due).
+ * [CARD-441] Non-Studio surface; Studio chrome retained separately.
+ */
+export async function fetchStudyProgress(agentId = STUDY_TUTOR_AGENT_ID, opts = {}) {
+  const aid = String(agentId || STUDY_TUTOR_AGENT_ID).trim() || STUDY_TUTOR_AGENT_ID;
+  const topic = String(opts.topicId || opts.topic || '').trim();
+  const courseId = String(opts.courseId || '').trim();
+  const qs = new URLSearchParams({ agent_id: aid });
+  if (topic) qs.set('topic_id', topic);
+  if (courseId) qs.set('course_id', courseId);
+  const res = await fetch(`/api/education/progress?${qs.toString()}`);
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const errBody = await res.json();
+      detail = errBody.detail || errBody.error || '';
+    } catch (_) {
+      /* ignore */
+    }
+    return {
+      ok: false,
+      success: false,
+      empty: true,
+      error: `progress ${res.status}${detail ? `: ${detail}` : ''}`,
+      empty_state: 'Progress unavailable.',
+      mastery: { mastery_pct: null, empty: true },
+      due: { count: 0, empty: true },
+      course: { count: 0, empty: true },
+      http_contract: 'GET /api/education/progress',
+    };
+  }
+  const body = await res.json();
+  const success = body && body.success !== false;
+  if (!success) {
+    return {
+      ok: false,
+      success: false,
+      empty: true,
+      error: (body && (body.error || body.empty_state)) || 'Progress unavailable.',
+      empty_state: (body && body.empty_state) || 'Progress unavailable.',
+      mastery: (body && body.mastery) || { mastery_pct: null, empty: true },
+      due: (body && body.due) || { count: 0, empty: true },
+      course: (body && body.course) || { count: 0, empty: true },
+      http_contract: 'GET /api/education/progress',
+      raw: body,
+    };
+  }
+  const mastery = body.mastery || {};
+  const due = body.due || {};
+  const course = body.course || {};
+  const empty = Boolean(body.empty);
+  return {
+    ok: true,
+    success: true,
+    empty,
+    empty_state: body.empty_state || (empty ? 'No course or mastery progress yet.' : ''),
+    topic: body.topic || topic || null,
+    course_id: body.course_id || courseId || null,
+    current_course: body.current_course || null,
+    chrome: body.chrome || null,
+    mastery,
+    mastery_all: body.mastery_all || null,
+    due,
+    course,
+    learner: body.learner || null,
+    studio_required: false,
+    studio_chrome_retained: true,
+    http_contract: 'GET /api/education/progress',
+    raw: body,
+  };
+}
+
+export function renderStudyProgressPanel(payload) {
+  const panel = typeof $ === 'function' ? $('chatEducationModeProgressPanel') : document.getElementById('chatEducationModeProgressPanel');
+  const bodyEl = typeof $ === 'function' ? $('chatEducationModeProgressBody') : document.getElementById('chatEducationModeProgressBody');
+  const badgeEl = typeof $ === 'function' ? $('chatEducationModeProgressBadge') : document.getElementById('chatEducationModeProgressBadge');
+  if (!panel || !bodyEl) return;
+  panel.classList.remove('hidden');
+  panel.setAttribute('aria-hidden', 'false');
+  if (!payload || payload.ok === false || payload.success === false) {
+    const err = (payload && (payload.error || payload.empty_state)) || 'Progress unavailable.';
+    bodyEl.innerHTML = `<div class="text-[11px] text-rose-300 px-1">${_escapeHtml(err)}</div>`;
+    if (badgeEl) badgeEl.textContent = '!';
+    return;
+  }
+  if (payload.empty) {
+    bodyEl.innerHTML = `<div class="text-[11px] text-slate-500 px-1">${_escapeHtml(payload.empty_state || 'No course or mastery progress yet.')}</div>`;
+    if (badgeEl) badgeEl.textContent = '0';
+    return;
+  }
+  const course = payload.current_course || {};
+  const courseMeta = payload.course || {};
+  const mastery = payload.mastery || {};
+  const due = payload.due || {};
+  const chrome = payload.chrome || {};
+  const topic = _escapeHtml(payload.topic || course.topic_id || '—');
+  const cid = _escapeHtml(payload.course_id || course.course_id || '—');
+  const status = _escapeHtml(course.status || chrome.status || 'none');
+  const step = _escapeHtml(chrome.current_step || course.current_step || '—');
+  const courseCount = Number(courseMeta.count || 0);
+  const passN = Number(mastery.pass_count || 0);
+  const missN = Number(mastery.miss_count || 0);
+  const unseenN = Number(mastery.unseen_count || 0);
+  const dueN = Number(due.count || 0);
+  const pct = mastery.mastery_pct;
+  const pctLabel =
+    pct === null || pct === undefined
+      ? 'n/a (no graded items)'
+      : `${pct}% pass of graded`;
+  if (badgeEl) {
+    badgeEl.textContent = pct === null || pct === undefined ? String(dueN) : `${Math.round(pct)}%`;
+  }
+  bodyEl.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px]">
+      <div class="rounded-md border border-emerald-900/40 bg-emerald-950/20 px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wider text-emerald-200/80 mb-0.5">Course</div>
+        <div class="text-slate-200">topic <span class="text-sky-300">${topic}</span></div>
+        <div class="font-mono text-[10px] text-brand-300 truncate" title="${cid}">${cid}</div>
+        <div class="text-slate-400">status <span class="text-slate-200">${status}</span> · step <span class="text-slate-200">${step}</span></div>
+        <div class="text-slate-500">${courseCount} course row(s)</div>
+      </div>
+      <div class="rounded-md border border-violet-900/40 bg-violet-950/20 px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wider text-violet-200/80 mb-0.5">Mastery</div>
+        <div class="text-slate-200">${pctLabel}</div>
+        <div class="text-slate-400">pass ${passN} · miss ${missN} · unseen ${unseenN}</div>
+        <div class="text-slate-500">${Number(mastery.item_count || 0)} ledger item(s)</div>
+      </div>
+      <div class="rounded-md border border-amber-900/40 bg-amber-950/20 px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wider text-amber-200/80 mb-0.5">Due</div>
+        <div class="text-slate-200 font-mono">${dueN}</div>
+        <div class="text-slate-500">${due.empty ? _escapeHtml(due.empty_state || 'No due reviews.') : 'from mastery/due'}</div>
+      </div>
+    </div>`;
+}
+
+export function hideStudyProgressPanel() {
+  const panel = document.getElementById('chatEducationModeProgressPanel');
+  if (!panel) return;
+  panel.classList.add('hidden');
+  panel.setAttribute('aria-hidden', 'true');
+}
+
+/**
+ * Open trustable progress inside Tutor education mode (skill=progress-summary).
+ * Does not open Education Studio (#view-education).
+ */
+export async function openProgressInEducationMode(opts = {}) {
+  const toast = typeof opts.toast === 'function' ? opts.toast : () => {};
+  let binding = getStudyEducationModeBinding();
+  if (!binding || !binding.topic) {
+    toast('Enter Study / Tutor education mode first (sidebar Study), then open Progress.', 'error');
+    return { ok: false, error: 'EDUCATION_MODE_REQUIRED' };
+  }
+  const progress = await fetchStudyProgress(binding.agentId || STUDY_TUTOR_AGENT_ID, {
+    topicId: binding.topic,
+    courseId: binding.courseId,
+  });
+  if (!progress.ok) {
+    toast(`Progress failed: ${progress.error || 'unavailable'}`, 'error');
+    renderStudyProgressPanel(progress);
+    return { ok: false, error: 'PROGRESS_FETCH_FAILED', progress };
+  }
+  binding = {
+    ...binding,
+    skillId: STUDY_PROGRESS_SKILL,
+  };
+  _persistBinding(binding);
+  renderStudyEducationModeChrome(binding);
+  const chatInput = $('chatInput');
+  if (chatInput && !opts.skipPrompt) {
+    chatInput.value = buildProgressSummaryPrompt(binding.topic, binding.courseId);
+  }
+  renderStudyProgressPanel(progress);
+  if (progress.empty) {
+    toast(progress.empty_state || 'No course or mastery progress yet.', 'info');
+  } else {
+    const pct = progress.mastery && progress.mastery.mastery_pct;
+    const dueN = (progress.due && progress.due.count) || 0;
+    toast(
+      `Progress: ${pct === null || pct === undefined ? 'no graded mastery' : pct + '% graded pass'} · due ${dueN}`,
+      'info',
+    );
+  }
+  return { ok: true, binding, progress };
+}
 
 export function buildWikiCurationPrompt(topic, courseId = '', mode = 'link') {
   const t = String(topic || '').trim() || 'Active Study Topic';
@@ -650,6 +852,27 @@ export function initStudyEntry(callbacks = {}) {
   }
 
 
+  const progressBtn = $('chatEducationModeProgressBtn');
+  if (progressBtn) {
+    progressBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await openProgressInEducationMode({ toast: showToast });
+    });
+  }
+  const progressRefreshBtn = $('chatEducationModeProgressRefreshBtn');
+  if (progressRefreshBtn) {
+    progressRefreshBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await openProgressInEducationMode({ toast: showToast, skipPrompt: true });
+    });
+  }
+  const progressHideBtn = $('chatEducationModeProgressHideBtn');
+  if (progressHideBtn) {
+    progressHideBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      hideStudyProgressPanel();
+    });
+  }
   const dueBtn = $('chatEducationModeDueBtn');
   if (dueBtn) {
     dueBtn.addEventListener('click', async (e) => {
@@ -758,6 +981,7 @@ export function initStudyEntry(callbacks = {}) {
         getChatCtrl: opts.getChatCtrl || callbacks.getChatCtrl,
       }),
     openDueReviewsInEducationMode,
+    openProgressInEducationMode,
     openWikiCurationInEducationMode,
     runStudyWikiCuration,
     clearStudyEducationMode,

@@ -1,9 +1,10 @@
-"""Education Learning OS agent tools for Tutor quiz / flashcard / due-review / wiki curation.
+"""Education Learning OS agent tools for Tutor quiz / flashcard / due-review / wiki / progress.
 
 CARD-438: quiz/flashcard tools wrap ``quiz_engine`` + mastery ledger ops (same
 durable path as ``POST /api/education/quiz/grade``, mastery due/upsert).
 CARD-439: due-review list/complete + retention run for Tutor education mode.
 CARD-440: wiki curation from links / curriculum into durable Wiki notes.
+CARD-441: progress-summary tools for trustable non-Studio course/mastery/due.
 No bubble-theatre grades or fake durable success.
 """
 
@@ -650,6 +651,142 @@ class EducationTools:
         return _json_safe(result)
 
 
+    def education_progress_summary(
+        self,
+        agent_id: Optional[str] = None,
+        topic_id: Optional[str] = None,
+        course_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Trustable course + mastery + due summary for Learning OS skill progress-summary.
+
+        Twin of ``GET /api/education/progress``. On failure returns success=false with
+        mastery_pct=None — never invent percentages. Studio chrome is not required.
+        """
+        from src.application.education.progress_summary import build_progress_summary
+
+        agent = self._resolve_agent_id(agent_id)
+        try:
+            repo = self._resolve_repo(agent)
+            out = build_progress_summary(
+                repo,
+                agent_id=agent,
+                topic_id=(topic_id or "").strip(),
+                course_id=(course_id or "").strip(),
+            )
+        except Exception as exc:  # noqa: BLE001
+            return _json_safe(
+                {
+                    "success": False,
+                    "error": f"progress summary failed: {exc}",
+                    "durable": False,
+                    "agent_id": agent,
+                    "skill_hint": "progress-summary",
+                    "http_contract": "GET /api/education/progress",
+                    "mastery": {"mastery_pct": None, "empty": True},
+                    "empty": True,
+                    "empty_state": "Progress unavailable.",
+                    "studio_required": False,
+                }
+            )
+        if not isinstance(out, dict):
+            return _json_safe(
+                {
+                    "success": False,
+                    "error": "progress summary returned non-dict",
+                    "durable": False,
+                    "skill_hint": "progress-summary",
+                    "http_contract": "GET /api/education/progress",
+                    "mastery": {"mastery_pct": None, "empty": True},
+                    "studio_required": False,
+                }
+            )
+        result = dict(out)
+        result.setdefault("skill_hint", "progress-summary")
+        result.setdefault("http_contract", "GET /api/education/progress")
+        result["studio_required"] = False
+        result["studio_chrome_retained"] = True
+        return _json_safe(result)
+
+    def education_progress_courses(
+        self,
+        agent_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> Dict[str, Any]:
+        """List durable education courses for progress-summary (Learning OS course table)."""
+        from src.application.education.progress_summary import summarize_courses
+
+        agent = self._resolve_agent_id(agent_id)
+        try:
+            repo = self._resolve_repo(agent)
+            lim = max(1, min(int(limit or 50), 200))
+            rows = []
+            if hasattr(repo, "list_education_courses"):
+                rows = list(repo.list_education_courses(limit=lim) or [])
+            summary = summarize_courses(rows)
+        except Exception as exc:  # noqa: BLE001
+            return _json_safe(
+                {
+                    "success": False,
+                    "error": f"course list failed: {exc}",
+                    "durable": False,
+                    "agent_id": agent,
+                    "skill_hint": "progress-summary",
+                    "http_contract": "GET /api/education/course",
+                }
+            )
+        return _json_safe(
+            {
+                "success": True,
+                "agent_id": agent,
+                "skill_hint": "progress-summary",
+                "http_contract": "GET /api/education/course",
+                **summary,
+            }
+        )
+
+    def education_progress_mastery(
+        self,
+        agent_id: Optional[str] = None,
+        topic: Optional[str] = None,
+        limit: int = 200,
+    ) -> Dict[str, Any]:
+        """Mastery counts from education_mastery for progress-summary (no fake %)."""
+        from src.application.education.progress_summary import summarize_mastery_rows
+
+        agent = self._resolve_agent_id(agent_id)
+        try:
+            repo = self._resolve_repo(agent)
+            lim = max(1, min(int(limit or 200), 500))
+            rows = list(repo.list_education_mastery(limit=lim) or [])
+            topic_s = (topic or "").strip()
+            if topic_s:
+                rows = [r for r in rows if str(r.get("topic") or "") == topic_s]
+            summary = summarize_mastery_rows(rows)
+        except Exception as exc:  # noqa: BLE001
+            return _json_safe(
+                {
+                    "success": False,
+                    "error": f"mastery summary failed: {exc}",
+                    "durable": False,
+                    "agent_id": agent,
+                    "skill_hint": "progress-summary",
+                    "http_contract": "GET /api/education/mastery",
+                    "mastery_pct": None,
+                    "empty": True,
+                }
+            )
+        return _json_safe(
+            {
+                "success": True,
+                "agent_id": agent,
+                "topic": (topic or "").strip() or None,
+                "skill_hint": "progress-summary",
+                "http_contract": "GET /api/education/mastery",
+                **summary,
+            }
+        )
+
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register Education Learning OS tools on the master ScopedToolRegistry."""
         registry.register_tool(
@@ -963,3 +1100,56 @@ class EducationTools:
             },
             handler=self.education_wiki_curate_from_curriculum,
         )
+        registry.register_tool(
+            name="education_progress_summary",
+            description=(
+                "Trustable Learning OS progress for skill progress-summary: active/list "
+                "courses, mastery counts (pass/miss/unseen), due count, optional learner. "
+                "GET /api/education/progress. On failure success=false and mastery_pct=None "
+                "- never invent percentages. Does not require Education Studio panels."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "topic_id": {"type": "string", "description": "Optional topic to scope course/mastery."},
+                    "course_id": {"type": "string", "description": "Optional durable course id."},
+                    "agent_id": {"type": "string"},
+                },
+                "required": [],
+            },
+            handler=self.education_progress_summary,
+        )
+        registry.register_tool(
+            name="education_progress_courses",
+            description=(
+                "List durable education_course rows for progress-summary "
+                "(Learning OS course table / GET /api/education/course)."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Max courses (default 50)."},
+                    "agent_id": {"type": "string"},
+                },
+                "required": [],
+            },
+            handler=self.education_progress_courses,
+        )
+        registry.register_tool(
+            name="education_progress_mastery",
+            description=(
+                "Mastery pass/miss/unseen counts from education_mastery for progress-summary "
+                "(GET /api/education/mastery). Empty ledger => empty=true, mastery_pct=None."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "topic": {"type": "string", "description": "Optional topic filter."},
+                    "limit": {"type": "integer"},
+                    "agent_id": {"type": "string"},
+                },
+                "required": [],
+            },
+            handler=self.education_progress_mastery,
+        )
+

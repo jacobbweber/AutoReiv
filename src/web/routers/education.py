@@ -184,6 +184,29 @@ async def list_due(request: Request, agent_id: str = "autoreiv"):
     return {"agent_id": agent_id, "items": rows, "count": len(rows)}
 
 
+@router.get("/api/education/progress")
+async def progress_summary(
+    request: Request,
+    agent_id: str = "tutor",
+    topic_id: Optional[str] = None,
+    course_id: Optional[str] = None,
+):
+    """Non-Studio trustable progress: course + mastery + due from Learning OS [CARD-441].
+
+    Failures return success=false with empty mastery_pct=None - never fabricate 100%.
+    Education Studio course chrome stays (studio_chrome_retained).
+    """
+    from src.application.education.progress_summary import build_progress_summary
+
+    repo = _memory_repo(request, agent_id)
+    return build_progress_summary(
+        repo,
+        agent_id=agent_id,
+        topic_id=(topic_id or "").strip(),
+        course_id=(course_id or "").strip(),
+    )
+
+
 @router.post("/api/education/mastery/upsert")
 async def upsert_item(request: Request, payload: UpsertItemPayload):
     from src.application.education.quiz_engine import extract_quiz_items_from_note
