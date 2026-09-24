@@ -1,7 +1,7 @@
 ---
 id: CARD-437
 title: "Study Entry = Tutor Education Mode (Thin Shell; Keep Studio Alive)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-437] Study Entry = Tutor Education Mode (Thin Shell; Keep Studio Alive)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
@@ -161,6 +161,12 @@ Jacob live-tested Study → topic `okta` → education strip OK (`course_f4f1059
 - Regression: `tests/unit/kernel/test_json_safe_datetime.py`
 
 **Retry**: Study → topic → send a Tutor message (education-mode prompt or follow-up). Expect no datetime JSON error in the Tutor bubble.
+
+### Live proof result / merge note
+
+- **2026-09-23 (ET)**: Live proof passed — Study entry opened Tutor education mode and Tutor talk worked after the datetime JSON fix (`eca5022b`).
+- **Status**: Done.
+- **Merge**: approved with **`merge to qa`**; next Ready card is **CARD-438**.
 
 ### After live proof
 
