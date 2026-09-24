@@ -1,7 +1,7 @@
 ---
 id: CARD-441
 title: "Progress You Can Trust (Non-Studio Surface: Tutor Cards and/or Wiki Views)"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-441] Progress You Can Trust (Non-Studio Surface: Tutor Cards and/or Wiki Views)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
