@@ -1,7 +1,7 @@
 ---
 id: CARD-438
 title: "Chat Quiz / Flashcard Turns + Durable Grading (Learning OS Ledger)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-438] Chat Quiz / Flashcard Turns + Durable Grading (Learning OS Ledger)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
@@ -68,7 +68,7 @@ Do **not** write product code until Jacob says **build** on this card.
 3. Failure modes: grade API failure surfaces to operator; do not show fake success.
 4. Keep Education Studio quiz panels working (reference); do not remove them here.
 
-**Out of scope:** Due-review queue UX ([CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md)); wiki curation ([CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md)); non-Studio progress dashboard ([CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md)); Studio retirement ([CARD-442](./CARD-442-retire-education-studio-landing.md)).
+**Out of scope:** Due-review queue UX ([CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md)); wiki curation ([CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md)); non-Studio progress dashboard ([CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md)); Studio players ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); [CARD-442](./CARD-442-retire-education-studio-landing.md) Superseded.
 
 ### Beat 4: What dies today
 
@@ -134,7 +134,7 @@ Agent-callable tools in `src/application/skills/education_tools.py` call applica
 - `platform-packs/tutor/pack.json` + `skills/quiz-turn/SKILL.md` + `skills/flashcard-turn/SKILL.md`
 - Inventory agent-tools columns updated (`docs/education/tutor-learning-os-inventory.md`)
 - Tests: `tests/unit/education/test_card438_chat_quiz_flashcard_durable_grading.py`
-- Out of scope held: CARD-439 due reviews UX, 440 wiki curation, 441 progress surface, 442 Studio retire, Lumina
+- Out of scope held: CARD-439 due reviews UX, 440 wiki curation, 441 progress surface, Lumina. Education Studio kept (not retired); player surface queued as CARD-446.
 
 ### Live-test checklist (Jacob / Jarvis)
 
@@ -147,6 +147,14 @@ Agent-callable tools in `src/application/skills/education_tools.py` call applica
 7. Force failure: grade unknown `item_id` or empty expected (via tool / API) — Tutor must **not** claim durable success.
 8. Open **Education** tab — Studio quiz panel still works (`#educationQuizPanel`).
 9. Automated: `pytest tests/unit/education/test_card438_chat_quiz_flashcard_durable_grading.py -q`
+
+
+### Live proof result / merge note
+
+- **2026-09-23 (ET)**: Live proof accepted; **merge to qa** completed (d1c4732f merge tip before Done docs).
+- **Status**: Done.
+- Education Studio **stays** (Jacob product lock 2026-09-23): repurposed later as flashcard/quiz/test **player** ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); retirement card [CARD-442](./CARD-442-retire-education-studio-landing.md) superseded.
+- Next Ready in Tutor Learning OS order: **CARD-439** (due reviews), then 440, 441; efficiency cards 444/445 remain Ready; player card **CARD-446** builds **last**.
 
 ### After live proof
 
