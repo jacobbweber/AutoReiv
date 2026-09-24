@@ -19,6 +19,7 @@ import { initFactoryStudio } from './modules/studios/factory.js';
 import { initSkillStudio } from './modules/studios/skill_studio.js';
 import { initToolsStudio } from './modules/studios/tools_studio.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
+import { initStudyEntry } from './modules/studios/study_entry.js';
 import { initThemeEngine } from './modules/ui/theme-engine.js';
 import { studioRegistry } from './modules/studios/registry.js';
 import { eventBus, EVENTS } from './modules/events/event-bus.js';
@@ -500,6 +501,16 @@ export function initApp() {
     });
   } catch (err) {
     console.error('[AutoReiv UI] Failed to initialize Agent Desktop demo:', err);
+  }
+
+  try {
+    initStudyEntry({
+      switchTab,
+      getChatCtrl: () => chatCtrl,
+      state,
+    });
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to initialize Study entry (CARD-437):', err);
   }
 
   // Initial tab setup

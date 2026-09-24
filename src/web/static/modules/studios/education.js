@@ -14,6 +14,7 @@ import { showToast } from '../ui/toast.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { buildChatStreamPayload, isJobPhaseChromeEvent } from './chat.js';
 import { openObserveJob } from './observability.js';
+import { enterTutorEducationMode } from './study_entry.js';
 
 export const EDUCATION_SESSIONS_KEY = 'autoreiv.education.sessions.v1';
 export const EDUCATION_ASK_MARKER = '[Education Studio]';
@@ -1573,33 +1574,19 @@ flowchart TD
   const discussTutorBtn = $('educationDiscussTutorBtn');
 
   async function discussWithTutor() {
-    const topic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+    // CARD-437: reuse Study entry thin shell (Tutor education mode + durable course bind)
+    const topic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || '';
     try {
-      await fetch('/api/education/tutor/context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: 'assistant', topic }),
+      await enterTutorEducationMode({
+        topic: topic || undefined,
+        switchTab: callbacks.switchTab,
+        getChatCtrl: callbacks.getChatCtrl,
+        toast,
+        skipPrompt: !!topic,
       });
-      if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
-      const chatCtrl = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
-      if (chatCtrl && typeof chatCtrl.switchSelectedAgent === 'function') {
-        await chatCtrl.switchSelectedAgent('tutor');
-      } else {
-        const agentSelect = $('agentSelect');
-        if (agentSelect) {
-          agentSelect.value = 'tutor';
-          agentSelect.dispatchEvent(new Event('change'));
-        }
-      }
-      const chatInput = $('chatInput');
-      if (chatInput) {
-        chatInput.value = `[Education Tutor: ${topic}] Please guide me through a Socratic tutoring session on "${topic}". Test my conceptual understanding with probing questions and active recall.`;
-        chatInput.focus();
-      }
-      toast(`Switched to Socratic Tutor for "${topic}"`, 'info');
     } catch (err) {
       console.error('[Education Studio] discussWithTutor error:', err);
-      toast('Failed to launch Tutor session', 'error');
+      toast('Failed to launch Tutor education mode', 'error');
     }
   }
 
