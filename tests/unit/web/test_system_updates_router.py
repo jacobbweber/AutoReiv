@@ -13,7 +13,6 @@ from src.domain.gateway.models import ChatMessage, CompletionResponse, Role, Str
 from src.domain.system.models import (
     UpdateApplyResult,
     UpdateCheckResult,
-    UpdateConfig,
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
