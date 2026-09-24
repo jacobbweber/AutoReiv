@@ -42,7 +42,7 @@ Do **not** write product code until Jacob says **build** on this card.
 |----------|-------|
 | **Depends on** | [CARD-437](./CARD-437-study-entry-tutor-education-mode-thin-shell.md); [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md) for durable grade path on review answers |
 | **Blocked by** | No education-mode entry; no durable grade write |
-| **Unlocks** | [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) due summary; retirement proof on [CARD-442](./CARD-442-retire-education-studio-landing.md) |
+| **Unlocks** | [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) due summary; feeds Studio players on [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md) ([CARD-442](./CARD-442-retire-education-studio-landing.md) Superseded) |
 
 ---
 
@@ -64,9 +64,9 @@ Do **not** write product code until Jacob says **build** on this card.
 1. In Tutor education mode / Study, operator can **list due reviews** and **run/complete** them via named Learning OS review skill(s) from CARD-436.
 2. Completion writes durable grade/SRS updates (reuse CARD-438 write path + retention/mastery APIs as inventory directs).
 3. Empty due queue is an honest empty state, not fake items.
-4. Education Studio due/quiz panels remain until CARD-442.
+4. Education Studio due/quiz panels remain; player repurpose is CARD-446 (Studio not retired).
 
-**Out of scope:** Wiki curation ([CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md)); full progress dashboard ([CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md)); Studio retirement ([CARD-442](./CARD-442-retire-education-studio-landing.md)); changing delivery-profile semantics that replace SRS (forbidden).
+**Out of scope:** Wiki curation ([CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md)); full progress dashboard ([CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md)); Studio players ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); changing delivery-profile semantics that replace SRS (forbidden).
 
 ### Beat 4: What dies today
 

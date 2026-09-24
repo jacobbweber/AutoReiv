@@ -1,9 +1,9 @@
 ---
 id: CARD-435
-title: "Education Tutor-First Direction: Learning OS Rails, Wiki Library, Retire Education Studio Landing"
+title: "Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Player"
 status: Ready
 created: 2026-09-23
-adr: none
+adr: ADR-0059
 labels:
   - type:architecture
   - type:planning
@@ -14,12 +14,12 @@ labels:
   - P0
 ---
 
-# [CARD-435] Education Tutor-First Direction: Learning OS Rails, Wiki Library, Retire Education Studio Landing
+# [CARD-435] Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Player
 
 > **Status**: Ready
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `752c8f6f` (v0.42.0)
-> **ADR Reference**: none (draft only if successor builds change lasting platform contracts)
+> **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) (amends Studio retirement fork)
 > **Labels**: `type:architecture`, `type:planning`, `area:ux`, `area:education`, `domain:education`, `area:tutor`, `P0`
 > **Supersedes**: [CARD-434](./CARD-434-education-studio-monolith-decomposition.md) (Education Studio monolith decomposition — wrong first build because the page is being retired)
 
@@ -81,15 +81,15 @@ These decisions are **locked** on this planning card. Successor build cards must
 
 ### Beat 3: What will change
 
-1. **Product entry**: Study / education mode lands on Tutor (education mode) or a thin Study entry = Tutor + course context. Education Studio as dashboard / bottom-nav destination is retired (hide/remove nav + landing; do not polish panels).
+1. **Product entry**: Study / education mode lands on Tutor (education mode) or a thin Study entry = Tutor + course context. Education Studio is **not** the coaching destination; per ADR-0059 it **stays** and is repurposed as the flashcard/quiz/test **player** ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)) — do not hide/remove the Education tab.
 2. **Learning OS as Tutor OS**: Tutor turns invoke named Learning OS skills/templates (start/resume topic, quiz, flashcards, due reviews, wiki curation) with durable state — not freeform chat vibes.
 3. **Durable grading and progress**: Quiz/flashcard turns in chat write durable grades and progress the operator can trust (ledger / Learning OS stores — no ephemeral-only theatre).
 4. **Due reviews**: Surface and run due SRS/review work from Tutor education mode.
 5. **Wiki curation**: From links/curriculum, Tutor/Learning OS paths curate into the Wiki library (exact paths and APIs locked in successor cards).
 6. **Hard rails**: Reject or hard-gate “open chat study” that bypasses Learning OS skill/template contracts.
-7. **Successor cards**: CARD-436..442 are scaffolded Ready in build order below. This planning card still does **not** contain implementation code. Say **build** on each successor individually. Education Studio retirement ([CARD-442](./CARD-442-retire-education-studio-landing.md)) stays last.
+7. **Successor cards**: CARD-436..441 (Tutor Learning OS) plus CARD-446 (Studio players, last) are the wave. CARD-442 retirement is **Superseded**. This planning card still does **not** contain implementation code. Say **build** on each successor individually. Studio **player** card ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)) stays last.
 
-Scaffolded successor implementation cards (**build order**; earlier = build first; Studio retirement is **last** so earlier cards capture the education program and Tutor skills while Education Studio still exists as reference):
+Scaffolded successor implementation cards (**build order**; earlier = build first; Studio **player** card is **last** so earlier cards capture Tutor Learning OS while Studio remains for later player work):
 
 | Order | Card | Intent |
 | --- | --- | --- |
@@ -99,9 +99,9 @@ Scaffolded successor implementation cards (**build order**; earlier = build firs
 | 4 | [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md) | Due SRS/reviews surfaced and completed from Tutor education mode / Study. |
 | 5 | [CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md) | Wiki curation from links/curriculum via Tutor/Learning OS; education templates catalogued; raw sources need not all wear education tags. |
 | 6 | [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) | Progress you can trust on non-Studio surfaces (Tutor cards and/or Wiki views). |
-| 7 (LAST) | [CARD-442](./CARD-442-retire-education-studio-landing.md) | Retire Education Studio landing/bottom-nav panel farm only after 436..441 Done or In Review with proof. Redirect remaining entry to Tutor education mode / Study. **Not** a monolith split of `education.js`. |
+| 7 (LAST) | [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md) | **Build Education Studio as flashcard + quiz + test players** (interactive decks). Depends on 438 Done and 439/440/441 Done or In Review with proof. **Not** retirement ([CARD-442](./CARD-442-retire-education-studio-landing.md) Superseded). **Not** a monolith split of ducation.js. |
 
-**Studio retirement is last.** Do not start CARD-442 before CARD-436..441 prove Tutor+Wiki cover the program.
+**Studio player card is last.** Do not start CARD-446 before CARD-438 is Done and CARD-439..441 prove Tutor Learning OS coverage. Do **not** implement CARD-442 retirement.
 
 
 ### Beat 4: What dies
@@ -119,7 +119,7 @@ Scaffolded successor implementation cards (**build order**; earlier = build firs
 | # | Fork | Locked decision |
 |---|------|-----------------|
 | 1 | Study entry | **Tutor in education mode** (or thin Study = Tutor + course context). Not the Education Studio panel farm. |
-| 2 | Education Studio landing / bottom-nav | **Retires**. Do not polish. Do not monolith-split first. |
+| 2 | Education Studio landing / bottom-nav | **Stays** (ADR-0059). Repurposed as flashcard/quiz/test **player** ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)). Not the Study/coaching destination. Do not monolith-split as first build (CARD-434 still Superseded). |
 | 3 | Learning OS role | **Tutor’s operating system** — named skills/templates. |
 | 4 | Wiki role | **Library / curated corpus**. |
 | 5 | Lumina Studio | **Stays**; separate video effort later. |
@@ -165,22 +165,43 @@ Planning may continue (`continue`); **no product code** until Jacob says **build
 | Card | Role |
 |------|------|
 | [CARD-434](./CARD-434-education-studio-monolith-decomposition.md) | **Superseded**. Was Ready to split `src/web/static/modules/studios/education.js` into `src/web/static/modules/studios/education/*`. Wrong first build because Education Studio landing is retiring. |
-| **CARD-435 (this card)** | Planning parent for Tutor-first Study entry, Learning OS rails, Wiki library, Education Studio retirement. |
+| **CARD-435 (this card)** | Planning parent for Tutor-first Study entry, Learning OS rails, Wiki library, Education Studio **player** repurpose (ADR-0059). |
 
 Do not delete CARD-434. Do not implement it.
 
 ---
 
+
+
+---
+
+## Amendment (2026-09-23) — Education Studio stays (player lock)
+
+Jacob product lock: **We will NOT remove Education Studio. We will repurpose it to a flash card, quiz, and test player.**
+
+Recorded in [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md).
+
+| Was (pre-lock) | Now |
+|----------------|-----|
+| Fork: Education Studio landing / bottom-nav **retires** | Studio **stays**; role = flashcard / quiz / test **player** |
+| Successor LAST: [CARD-442](./CARD-442-retire-education-studio-landing.md) retire landing | CARD-442 **Superseded**; LAST = [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md) players |
+| Beat 4 / dies: Studio as destination | Softened: Studio is no longer the Study/coaching destination (Tutor is), but it remains as the dedicated **player** surface — not deleted |
+
+Tutor-first Learning OS skills, Study entry, durable grading, due reviews, wiki curation, and progress cards (**436..441**, plus **444/445**) remain valid. Do **not** implement CARD-442 retirement.
+
 ## Successor cards (build order)
 
-Studio retirement is **last**. Earlier cards capture program/skills while Education Studio remains as reference.
+Studio **player** card is **last** ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)). Earlier cards capture Tutor Learning OS while Studio remains (later as player). [CARD-442](./CARD-442-retire-education-studio-landing.md) is **Superseded**.
 
-1. [CARD-436](./CARD-436-inventory-tutor-learning-os-rails.md) — Inventory + Tutor Learning OS rails
-2. [CARD-437](./CARD-437-study-entry-tutor-education-mode-thin-shell.md) — Study entry = Tutor education mode (keep Studio alive)
-3. [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md) — Chat quiz/flashcard + durable grading
-4. [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md) — Due reviews in Tutor education mode
-5. [CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md) — Wiki curation from links/curriculum
-6. [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) — Progress you can trust (non-Studio)
-7. [CARD-442](./CARD-442-retire-education-studio-landing.md) — **LAST:** Retire Education Studio landing (depends on 436..441 Done or In Review with proof)
+1. [CARD-436](./CARD-436-inventory-tutor-learning-os-rails.md) - Inventory + Tutor Learning OS rails (**Done**)
+2. [CARD-437](./CARD-437-study-entry-tutor-education-mode-thin-shell.md) - Study entry = Tutor education mode (**Done**)
+3. [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md) - Chat quiz/flashcard + durable grading (**Done**)
+4. [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md) - Due reviews in Tutor education mode
+5. [CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md) - Wiki curation from links/curriculum
+6. [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) - Progress you can trust (Tutor/Wiki surfaces; Studio player is separate)
+7. [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md) - **LAST:** Education Studio flashcard / quiz / test **players** (depends on 438 Done + 439..441 Done or In Review with proof)
 
-This planning parent stays **Ready** while guiding the wave. Say **build** on each successor card individually — not a mega-build from this parent alone. No product code until Jacob says **build** on that card.
+Related Ready (not in the 1..7 spine): [CARD-443](./CARD-443-platform-tutor-pack-appdata-sync.md), [CARD-444](./CARD-444-flashcard-turn-skill-efficiency.md), [CARD-445](./CARD-445-tutor-education-mode-default-turn-budget.md).
+
+This planning parent stays **Ready** while guiding the wave. Say **build** on each successor card individually - not a mega-build from this parent alone. No product code until Jacob says **build** on that card.
+

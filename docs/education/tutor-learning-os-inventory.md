@@ -1,7 +1,7 @@
 # Tutor Learning OS Inventory (CARD-436)
 
 > Living inventory for the Education Tutor-first wave ([CARD-435](../cards/CARD-435-education-tutor-first-direction.md)).
-> Education Studio stays alive on this card; retirement is [CARD-442](../cards/CARD-442-retire-education-studio-landing.md).
+> Education Studio stays ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)); retirement [CARD-442](../cards/CARD-442-retire-education-studio-landing.md) is **Superseded**. Player work is [CARD-446](../cards/CARD-446-education-studio-flashcard-quiz-test-players.md) (build last).
 
 ## Hard rails (product policy)
 
@@ -99,7 +99,7 @@ Autoreiv pack still mirrors `socratic-tutoring` for historical parity; Tutor is 
 | Chat UX hard-gate for open vibes | Study entry (`study_entry.js`) refuses blank topic / missing Tutor; education-mode strip + `start-resume-topic` rails | CARD-437 (Done) |
 | Links / curriculum ingest API | Wiki tools + templates only | CARD-440 |
 | Non-Studio progress surface | APIs exist; UI still Studio chrome | CARD-441 |
-| Education Studio retirement | Explicitly out of this card | CARD-442 |
+| Education Studio players (not retirement) | Explicitly out of this card; Studio kept per ADR-0059 | CARD-446 (CARD-442 Superseded) |
 | `user_modified` Tutor allowlist | Seed sync updates non-`user_modified`; modified packs may need operator tick | live-proof note |
 
 ---

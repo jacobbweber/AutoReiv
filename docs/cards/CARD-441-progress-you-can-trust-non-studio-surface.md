@@ -20,7 +20,7 @@ parent: CARD-435
 > **ADR Reference**: none
 > **Labels**: `type:feature`, `area:education`, `area:tutor`, `P0`
 > **Parent**: [CARD-435](./CARD-435-education-tutor-first-direction.md)
-> **Build order**: **6 of 7** (last capability before Studio retirement).
+> **Build order**: **6 of 7** (last Tutor/Wiki progress capability before Studio **player** card CARD-446).
 
 ---
 
@@ -42,7 +42,7 @@ Do **not** write product code until Jacob says **build** on this card.
 |----------|-------|
 | **Depends on** | [CARD-437](./CARD-437-study-entry-tutor-education-mode-thin-shell.md); [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md); [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md); [CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md) preferred so library and grades feed progress |
 | **Blocked by** | Progress that only exists inside `#educationCourseChrome` / Education Studio panels |
-| **Unlocks** | [CARD-442](./CARD-442-retire-education-studio-landing.md) — retirement must not orphan progress UX |
+| **Unlocks** | [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md) can assume progress exists outside Studio panels; [CARD-442](./CARD-442-retire-education-studio-landing.md) Superseded |
 
 ---
 
@@ -64,9 +64,9 @@ Do **not** write product code until Jacob says **build** on this card.
 1. Add operator-visible progress on **non-Studio** surface(s): Tutor education-mode cards and/or Wiki views (exact mix locked at **continue**/**build**).
 2. Surface at least: course list or active course, mastery summary, due summary — all read from Learning OS APIs above (or inventory-locked successors).
 3. After a CARD-438 grade or CARD-439 review, this surface updates after refresh without opening Education Studio.
-4. Keep Studio chrome until CARD-442; do not make Studio the only progress UI.
+4. Keep Studio chrome (Studio stays as player per ADR-0059); do not make Studio the only progress UI.
 
-**Out of scope:** Retiring Education Studio ([CARD-442](./CARD-442-retire-education-studio-landing.md)); fake animated progress unrelated to ledger; Lumina.
+**Out of scope:** Studio player rebuild ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); fake animated progress unrelated to ledger; Lumina.
 
 ### Beat 4: What dies today
 
@@ -80,7 +80,7 @@ Do **not** write product code until Jacob says **build** on this card.
 - **[REQ-441-001]** WHEN the operator views education progress from Tutor cards and/or Wiki views (documented path), THE SYSTEM SHALL show course and mastery/due summary sourced from Learning OS APIs without requiring `#view-education`.
 - **[REQ-441-002]** WHEN a durable grade or due completion lands (CARD-438/439), THEN after refresh THE non-Studio progress surface SHALL reflect the change.
 - **[REQ-441-003]** WHEN APIs fail, THE SYSTEM SHALL show failure/empty honestly — no fabricated mastery percentages.
-- **[REQ-441-004]** THE SYSTEM SHALL NOT remove Education Studio progress chrome on this card (removal is CARD-442).
+- **[REQ-441-004]** THE SYSTEM SHALL NOT remove Education Studio progress chrome on this card (Studio stays; player work is CARD-446).
 
 ---
 

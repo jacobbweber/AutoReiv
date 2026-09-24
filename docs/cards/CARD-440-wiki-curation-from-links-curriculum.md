@@ -42,7 +42,7 @@ Do **not** write product code until Jacob says **build** on this card.
 |----------|-------|
 | **Depends on** | [CARD-436](./CARD-436-inventory-tutor-learning-os-rails.md) (template catalog + curation skill id); [CARD-437](./CARD-437-study-entry-tutor-education-mode-thin-shell.md) preferred for operator entry |
 | **Blocked by** | Missing inventory of education Wiki templates / curation skill |
-| **Unlocks** | Stronger library for quiz/reviews; retirement proof that Wiki covers corpus chrome ([CARD-442](./CARD-442-retire-education-studio-landing.md)) |
+| **Unlocks** | Stronger library for quiz/reviews and Studio players ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); [CARD-442](./CARD-442-retire-education-studio-landing.md) Superseded |
 
 ---
 
@@ -67,7 +67,7 @@ Do **not** write product code until Jacob says **build** on this card.
 3. Durable proof: curated notes exist on disk under the configured wiki root after refresh; operator can open them in Wiki.
 4. Do not remove Education Studio wiki chrome yet.
 
-**Out of scope:** Lumina video; full Wiki Studio redesign; Studio retirement ([CARD-442](./CARD-442-retire-education-studio-landing.md)); inventing a second wiki writer that bypasses existing wiki note tools/APIs.
+**Out of scope:** Lumina video; full Wiki Studio redesign; Studio players ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); inventing a second wiki writer that bypasses existing wiki note tools/APIs.
 
 ### Beat 4: What dies today
 

@@ -20,7 +20,7 @@ parent: CARD-435
 > **ADR Reference**: none (draft only if lasting Tutor/Learning OS skill contracts change)
 > **Labels**: `type:architecture`, `area:education`, `area:tutor`, `P0`
 > **Parent**: [CARD-435](./CARD-435-education-tutor-first-direction.md)
-> **Build order**: **1 of 7** (first Education Tutor-first successor). Education Studio retirement is last ([CARD-442](./CARD-442-retire-education-studio-landing.md)).
+> **Build order**: **1 of 7** (first Education Tutor-first successor). Education Studio **player** is last ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); [CARD-442](./CARD-442-retire-education-studio-landing.md) Superseded.
 
 ---
 

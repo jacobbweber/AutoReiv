@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Changed
+
+- **ADR-0059 / Education Studio product lock**: Education Studio is **not** retired. It is repurposed as the flashcard / quiz / test **player**. [CARD-442](docs/cards/CARD-442-retire-education-studio-landing.md) Superseded; [CARD-446](docs/cards/CARD-446-education-studio-flashcard-quiz-test-players.md) Ready (build last after 438 Done + 439/440/441 proof). [CARD-435](docs/cards/CARD-435-education-tutor-first-direction.md) amended. Tutor Learning OS skills remain ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
+- **CARD-438 Done**: Chat quiz/flashcard durable grading merged to qa; Studio kept; player card CARD-446 queued.
+
 ### Fixed
 
 - **CARD-438 hotfix datetime JSON on Tutor chat**: Live education-mode Tutor turns died with `Object of type datetime is not JSON serializable` when `get_session_info` returned raw `created_at`/`updated_at`. Shared `to_jsonable` now sanitizes every tool result at the kernel scrub boundary; `get_session_info` emits ISO strings; education tools reuse the shared helper. Contract: `tests/unit/kernel/test_json_safe_datetime.py` ([CARD-438]).

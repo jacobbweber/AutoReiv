@@ -20,7 +20,7 @@ parent: CARD-435
 > **ADR Reference**: none
 > **Labels**: `type:feature`, `area:education`, `area:tutor`, `P0`
 > **Parent**: [CARD-435](./CARD-435-education-tutor-first-direction.md)
-> **Build order**: **2 of 7**. Keep Education Studio nav/landing until [CARD-442](./CARD-442-retire-education-studio-landing.md).
+> **Build order**: **2 of 7**. Keep Education Studio nav/landing (Studio stays as player per [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) / [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md); [CARD-442](./CARD-442-retire-education-studio-landing.md) Superseded).
 
 ---
 

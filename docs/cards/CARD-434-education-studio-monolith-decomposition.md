@@ -20,7 +20,7 @@ labels:
 > **ADR Reference**: none
 > **Labels**: `type:refactor`, `area:frontend`, `domain:education`, `P0`
 > **Superseded by**: [CARD-435](./CARD-435-education-tutor-first-direction.md) (Education Tutor-first direction)
-> **Supersession note** (2026-09-23): Do **not** implement this card. Education Studio as a dashboard landing / bottom-nav destination is retiring; Tutor in education mode (Learning OS rails + Wiki library) is the product entry. Monolith decomposition of `src/web/static/modules/studios/education.js` is the wrong first build. File retained for history.
+> **Supersession note** (2026-09-23): Do **not** implement this card. Tutor in education mode (Learning OS rails + Wiki library) is the Study/coaching entry. Education Studio **stays** as flashcard/quiz/test **player** ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md), [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)); retirement [CARD-442](./CARD-442-retire-education-studio-landing.md) is Superseded. Monolith decomposition of src/web/static/modules/studios/education.js remains the wrong first build. File retained for history.
 
 ---
 
