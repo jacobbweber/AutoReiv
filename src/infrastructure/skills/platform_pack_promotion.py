@@ -38,9 +38,9 @@ PLATFORM_LOCK_MIGRATION_SETTING = "platform_pack_lock_migration_report"
 
 RESOLUTION_USER_MODIFIED = (
     "Pack is locked (user_modified). To accept the platform seed: "
-    "use Reset to platform defaults in Agent Studio, or "
-    "call mark_agent_user_modified('<pack_id>', modified=False) on the state store "
-    "(or POST /api/agents/<pack_id>/accept-platform-seed), then restart serve or "
+    "use Reset to platform defaults in Agent Studio "
+    "(POST /api/agents/<pack_id>/accept-platform-seed, applies immediately with a backup), or "
+    "call mark_agent_user_modified('<pack_id>', modified=False) on the state store, then restart serve or "
     "POST /api/platform-packs/sync. Operator fields such as max_turns stay until "
     "you change them again in Agent Studio."
 )
