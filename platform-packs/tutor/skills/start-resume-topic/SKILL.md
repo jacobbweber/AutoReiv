@@ -36,7 +36,7 @@ Open or continue a durable Learning OS course for the learner's topic.
 
 ## Agent tool lane
 
-No dedicated `education_course_*` agent tool yet. Until CARD-437 wires Study entry / thin shell turns, cite the HTTP contracts above and keep Education Studio Ask / course chrome as the live operator path. Do not fake a course tool.
+No dedicated `education_course_*` agent tool yet. CARD-437 wires Study entry (Chat + Tutor education mode) to the HTTP contracts above (`study_entry.js` → course/start + tutor/context). Education Studio Ask / course chrome remain available until CARD-442. Do not fake a course tool.
 
 ## Done-when
 

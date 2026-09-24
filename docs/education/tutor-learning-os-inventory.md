@@ -18,7 +18,7 @@ Skill bodies: `platform-packs/tutor/skills/<id>/SKILL.md`
 
 | Skill id | Intent | Durable APIs / modules | Agent tools today | Successor |
 |---|---|---|---|---|
-| `start-resume-topic` | Start / resume ordered course for a topic | `POST /api/education/course/start`, `GET /api/education/course`, `POST /api/education/course/jump`, `POST /api/education/tutor/context`; `src/application/education/course.py` (`start_or_resume_course`, `course_chrome_snapshot`), `tutor.py` (`assemble_tutor_topic_context`); ledger `education_course` | `wiki_note_read/search/list`, `wiki_template_list` | CARD-437 |
+| `start-resume-topic` | Start / resume ordered course for a topic | `POST /api/education/course/start`, `GET /api/education/course`, `POST /api/education/course/jump`, `POST /api/education/tutor/context`; `src/application/education/course.py` (`start_or_resume_course`, `course_chrome_snapshot`), `tutor.py` (`assemble_tutor_topic_context`); ledger `education_course` | `wiki_note_read/search/list`, `wiki_template_list` | CARD-437 (wired Study entry) |
 | `quiz-turn` | One retrieval quiz turn with durable binary grade | `POST /api/education/quiz/extract`, `GET /api/education/quiz/next`, `POST /api/education/quiz/grade`; `quiz_engine.py`; ledger `education_mastery` | wiki read tools | CARD-438 |
 | `flashcard-turn` | One SRS / flashcard turn | **No** `/api/education/flashcard/*`. Shares mastery SRS: `GET /api/education/mastery/due`, `POST /api/education/mastery/upsert`, `POST /api/education/quiz/grade`; `srs.py` (`next_due_after_grade`); Wiki `education-flashcard` | wiki read tools | CARD-438 / CARD-439 |
 | `due-review` | Due SRS set + retention routine | `GET /api/education/mastery/due`, `GET /api/education/mastery`, `POST /api/education/retention/run`; `retention_routine.py` (`run_education_retention`) | wiki read tools | CARD-439 |
@@ -96,7 +96,7 @@ Autoreiv pack still mirrors `socratic-tutoring` for historical parity; Tutor is 
 | No `education_*` agent tools | Skills cite HTTP contracts; Studio is live caller | CARD-437..441 per surface |
 | No dedicated flashcard router | Shares mastery/SRS + quiz grade | CARD-438 / 439 |
 | Elaboration / construction / application Tutor skills | Not in day-one six; Studio panels remain SoT | later (after 437–441) |
-| Chat UX hard-gate for open vibes | Policy documented; enforcement in Study/Tutor shell | CARD-437 |
+| Chat UX hard-gate for open vibes | Study entry (`study_entry.js`) refuses blank topic / missing Tutor; education-mode strip + `start-resume-topic` rails | CARD-437 (In Review) |
 | Links / curriculum ingest API | Wiki tools + templates only | CARD-440 |
 | Non-Studio progress surface | APIs exist; UI still Studio chrome | CARD-441 |
 | Education Studio retirement | Explicitly out of this card | CARD-442 |

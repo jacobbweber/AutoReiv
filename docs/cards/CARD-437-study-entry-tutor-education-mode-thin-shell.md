@@ -1,7 +1,7 @@
 ---
 id: CARD-437
 title: "Study Entry = Tutor Education Mode (Thin Shell; Keep Studio Alive)"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-437] Study Entry = Tutor Education Mode (Thin Shell; Keep Studio Alive)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
@@ -103,6 +103,50 @@ Do **not** write product code until Jacob says **build** on this card.
 - Do not implement CARD-434. Do not retire Studio early.
 
 ---
+
+
+
+---
+
+## Implementation notes (In Review)
+
+**Branch**: `feat/card-437-study-entry-tutor-education-mode`
+
+### Chosen operator path (locked at build)
+
+**Simplest honest path**: reuse Chat + select Tutor + education-mode flag + durable course bind.
+
+1. Click **Study** in the left studio nav (`#btn-study-entry`, next to Education — not a replacing tab), **or** click **Study** in the Chat header (`#chatStudyEntryBtn`).
+2. Enter a topic in the prompt (defaults to last Study topic from `localStorage`). Cancel / blank → error toast; does **not** open plain untitled Chat.
+3. System:
+   - `POST /api/education/course/start` with `agent_id=tutor`, `topic_id=<topic>` (Learning OS skill `start-resume-topic`)
+   - `POST /api/education/tutor/context` with `agent_id=tutor`, `topic=<topic>`
+   - `switchTab('chat')` + `switchSelectedAgent('tutor')`
+   - Shows `#chatEducationModeStrip` with skill / topic / course id (education-mode rails)
+   - Prefills `#chatInput` with `[Tutor Education Mode] skill=start-resume-topic …`
+4. Education Studio remains: `#tab-education` → `#view-education` / `#educationStudio` unchanged. Studio **Discuss with Tutor** now calls the same `enterTutorEducationMode` helper.
+
+### Delivered
+
+- Module: `src/web/static/modules/studios/study_entry.js` (`enterTutorEducationMode`, course/tutor API helpers, chrome)
+- Markup: `#btn-study-entry`, `#chatStudyEntryBtn`, `#chatEducationModeStrip` (+ topic/course/skill/exit)
+- Wire: `src/web/static/app.js` `initStudyEntry`; `education.js` `discussWithTutor` reuses Study entry
+- Tests: `tests/unit/frontend/card_437_study_entry.test.js` (REQ-437-001..004 contracts)
+- Must-not held: Education nav/landing not removed; no mega Studio; CARD-438..442 out of scope
+
+### Live-test checklist (Jacob / Jarvis)
+
+1. Cold browser on Jarvis Control Plane.
+2. Click sidebar **Study** → enter topic e.g. `Bayes Theorem` → lands on Chat with **Tutor** selected; emerald **Education mode** strip shows skill `start-resume-topic`, topic, and a `course_…` id.
+3. Confirm `GET /api/education/course?agent_id=tutor&topic_id=Bayes%20Theorem` returns the same `course_id` as the strip (durable Learning OS).
+4. Hard-refresh → strip may restore from local chrome; click Study again with same topic → resume same course id (anti-theatre).
+5. Open **Education** tab — Studio Ask / panels still work (reference path).
+6. Blank/cancel Study prompt → error toast; Chat does not silently become freeform untitled education session.
+7. Automated: `npx vitest run tests/unit/frontend/card_437_study_entry.test.js`
+
+### After live proof
+
+Say **merge to qa**.
 
 ## 5. Reply phrases
 

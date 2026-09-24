@@ -2,6 +2,7 @@
 
 ### Added
 
+- **CARD-437 Study entry = Tutor education mode**: Sidebar `#btn-study-entry` and Chat header `#chatStudyEntryBtn` open Chat with Tutor selected, Learning OS skill `start-resume-topic`, and durable course bind via `POST /api/education/course/start` + `POST /api/education/tutor/context`. Education-mode rails strip `#chatEducationModeStrip` shows topic/course/skill (not freeform untitled chat). Education Studio (`#tab-education` / `#view-education`) stays. Module: `src/web/static/modules/studios/study_entry.js`. Contract: `tests/unit/frontend/card_437_study_entry.test.js` ([CARD-437]).
 - **CARD-436 live Tutor seed honesty**: hash-gated platform seed apply now refreshes the AppData `packs/tutor/pack.json` skill projection (without wiping local extras) so Agent Studio `pack_skills` tracks SQLite `allowed_skill`; `serve --reload` also watches `platform-packs/` so Learning OS skill seed edits re-bootstrap without a manual kill.
 - **CARD-436 Tutor Learning OS rails**: Inventory maps Education Studio chrome to Learning OS modules/APIs/Wiki templates/Tutor skill ids (`docs/education/tutor-learning-os-inventory.md`). Tutor pack gains named skills `start-resume-topic`, `quiz-turn`, `flashcard-turn`, `due-review`, `education-wiki-curation`, `progress-summary` (plus existing `socratic-tutoring`) under `platform-packs/tutor/skills/*/SKILL.md` with hard rails against open vibes. Education Studio chrome stays. Contract: `tests/unit/agent_packs/test_card_436_tutor_learning_os_skills.py` ([CARD-436]).
 
