@@ -3193,6 +3193,85 @@
             </div>
           </div>
 
+          <!-- CARD-448: Flashcard / Quiz / Test players (durable Learning OS grades) -->
+          <div id="educationPlayersConsole" class="px-4 py-2.5 border-b border-sky-900/40 bg-sky-950/20 flex-shrink-0" data-card="448" aria-label="Education Studio players">
+            <div class="flex flex-wrap items-center gap-2 justify-between mb-2">
+              <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-sky-300/90">Players</span>
+                <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-[10px] font-mono text-slate-300">topic <span id="educationPlayerContextTopic" class="text-sky-300">-</span></span>
+                <span class="px-2 py-0.5 rounded-md bg-[#08090c] border border-brand-700/40 text-[10px] font-mono text-brand-300">course <span id="educationPlayerContextCourse" class="select-all">-</span></span>
+                <span id="educationPlayerStatus" class="text-[11px] font-medium min-h-[1rem] text-slate-400">Flashcard / Quiz / Test — durable grades via Learning OS</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Player mode">
+                <button type="button" id="educationPlayerModeFlashcardBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/50 text-[10px] text-amber-100 transition ring-1 ring-emerald-400/60" aria-pressed="true" data-card="448" title="Flashcard player (front then reveal)">
+                  <i data-lucide="layers" class="w-3 h-3"></i><span>Flashcards</span>
+                </button>
+                <button type="button" id="educationPlayerModeQuizBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-950/50 hover:bg-violet-900/60 border border-violet-800/50 text-[10px] text-violet-100 transition" aria-pressed="false" data-card="448" title="Quiz player">
+                  <i data-lucide="circle-help" class="w-3 h-3"></i><span>Quiz</span>
+                </button>
+                <button type="button" id="educationPlayerModeTestBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/50 text-[10px] text-rose-100 transition" aria-pressed="false" data-card="448" title="Multi-item test player">
+                  <i data-lucide="clipboard-check" class="w-3 h-3"></i><span>Test</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Flashcard player: front-only then reveal/grade -->
+            <div id="educationPlayerFlashcardPanel" class="rounded-lg border border-amber-900/40 bg-[#08090c]/80 p-2.5 space-y-2" data-card="448">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-[10px] font-semibold uppercase tracking-wider text-amber-200/90">Flashcard player</div>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" id="educationPlayerFlashStartBtn" class="text-[10px] px-2 py-1 rounded-md bg-amber-700 hover:bg-amber-600 text-white font-semibold">Start deck</button>
+                  <button type="button" id="educationPlayerFlashRevealBtn" class="hidden text-[10px] px-2 py-1 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200">Reveal back</button>
+                </div>
+              </div>
+              <div id="educationPlayerFlashMeta" class="text-[10px] font-mono text-slate-500"></div>
+              <div id="educationPlayerFlashFront" class="text-xs text-slate-100 bg-slate-950/80 border border-amber-900/30 rounded-lg p-3 min-h-[3rem] leading-relaxed">Front only until reveal. Start a deck from due mastery.</div>
+              <div id="educationPlayerFlashBack" class="hidden text-xs text-emerald-100/90 bg-emerald-950/30 border border-emerald-900/40 rounded-lg p-3 min-h-[2.5rem] leading-relaxed" aria-hidden="true"></div>
+              <div id="educationPlayerFlashGradeRow" class="hidden flex flex-wrap gap-1.5">
+                <button type="button" id="educationPlayerFlashKnowBtn" class="text-[10px] px-2.5 py-1 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Know</button>
+                <button type="button" id="educationPlayerFlashMissBtn" class="text-[10px] px-2.5 py-1 rounded-md bg-amber-800 hover:bg-amber-700 text-white font-semibold">Miss</button>
+                <span class="text-[10px] text-slate-500 self-center">Writes <code class="text-slate-400">POST /api/education/quiz/grade</code> — failures never fake pass.</span>
+              </div>
+            </div>
+
+            <!-- Quiz player -->
+            <div id="educationPlayerQuizPanel" class="hidden rounded-lg border border-violet-900/40 bg-[#08090c]/80 p-2.5 space-y-2" data-card="448">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">Quiz player</div>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" id="educationPlayerQuizStartBtn" class="text-[10px] px-2 py-1 rounded-md bg-violet-700 hover:bg-violet-600 text-white font-semibold">Start / Next</button>
+                  <button type="button" id="educationPlayerQuizNextBtn" class="text-[10px] px-2 py-1 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200">Next item</button>
+                </div>
+              </div>
+              <div id="educationPlayerQuizPrompt" class="text-xs text-slate-100 bg-slate-950/80 border border-violet-900/30 rounded-lg p-3 min-h-[3rem] leading-relaxed">No quiz item loaded.</div>
+              <div class="flex flex-col sm:flex-row gap-1.5">
+                <input type="text" id="educationPlayerQuizAnswer" placeholder="Type your answer…" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono" />
+                <button type="button" id="educationPlayerQuizGradeBtn" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Grade</button>
+              </div>
+              <div id="educationPlayerQuizResult" class="text-[11px] text-slate-400 min-h-[1rem]"></div>
+              <p class="text-[10px] text-slate-500">Uses <code class="text-slate-400">GET /api/education/quiz/next</code> + <code class="text-slate-400">POST /api/education/quiz/grade</code>. Studio topic context preferred.</p>
+            </div>
+
+            <!-- Test player (multi-item session) -->
+            <div id="educationPlayerTestPanel" class="hidden rounded-lg border border-rose-900/40 bg-[#08090c]/80 p-2.5 space-y-2" data-card="448">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-[10px] font-semibold uppercase tracking-wider text-rose-200/90">Test player</div>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" id="educationPlayerTestStartBtn" class="text-[10px] px-2 py-1 rounded-md bg-rose-700 hover:bg-rose-600 text-white font-semibold">Start test</button>
+                </div>
+              </div>
+              <div id="educationPlayerTestProgress" class="text-[10px] font-mono text-slate-500"></div>
+              <div id="educationPlayerTestPrompt" class="text-xs text-slate-100 bg-slate-950/80 border border-rose-900/30 rounded-lg p-3 min-h-[3rem] leading-relaxed">No test session.</div>
+              <div class="flex flex-col sm:flex-row gap-1.5">
+                <input type="text" id="educationPlayerTestAnswer" placeholder="Answer this item…" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono" />
+                <button type="button" id="educationPlayerTestGradeBtn" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Grade &amp; next</button>
+              </div>
+              <div id="educationPlayerTestResult" class="text-[11px] text-slate-400 min-h-[1rem]"></div>
+              <div id="educationPlayerTestSummary" class="text-[11px] text-slate-300"></div>
+              <p class="text-[10px] text-slate-500">Multi-item session; each grade is durable. Hard-refresh still shows mastery/due/next. Failures never fake pass.</p>
+            </div>
+          </div>
+
           <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-w-0">
             <!-- Ask pane (Study Launcher) -->
             <div class="w-full lg:w-[26rem] xl:w-[28rem] border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col bg-slate-950/60 flex-shrink-0 overflow-hidden">

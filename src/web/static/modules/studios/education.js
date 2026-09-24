@@ -537,6 +537,20 @@ export function initEducationStudio(state, callbacks = {}) {
     console.warn('[Education Studio] operator init skipped', err);
   }
 
+  // CARD-448: Studio flashcard / quiz / test players (durable Learning OS grades)
+  try {
+    import('./education_players.js').then((mod) => {
+      if (mod && typeof mod.initEducationStudioPlayers === 'function') {
+        mod.initEducationStudioPlayers({
+          showToast: callbacks.showToast,
+        });
+      }
+    }).catch((err) => console.warn('[Education Studio] players module failed to load', err));
+  } catch (err) {
+    console.warn('[Education Studio] players init skipped', err);
+  }
+
+
   // CARD-250: pedagogy columns must be present for viewport usability (wrap/stack + overflow-y).
   if (typeof document !== 'undefined') {
     const pedagogy = $(EDUCATION_PEDAGOGY_COLUMNS_ID);
