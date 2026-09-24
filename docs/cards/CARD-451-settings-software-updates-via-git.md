@@ -1,11 +1,13 @@
 ---
 id: CARD-451
 title: "Settings software updates via git (fetch, ff-only pull, branch switch, daily auto-update)"
-status: In Progress
+status: In Review
 created: 2026-09-24
 branch: feat/card-451-settings-software-updates
 related:
   - CARD-196
+  - CARD-452
+  - CARD-453
 labels:
   - type:feature
   - area:settings
@@ -15,7 +17,7 @@ labels:
 
 # [CARD-451] Settings software updates via git (fetch, ff-only pull, branch switch, daily auto-update)
 
-> **Status**: In Progress
+> **Status**: In Review
 > **Created**: 2026-09-24
 > **Branch**: `feat/card-451-settings-software-updates`
 > **Observed during**: Jacob request after CARD-449 merge - revisit Settings System & Software Updates; add Update now / git pull, branch fetch/switch, preferences, optional daily auto-pull

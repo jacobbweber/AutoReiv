@@ -347,6 +347,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
     print(f"🚀 Starting AutoReiv Control Plane on http://{args.host}:{args.port}")
     apply_storage_args(args)
+    os.environ["AUTOREIV_SERVE_HOST"] = str(args.host)
+    os.environ["AUTOREIV_SERVE_PORT"] = str(args.port)
 
     reload_kwargs = {}
     if args.reload:

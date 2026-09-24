@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **CARD-451 Settings software updates via git**: System & Software Updates uses fixed `origin` (read-only URL). **Check for updates** = `git fetch --prune origin`. **Update now** = `git pull --ff-only` on the current branch with refusals for dirty / ahead / in-progress / detached / no-upstream (never reset/force/stash). Branch picker lists local+remote; switch creates tracking branches. After success: dependency-change detection (`pyproject.toml` / `uv.lock` / `requirements*.txt`) + `uv sync`, then injectable detached restart preserving host/port. Daily auto-update (default OFF) with busy deferral (chat streams, routines, Studio/Factory jobs). History in user-data settings. Contracts: `tests/unit/system/test_card451_software_updates.py`, router tests with `NoOpRestarter` ([CARD-451]).
+
 ### Fixed
 
 - **CARD-449 Pack lock granularity**: Scalar edits (`max_turns`, `model`, provider) no longer set `user_modified` / block platform-pack promotion. Prompt lock compares content to `platform_shipped_prompt_hashes`. Operator-disabled skills stay off while new platform skills are added. Automated additive grants / native packaging / Factory auto_pin no longer false-lock agents. One-time lock migration reports under sync-status `lock_migration`. Global setting `platform_pack_keep_customizations` (default true) force-resets pack content when false (after backup). Backups: `GET/POST /api/agents/{id}/pack-content-backups`. Settings toggle in Preferences (with System & Software Updates). Contract: `tests/unit/agent_packs/test_card_449_pack_lock_granularity.py` ([CARD-449]).

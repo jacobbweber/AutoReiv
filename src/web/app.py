@@ -34,6 +34,10 @@ from src.application.sdlc.projects_service import ProjectsService
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.system.backup_scheduler import DataDirBackupScheduler
+from src.application.system.busy import make_store_busy_detector
+from src.application.system.serve_restarter import DetachedScriptRestarter, resolve_serve_bind
+from src.application.system.update_scheduler import SoftwareUpdateScheduler
+from src.application.system.update_service import UpdateService
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
@@ -349,12 +353,31 @@ def create_app(
         interval_seconds=60.0,
     )
 
+    serve_host, serve_port = resolve_serve_bind()
+    factory_repo_for_busy = locals().get("factory_repo")
+    update_busy = make_store_busy_detector(store, factory_repo=factory_repo_for_busy)
+    serve_restarter = DetachedScriptRestarter()
+    update_service = UpdateService(
+        state_store=store,
+        repo_root=str(Path(__file__).resolve().parents[2]),
+        data_dir=str(data_paths.root),
+        restarter=serve_restarter,
+        busy_detector=update_busy,
+        serve_host=serve_host,
+        serve_port=serve_port,
+    )
+    update_scheduler = SoftwareUpdateScheduler(
+        update_service=update_service,
+        interval_seconds=60.0,
+    )
+
     # 5. Lifespan Manager
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
         factory_task = asyncio.create_task(factory_orchestrator.start())
         backup_task = asyncio.create_task(backup_scheduler.start())
+        update_task = asyncio.create_task(update_scheduler.start())
         try:
             for profile in registry.list_agents():
                 days = profile.history_retention_days if profile.history_retention_days is not None else 30
@@ -404,6 +427,12 @@ def create_app(
         try:
             yield
         finally:
+            await update_scheduler.stop()
+            update_task.cancel()
+            try:
+                await update_task
+            except (asyncio.CancelledError, Exception):
+                pass
             await backup_scheduler.stop()
             backup_task.cancel()
             try:
@@ -455,6 +484,13 @@ def create_app(
     app.state.routine_executor = routine_executor
     app.state.scheduler = scheduler
     app.state.backup_scheduler = backup_scheduler
+    app.state.update_service = update_service
+    app.state.update_scheduler = update_scheduler
+    app.state.serve_restarter = serve_restarter
+    app.state.serve_host = serve_host
+    app.state.serve_port = serve_port
+    app.state.repo_root = str(Path(__file__).resolve().parents[2])
+    app.state.factory_repo = factory_repo
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
     app.state.job_orchestrator = job_orchestrator
