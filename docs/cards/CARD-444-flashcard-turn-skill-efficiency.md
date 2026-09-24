@@ -1,7 +1,7 @@
 ---
 id: CARD-444
 title: "Flashcard-Turn Skill Efficiency (Stop Burning Turn Budget on Wiki Side Quests)"
-status: In Review
+status: Done
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-438
 
 # [CARD-444] Flashcard-Turn Skill Efficiency (Stop Burning Turn Budget on Wiki Side Quests)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-23
 > **Observed during**: CARD-438 live-test on Jarvis — flashcard chat hit `Max turn budget of 10 reached` after `wiki_note_create` succeeded; quiz turns completed.
 > **ADR Reference**: none
@@ -110,10 +110,11 @@ Do **not** write product code until Jacob says **build** on this card.
 
 ---
 
-## 6. Implementation note (In Review)
+## 6. Implementation note (Done)
 
 - Tightened platform-packs/tutor/skills/flashcard-turn/SKILL.md (v1.2.0): minimal next→grade loop; forbid mid-turn wiki_note_create / curation / multi-note search; front-only then grade; honest failures.
 - pack.json flashcard-turn tools dropped wiki_note_search / wiki_note_list (seed keeps wiki_note_read + wiki_template_list). System prompt CARD-444 clause.
 - Contract: 	ests/unit/education/test_card444_flashcard_turn_skill_efficiency.py.
 - Prefer platform pack; AppData lag is CARD-443 (separate). No max_turns raise (CARD-445 separate). No Studio player redesign (CARD-448 Done).
 - After live flashcard proof under default budget: say **merge to qa**.
+- Live-tested by Jacob on 2026-09-24 after a one-off manual AppData sync of `flashcard-turn` `SKILL.md` v1.2.0 plus the `pack.json` tool list; backup: `C:\Users\jacob\AppData\Local\AutoReiv\backups\card-444-sync-20260924-081039\`.
