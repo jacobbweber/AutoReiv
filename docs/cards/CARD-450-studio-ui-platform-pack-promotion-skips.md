@@ -1,7 +1,7 @@
 ---
 id: CARD-450
 title: "Studio UI for platform pack promotion skips and Reset to platform defaults"
-status: In Review
+status: Done
 branch: feat/card-450-studio-platform-pack-reset
 created: 2026-09-24
 adr: ADR-0056
@@ -17,7 +17,8 @@ related:
 
 # [CARD-450] Studio UI for platform pack promotion skips and Reset to platform defaults
 
-> **Status**: In Review
+> **Status**: Done
+> **Completed**: 2026-09-24 (Jacob live-tested Reset/Restore on Developer: "merge to qa. perfect!")
 > **Branch**: `feat/card-450-studio-platform-pack-reset`
 > **Created**: 2026-09-24
 > **Observed during**: CARD-443 live proof on Jarvis (`feat/card-443-platform-pack-appdata-sync`)
