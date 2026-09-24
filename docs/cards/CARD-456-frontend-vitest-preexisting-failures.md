@@ -1,6 +1,6 @@
 ---
 id: CARD-456
-title: "Fix 5 pre-existing frontend Vitest failures on qa"
+title: "Fix pre-existing frontend Vitest failures and ESLint errors on qa"
 status: Ready
 created: 2026-09-24
 branch: qa
@@ -15,7 +15,7 @@ labels:
   - P2
 ---
 
-# [CARD-456] Fix 5 pre-existing frontend Vitest failures on qa
+# [CARD-456] Fix pre-existing frontend Vitest failures and ESLint errors on qa
 
 > **Status**: Ready
 > **Created**: 2026-09-24
@@ -48,6 +48,7 @@ On `qa` `e54021ff`, with no CARD-450 changes (verified by stashing), 5 tests fai
 
 1. `chat_monolith_decomposition_397`: `chat.js` has 1034 lines (cap 1000), and `chat/render.js` has 837 lines (cap 800).
 2. `per_agent_model_config` (REQ-MODEL-005): `settings.js` still contains `/api/settings/matrix`.
+4. `npm run lint:frontend` fails with 4 errors and 5 warnings (e.g. `no-useless-assignment`) in `education_operator.js`, `education_players.js`, `settings.js` and `study_entry.js`.
 3. `system_updates` (CARD-196): expects `id="systemPlatform"` and `id="updateRepoUrlInput"`, which the CARD-451 Settings redesign removed. The test is stale against the new contract.
 
 ### Beat 3: What will change
@@ -55,6 +56,7 @@ On `qa` `e54021ff`, with no CARD-450 changes (verified by stashing), 5 tests fai
 1. Decompose `chat.js` / `chat/render.js` under the caps, or re-baseline the caps with Jacob's agreement.
 2. Remove the dead matrix call from `settings.js`, or update REQ-MODEL-005.
 3. Rewrite `system_updates.test.js` to the CARD-451 markup contract.
+4. Fix the ESLint errors so the preflight ESLint stage is green.
 
 ### Beat 4: What dies today
 
@@ -65,4 +67,5 @@ A red frontend suite that hides new failures.
 ## 2. Acceptance criteria (EARS)
 
 - **[REQ-456-001]** WHEN `npx vitest run` runs on `qa`, THE SYSTEM SHALL report 0 failed tests.
+- **[REQ-456-003]** WHEN `npm run lint:frontend` runs on `qa`, THE SYSTEM SHALL report 0 errors.
 - **[REQ-456-002]** THE `system_updates` frontend test SHALL assert the CARD-451 Settings markup, not removed ids.
