@@ -245,13 +245,14 @@ describe('CARD-447 Education Studio operator + Tutor context', () => {
     expect(studyJs).toContain('/api/education/tutor/context');
   });
 
-  it('education.js loads operator module; no CARD-448 player shell claimed', () => {
+  it('education.js loads operator module; CARD-448 players live in education_players.js', () => {
     expect(educationJs).toContain("education_operator.js");
     expect(educationJs).toContain('CARD-447');
-    expect(operatorJs).not.toContain('flashcard player');
     expect(operatorJs).toMatch(/Does NOT build.*CARD-448|not implement CARD-448/i);
-    expect(operatorJs).not.toContain('initFlashcardPlayer');
-    expect(operatorJs).not.toContain('quizPlayerSession');
+    expect(operatorJs).not.toContain('initEducationStudioPlayers');
+    // Players are CARD-448 (separate module), not the operator strip
+    expect(educationJs).toContain('education_players.js');
+    expect(educationJs).toContain('CARD-448');
   });
 
   it('agent id default remains tutor', () => {

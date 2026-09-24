@@ -2,6 +2,8 @@
 
 ### Added
 
+- **CARD-448 Education Studio flashcard / quiz / test players**: `#educationPlayersConsole` hosts interactive flashcard (front-then-reveal), quiz, and multi-item test players. Grades persist via `POST /api/education/quiz/grade` (with `quiz/next` / `mastery/due`); failures never fake pass. Uses Studio-active topic/course from CARD-447. Operator console kept; Tutor remains coach; Studio not retired. Contracts: `tests/unit/education/test_card448_education_studio_players.py`, `tests/unit/frontend/card_448_education_studio_players.test.js` ([CARD-448], [ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
+
 - **CARD-447 Education Studio operator strip + Tutor topic/course context**: Education Studio `#educationOperatorConsole` hosts Due / Progress / Wiki curate (same Learning OS APIs as CARD-439/440/441). Active topic/course persists via `PUT /api/education/selected` (`selected_education_context` settings key) + localStorage `autoreiv.educationStudio.activeContext.v1`. Tutor Study entry injects Studio-active context through `POST /api/education/tutor/context` (Projects selected parallel). Chat education-mode strip thins to a context indicator + Studio console deep-link. Players remain CARD-448. Contract: `tests/unit/education/test_card447_education_studio_selected_context.py`, `tests/unit/frontend/card_447_education_studio_operator.test.js` ([CARD-447], [ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
 
 
