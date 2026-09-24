@@ -3,6 +3,7 @@
  * CARD-439: Due reviews surface in Tutor education mode (Learning OS mastery/due).
  * CARD-440: Wiki curation from links / curriculum in Tutor education mode.
  * CARD-441: Trustable progress (course/mastery/due) on Tutor strip — not Studio-only.
+ * CARD-447: Studio is operator home for Due/Progress/Wiki curate; Tutor injects Studio-active topic/course.
  * Reuses Chat + Tutor agent + Learning OS course APIs. Does not retire Education Studio.
  */
 
@@ -17,6 +18,10 @@ export const STUDY_DUE_REVIEW_SKILL = 'due-review';
 export const STUDY_WIKI_CURATION_SKILL = 'education-wiki-curation';
 export const STUDY_PROGRESS_SKILL = 'progress-summary';
 export const STUDY_EDUCATION_MODE_MARKER = '[Tutor Education Mode]';
+
+/** Durable Studio-active topic/course (Projects selected parallel) [CARD-447]. */
+export const EDUCATION_STUDIO_ACTIVE_KEY = 'autoreiv.educationStudio.activeContext.v1';
+export const EDUCATION_SELECTED_HTTP = '/api/education/selected';
 
 /** @type {{ active: boolean, topic: string, courseId: string, skillId: string, agentId: string } | null} */
 let _activeBinding = null;
@@ -47,6 +52,106 @@ export function saveLastStudyTopic(topic) {
     /* ignore quota */
   }
 }
+
+export function loadStudioActiveEducationContext() {
+  try {
+    const raw = localStorage.getItem(EDUCATION_STUDIO_ACTIVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.topic) return null;
+    return {
+      topic: String(parsed.topic || '').trim(),
+      course_id: String(parsed.course_id || parsed.courseId || '').trim(),
+      agent_id: String(parsed.agent_id || parsed.agentId || STUDY_TUTOR_AGENT_ID).trim() || STUDY_TUTOR_AGENT_ID,
+      updated_at: String(parsed.updated_at || '').trim(),
+      source: String(parsed.source || 'education_studio').trim() || 'education_studio',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveStudioActiveEducationContext(selected) {
+  if (!selected || !selected.topic) return;
+  try {
+    localStorage.setItem(
+      EDUCATION_STUDIO_ACTIVE_KEY,
+      JSON.stringify({
+        topic: String(selected.topic || '').trim(),
+        course_id: String(selected.course_id || selected.courseId || '').trim(),
+        agent_id: String(selected.agent_id || selected.agentId || STUDY_TUTOR_AGENT_ID).trim() || STUDY_TUTOR_AGENT_ID,
+        updated_at: String(selected.updated_at || '').trim(),
+        source: String(selected.source || 'education_studio').trim() || 'education_studio',
+      }),
+    );
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export function mirrorSelectedToLocal(selected) {
+  if (selected && selected.topic) saveStudioActiveEducationContext(selected);
+}
+
+/** GET /api/education/selected — durable Studio-active topic/course [CARD-447]. */
+export async function fetchSelectedEducationContext() {
+  const res = await fetch(EDUCATION_SELECTED_HTTP);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`education/selected ${res.status}${detail ? `: ${detail}` : ''}`);
+  }
+  return res.json();
+}
+
+/** PUT /api/education/selected — persist Studio-active topic/course [CARD-447]. */
+export async function putSelectedEducationContext(payload = {}) {
+  const body = {
+    topic: payload.topic,
+    course_id: payload.course_id || payload.courseId || '',
+    agent_id: payload.agent_id || payload.agentId || STUDY_TUTOR_AGENT_ID,
+    clear: !!payload.clear,
+  };
+  const res = await fetch(EDUCATION_SELECTED_HTTP, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`education/selected PUT ${res.status}${detail ? `: ${detail}` : ''}`);
+  }
+  const data = await res.json();
+  if (data && data.selected) mirrorSelectedToLocal(data.selected);
+  return data;
+}
+
+/** Resolve topic for Tutor education mode: explicit -> Studio selected -> last Study topic. */
+export async function resolveTutorEducationTopic(explicitTopic = '') {
+  const direct = String(explicitTopic || '').trim();
+  if (direct) return { topic: direct, source: 'explicit' };
+  try {
+    const data = await fetchSelectedEducationContext();
+    const sel = data && data.selected;
+    if (sel && sel.topic) {
+      mirrorSelectedToLocal(sel);
+      return {
+        topic: String(sel.topic).trim(),
+        courseId: String(sel.course_id || '').trim(),
+        source: 'education_studio',
+      };
+    }
+  } catch {
+    /* fall through */
+  }
+  const local = loadStudioActiveEducationContext();
+  if (local && local.topic) {
+    return { topic: local.topic, courseId: local.course_id || '', source: 'education_studio_local' };
+  }
+  const last = loadLastStudyTopic();
+  if (last) return { topic: last, source: 'last_study' };
+  return { topic: '', source: 'none' };
+}
+
 
 export function buildStudyEducationModePrompt(topic, courseId = '') {
   const t = String(topic || '').trim() || 'Active Study Topic';
@@ -741,8 +846,17 @@ export async function runStudyWikiCuration(opts = {}) {
 export async function enterTutorEducationMode(opts = {}) {
   const toast = typeof opts.toast === 'function' ? opts.toast : showToast;
   let topic = String(opts.topic || '').trim();
+  let studioCourseId = '';
+  if (!topic) {
+    const resolved = await resolveTutorEducationTopic('');
+    if (resolved.topic) {
+      topic = resolved.topic;
+      studioCourseId = resolved.courseId || '';
+    }
+  }
   if (!topic && !opts.skipPrompt) {
-    topic = promptStudyTopic(loadLastStudyTopic()) || '';
+    const seed = (loadStudioActiveEducationContext() || {}).topic || loadLastStudyTopic();
+    topic = promptStudyTopic(seed) || '';
   }
   if (!topic) {
     toast('Study needs a topic — education mode not started (no freeform Chat).', 'error');
@@ -759,7 +873,7 @@ export async function enterTutorEducationMode(opts = {}) {
   }
 
   const course = (coursePayload && coursePayload.course) || {};
-  const courseId = String(course.course_id || course.id || '').trim();
+  let courseId = String(course.course_id || course.id || '').trim();
 
   try {
     await assembleStudyTutorContext(topic, STUDY_TUTOR_AGENT_ID);
@@ -800,6 +914,7 @@ export async function enterTutorEducationMode(opts = {}) {
     return { ok: false, error: 'TUTOR_SELECT_FAILED' };
   }
 
+  if (!courseId && studioCourseId) courseId = studioCourseId;
   const binding = {
     active: true,
     topic,
@@ -809,6 +924,15 @@ export async function enterTutorEducationMode(opts = {}) {
   };
   _persistBinding(binding);
   saveLastStudyTopic(topic);
+  try {
+    await putSelectedEducationContext({
+      topic,
+      course_id: courseId,
+      agent_id: STUDY_TUTOR_AGENT_ID,
+    });
+  } catch (err) {
+    console.warn('[Study Entry] PUT /api/education/selected soft-fail:', err);
+  }
 
   const chatInput = $('chatInput');
   if (chatInput) {
@@ -943,6 +1067,36 @@ export function initStudyEntry(callbacks = {}) {
       await runStudyWikiCuration({ mode: 'link', raw_source: true, toast: showToast });
     });
   }
+
+  const openStudioBtn = $('chatEducationModeOpenStudioBtn');
+  if (openStudioBtn) {
+    openStudioBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tab = $('tab-education');
+      if (tab) tab.click();
+      else if (typeof callbacks.switchTab === 'function') callbacks.switchTab('education');
+      showToast('Education Studio is the operator console (Due / Progress / Wiki curate).', 'info');
+    });
+  }
+
+  // CARD-447: chat Due/Progress/Wiki curate deep-link to Studio operator console (strip thinned).
+  const deepLinkStudio = (e) => {
+    if (e) {
+      e.preventDefault();
+      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      else if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    const tab = $('tab-education');
+    if (tab) tab.click();
+    else if (typeof callbacks.switchTab === 'function') callbacks.switchTab('education');
+    showToast('Opened Education Studio operator console.', 'info');
+  };
+  ['chatEducationModeDueBtn', 'chatEducationModeProgressBtn', 'chatEducationModeCurateBtn'].forEach((id) => {
+    const btn = $(id);
+    if (!btn || btn.dataset.card447Wired === '1') return;
+    btn.dataset.card447Wired = '1';
+    btn.addEventListener('click', deepLinkStudio, true);
+  });
 
   const exitBtn = $('chatEducationModeExitBtn');
   if (exitBtn) {

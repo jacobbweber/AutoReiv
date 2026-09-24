@@ -88,6 +88,13 @@ class ConstructionGeneratePayload(BaseModel):
     search_first: bool = True
 
 
+class SelectedEducationContextPayload(BaseModel):
+    topic: Optional[str] = None
+    course_id: Optional[str] = None
+    agent_id: str = "tutor"
+    clear: bool = False
+
+
 class TutorContextPayload(BaseModel):
     agent_id: str = "autoreiv"
     topic: str = ""
@@ -607,6 +614,42 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
         "weak_items": weak,
         "pressure_clause": clause,
         "selection": "due_weak_miss_over_random",
+    }
+
+
+@router.get("/api/education/selected")
+async def get_selected_education_context_api(request: Request):
+    """Studio-active topic/course (Projects selected parallel) [CARD-447]."""
+    from src.application.education.selected_context import get_selected_education_context
+
+    store = getattr(request.app.state, "store", None)
+    return {
+        "selected": get_selected_education_context(store),
+        "http_contract": "GET /api/education/selected",
+        "projects_parallel": "GET /api/projects/selected",
+    }
+
+
+@router.put("/api/education/selected")
+async def put_selected_education_context_api(request: Request, payload: SelectedEducationContextPayload):
+    """Persist Studio-active topic/course for Tutor injection [CARD-447]."""
+    from src.application.education.selected_context import set_selected_education_context
+
+    store = getattr(request.app.state, "store", None)
+    res = set_selected_education_context(
+        store,
+        topic=payload.topic,
+        course_id=payload.course_id,
+        agent_id=payload.agent_id,
+        clear=bool(payload.clear),
+        source="education_studio",
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "selected education context failed"))
+    return {
+        **res,
+        "http_contract": "PUT /api/education/selected",
+        "projects_parallel": "PUT /api/projects/selected",
     }
 
 

@@ -229,7 +229,13 @@ describe('CARD-437 Study entry = Tutor education mode (thin shell)', () => {
   });
 
   it('enterTutorEducationMode fails soft without topic (no plain Chat)', async () => {
-    globalThis.fetch = vi.fn();
+    // CARD-447 may probe GET /api/education/selected before failing; must not start course.
+    globalThis.fetch = vi.fn(async (url) => {
+      if (String(url).includes('/api/education/selected')) {
+        return { ok: true, json: async () => ({ selected: {} }) };
+      }
+      return { ok: false, status: 500, text: async () => 'unexpected' };
+    });
     const toasts = [];
     const result = await enterTutorEducationMode({
       topic: '',
@@ -238,7 +244,9 @@ describe('CARD-437 Study entry = Tutor education mode (thin shell)', () => {
     });
     expect(result.ok).toBe(false);
     expect(result.error).toBe('STUDY_TOPIC_REQUIRED');
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    const urls = globalThis.fetch.mock.calls.map((c) => String(c[0]));
+    expect(urls.every((u) => u.includes('/api/education/selected'))).toBe(true);
+    expect(urls.some((u) => u.includes('/api/education/course/start'))).toBe(false);
     expect(isStudyEducationModeActive()).toBe(false);
     expect(toasts.some((t) => t.type === 'error')).toBe(true);
   });

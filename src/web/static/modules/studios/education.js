@@ -522,6 +522,21 @@ export function forwardJobPhaseChromeEvent(chatCtrl, eventType, ev) {
  * @param {{ showToast?: Function, switchTab?: Function, getChatCtrl?: Function, getObsCtrl?: Function }} callbacks
  */
 export function initEducationStudio(state, callbacks = {}) {
+  // CARD-447: Studio operator console (Due / Progress / Wiki curate + active topic/course for Tutor)
+  try {
+    import('./education_operator.js').then((mod) => {
+      if (mod && typeof mod.initEducationStudioOperator === 'function') {
+        mod.initEducationStudioOperator({
+          showToast: callbacks.showToast,
+          switchTab: callbacks.switchTab,
+          getChatCtrl: callbacks.getChatCtrl,
+        });
+      }
+    }).catch((err) => console.warn('[Education Studio] operator module failed to load', err));
+  } catch (err) {
+    console.warn('[Education Studio] operator init skipped', err);
+  }
+
   // CARD-250: pedagogy columns must be present for viewport usability (wrap/stack + overflow-y).
   if (typeof document !== 'undefined') {
     const pedagogy = $(EDUCATION_PEDAGOGY_COLUMNS_ID);
