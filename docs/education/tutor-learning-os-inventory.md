@@ -22,7 +22,7 @@ Skill bodies: `platform-packs/tutor/skills/<id>/SKILL.md`
 | `quiz-turn` | One retrieval quiz turn with durable binary grade | `POST /api/education/quiz/extract`, `GET /api/education/quiz/next`, `POST /api/education/quiz/grade`; `quiz_engine.py`; ledger `education_mastery` | `education_quiz_extract`, `education_quiz_next`, `education_quiz_grade` (+ wiki read) | CARD-438 (tools live) |
 | `flashcard-turn` | One SRS / flashcard turn | **No** `/api/education/flashcard/*`. Shares mastery SRS: `GET /api/education/mastery/due`, `POST /api/education/mastery/upsert`, `POST /api/education/quiz/grade`; `srs.py` (`next_due_after_grade`); Wiki `education-flashcard` | `education_flashcard_next`, `education_flashcard_grade`, `education_mastery_due`, `education_mastery_upsert` (+ wiki read) | CARD-438 (tools live) / CARD-439 |
 | `due-review` | Due SRS set + retention routine | `GET /api/education/mastery/due`, `GET /api/education/mastery`, `POST /api/education/retention/run`; `retention_routine.py` (`run_education_retention`) | `education_due_review_list`, `education_due_review_complete`, `education_mastery_due`, `education_retention_run`, `education_quiz_grade`, `education_flashcard_grade` (+ wiki read) | CARD-439 (tools live) |
-| `education-wiki-curation` | Curate education notes into Wiki library | `src/application/education/templates.py`; Wiki `data/wiki/02_Resources/_Templates/education-*.md`; `POST /api/education/priming/writeback`; `POST /api/education/course/portfolio/create` | `wiki_note_read/search/list/create/update`, `wiki_template_list/read` | CARD-440 |
+| `education-wiki-curation` | Curate education notes into Wiki library from links / curriculum | `POST /api/education/wiki/curate`, `GET /api/education/wiki/templates`; `src/application/education/wiki_curation.py`; `templates.py`; Wiki `education-*.md`; priming writeback / portfolio remain | `education_wiki_template_catalog`, `education_wiki_curate_from_link`, `education_wiki_curate_from_curriculum`, `wiki_note_read/search/list/create/update`, `wiki_template_list/read` | CARD-440 |
 | `progress-summary` | Trustable progress from durable stores | `GET /api/education/course`, `GET /api/education/course/depth`, mastery routes, `GET /api/education/learner`, `GET /api/education/analysis` (+ `/errors`, `/patterns`); `depth.py`, `learner_model.py`, `analysis.py` | wiki read tools | CARD-441 |
 | `socratic-tutoring` | Dialogue **method** inside Learning OS turns | Wiki grounding | wiki read tools | keep (not a rails bypass) |
 
@@ -97,7 +97,7 @@ Autoreiv pack still mirrors `socratic-tutoring` for historical parity; Tutor is 
 | No dedicated flashcard router | Shares mastery/SRS + quiz grade | CARD-438 / 439 |
 | Elaboration / construction / application Tutor skills | Not in day-one six; Studio panels remain SoT | later (after 437–441) |
 | Chat UX hard-gate for open vibes | Study entry (`study_entry.js`) refuses blank topic / missing Tutor; education-mode strip + `start-resume-topic` rails | CARD-437 (Done) |
-| Links / curriculum ingest API | Wiki tools + templates only | CARD-440 |
+| Links / curriculum ingest API | `POST /api/education/wiki/curate` + `education_wiki_curate_from_*` tools (CARD-440) | CARD-440 (In Review) |
 | Non-Studio progress surface | APIs exist; UI still Studio chrome | CARD-441 |
 | Education Studio players (not retirement) | Explicitly out of this card; Studio kept per ADR-0059 | CARD-446 (CARD-442 Superseded) |
 | `user_modified` Tutor allowlist | Seed sync updates non-`user_modified`; modified packs may need operator tick | live-proof note |

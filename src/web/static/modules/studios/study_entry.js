@@ -1,6 +1,7 @@
 /**
  * CARD-437: Study Entry = Tutor education mode (thin shell).
  * CARD-439: Due reviews surface in Tutor education mode (Learning OS mastery/due).
+ * CARD-440: Wiki curation from links / curriculum in Tutor education mode.
  * Reuses Chat + Tutor agent + Learning OS course APIs. Does not retire Education Studio.
  */
 
@@ -12,6 +13,7 @@ export const STUDY_EDUCATION_MODE_KEY = 'autoreiv.study.education_mode.v1';
 export const STUDY_TUTOR_AGENT_ID = 'tutor';
 export const STUDY_LEARNING_OS_SKILL = 'start-resume-topic';
 export const STUDY_DUE_REVIEW_SKILL = 'due-review';
+export const STUDY_WIKI_CURATION_SKILL = 'education-wiki-curation';
 export const STUDY_EDUCATION_MODE_MARKER = '[Tutor Education Mode]';
 
 /** @type {{ active: boolean, topic: string, courseId: string, skillId: string, agentId: string } | null} */
@@ -137,6 +139,7 @@ export function clearStudyEducationMode() {
   }
   renderStudyEducationModeChrome(null);
   hideStudyDueReviewsPanel();
+  hideStudyWikiCuratePanel();
 }
 
 function _persistBinding(binding) {
@@ -316,6 +319,223 @@ export async function openDueReviewsInEducationMode(opts = {}) {
 }
 
 
+
+
+export function buildWikiCurationPrompt(topic, courseId = '', mode = 'link') {
+  const t = String(topic || '').trim() || 'Active Study Topic';
+  const courseBit = courseId ? ` course_id=${courseId}` : '';
+  const modeBit = mode === 'curriculum' ? 'curriculum outline' : 'link(s)';
+  return (
+    `${STUDY_EDUCATION_MODE_MARKER} skill=${STUDY_WIKI_CURATION_SKILL}${courseBit}\n` +
+    `Curate ${modeBit} for topic "${t}" into the Wiki library using Learning OS skill "${STUDY_WIKI_CURATION_SKILL}". ` +
+    `Call education_wiki_template_catalog, then education_wiki_curate_from_link or education_wiki_curate_from_curriculum ` +
+    `(POST /api/education/wiki/curate). Prefer catalogued education-* templates; raw sources MAY omit education tags. ` +
+    `On fetch/write failure report the error and do not claim the library was updated.`
+  );
+}
+
+/**
+ * POST /api/education/wiki/curate — durable Wiki note path (not transcript-only).
+ * @param {{ mode: string, url?: string, curriculum?: string, topic?: string, template?: string, raw_source?: boolean, body?: string, agentId?: string }} opts
+ */
+export async function curateStudyWiki(opts = {}) {
+  const mode = String(opts.mode || 'link').trim().toLowerCase() || 'link';
+  const payload = {
+    mode,
+    url: opts.url || undefined,
+    curriculum: opts.curriculum || undefined,
+    topic: opts.topic || undefined,
+    title: opts.title || undefined,
+    template: opts.template || undefined,
+    raw_source: !!opts.raw_source,
+    body: opts.body || undefined,
+    agent_id: opts.agentId || STUDY_TUTOR_AGENT_ID,
+  };
+  const res = await fetch('/api/education/wiki/curate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+  if (!res.ok) {
+    const detail = data && (data.detail || data.error) ? String(data.detail || data.error) : '';
+    return {
+      ok: false,
+      success: false,
+      durable: false,
+      notes: [],
+      error: `wiki/curate ${res.status}${detail ? `: ${detail}` : ''}`,
+      http_contract: 'POST /api/education/wiki/curate',
+    };
+  }
+  const success = !!(data && data.success);
+  return {
+    ok: success,
+    success,
+    durable: !!(data && data.durable && success),
+    notes: (data && Array.isArray(data.notes)) ? data.notes : [],
+    paths: (data && Array.isArray(data.paths)) ? data.paths : [],
+    path: (data && data.path) || '',
+    error: success ? '' : String((data && data.error) || 'curation failed'),
+    raw: data,
+    http_contract: 'POST /api/education/wiki/curate',
+    skill_hint: STUDY_WIKI_CURATION_SKILL,
+  };
+}
+
+export function renderStudyWikiCuratePanel(payload) {
+  const panel = $('chatEducationModeCuratePanel');
+  const resultEl = $('chatEducationModeCurateResult');
+  if (!panel || !resultEl) return;
+  const failed = payload && (payload.ok === false || payload.success === false);
+  const notes = (payload && Array.isArray(payload.notes)) ? payload.notes : [];
+  if (failed) {
+    resultEl.innerHTML = `<div class="text-[11px] text-rose-300 px-1">${_escapeHtml(payload.error || 'Curation failed.')}</div>`;
+  } else if (!notes.length && payload && payload.idle) {
+    resultEl.innerHTML = '<div class="text-[11px] text-slate-500 px-1">Supply a link or curriculum outline. Notes stage in 00_Inbox/ via wiki_note_create.</div>';
+  } else if (!notes.length) {
+    resultEl.innerHTML = '<div class="text-[11px] text-slate-500 px-1">No notes written.</div>';
+  } else {
+    resultEl.innerHTML = notes
+      .map((n) => {
+        const path = _escapeHtml(n.path || '');
+        const title = _escapeHtml(n.title || '');
+        const tpl = _escapeHtml(n.template || '');
+        const raw = n.raw_source ? ' · raw' : '';
+        return `<div class="px-2 py-1 rounded border border-sky-900/30 bg-[#0e1015]/80">
+          <div class="text-[11px] font-medium text-slate-200 truncate">${title}</div>
+          <div class="text-[10px] font-mono text-sky-300/90 truncate">${path}</div>
+          <div class="text-[10px] text-slate-500">${tpl}${raw}</div>
+        </div>`;
+      })
+      .join('');
+  }
+  panel.classList.remove('hidden');
+  panel.setAttribute('aria-hidden', 'false');
+  safeCreateIcons();
+}
+
+export function hideStudyWikiCuratePanel() {
+  if (typeof document === 'undefined' || !document.getElementById) return;
+  const panel = document.getElementById('chatEducationModeCuratePanel');
+  if (!panel) return;
+  panel.classList.add('hidden');
+  panel.setAttribute('aria-hidden', 'true');
+}
+
+/**
+ * Open wiki curation chrome in Tutor education mode (skill=education-wiki-curation).
+ * @param {{ toast?: Function, mode?: string }} [opts]
+ */
+export async function openWikiCurationInEducationMode(opts = {}) {
+  const toast = typeof opts.toast === 'function' ? opts.toast : showToast;
+  let binding = getStudyEducationModeBinding();
+  if (!binding || !binding.active || !binding.topic) {
+    toast('Enter Study / Tutor education mode first (sidebar Study), then open Wiki curate.', 'error');
+    return { ok: false, error: 'EDUCATION_MODE_REQUIRED' };
+  }
+
+  binding = {
+    ...binding,
+    skillId: STUDY_WIKI_CURATION_SKILL,
+  };
+  _persistBinding(binding);
+
+  const mode = String(opts.mode || 'link').trim().toLowerCase() || 'link';
+  const chatInput = $('chatInput');
+  if (chatInput) {
+    chatInput.value = buildWikiCurationPrompt(binding.topic, binding.courseId, mode);
+    chatInput.focus();
+  }
+
+  renderStudyWikiCuratePanel({ idle: true, notes: [], ok: true, success: true });
+  toast(`Wiki curation ready (skill ${STUDY_WIKI_CURATION_SKILL})`, 'info');
+  return { ok: true, binding };
+}
+
+/**
+ * Prompt + run durable curation for a link or curriculum outline.
+ * @param {{ mode: 'link'|'curriculum', raw_source?: boolean, toast?: Function }} opts
+ */
+export async function runStudyWikiCuration(opts = {}) {
+  const toast = typeof opts.toast === 'function' ? opts.toast : showToast;
+  let binding = getStudyEducationModeBinding();
+  if (!binding || !binding.active || !binding.topic) {
+    toast('Enter Study / Tutor education mode first, then curate.', 'error');
+    return { ok: false, error: 'EDUCATION_MODE_REQUIRED' };
+  }
+
+  const mode = String(opts.mode || 'link').trim().toLowerCase() || 'link';
+  const rawSource = !!opts.raw_source;
+  let url = '';
+  let curriculum = '';
+  if (mode === 'curriculum') {
+    const seed = '- ';
+    const raw =
+      typeof window !== 'undefined' && typeof window.prompt === 'function'
+        ? window.prompt(
+            'Curriculum outline (one bullet per line). Cancel to abort.',
+            seed,
+          )
+        : null;
+    if (raw === null) return { ok: false, error: 'CANCELLED' };
+    curriculum = String(raw).trim();
+    if (!curriculum) {
+      toast('Curriculum outline required.', 'error');
+      return { ok: false, error: 'CURRICULUM_REQUIRED' };
+    }
+  } else {
+    const raw =
+      typeof window !== 'undefined' && typeof window.prompt === 'function'
+        ? window.prompt(
+            rawSource
+              ? 'Source URL (raw note, no education tags). Cancel to abort.'
+              : 'URL to curate into Wiki (education template). Cancel to abort.',
+            'https://',
+          )
+        : null;
+    if (raw === null) return { ok: false, error: 'CANCELLED' };
+    url = String(raw).trim();
+    if (!url) {
+      toast('URL required.', 'error');
+      return { ok: false, error: 'URL_REQUIRED' };
+    }
+  }
+
+  binding = { ...binding, skillId: STUDY_WIKI_CURATION_SKILL };
+  _persistBinding(binding);
+
+  const chatInput = $('chatInput');
+  if (chatInput) {
+    chatInput.value = buildWikiCurationPrompt(binding.topic, binding.courseId, mode);
+  }
+
+  const result = await curateStudyWiki({
+    mode,
+    url,
+    curriculum,
+    topic: binding.topic,
+    raw_source: rawSource,
+    template: rawSource ? undefined : 'education-concept',
+    agentId: binding.agentId || STUDY_TUTOR_AGENT_ID,
+  });
+
+  renderStudyWikiCuratePanel(result);
+  if (!result.success) {
+    toast(`Wiki curation failed: ${result.error || 'unknown'}`, 'error');
+    return { ok: false, error: 'CURATE_FAILED', result };
+  }
+  const count = (result.notes || []).length;
+  toast(`Wiki curated ${count} note(s) into library`, 'info');
+  return { ok: true, result, binding };
+}
+
+
 export async function enterTutorEducationMode(opts = {}) {
   const toast = typeof opts.toast === 'function' ? opts.toast : showToast;
   let topic = String(opts.topic || '').trim();
@@ -464,6 +684,43 @@ export function initStudyEntry(callbacks = {}) {
     });
   }
 
+
+  const curateBtn = $('chatEducationModeCurateBtn');
+  if (curateBtn) {
+    curateBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await openWikiCurationInEducationMode({ toast: showToast });
+    });
+  }
+  const curateHideBtn = $('chatEducationModeCurateHideBtn');
+  if (curateHideBtn) {
+    curateHideBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      hideStudyWikiCuratePanel();
+    });
+  }
+  const curateLinkBtn = $('chatEducationModeCurateLinkBtn');
+  if (curateLinkBtn) {
+    curateLinkBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await runStudyWikiCuration({ mode: 'link', toast: showToast });
+    });
+  }
+  const curateCurriculumBtn = $('chatEducationModeCurateCurriculumBtn');
+  if (curateCurriculumBtn) {
+    curateCurriculumBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await runStudyWikiCuration({ mode: 'curriculum', toast: showToast });
+    });
+  }
+  const curateRawBtn = $('chatEducationModeCurateRawBtn');
+  if (curateRawBtn) {
+    curateRawBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await runStudyWikiCuration({ mode: 'link', raw_source: true, toast: showToast });
+    });
+  }
+
   const exitBtn = $('chatEducationModeExitBtn');
   if (exitBtn) {
     exitBtn.addEventListener('click', (e) => {
@@ -501,6 +758,8 @@ export function initStudyEntry(callbacks = {}) {
         getChatCtrl: opts.getChatCtrl || callbacks.getChatCtrl,
       }),
     openDueReviewsInEducationMode,
+    openWikiCurationInEducationMode,
+    runStudyWikiCuration,
     clearStudyEducationMode,
     getStudyEducationModeBinding,
     isStudyEducationModeActive,

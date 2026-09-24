@@ -1,9 +1,10 @@
-"""Education Learning OS agent tools for Tutor quiz / flashcard / due-review turns.
+"""Education Learning OS agent tools for Tutor quiz / flashcard / due-review / wiki curation.
 
 CARD-438: quiz/flashcard tools wrap ``quiz_engine`` + mastery ledger ops (same
 durable path as ``POST /api/education/quiz/grade``, mastery due/upsert).
 CARD-439: due-review list/complete + retention run for Tutor education mode.
-No bubble-theatre grades or fake due lists.
+CARD-440: wiki curation from links / curriculum into durable Wiki notes.
+No bubble-theatre grades or fake durable success.
 """
 
 from __future__ import annotations
@@ -570,6 +571,85 @@ class EducationTools:
             }
         )
 
+
+    def _wiki_tools(self):
+        from src.application.skills.wiki_tools import WikiTools
+
+        if self.wiki_root is not None:
+            return WikiTools(wiki_root=self.wiki_root)
+        return WikiTools()
+
+    def education_wiki_template_catalog(self) -> Dict[str, Any]:
+        """List catalogued education-* Wiki templates for Learning OS curation."""
+        from src.application.education.wiki_curation import (
+            HTTP_CONTRACT,
+            SKILL_ID,
+            catalog_education_templates,
+        )
+
+        items = catalog_education_templates()
+        return _json_safe(
+            {
+                "success": True,
+                "count": len(items),
+                "templates": items,
+                "skill_hint": SKILL_ID,
+                "http_contract": HTTP_CONTRACT,
+                "note": "Use education-* templates when curating education notes; raw sources MAY omit education tags.",
+            }
+        )
+
+    def education_wiki_curate_from_link(
+        self,
+        url: str = "",
+        topic: str = "",
+        title: str = "",
+        template: str = "",
+        raw_source: bool = False,
+        body: str = "",
+        agent_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Curate a link into a durable Wiki note (wiki_note_create / One-Door)."""
+        from src.application.education.wiki_curation import curate_from_link
+
+        _ = agent_id  # reserved for future agent-scoped wiki roots
+        tools = self._wiki_tools()
+        result = curate_from_link(
+            tools,
+            url=url or "",
+            topic=topic or "",
+            title=(title or None),
+            template=(template or None),
+            raw_source=bool(raw_source),
+            body=(body or None),
+        )
+        return _json_safe(result)
+
+    def education_wiki_curate_from_curriculum(
+        self,
+        curriculum: str = "",
+        topic: str = "",
+        template: str = "",
+        raw_source: bool = False,
+        max_items: int = 12,
+        agent_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Curate a curriculum outline into durable Wiki note(s)."""
+        from src.application.education.wiki_curation import curate_from_curriculum
+
+        _ = agent_id
+        tools = self._wiki_tools()
+        result = curate_from_curriculum(
+            tools,
+            curriculum=curriculum or "",
+            topic=topic or "",
+            template=(template or None),
+            raw_source=bool(raw_source),
+            max_items=int(max_items or 12),
+        )
+        return _json_safe(result)
+
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register Education Learning OS tools on the master ScopedToolRegistry."""
         registry.register_tool(
@@ -810,4 +890,76 @@ class EducationTools:
                 "required": [],
             },
             handler=self.education_retention_run,
+        )
+
+        registry.register_tool(
+            name="education_wiki_template_catalog",
+            description=(
+                "List catalogued education-* Wiki templates for Learning OS skill "
+                "education-wiki-curation (from src/application/education/templates.py)."
+            ),
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=self.education_wiki_template_catalog,
+        )
+        registry.register_tool(
+            name="education_wiki_curate_from_link",
+            description=(
+                "Curate a link into a durable Wiki note via wiki_note_create "
+                "(POST /api/education/wiki/curate mode=link). Use catalogued education-* "
+                "templates when appropriate; set raw_source=true to omit education tags. "
+                "On fetch/write failure returns success=false and does not claim the library updated."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "Absolute http(s) URL to curate."},
+                    "topic": {"type": "string", "description": "Study / course topic label."},
+                    "title": {"type": "string", "description": "Optional note title override."},
+                    "template": {
+                        "type": "string",
+                        "description": "Optional education-* template slug (default education-concept).",
+                    },
+                    "raw_source": {
+                        "type": "boolean",
+                        "description": "If true, stage a raw/source note without education tags.",
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Optional pre-fetched text (skips network fetch).",
+                    },
+                    "agent_id": {"type": "string"},
+                },
+                "required": ["url"],
+            },
+            handler=self.education_wiki_curate_from_link,
+        )
+        registry.register_tool(
+            name="education_wiki_curate_from_curriculum",
+            description=(
+                "Curate a curriculum outline (bullets) into durable Wiki note(s) via "
+                "wiki_note_create (POST /api/education/wiki/curate mode=curriculum). "
+                "Failures return success=false; never claim durable library success."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "curriculum": {
+                        "type": "string",
+                        "description": "Multiline curriculum outline / bullet list.",
+                    },
+                    "topic": {"type": "string"},
+                    "template": {
+                        "type": "string",
+                        "description": "Optional education-* template slug (default education-concept).",
+                    },
+                    "raw_source": {
+                        "type": "boolean",
+                        "description": "If true, one raw outline note without education tags.",
+                    },
+                    "max_items": {"type": "integer", "description": "Max curriculum items (default 12)."},
+                    "agent_id": {"type": "string"},
+                },
+                "required": ["curriculum"],
+            },
+            handler=self.education_wiki_curate_from_curriculum,
         )

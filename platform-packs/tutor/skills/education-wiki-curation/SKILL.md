@@ -1,7 +1,7 @@
 ---
 name: Education Wiki Curation (Library)
-description: Curate education notes into the Wiki library using education-* templates; links/curriculum ingestion UX owned by CARD-440.
-version: 1.0.0
+description: Curate education notes into the Wiki library from links / curriculum using education-* templates (raw sources MAY omit education tags).
+version: 1.1.0
 tier: platform
 requires_tools:
   - wiki_note_read
@@ -11,43 +11,49 @@ requires_tools:
   - wiki_note_update
   - wiki_template_list
   - wiki_template_read
+  - education_wiki_template_catalog
+  - education_wiki_curate_from_link
+  - education_wiki_curate_from_curriculum
 safety:
   read_only: false
   requires_hitl: false
   untrusted_input_allowed: false
 verification:
   kind: assertion
-  rule: Education-mode Tutor invokes this named Learning OS skill; durable Learning OS APIs or Wiki templates are cited; no invented backend.
+  rule: Education-mode Tutor invokes this named Learning OS skill; durable wiki/curate or wiki_note_create paths are used; failures never claim library updated.
 ---
 
 # Education Wiki Curation (Library)
 
-Treat Wiki as the education library. Curate structured notes with authorized education templates.
+Treat Wiki as the education library. Curate from **links** and **curriculum outlines** into durable notes.
 
-## Durable contracts / templates (exist today)
+## Durable contracts (CARD-440)
 
-- Template catalog: `src/application/education/templates.py` (`list_education_templates`, `get_template_for_step`)
-- Wiki files: `data/wiki/02_Resources/_Templates/education-*.md`
-- Priming write-back: `POST /api/education/priming/writeback` (`education_priming.py`)
-- Portfolio: `POST /api/education/course/portfolio/create`
-- Seed runbooks (not Tutor pack ids): `src/infrastructure/skills/seeds/education-priming|dual-coding|construction|application`
+- `POST /api/education/wiki/curate` — mode=`link`|`curriculum`
+- `GET /api/education/wiki/templates` — catalogued `education-*` templates
+- Template catalog: `src/application/education/templates.py`
+- Application path: `src/application/education/wiki_curation.py`
+- Notes stage via `wiki_note_create` (One-Door → `00_Inbox/`)
 
-## Agent tools (callable now)
+## Agent tools
 
-Use catalog wiki tools only: `wiki_note_search`, `wiki_note_read`, `wiki_note_list`, `wiki_note_create`, `wiki_note_update`, `wiki_template_list`, `wiki_template_read`. Stage new notes in `00_Inbox/`. Prefer `template:` front matter matching an `education-*` slug.
+- `education_wiki_template_catalog`
+- `education_wiki_curate_from_link`
+- `education_wiki_curate_from_curriculum`
+- Plus catalog wiki tools: `wiki_note_*`, `wiki_template_*`
 
-## Gap / successor
+## Tag / template policy
 
-Curation **from links / curriculum as a first-class Tutor path** (not Studio side panel) is **CARD-440**. This skill binds the library rails and templates; it does not invent a link-ingest API.
+- When education templates apply, use catalogued `education-*` slugs (default `education-concept`).
+- Raw / source notes **MAY omit education tags** (`raw_source=true`).
+- On fetch or wiki-write failure: report error; **do not** claim the library was updated.
 
 ## Done-when
 
-- Education note lands (or is updated) under an authorized `education-*` template with honest wiki path cited.
-
+- Operator can curate one link and one curriculum outline from Tutor education mode.
+- Notes land under wiki root and are readable via `wiki_note_read`.
+- Education Studio wiki grounding UI remains.
 
 ## Hard rails (CARD-436 / CARD-435)
 
-Education-mode Tutor **must** use a named Learning OS skill (this skill or a sibling Learning OS skill id). Open vibes and freeform chat without a named Learning OS skill are **non-product**. `socratic-tutoring` is the dialogue method used *inside* Learning OS turns; it is not a bypass of these rails.
-
-If a required HTTP/tool binding is not yet callable from the agent tool lane, do not invent a fake tool. Cite the durable `/api/education/*` contract below and the owning successor card. Studio UI remains alive until CARD-442.
-
+Education-mode Tutor **must** use a named Learning OS skill. Open vibes without a named Learning OS skill are **non-product**. `socratic-tutoring` is dialogue method inside Learning OS turns, not a rails bypass.

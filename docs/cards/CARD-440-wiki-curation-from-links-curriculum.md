@@ -1,7 +1,7 @@
 ---
 id: CARD-440
 title: "Wiki Curation from Links / Curriculum (Tutor + Learning OS Path)"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-440] Wiki Curation from Links / Curriculum (Tutor + Learning OS Path)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
@@ -102,6 +102,16 @@ Do **not** write product code until Jacob says **build** on this card.
 - Reuse wiki note tools/APIs; no dual corpus truth.
 
 ---
+
+
+
+## Implementation note (In Review)
+
+- Branch: `feat/card-440-wiki-curation-from-links-curriculum`
+- Durable API: `POST /api/education/wiki/curate`, `GET /api/education/wiki/templates`
+- Tools: `education_wiki_template_catalog`, `education_wiki_curate_from_link`, `education_wiki_curate_from_curriculum`
+- Study UI: `#chatEducationModeCurateBtn` / `#chatEducationModeCuratePanel`
+- After live proof: say **`merge to qa`**
 
 ## 5. Reply phrases
 
