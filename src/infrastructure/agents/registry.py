@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.sysadmin_tools import SysadminTools
 from src.application.skills.system_agent_tools import SystemAgentTools
+from src.application.skills.education_tools import EducationTools
 from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.agents.profiles import (
@@ -262,6 +263,14 @@ class BuiltinAgentRegistry:
         # 1. Universal Wiki Tools -> Assistant, AutoReiv, Custom Agents
         wiki_tools = WikiTools(wiki_root=resolved_wiki_root)
         wiki_tools.register_tools(tool_registry)
+
+        # 1b. Education Learning OS tools -> Tutor quiz/flashcard turns [CARD-438]
+        education_tools = EducationTools(
+            data_dir=data_root,
+            wiki_root=resolved_wiki_root,
+            default_agent_id="tutor",
+        )
+        education_tools.register_tools(tool_registry)
 
         # Spec-driven SDLC projects service for root resolution
         from src.application.sdlc.projects_service import ProjectsService
