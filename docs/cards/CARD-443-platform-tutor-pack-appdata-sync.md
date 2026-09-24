@@ -120,3 +120,7 @@ Do not write product code until Jacob says **build** on this card.
 - Refine the promotion contract: say **continue**.
 - Start implementation: say **build**.
 - After clean and user-modified live proof: say **merge to qa**.
+
+## 6. Finding from CARD-444 live test
+
+During the CARD-444 sync, AppData `pack.json` and `SKILL.md` were updated and serve was restarted, but Tutor's SQLite-backed agent profile `system_prompt` stayed on the old prompt: `GET /api/agents/tutor` lacks the CARD-444 clause. CARD-443 must also resync the pack `system_prompt` into the stored agent profile without clobbering user edits such as `max_turns=100`.
