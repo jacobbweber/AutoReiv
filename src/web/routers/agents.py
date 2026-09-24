@@ -925,3 +925,82 @@ async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
             "latency_ms": round(latency_ms, 2),
             "error": str(exc),
         }
+
+
+# --- CARD-443 platform pack AppData promotion ---
+
+
+@router.get("/api/platform-packs/sync-status")
+async def platform_packs_sync_status(request: Request):
+    """Last platform-pack -> AppData promotion report [CARD-443 / REQ-443-003]."""
+    store = getattr(request.app.state, "state_store", None) or getattr(
+        getattr(request.app.state, "registry", None), "state_store", None
+    )
+    from src.infrastructure.skills.platform_pack_promotion import get_last_platform_pack_sync_report
+
+    report = get_last_platform_pack_sync_report(store)
+    return report or {"triggered_at": None, "results": []}
+
+
+@router.post("/api/platform-packs/sync")
+async def platform_packs_sync_now(request: Request):
+    """Re-run platform pack promotion without full process restart [CARD-443]."""
+    from src.infrastructure.data.resolver import repo_root
+    from src.infrastructure.skills.platform_pack_promotion import promote_platform_packs
+
+    registry = request.app.state.registry
+    tools = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
+    data_dir = _data_dir_root(request)
+    if data_dir is None:
+        raise HTTPException(status_code=500, detail="data_dir unavailable")
+    report = promote_platform_packs(
+        data_dir,
+        registry,
+        tools,
+        checkout_root=repo_root(),
+    )
+    return report.to_dict()
+
+
+@router.post("/api/agents/{agent_id}/accept-platform-seed")
+async def accept_platform_seed(request: Request, agent_id: str):
+    """Clear user_modified lock and promote platform seed for one pack [CARD-443]."""
+    from src.application.agent_packs.schema import is_platform_pack
+    from src.infrastructure.data.resolver import repo_root
+    from src.infrastructure.skills.platform_pack_promotion import promote_platform_packs
+
+    if not is_platform_pack(agent_id):
+        raise HTTPException(status_code=400, detail=f"'{agent_id}' is not a platform pack")
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+    store = getattr(registry, "state_store", None)
+    if store is not None and hasattr(store, "mark_agent_user_modified"):
+        store.mark_agent_user_modified(agent_id, modified=False)
+    profile.user_modified = False
+    if store is not None and hasattr(store, "save_custom_agent_profile"):
+        store.save_custom_agent_profile(profile)
+    # Clear override lock too when present
+    if store is not None and hasattr(store, "get_agent_override") and hasattr(store, "save_agent_override"):
+        ov = store.get_agent_override(agent_id)
+        if ov is not None:
+            ov.user_modified = False
+            store.save_agent_override(ov)
+
+    tools = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
+    data_dir = _data_dir_root(request)
+    if data_dir is None:
+        raise HTTPException(status_code=500, detail="data_dir unavailable")
+    report = promote_platform_packs(
+        data_dir,
+        registry,
+        tools,
+        checkout_root=repo_root(),
+        pack_ids=[agent_id],
+    )
+    return {
+        "agent_id": agent_id,
+        "user_modified_cleared": True,
+        "sync": report.to_dict(),
+    }
