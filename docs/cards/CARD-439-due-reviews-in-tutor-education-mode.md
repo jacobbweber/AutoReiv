@@ -1,7 +1,7 @@
 ---
 id: CARD-439
 title: "Due Reviews in Tutor Education Mode (SRS / Retention from Study)"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: none
 labels:
@@ -14,7 +14,7 @@ parent: CARD-435
 
 # [CARD-439] Due Reviews in Tutor Education Mode (SRS / Retention from Study)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `9f2e7b14` (after CARD-435 docs tip)
 > **ADR Reference**: none
@@ -101,6 +101,52 @@ Do **not** write product code until Jacob says **build** on this card.
 - No `main` merge, no GitHub PRs, no version bump for docs-only.
 
 ---
+
+
+
+---
+
+## Implementation notes (In Review)
+
+**Branch**: `feat/card-439-due-reviews-in-tutor-education-mode`
+
+### Chosen path (locked at build)
+
+| Surface | Mechanism | Durable twin |
+|---|---|---|
+| Tutor education-mode **Due reviews** button | `#chatEducationModeDueBtn` + `#chatEducationModeDuePanel` in Study strip (`study_entry.js`) | `GET /api/education/mastery/due` |
+| Skill `due-review` | Tools `education_due_review_list`, `education_due_review_complete`, `education_retention_run`, plus grade twins | mastery due + `POST /api/education/quiz/grade` + `POST /api/education/retention/run` |
+
+- Empty due queue → `empty=true` / `empty_state="No due reviews."` (no fake items).
+- Complete uses CARD-438 quiz-grade write path; reports `left_due_queue` / `still_due`.
+- Retention without orchestrator → honest failure (`no_orchestrator`); never invents job ids.
+- Delivery profiles must not replace ledger/SRS (tool copy + Study panel caption).
+- Education Studio `#educationDueList` / retention buttons **kept** (ADR-0059; players = CARD-446).
+
+### Delivered
+
+- `src/application/skills/education_tools.py` (due list/complete + retention run)
+- `platform-packs/tutor/pack.json` + `skills/due-review/SKILL.md`
+- `src/web/static/modules/studios/study_entry.js` + `index.html` education-mode due chrome
+- Inventory agent-tools column for `due-review`
+- Tests: `tests/unit/education/test_card439_due_reviews_in_tutor_education_mode.py`
+- Frontend: `tests/unit/frontend/card_439_due_reviews.test.js`
+
+### Live-test checklist (Jacob / Jarvis)
+
+1. Restart serve on tip; Ctrl+F5 Control Plane.
+2. **Study** → topic → Tutor education mode strip visible.
+3. Click **Due reviews** on the strip → panel lists items from `GET /api/education/mastery/due?agent_id=tutor` (or **No due reviews.**).
+4. Seed a due item if empty (Studio quiz grade miss, or mastery upsert + past `next_due`); Refresh; confirm list matches API.
+5. In Tutor chat (skill `due-review`), complete one item via `education_due_review_complete`; re-fetch due API — item left or rescheduled.
+6. Force grade failure (unknown `item_id`) — Tutor must not claim durable success.
+7. Education tab — Studio `#educationDueList` / Run retention still present.
+8. Automated: `pytest tests/unit/education/test_card439_due_reviews_in_tutor_education_mode.py -q` and vitest `card_439_due_reviews.test.js`.
+
+### After live proof
+
+Say **merge to qa**.
+
 
 ## 5. Reply phrases
 
