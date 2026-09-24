@@ -1,27 +1,30 @@
 ---
 id: CARD-446
-title: "Education Studio Flashcard / Quiz / Test Players (Interactive Decks; Build Last)"
+title: "Education Studio Operator + Players (Parent Program; ADR-0059 Amendment)"
 status: Ready
 created: 2026-09-23
 adr: ADR-0059
 labels:
-  - type:feature
+  - type:architecture
+  - type:planning
   - area:education
   - area:frontend
+  - area:tutor
   - P0
 parent: CARD-435
 ---
 
-# [CARD-446] Education Studio Flashcard / Quiz / Test Players (Interactive Decks; Build Last)
+# [CARD-446] Education Studio Operator + Players (Parent Program; ADR-0059 Amendment)
 
 > **Status**: Ready
 > **Created**: 2026-09-23
-> **Baseline**: qa after CARD-438 merge + ADR-0059 product lock
-> **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)
-> **Labels**: 	ype:feature, rea:education, rea:frontend, P0
+> **Baseline**: `qa` after CARD-441 Done + ADR-0059 operator+players amendment
+> **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) (amended: Studio = operator + players)
+> **Labels**: `type:architecture`, `type:planning`, `area:education`, `area:frontend`, `area:tutor`, `P0`
 > **Parent**: [CARD-435](./CARD-435-education-tutor-first-direction.md)
-> **Build order**: **LAST** after Tutor Learning OS cards **439 / 440 / 441** (and after **438** Done). Do **not** start before durable grading + due + progress paths are Done or In Review with proof as listed below.
+> **Build order**: **Parent** for Studio wave. Implementation slices: [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) **then** [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md). Do **not** mega-build from this parent alone.
 > **Supersedes retirement intent of**: [CARD-442](./CARD-442-retire-education-studio-landing.md)
+> **Extends**: earlier "players only" reading of this card / ADR-0059
 
 ---
 
@@ -29,11 +32,11 @@ parent: CARD-435
 
 | Jacob reply | Meaning |
 |-------------|---------|
-| **continue** | Refine player UX (flashcard vs quiz vs test), deck session shape - **still no product code** |
-| **uild** | Only after CARD-438 Done and CARD-439 / 440 / 441 Done or In Review with proof; then build Studio players |
-| **merge to qa** | After In Review + live operator proof on Jarvis Education tab players |
+| **`continue`** | Refine operator vs player split, successor slice boundaries, context injection shape — **still no product code** |
+| **`build`** | Say **`build`** on the next implementation slice ([CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) first), not a mega-build from this parent |
+| **`merge to qa`** | After In Review + live operator proof on the active implementation card |
 
-Do **not** write product code until Jacob says **build** on this card.
+Do **not** write product code from this parent until Jacob says **`build`** on a successor slice.
 
 ---
 
@@ -41,12 +44,24 @@ Do **not** write product code until Jacob says **build** on this card.
 
 | Relation | Cards |
 |----------|-------|
-| **Depends on (hard)** | [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md) **Done** (durable grade/ledger path); [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md), [CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md), [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) each **Done** or **In Review with proof** so coaching/due/library/progress exist before player polish |
-| **Blocked by** | Attempting player theatre with ephemeral-only scores; starting before Tutor Learning OS due/progress proof |
-| **Related** | [CARD-444](./CARD-444-flashcard-turn-skill-efficiency.md), [CARD-445](./CARD-445-tutor-education-mode-default-turn-budget.md) stay Tutor-side; do not block this card once 438/439/441 proof exists |
-| **Unlocks** | Education Studio as the dedicated interactive player surface (ADR-0059); Tutor remains coach + durable grader |
+| **Depends on (hard)** | [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md), [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md), [CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md), [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) **Done** (durable Learning OS APIs + temporary chat strip exist) |
+| **Blocked by** | Treating chat strip as permanent operator UI; players-only Studio without operator relocation; retiring Studio ([CARD-442](./CARD-442-retire-education-studio-landing.md)); ripping CARD-438–441 backends |
+| **Related** | [CARD-444](./CARD-444-flashcard-turn-skill-efficiency.md), [CARD-445](./CARD-445-tutor-education-mode-default-turn-budget.md) stay Tutor-side Ready; they do not block Studio operator/player work |
+| **Unlocks** | Education Studio as durable education **operator console + players**; Tutor coach with Studio topic/course context ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)) |
 
-**Explicit:** This card is **last** in the Tutor-first capability wave. Earlier cards capture Study/Tutor Learning OS. Studio is **kept** and **repurposed**, not retired ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
+**Explicit:** Tutor Learning OS APIs from CARD-438–441 **stay**. This program is **UI ownership + context wiring**, then players. Studio is **kept** and **extended**, not retired.
+
+---
+
+## Successor build order (clear)
+
+| Order | Card | Intent | Status |
+| --- | --- | --- | --- |
+| Parent | **CARD-446 (this card)** | Lock Studio = operator + players; point successors; no product code | Ready |
+| 1 (next build) | [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) | Relocate Due / Progress / Wiki curate (+ topic/course selection saved in Studio) out of chat strip into Education Studio; wire Tutor awareness of Studio active topic/course (Projects Studio ↔ Developer parallel) | Ready |
+| 2 | [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md) | Flashcard / quiz / test **players** on Education Studio; durable Learning OS grades | Ready |
+
+Say **`build`** on **CARD-447** to start product code for this wave.
 
 ---
 
@@ -54,61 +69,64 @@ Do **not** write product code until Jacob says **build** on this card.
 
 ### Beat 1: What Jacob means
 
-1. **Do not remove Education Studio.** Repurpose it into a **flashcard, quiz, and test player** — interactive decks/sessions, not just static panels.
-2. Tutor / chat Learning OS still owns coaching + durable grading; Studio is the dedicated **player UI**.
-3. Players must feel like real deck play (advance card, answer, see grade, next) on the Education tab.
+1. Chat education-mode strip was a **temporary** home for Due / Progress / Wiki curate / education-mode operator chrome.
+2. **Education Studio** is the real education **console + players**: topic/course selection saved in Studio, Due, Progress, Wiki curate, **and** flashcard/quiz/test players.
+3. **Tutor** stays the coach (conversation + skills/tools/wiki templates) and must be aware of the topic/course active in Studio — same idea as Projects Studio active project path for Developer.
+4. Do **not** remove Education Studio. Do **not** leave "players only" as the reading of this program.
 
 ### Beat 2: What AutoReiv does now
 
-1. #tab-education / #view-education / #educationStudio still present; ducation.js owns Ask, course chrome, quiz/SRS panels, labs, amplifiers (panel farm, not a focused player).
-2. Durable grading exists for chat via CARD-438 agent tools + /api/education/quiz/grade / mastery APIs; Studio quiz helpers (gradeEducationAnswerLocal + API path) still exist as reference.
-3. CARD-442 previously planned to **retire** this landing after 436..441 — **cancelled** by ADR-0059 / this card.
-4. Lumina remains a separate studio and is out of scope.
+1. `#tab-education` / `#view-education` / `#educationStudio` still present; `education.js` owns Ask, course chrome, quiz/SRS panels, labs, amplifiers (engineering-heavy panel farm, not yet a focused operator+player console).
+2. Study entry (CARD-437) opens Tutor education mode; `#chatEducationModeStrip` hosts topic/course/skill chrome.
+3. CARD-439 / 440 / 441 added **Due reviews**, **Wiki curate**, and **Progress** panels onto the Tutor education-mode strip (temporary operator home).
+4. Durable Learning OS grade/due/curation/progress APIs and Tutor tools from CARD-438–441 are live.
+5. ADR-0059 initially locked Studio as **players** only; CARD-442 retirement remains Superseded.
+6. Lumina remains a separate studio and is out of scope.
 
 ### Beat 3: What will change
 
-1. Refocus Education Studio UX into **three player modes**: flashcard player, quiz player, and test player (interactive deck/session chrome on #view-education).
-2. Each player session reads/writes the **same durable Learning OS** paths Tutor uses (quiz grade / mastery due/upsert / documented equivalents) — no ephemeral-only Studio scores.
-3. Keep Study / Tutor education mode as the coaching entry; Studio player is complementary, not a second Study destination that bypasses Learning OS rails.
-4. Prune or demote non-player panel-farm chrome only as needed to make players honest; this is **not** CARD-434 monolith-split-as-success and **not** a nav retirement.
+1. **Governance lock**: Studio role = **operator surface + players** ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) amendment).
+2. **CARD-447**: Move strip operator UI into Studio; persist/select active topic/course in Studio; inject that context into Tutor (like active project path).
+3. **CARD-448**: Refocus Studio interactive UX into flashcard / quiz / test players on the same durable Learning OS paths.
+4. Tutor chat stays coaching; thin context indicator may remain; dense strip is not the long-term operator UI.
+5. Prune or demote non-player / non-operator panel-farm chrome only as needed for honest console+players — **not** CARD-434 monolith-split-as-success and **not** nav retirement.
 
-**Out of scope:** Retiring/hiding #tab-education (superseded CARD-442); Lumina; CARD-434 submodule decomposition as the goal; Tutor skill efficiency ([CARD-444](./CARD-444-flashcard-turn-skill-efficiency.md)); turn-budget defaults ([CARD-445](./CARD-445-tutor-education-mode-default-turn-budget.md)); merging to main; version bump solely for docs.
+**Out of scope (this parent):** Implementing frontend moves; retiring/hiding `#tab-education`; Lumina; CARD-434 submodule decomposition as the goal; Tutor skill efficiency ([CARD-444](./CARD-444-flashcard-turn-skill-efficiency.md)); turn-budget defaults ([CARD-445](./CARD-445-tutor-education-mode-default-turn-budget.md)); merging to main; version bump solely for docs; ripping CARD-438–441 APIs.
 
 ### Beat 4: What dies today
 
 1. **"Retire Education Studio landing"** as the end state of CARD-442 / the CARD-435 retirement fork.
-2. Treating Education Studio as disposable vestigial chrome once Tutor covers chat turns.
-3. Player UX that shows grades without Learning OS ledger writes.
+2. **Chat strip as permanent education operator UI.**
+3. **"Players only"** reading of CARD-446 / ADR-0059 without operator relocation and Tutor↔Studio context.
+4. Treating Education Studio as disposable vestigial chrome once Tutor covers chat turns.
+5. Player or operator UX that shows grades/progress without Learning OS ledger writes.
 
 ---
 
-## 2. Acceptance criteria
+## 2. Acceptance criteria (planning parent)
 
-- **[REQ-446-001]** WHEN Jacob says **build** and CARD-438 is Done and CARD-439/440/441 are Done or In Review with proof, THE SYSTEM SHALL provide Education Studio **flashcard**, **quiz**, and **test** player surfaces on #view-education (or documented Education tab equivalent).
-- **[REQ-446-002]** WHEN the learner completes an item in a Studio player, THE SYSTEM SHALL persist durable grade/progress via Learning OS APIs (same family as CARD-438: quiz grade and/or mastery upsert/course mastery grade).
-- **[REQ-446-003]** WHEN the browser hard-refreshes after a player session, THE OPERATOR PATH SHALL still see that progress in mastery/due/next (or documented equivalent) without relying on in-memory panel state.
-- **[REQ-446-004]** THE SYSTEM SHALL NOT remove the Education Studio tab/landing as success criteria for this card (Studio stays per ADR-0059).
-- **[REQ-446-005]** THE SYSTEM SHALL NOT treat splitting ducation.js into ducation/* submodules as success criteria (CARD-434 stays Superseded).
-- **[REQ-446-006]** Lumina Studio SHALL remain available (not retired or coupled by this card).
+- **[REQ-446-001]** This card locks Education Studio as **operator surface + players** and Tutor as coach with Studio topic/course context, matching [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md).
+- **[REQ-446-002]** Successor implementation cards [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) and [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md) are scaffolded Ready with plain full requirements and a clear build order (447 then 448).
+- **[REQ-446-003]** THE PROGRAM SHALL NOT treat removing Education Studio or keeping chat strip forever as success.
+- **[REQ-446-004]** THE PROGRAM SHALL NOT rip or reverse CARD-438–441 durable Learning OS APIs; UI may relocate under ADR-0059.
+- **[REQ-446-005]** Lumina Studio SHALL remain available (not retired or coupled by this program).
+- **[REQ-446-006]** THE SYSTEM SHALL NOT treat splitting `education.js` into `education/*` submodules as success criteria (CARD-434 stays Superseded).
 
 ---
 
 ## 3. Proof / live-test notes
 
-1. Pre-flight: CARD-438 Done; CARD-439/440/441 Done or In Review with proof links before cutting eat/card-446-*.
-2. Open Education tab — flashcard player: run a short deck; confirm durable mastery/due change; hard-refresh.
-3. Quiz player: answer graded item; confirm /api/education/quiz/grade or mastery path wrote; hard-refresh.
-4. Test player: multi-item session completes with durable results (exact shape locked at **build**).
-5. Confirm Study / Tutor education mode still works; confirm Lumina still opens.
-6. Failure modes: grade API failure surfaces; no fake success in player chrome.
-7. Automated: contract tests for player grade write + refresh-visible ledger; nav still exposes Education tab.
+Proof lives on successor cards:
+
+1. CARD-447: Studio hosts Due / Progress / Wiki curate + saved topic/course; Tutor turns see that context; chat strip is no longer the required operator home; hard-refresh keeps Studio selection.
+2. CARD-448: flashcard / quiz / test players write durable Learning OS grades; hard-refresh shows ledger progress; Study/Tutor coaching still works; Lumina still opens.
 
 ---
 
 ## 4. Constraints
 
-- Branch: eat/card-446-* from qa only after **build** and dependency proof.
-- **No product code** until **build**.
+- Docs / planning only on this parent until Jacob says **`build`** on CARD-447 (then CARD-448).
+- Branch any implementation off `qa` only after **`build`** on that slice.
 - Do not implement [CARD-442](./CARD-442-retire-education-studio-landing.md) retirement.
 - Do not implement [CARD-434](./CARD-434-education-studio-monolith-decomposition.md).
 - No main merge, no GitHub PRs, no version bump for docs-only scaffolding.
@@ -118,6 +136,6 @@ Do **not** write product code until Jacob says **build** on this card.
 
 ## 5. Reply phrases
 
-- Refine player UX: say **continue**.
-- Start implementation (only with 438 Done + 439/440/441 proof): say **build**.
-- After live proof: say **merge to qa**.
+- Refine program / successors: say **`continue`**.
+- Start implementation: say **`build`** on **CARD-447** (then later **`build`** on **CARD-448**).
+- After live proof on a slice: say **`merge to qa`**.

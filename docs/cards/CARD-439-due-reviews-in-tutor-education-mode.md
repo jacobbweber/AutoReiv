@@ -159,3 +159,12 @@ Say **merge to qa**.
 - Refine due UX: say **continue**.
 - Start implementation: say **build**.
 - After live proof: say **merge to qa**.
+
+---
+
+## Pointer (2026-09-23) — Due reviews strip UI may relocate; Done stands
+
+This card remains **Done**. Durable Learning OS APIs/tools shipped correctly.
+
+[ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) Decision update: chat education-mode strip operator chrome was temporary. Due reviews strip UI **may relocate** to Education Studio under [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) (parent [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)). Do **not** reverse this Done card; backends stay.
+

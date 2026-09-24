@@ -177,3 +177,12 @@ Say **merge to qa**.
 - Refine entry UX: say **continue**.
 - Start implementation: say **build**.
 - After live proof: say **merge to qa**.
+
+---
+
+## Pointer (2026-09-23) — strip UI may relocate; Done stands
+
+This card remains **Done**. Study entry, durable `POST /api/education/course/start` + `POST /api/education/tutor/context`, and education-mode rails shipped correctly.
+
+[ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) Decision update: `#chatEducationModeStrip` (and later Due/Progress/Wiki curate chrome on that strip) was a **temporary** operator home. Education Studio becomes the long-term operator console + players. Relocation and Tutor awareness of Studio-saved topic/course are owned by [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) under parent [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md). Do **not** treat this Done card as wrong; durable Study entry APIs stay.
+

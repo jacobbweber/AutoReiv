@@ -1,6 +1,6 @@
 ---
 id: CARD-435
-title: "Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Player"
+title: "Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Operator + Players"
 status: Ready
 created: 2026-09-23
 adr: ADR-0059
@@ -14,7 +14,7 @@ labels:
   - P0
 ---
 
-# [CARD-435] Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Player
+# [CARD-435] Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Operator + Players
 
 > **Status**: Ready
 > **Created**: 2026-09-23
@@ -119,7 +119,7 @@ Scaffolded successor implementation cards (**build order**; earlier = build firs
 | # | Fork | Locked decision |
 |---|------|-----------------|
 | 1 | Study entry | **Tutor in education mode** (or thin Study = Tutor + course context). Not the Education Studio panel farm. |
-| 2 | Education Studio landing / bottom-nav | **Stays** (ADR-0059). Repurposed as flashcard/quiz/test **player** ([CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md)). Not the Study/coaching destination. Do not monolith-split as first build (CARD-434 still Superseded). |
+| 2 | Education Studio landing / bottom-nav | **Stays** (ADR-0059 amended). Role = **operator surface + players** (topic/course saved in Studio; Due/Progress/Wiki curate; flashcard/quiz/test players). Parent [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md); build [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) then [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md). Not the Study/coaching destination. Do not monolith-split as first build (CARD-434 still Superseded). |
 | 3 | Learning OS role | **Tutor’s operating system** — named skills/templates. |
 | 4 | Wiki role | **Library / curated corpus**. |
 | 5 | Lumina Studio | **Stays**; separate video effort later. |
@@ -204,4 +204,41 @@ Studio **player** card is **last** ([ADR-0059](../adr/0059-education-studio-as-q
 Related Ready (not in the 1..7 spine): [CARD-443](./CARD-443-platform-tutor-pack-appdata-sync.md), [CARD-444](./CARD-444-flashcard-turn-skill-efficiency.md), [CARD-445](./CARD-445-tutor-education-mode-default-turn-budget.md).
 
 This planning parent stays **Ready** while guiding the wave. Say **build** on each successor card individually - not a mega-build from this parent alone. No product code until Jacob says **build** on that card.
+
+---
+
+## Amendment (2026-09-23) — Education Studio = operator + players
+
+Jacob follow-on product lock (after players-only ADR-0059):
+
+1. **Education Studio** = education **operator surface + players** (topic/course selection saved in Studio; Due reviews; Progress; Wiki curate; flashcard/quiz/test players).
+2. **Tutor chat** = conversation + skills/tools/wiki templates. Dense chat education-mode strip (Due / Progress / Wiki curate / education-mode chrome that duplicates Studio) **moves into Education Studio** — not the long-term home.
+3. **Context model**: Tutor must be aware of the topic/course active/saved in Education Studio (Projects Studio ↔ Developer active-project parallel).
+4. Learning OS APIs from CARD-438–441 **stay**; this is UI ownership + context wiring.
+
+Recorded in [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) Decision update.
+
+| Was (players-only reading) | Now |
+|----------------------------|-----|
+| Studio role = flashcard/quiz/test **player** only | Studio = **operator + players** |
+| LAST single card CARD-446 players | Parent [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md); build [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) then [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md) |
+| Chat strip hosts Due/Progress/Wiki curate as product home | Strip was **temporary**; Studio is the console |
+
+### Successor cards (build order) — updated
+
+Tutor Learning OS spine **436..441** remains Done (APIs stand; UI may relocate under ADR-0059). Studio wave:
+
+1. [CARD-436](./CARD-436-inventory-tutor-learning-os-rails.md) — Inventory + Tutor Learning OS rails (**Done**)
+2. [CARD-437](./CARD-437-study-entry-tutor-education-mode-thin-shell.md) — Study entry = Tutor education mode (**Done**; strip may later thin under CARD-447)
+3. [CARD-438](./CARD-438-chat-quiz-flashcard-turns-durable-grading.md) — Chat quiz/flashcard + durable grading (**Done**)
+4. [CARD-439](./CARD-439-due-reviews-in-tutor-education-mode.md) — Due reviews (**Done**; operator UI relocates to Studio on CARD-447)
+5. [CARD-440](./CARD-440-wiki-curation-from-links-curriculum.md) — Wiki curation (**Done**; operator UI relocates to Studio on CARD-447)
+6. [CARD-441](./CARD-441-progress-you-can-trust-non-studio-surface.md) — Progress you can trust (**Done**; operator UI relocates to Studio on CARD-447)
+7. [CARD-446](./CARD-446-education-studio-flashcard-quiz-test-players.md) — **Parent:** Education Studio operator + players program (**Ready**)
+8. [CARD-447](./CARD-447-education-studio-operator-strip-and-tutor-context.md) — **Next build:** relocate strip + Tutor↔Studio topic/course context (**Ready**)
+9. [CARD-448](./CARD-448-education-studio-flashcard-quiz-test-players.md) — Studio flashcard/quiz/test **players** after 447 (**Ready**)
+
+Related Ready (not in Studio spine): [CARD-443](./CARD-443-platform-tutor-pack-appdata-sync.md), [CARD-444](./CARD-444-flashcard-turn-skill-efficiency.md), [CARD-445](./CARD-445-tutor-education-mode-default-turn-budget.md).
+
+Say **`build`** on **CARD-447** to start Studio implementation. No product code from this parent alone.
 

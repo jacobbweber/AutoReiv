@@ -2,6 +2,7 @@
 
 ### Changed
 
+- **ADR-0059 amendment / Education Studio operator + players**: Education Studio is the education **operator surface + players** (topic/course selection saved in Studio; Due reviews; Progress; Wiki curate; flashcard/quiz/test players). Tutor stays coach with Studio topic/course context (Projects Studio ↔ Developer parallel). Chat education-mode strip is **not** the permanent operator UI — relocate under [CARD-447](docs/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md). Parent [CARD-446](docs/cards/CARD-446-education-studio-flashcard-quiz-test-players.md); players [CARD-448](docs/cards/CARD-448-education-studio-flashcard-quiz-test-players.md). CARD-437..441 Done APIs stand; UI may relocate. [CARD-435](docs/cards/CARD-435-education-tutor-first-direction.md) + inventory pointers updated ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
 - **ADR-0059 / Education Studio product lock**: Education Studio is **not** retired. It is repurposed as the flashcard / quiz / test **player**. [CARD-442](docs/cards/CARD-442-retire-education-studio-landing.md) Superseded; [CARD-446](docs/cards/CARD-446-education-studio-flashcard-quiz-test-players.md) Ready (build last after 438 Done + 439/440/441 proof). [CARD-435](docs/cards/CARD-435-education-tutor-first-direction.md) amended. Tutor Learning OS skills remain ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
 - **CARD-438 Done**: Chat quiz/flashcard durable grading merged to qa; Studio kept; player card CARD-446 queued.
 

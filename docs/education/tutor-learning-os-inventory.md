@@ -1,7 +1,9 @@
 # Tutor Learning OS Inventory (CARD-436)
 
 > Living inventory for the Education Tutor-first wave ([CARD-435](../cards/CARD-435-education-tutor-first-direction.md)).
-> Education Studio stays ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)); retirement [CARD-442](../cards/CARD-442-retire-education-studio-landing.md) is **Superseded**. Player work is [CARD-446](../cards/CARD-446-education-studio-flashcard-quiz-test-players.md) (build last).
+> Education Studio stays as **operator surface + players** ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) amended); retirement [CARD-442](../cards/CARD-442-retire-education-studio-landing.md) is **Superseded**.
+> Studio program parent: [CARD-446](../cards/CARD-446-education-studio-flashcard-quiz-test-players.md). Build order: [CARD-447](../cards/CARD-447-education-studio-operator-strip-and-tutor-context.md) (relocate chat strip operator UI + Tutor↔Studio topic/course context) **then** [CARD-448](../cards/CARD-448-education-studio-flashcard-quiz-test-players.md) (players).
+> Chat education-mode strip (Due / Progress / Wiki curate) was a **temporary** home after CARD-437..441; durable APIs stay.
 
 ## Hard rails (product policy)
 
@@ -10,6 +12,14 @@
 3. **Open vibes / freeform study chat without a named Learning OS skill are non-product.**
 4. Prefer named `education_*` agent tools when they exist (quiz/flashcard on CARD-438). If an agent tool for a Learning OS HTTP contract does **not** exist yet, **do not invent one**. Cite the durable `/api/education/*` path and the owning successor card. Studio remains the live caller until that successor lands.
 5. Residual chat hard-gate UX for vibes is owned by [CARD-437](../cards/CARD-437-study-entry-tutor-education-mode-thin-shell.md).
+
+
+## UI ownership lock (ADR-0059 amendment)
+
+* **Tutor** owns conversation + Learning OS skills/tools/wiki templates.
+* **Education Studio** owns education **operator surface** (topic/course selection saved in Studio; Due; Progress; Wiki curate) **and** flashcard/quiz/test **players**.
+* Tutor must inject/aware Studio-active topic/course (Projects Studio ↔ Developer parallel).
+* Disposition column "re-home" historically meant Tutor/Study; under the amendment, dense operator chrome **re-homes again into Studio** on CARD-447 while APIs stay.
 
 ## Named Tutor Learning OS skills
 
@@ -34,8 +44,8 @@ Sources walked: `src/web/static/modules/studios/education.js`, `#view-education`
 
 | Studio chrome | DOM / module anchors | Application module(s) | HTTP API | Durable store | Wiki template(s) | Tutor skill id | Disposition |
 |---|---|---|---|---|---|---|---|
-| Bottom-nav Education | `#tab-education` | shell | — | — | — | — | **keep** until CARD-442 |
-| Education view shell | `#view-education`, `#educationStudio` | education.js | — | localStorage `autoreiv.education.sessions.v1` | — | — | **keep** until CARD-442; entry re-home CARD-437 |
+| Bottom-nav Education | `#tab-education` | shell | — | — | — | — | **keep** (ADR-0059; operator+players via CARD-446/447/448) |
+| Education view shell | `#view-education`, `#educationStudio` | education.js | — | localStorage `autoreiv.education.sessions.v1` | — | — | **keep** (ADR-0059; operator+players via CARD-446/447/448); entry re-home CARD-437 |
 | Ask / Launch Study Session | `#educationAskForm`, `#educationTopicInput`, `#educationAskSubmitBtn`, `#educationMode*` | course, priming, tutor, environment | `POST /api/education/course/start`, `GET /api/education/course`, `POST /api/education/ask/pressure`, priming routes | `education_course`; Education Jobs | education-priming | `start-resume-topic` | **re-home** CARD-437 |
 | Discuss with Tutor | `#educationDiscussTutorBtn` | tutor.py | `POST /api/education/tutor/context` | session + wiki | — | `socratic-tutoring` + Learning OS skill for the turn | **re-home** CARD-437 |
 | Course chrome | `#educationCourseChrome`, steps, jump, status | course.py, depth.py, knowledge_types.py | `GET /api/education/course`, `POST /api/education/course/jump`, `POST /api/education/course/complete-step`, `GET /api/education/course/depth` | `education_course` | step templates via `get_template_for_step` | `start-resume-topic`, `progress-summary` | **re-home** 437/441 |
@@ -96,10 +106,10 @@ Autoreiv pack still mirrors `socratic-tutoring` for historical parity; Tutor is 
 | Remaining education surfaces without agent tools (wiki curation helpers, progress summary tools) | Due-review tools shipped on CARD-439; quiz/flashcard on CARD-438; Studio remains for other panels | CARD-440..441 |
 | No dedicated flashcard router | Shares mastery/SRS + quiz grade | CARD-438 / 439 |
 | Elaboration / construction / application Tutor skills | Not in day-one six; Studio panels remain SoT | later (after 437–441) |
-| Chat UX hard-gate for open vibes | Study entry (`study_entry.js`) refuses blank topic / missing Tutor; education-mode strip + `start-resume-topic` rails | CARD-437 (Done) |
+| Chat UX hard-gate for open vibes | Study entry (`study_entry.js`) refuses blank topic / missing Tutor; education-mode strip + `start-resume-topic` rails (strip may thin when Studio owns operator UI) | CARD-437 (Done); strip relocate CARD-447 |
 | Links / curriculum ingest API | `POST /api/education/wiki/curate` + `education_wiki_curate_from_*` tools (CARD-440) | CARD-440 (In Review) |
-| Non-Studio progress surface | APIs exist; UI still Studio chrome | CARD-441 |
-| Education Studio players (not retirement) | Explicitly out of this card; Studio kept per ADR-0059 | CARD-446 (CARD-442 Superseded) |
+| Non-Studio progress surface | APIs + Tutor strip shipped (CARD-441 Done); operator UI may relocate to Studio | CARD-441 Done; relocate CARD-447 |
+| Education Studio operator + players (not retirement) | Studio = operator console + players per ADR-0059 amendment; chat strip temporary | CARD-446 parent; CARD-447 strip+context; CARD-448 players (CARD-442 Superseded) |
 | `user_modified` Tutor allowlist | Seed sync updates non-`user_modified`; modified packs may need operator tick | live-proof note |
 
 ---
