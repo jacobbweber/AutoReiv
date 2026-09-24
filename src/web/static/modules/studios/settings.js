@@ -1496,17 +1496,16 @@ export function initSettingsStudio(state, callbacks = {}) {
     });
   }
 
-  // --- System & Software Updates [CARD-196, REQ-UPD-001..005] ---
+  // --- System & Software Updates [CARD-196 / CARD-451] ---
   const systemVersionPill = $('systemVersionPill');
   const systemDeploymentBadge = $('systemDeploymentBadge');
   const systemCommitSha = $('systemCommitSha');
+  const systemCommitSubject = $('systemCommitSubject');
   const systemBranchName = $('systemBranchName');
+  const systemAheadBehind = $('systemAheadBehind');
   const systemTreeStatus = $('systemTreeStatus');
-  const systemPlatform = $('systemPlatform');
-  const updateRepoUrlInput = $('updateRepoUrlInput');
-  const updateBranchInput = $('updateBranchInput');
-  const saveUpdateConfigBtn = $('saveUpdateConfigBtn');
-  const saveUpdateConfigStatus = $('saveUpdateConfigStatus');
+  const systemLastFetch = $('systemLastFetch');
+  const updateRemoteUrl = $('updateRemoteUrl');
   const checkForUpdatesBtn = $('checkForUpdatesBtn');
   const applyUpdateBtn = $('applyUpdateBtn');
   const updateStatusBanner = $('updateStatusBanner');
@@ -1515,50 +1514,141 @@ export function initSettingsStudio(state, callbacks = {}) {
   const updateNotesContainer = $('updateNotesContainer');
   const updateReleaseNotesText = $('updateReleaseNotesText');
   const updateManualDockerHelper = $('updateManualDockerHelper');
+  const updateBranchSelect = $('updateBranchSelect');
+  const switchBranchBtn = $('switchBranchBtn');
+  const switchBranchStatus = $('switchBranchStatus');
+  const autoUpdateEnabled = $('autoUpdateEnabled');
+  const autoUpdateTime = $('autoUpdateTime');
+  const saveAutoUpdateBtn = $('saveAutoUpdateBtn');
+  const saveAutoUpdateStatus = $('saveAutoUpdateStatus');
+  const autoUpdateLastResult = $('autoUpdateLastResult');
+  const updateHistoryList = $('updateHistoryList');
+  const applyUpdateDisabledReason = $('applyUpdateDisabledReason');
+  const updateBranchListHint = $('updateBranchListHint');
 
   let currentSystemVersion = null;
+
+  function formatLocalTimestamp(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    try {
+      return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch (_e) {
+      return d.toString();
+    }
+  }
+
+  function setTimestampEl(el, iso) {
+    if (!el) return;
+    if (!iso) {
+      el.textContent = 'never';
+      el.removeAttribute('title');
+      return;
+    }
+    el.textContent = formatLocalTimestamp(iso);
+    el.setAttribute('title', iso);
+  }
+
+
+  function showUpdateBanner(kind, message, notes) {
+    if (!updateStatusBanner) return;
+    updateStatusBanner.classList.remove('hidden');
+    const colors = {
+      ok: 'w-2 h-2 rounded-full bg-emerald-400',
+      warn: 'w-2 h-2 rounded-full bg-amber-400',
+      err: 'w-2 h-2 rounded-full bg-rose-500',
+    };
+    if (updateStatusDot) updateStatusDot.className = colors[kind] || colors.ok;
+    if (updateStatusMessage) updateStatusMessage.textContent = message || '';
+    if (notes && updateNotesContainer && updateReleaseNotesText) {
+      updateReleaseNotesText.textContent = notes;
+      updateNotesContainer.classList.remove('hidden');
+    } else if (updateNotesContainer) {
+      updateNotesContainer.classList.add('hidden');
+    }
+  }
+
+  function renderVersion(data) {
+    currentSystemVersion = data;
+    if (systemVersionPill) {
+      systemVersionPill.textContent = data.current_version ? `v${data.current_version}` : '-';
+    }
+    if (systemDeploymentBadge) {
+      const modeLabels = {
+        git: 'Git Clone',
+        docker: 'Docker Container',
+        systemd: 'Systemd Service',
+        windows_service: 'Windows Service',
+        standalone: 'Standalone',
+      };
+      systemDeploymentBadge.textContent = modeLabels[data.deployment_mode] || data.deployment_mode || '-';
+    }
+    if (systemCommitSha) systemCommitSha.textContent = data.commit || 'unknown';
+    if (systemCommitSubject) systemCommitSubject.textContent = data.subject || '';
+    if (systemBranchName) systemBranchName.textContent = data.branch || (data.detached_head ? '(detached)' : '-');
+    if (systemAheadBehind) {
+      if (!data.upstream) {
+        systemAheadBehind.textContent = 'No upstream';
+        systemAheadBehind.className = 'text-amber-400';
+        systemAheadBehind.title = 'This branch has no upstream tracking ref to compare against.';
+      } else {
+        const up = ` vs ${data.upstream}`;
+        const ahead = data.ahead == null ? '?' : data.ahead;
+        const behind = data.behind == null ? '?' : data.behind;
+        systemAheadBehind.textContent = `+${ahead} / -${behind}${up}`;
+        systemAheadBehind.className = 'text-slate-200';
+        systemAheadBehind.title = '';
+      }
+    }
+    if (systemTreeStatus) {
+      if (data.is_dirty) {
+        systemTreeStatus.textContent = 'Dirty (Uncommitted)';
+        systemTreeStatus.className = 'text-amber-400 font-semibold';
+      } else {
+        systemTreeStatus.textContent = 'Clean';
+        systemTreeStatus.className = 'text-emerald-400';
+      }
+    }
+    if (systemLastFetch) {
+      setTimestampEl(systemLastFetch, data.last_fetch_at);
+    }
+    if (updateRemoteUrl) {
+      updateRemoteUrl.value = data.remote_url || '';
+    }
+    if (updateManualDockerHelper) {
+      updateManualDockerHelper.classList.toggle('hidden', data.deployment_mode !== 'docker');
+    }
+    const gitOk = data.is_git && data.deployment_mode === 'git';
+    if (applyUpdateBtn) {
+      applyUpdateBtn.classList.toggle('hidden', !gitOk);
+      const noUpstream = gitOk && !data.upstream;
+      applyUpdateBtn.disabled = !!noUpstream;
+      if (applyUpdateDisabledReason) {
+        if (noUpstream) {
+          applyUpdateDisabledReason.textContent = 'Update now disabled: no upstream on this branch.';
+          applyUpdateDisabledReason.classList.remove('hidden');
+        } else {
+          applyUpdateDisabledReason.textContent = '';
+          applyUpdateDisabledReason.classList.add('hidden');
+        }
+      }
+    }
+    if (switchBranchBtn) switchBranchBtn.disabled = !gitOk;
+    if (updateBranchSelect) updateBranchSelect.disabled = !gitOk;
+  }
 
   async function loadSystemVersionInfo() {
     try {
       const res = await fetch('/api/system/version');
       if (!res.ok) return;
-      const data = await res.json();
-      currentSystemVersion = data;
-
-      if (systemVersionPill) {
-        systemVersionPill.textContent = data.current_version ? `v${data.current_version}` : '-';
-      }
-      if (systemDeploymentBadge) {
-        const modeLabels = {
-          git: 'Git Clone',
-          docker: 'Docker Container',
-          systemd: 'Systemd Service',
-          windows_service: 'Windows Service',
-          standalone: 'Standalone',
-        };
-        systemDeploymentBadge.textContent = modeLabels[data.deployment_mode] || data.deployment_mode || '-';
-      }
-      if (systemCommitSha) {
-        systemCommitSha.textContent = data.commit || 'unknown';
-      }
-      if (systemBranchName) {
-        systemBranchName.textContent = data.branch || '-';
-      }
-      if (systemTreeStatus) {
-        if (data.is_dirty) {
-          systemTreeStatus.textContent = 'Dirty (Uncommitted)';
-          systemTreeStatus.className = 'text-amber-400 font-semibold';
-        } else {
-          systemTreeStatus.textContent = 'Clean';
-          systemTreeStatus.className = 'text-emerald-400';
-        }
-      }
-      if (systemPlatform) {
-        systemPlatform.textContent = `${data.platform || '-'} (Py ${data.python_version || '-'})`;
-      }
-      if (updateManualDockerHelper) {
-        updateManualDockerHelper.classList.toggle('hidden', data.deployment_mode !== 'docker');
-      }
+      renderVersion(await res.json());
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load system version info:', err);
     }
@@ -1569,53 +1659,117 @@ export function initSettingsStudio(state, callbacks = {}) {
       const res = await fetch('/api/system/updates/config');
       if (!res.ok) return;
       const data = await res.json();
-      if (updateRepoUrlInput && !updateRepoUrlInput.value) {
-        updateRepoUrlInput.value = data.upstream_repo_url || '';
-      }
-      if (updateBranchInput && !updateBranchInput.value) {
-        updateBranchInput.value = data.tracked_branch || '';
-      }
+      if (autoUpdateEnabled) autoUpdateEnabled.checked = !!data.auto_update_enabled;
+      if (autoUpdateTime && data.auto_update_time) autoUpdateTime.value = data.auto_update_time;
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load update config:', err);
     }
   }
 
-  if (saveUpdateConfigBtn) {
-    saveUpdateConfigBtn.addEventListener('click', async () => {
-      const repoUrl = updateRepoUrlInput?.value.trim() || '';
-      const branch = updateBranchInput?.value.trim() || '';
-      if (!repoUrl) {
-        alert('Repository URL cannot be empty.');
+  async function loadAutoUpdateStatus() {
+    try {
+      const res = await fetch('/api/system/updates/auto-status');
+      if (!res.ok || !autoUpdateLastResult) return;
+      const data = await res.json();
+      if (!data.last_run_at) {
+        autoUpdateLastResult.textContent = 'Last auto-update: never';
+        autoUpdateLastResult.removeAttribute('title');
+      } else {
+        const when = formatLocalTimestamp(data.last_run_at);
+        autoUpdateLastResult.textContent = `Last auto-update: ${data.last_result || '?'} at ${when}${data.last_message ? ' — ' + data.last_message : ''}`;
+        autoUpdateLastResult.setAttribute('title', data.last_run_at);
+      }
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load auto-update status:', err);
+    }
+  }
+
+  async function loadUpdateHistory() {
+    try {
+      const res = await fetch('/api/system/updates/history?limit=15');
+      if (!res.ok || !updateHistoryList) return;
+      const data = await res.json();
+      const entries = data.entries || [];
+      if (!entries.length) {
+        updateHistoryList.innerHTML = '<li class="text-slate-500">No updates yet.</li>';
         return;
       }
+      updateHistoryList.innerHTML = entries
+        .map((e) => {
+          const sha = e.from_sha && e.to_sha ? `${e.from_sha} → ${e.to_sha}` : '';
+          const tsLabel = e.timestamp ? formatLocalTimestamp(e.timestamp) : '';
+          const tsTitle = e.timestamp ? ` title="${String(e.timestamp).replace(/"/g, '&quot;')}"` : '';
+          return `<li><span class="text-slate-500"${tsTitle}>${tsLabel}</span> · <span class="text-slate-200">${e.trigger}</span> · <span class="${e.result === 'success' ? 'text-emerald-400' : e.result === 'refused' || e.result === 'deferred' ? 'text-amber-400' : 'text-rose-400'}">${e.result}</span> · ${e.branch || ''} ${sha}<div class="text-slate-500 truncate">${e.message || ''}</div></li>`;
+        })
+        .join('');
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load update history:', err);
+    }
+  }
+
+  async function loadBranchList() {
+    if (!updateBranchSelect) return;
+    try {
+      const res = await fetch('/api/system/updates/branches');
+      if (!res.ok) {
+        if (updateBranchListHint) updateBranchListHint.textContent = 'Could not load branches.';
+        return;
+      }
+      const data = await res.json();
+      const branches = data.branches || [];
+      updateBranchSelect.innerHTML = '';
+      branches.forEach((b) => {
+        const opt = document.createElement('option');
+        opt.value = b.name;
+        const tags = [];
+        if (b.is_current) tags.push('current');
+        if (b.is_local) tags.push('local');
+        if (b.is_remote) tags.push('remote');
+        opt.textContent = tags.length ? `${b.name} (${tags.join(', ')})` : b.name;
+        if (b.is_current) opt.selected = true;
+        updateBranchSelect.appendChild(opt);
+      });
+      if (updateBranchListHint) {
+        const names = branches.map((b) => b.name);
+        updateBranchListHint.textContent = branches.length
+          ? `${branches.length} branches (includes ${['qa', 'main'].filter((n) => names.includes(n)).join(', ') || 'local/remote refs'})`
+          : 'No branches found.';
+      }
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load branches:', err);
+      if (updateBranchListHint) updateBranchListHint.textContent = 'Could not load branches.';
+    }
+  }
+
+  if (saveAutoUpdateBtn) {
+    saveAutoUpdateBtn.addEventListener('click', async () => {
       try {
-        saveUpdateConfigBtn.disabled = true;
-        saveUpdateConfigBtn.textContent = 'Saving...';
+        saveAutoUpdateBtn.disabled = true;
         const res = await fetch('/api/system/updates/config', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            upstream_repo_url: repoUrl,
-            tracked_branch: branch || 'qa',
+            auto_update_enabled: !!(autoUpdateEnabled && autoUpdateEnabled.checked),
+            auto_update_time: (autoUpdateTime && autoUpdateTime.value) || '03:00',
           }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        if (saveUpdateConfigStatus) {
-          saveUpdateConfigStatus.textContent = 'Settings saved.';
-          saveUpdateConfigStatus.classList.remove('hidden', 'text-rose-400');
-          saveUpdateConfigStatus.classList.add('text-emerald-400');
-          setTimeout(() => saveUpdateConfigStatus.classList.add('hidden'), 3000);
+        if (saveAutoUpdateStatus) {
+          saveAutoUpdateStatus.textContent = 'Preferences saved.';
+          saveAutoUpdateStatus.classList.remove('hidden', 'text-rose-400');
+          saveAutoUpdateStatus.classList.add('text-emerald-400');
+          setTimeout(() => saveAutoUpdateStatus.classList.add('hidden'), 3000);
         }
+        await loadAutoUpdateStatus();
       } catch (err) {
-        console.error('[AutoReiv UI] Failed to save update config:', err);
-        if (saveUpdateConfigStatus) {
-          saveUpdateConfigStatus.textContent = 'Failed to save settings.';
-          saveUpdateConfigStatus.classList.remove('hidden', 'text-emerald-400');
-          saveUpdateConfigStatus.classList.add('text-rose-400');
+        console.error('[AutoReiv UI] Failed to save auto-update config:', err);
+        if (saveAutoUpdateStatus) {
+          saveAutoUpdateStatus.textContent = 'Failed to save preferences.';
+          saveAutoUpdateStatus.classList.remove('hidden', 'text-emerald-400');
+          saveAutoUpdateStatus.classList.add('text-rose-400');
         }
       } finally {
-        saveUpdateConfigBtn.disabled = false;
-        saveUpdateConfigBtn.textContent = 'Save Repository Settings';
+        saveAutoUpdateBtn.disabled = false;
       }
     });
   }
@@ -1626,58 +1780,31 @@ export function initSettingsStudio(state, callbacks = {}) {
         checkForUpdatesBtn.disabled = true;
         const origHtml = checkForUpdatesBtn.innerHTML;
         checkForUpdatesBtn.innerHTML = '<span>Checking...</span>';
-
-        const branch = updateBranchInput?.value.trim() || '';
-        const query = branch ? `?branch=${encodeURIComponent(branch)}` : '';
-        const res = await fetch(`/api/system/updates/check${query}`);
+        const res = await fetch('/api/system/updates/check');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-
-        if (updateStatusBanner) {
-          updateStatusBanner.classList.remove('hidden');
-        }
-
+        await loadSystemVersionInfo();
+        await loadBranchList();
         if (data.error) {
-          if (updateStatusDot) updateStatusDot.className = 'w-2 h-2 rounded-full bg-rose-500';
-          if (updateStatusMessage) {
-            updateStatusMessage.textContent = `Check failed: ${data.error}`;
-          }
-          if (updateNotesContainer) updateNotesContainer.classList.add('hidden');
-          if (applyUpdateBtn) applyUpdateBtn.classList.add('hidden');
+          showUpdateBanner('err', `Check failed: ${data.error}`);
+        } else if (data.no_upstream) {
+          showUpdateBanner(
+            'warn',
+            data.message ||
+              `Branch '${data.channel || 'current'}' has no upstream to compare against.`
+          );
         } else if (data.update_available) {
-          if (updateStatusDot) updateStatusDot.className = 'w-2 h-2 rounded-full bg-amber-400';
-          const behindTxt = data.commits_behind ? ` (${data.commits_behind} commit(s) ahead on upstream)` : '';
-          if (updateStatusMessage) {
-            updateStatusMessage.textContent = `Update Available: ${data.remote_commit || 'Newer version'}${behindTxt}`;
-          }
-          if (data.release_notes && updateNotesContainer && updateReleaseNotesText) {
-            updateReleaseNotesText.textContent = data.release_notes;
-            updateNotesContainer.classList.remove('hidden');
-          } else if (updateNotesContainer) {
-            updateNotesContainer.classList.add('hidden');
-          }
-
-          if (applyUpdateBtn) {
-            const isCleanGit = currentSystemVersion?.is_git && !currentSystemVersion?.is_dirty;
-            applyUpdateBtn.classList.toggle('hidden', !isCleanGit);
-          }
+          const behindTxt = data.commits_behind ? ` (${data.commits_behind} behind)` : '';
+          showUpdateBanner('warn', `Update available: ${data.remote_commit || 'newer'}${behindTxt}`, data.release_notes || null);
         } else {
-          if (updateStatusDot) updateStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
-          if (updateStatusMessage) {
-            updateStatusMessage.textContent = `AutoReiv is up to date (${data.current_commit || 'HEAD'}).`;
-          }
-          if (updateNotesContainer) updateNotesContainer.classList.add('hidden');
-          if (applyUpdateBtn) applyUpdateBtn.classList.add('hidden');
+          showUpdateBanner('ok', `Up to date (${data.current_commit || 'HEAD'}).`);
         }
-
         checkForUpdatesBtn.innerHTML = origHtml;
         checkForUpdatesBtn.disabled = false;
         safeCreateIcons();
       } catch (err) {
         console.error('[AutoReiv UI] Update check error:', err);
-        if (updateStatusBanner) updateStatusBanner.classList.remove('hidden');
-        if (updateStatusDot) updateStatusDot.className = 'w-2 h-2 rounded-full bg-rose-500';
-        if (updateStatusMessage) updateStatusMessage.textContent = 'Upstream remote unreachable or offline.';
+        showUpdateBanner('err', 'Fetch failed or remote unreachable.');
         checkForUpdatesBtn.disabled = false;
         checkForUpdatesBtn.innerHTML = '<span>Check for Updates</span>';
       }
@@ -1687,34 +1814,72 @@ export function initSettingsStudio(state, callbacks = {}) {
   if (applyUpdateBtn) {
     applyUpdateBtn.addEventListener('click', async () => {
       const ok = confirm(
-        'Apply update now?\n\n' +
-        'AutoReiv will create a timestamped backup snapshot of your database and pull upstream changes using fast-forward merge.\n\n' +
-        'Continue?'
+        'Update now?\n\n' +
+          'AutoReiv will snapshot your database, fast-forward the current branch from origin, install dependencies if needed, then restart serve on the same host/port.\n\n' +
+          'Continue?'
       );
       if (!ok) return;
-
       try {
         applyUpdateBtn.disabled = true;
-        applyUpdateBtn.textContent = 'Applying Update...';
+        applyUpdateBtn.textContent = 'Updating...';
         const res = await fetch('/api/system/updates/apply', { method: 'POST' });
         const data = await res.json();
-
         if (data.success) {
-          alert(`Update Successful!\n\n${data.message}\n\nBackup created at: ${data.backup_path || 'data directory'}`);
+          showUpdateBanner('ok', data.message || `Updated to ${data.new_commit}.`);
           await loadSystemVersionInfo();
-          applyUpdateBtn.classList.add('hidden');
-          if (updateStatusMessage) {
-            updateStatusMessage.textContent = `Updated to ${data.new_commit}. Restart recommended.`;
-          }
+          await loadUpdateHistory();
         } else {
-          alert(`Update Aborted:\n\n${data.message}`);
+          showUpdateBanner('err', data.message || data.refusal_reason || 'Update refused.');
+          await loadUpdateHistory();
         }
       } catch (err) {
         console.error('[AutoReiv UI] Failed to apply update:', err);
-        alert('Failed to execute update: ' + err.message);
+        showUpdateBanner('err', 'Failed to execute update: ' + err.message);
       } finally {
         applyUpdateBtn.disabled = false;
-        applyUpdateBtn.textContent = 'Apply Update (Fast-Forward)';
+        applyUpdateBtn.textContent = 'Update now';
+      }
+    });
+  }
+
+  if (switchBranchBtn) {
+    switchBranchBtn.addEventListener('click', async () => {
+      const name = updateBranchSelect?.value?.trim() || '';
+      if (!name) {
+        alert('Select a branch first.');
+        return;
+      }
+      const ok = confirm(
+        `Switch to branch "${name}"?\n\n` +
+          'Requires a clean working tree. Serve will restart after a successful switch.\n\nContinue?'
+      );
+      if (!ok) return;
+      try {
+        switchBranchBtn.disabled = true;
+        const res = await fetch('/api/system/updates/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ branch: name }),
+        });
+        const data = await res.json();
+        if (switchBranchStatus) {
+          switchBranchStatus.classList.remove('hidden');
+          switchBranchStatus.textContent = data.message || '';
+          switchBranchStatus.className = `text-[11px] ${data.success ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        if (data.success) {
+          showUpdateBanner('ok', data.message || `Switched to ${name}.`);
+        } else {
+          showUpdateBanner('err', data.message || data.refusal_reason || 'Switch refused.');
+        }
+        await loadSystemVersionInfo();
+        await loadBranchList();
+        await loadUpdateHistory();
+      } catch (err) {
+        console.error('[AutoReiv UI] Branch switch failed:', err);
+        showUpdateBanner('err', 'Branch switch failed: ' + err.message);
+      } finally {
+        switchBranchBtn.disabled = false;
       }
     });
   }
@@ -1722,6 +1887,9 @@ export function initSettingsStudio(state, callbacks = {}) {
   loadRemoteHosts();
   loadSystemVersionInfo();
   loadUpdateConfig();
+  loadAutoUpdateStatus();
+  loadUpdateHistory();
+  loadBranchList();
 
   return {
     loadSettings,

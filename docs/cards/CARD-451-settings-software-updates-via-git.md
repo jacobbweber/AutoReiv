@@ -1,11 +1,14 @@
 ---
 id: CARD-451
 title: "Settings software updates via git (fetch, ff-only pull, branch switch, daily auto-update)"
-status: Ready
+status: Done
 created: 2026-09-24
-branch: qa
+completed: 2026-09-24
+branch: feat/card-451-settings-software-updates
 related:
   - CARD-196
+  - CARD-452
+  - CARD-453
 labels:
   - type:feature
   - area:settings
@@ -15,9 +18,10 @@ labels:
 
 # [CARD-451] Settings software updates via git (fetch, ff-only pull, branch switch, daily auto-update)
 
-> **Status**: Ready
+> **Status**: Done
+> **Completed**: 2026-09-24 — live-tested by Jacob on Jarvis (Settings System & Software Updates; no-upstream honesty + timestamps + branch picker)
 > **Created**: 2026-09-24
-> **Branch**: docs commit on `qa` (no feat branch until **build**)
+> **Branch**: `feat/card-451-settings-software-updates`
 > **Observed during**: Jacob request after CARD-449 merge - revisit Settings System & Software Updates; add Update now / git pull, branch fetch/switch, preferences, optional daily auto-pull
 > **Related**: CARD-196 (original System & Software Updates surface, REQ-UPD-001..005)
 > **ADR references**: [ADR-0005](../adr/0005-autonomous-routine-engine-and-async-background-scheduler.md) (RoutineScheduler); no dedicated software-update ADR found - prefer extending CARD-196 service rather than inventing a second update stack
@@ -136,6 +140,8 @@ Do not write product code until Jacob says **build** on this card.
 
 ## 4. Proof / live-test notes
 
+0. **No upstream honesty**: on an unpushed feat branch, Ahead/Behind shows `No upstream`; Check banner warns (not "Up to date"); Update now disabled with reason. Timestamps local with ISO tooltip. No `CARD-` in user copy. Branch picker lists `qa`/`main`/remotes.
+
 1. On Jarvis git checkout at `D:\Projects\Active\AutoReiv`, open Settings -> System & Software Updates: confirm status panel fields (branch, SHA+subject, upstream, ahead/behind, dirty, last fetch).
 2. **Check for updates**: fetch runs; ahead/behind updates; no remote URL field required for the check.
 3. Clean tree behind upstream: **Update now** ff-only succeeds; history shows from->to; serve restarts and still listens on `0.0.0.0:8000`.
@@ -156,19 +162,36 @@ Do not write product code until Jacob says **build** on this card.
 
 ---
 
-## 6. Open questions for Jacob
+## 6. Decisions (Jacob answers locked 2026-09-24)
 
-1. After a successful Update now / branch switch, should AutoReiv **auto-restart** serve, or **ask** first and only restart on confirm?
-2. Should daily auto-update be allowed on **`main`**, only on **`qa`**, or on any branch the operator has checked out?
-3. When `requirements.txt` / `pyproject.toml` / lockfiles change across the pull, should dependency install run **automatically**, **prompt**, or **warn only**?
-4. Should the free-text **Upstream Repository URL** field from CARD-196 be **removed** (fixed `origin` only) or kept as a read-only display of `git remote get-url origin`?
-5. For "active agent job" deferral: is chat `_active_stream_tasks` plus in-progress routine runs the full definition, or should Studio/Factory long jobs be included too?
-6. Should Update now fast-forward the **current branch upstream**, or continue to offer a separate "tracked branch" that may differ from the checked-out branch?
+Open questions closed before **build**. Recorded as decisions + EARS below.
+
+1. **Restart policy**: Restart automatically after a successful manual **Update now** or **branch switch**. Daily auto-update restarts only when idle (nothing busy).
+2. **Daily auto-update branch**: Applies to whatever branch is currently checked out (any branch).
+3. **Dependencies**: Detect when dependency files changed (`pyproject.toml`, `uv.lock`, `requirements*.txt`). Install automatically via `uv sync`. If install fails: stop, surface the error, do **not** restart into a broken state.
+4. **Remote URL**: Remove free-text upstream URL input. Remote is fixed `origin`, shown read-only (`git remote get-url origin`).
+5. **Busy definition**: Active chat streams (`_active_stream_tasks` in `src/web/routers/chat.py`), running routines (`RoutineStatus.RUNNING` via routine runs / last_status), and running Studio / training / Factory jobs (`jobs` + Factory packet jobs in `queued`/`running`/`waiting_approval`).
+6. **Update now target**: Pulls the **current branch's upstream**. Drop the separate tracked-branch setting; the branch picker replaces it.
+
+### Locked EARS (decisions)
+
+- **[REQ-451-012]** WHEN a manual Update now or branch switch succeeds (and dependency install succeeds or was not needed), THE SYSTEM SHALL restart serve automatically while preserving the current host/port binding.
+- **[REQ-451-013]** WHEN daily auto-update is due and the system is busy per REQ-451-015, THE SYSTEM SHALL defer the entire auto-update (fetch/pull/restart) and retry later until idle or a bounded retry limit; WHEN it runs while idle and succeeds, THE SYSTEM SHALL restart serve automatically.
+- **[REQ-451-014]** WHEN dependency files change across an update or switch, THE SYSTEM SHALL run `uv sync` automatically; WHEN install fails, THE SYSTEM SHALL refuse restart and surface the error.
+- **[REQ-451-015]** WHILE any chat stream task is active, OR any routine run/last_status is RUNNING, OR any Studio/Factory job is queued/running/waiting_approval, THE SYSTEM SHALL treat the instance as busy for daily auto-update and defer.
+- **[REQ-451-016]** THE SYSTEM SHALL use fixed remote name `origin` only; THE SYSTEM SHALL NOT accept client-supplied remote URLs; THE SYSTEM SHALL show `origin` URL read-only in Settings.
+- **[REQ-451-017]** WHEN Update now is requested, THE SYSTEM SHALL fast-forward the currently checked-out branch from its upstream; THE SYSTEM SHALL NOT use a separate tracked-branch setting.
+
+### Live-test defect fixes (2026-09-24)
+
+- **[REQ-451-018]** WHEN the current branch has no upstream tracking ref, THE SYSTEM SHALL return `ahead`/`behind` (and check `commits_ahead`/`commits_behind`) as null (not 0), surface **No upstream** in the status grid (not `+0 / -0`), and after **Check for updates** show a neutral/warning banner that the branch has no upstream to compare against (never claim up to date). THE SYSTEM SHALL disable **Update now** with a visible reason while no upstream is configured.
+- **[REQ-451-019]** WHEN rendering Last fetch or Update history timestamps in Settings, THE SYSTEM SHALL show the browser's local time in a readable format and keep the full ISO string in a title/tooltip.
+- **[REQ-451-020]** THE System & Software Updates card SHALL NOT show internal card IDs (e.g. `CARD-451`) in operator-visible copy.
+- **[REQ-451-021]** WHEN the branch picker loads, THE SYSTEM SHALL list local and remote-tracking branches from `origin` (including `qa` and `main` when present), not only the current branch.
+
 
 ---
 
 ## 7. Reply phrases
 
-- Refine open questions or safety copy: say **continue**.
-- Start implementation: say **build**.
 - After Jarvis live proof: say **merge to qa**.
