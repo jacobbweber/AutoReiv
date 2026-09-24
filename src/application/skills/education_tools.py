@@ -1,11 +1,14 @@
-"""Education Learning OS agent tools for Tutor quiz / flashcard turns [CARD-438].
+"""Education Learning OS agent tools for Tutor quiz / flashcard / due-review turns.
 
-Callable tools wrap ``quiz_engine`` + mastery ledger ops (same durable path as
-``POST /api/education/quiz/grade``, mastery due/upsert). No bubble-theatre grades.
+CARD-438: quiz/flashcard tools wrap ``quiz_engine`` + mastery ledger ops (same
+durable path as ``POST /api/education/quiz/grade``, mastery due/upsert).
+CARD-439: due-review list/complete + retention run for Tutor education mode.
+No bubble-theatre grades or fake due lists.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -25,11 +28,13 @@ class EducationTools:
         wiki_root: Optional[Union[str, Path]] = None,
         repository: Optional[AgentMemoryRepository] = None,
         default_agent_id: str = "tutor",
+        orchestrator: Optional[Any] = None,
     ) -> None:
         self.data_dir = Path(data_dir) if data_dir is not None else None
         self.wiki_root = Path(wiki_root) if wiki_root is not None else None
         self.repository = repository
         self.default_agent_id = (default_agent_id or "tutor").strip() or "tutor"
+        self.orchestrator = orchestrator
 
     def _resolve_agent_id(self, agent_id: Optional[str] = None) -> str:
         target = (agent_id or "").strip()
@@ -263,12 +268,16 @@ class EducationTools:
                 "durable": False,
                 "agent_id": agent,
             }
+        empty = len(rows) == 0
         return _json_safe(
             {
                 "success": True,
                 "agent_id": agent,
                 "items": rows,
                 "count": len(rows),
+                "empty": empty,
+                "empty_state": "No due reviews." if empty else None,
+                "skill_hint": "due-review",
                 "http_contract": "GET /api/education/mastery/due",
             }
         )
@@ -382,6 +391,184 @@ class EducationTools:
             result["http_contract"] = "POST /api/education/quiz/grade"
             result["shared_with"] = "education_quiz_grade"
         return result
+
+
+    def education_due_review_list(
+        self,
+        agent_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> Dict[str, Any]:
+        """List due SRS reviews for Learning OS skill due-review (Tutor education mode).
+
+        Sourced from ``GET /api/education/mastery/due`` / ``list_due_education_mastery``.
+        Empty queue returns an explicit empty state (no fake items).
+        """
+        result = self.education_mastery_due(agent_id=agent_id, limit=limit)
+        if not isinstance(result, dict):
+            return {
+                "success": False,
+                "error": "mastery due returned non-dict",
+                "durable": False,
+                "skill_hint": "due-review",
+            }
+        out = dict(result)
+        out["skill_hint"] = "due-review"
+        out["http_contract"] = "GET /api/education/mastery/due"
+        items = list(out.get("items") or [])
+        empty = len(items) == 0
+        out["empty"] = empty
+        out["count"] = len(items)
+        if empty:
+            out["empty_state"] = out.get("empty_state") or "No due reviews."
+            out["items"] = []
+        return _json_safe(out)
+
+    def education_due_review_complete(
+        self,
+        item_id: str,
+        answer: str = "",
+        topic: Optional[str] = None,
+        wiki_path: Optional[str] = None,
+        prompt: Optional[str] = None,
+        expected_answer: Optional[str] = None,
+        agent_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Complete one due review via durable quiz-grade path; report due-queue delta.
+
+        On grade failure returns ``success=false`` / ``durable=false`` - never fake success.
+        """
+        mid = (item_id or "").strip()
+        if not mid:
+            return {
+                "success": False,
+                "error": "item_id is required",
+                "durable": False,
+                "skill_hint": "due-review",
+            }
+        agent = self._resolve_agent_id(agent_id)
+        before = self.education_due_review_list(agent_id=agent, limit=200)
+        before_ids = {
+            str(i.get("item_id") or "")
+            for i in (before.get("items") or [])
+            if isinstance(i, dict)
+        }
+        graded = self.education_quiz_grade(
+            item_id=mid,
+            answer=answer,
+            topic=topic,
+            wiki_path=wiki_path,
+            prompt=prompt,
+            expected_answer=expected_answer,
+            agent_id=agent,
+        )
+        if not isinstance(graded, dict):
+            return {
+                "success": False,
+                "error": "grade returned non-dict",
+                "durable": False,
+                "skill_hint": "due-review",
+            }
+        out = dict(graded)
+        out["skill_hint"] = "due-review"
+        out["http_contract"] = "POST /api/education/quiz/grade"
+        out["shared_with"] = "education_quiz_grade"
+        if not out.get("success"):
+            out["left_due_queue"] = False
+            out["still_due"] = mid in before_ids
+            out["durable"] = False
+            return _json_safe(out)
+
+        after = self.education_due_review_list(agent_id=agent, limit=200)
+        after_ids = {
+            str(i.get("item_id") or "")
+            for i in (after.get("items") or [])
+            if isinstance(i, dict)
+        }
+        still_due = mid in after_ids
+        left = (mid in before_ids) and (not still_due)
+        out["left_due_queue"] = left
+        out["still_due"] = still_due
+        out["due_count_before"] = int(before.get("count") or 0)
+        out["due_count_after"] = int(after.get("count") or 0)
+        out["rescheduled"] = bool(out.get("next_due")) and not still_due
+        return _json_safe(out)
+
+    def education_retention_run(
+        self,
+        agent_id: Optional[str] = None,
+        max_items: int = 5,
+        force_due_item_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Run Learning OS retention routine (due ledger -> standing Job mint).
+
+        Twin of ``POST /api/education/retention/run``. Without an orchestrator,
+        returns honest failure / ``no_orchestrator`` - never invents minted job ids.
+        Empty due set returns ``nothing_due`` with zero mints.
+        """
+        from src.application.education.retention_routine import (
+            EDUCATION_RETENTION_ROUTINE_ID,
+            run_education_retention,
+        )
+
+        agent = self._resolve_agent_id(agent_id)
+        mid_force = (force_due_item_id or "").strip() or None
+        try:
+            repo = self._resolve_repo(agent)
+            if mid_force:
+                row = repo.get_education_mastery(mid_force)
+                if not row:
+                    return {
+                        "success": False,
+                        "error": f"Unknown mastery item: {mid_force}",
+                        "durable": False,
+                        "skill_hint": "due-review",
+                        "http_contract": "POST /api/education/retention/run",
+                    }
+                past = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                with repo.get_connection() as conn:
+                    conn.execute(
+                        "UPDATE education_mastery SET next_due = ?, pending_job_id = NULL, "
+                        "updated_at = ? WHERE item_id = ?",
+                        (past, past, mid_force),
+                    )
+            result = run_education_retention(
+                memory_repo=repo,
+                orch=self.orchestrator,
+                routine=None,
+                agent_id=agent,
+                max_items=max(1, min(int(max_items or 5), 20)),
+                respect_enabled=True,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "success": False,
+                "error": f"retention run failed: {exc}",
+                "durable": False,
+                "skill_hint": "due-review",
+                "http_contract": "POST /api/education/retention/run",
+            }
+
+        status = str((result or {}).get("status") or "")
+        reason = str((result or {}).get("reason") or "")
+        minted = list((result or {}).get("minted_job_ids") or [])
+        success = status == "ok"
+        return _json_safe(
+            {
+                "success": success,
+                "durable": bool(minted) and success,
+                "agent_id": agent,
+                "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
+                "result": result,
+                "minted_job_ids": minted,
+                "skill_hint": "due-review",
+                "http_contract": "POST /api/education/retention/run",
+                "error": None if success else (reason or status or "retention failed"),
+                "note": (
+                    "Retention mints standing Jobs for due items; Chat toast is never Done. "
+                    "Delivery profiles do not replace ledger/SRS."
+                ),
+            }
+        )
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register Education Learning OS tools on the master ScopedToolRegistry."""
@@ -557,4 +744,70 @@ class EducationTools:
                 "required": ["item_id"],
             },
             handler=self.education_flashcard_grade,
+        )
+
+        registry.register_tool(
+            name="education_due_review_list",
+            description=(
+                "List due SRS / retention reviews from education_mastery for Learning OS "
+                "skill due-review (GET /api/education/mastery/due). Empty queue returns "
+                "empty=true and empty_state='No due reviews.' - never invent due items. "
+                "Delivery profiles do not replace ledger/SRS."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Max due items (default 50)."},
+                    "agent_id": {"type": "string"},
+                },
+                "required": [],
+            },
+            handler=self.education_due_review_list,
+        )
+        registry.register_tool(
+            name="education_due_review_complete",
+            description=(
+                "Complete one due review: durable binary grade + SRS next_due via "
+                "POST /api/education/quiz/grade, then report whether the item left the "
+                "due queue. On failure returns success=false; never claim durable success."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "item_id": {"type": "string", "description": "Due mastery item id."},
+                    "answer": {"type": "string", "description": "Learner answer to grade."},
+                    "topic": {"type": "string"},
+                    "wiki_path": {"type": "string"},
+                    "prompt": {"type": "string"},
+                    "expected_answer": {"type": "string"},
+                    "agent_id": {"type": "string"},
+                },
+                "required": ["item_id"],
+            },
+            handler=self.education_due_review_complete,
+        )
+        registry.register_tool(
+            name="education_retention_run",
+            description=(
+                "Run the Education retention routine (POST /api/education/retention/run): "
+                "due ledger -> standing Job mint. Empty due = nothing_due. Without "
+                "orchestrator returns honest failure (no fake job ids). Does not claim "
+                "delivery profiles replace ledger/SRS."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "max_items": {
+                        "type": "integer",
+                        "description": "Max due items to mint (1-20, default 5).",
+                    },
+                    "force_due_item_id": {
+                        "type": "string",
+                        "description": "Optional item id to force due now (smoke).",
+                    },
+                    "agent_id": {"type": "string"},
+                },
+                "required": [],
+            },
+            handler=self.education_retention_run,
         )

@@ -1,5 +1,6 @@
 /**
  * CARD-437: Study Entry = Tutor education mode (thin shell).
+ * CARD-439: Due reviews surface in Tutor education mode (Learning OS mastery/due).
  * Reuses Chat + Tutor agent + Learning OS course APIs. Does not retire Education Studio.
  */
 
@@ -10,6 +11,7 @@ export const STUDY_LAST_TOPIC_KEY = 'autoreiv.study.last_topic.v1';
 export const STUDY_EDUCATION_MODE_KEY = 'autoreiv.study.education_mode.v1';
 export const STUDY_TUTOR_AGENT_ID = 'tutor';
 export const STUDY_LEARNING_OS_SKILL = 'start-resume-topic';
+export const STUDY_DUE_REVIEW_SKILL = 'due-review';
 export const STUDY_EDUCATION_MODE_MARKER = '[Tutor Education Mode]';
 
 /** @type {{ active: boolean, topic: string, courseId: string, skillId: string, agentId: string } | null} */
@@ -134,6 +136,7 @@ export function clearStudyEducationMode() {
     /* ignore */
   }
   renderStudyEducationModeChrome(null);
+  hideStudyDueReviewsPanel();
 }
 
 function _persistBinding(binding) {
@@ -172,6 +175,147 @@ export function promptStudyTopic(defaultTopic = '') {
  *   skipPrompt?: boolean,
  * }} opts
  */
+
+export function buildDueReviewPrompt(topic, courseId = '', dueCount = null) {
+  const t = String(topic || '').trim() || 'Active Study Topic';
+  const courseBit = courseId ? ` course_id=${courseId}` : '';
+  const countBit =
+    dueCount === null || dueCount === undefined
+      ? ''
+      : ` due_count=${Number(dueCount) || 0}`;
+  return (
+    `${STUDY_EDUCATION_MODE_MARKER} skill=${STUDY_DUE_REVIEW_SKILL}${courseBit}${countBit}\n` +
+    `List and complete due SRS reviews for topic "${t}" using Learning OS skill "${STUDY_DUE_REVIEW_SKILL}". ` +
+    `Call education_due_review_list (GET /api/education/mastery/due). If empty, say "No due reviews." honestly. ` +
+    `When I answer a due item, call education_due_review_complete so the grade lands in education_mastery. ` +
+    `Delivery profiles do not replace ledger/SRS.`
+  );
+}
+
+/**
+ * Fetch due reviews from Learning OS (not a client-only list).
+ * @param {string} [agentId]
+ * @returns {Promise<{ ok: boolean, items: any[], count: number, empty: boolean, empty_state: string, error?: string }>}
+ */
+export async function fetchStudyDueReviews(agentId = STUDY_TUTOR_AGENT_ID) {
+  const aid = String(agentId || STUDY_TUTOR_AGENT_ID).trim() || STUDY_TUTOR_AGENT_ID;
+  const res = await fetch(`/api/education/mastery/due?agent_id=${encodeURIComponent(aid)}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    return {
+      ok: false,
+      items: [],
+      count: 0,
+      empty: true,
+      empty_state: 'Due list failed.',
+      error: `mastery/due ${res.status}${detail ? `: ${detail}` : ''}`,
+    };
+  }
+  const data = await res.json();
+  const items = Array.isArray(data.items) ? data.items : [];
+  const empty = items.length === 0;
+  return {
+    ok: true,
+    items,
+    count: items.length,
+    empty,
+    empty_state: empty ? 'No due reviews.' : '',
+    http_contract: 'GET /api/education/mastery/due',
+  };
+}
+
+function _escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export function renderStudyDueReviewsPanel(payload) {
+  const panel = $('chatEducationModeDuePanel');
+  const listEl = $('chatEducationModeDueList');
+  const countEl = $('chatEducationModeDueCount');
+  if (!panel || !listEl) return;
+  const items = (payload && Array.isArray(payload.items)) ? payload.items : [];
+  const empty = !payload || payload.empty || items.length === 0;
+  const failed = payload && payload.ok === false;
+  if (countEl) {
+    countEl.textContent = failed ? '!' : String(items.length);
+  }
+  if (failed) {
+    listEl.innerHTML = `<div class="text-[11px] text-rose-300 px-1">${_escapeHtml(payload.error || 'Due list failed.')}</div>`;
+  } else if (empty) {
+    listEl.innerHTML = '<div class="text-[11px] text-slate-500 px-1">No due reviews.</div>';
+  } else {
+    listEl.innerHTML = items
+      .map((it) => {
+        const id = _escapeHtml(it.item_id || '');
+        const topic = _escapeHtml(it.topic || '');
+        const due = _escapeHtml(it.next_due || '');
+        const prompt = _escapeHtml(it.prompt || '');
+        return `<button type="button" class="chat-edu-due-item w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-800 border border-transparent hover:border-amber-900/40" data-item-id="${id}">
+          <div class="text-[11px] font-medium text-slate-200 truncate">${topic}</div>
+          <div class="text-[10px] text-slate-400 truncate">${prompt}</div>
+          <div class="text-[10px] font-mono text-amber-300/80">due ${due}</div>
+        </button>`;
+      })
+      .join('');
+  }
+  panel.classList.remove('hidden');
+  panel.setAttribute('aria-hidden', 'false');
+  safeCreateIcons();
+}
+
+export function hideStudyDueReviewsPanel() {
+  if (typeof document === 'undefined' || !document.getElementById) return;
+  const panel = document.getElementById('chatEducationModeDuePanel');
+  if (!panel) return;
+  panel.classList.add('hidden');
+  panel.setAttribute('aria-hidden', 'true');
+}
+
+/**
+ * Open due reviews inside Tutor education mode: skill=due-review + live mastery/due list.
+ * @param {{ toast?: Function }} [opts]
+ */
+export async function openDueReviewsInEducationMode(opts = {}) {
+  const toast = typeof opts.toast === 'function' ? opts.toast : showToast;
+  let binding = getStudyEducationModeBinding();
+  if (!binding || !binding.active || !binding.topic) {
+    toast('Enter Study / Tutor education mode first (sidebar Study), then open Due reviews.', 'error');
+    return { ok: false, error: 'EDUCATION_MODE_REQUIRED' };
+  }
+
+  const due = await fetchStudyDueReviews(binding.agentId || STUDY_TUTOR_AGENT_ID);
+  if (!due.ok) {
+    toast(`Due reviews failed: ${due.error || 'mastery/due error'}`, 'error');
+    renderStudyDueReviewsPanel(due);
+    return { ok: false, error: 'DUE_FETCH_FAILED', due };
+  }
+
+  binding = {
+    ...binding,
+    skillId: STUDY_DUE_REVIEW_SKILL,
+  };
+  _persistBinding(binding);
+
+  const chatInput = $('chatInput');
+  if (chatInput) {
+    chatInput.value = buildDueReviewPrompt(binding.topic, binding.courseId, due.count);
+    chatInput.focus();
+  }
+
+  renderStudyDueReviewsPanel(due);
+  if (due.empty) {
+    toast('No due reviews.', 'info');
+  } else {
+    toast(`Due reviews: ${due.count} item(s) from Learning OS mastery/due`, 'info');
+  }
+  return { ok: true, binding, due };
+}
+
+
 export async function enterTutorEducationMode(opts = {}) {
   const toast = typeof opts.toast === 'function' ? opts.toast : showToast;
   let topic = String(opts.topic || '').trim();
@@ -285,6 +429,41 @@ export function initStudyEntry(callbacks = {}) {
     });
   }
 
+
+  const dueBtn = $('chatEducationModeDueBtn');
+  if (dueBtn) {
+    dueBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await openDueReviewsInEducationMode({ toast: showToast });
+    });
+  }
+  const dueRefreshBtn = $('chatEducationModeDueRefreshBtn');
+  if (dueRefreshBtn) {
+    dueRefreshBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await openDueReviewsInEducationMode({ toast: showToast });
+    });
+  }
+  const dueListEl = $('chatEducationModeDueList');
+  if (dueListEl) {
+    dueListEl.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('.chat-edu-due-item') : null;
+      if (!btn) return;
+      const itemId = btn.getAttribute('data-item-id') || '';
+      const binding = getStudyEducationModeBinding();
+      const chatInput = $('chatInput');
+      if (!chatInput || !itemId) return;
+      const topic = (binding && binding.topic) || 'Active Study Topic';
+      const courseId = (binding && binding.courseId) || '';
+      chatInput.value =
+        `${STUDY_EDUCATION_MODE_MARKER} skill=${STUDY_DUE_REVIEW_SKILL}` +
+        (courseId ? ` course_id=${courseId}` : '') +
+        `\nPresent due item ${itemId} for topic "${topic}". ` +
+        `After my answer, call education_due_review_complete with item_id=${itemId}.`;
+      chatInput.focus();
+    });
+  }
+
   const exitBtn = $('chatEducationModeExitBtn');
   if (exitBtn) {
     exitBtn.addEventListener('click', (e) => {
@@ -321,6 +500,7 @@ export function initStudyEntry(callbacks = {}) {
         switchTab: opts.switchTab || callbacks.switchTab,
         getChatCtrl: opts.getChatCtrl || callbacks.getChatCtrl,
       }),
+    openDueReviewsInEducationMode,
     clearStudyEducationMode,
     getStudyEducationModeBinding,
     isStudyEducationModeActive,
