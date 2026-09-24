@@ -1,7 +1,7 @@
 ---
 id: CARD-449
 title: "Scalar operator edits (max_turns) must not lock platform pack promotion"
-status: In Review
+status: Done
 created: 2026-09-24
 branch: feat/card-449-pack-lock-granularity
 adr: ADR-0056
@@ -17,7 +17,7 @@ related:
 
 # [CARD-449] Scalar operator edits (max_turns) must not lock platform pack promotion
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-24
 > **Branch**: `feat/card-449-pack-lock-granularity`
 > **Observed during**: CARD-443 live proof on Jarvis
@@ -145,3 +145,10 @@ related:
 
 ### Live proof
 See commit message / agent handoff for Jarvis serve proof (tutor/developer migration, max_turns PUT, skills/prompt checks). Global keep-customizations left ON.
+
+---
+
+## Done (merged)
+
+- **Live-tested by Jacob**: 2026-09-24 (merge to qa requested).
+- Status set to **Done** on merge of `feat/card-449-pack-lock-granularity` into `qa`.
