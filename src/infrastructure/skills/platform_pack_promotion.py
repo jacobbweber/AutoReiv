@@ -30,6 +30,11 @@ logger = logging.getLogger(__name__)
 
 PLATFORM_SHIPPED_PROMPT_SETTING = "platform_shipped_prompt_hashes"
 PLATFORM_PACK_SYNC_REPORT_SETTING = "platform_pack_sync_last_report"
+PLATFORM_KEEP_CUSTOMIZATIONS_SETTING = "platform_pack_keep_customizations"
+PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING = "platform_operator_disabled_skills"
+PLATFORM_PACK_CONTENT_BACKUPS_SETTING = "platform_pack_content_backups"
+PLATFORM_LOCK_MIGRATION_SETTING = "platform_pack_lock_migration_report"
+
 
 RESOLUTION_USER_MODIFIED = (
     "Pack is locked (user_modified). To accept the platform seed: "
@@ -70,6 +75,251 @@ class PlatformPackSyncReport:
 
 def prompt_content_hash(prompt: str) -> str:
     return hashlib.sha256((prompt or "").encode("utf-8")).hexdigest()
+
+
+def keep_customizations_enabled(store: Any) -> bool:
+    """Global toggle; default True when unset [CARD-449 / REQ-449-007]."""
+    if store is None or not hasattr(store, "get_setting"):
+        return True
+    raw = store.get_setting(PLATFORM_KEEP_CUSTOMIZATIONS_SETTING)
+    if raw is None:
+        return True
+    if isinstance(raw, str):
+        return raw.strip().lower() not in {"0", "false", "no", "off"}
+    return bool(raw)
+
+
+def _operator_disabled_map(store: Any) -> dict[str, list[str]]:
+    if store is None or not hasattr(store, "get_setting"):
+        return {}
+    raw = store.get_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING) or {}
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, list[str]] = {}
+    for k, v in raw.items():
+        if isinstance(v, (list, tuple, set)):
+            out[str(k)] = [str(x) for x in v if str(x).strip()]
+    return out
+
+
+def get_operator_disabled_skills(store: Any, pack_id: str) -> set[str]:
+    return set(_operator_disabled_map(store).get(pack_id, []))
+
+
+def record_operator_disabled_skills(
+    store: Any,
+    pack_id: str,
+    *,
+    live_skills: list[str] | None,
+    stock_skills: list[str] | None,
+) -> list[str]:
+    """Persist stock skills the operator removed from the allowlist [CARD-449]."""
+    if store is None or not hasattr(store, "set_setting"):
+        return []
+    stock = set(stock_skills or [])
+    live = set(live_skills or [])
+    disabled = sorted(stock - live)
+    current = _operator_disabled_map(store)
+    current[pack_id] = disabled
+    store.set_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING, current)
+    return disabled
+
+
+def merge_skills_respecting_disabled(
+    *,
+    seed_skills: list[str],
+    live_skills: list[str] | None = None,
+    disabled: set[str],
+    previous_stock: list[str] | set[str] | None = None,
+) -> list[str]:
+    """Allowlist = seed skills minus operator-disabled.
+
+    New platform skills appear automatically. Operator-disabled stock skills stay off.
+    Skills retired from the seed drop out of the allowlist. Operator-only skill *dirs*
+    on disk are still preserved by filesystem sync; unlocked allowlists follow the seed.
+    """
+    _ = live_skills, previous_stock  # retained for call-site compatibility / future use
+    return [s for s in list(seed_skills or []) if s not in disabled]
+
+
+def should_set_content_lock(
+    *,
+    existing: Any,
+    new_prompt: str | None,
+    new_skills: list[str] | None,
+    new_tools: list[str] | None,
+    store: Any,
+    pack_id: str,
+    stock_skills: list[str] | None = None,
+) -> bool:
+    """True only when pack-owned content diverges from shipped baseline [CARD-449].
+
+    Scalars (max_turns/model/provider) never lock. Skill disables alone do not lock;
+    they are tracked via PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING.
+    """
+    baselines = _shipped_prompt_map(store) if store is not None else {}
+    baseline = baselines.get(pack_id)
+    prompt = new_prompt if new_prompt is not None else (getattr(existing, "system_prompt", None) or "")
+    if baseline is not None:
+        if prompt_content_hash(prompt) != baseline:
+            return True
+    else:
+        old_prompt = getattr(existing, "system_prompt", None) or ""
+        if prompt != old_prompt:
+            # No baseline yet: treat prompt text change as content edit
+            return True
+
+    # Skill disable alone is not a content lock — record instead when stock known
+    if stock_skills is not None and new_skills is not None:
+        record_operator_disabled_skills(
+            store, pack_id, live_skills=list(new_skills), stock_skills=list(stock_skills)
+        )
+    return False
+
+
+def pack_content_diverged_from_seed(
+    profile: Any,
+    *,
+    seed_prompt: str,
+    seed_skills: list[str],
+    store: Any,
+    pack_id: str,
+) -> bool:
+    """True when stored prompt differs from shipped baseline (or seed when no baseline)."""
+    baselines = _shipped_prompt_map(store) if store is not None else {}
+    baseline = baselines.get(pack_id)
+    stored = getattr(profile, "system_prompt", None) or ""
+    if baseline is not None:
+        return prompt_content_hash(stored) != baseline
+    return stored != (seed_prompt or "")
+
+
+def backup_pack_content(store: Any, profile: Any, *, reason: str = "") -> dict[str, Any]:
+    """Snapshot pack-owned fields (+ scalars) before forced reset [CARD-449]."""
+    pack_id = getattr(profile, "id", None) or getattr(profile, "agent_id", None)
+    snap = {
+        "id": f"{pack_id}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')}",
+        "pack_id": pack_id,
+        "reason": reason,
+        "backed_up_at": datetime.now(timezone.utc).isoformat(),
+        "system_prompt": getattr(profile, "system_prompt", None) or "",
+        "allowed_skill": list(getattr(profile, "allowed_skill", None) or []),
+        "pack_tool_names": list(getattr(profile, "pack_tool_names", None) or []),
+        "allowed_tool_names": list(getattr(profile, "allowed_tool_names", None) or []),
+        "max_turns": getattr(profile, "max_turns", None),
+        "model": getattr(profile, "model", None),
+        "user_modified": bool(getattr(profile, "user_modified", False)),
+    }
+    if store is None or not hasattr(store, "get_setting") or not hasattr(store, "set_setting"):
+        return snap
+    raw = store.get_setting(PLATFORM_PACK_CONTENT_BACKUPS_SETTING) or {}
+    if not isinstance(raw, dict):
+        raw = {}
+    bucket = list(raw.get(str(pack_id)) or [])
+    bucket.insert(0, snap)
+    raw[str(pack_id)] = bucket[:20]
+    store.set_setting(PLATFORM_PACK_CONTENT_BACKUPS_SETTING, raw)
+    return snap
+
+
+def list_pack_content_backups(store: Any, pack_id: str) -> list[dict[str, Any]]:
+    if store is None or not hasattr(store, "get_setting"):
+        return []
+    raw = store.get_setting(PLATFORM_PACK_CONTENT_BACKUPS_SETTING) or {}
+    if not isinstance(raw, dict):
+        return []
+    items = raw.get(str(pack_id)) or []
+    return list(items) if isinstance(items, list) else []
+
+
+def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dict[str, Any]:
+    """Restore a prior pack-content snapshot onto the profile [CARD-449]."""
+    pack_id = getattr(profile, "id", None) or getattr(profile, "agent_id", None)
+    backups = list_pack_content_backups(store, str(pack_id))
+    match = next((b for b in backups if str(b.get("id")) == str(backup_id)), None)
+    if match is None:
+        raise KeyError(f"backup '{backup_id}' not found for {pack_id}")
+    profile.system_prompt = match.get("system_prompt") or ""
+    profile.allowed_skill = list(match.get("allowed_skill") or [])
+    profile.pack_tool_names = list(match.get("pack_tool_names") or [])
+    profile.allowed_tool_names = list(match.get("allowed_tool_names") or [])
+    if match.get("max_turns") is not None:
+        profile.max_turns = match["max_turns"]
+    if match.get("model") is not None:
+        profile.model = match["model"]
+    profile.user_modified = True
+    if store is not None and hasattr(store, "save_custom_agent_profile"):
+        store.save_custom_agent_profile(profile)
+    if store is not None and hasattr(store, "mark_agent_user_modified"):
+        store.mark_agent_user_modified(str(pack_id), modified=True)
+    return match
+
+
+def migrate_false_content_locks(
+    *,
+    data_dir: Union[str, Path],
+    agent_registry: Any,
+    checkout_root: Optional[Union[str, Path]] = None,
+    pack_ids: Optional[Sequence[str]] = None,
+) -> list[dict[str, Any]]:
+    """One-time: unlock platform agents locked only by scalar edits [CARD-449 / REQ-449-006]."""
+    from src.infrastructure.skills.platform_packs import ALL_PLATFORM_PACK_IDS, platform_packs_root
+
+    store = getattr(agent_registry, "state_store", None)
+    ids: list[str] = list(pack_ids) if pack_ids is not None else list(ALL_PLATFORM_PACK_IDS)
+    results: list[dict[str, Any]] = []
+    root = platform_packs_root(checkout_root)
+    for pack_id in ids:
+        profile = agent_registry.get_agent(pack_id) if agent_registry is not None else None
+        if profile is None:
+            results.append({"pack_id": pack_id, "action": "skipped", "reason": "missing_profile"})
+            continue
+        if not bool(getattr(profile, "user_modified", False)):
+            results.append({"pack_id": pack_id, "action": "already_unlocked", "reason": "user_modified=false"})
+            continue
+        seed_path = root / pack_id / "pack.json"
+        seed = _read_json(seed_path) or {}
+        seed_prompt = seed.get("system_prompt") or ""
+        seed_skills = list(seed.get("allowed_skill") or [])
+        diverged = pack_content_diverged_from_seed(
+            profile,
+            seed_prompt=seed_prompt,
+            seed_skills=seed_skills,
+            store=store,
+            pack_id=pack_id,
+        )
+        if diverged:
+            results.append(
+                {
+                    "pack_id": pack_id,
+                    "action": "kept_locked",
+                    "reason": "prompt diverged from shipped baseline",
+                }
+            )
+            continue
+        # Unlock: settings-only false lock
+        profile.user_modified = False
+        if store is not None and hasattr(store, "mark_agent_user_modified"):
+            store.mark_agent_user_modified(pack_id, modified=False)
+        if store is not None and hasattr(store, "save_custom_agent_profile"):
+            store.save_custom_agent_profile(profile)
+        if store is not None and hasattr(store, "get_agent_override") and hasattr(store, "save_agent_override"):
+            ov = store.get_agent_override(pack_id)
+            if ov is not None:
+                ov.user_modified = False
+                store.save_agent_override(ov)
+        logger.info("CARD-449 lock migration: unlocked %s (settings-only divergence)", pack_id)
+        results.append({"pack_id": pack_id, "action": "unlocked", "reason": "settings-only; prompt at baseline"})
+    if store is not None and hasattr(store, "set_setting"):
+        store.set_setting(
+            PLATFORM_LOCK_MIGRATION_SETTING,
+            {
+                "migrated_at": datetime.now(timezone.utc).isoformat(),
+                "results": results,
+            },
+        )
+    return results
+
 
 
 def _shipped_prompt_map(store: Any) -> dict[str, str]:
@@ -277,6 +527,28 @@ def promote_one_platform_pack(
     previous_stock = set(getattr(existing, "allowed_skill", None) or [])
     new_stock = set(new_allowed_skill)
 
+    # CARD-449: global keep-customizations OFF => backup + force-reset even when locked
+    force_reset = not keep_customizations_enabled(store)
+    if user_mod and force_reset:
+        backup_pack_content(store, existing, reason="force_reset_keep_customizations_off")
+        # Clear per-pack operator skill disables so seed skills fully restore
+        disabled_map = _operator_disabled_map(store)
+        if pack_id in disabled_map:
+            disabled_map.pop(pack_id, None)
+            if store is not None and hasattr(store, "set_setting"):
+                store.set_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING, disabled_map)
+
+        existing.user_modified = False
+        if store is not None and hasattr(store, "mark_agent_user_modified"):
+            store.mark_agent_user_modified(pack_id, modified=False)
+        if store is not None and hasattr(store, "get_agent_override") and hasattr(store, "save_agent_override"):
+            ov = store.get_agent_override(pack_id)
+            if ov is not None:
+                ov.user_modified = False
+                store.save_agent_override(ov)
+        user_mod = False
+        logger.info("CARD-449 force-reset for %s (keep_customizations=false); backup written", pack_id)
+
     if user_mod:
         if stored_hash and stored_hash != seed_hash:
             logger.info(
@@ -377,7 +649,11 @@ def promote_one_platform_pack(
     stored_prompt = getattr(existing, "system_prompt", None) or ""
     prompt_at_baseline = baseline is None or prompt_content_hash(stored_prompt) == baseline
     applied_prompt = stored_prompt
-    if new_prompt and prompt_at_baseline:
+    if force_reset and new_prompt:
+        # CARD-449: keep_customizations=false force-applies seed prompt
+        existing.system_prompt = new_prompt
+        applied_prompt = new_prompt
+    elif new_prompt and prompt_at_baseline:
         if stored_prompt != new_prompt:
             existing.system_prompt = new_prompt
         applied_prompt = new_prompt
@@ -394,7 +670,14 @@ def promote_one_platform_pack(
             final_tools.append(tname)
     final_tools = [t for t in final_tools if t not in RETIRED_TOOL_NAMES]
 
-    existing.allowed_skill = new_allowed_skill
+    disabled = get_operator_disabled_skills(store, pack_id)
+    merged_skills = merge_skills_respecting_disabled(
+        seed_skills=list(new_allowed_skill),
+        live_skills=list(getattr(existing, "allowed_skill", None) or []),
+        disabled=disabled,
+        previous_stock=previous_stock,
+    )
+    existing.allowed_skill = merged_skills
     existing.pack_tool_names = new_pack_tools
     existing.allowed_tool_names = final_tools
     existing.seed_content_hash = seed_hash
@@ -413,7 +696,7 @@ def promote_one_platform_pack(
                 ov.system_prompt = applied_prompt
             ov.allowed_tool_names = final_tools
             ov.pack_tool_names = new_pack_tools
-            ov.allowed_skill = new_allowed_skill
+            ov.allowed_skill = merged_skills
             ov.seed_content_hash = seed_hash
             ov.seed_version = seed_version
             ov.user_modified = False
@@ -445,7 +728,7 @@ def promote_one_platform_pack(
         # Establish baseline without clobbering an operator-held prompt
         _set_shipped_prompt_hash(store, pack_id, stored_prompt)
 
-    status = "promoted_partial" if skipped_fields else "promoted"
+    status = "force_reset" if force_reset else ("promoted_partial" if skipped_fields else "promoted")
     return PackSyncOutcome(
         pack_id=pack_id,
         status=status,
@@ -475,6 +758,18 @@ def promote_platform_packs(
         triggered_at=datetime.now(timezone.utc).isoformat(),
         results=[],
     )
+    
+    # CARD-449: one-time false-lock migration (idempotent for already-unlocked)
+    try:
+        migration = migrate_false_content_locks(
+            data_dir=Path(data_dir),
+            agent_registry=agent_registry,
+            checkout_root=checkout_root,
+            pack_ids=list(ids),
+        )
+    except Exception:
+        logger.exception("CARD-449 lock migration failed")
+        migration = []
     for pack_id in ids:
         outcome = promote_one_platform_pack(
             pack_id=pack_id,
@@ -486,5 +781,15 @@ def promote_platform_packs(
         report.results.append(outcome)
 
     store = getattr(agent_registry, "state_store", None)
-    _persist_report(store, report)
+    report_dict = report.to_dict()
+    report_dict["lock_migration"] = migration
+    if store is not None and hasattr(store, "set_setting"):
+        store.set_setting(PLATFORM_PACK_SYNC_REPORT_SETTING, report_dict)
+    else:
+        _persist_report(store, report)
+    # Stash migration on report object for callers
+    try:
+        report.lock_migration = migration  # type: ignore[attr-defined]
+    except Exception:
+        pass
     return report

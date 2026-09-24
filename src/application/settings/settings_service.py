@@ -60,10 +60,32 @@ class SettingsService:
 
     def save_agent_customization(self, customization: AgentCustomization) -> None:
         """Persist agent persona/tone/tool overrides."""
-        customization.user_modified = True
+        from src.application.agent_packs.schema import is_platform_pack
+        from src.infrastructure.skills.platform_pack_promotion import should_set_content_lock
+
+        existing = None
+        if hasattr(self.state_store, "get_agent_profile"):
+            existing = self.state_store.get_agent_profile(customization.agent_id)
+        lock = True
+        if is_platform_pack(customization.agent_id) and existing is not None:
+            lock = should_set_content_lock(
+                existing=existing,
+                new_prompt=getattr(customization, "system_prompt", None),
+                new_skills=list(getattr(customization, "allowed_skill", None) or []) or None,
+                new_tools=list(getattr(customization, "allowed_tool_names", None) or []) or None,
+                store=self.state_store,
+                pack_id=customization.agent_id,
+                stock_skills=list(getattr(existing, "allowed_skill", None) or []),
+            )
+        if lock:
+            customization.user_modified = True
+        else:
+            customization.user_modified = bool(getattr(existing, "user_modified", False)) if existing else False
         self.state_store.save_agent_override(customization)
         if hasattr(self.state_store, "mark_agent_user_modified"):
-            self.state_store.mark_agent_user_modified(customization.agent_id, modified=True)
+            self.state_store.mark_agent_user_modified(
+                customization.agent_id, modified=bool(customization.user_modified)
+            )
 
     def get_agent_customization(self, agent_id: str) -> Optional[AgentCustomization]:
         """Fetch agent overrides from SQLite."""

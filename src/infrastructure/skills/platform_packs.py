@@ -215,12 +215,14 @@ def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, 
     changed = False
     if raw is not None and hasattr(store, "save_custom_agent_profile"):
         if _patch_allowlist(raw, skill_ids, tool_names, only_present_fields=False):
-            raw.user_modified = True
+            # CARD-449: automated grant must not set content lock
+            # raw.user_modified = True
             store.save_custom_agent_profile(raw)
             changed = True
     if override is not None and hasattr(store, "save_agent_override"):
         if _patch_allowlist(override, skill_ids, tool_names, only_present_fields=True):
-            override.user_modified = True
+            # CARD-449: automated grant must not set content lock
+            # override.user_modified = True
             store.save_agent_override(override)
             changed = True
 
@@ -316,18 +318,21 @@ def apply_user_modified_developer_authoring_prompt(*, pack_id: str, store: Any) 
     changed = False
     if source == "override" and hasattr(store, "save_agent_override"):
         override.system_prompt = updated
-        override.user_modified = True
+        # CARD-449: automated grant must not set content lock
+        # override.user_modified = True
         store.save_agent_override(override)
         changed = True
         if raw is not None and hasattr(store, "save_custom_agent_profile"):
             profile_prompt = getattr(raw, "system_prompt", None) or ""
             if profile_prompt == visible:
                 raw.system_prompt = updated
-                raw.user_modified = True
+                # CARD-449: automated grant must not set content lock
+                # raw.user_modified = True
                 store.save_custom_agent_profile(raw)
     elif source == "profile" and raw is not None and hasattr(store, "save_custom_agent_profile"):
         raw.system_prompt = updated
-        raw.user_modified = True
+        # CARD-449: automated grant must not set content lock
+        # raw.user_modified = True
         store.save_custom_agent_profile(raw)
         changed = True
 

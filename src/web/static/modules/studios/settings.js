@@ -663,7 +663,56 @@ export function initSettingsStudio(state, callbacks = {}) {
     });
   }
 
+  
+  // CARD-449: keep platform pack customizations toggle
+  const platformPackKeepToggle = $('platformPackKeepCustomizationsToggle');
+  const platformPackKeepStatus = $('platformPackKeepCustomizationsStatus');
+  async function loadPlatformPackKeepCustomizations() {
+    if (!platformPackKeepToggle) return;
+    try {
+      const res = await fetch('/api/settings/platform-pack-keep-customizations');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      platformPackKeepToggle.checked = data.enabled !== false;
+      if (platformPackKeepStatus) {
+        platformPackKeepStatus.textContent = platformPackKeepToggle.checked
+          ? 'Customizations are kept when platform packs update (default).'
+          : 'Warning: pack content will reset to platform defaults on the next update.';
+      }
+    } catch (err) {
+      if (platformPackKeepStatus) platformPackKeepStatus.textContent = `Could not load setting: ${err.message || err}`;
+    }
+  }
+  if (platformPackKeepToggle) {
+    platformPackKeepToggle.addEventListener('change', async () => {
+      const enabled = !!platformPackKeepToggle.checked;
+      if (!enabled) {
+        const ok = window.confirm(
+          'Turn OFF "Keep my agent customizations"?\n\nOn the next platform pack update, edited prompts/skills/tools for platform agents will reset to defaults (max turns and model stay). A backup is written first.'
+        );
+        if (!ok) {
+          platformPackKeepToggle.checked = true;
+          return;
+        }
+      }
+      try {
+        const res = await fetch('/api/settings/platform-pack-keep-customizations', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await loadPlatformPackKeepCustomizations();
+      } catch (err) {
+        if (platformPackKeepStatus) platformPackKeepStatus.textContent = `Save failed: ${err.message || err}`;
+        await loadPlatformPackKeepCustomizations();
+      }
+    });
+  }
+
   async function loadSettings() {
+    loadPlatformPackKeepCustomizations();
+
     loadDataDir();
     loadBackupCatalogAndConfig();
     if (!state.vaultCredentials || state.vaultCredentials.length === 0) {

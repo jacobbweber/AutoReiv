@@ -1162,8 +1162,9 @@ def _pin_saved_skill_on_agent(
                 prof.model = req.model
             if registry.state_store:
                 registry.state_store.save_agent_profile(prof)
-                if req.auto_pin and hasattr(registry.state_store, "mark_agent_user_modified"):
-                    registry.state_store.mark_agent_user_modified(clean_agent_id, modified=True)
+                # CARD-449: Factory auto_pin must not set pack content lock
+                # if req.auto_pin and hasattr(registry.state_store, "mark_agent_user_modified"):
+                #     registry.state_store.mark_agent_user_modified(clean_agent_id, modified=True)
 
 
 @router.get("/skills")

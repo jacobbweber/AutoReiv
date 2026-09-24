@@ -1,7 +1,7 @@
 ---
 id: CARD-449
 title: "Scalar operator edits (max_turns) must not lock platform pack promotion"
-status: Ready
+status: In Review
 created: 2026-09-24
 branch: feat/card-449-pack-lock-granularity
 adr: ADR-0056
@@ -17,7 +17,7 @@ related:
 
 # [CARD-449] Scalar operator edits (max_turns) must not lock platform pack promotion
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-24
 > **Branch**: `feat/card-449-pack-lock-granularity`
 > **Observed during**: CARD-443 live proof on Jarvis
@@ -122,3 +122,26 @@ related:
 - Refine: say **continue**.
 - Implement: say **build**.
 - After proof: say **merge to qa**.
+
+
+---
+
+## Implementation note + proof (In Review)
+
+**Branch**: `feat/card-449-pack-lock-granularity`
+
+### Design decisions
+1. Settings vs content split — scalars never set `user_modified`.
+2. Prompt lock uses shipped baseline hash comparison.
+3. Skill allowlist = seed − operator-disabled set (`platform_operator_disabled_skills`).
+4. Automated grants no longer set the content lock.
+5. One-time `migrate_false_content_locks` on promote; results in sync-status `lock_migration`.
+6. `platform_pack_keep_customizations` default true; false force-resets after backup.
+7. Backup/restore via settings JSON `platform_pack_content_backups` + REST endpoints.
+8. Toggle lives in Settings → Preferences (immediately above System & Software Updates). Update screen exists inside Settings — same Preferences surface (no separate outside-Settings update app).
+
+### Tests
+`tests/unit/agent_packs/test_card_449_pack_lock_granularity.py` — 8 passed (plus CARD-443 suite green).
+
+### Live proof
+See commit message / agent handoff for Jarvis serve proof (tutor/developer migration, max_turns PUT, skills/prompt checks). Global keep-customizations left ON.

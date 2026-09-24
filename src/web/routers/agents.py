@@ -386,6 +386,12 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     tool_reg = request.app.state.tool_reg
     store = request.app.state.store
 
+    from src.infrastructure.skills.platform_pack_promotion import (
+        should_set_content_lock,
+        record_operator_disabled_skills,
+    )
+    from src.application.agent_packs.schema import is_platform_pack
+
     existing = registry.get_agent(agent_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
@@ -459,10 +465,33 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             allowed_credentials=profile.allowed_credentials,
             mcp_servers=profile.mcp_servers,
         )
-        customization.user_modified = True
+        # CARD-449: set content lock only when pack-owned content actually changed
+        lock = True
+        if is_platform_pack(agent_id):
+            stock = list(getattr(existing, "allowed_skill", None) or [])
+            lock = should_set_content_lock(
+                existing=existing,
+                new_prompt=profile.system_prompt,
+                new_skills=list(profile.allowed_skill or []),
+                new_tools=list(profile.allowed_tool_names or []),
+                store=store,
+                pack_id=agent_id,
+                stock_skills=stock,
+            )
+            record_operator_disabled_skills(
+                store,
+                agent_id,
+                live_skills=list(profile.allowed_skill or []),
+                stock_skills=stock,
+            )
+        if lock:
+            customization.user_modified = True
+        else:
+            # Scalars-only save: do not newly lock; preserve an existing content lock
+            customization.user_modified = bool(getattr(existing, "user_modified", False))
         store.save_agent_override(customization)
         if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(customization.agent_id, modified=True)
+            store.mark_agent_user_modified(customization.agent_id, modified=bool(customization.user_modified))
     else:
         registry.register_custom_agent(profile)
         # Mirror into agent_overrides so operator customizations have an authoritative record
@@ -495,10 +524,35 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
                 allowed_credentials=profile.allowed_credentials,
                 mcp_servers=profile.mcp_servers,
             )
-            customization.user_modified = True
+            # CARD-449: lock only on real pack-content edits
+            lock = True
+            if is_platform_pack(agent_id):
+                stock = list(getattr(existing, "allowed_skill", None) or [])
+                lock = should_set_content_lock(
+                    existing=existing,
+                    new_prompt=profile.system_prompt,
+                    new_skills=list(profile.allowed_skill or []),
+                    new_tools=list(profile.allowed_tool_names or []),
+                    store=store,
+                    pack_id=agent_id,
+                    stock_skills=stock,
+                )
+                record_operator_disabled_skills(
+                    store,
+                    agent_id,
+                    live_skills=list(profile.allowed_skill or []),
+                    stock_skills=stock,
+                )
+            if lock:
+                customization.user_modified = True
+            else:
+                customization.user_modified = bool(getattr(existing, "user_modified", False))
         store.save_agent_override(customization)
         if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(customization.agent_id, modified=True)
+            store.mark_agent_user_modified(
+                customization.agent_id,
+                modified=bool(getattr(customization, "user_modified", False)),
+            )
 
     # CARD-381 / CARD-389: Synchronize user-data packs/<agent_id>/pack.json
     data_dir = _data_dir_root(request)
@@ -775,10 +829,11 @@ async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
         store = request.app.state.store
         customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
         customization.mcp_servers = profile.mcp_servers
-        customization.user_modified = True
+        # CARD-449: MCP attach/detach is not pack-content; do not newly lock
+        customization.user_modified = bool(getattr(profile, 'user_modified', False))
         store.save_agent_override(customization)
         if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(customization.agent_id, modified=True)
+            store.mark_agent_user_modified(customization.agent_id, modified=bool(customization.user_modified))
     else:
         registry.register_custom_agent(profile)
 
@@ -822,10 +877,11 @@ async def delete_agent_mcp_server(request: Request, agent_id: str, server_name: 
         store = request.app.state.store
         customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
         customization.mcp_servers = profile.mcp_servers
-        customization.user_modified = True
+        # CARD-449: MCP attach/detach is not pack-content; do not newly lock
+        customization.user_modified = bool(getattr(profile, 'user_modified', False))
         store.save_agent_override(customization)
         if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(customization.agent_id, modified=True)
+            store.mark_agent_user_modified(customization.agent_id, modified=bool(customization.user_modified))
     else:
         registry.register_custom_agent(profile)
 
@@ -936,10 +992,20 @@ async def platform_packs_sync_status(request: Request):
     store = getattr(request.app.state, "state_store", None) or getattr(
         getattr(request.app.state, "registry", None), "state_store", None
     )
-    from src.infrastructure.skills.platform_pack_promotion import get_last_platform_pack_sync_report
+    from src.infrastructure.skills.platform_pack_promotion import (
+        PLATFORM_LOCK_MIGRATION_SETTING,
+        get_last_platform_pack_sync_report,
+    )
 
-    report = get_last_platform_pack_sync_report(store)
-    return report or {"triggered_at": None, "results": []}
+    report = get_last_platform_pack_sync_report(store) or {"triggered_at": None, "results": []}
+    if not isinstance(report, dict):
+        report = {"triggered_at": None, "results": [], "raw": report}
+    migration = None
+    if store is not None and hasattr(store, "get_setting"):
+        migration = store.get_setting(PLATFORM_LOCK_MIGRATION_SETTING)
+    report = dict(report)
+    report["lock_migration"] = migration
+    return report
 
 
 @router.post("/api/platform-packs/sync")
@@ -962,6 +1028,32 @@ async def platform_packs_sync_now(request: Request):
     return report.to_dict()
 
 
+
+
+@router.get("/api/agents/{agent_id}/pack-content-backups")
+async def list_agent_pack_content_backups(request: Request, agent_id: str):
+    """CARD-449: list pack-content backups for an agent."""
+    from src.infrastructure.skills.platform_pack_promotion import list_pack_content_backups
+    store = request.app.state.store
+    return {"agent_id": agent_id, "backups": list_pack_content_backups(store, agent_id)}
+
+
+@router.post("/api/agents/{agent_id}/pack-content-backups/{backup_id}/restore")
+async def restore_agent_pack_content_backup(request: Request, agent_id: str, backup_id: str):
+    """CARD-449: restore a prior pack-content backup onto the live agent profile."""
+    from src.infrastructure.skills.platform_pack_promotion import restore_pack_content_backup
+    registry = request.app.state.registry
+    store = request.app.state.store
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+    try:
+        snap = restore_pack_content_backup(store, profile, backup_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"agent_id": agent_id, "restored": snap}
+
+
 @router.post("/api/agents/{agent_id}/accept-platform-seed")
 async def accept_platform_seed(request: Request, agent_id: str):
     """Clear user_modified lock and promote platform seed for one pack [CARD-443]."""
@@ -976,6 +1068,14 @@ async def accept_platform_seed(request: Request, agent_id: str):
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
     store = getattr(registry, "state_store", None)
+
+    # CARD-449: backup pack content before accepting platform seed
+    from src.infrastructure.skills.platform_pack_promotion import backup_pack_content
+    try:
+        backup_pack_content(store, profile, reason="accept_platform_seed")
+    except Exception:
+        logger.exception("CARD-449 backup before accept-platform-seed failed for %s", agent_id)
+
     if store is not None and hasattr(store, "mark_agent_user_modified"):
         store.mark_agent_user_modified(agent_id, modified=False)
     profile.user_modified = False
