@@ -1,7 +1,7 @@
 ---
 id: CARD-447
 title: "Education Studio Operator Strip + Tutor Topic/Course Context"
-status: Ready
+status: In Review
 created: 2026-09-23
 adr: ADR-0059
 labels:
@@ -15,7 +15,7 @@ parent: CARD-446
 
 # [CARD-447] Education Studio Operator Strip + Tutor Topic/Course Context
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-23
 > **Baseline**: `qa` after CARD-441 Done + ADR-0059 operator+players amendment
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)
@@ -125,3 +125,22 @@ Do **not** write product code until Jacob says **`build`** on this card.
 - Refine strip/context UX: say **`continue`**.
 - Start implementation: say **`build`**.
 - After live proof: say **`merge to qa`**.
+
+
+---
+
+## Implementation notes (CARD-447 build)
+
+**Persistence / Tutor injection (locked at build):**
+
+| Path | Role |
+|------|------|
+| Settings key `selected_education_context` | Durable Studio-active topic/course (Projects `selected_project` parallel) |
+| `GET` / `PUT` `/api/education/selected` | HTTP contract for read/write |
+| localStorage `autoreiv.educationStudio.activeContext.v1` | Studio chrome mirror (survives hard-refresh) |
+| `POST /api/education/tutor/context` | Tutor grounding after Set active / Study entry |
+| `#educationOperatorConsole` | Operator home for Due / Progress / Wiki curate (Learning OS APIs) |
+| `#chatEducationModeStrip` | Thinned: topic/course indicator + **Studio console** deep-link; Due/Progress/Wiki curate buttons deep-link to Studio |
+
+**Out of scope (unchanged):** CARD-448 players; Studio retirement; version bump.
+

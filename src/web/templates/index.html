@@ -294,19 +294,23 @@
             <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300">topic <span id="chatEducationModeTopic" class="text-sky-300">—</span></span>
             <span class="px-2 py-0.5 rounded-md bg-[#08090c] border border-brand-700/50 text-brand-300" title="Durable course id from Learning OS">course <span id="chatEducationModeCourseId" class="select-all">—</span></span>
             <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-400">agent tutor</span>
-                        <button type="button" id="chatEducationModeCurateBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-950/50 hover:bg-sky-900/60 border border-sky-800/50 text-sky-200 transition" title="Curate link or curriculum into Wiki (Learning OS)" aria-label="Open wiki curation in Tutor education mode" data-card="440">
+                        <button type="button" id="chatEducationModeCurateBtn" data-operator-home="studio" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-950/50 hover:bg-sky-900/60 border border-sky-800/50 text-sky-200 transition" title="Curate link or curriculum into Wiki (Learning OS)" aria-label="Open wiki curation in Tutor education mode" data-card="440">
               <i data-lucide="library" class="w-3 h-3"></i>
               <span>Wiki curate</span>
             </button>
-<button type="button" id="chatEducationModeDueBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/50 text-amber-200 transition" title="Open due reviews (Learning OS mastery/due)" aria-label="Open due reviews in Tutor education mode" data-card="439">
+<button type="button" id="chatEducationModeDueBtn" data-operator-home="studio" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/50 text-amber-200 transition" title="Open due reviews (Learning OS mastery/due)" aria-label="Open due reviews in Tutor education mode" data-card="439">
               <i data-lucide="alarm-clock" class="w-3 h-3"></i>
               <span>Due reviews</span>
               <span id="chatEducationModeDueCount" class="font-mono text-amber-300/90">-</span>
             </button>
-                        <button type="button" id="chatEducationModeProgressBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-950/50 hover:bg-violet-900/60 border border-violet-800/50 text-violet-200 transition" title="Trustable course/mastery/due progress (Learning OS)" aria-label="Open progress summary in Tutor education mode" data-card="441">
+                        <button type="button" id="chatEducationModeProgressBtn" data-operator-home="studio" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-950/50 hover:bg-violet-900/60 border border-violet-800/50 text-violet-200 transition" title="Trustable course/mastery/due progress (Learning OS)" aria-label="Open progress summary in Tutor education mode" data-card="441">
               <i data-lucide="gauge" class="w-3 h-3"></i>
               <span>Progress</span>
               <span id="chatEducationModeProgressBadge" class="font-mono text-violet-300/90">-</span>
+            </button>
+<button type="button" id="chatEducationModeOpenStudioBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-800/50 text-emerald-200 transition" title="Education Studio is the operator console (Due / Progress / Wiki curate)" aria-label="Open Education Studio operator console" data-card="447">
+              <i data-lucide="layout-dashboard" class="w-3 h-3"></i>
+              <span>Studio console</span>
             </button>
 <button type="button" id="chatEducationModeExitBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300 transition" title="Exit education-mode chrome (course row stays durable)" aria-label="Exit Tutor education mode chrome">
               <i data-lucide="x" class="w-3 h-3"></i>
@@ -3118,6 +3122,74 @@
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                 <span class="hidden sm:inline">Refresh</span>
               </button>
+            </div>
+          </div>
+
+          <!-- CARD-447: Education Studio operator console (Due / Progress / Wiki curate + active topic/course) -->
+          <div id="educationOperatorConsole" class="px-4 py-2.5 border-b border-emerald-900/40 bg-emerald-950/25 flex-shrink-0" data-card="447" aria-label="Education Studio operator console">
+            <div class="flex flex-wrap items-center gap-2 justify-between">
+              <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/90">Operator</span>
+                <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-[10px] font-mono text-slate-300">topic <span id="educationActiveTopic" class="text-sky-300">-</span></span>
+                <span class="px-2 py-0.5 rounded-md bg-[#08090c] border border-brand-700/50 text-[10px] font-mono text-brand-300" title="Durable course id">course <span id="educationActiveCourseId" class="select-all">-</span></span>
+                <button type="button" id="educationSetActiveContextBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-800/70 hover:bg-emerald-700 border border-emerald-600/50 text-[10px] font-semibold text-emerald-50 transition" title="Save topic/course as Studio-active (Tutor reads this)">
+                  <i data-lucide="pin" class="w-3 h-3"></i><span>Set active</span>
+                </button>
+                <button type="button" id="educationPairTutorBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-900/60 hover:bg-sky-800 border border-sky-700/50 text-[10px] font-semibold text-sky-100 transition" title="Open Tutor education mode with Studio-active topic/course">
+                  <i data-lucide="graduation-cap" class="w-3 h-3"></i><span>Pair Tutor</span>
+                </button>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" id="educationOperatorDueBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/50 text-[10px] text-amber-200 transition" title="Due reviews (Learning OS mastery/due)" data-card="447">
+                  <i data-lucide="alarm-clock" class="w-3 h-3"></i><span>Due</span>
+                  <span id="educationOperatorDueCount" class="font-mono text-amber-300/90">-</span>
+                </button>
+                <button type="button" id="educationOperatorProgressBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-950/50 hover:bg-violet-900/60 border border-violet-800/50 text-[10px] text-violet-200 transition" title="Progress (Learning OS)" data-card="447">
+                  <i data-lucide="gauge" class="w-3 h-3"></i><span>Progress</span>
+                  <span id="educationOperatorProgressBadge" class="font-mono text-violet-300/90">-</span>
+                </button>
+                <button type="button" id="educationOperatorCurateBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-950/50 hover:bg-sky-900/60 border border-sky-800/50 text-[10px] text-sky-200 transition" title="Wiki curate (Learning OS)" data-card="447">
+                  <i data-lucide="library" class="w-3 h-3"></i><span>Wiki curate</span>
+                </button>
+              </div>
+            </div>
+            <div id="educationOperatorDuePanel" class="hidden mt-2 rounded-lg border border-amber-900/40 bg-[#08090c]/80 p-2" aria-live="polite" data-card="447">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="text-[10px] font-semibold uppercase tracking-wider text-amber-200/90">Due reviews (Learning OS)</div>
+                <button type="button" id="educationOperatorDueRefreshBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Refresh</button>
+              </div>
+              <div id="educationOperatorDueList" class="max-h-40 overflow-y-auto space-y-1 text-xs text-slate-300">
+                <div class="text-[11px] text-slate-500 px-1">Open Due to load mastery/due.</div>
+              </div>
+              <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">/api/education/mastery/due</code>. Chat strip is not required.</p>
+            </div>
+            <div id="educationOperatorProgressPanel" class="hidden mt-2 rounded-lg border border-violet-900/40 bg-[#08090c]/80 p-2" aria-live="polite" aria-hidden="true" data-card="447">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">Progress (Learning OS)</div>
+                <div class="flex items-center gap-1">
+                  <button type="button" id="educationOperatorProgressRefreshBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Refresh</button>
+                  <button type="button" id="educationOperatorProgressHideBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Hide</button>
+                </div>
+              </div>
+              <div id="educationOperatorProgressBody" class="space-y-1 text-xs text-slate-300">
+                <div class="text-[11px] text-slate-500 px-1">Open Progress to load course, mastery, and due.</div>
+              </div>
+              <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">GET /api/education/progress</code>. Failures never fake 100%.</p>
+            </div>
+            <div id="educationOperatorCuratePanel" class="hidden mt-2 rounded-lg border border-sky-900/40 bg-[#08090c]/80 p-2" aria-live="polite" data-card="447">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="text-[10px] font-semibold uppercase tracking-wider text-sky-200/90">Wiki curation (Learning OS)</div>
+                <button type="button" id="educationOperatorCurateHideBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Hide</button>
+              </div>
+              <div class="flex flex-wrap gap-1.5 mb-1.5">
+                <button type="button" id="educationOperatorCurateLinkBtn" class="text-[10px] px-2 py-1 rounded-md bg-sky-950/60 hover:bg-sky-900/70 border border-sky-800/50 text-sky-100">Curate link</button>
+                <button type="button" id="educationOperatorCurateCurriculumBtn" class="text-[10px] px-2 py-1 rounded-md bg-sky-950/60 hover:bg-sky-900/70 border border-sky-800/50 text-sky-100">Curate curriculum</button>
+                <button type="button" id="educationOperatorCurateRawBtn" class="text-[10px] px-2 py-1 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Raw source link</button>
+              </div>
+              <div id="educationOperatorCurateResult" class="max-h-36 overflow-y-auto space-y-1 text-xs text-slate-300">
+                <div class="text-[11px] text-slate-500 px-1">Supply a link or curriculum outline. Notes stage in 00_Inbox/.</div>
+              </div>
+              <p class="mt-1 text-[10px] text-slate-500">Uses <code class="text-slate-400">POST /api/education/wiki/curate</code>. Failures do not claim library updated.</p>
             </div>
           </div>
 

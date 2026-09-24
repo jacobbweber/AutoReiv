@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Added
+
+- **CARD-447 Education Studio operator strip + Tutor topic/course context**: Education Studio `#educationOperatorConsole` hosts Due / Progress / Wiki curate (same Learning OS APIs as CARD-439/440/441). Active topic/course persists via `PUT /api/education/selected` (`selected_education_context` settings key) + localStorage `autoreiv.educationStudio.activeContext.v1`. Tutor Study entry injects Studio-active context through `POST /api/education/tutor/context` (Projects selected parallel). Chat education-mode strip thins to a context indicator + Studio console deep-link. Players remain CARD-448. Contract: `tests/unit/education/test_card447_education_studio_selected_context.py`, `tests/unit/frontend/card_447_education_studio_operator.test.js` ([CARD-447], [ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
+
+
 ### Changed
 
 - **ADR-0059 amendment / Education Studio operator + players**: Education Studio is the education **operator surface + players** (topic/course selection saved in Studio; Due reviews; Progress; Wiki curate; flashcard/quiz/test players). Tutor stays coach with Studio topic/course context (Projects Studio ↔ Developer parallel). Chat education-mode strip is **not** the permanent operator UI — relocate under [CARD-447](docs/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md). Parent [CARD-446](docs/cards/CARD-446-education-studio-flashcard-quiz-test-players.md); players [CARD-448](docs/cards/CARD-448-education-studio-flashcard-quiz-test-players.md). CARD-437..441 Done APIs stand; UI may relocate. [CARD-435](docs/cards/CARD-435-education-tutor-first-direction.md) + inventory pointers updated ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
