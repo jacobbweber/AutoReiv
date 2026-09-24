@@ -80,17 +80,26 @@ The CARD-388 contract that `GET /api/agents` returns platform seed names (`Devel
 
 ---
 
-## 4. Notes for Jacob — local feat branches seen in Settings branch picker (do NOT auto-delete)
+## 4. Notes for Jacob — local feat branch cleanup (2026-09-24, after CARD-451 merge to qa)
 
-Observed on Jarvis during CARD-451 Settings updates work (branch picker / `GET /api/system/updates/branches`), **in addition to** the active `feat/card-451-settings-software-updates`. These are **local** feat branches for Jacob to review later (merge, keep, or delete himself — **agents must not delete them**):
+Jacob said **Clean up stale branches and merge to qa**. Cleanup used safe `git branch -d` only (never `-D`). No matching `origin/feat/*` heads existed for these names (`git ls-remote --heads origin`).
+
+### Removed (fully merged into qa — local only)
+
+1. `feat/card-438-chat-quiz-flashcard-durable-grading`
+2. `feat/card-439-due-reviews-in-tutor-education-mode`
+3. `feat/card-440-wiki-curation-from-links-curriculum`
+4. `feat/card-441-progress-you-can-trust-non-studio-surface`
+5. `feat/card-447-education-studio-operator-strip-and-tutor-context`
+6. `feat/card-448-education-studio-players`
+7. `feat/card-451-settings-software-updates` (merged + deleted after push to `origin/qa`)
+
+### Kept (safe delete refused — not fully merged)
 
 1. `feat/card-400-education-monolith-decomposition`
-2. `feat/card-438-chat-quiz-flashcard-durable-grading`
-3. `feat/card-439-due-reviews-in-tutor-education-mode`
-4. `feat/card-440-wiki-curation-from-links-curriculum`
-5. `feat/card-441-progress-you-can-trust-non-studio-surface`
-6. `feat/card-447-education-studio-operator-strip-and-tutor-context`
-7. `feat/card-448-education-studio-players`
+   - Unmerged tip: `ed1f6a6f refactor(education): decompose education.js monolith into focused submodules [CARD-400]`
+   - `git log qa..<branch> --oneline`: that single commit
+   - Card file: no `docs/cards/CARD-400-*.md` found in the tree (status unknown / may be archived or never landed as a card file here)
 
 ---
 
