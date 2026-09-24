@@ -391,6 +391,12 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
 
     available_tools = {t.name for t in tool_reg.list_tools()}
+    # CARD-438 hotfix: Studio Save re-sends skill-derived pack tools. Grandfather
+    # tools already authorized on this agent so scalar edits (max_turns) are not
+    # blocked with 422 when those tools are temporarily absent from the live
+    # catalog (stale worker / mount lag). Brand-new unknown tool names still 422.
+    available_tools |= {str(t).strip() for t in (existing.allowed_tool_names or []) if str(t).strip()}
+    available_tools |= {str(t).strip() for t in (existing.pack_tool_names or []) if str(t).strip()}
     data = payload.model_dump()
     data["id"] = agent_id
     if not data.get("name"):
