@@ -90,6 +90,28 @@ def test_reset_on_unlocked_partial_pack_still_replaces_prompt(tmp_path: Path, ch
     assert [r["status"] for r in last["results"] if r["pack_id"] == "fixturepack"] == ["force_reset"]
 
 
+def test_skip_outcome_says_whether_a_newer_platform_version_exists(tmp_path: Path, checkout_v2: Path):
+    """REQ-450-001: skipped status is honest about an upstream update vs a customization only."""
+    from src.infrastructure.skills.platform_packs import compute_platform_seed_hash
+
+    data_dir = tmp_path / "data"
+    _seed_dest(data_dir)
+    store, profile = _locked_store()  # seed hash "stale" -> a newer platform version exists
+    registry = _FakeRegistry(store)
+    stale = promote_platform_packs(data_dir, registry, None, checkout_root=checkout_v2, pack_ids=["fixturepack"])
+    assert stale.results[0].status == "skipped_user_modified"
+    assert stale.results[0].seed_update_available is True
+
+    src = checkout_v2 / "platform-packs" / "fixturepack"
+    import json as _json
+
+    profile.seed_content_hash = compute_platform_seed_hash(_json.loads((src / "pack.json").read_text("utf-8")), src)
+    current = promote_platform_packs(data_dir, registry, None, checkout_root=checkout_v2, pack_ids=["fixturepack"])
+    assert current.results[0].status == "skipped_user_modified"
+    assert current.results[0].seed_update_available is False
+    assert current.to_dict()["results"][0]["seed_update_available"] is False
+
+
 def test_single_pack_run_merges_into_last_report(tmp_path: Path, checkout_v2: Path):
     """REQ-450-010: a pack_ids subset run replaces only its own entries."""
     _write_pack(checkout_v2 / "platform-packs", "otherpack", prompt="OTHER", skills=["skill-a"])

@@ -69,10 +69,25 @@ export function platformUpdateBadge(entry) {
     return { text, hint };
   }
   const reason = String(entry.reason || '');
-  const text = reason.startsWith('cutover')
-    ? "Platform update skipped because this agent's instructions, skills, or tools were customized."
-    : 'Platform update skipped because the system prompt was edited.';
-  return { text, hint };
+  if (reason.startsWith('cutover')) {
+    return { text: "Platform update skipped because this agent's instructions, skills, or tools were customized.", hint };
+  }
+  if (entry.seed_update_available === false) {
+    return {
+      text: 'You edited the system prompt, so platform updates will skip this agent until you reset it.',
+      hint: 'No newer platform version right now. Reset to platform defaults puts it back to stock. A backup is saved first.',
+    };
+  }
+  return { text: 'Platform update skipped because the system prompt was edited.', hint };
+}
+
+/** Plain warning when the global keep-customizations setting is off [REQ-450-011]. */
+export function keepCustomizationsNotice(enabled) {
+  if (enabled !== false) return '';
+  return (
+    '"Keep my agent customizations" is off in Settings, so edits to this agent\'s system prompt, skills, and tools ' +
+    'are reset to platform defaults on the next restart. A backup is saved first.'
+  );
 }
 
 export function formatBackupTime(iso) {
@@ -167,10 +182,18 @@ export async function loadPlatformDefaultsData(agentId, fetchImpl = fetch) {
   const agent = await readJson(await fetchImpl(`/api/agents/${id}`));
   const report = await readJson(await fetchImpl('/api/platform-packs/sync-status'));
   const backupsBody = await readJson(await fetchImpl(`/api/agents/${id}/pack-content-backups`));
+  let keepCustomizations = null;
+  try {
+    const keep = await readJson(await fetchImpl('/api/settings/platform-pack-keep-customizations'));
+    keepCustomizations = keep.enabled !== false;
+  } catch (err) {
+    console.warn('[AutoReiv UI] Platform defaults: could not read keep-customizations setting', err);
+  }
   return {
     agent,
     entry: platformSyncEntryFor(report, agentId),
     backups: Array.isArray(backupsBody.backups) ? backupsBody.backups : [],
+    keepCustomizations,
   };
 }
 
@@ -197,6 +220,7 @@ export function setupPlatformDefaults(options = {}) {
   const badgeText = $('forgePlatformUpdateText');
   const badgeHint = $('forgePlatformUpdateHint');
   const upToDate = $('forgePlatformUpToDate');
+  const keepOffNotice = $('forgePlatformKeepOffNotice');
   const resetBtn = $('forgeResetPlatformDefaultsBtn');
   const backupsList = $('forgePackBackupsList');
   const resetModal = $('resetPlatformDefaultsModal');
@@ -216,8 +240,13 @@ export function setupPlatformDefaults(options = {}) {
   if (resetModal) setupModal(resetModal);
   if (restoreModal) setupModal(restoreModal);
 
-  function paint(entry) {
+  function paint(entry, keepCustomizations) {
     const info = platformUpdateBadge(entry);
+    const keepText = keepCustomizationsNotice(keepCustomizations);
+    if (keepOffNotice) {
+      keepOffNotice.textContent = keepText;
+      keepOffNotice.classList.toggle('hidden', !keepText);
+    }
     if (badge) badge.classList.toggle('hidden', !info);
     if (badgeText) badgeText.textContent = info ? info.text : '';
     if (badgeHint) badgeHint.textContent = info ? info.hint : '';
@@ -229,7 +258,7 @@ export function setupPlatformDefaults(options = {}) {
 
   async function refreshFrom(result) {
     backups = result.backups;
-    paint(result.entry);
+    paint(result.entry, result.keepCustomizations);
     if (typeof options.onAgentRefreshed === 'function') {
       await options.onAgentRefreshed(result.agent);
     }
@@ -244,7 +273,7 @@ export function setupPlatformDefaults(options = {}) {
       const data = await loadPlatformDefaultsData(agent.id);
       if (!currentAgent || currentAgent.id !== agent.id) return;
       backups = data.backups;
-      paint(data.entry);
+      paint(data.entry, data.keepCustomizations);
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load platform defaults status:', err);
       showToast(`Could not load platform update status: ${err.message}`, 'error');

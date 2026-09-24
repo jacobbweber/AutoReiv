@@ -11,6 +11,8 @@ import {
   backupReasonLabel,
   formatBackupTime,
   humanizePackField,
+  keepCustomizationsNotice,
+  loadPlatformDefaultsData,
   performBackupRestore,
   performPlatformReset,
   platformSyncEntryFor,
@@ -49,6 +51,15 @@ describe('platform update badge [REQ-450-001/002/007]', () => {
     expect(badge.text).toBe('Platform update skipped because the system prompt was edited.');
     expect(badge.hint).toContain('Reset to platform defaults');
     expect(badge.text + badge.hint).not.toMatch(RAW_FIELD);
+  });
+
+  it('says the agent is customized (not that an update was skipped) when no newer version exists', () => {
+    const badge = platformUpdateBadge({ pack_id: 'developer', status: 'skipped_user_modified', reason: 'user_modified=true', seed_update_available: false });
+    expect(badge.text).toBe('You edited the system prompt, so platform updates will skip this agent until you reset it.');
+    expect(badge.hint).toContain('No newer platform version right now');
+    expect(badge.hint).toContain('Reset to platform defaults');
+    const newer = platformUpdateBadge({ pack_id: 'developer', status: 'skipped_user_modified', reason: 'user_modified=true', seed_update_available: true });
+    expect(newer.text).toBe('Platform update skipped because the system prompt was edited.');
   });
 
   it('uses customized wording for a first-boot divergence', () => {
@@ -148,6 +159,7 @@ describe('reset and restore refresh Studio [REQ-450-003/009]', () => {
       results: [{ pack_id: 'developer', status: 'force_reset' }, { pack_id: 'tutor', status: 'unchanged' }],
     },
     'GET /api/agents/developer/pack-content-backups': { backups: [{ id: 'b1' }] },
+    'GET /api/settings/platform-pack-keep-customizations': { enabled: false },
   };
 
   it('posts reset then re-reads the agent, sync status, and backups; badge clears', async () => {
@@ -158,8 +170,10 @@ describe('reset and restore refresh Studio [REQ-450-003/009]', () => {
       'GET /api/agents/developer',
       'GET /api/platform-packs/sync-status',
       'GET /api/agents/developer/pack-content-backups',
+      'GET /api/settings/platform-pack-keep-customizations',
     ]);
     expect(out.agent.max_turns).toBe(77);
+    expect(out.keepCustomizations).toBe(false);
     expect(platformUpdateBadge(out.entry)).toBeNull();
     expect(out.backups).toHaveLength(1);
   });
@@ -172,12 +186,33 @@ describe('reset and restore refresh Studio [REQ-450-003/009]', () => {
       'GET /api/agents/developer',
       'GET /api/platform-packs/sync-status',
       'GET /api/agents/developer/pack-content-backups',
+      'GET /api/settings/platform-pack-keep-customizations',
     ]);
   });
 
   it('surfaces the server error instead of swallowing it', async () => {
     const { impl } = fakeFetch({});
     await expect(performPlatformReset('developer', impl)).rejects.toThrow('not found');
+  });
+});
+
+describe('keep-customizations notice [REQ-450-011]', () => {
+  it('warns in plain words only when the setting is off', () => {
+    expect(keepCustomizationsNotice(false)).toBe(
+      '"Keep my agent customizations" is off in Settings, so edits to this agent\'s system prompt, skills, and tools are reset to platform defaults on the next restart. A backup is saved first.',
+    );
+    expect(keepCustomizationsNotice(true)).toBe('');
+    expect(keepCustomizationsNotice(null)).toBe('');
+  });
+
+  it('treats an unreadable setting as unknown instead of failing the refresh', async () => {
+    const { impl } = fakeFetch({
+      'GET /api/agents/tutor': { id: 'tutor' },
+      'GET /api/platform-packs/sync-status': { results: [] },
+      'GET /api/agents/tutor/pack-content-backups': { backups: [] },
+    });
+    const out = await loadPlatformDefaultsData('tutor', impl);
+    expect(out.keepCustomizations).toBeNull();
   });
 });
 
@@ -194,6 +229,7 @@ describe('Agent Studio markup [REQ-450-001/003/004/008/009]', () => {
       'confirmResetPlatformDefaultsBtn',
       'restorePackBackupModal',
       'confirmRestorePackBackupBtn',
+      'forgePlatformKeepOffNotice',
     ]) {
       expect(html).toContain(`id="${id}"`);
     }

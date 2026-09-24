@@ -57,6 +57,9 @@ class PackSyncOutcome:
     skipped_fields: list[str] = field(default_factory=list)
     updated_skills: list[str] = field(default_factory=list)
     removed_skills: list[str] = field(default_factory=list)
+    # CARD-450: on skips, whether the platform seed moved since this agent last took it
+    # (True = a newer platform version is being skipped; False = customized only; None = unknown)
+    seed_update_available: Optional[bool] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -607,6 +610,7 @@ def promote_one_platform_pack(
             resolution=RESOLUTION_USER_MODIFIED.replace("<pack_id>", pack_id),
             source_path=source_path,
             destination_path=destination_path,
+            seed_update_available=(stored_hash != seed_hash) if stored_hash else None,
         )
         logger.warning(
             "Platform pack sync skipped for %s: user_modified. Resolution: %s",
