@@ -195,3 +195,11 @@ Do not write product code until Jacob says **build** on this card.
 - Skip outcomes carry `seed_update_available`. When no newer platform version exists, the badge says "You edited the system prompt, so platform updates will skip this agent until you reset it."
 
 **Still deferred:** a badge that updates on Save without a restart (CARD-457). The live checklist restarts serve after saving.
+
+**Live after the fix** (tip `4f76597b`, two restarts, 6:44 PM ET):
+- Keep-customizations turned **on** through the Settings API. That was Jacob's stated intent; the request from the UI never reached the server.
+- Jacob's edit restored from his own backup `developer-20260924T223203243225`: prompt 1538 chars, max turns 25.
+- After the restart: `developer=skipped_user_modified`, `seed_update_available=false`. Badge: "You edited the system prompt, so platform updates will skip this agent until you reset it."
+- `tutor=unchanged`, no badge.
+- Tests: broad `tests/unit` 1974 passed, 11 skipped, 1 failed (CARD-454). Vitest 750 passed, 5 failed (all pre-existing, CARD-456).
+
