@@ -144,6 +144,24 @@ Do **not** write product code until Jacob says **build** on this card.
 6. Blank/cancel Study prompt → error toast; Chat does not silently become freeform untitled education session.
 7. Automated: `npx vitest run tests/unit/frontend/card_437_study_entry.test.js`
 
+
+
+### Live fix (2026-09-23 ET) — datetime JSON on Tutor chat
+
+Jacob live-tested Study → topic `okta` → education strip OK (`course_f4f105904ee1`). First Tutor Chat turn failed with:
+
+`⚠️ Error: Object of type datetime is not JSON serializable`
+
+**Root cause**: `src/application/kernel/agent_kernel.py` `stream_turn` did `json.dumps(tool_res.output)` (observability traceback @ former L1648). A tool result dict carried a raw `datetime` (education course/tutor/SRS-shaped fields are the high-probability source). FastAPI `jsonable_encoder` hid the same values on `/api/education/*`, but the kernel Chat path uses stdlib `json.dumps`.
+
+**Fix**:
+- `src/infrastructure/serialization/json_safe.py` — `dumps_jsonable` / `dumps_tool_output` (datetime → ISO)
+- Kernel tool-result + parked + tool-schema sizing uses the helper
+- Telemetry `metadata_json` and Chat `_sse` also use it (defense in depth)
+- Regression: `tests/unit/kernel/test_json_safe_datetime.py`
+
+**Retry**: Study → topic → send a Tutor message (education-mode prompt or follow-up). Expect no datetime JSON error in the Tutor bubble.
+
 ### After live proof
 
 Say **merge to qa**.

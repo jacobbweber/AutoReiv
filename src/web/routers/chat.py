@@ -60,6 +60,7 @@ from src.application.orchestration.wiki_thin_grounding import (
     is_wiki_related_ask,
     ungrounded_claimed_paths,
 )
+from src.infrastructure.serialization.json_safe import dumps_jsonable
 from src.application.orchestration.working_set_context import (
     build_phase_working_set,
     distill_durable_note,
@@ -309,7 +310,7 @@ def deduplicate_phase_deliverables(
 
 
 def _sse(event: str, payload: Any) -> str:
-    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
+    return f"event: {event}\ndata: {dumps_jsonable(payload)}\n\n"
 
 
 def _plan_step_payload(plan: ExecutionPlan) -> list:

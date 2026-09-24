@@ -14,6 +14,7 @@ from src.domain.observability.models import (
     ToolReliabilityMetric,
 )
 from src.domain.telemetry.models import TelemetrySpan
+from src.infrastructure.serialization.json_safe import dumps_jsonable
 
 
 class TelemetryRepositoryMixin:
@@ -41,7 +42,7 @@ class TelemetryRepositoryMixin:
         conn.commit()
 
     def save_telemetry_span(self, span: TelemetrySpan) -> None:
-        metadata_json = json.dumps(span.metadata) if span.metadata else None
+        metadata_json = dumps_jsonable(span.metadata) if span.metadata else None
         now_str = span.created_at.isoformat()
         conn = self._get_connection()
         try:

@@ -20,6 +20,7 @@ from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
     calculate_token_attribution,
 )
+from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
@@ -917,7 +918,7 @@ class AgentKernel:
         )
         tool_schema_chars = (
             sum(
-                len(json.dumps(t.model_dump() if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
+                len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
                 for t in active_tools
             )
             if active_tools
@@ -1179,11 +1180,7 @@ class AgentKernel:
                 tool_success = True if is_hitl else tool_res.success
 
                 if tool_res.success:
-                    tool_content = (
-                        json.dumps(tool_res.output)
-                        if isinstance(tool_res.output, (dict, list))
-                        else str(tool_res.output)
-                    )
+                    tool_content = dumps_tool_output(tool_res.output)
                 else:
                     tool_content = tool_res.error or "Tool execution error"
 
@@ -1224,7 +1221,7 @@ class AgentKernel:
                         if isinstance(tool_res.output, dict)
                         else "Approval required",
                     }
-                    parked_msg = ChatMessage(role=Role.ASSISTANT, content=json.dumps(parked))
+                    parked_msg = ChatMessage(role=Role.ASSISTANT, content=dumps_jsonable(parked))
                     if save_to_history:
                         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=parked_msg)
                     self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
@@ -1302,7 +1299,7 @@ class AgentKernel:
         )
         tool_schema_chars = (
             sum(
-                len(json.dumps(t.model_dump() if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
+                len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
                 for t in active_tools
             )
             if active_tools
@@ -1644,11 +1641,7 @@ class AgentKernel:
                 tool_success = True if is_hitl else tool_res.success
 
                 raw_payload = (
-                    (
-                        json.dumps(tool_res.output)
-                        if isinstance(tool_res.output, (dict, list))
-                        else str(tool_res.output or "")
-                    )
+                    dumps_tool_output(tool_res.output)
                     if tool_res.success
                     else (tool_res.error or "")
                 )
@@ -1685,11 +1678,7 @@ class AgentKernel:
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
                     target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
-                    output_blob = (
-                        json.dumps(tool_res.output)
-                        if isinstance(tool_res.output, (dict, list))
-                        else str(tool_res.output or "")
-                    )
+                    output_blob = dumps_tool_output(tool_res.output)
                     if parked:
                         handoff_status = "approval_required"
                     elif (
@@ -1710,11 +1699,7 @@ class AgentKernel:
                     )
 
                 if tool_res.success:
-                    tool_content = (
-                        json.dumps(tool_res.output)
-                        if isinstance(tool_res.output, (dict, list))
-                        else str(tool_res.output)
-                    )
+                    tool_content = dumps_tool_output(tool_res.output)
                 else:
                     tool_content = f"Tool Error: {tool_res.error}"
 
