@@ -15,6 +15,10 @@
 
 ### Fixed
 
+- **CARD-444 Flashcard-turn skill efficiency**: Tutor `flashcard-turn` runbook prefers `education_flashcard_next` / `education_flashcard_grade` (mastery due/upsert for empty-due seed only). Forbids mid-turn `wiki_note_create` / wiki curation / multi-note search loops; front-only then grade; honest failures. Pack skill tools drop `wiki_note_search` / `wiki_note_list`. Deterministic proof under default `max_turns` (10) without budget terminator. Prefer platform pack (AppData sync = CARD-443). Contract: `tests/unit/education/test_card444_flashcard_turn_skill_efficiency.py` ([CARD-444]).
+lashcard-turn\ runbook prefers \ducation_flashcard_next\ / \ducation_flashcard_grade\ (mastery due/upsert for empty-due seed only). Forbids mid-turn \wiki_note_create\ / wiki curation / multi-note search loops; front-only then grade; honest failures. Pack skill tools drop \wiki_note_search\ / \wiki_note_list\. Deterministic proof under default \max_turns\ (10) without budget terminator. Prefer platform pack (AppData sync = CARD-443). Contract: \	ests/unit/education/test_card444_flashcard_turn_skill_efficiency.py\ ([CARD-444]).
+
+
 - **CARD-438 hotfix datetime JSON on Tutor chat**: Live education-mode Tutor turns died with `Object of type datetime is not JSON serializable` when `get_session_info` returned raw `created_at`/`updated_at`. Shared `to_jsonable` now sanitizes every tool result at the kernel scrub boundary; `get_session_info` emits ISO strings; education tools reuse the shared helper. Contract: `tests/unit/kernel/test_json_safe_datetime.py` ([CARD-438]).
 
 ### Added
