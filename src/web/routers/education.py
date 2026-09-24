@@ -1299,6 +1299,62 @@ async def education_knowledge_artifact(payload: KnowledgeArtifactPayload):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+
+class WikiCuratePayload(BaseModel):
+    """CARD-440: Tutor Learning OS wiki curation from link or curriculum."""
+
+    mode: str = "link"  # link | curriculum
+    url: Optional[str] = None
+    curriculum: Optional[str] = None
+    topic: Optional[str] = None
+    title: Optional[str] = None
+    template: Optional[str] = None
+    raw_source: bool = False
+    body: Optional[str] = None
+    max_items: int = Field(default=12, ge=1, le=30)
+    agent_id: str = "tutor"
+
+
+@router.get("/api/education/wiki/templates")
+async def education_wiki_templates():
+    """Catalogued education-* Wiki templates for Learning OS curation [CARD-440]."""
+    from src.application.education.wiki_curation import catalog_education_templates
+
+    items = catalog_education_templates()
+    return {"templates": items, "count": len(items), "skill_hint": "education-wiki-curation"}
+
+
+@router.post("/api/education/wiki/curate")
+async def education_wiki_curate(request: Request, payload: WikiCuratePayload):
+    """Curate link/curriculum into durable Wiki notes via wiki_note_create [CARD-440].
+
+    Failures return success=false without claiming the library was updated.
+    """
+    from src.application.education.wiki_curation import curate
+    from src.application.skills.wiki_tools import WikiTools
+
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
+        request.app.state, "wiki_root", None
+    )
+    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    result = curate(
+        tools,
+        mode=payload.mode,
+        url=payload.url,
+        curriculum=payload.curriculum,
+        topic=payload.topic or "",
+        title=payload.title,
+        template=payload.template,
+        raw_source=bool(payload.raw_source),
+        body=payload.body,
+        max_items=payload.max_items,
+    )
+    # Honest HTTP: 200 with success=false for domain failures (fetch/write);
+    # 400 only for clearly invalid mode/required fields already handled in curate.
+    return {"agent_id": payload.agent_id, **result}
+
+
+
 @router.post("/api/education/course/start")
 async def course_start(request: Request, payload: CourseStartPayload):
     """Start or resume durable course pipeline (DEFAULT Ask path) [CARD-320]."""
