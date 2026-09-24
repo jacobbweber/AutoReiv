@@ -96,7 +96,7 @@ Autoreiv pack still mirrors `socratic-tutoring` for historical parity; Tutor is 
 | No `education_*` agent tools | Skills cite HTTP contracts; Studio is live caller | CARD-437..441 per surface |
 | No dedicated flashcard router | Shares mastery/SRS + quiz grade | CARD-438 / 439 |
 | Elaboration / construction / application Tutor skills | Not in day-one six; Studio panels remain SoT | later (after 437–441) |
-| Chat UX hard-gate for open vibes | Study entry (`study_entry.js`) refuses blank topic / missing Tutor; education-mode strip + `start-resume-topic` rails | CARD-437 (In Review) |
+| Chat UX hard-gate for open vibes | Study entry (`study_entry.js`) refuses blank topic / missing Tutor; education-mode strip + `start-resume-topic` rails | CARD-437 (Done) |
 | Links / curriculum ingest API | Wiki tools + templates only | CARD-440 |
 | Non-Studio progress surface | APIs exist; UI still Studio chrome | CARD-441 |
 | Education Studio retirement | Explicitly out of this card | CARD-442 |

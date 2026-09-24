@@ -108,7 +108,7 @@ Do **not** write product code until Jacob says **build** on this card.
 
 ---
 
-## Implementation notes (In Review)
+## Implementation notes (Done)
 
 **Branch**: `feat/card-437-study-entry-tutor-education-mode`
 
