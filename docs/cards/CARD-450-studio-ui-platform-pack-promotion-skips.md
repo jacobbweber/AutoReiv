@@ -1,7 +1,7 @@
 ---
 id: CARD-450
 title: "Studio UI for platform pack promotion skips and Reset to platform defaults"
-status: In Progress
+status: In Review
 branch: feat/card-450-studio-platform-pack-reset
 created: 2026-09-24
 adr: ADR-0056
@@ -17,7 +17,7 @@ related:
 
 # [CARD-450] Studio UI for platform pack promotion skips and Reset to platform defaults
 
-> **Status**: In Progress
+> **Status**: In Review
 > **Branch**: `feat/card-450-studio-platform-pack-reset`
 > **Created**: 2026-09-24
 > **Observed during**: CARD-443 live proof on Jarvis (`feat/card-443-platform-pack-appdata-sync`)
@@ -135,3 +135,47 @@ Do not write product code until Jacob says **build** on this card.
 - Refine the UI contract: say **continue**.
 - Start implementation: say **build**.
 - After Studio live proof: say **merge to qa**.
+
+---
+
+## 6. Build notes and proof (2026-09-24, Jarvis)
+
+**Branch:** `feat/card-450-studio-platform-pack-reset` (from `qa` `e54021ff`; not pushed or merged).
+
+**Where:** Agent Studio -> pick a platform agent (AutoReiv, Direct, Developer, Tutor) -> the **Platform defaults** section at the top of the page.
+
+**Changed:**
+- `src/web/static/modules/studios/forge/platform_defaults.js` (new): badge, dialogs, backups list, reset/restore plus refresh.
+- `src/web/static/modules/studios/forge.js`: wiring.
+- `src/web/templates/index.html`: section and two dialogs using the shared modal manager.
+- `src/infrastructure/skills/platform_pack_promotion.py`:
+  - `force_reset` parameter.
+  - `reset_platform_pack_to_defaults`.
+  - Subset report merge.
+  - Restore writes the operator override.
+- `src/web/routers/agents.py`:
+  - Reset delegates to the helper.
+  - Restore re-runs a report-only promotion for that pack (`force_reset=False`).
+
+**Bugs found and fixed while building:**
+1. Accept/Reset kept an edited system prompt (`promoted_partial`) and turned-off skills. It now uses the force-reset path (REQ-450-005).
+2. Single-pack runs wiped every other pack from the last report (REQ-450-010).
+3. Restore saved only the base profile, and the operator override hid it, so restore looked like a no-op in `GET /api/agents/{id}`.
+4. With keep-customizations off, the post-restore refresh force-reset the restored content straight away.
+
+**Tests:**
+- `tests/unit/agent_packs/test_card_450_platform_reset.py`: 6 tests, including reset and restore end to end on an isolated `create_app()`.
+- `tests/unit/frontend/card_450_platform_defaults.test.js`: 14 tests.
+- CARD-443/449/450 backend: 20 passed.
+- Broad `tests/unit`: 1972 passed, 11 skipped, 2 failed. Both failures are known: CAP-001 linter (CARD-454) and the CARD-388 AppData-name flake (CARD-455).
+- Vitest: 747 passed, 5 failed, all pre-existing on `qa` (CARD-456).
+- Playwright smoke: 7/7. Honesty smoke: green.
+- Ruff and ESLint are clean on our files. Full-repo ruff went from 12 to 10 errors (CARD-454). Full-repo ESLint errors are pre-existing (CARD-456).
+
+**Live (serve restarted on 0.0.0.0:8000, tip `8ea1b429`; DB backed up to `AutoReiv\backups\autoreiv-pre-card450-20260924-181534.db`):**
+- `developer` = `unchanged` ("seed_content_hash already matches platform seed"), badge none.
+- `tutor` = `unchanged`, badge none.
+- Developer was **not** content-locked. Keep-customizations is **off** live, and a boot at 13:47 ET force-reset Developer (backup `developer-20260924T174716805725`, reason `force_reset_keep_customizations_off`).
+- Reset was not run live. Jacob runs it from the UI.
+
+**Follow-ups:** CARD-456 (frontend Vitest/ESLint debt), CARD-457 (badge after Save and keep-customizations-off notice), CARD-458 (lock-migration report merge; restore turned-off-skills record).
