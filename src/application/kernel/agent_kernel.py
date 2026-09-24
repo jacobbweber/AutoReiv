@@ -20,7 +20,7 @@ from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
     calculate_token_attribution,
 )
-from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output
+from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
@@ -176,6 +176,9 @@ class AgentKernel:
         scrubber = self._get_scrubber()
         if tool_res.output is not None:
             tool_res.output = scrubber.scrub_object(tool_res.output)
+            # Harden ALL tool outputs (education mastery next_due, session timestamps, …)
+            # so accidental raw json.dumps sinks cannot regress Tutor chat (CARD-438).
+            tool_res.output = to_jsonable(tool_res.output)
         if tool_res.error is not None:
             tool_res.error = scrubber.scrub(str(tool_res.error))
         return tool_res

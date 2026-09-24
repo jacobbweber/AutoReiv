@@ -121,8 +121,18 @@ class PlatformPrimitiveTools:
             try:
                 sess = self.state_store.get_session(session_id)
                 if sess:
-                    info["created_at"] = getattr(sess, "created_at", None)
-                    info["updated_at"] = getattr(sess, "updated_at", None)
+                    # ISO strings only — raw datetime broke Tutor chat JSON (CARD-437/438).
+                    for key in ("created_at", "updated_at"):
+                        raw = getattr(sess, key, None)
+                        if raw is None:
+                            continue
+                        if hasattr(raw, "isoformat"):
+                            try:
+                                info[key] = raw.isoformat()
+                                continue
+                            except Exception:
+                                pass
+                        info[key] = str(raw)
             except Exception:
                 pass
         return info

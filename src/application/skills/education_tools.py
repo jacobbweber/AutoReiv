@@ -6,28 +6,13 @@ Callable tools wrap ``quiz_engine`` + mastery ledger ops (same durable path as
 
 from __future__ import annotations
 
-from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry, get_tool_context
 from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-
-
-def _json_safe(value: Any) -> Any:
-    """Datetime-safe payloads for kernel ``json.dumps`` (CARD-437 lesson)."""
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, date):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {str(k): _json_safe(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_json_safe(v) for v in value]
-    if isinstance(value, tuple):
-        return [_json_safe(v) for v in value]
-    return value
+from src.infrastructure.serialization.json_safe import to_jsonable as _json_safe
 
 
 class EducationTools:

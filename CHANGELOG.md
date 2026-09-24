@@ -1,6 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+
+- **CARD-438 hotfix datetime JSON on Tutor chat**: Live education-mode Tutor turns died with `Object of type datetime is not JSON serializable` when `get_session_info` returned raw `created_at`/`updated_at`. Shared `to_jsonable` now sanitizes every tool result at the kernel scrub boundary; `get_session_info` emits ISO strings; education tools reuse the shared helper. Contract: `tests/unit/kernel/test_json_safe_datetime.py` ([CARD-438]).
+
 ### Added
+
 
 - **CARD-438 Chat quiz / flashcard turns + durable grading**: Tutor Learning OS skills `quiz-turn` / `flashcard-turn` gain agent-callable tools `education_quiz_extract|next|grade`, `education_flashcard_next|grade`, `education_mastery_due|upsert` (`src/application/skills/education_tools.py`) that write binary grades into `education_mastery` (same path as `POST /api/education/quiz/grade`). Failures return `success=false` (no bubble theatre). Education Studio quiz UI stays. Contract: `tests/unit/education/test_card438_chat_quiz_flashcard_durable_grading.py` ([CARD-438]).
 - **CARD-437 Study entry = Tutor education mode**: Sidebar `#btn-study-entry` and Chat header `#chatStudyEntryBtn` open Chat with Tutor selected, Learning OS skill `start-resume-topic`, and durable course bind via `POST /api/education/course/start` + `POST /api/education/tutor/context`. Education-mode rails strip `#chatEducationModeStrip` shows topic/course/skill (not freeform untitled chat). Education Studio (`#tab-education` / `#view-education`) stays. Module: `src/web/static/modules/studios/study_entry.js`. Contract: `tests/unit/frontend/card_437_study_entry.test.js` ([CARD-437]).
