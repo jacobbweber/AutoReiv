@@ -1275,6 +1275,33 @@
         <!-- Character Sheet Workspace (Full Width) [CARD-299] -->
         <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 max-w-6xl mx-auto w-full">
 
+            <!-- Platform defaults: update status, Reset, backups [CARD-450] -->
+            <details id="forgePlatformDefaultsSection" class="forge-section hidden" data-card="450" data-section="platform-defaults" open>
+              <summary>Platform defaults</summary>
+              <div class="forge-section-body">
+                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                  <div id="forgePlatformUpdateBadge" class="hidden rounded-lg border border-amber-500/40 bg-amber-950/30 px-3 py-2" role="status">
+                    <p id="forgePlatformUpdateText" class="text-xs font-semibold text-amber-200"></p>
+                    <p id="forgePlatformUpdateHint" class="text-[11px] text-amber-100/80"></p>
+                  </div>
+                  <p id="forgePlatformUpToDate" class="text-[11px] text-slate-400">This agent has the latest platform update.</p>
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-[11px] text-slate-400">Put this agent back to the version that ships with AutoReiv. Max turns and model stay.</p>
+                    <button id="forgeResetPlatformDefaultsBtn" type="button" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+                      <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                      <span>Reset to platform defaults</span>
+                    </button>
+                  </div>
+                  <div class="pt-2 border-t border-white/[0.06]">
+                    <h4 class="text-[11px] font-semibold text-slate-300 mb-1">Backups</h4>
+                    <div id="forgePackBackupsList" class="space-y-0.5">
+                      <p class="text-[11px] text-slate-500">No backups yet.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
             <!-- Architectural Governance & Proposal Inbox [ADR-0054, CARD-365, REQ-ARCH-013] -->
             <details id="forgeArchitecturalSection" class="forge-section" data-card="365" data-section="architectural-inbox" open>
               <summary class="flex items-center justify-between">
@@ -4552,6 +4579,44 @@
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               <span>Confirm Delete</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== RESET TO PLATFORM DEFAULTS CONFIRM [CARD-450] ==================== -->
+      <div id="resetPlatformDefaultsModal" role="dialog" aria-modal="true" aria-labelledby="resetPlatformDefaultsTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
+            <h3 id="resetPlatformDefaultsTitle" class="font-bold text-sm text-amber-300 flex items-center space-x-2">
+              <i data-lucide="rotate-ccw" class="w-4 h-4 text-amber-400"></i>
+              <span>Reset to platform defaults</span>
+            </h3>
+            <button type="button" data-modal-close aria-label="Close" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div id="resetPlatformDefaultsBody" class="p-6 space-y-3 text-xs text-slate-300 overflow-y-auto"></div>
+          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2">
+            <button type="button" id="cancelResetPlatformDefaultsBtn" data-modal-close class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
+            <button type="button" id="confirmResetPlatformDefaultsBtn" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== RESTORE PACK BACKUP CONFIRM [CARD-450] ==================== -->
+      <div id="restorePackBackupModal" role="dialog" aria-modal="true" aria-labelledby="restorePackBackupTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
+            <h3 id="restorePackBackupTitle" class="font-bold text-sm text-sky-300 flex items-center space-x-2">
+              <i data-lucide="history" class="w-4 h-4 text-sky-400"></i>
+              <span>Restore backup</span>
+            </h3>
+            <button type="button" data-modal-close aria-label="Close" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div class="p-6 text-xs text-slate-300">
+            <p id="restorePackBackupMessage"></p>
+          </div>
+          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2">
+            <button type="button" id="cancelRestorePackBackupBtn" data-modal-close class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
+            <button type="button" id="confirmRestorePackBackupBtn" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">Restore</button>
           </div>
         </div>
       </div>
