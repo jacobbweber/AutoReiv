@@ -386,11 +386,11 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     tool_reg = request.app.state.tool_reg
     store = request.app.state.store
 
-    from src.infrastructure.skills.platform_pack_promotion import (
-        should_set_content_lock,
-        record_operator_disabled_skills,
-    )
     from src.application.agent_packs.schema import is_platform_pack
+    from src.infrastructure.skills.platform_pack_promotion import (
+        record_operator_disabled_skills,
+        should_set_content_lock,
+    )
 
     existing = registry.get_agent(agent_id)
     if not existing:
@@ -1040,8 +1040,17 @@ async def list_agent_pack_content_backups(request: Request, agent_id: str):
 
 @router.post("/api/agents/{agent_id}/pack-content-backups/{backup_id}/restore")
 async def restore_agent_pack_content_backup(request: Request, agent_id: str, backup_id: str):
-    """CARD-449: restore a prior pack-content backup onto the live agent profile."""
-    from src.infrastructure.skills.platform_pack_promotion import restore_pack_content_backup
+    """CARD-449: restore a prior pack-content backup onto the live agent profile.
+
+    CARD-450 / REQ-450-009: re-run promotion for this one pack afterwards so the last sync
+    report reflects the restored (customized) content and the Studio badge returns.
+    """
+    from src.application.agent_packs.schema import is_platform_pack
+    from src.infrastructure.data.resolver import repo_root
+    from src.infrastructure.skills.platform_pack_promotion import (
+        promote_platform_packs,
+        restore_pack_content_backup,
+    )
     registry = request.app.state.registry
     store = request.app.state.store
     profile = registry.get_agent(agent_id)
@@ -1051,53 +1060,42 @@ async def restore_agent_pack_content_backup(request: Request, agent_id: str, bac
         snap = restore_pack_content_backup(store, profile, backup_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    return {"agent_id": agent_id, "restored": snap}
+    sync = None
+    data_dir = _data_dir_root(request)
+    if is_platform_pack(agent_id) and data_dir is not None:
+        tools = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
+        sync = promote_platform_packs(
+            data_dir,
+            registry,
+            tools,
+            checkout_root=repo_root(),
+            pack_ids=[agent_id],
+        ).to_dict()
+    return {"agent_id": agent_id, "restored": snap, "sync": sync}
 
 
 @router.post("/api/agents/{agent_id}/accept-platform-seed")
 async def accept_platform_seed(request: Request, agent_id: str):
-    """Clear user_modified lock and promote platform seed for one pack [CARD-443]."""
+    """Reset to platform defaults: backup, unlock, force the platform version [CARD-443, CARD-450]."""
     from src.application.agent_packs.schema import is_platform_pack
     from src.infrastructure.data.resolver import repo_root
-    from src.infrastructure.skills.platform_pack_promotion import promote_platform_packs
+    from src.infrastructure.skills.platform_pack_promotion import reset_platform_pack_to_defaults
 
     if not is_platform_pack(agent_id):
         raise HTTPException(status_code=400, detail=f"'{agent_id}' is not a platform pack")
     registry = request.app.state.registry
-    profile = registry.get_agent(agent_id)
-    if not profile:
+    if not registry.get_agent(agent_id):
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    store = getattr(registry, "state_store", None)
-
-    # CARD-449: backup pack content before accepting platform seed
-    from src.infrastructure.skills.platform_pack_promotion import backup_pack_content
-    try:
-        backup_pack_content(store, profile, reason="accept_platform_seed")
-    except Exception:
-        logger.exception("CARD-449 backup before accept-platform-seed failed for %s", agent_id)
-
-    if store is not None and hasattr(store, "mark_agent_user_modified"):
-        store.mark_agent_user_modified(agent_id, modified=False)
-    profile.user_modified = False
-    if store is not None and hasattr(store, "save_custom_agent_profile"):
-        store.save_custom_agent_profile(profile)
-    # Clear override lock too when present
-    if store is not None and hasattr(store, "get_agent_override") and hasattr(store, "save_agent_override"):
-        ov = store.get_agent_override(agent_id)
-        if ov is not None:
-            ov.user_modified = False
-            store.save_agent_override(ov)
-
     tools = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
     data_dir = _data_dir_root(request)
     if data_dir is None:
         raise HTTPException(status_code=500, detail="data_dir unavailable")
-    report = promote_platform_packs(
+    report = reset_platform_pack_to_defaults(
         data_dir,
         registry,
         tools,
+        pack_id=agent_id,
         checkout_root=repo_root(),
-        pack_ids=[agent_id],
     )
     return {
         "agent_id": agent_id,
