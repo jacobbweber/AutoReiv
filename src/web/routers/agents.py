@@ -1070,6 +1070,8 @@ async def restore_agent_pack_content_backup(request: Request, agent_id: str, bac
             tools,
             checkout_root=repo_root(),
             pack_ids=[agent_id],
+            # Report only: never force-reset the content the operator just restored
+            force_reset=False,
         ).to_dict()
     return {"agent_id": agent_id, "restored": snap, "sync": sync}
 

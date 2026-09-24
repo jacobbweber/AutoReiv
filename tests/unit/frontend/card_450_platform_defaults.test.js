@@ -134,6 +134,7 @@ describe('backups list [REQ-450-008/009]', () => {
     expect(msg).toMatch(/instructions, skill list, tool list, max turns, and model/);
     expect(msg).toMatch(/Skill files on disk are not changed/);
     expect(msg).toMatch(/platform updates will skip/i);
+    expect(msg).toMatch(/Keep my agent customizations/);
     expect(msg).not.toMatch(RAW_FIELD);
   });
 });

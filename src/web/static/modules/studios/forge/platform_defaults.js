@@ -142,7 +142,8 @@ export function restoreDialogMessage(backup) {
   return (
     `Restore the instructions, skill list, tool list, max turns, and model saved on ${t.label}? ` +
     'Skill files on disk are not changed. The agent will count as customized, so platform updates will skip it ' +
-    'until you reset it again.'
+    'until you reset it again. If "Keep my agent customizations" is off in Settings, the next platform update ' +
+    'resets it anyway (a backup is saved first).'
   );
 }
 

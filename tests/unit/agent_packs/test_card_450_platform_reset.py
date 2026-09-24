@@ -175,6 +175,35 @@ def test_reset_and_restore_end_to_end_on_fixture_app():
         assert missing.status_code == 404
 
 
+def test_restore_sticks_when_keep_customizations_is_off():
+    """REQ-450-009: Restore is not undone by its own status refresh when keep-customizations is off.
+
+    The next full sync still force-resets (the CARD-449 global contract), which the dialog states.
+    """
+    app = create_app()
+    with TestClient(app) as client:
+        off = client.put("/api/settings/platform-pack-keep-customizations", json={"enabled": False})
+        assert off.status_code == 200 and off.json()["enabled"] is False
+        body = client.get("/api/agents/developer").json()
+        body["system_prompt"] = body["system_prompt"] + "\n" + EDIT_MARKER
+        assert client.put("/api/agents/developer", json=body).status_code == 200
+
+        assert client.post("/api/agents/developer/accept-platform-seed").status_code == 200
+        backups = client.get("/api/agents/developer/pack-content-backups").json()["backups"]
+        newest = next(b for b in backups if EDIT_MARKER in b["system_prompt"])
+
+        restored = client.post(f"/api/agents/developer/pack-content-backups/{newest['id']}/restore")
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["sync"]["results"][0]["status"] == "skipped_user_modified"
+        assert EDIT_MARKER in client.get("/api/agents/developer").json()["system_prompt"]
+        assert _status(client, "developer")["status"] == "skipped_user_modified"
+        after = client.get("/api/agents/developer/pack-content-backups").json()["backups"]
+        assert len(after) == len(backups), "restore refresh must not write a force-reset backup"
+
+        client.post("/api/platform-packs/sync")
+        assert EDIT_MARKER not in client.get("/api/agents/developer").json()["system_prompt"]
+
+
 def test_reset_rejects_non_platform_agent():
     """REQ-450-003: Reset only exists for platform agents."""
     app = create_app()
