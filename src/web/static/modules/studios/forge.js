@@ -8,6 +8,7 @@
  * - runbook.js: Skill toggle rows and Open in Skill Studio [CARD-411, CARD-418, CARD-419]
  * - skill_pills.js: Agent↔skill toggle pills; on/off writes allowed_skill only [CARD-419]
  * - config.js: Per-agent LLM providers, model discovery, avatar preview, routines, telemetry, brain drawer, tones
+ * - platform_defaults.js: Platform update badge, Reset to platform defaults, backups + Restore [CARD-450]
  */
 
 import { $, $queryAll, safeCreateIcons } from '../dom.js';
@@ -82,6 +83,7 @@ import {
   loadTones,
   setCachedDiscoveredModels,
 } from './forge/config.js';
+import { setupPlatformDefaults } from './forge/platform_defaults.js';
 
 export { formatAgentSelectOption };
 
@@ -151,6 +153,10 @@ export function initAgentForge(state, callbacks = {}) {
   let cachedArchivedSkills = [];
   let lastAllowedSkills = new Set();
   let currentAgentMcpServers = [];
+
+  const platformDefaults = setupPlatformDefaults({
+    onAgentRefreshed: (fresh) => renderAgentToForge(fresh),
+  });
 
   function getActiveAgentId() {
     return (activeForgeAgent && activeForgeAgent.id) || (forgeAgentSelect ? forgeAgentSelect.value : null);
@@ -327,6 +333,7 @@ export function initAgentForge(state, callbacks = {}) {
     });
     loadAgentCredentialGrants(agent);
     loadArchitecturalProposals(agent.id);
+    platformDefaults.render(agent);
   }
 
   function openDeleteModal() {

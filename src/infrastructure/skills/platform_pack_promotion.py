@@ -38,8 +38,9 @@ PLATFORM_LOCK_MIGRATION_SETTING = "platform_pack_lock_migration_report"
 
 RESOLUTION_USER_MODIFIED = (
     "Pack is locked (user_modified). To accept the platform seed: "
-    "call mark_agent_user_modified('<pack_id>', modified=False) on the state store "
-    "(or POST /api/agents/<pack_id>/accept-platform-seed), then restart serve or "
+    "use Reset to platform defaults in Agent Studio "
+    "(POST /api/agents/<pack_id>/accept-platform-seed, applies immediately with a backup), or "
+    "call mark_agent_user_modified('<pack_id>', modified=False) on the state store, then restart serve or "
     "POST /api/platform-packs/sync. Operator fields such as max_turns stay until "
     "you change them again in Agent Studio."
 )
@@ -56,6 +57,9 @@ class PackSyncOutcome:
     skipped_fields: list[str] = field(default_factory=list)
     updated_skills: list[str] = field(default_factory=list)
     removed_skills: list[str] = field(default_factory=list)
+    # CARD-450: on skips, whether the platform seed moved since this agent last took it
+    # (True = a newer platform version is being skipped; False = customized only; None = unknown)
+    seed_update_available: Optional[bool] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -250,6 +254,20 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
     profile.user_modified = True
     if store is not None and hasattr(store, "save_custom_agent_profile"):
         store.save_custom_agent_profile(profile)
+    # CARD-450: the operator override overlays the profile in get_agent; restore it too
+    if store is not None and hasattr(store, "get_agent_override") and hasattr(store, "save_agent_override"):
+        ov = store.get_agent_override(str(pack_id))
+        if ov is not None:
+            ov.system_prompt = profile.system_prompt
+            ov.allowed_skill = list(profile.allowed_skill)
+            ov.pack_tool_names = list(profile.pack_tool_names)
+            ov.allowed_tool_names = list(profile.allowed_tool_names)
+            if match.get("max_turns") is not None:
+                ov.max_turns = match["max_turns"]
+            if match.get("model") is not None:
+                ov.model = match["model"]
+            ov.user_modified = True
+            store.save_agent_override(ov)
     if store is not None and hasattr(store, "mark_agent_user_modified"):
         store.mark_agent_user_modified(str(pack_id), modified=True)
     return match
@@ -415,8 +433,13 @@ def promote_one_platform_pack(
     agent_registry: Any,
     tool_registry: Any = None,
     checkout_root: Optional[Union[str, Path]] = None,
+    force_reset: Optional[bool] = None,
 ) -> PackSyncOutcome:
-    """Promote one platform pack into AppData + resync pack-owned SQLite fields."""
+    """Promote one platform pack into AppData + resync pack-owned SQLite fields.
+
+    ``force_reset=None`` follows the global keep-customizations setting (CARD-449).
+    ``True`` forces the platform version for this pack (Reset to platform defaults, CARD-450).
+    """
     from src.application.agent_packs.schema import tools_for_platform_skills
     from src.application.agent_packs.service import AgentPackService
     from src.domain.kernel.models import AgentOrigin
@@ -528,7 +551,8 @@ def promote_one_platform_pack(
     new_stock = set(new_allowed_skill)
 
     # CARD-449: global keep-customizations OFF => backup + force-reset even when locked
-    force_reset = not keep_customizations_enabled(store)
+    if force_reset is None:
+        force_reset = not keep_customizations_enabled(store)
     if user_mod and force_reset:
         backup_pack_content(store, existing, reason="force_reset_keep_customizations_off")
         # Clear per-pack operator skill disables so seed skills fully restore
@@ -586,6 +610,7 @@ def promote_one_platform_pack(
             resolution=RESOLUTION_USER_MODIFIED.replace("<pack_id>", pack_id),
             source_path=source_path,
             destination_path=destination_path,
+            seed_update_available=(stored_hash != seed_hash) if stored_hash else None,
         )
         logger.warning(
             "Platform pack sync skipped for %s: user_modified. Resolution: %s",
@@ -749,8 +774,13 @@ def promote_platform_packs(
     *,
     checkout_root: Optional[Union[str, Path]] = None,
     pack_ids: Optional[Sequence[str]] = None,
+    force_reset: Optional[bool] = None,
 ) -> PlatformPackSyncReport:
-    """Promote platform packs into AppData and resync pack-owned profile fields [CARD-443]."""
+    """Promote platform packs into AppData and resync pack-owned profile fields [CARD-443].
+
+    A ``pack_ids`` subset run merges its outcomes into the last persisted report so other
+    packs keep their status [CARD-450 / REQ-450-010]. The returned report holds only this run.
+    """
     from src.infrastructure.skills.platform_packs import ALL_PLATFORM_PACK_IDS
 
     ids: Iterable[str] = tuple(pack_ids) if pack_ids is not None else ALL_PLATFORM_PACK_IDS
@@ -758,7 +788,7 @@ def promote_platform_packs(
         triggered_at=datetime.now(timezone.utc).isoformat(),
         results=[],
     )
-    
+
     # CARD-449: one-time false-lock migration (idempotent for already-unlocked)
     try:
         migration = migrate_false_content_locks(
@@ -777,12 +807,15 @@ def promote_platform_packs(
             agent_registry=agent_registry,
             tool_registry=tool_registry,
             checkout_root=checkout_root,
+            force_reset=force_reset,
         )
         report.results.append(outcome)
 
     store = getattr(agent_registry, "state_store", None)
     report_dict = report.to_dict()
     report_dict["lock_migration"] = migration
+    if pack_ids is not None:
+        report_dict = _merge_subset_report(get_last_platform_pack_sync_report(store), report_dict)
     if store is not None and hasattr(store, "set_setting"):
         store.set_setting(PLATFORM_PACK_SYNC_REPORT_SETTING, report_dict)
     else:
@@ -793,3 +826,60 @@ def promote_platform_packs(
     except Exception:
         pass
     return report
+
+
+def _merge_subset_report(previous: Optional[dict[str, Any]], fresh: dict[str, Any]) -> dict[str, Any]:
+    """Replace only the fresh run's pack entries in the previous report [CARD-450 / REQ-450-010]."""
+    if not previous or not isinstance(previous.get("results"), list):
+        return fresh
+    fresh_by_id = {r.get("pack_id"): r for r in fresh.get("results") or []}
+    merged: list[dict[str, Any]] = []
+    for entry in previous["results"]:
+        pack_id = entry.get("pack_id") if isinstance(entry, dict) else None
+        merged.append(fresh_by_id.pop(pack_id) if pack_id in fresh_by_id else entry)
+    merged.extend(fresh_by_id.values())
+    return {**fresh, "results": merged}
+
+
+def reset_platform_pack_to_defaults(
+    data_dir: Union[str, Path],
+    agent_registry: Any,
+    tool_registry: Any = None,
+    *,
+    pack_id: str,
+    checkout_root: Optional[Union[str, Path]] = None,
+) -> PlatformPackSyncReport:
+    """Back up, unlock, and force the platform version for one pack [CARD-450 / REQ-450-005].
+
+    Reuses the CARD-449 force-reset promotion path: pack-owned content (system prompt,
+    shipped skill files, skill allowlist, platform tools) is replaced; max_turns/model stay.
+    """
+    store = getattr(agent_registry, "state_store", None)
+    profile = agent_registry.get_agent(pack_id) if agent_registry is not None else None
+    if profile is None:
+        raise KeyError(f"agent '{pack_id}' not found")
+    backup_pack_content(store, profile, reason="reset_to_platform_defaults")
+
+    if store is not None and hasattr(store, "mark_agent_user_modified"):
+        store.mark_agent_user_modified(pack_id, modified=False)
+    profile.user_modified = False
+    if store is not None and hasattr(store, "save_custom_agent_profile"):
+        store.save_custom_agent_profile(profile)
+    if store is not None and hasattr(store, "get_agent_override") and hasattr(store, "save_agent_override"):
+        ov = store.get_agent_override(pack_id)
+        if ov is not None:
+            ov.user_modified = False
+            store.save_agent_override(ov)
+    disabled_map = _operator_disabled_map(store)
+    if pack_id in disabled_map and store is not None and hasattr(store, "set_setting"):
+        disabled_map.pop(pack_id, None)
+        store.set_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING, disabled_map)
+
+    return promote_platform_packs(
+        data_dir,
+        agent_registry,
+        tool_registry,
+        checkout_root=checkout_root,
+        pack_ids=[pack_id],
+        force_reset=True,
+    )
