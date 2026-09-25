@@ -1,7 +1,7 @@
 ---
 id: CARD-472
 title: "Workbench, artifact open and Teach modal wiring lost in the CARD-397 split"
-status: In Progress
+status: In Review
 created: 2026-09-24
 updated: 2026-09-25
 branch: qa
@@ -17,6 +17,9 @@ related:
   - CARD-496
   - CARD-497
   - CARD-498
+  - CARD-499
+  - CARD-500
+  - CARD-501
 labels:
   - type:bug
   - area:chat
@@ -26,7 +29,7 @@ labels:
 
 # [CARD-472] Workbench, artifact open and Teach modal wiring lost in the CARD-397 split
 
-> **Status**: In Progress (Jacob said **build**, 2026-09-25 3:44 PM ET; branch `feat/card-472-workbench-artifact-teach-wiring`). Rescoped to keep-and-fix on 2026-09-25 after Jacob confirmed retiring the Factory (see CARD-495..498).
+> **Status**: In Review (built 2026-09-25 4:30 PM ET on `feat/card-472-workbench-artifact-teach-wiring`; not merged, not pushed. Reply **merge to qa** after the runbook passes). Rescoped to keep-and-fix on 2026-09-25 after Jacob confirmed retiring the Factory (see CARD-495..498).
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning (diff of pre-split `chat.js` listeners). `git blame` puts the broken call sites on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
 > **Reproduced**: 2026-09-25 about 3:15-3:35 PM ET on a scratch server (`scripts/smoke_server.py` on 127.0.0.1:8767, throwaway data, fake Ollama on 18434, no real AppData), Playwright on desktop 1280x800 and phone 390x844, qa `f895c0cc`. Scripts: `scratch/c472_ui.cjs`, `scratch/c472_artifact.cjs`, `scratch/c472_404.cjs`.
@@ -116,7 +119,7 @@ The training popup is **not** fixed here. It goes away with the Factory (CARD-49
 - **[REQ-472-004]** WHILE the open chat has N distinct artifacts (N > 0, the larger of the session API count and the DOM cards), THE SYSTEM SHALL show N on `#workbenchArtifactBadge`. WHEN N is 0, THE SYSTEM SHALL hide the badge.
 - **[REQ-472-005]** WHEN Jacob clicks Preview or Raw, THE SYSTEM SHALL switch the visible tab. WHEN he clicks Copy, THE SYSTEM SHALL copy the raw text and show the success toast "Artifact copied to clipboard". WHEN he clicks Save to Wiki, THE SYSTEM SHALL call the existing wiki export with the raw text.
 - **[REQ-472-006]** WHEN Jacob clicks `#closeTeachAgentModalBtn`, THE SYSTEM SHALL close the Teach modal and clear its guidance, the same as Cancel, and SHALL NOT call `/api/skills/distill`.
-- **[REQ-472-007]** WHEN Jacob clicks "Ask Developer to build this tool" on a needs-tool proposal card (live or history), THE SYSTEM SHALL post `POST /api/tools_studio/authoring/talk` with `intent: 'create'` and a draft carrying the suggested tool name and the proposal's intent, slip and remedy, then open that Developer chat with the returned prompt. IF the request fails, THEN THE SYSTEM SHALL show an error toast and open Tools Studio for the target agent.
+- **[REQ-472-007]** WHEN Jacob clicks "Ask Developer to build this tool" on a needs-tool proposal card (live or history), THE SYSTEM SHALL post `POST /api/tools_studio/authoring/talk` with `intent: 'create'` and a draft carrying the suggested tool name, the proposal's seed intent and starter objectives, and the target agent (the slip and remedy are not on the card, see build note), then open that Developer chat with the returned prompt. IF the request fails, THEN THE SYSTEM SHALL show an error toast and open Tools Studio for the target agent.
 - **[REQ-472-008]** THE SYSTEM SHALL build the Workbench from `collectWorkbenchElements()` and SHALL NOT pass `state` as its first argument (guard test). Every chat markdown render SHALL use the single artifact opener.
 
 ## 3. Decisions (Jacob accepted all, 2026-09-25)
@@ -187,4 +190,49 @@ See the build note for the numbered desktop and phone steps.
 
 ## 7. Follow-ups
 
-CARD-495..498 (Factory retirement), CARD-499 (line caps).
+CARD-495..498 (Factory retirement), CARD-499 (line caps), CARD-500 (Teach distill fields), CARD-501 (smoke for the first click after sending).
+
+## 8. Build note (2026-09-25, In Review)
+
+**Commits** on `feat/card-472-workbench-artifact-teach-wiring` (from qa `36c3cfec`):
+
+| Commit | What |
+|--------|------|
+| `6f44eef8` | Card In Progress |
+| `e1b42fe1` | Red tests: Vitest `chat_workbench_teach_wiring_472.test.js` (10 of 13 red) and smoke TC-33/TC-34 desktop + phone (4 of 4 red) |
+| `04e54f50` | Fix: `collectWorkbenchElements()`, `openArtifactById()` (fetch then open, "Artifact not found"), bound badge refresh, toast argument order, `renderChatMarkdown` on every chat render, Teach modal moved to `chat/teach_modal.js` with X wired, "Ask Developer to build this tool" opens a Developer chat (Tools Studio fallback), phone Workbench pane `absolute` (it was `fixed` and slid under the window title bar, so the back arrow could not be tapped) |
+| `3ab7d5bf` | CHANGELOG and Scavenger Pass (dead `onEscalate` option and handler in `render.js`; unused `refreshWorkbenchArtifactCountDirect` and `renderSkillProposalCard` imports gone) |
+| `c34a85dd` | Red guard: a press in the message list must survive the composer shrink |
+| `87e1ab2a` | Fix: `messagesContainer` added to `pressRegions`, so the first click on View Full Report or Workbench right after sending works on desktop |
+| `66adb259` | CARD-470 `pressRegions` contract accepts more regions |
+
+**Line counts:** `chat.js` 1,012 -> 1,004 (still over 1,000, so the CARD-499 cap test stays red); `chat/render.js` 836 -> 829 (still over 800). New `chat/teach_modal.js` 143; `train_modal.js` 321 -> 231.
+
+**Tests**
+
+| Suite | Result |
+|-------|--------|
+| Vitest CARD-472 (14) | 14 pass (10 red before the fix, plus 1 guard red before `87e1ab2a`) |
+| Vitest full | 899 pass, 5 fail: the known CARD-456 set only (`chat_monolith_decomposition_397` x2 = chat.js / render.js line caps, `per_agent_model_config`, `system_updates` x2) |
+| Smoke (Playwright) | 49 / 49 pass, including TC-33 and TC-34 desktop + phone |
+| pytest unit | 2045 pass, 11 skipped, 1 fail: known CARD-454 `test_capability_linter` |
+| pytest integration | 107 pass |
+| ESLint | baseline 4 errors + 5 warnings, none in chat files |
+| ruff | baseline 9 (CARD-454) |
+
+**Scratch repro (fake gateway, scratch data only)**
+
+| Check | Before | After |
+|-------|--------|-------|
+| Header Workbench button (desktop / phone) | did nothing | opens and closes |
+| Reply Workbench button | did nothing | opens with the reply |
+| View Full Report (fixture artifact) | no fetch, nothing opened | 1 fetch, Workbench shows "C472 Fixture Report" (desktop + phone) |
+| View Full Report (missing artifact) | nothing | "Artifact not found" toast (the 404 in the log is expected) |
+| First View Full Report click right after sending (desktop, composer focused) | lost (0 fetches) | works (1 fetch) |
+| Badge | wrong / empty | "1" for 1 artifact |
+| Teach X / Cancel | X did nothing | both close; 0 distill calls |
+| Training popup | broken | still broken, out of scope, removed in CARD-496 |
+
+**REQ-472-007 wording:** the proposal card only carries `data-factory-escalation` (tool name, seed intent, starter objectives, target agent). The slip and remedy are not on the card DOM, so the Developer draft carries what the card has. CARD-500 fixes where the card reads the slip and remedy.
+
+**Live test on Jarvis (http://127.0.0.1:8000 desktop, http://192.168.1.99:8000 phone)** is in the build report.
