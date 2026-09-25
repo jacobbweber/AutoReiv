@@ -1,7 +1,7 @@
 ---
 id: CARD-455
 title: "Isolate CARD-388 agents API test from AppData / live global app"
-status: Ready
+status: Done (Absorbed)
 created: 2026-09-24
 branch: qa
 related:
@@ -16,11 +16,13 @@ labels:
 
 # [CARD-455] Isolate CARD-388 agents API test from AppData / live global app
 
-> **Status**: Ready
+> **Status**: Done (Absorbed)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-451 broad `tests/unit` run on Jarvis — `test_req_388_002_api_returns_developer_and_tutor` failed with `assert 'Super Developer' == 'Developer'`
 > **Related**: CARD-388 (original restoration), CARD-451 (noticed during)
 > **Labels**: `type:test`, `area:agents`, `area:testing`, `P2`
+
+_Absorbed 2026-09-24 into [CARD-467](./CARD-467-playwright-smoke-must-not-inherit-live-data-dir.md) (Jacob decision 1 on `build`). Root cause was the same leak: `tests/conftest.py` used `setdefault` for `AUTOREIV_DATA_DIR`, so a shell with the live value made the import-time `src.web.app.app` bootstrap against live AppData packs. CARD-467 force-sets temp paths in `pytest_configure` and aborts on live AppData; `test_req_388_002` passes unchanged. The optional per-test `create_app` rewrite is dropped. Do not implement this card separately._
 
 ---
 
