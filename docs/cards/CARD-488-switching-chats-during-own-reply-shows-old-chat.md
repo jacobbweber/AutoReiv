@@ -74,3 +74,9 @@ The old chat's reply spilling into the new chat, and a composer that silently ig
 
 ## 3. Runbook
 Ask for a long answer, open the sessions drawer and pick another chat: it shows its own messages and you can send. Go back: Stop shows until the long answer is done, then it appears.
+
+---
+
+## Note (2026-09-25 ET, CARD-486 build)
+
+CARD-486 Stop (`chat/stop.js`) cancels this tab's request and POSTs `/abort` for `state.activeSessionId`. If Jacob switches chats while his own reply streams (this card's bug) and then presses Stop, the browser request is cancelled but the server abort goes to the **newly opened** chat. The original reply keeps running on the server. When this card is built, track the streaming chat's id in `executeChatTurn` and have Stop abort that id (pass a `getStreamSessionId` dep to `createStopHandler`), with a Vitest case for it.

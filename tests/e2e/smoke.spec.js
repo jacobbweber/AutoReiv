@@ -867,4 +867,64 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(statusFor.a).toBe(seen);
     });
   }
+
+  // CARD-486: Stop tells the server to stop (own reply and a reply running on another device).
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    async function openPicked486(page, request) {
+      const sess = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `stop 486 ${vp.name} ${Date.now()}` } })).json();
+      const aborts = [];
+      await page.route('**/api/chat/stream/*/abort', (route) => {
+        aborts.push(route.request().url());
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'aborted', task_cancelled: true, resumable: true }) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      await expect(page.locator('#sessionList > div', { hasText: sess.title })).toHaveCount(1);
+      await page.locator('#toggleSidebarBtn').click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+      await page.locator('#sessionList > div', { hasText: sess.title }).click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeHidden();
+      return { sess, aborts };
+    }
+
+    test(`TC-28 (${vp.name}): Stop on your own reply tells the server to stop [CARD-486]`, async ({ page, request }) => {
+      await page.route('**/api/chat/stream', () => { /* hang: the reply never finishes */ });
+      const { sess, aborts } = await openPicked486(page, request);
+      const input = page.locator('#promptInput');
+      await input.click();
+      await input.type('write a very long story');
+      await input.press('Enter');
+      await expect(page.locator('#stopBtn')).toBeVisible();
+      await page.locator('#stopBtn').click();
+      await expect.poll(() => aborts.length).toBe(1);
+      expect(aborts[0]).toContain(`/api/chat/stream/${encodeURIComponent(sess.id)}/abort`);
+      await expect(page.locator('#sendBtn')).toBeVisible();
+      await expect(page.locator('#stopBtn')).toBeHidden();
+      await expect(page.locator('[role="status"]', { hasText: 'Stopped' })).toBeVisible();
+      await page.waitForTimeout(500);
+      expect(aborts.length).toBe(1);
+    });
+
+    test(`TC-29 (${vp.name}): Stop on a reply running on another device stops it [CARD-486]`, async ({ page, request }) => {
+      let aborted = false;
+      await page.route('**/api/sessions/*/status', (route) => {
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ is_running: !aborted }) });
+      });
+      page.on('request', (r) => { if (/\/api\/chat\/stream\/[^/]+\/abort$/.test(r.url())) aborted = true; });
+      const { sess, aborts } = await openPicked486(page, request);
+      await expect(page.locator('#stopBtn')).toBeVisible();
+      await expect(page.locator('#sendBtn')).toBeHidden();
+      await page.locator('#stopBtn').click();
+      await expect.poll(() => aborts.length).toBe(1);
+      expect(aborts[0]).toContain(`/api/chat/stream/${encodeURIComponent(sess.id)}/abort`);
+      await expect(page.locator('#sendBtn')).toBeVisible();
+      await expect(page.locator('#stopBtn')).toBeHidden();
+      await page.waitForTimeout(2500); // one more CARD-485 status poll
+      await expect(page.locator('#sendBtn')).toBeVisible();
+      await expect(page.locator('#stopBtn')).toBeHidden();
+      expect(aborts.length).toBe(1);
+    });
+  }
 });

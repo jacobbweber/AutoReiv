@@ -2411,6 +2411,17 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     )
 
 
+def _job_has_running_phase(store: Any, job: Any) -> bool:
+    """True when a phase of ``job`` is RUNNING. Stores without phase listing keep the old job-level answer."""
+    if not hasattr(store, "list_phases_for_job"):
+        return True
+    for phase in store.list_phases_for_job(job.id) or []:
+        status_val = phase.status.value if hasattr(phase.status, "value") else str(phase.status)
+        if status_val == "running":
+            return True
+    return False
+
+
 @router.get("/api/sessions/{session_id}/status")
 async def get_session_status(request: Request, session_id: str):
     """Check if server is actively generating or executing background work for session [CARD-154]."""
@@ -2418,14 +2429,16 @@ async def get_session_status(request: Request, session_id: str):
     is_running = bool(task and not task.done())
     active_agent = _active_stream_agents.get(session_id) if is_running else None
 
-    # Also check if an active job is running in SQLite store for this session
+    # Also check if an active job is running in SQLite store for this session.
+    # CARD-486: an open job only counts when one of its phases is actually RUNNING. A Stop leaves the
+    # job open (RUNNING) with its phase QUEUED so it can resume [CARD-259]; that is not running.
     store = getattr(request.app.state, "store", None)
     if not is_running and store and hasattr(store, "list_jobs_for_session"):
         try:
             jobs = store.list_jobs_for_session(session_id)
             for j in jobs:
                 status_val = j.status.value if hasattr(j.status, "value") else str(j.status)
-                if status_val in ("in_progress", "running"):
+                if status_val in ("in_progress", "running") and _job_has_running_phase(store, j):
                     is_running = True
                     active_agent = j.agent_id
                     break

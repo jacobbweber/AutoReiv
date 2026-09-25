@@ -31,6 +31,7 @@ import { setupRuntimeModeToggles } from './chat/runtime_toggles.js'; // CARD-470
 import { setupChatScroll } from './chat/scroll.js';
 import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
 import { createSessionSelect } from './chat/session_select.js'; // CARD-485
+import { createStopHandler } from './chat/stop.js'; // CARD-486
 
 import {
   buildChatStreamPayload,
@@ -904,6 +905,12 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
+  const stopHandler = createStopHandler(state, { // CARD-486: Stop tells the server to stop
+    getController: () => activeAbortController, clearController: () => { activeAbortController = null; },
+    stopWatching: sessionSelect.stopWatching, setBusy: sessionSelect.setBusy, sendBtn, stopBtn, loadMessages,
+    recheckStatus: sessionSelect.watchSessionStatus, showToast,
+  });
+
   setupComposerControls({
     chatForm,
     promptInput,
@@ -913,13 +920,7 @@ export function initChatStudio(state, callbacks = {}) {
     onExecuteTurn: executeChatTurn,
     ensureSession,
     onOpenTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
-    onCancelStream: () => {
-      if (activeAbortController) {
-        activeAbortController.abort();
-        activeAbortController = null;
-        showToast('Generation cancelled', 'info');
-      }
-    },
+    onCancelStream: stopHandler.stop,
   });
 
   if (newChatBtn) {
