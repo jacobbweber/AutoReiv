@@ -1,7 +1,7 @@
 ---
 id: CARD-500
 title: "Teach: typed lesson ignored, wrong turn distilled, /learn 422, proposal card shows placeholder text"
-status: Ready
+status: In Progress
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -21,7 +21,7 @@ labels:
 
 # [CARD-500] Teach: typed lesson ignored, wrong turn distilled, /learn 422, proposal card shows placeholder text
 
-> **Status**: Ready (refined 2026-09-25 after Jacob said **continue**; plan only, no code)
+> **Status**: In Progress (Jacob said **build**, 2026-09-25 6:50 PM ET, accepting D1-D7; branch `feat/card-500-teach-distill-contract`)
 > **Created**: 2026-09-25 (found while building CARD-472)
 > **Related**: CARD-472 (moved Teach to `chat/teach_modal.js`), CARD-352 / CARD-358 (Teach and proposal persistence), CARD-497 (renames `factory_escalation` to `tool_escalation`), CARD-502 (Adopt does not go live and is lost on restart), CARD-503 (distill timeout fallback is silent)
 > **Labels**: `type:bug`, `area:chat`, `area:skills`, `P1` (raised from P2: every Teach today produces a lesson built from the wrong input)
