@@ -1,7 +1,7 @@
 ---
 id: CARD-476
 title: "First Chat message with no active session fails with HTTP 422 (session auto-create lost in the CARD-397 split)"
-status: In Review
+status: Done
 created: 2026-09-24
 branch: qa
 related:
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-476] First Chat message with no active session fails with HTTP 422 (session auto-create lost in the CARD-397 split)
 
-> **Status**: In Review (built 2026-09-25 ET on `feat/card-476-session-auto-create-restore`; not merged)
+> **Status**: Done (merged to qa 2026-09-25 ET per Jacob's "merge to qa")
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 reproduction on the scratch smoke server. With no active session (fresh data), pressing Enter produced `POST /api/chat/stream` **422 Unprocessable Entity**.
 > **Related**: CARD-397 (split), CARD-469, CARD-473 (phone catch-up), CARD-466 (New chat into + Options), CARD-484 (typed text lost on failed send)
@@ -190,3 +190,9 @@ Jacob's CARD-470 live test did **not** hit this: both of his sends had fresh ses
 **Repro (`scratch/c476_repro.cjs`, fresh `scripts/smoke_server.py --port 8767`, no AppData):** fresh desktop and phone: one chat auto-created and shown, send posts its id, 200, no toast. Stored older chat on desktop and phone: the older chat opens and the send uses it. Stored missing id: newest. Immediate send: real id, not null. Direct API null is still 422 (D3). Agent switch to an agent with no chats (`tutor`) creates one.
 
 **Follow-up:** CARD-485 (clicking a chat doesn't move the highlight, job strip/running status on select lost in the split).
+
+---
+
+## Merge note (2026-09-25 ET)
+
+Jacob said **merge to qa**. `feat/card-476-session-auto-create-restore` merged `--no-ff` into qa and pushed; branch deleted. Post-merge test results are in the merge report. Follow-up: CARD-485.
