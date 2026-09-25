@@ -7,7 +7,7 @@
  * @param {number} bytes
  * @returns {string}
  */
-/** One readable sentence from a failed API response, incl. FastAPI 422 lists [CARD-500 REQ-500-006]. */
+/** One readable sentence from a failed API response, incl. FastAPI 422 lists [CARD-500 REQ-500-005]. */
 export function readableError(data, status) {
   const detail = data && data.detail;
   if (typeof detail === 'string' && detail.trim()) return detail.trim();

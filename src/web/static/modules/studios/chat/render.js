@@ -242,7 +242,7 @@ export function renderSkillProposalCard(proposal, {
   if (!targetContainer || !proposal) return null;
 
   const targetAgent = proposal.target_agent_id || activeAgentId || 'autoreiv';
-  const skillName = proposal.name || proposal.skill_name || 'Synthesized Skill'; // CARD-500 REQ-500-007
+  const skillName = proposal.name || proposal.skill_name || 'Synthesized Skill'; // CARD-500 REQ-500-006
   const skillId = proposal.skill_id || skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const slip = (proposal.plain_summary || {}).observed_slip || proposal.observed_slip || 'Operational friction detected during turn.';
   const remedy = (proposal.plain_summary || {}).remedy || proposal.remedy || 'Standardized procedure defined in runbook.';

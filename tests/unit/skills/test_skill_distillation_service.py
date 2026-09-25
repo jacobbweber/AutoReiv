@@ -145,7 +145,7 @@ async def test_distill_turn_detects_missing_native_tool_and_escalates(test_env):
         agent_id="autoreiv",
         message=ChatMessage(role=Role.USER, content="Query the remote IPMI sensor via raw IPMI-over-LAN."),
     )
-    # CARD-500 REQ-500-004: Teach starts from an agent reply, so click the reply.
+    # CARD-500 REQ-500-003: Teach starts from an agent reply, so click the reply.
     msg_id = store.save_message(
         session_id=session_id,
         agent_id="autoreiv",

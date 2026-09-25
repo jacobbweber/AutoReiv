@@ -369,7 +369,7 @@ export function setupComposerControls({
       if (text.startsWith('/learn')) {
         setComposerText(promptInput, '');
         const guidance = text.replace(/^\/learn\s*/, '');
-        // CARD-500 REQ-500-005: /learn teaches from the latest reply in this chat.
+        // CARD-500 REQ-500-004: /learn teaches from the latest reply in this chat.
         const latest = [...(state.messages || [])].reverse().find((m) => m && m.role === 'assistant' && m.id);
         if (typeof onOpenTeachAgent === 'function') {
           onOpenTeachAgent({ targetAgentId: state.selectedAgentId, guidance, messageId: latest ? latest.id : null });

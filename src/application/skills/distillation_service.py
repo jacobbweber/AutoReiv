@@ -19,7 +19,7 @@ SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 class DistillTurnNotFound(LookupError):
-    """The message id is not an agent reply in that chat [CARD-500 REQ-500-004]."""
+    """The message id is not an agent reply in that chat [CARD-500 REQ-500-003]."""
 
 
 class SkillDistillationService:
@@ -185,7 +185,7 @@ class SkillDistillationService:
             except Exception:
                 pass
 
-        # CARD-500 REQ-500-002/004: distill the clicked reply's turn only; no fallback to "latest".
+        # CARD-500 REQ-500-002/003: distill the clicked reply's turn only; no fallback to "latest".
         roles = [getattr(m.role, "value", str(m.role)).lower() for m in raw_messages]
         clicked = next((i for i, m in enumerate(raw_messages) if getattr(m, "id", None) == message_id), None)
         if clicked is None or roles[clicked] != "assistant":

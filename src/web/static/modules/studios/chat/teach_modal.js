@@ -42,7 +42,7 @@ export function setupTeachAgentModal(state, elements = {}, {
   let activeTeachMessageId = null;
   let activeTeachTargetAgentId = null;
 
-  const NO_REPLY = 'Send a message first, then teach from the reply.'; // CARD-500 REQ-500-005
+  const NO_REPLY = 'Send a message first, then teach from the reply.'; // CARD-500 REQ-500-004
 
   function openTeachAgentModal(opts = {}) {
     if (!opts.messageId) {

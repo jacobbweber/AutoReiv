@@ -300,7 +300,7 @@ async def post_distill_skill(request: Request, payload: DistillSkillRequest):
             message_id=payload.message_id,
             guidance=payload.guidance,
         )
-    except DistillTurnNotFound as exc:  # CARD-500 REQ-500-004: plain reason, no fallback
+    except DistillTurnNotFound as exc:  # CARD-500 REQ-500-003: plain reason, no fallback
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return result
 
