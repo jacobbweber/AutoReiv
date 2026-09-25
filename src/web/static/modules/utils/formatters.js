@@ -7,6 +7,20 @@
  * @param {number} bytes
  * @returns {string}
  */
+/** One readable sentence from a failed API response, incl. FastAPI 422 lists [CARD-500 REQ-500-006]. */
+export function readableError(data, status) {
+  const detail = data && data.detail;
+  if (typeof detail === 'string' && detail.trim()) return detail.trim();
+  if (detail && typeof detail.message === 'string' && detail.message.trim()) return detail.message.trim();
+  if (Array.isArray(detail) && detail.length) {
+    const first = detail[0] || {};
+    const field = Array.isArray(first.loc) && first.loc.length ? `${first.loc[first.loc.length - 1]}: ` : '';
+    if (first.msg) return `${field}${first.msg}`;
+  }
+  if (data && typeof data.message === 'string' && data.message.trim()) return data.message.trim();
+  return `Server returned ${status || 'an error'}`;
+}
+
 export function formatBytes(bytes) {
   if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
   const k = 1024;

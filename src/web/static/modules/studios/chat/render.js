@@ -4,7 +4,7 @@
  */
 
 import { $, safeCreateIcons } from '../../dom.js';
-import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown } from '../../utils/formatters.js';
+import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown, readableError } from '../../utils/formatters.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
 import { renderAgentHandoffCardHtml } from './stream.js';
 
@@ -242,10 +242,10 @@ export function renderSkillProposalCard(proposal, {
   if (!targetContainer || !proposal) return null;
 
   const targetAgent = proposal.target_agent_id || activeAgentId || 'autoreiv';
-  const skillName = proposal.skill_name || 'Synthesized Skill';
+  const skillName = proposal.name || proposal.skill_name || 'Synthesized Skill'; // CARD-500 REQ-500-007
   const skillId = proposal.skill_id || skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const slip = proposal.observed_slip || 'Operational friction detected during turn.';
-  const remedy = proposal.remedy || 'Standardized procedure defined in runbook.';
+  const slip = (proposal.plain_summary || {}).observed_slip || proposal.observed_slip || 'Operational friction detected during turn.';
+  const remedy = (proposal.plain_summary || {}).remedy || proposal.remedy || 'Standardized procedure defined in runbook.';
   const runbookMarkdown = proposal.runbook_markdown || '';
   const messageId = proposal.message_id || null;
   const isAdopted = proposal.adoption_state === 'adopted';
@@ -296,10 +296,10 @@ export function renderSkillProposalCard(proposal, {
           `
           : `
           <div class="flex items-center space-x-2">
-            <button type="button" class="btn-adopt-skill px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5">
+            ${needsTool ? '' : `<button type="button" class="btn-adopt-skill px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5">
               <span>✓</span>
               <span>Adopt Skill to ${escapeHtml(targetAgent)}</span>
-            </button>
+            </button>`}
             ${needsTool
               ? `
               <button type="button" class="btn-escalate-factory px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook needs a tool the agent doesn't have — ask the Developer to build it">
@@ -342,10 +342,7 @@ export function renderSkillProposalCard(proposal, {
               session_id: sessionId,
             }),
           });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.detail || `HTTP ${res.status}`);
-          }
+          if (!res.ok) throw new Error(readableError(await res.json().catch(() => ({})), res.status));
           cardEl.dataset.adopted = 'true';
           const actionsContainer = cardEl.querySelector('.card-actions');
           if (actionsContainer) {
@@ -568,6 +565,7 @@ export function renderMessageItem(msg, _idx, _allMessages, {
   openWorkbenchFn = null,
   exportMessageToWikiFn = null,
   onTeachAgent = null,
+  proposalOptions = {}, // CARD-500 REQ-500-008: session, agent and toast for history cards
 } = {}) {
   if (!messagesContainer || !msg) return;
 
@@ -689,7 +687,7 @@ export function renderMessageItem(msg, _idx, _allMessages, {
     }
     if (proposalData && typeof proposalData === 'object') {
       proposalData.message_id = msg.id || proposalData.message_id || null;
-      renderSkillProposalCardFn(proposalData, { container: messagesContainer });
+      renderSkillProposalCardFn(proposalData, { container: messagesContainer, ...proposalOptions });
     }
     return;
   }
@@ -738,6 +736,7 @@ export function renderMessages(opts = {}, legacyContainer, legacyOpts = {}) {
       openWorkbenchFn: config.openWorkbenchFn,
       exportMessageToWikiFn: config.exportMessageToWikiFn,
       onTeachAgent: config.onTeachAgent,
+      proposalOptions: config.proposalOptions,
     });
   });
 
