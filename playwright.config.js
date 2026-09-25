@@ -23,14 +23,18 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  // CARD-467: scripts/smoke_server.py force-pins data dir / DB / wiki / backups under
+  // scratch/smoke_data (wiped each start) and refuses to start on live AppData.
+  // Never reuse a server already on :8765 - the guard cannot vet a server it did not start.
   webServer: process.env.AUTOREIV_NO_SERVER ? undefined : {
-    command: 'python -m uvicorn src.web.app:app --host 127.0.0.1 --port 8765',
+    command: 'python scripts/smoke_server.py --host 127.0.0.1 --port 8765',
     url: 'http://127.0.0.1:8765/health',
-    reuseExistingServer: true,
-    timeout: 20000,
+    reuseExistingServer: false,
+    timeout: 30000,
     env: {
-      AUTOREIV_DB_PATH: './scratch/smoke_autoreiv.db',
-      AUTOREIV_WIKI_PATH: './scratch/smoke_wiki',
+      AUTOREIV_DATA_DIR: './scratch/smoke_data',
+      AUTOREIV_DB_PATH: './scratch/smoke_data/database/autoreiv.db',
+      AUTOREIV_WIKI_PATH: './scratch/smoke_data/wiki',
     },
   },
 });
