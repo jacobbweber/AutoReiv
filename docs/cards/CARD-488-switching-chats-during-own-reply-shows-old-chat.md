@@ -232,7 +232,7 @@ CARD-486 Stop (`chat/stop.js`) cancels this tab's request and POSTs `/abort` for
 | Smoke TC-24..32 (CARD-485/486/488, desktop + phone) | 18/18 |
 | Full Vitest | 885 pass, 5 fail (known CARD-456) |
 | `pytest tests/unit` | 2045 pass, 11 skip, 1 fail (known CARD-454) |
-| `pytest tests/integration` | INTEG |
+| `pytest tests/integration` | 107 pass |
 | Full smoke | 45/45 |
 | ESLint | baseline 4 errors / 5 warnings |
 | ruff | baseline 9 |
