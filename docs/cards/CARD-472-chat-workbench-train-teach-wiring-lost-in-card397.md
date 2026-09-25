@@ -1,7 +1,7 @@
 ---
 id: CARD-472
 title: "Workbench, artifact open and Teach modal wiring lost in the CARD-397 split"
-status: In Review
+status: Done
 created: 2026-09-24
 updated: 2026-09-25
 branch: qa
@@ -29,7 +29,7 @@ labels:
 
 # [CARD-472] Workbench, artifact open and Teach modal wiring lost in the CARD-397 split
 
-> **Status**: In Review (built 2026-09-25 4:30 PM ET on `feat/card-472-workbench-artifact-teach-wiring`; not merged, not pushed. Reply **merge to qa** after the runbook passes). Rescoped to keep-and-fix on 2026-09-25 after Jacob confirmed retiring the Factory (see CARD-495..498).
+> **Status**: Done (Jacob said **merge to qa**, 2026-09-25 5:59 PM ET; merged --no-ff into qa).
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning (diff of pre-split `chat.js` listeners). `git blame` puts the broken call sites on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
 > **Reproduced**: 2026-09-25 about 3:15-3:35 PM ET on a scratch server (`scripts/smoke_server.py` on 127.0.0.1:8767, throwaway data, fake Ollama on 18434, no real AppData), Playwright on desktop 1280x800 and phone 390x844, qa `f895c0cc`. Scripts: `scratch/c472_ui.cjs`, `scratch/c472_artifact.cjs`, `scratch/c472_404.cjs`.
