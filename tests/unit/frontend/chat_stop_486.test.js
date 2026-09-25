@@ -115,7 +115,10 @@ describe('CARD-486 Stop tells the server to stop', () => {
     release();
     await Promise.all([first, second]);
     expect(fetchFn).toHaveBeenCalledTimes(1);
-    await handler.stop();
+    const third = handler.stop();
+    await Promise.resolve();
+    release();
+    await third;
     expect(fetchFn).toHaveBeenCalledTimes(2); // single-flight only while pending
   });
 

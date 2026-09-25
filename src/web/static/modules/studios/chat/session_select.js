@@ -277,6 +277,7 @@ export function createSessionSelect(state, deps = {}) {
   return {
     afterSelect,
     stopWatching: () => watcher.stop(),
+    setBusy: (busy) => setSessionBusy(state, { sendBtn, stopBtn }, busy), // CARD-486: Stop clears busy
     watchSessionStatus: (sessionId = state.activeSessionId) => watcher.watch(sessionId),
     watcher,
   };
