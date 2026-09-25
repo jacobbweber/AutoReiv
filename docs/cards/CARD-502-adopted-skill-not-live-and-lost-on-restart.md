@@ -1,7 +1,7 @@
 ---
 id: CARD-502
 title: "Adopted Teach skill is not used on the next message and is dropped on restart"
-status: Ready
+status: In Progress
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -23,7 +23,7 @@ labels:
 
 # [CARD-502] Adopted Teach skill is not used on the next message and is dropped on restart
 
-> **Status**: Ready (refined 2026-09-25 7:41 PM ET after Jacob said **continue**; waiting for **build**)
+> **Status**: In Progress (Jacob said **build** 2026-09-25 7:50 PM ET, accepting D1-D9; branch `feat/card-502-adopt-skill-persists`)
 > **Created**: 2026-09-25 (found while refining CARD-500)
 > **Related**: CARD-500 (Teach request and card, Done), CARD-352 / CARD-358 (Teach, proposal persistence), CARD-443 (platform pack promotion), CARD-449 (keep customizations, `user_modified`), CARD-503 (distill timeout, separate), CARD-505 (AutoReiv prompt looks edited on every restart), CARD-506 (dead duplicate agent-save paths)
 > **Labels**: `type:bug`, `area:skills`, `area:agents`, `P1`
