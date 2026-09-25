@@ -773,4 +773,98 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(posts[0].session_id).toBe(newer.id);
     });
   }
+
+  // CARD-485: picking a chat moves the highlight, closes the drawer, restores the job strip and busy state.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    async function seed485(request) {
+      const tag = `${vp.name}-${Date.now()}`;
+      const made = [];
+      for (const t of ['oldest', 'middle', 'newest']) {
+        made.push(await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `${t} 485 ${tag}` } })).json());
+        await new Promise((r) => setTimeout(r, 1100));
+      }
+      return { oldest: made[0], middle: made[1], newest: made[2] };
+    }
+
+    async function openDrawer485(page, seeded) {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      await expect(page.locator('#sessionList > div', { hasText: seeded.oldest.title })).toHaveCount(1);
+      await page.locator('#toggleSidebarBtn').click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+    }
+
+    const pick485 = (page, sess) => page.locator('#sessionList > div', { hasText: sess.title }).click();
+
+    test(`TC-24 (${vp.name}): picking a chat highlights it and closes the drawer [CARD-485]`, async ({ page, request }) => {
+      const seeded = await seed485(request);
+      await openDrawer485(page, seeded);
+      const loaded = page.waitForRequest((r) => r.url().includes(`/api/sessions/${seeded.oldest.id}/messages`));
+      await pick485(page, seeded.oldest);
+      await loaded;
+      await expect(page.locator('#chatSessionsDrawer')).toBeHidden();
+      await expect(page.locator('#sessionList > div', { hasText: seeded.oldest.title })).toHaveClass(/bg-slate-800 text-white/);
+      await expect(page.locator('#sessionList > div', { hasText: seeded.newest.title })).not.toHaveClass(/bg-slate-800 text-white/);
+    });
+
+    test(`TC-25 (${vp.name}): picking a chat with a job brings its job strip back [CARD-485]`, async ({ page, request }) => {
+      const seeded = await seed485(request);
+      await page.route('**/api/chat/sessions/*/journey', (route) => {
+        const withJob = route.request().url().includes(seeded.oldest.id);
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ jobs: withJob ? [{ id: 'job-485-smoke', status: 'waiting_approval', phases: [{ id: 'p1', name: 'Plan', index: 0, status: 'waiting_approval' }] }] : [] }),
+        });
+      });
+      await openDrawer485(page, seeded);
+      await expect(page.locator('#jobPhaseStatusStrip')).toBeHidden();
+      await pick485(page, seeded.oldest);
+      await expect(page.locator('#jobPhaseStatusStrip')).toBeVisible();
+      await expect(page.locator('#jobPhaseStatusStrip')).toContainText('job-485-smoke');
+    });
+
+    test(`TC-26 (${vp.name}): a chat still running shows Stop, then the finished reply [CARD-485]`, async ({ page, request }) => {
+      const seeded = await seed485(request);
+      let statusCalls = 0;
+      let messageLoads = 0;
+      await page.route('**/api/sessions/*/status', (route) => {
+        const url = route.request().url();
+        const isTarget = url.includes(seeded.oldest.id);
+        if (isTarget) statusCalls += 1;
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ is_running: isTarget && statusCalls <= 2 }) });
+      });
+      page.on('request', (r) => { if (r.url().includes(`/api/sessions/${seeded.oldest.id}/messages`)) messageLoads += 1; });
+      await openDrawer485(page, seeded);
+      await pick485(page, seeded.oldest);
+      await expect(page.locator('#stopBtn')).toBeVisible();
+      await expect(page.locator('#sendBtn')).toBeHidden();
+      await expect(page.locator('#sendBtn')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('#stopBtn')).toBeHidden();
+      expect(messageLoads).toBeGreaterThanOrEqual(2);
+    });
+
+    test(`TC-27 (${vp.name}): switching away from a running chat stops watching it [CARD-485]`, async ({ page, request }) => {
+      const seeded = await seed485(request);
+      const statusFor = { a: 0 };
+      await page.route('**/api/sessions/*/status', (route) => {
+        const isA = route.request().url().includes(seeded.oldest.id);
+        if (isA) statusFor.a += 1;
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ is_running: isA }) });
+      });
+      await openDrawer485(page, seeded);
+      await pick485(page, seeded.oldest);
+      await expect(page.locator('#stopBtn')).toBeVisible();
+      await page.locator('#toggleSidebarBtn').click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+      await pick485(page, seeded.middle);
+      await expect(page.locator('#sendBtn')).toBeVisible();
+      await expect(page.locator('#stopBtn')).toBeHidden();
+      const seen = statusFor.a;
+      await page.waitForTimeout(4500);
+      expect(statusFor.a).toBe(seen);
+    });
+  }
 });

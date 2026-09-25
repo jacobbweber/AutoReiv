@@ -101,6 +101,42 @@ describe('Chat journey + HITL stay intact without refresh [CARD-295]', () => {
     const finallyChunk = chatJs.slice(chatJs.indexOf('async function executeChatTurn'));
     expect(finallyChunk).toMatch(/await refreshPendingHitl\(\)/);
     expect(chatJs).toMatch(/isHitlParkSseEvent\(/);
-    expect(chatJs).toMatch(/hydrateJobPhaseStateFromJourney|hydrateJobChromeFromSession/);
   });
 });
+
+describe('Selecting a chat restores its journey chrome [CARD-295, CARD-485]', () => {
+  it('select fetches the journey and sets the job strip (behaviour, replaces the name-only check)', async () => {
+    let createSessionSelect = null;
+    try {
+      ({ createSessionSelect } = await import('../../../src/web/static/modules/studios/chat/session_select.js'));
+    } catch { /* missing module fails below */ }
+    expect(typeof createSessionSelect).toBe('function');
+    const state = { activeSessionId: 's295', sessions: [] };
+    const fetched = [];
+    const strip = [];
+    const sel = createSessionSelect(state, {
+      loadMessages: async () => {},
+      refreshPendingHitl: async () => {},
+      refreshWorkbenchArtifactCount: async () => {},
+      setJobPhaseState: (s) => strip.push(s),
+      setInlineJobChromeModel: () => {},
+      jumpToLatest: () => {},
+      getEl: () => null,
+      queryStatusFn: async () => ({ is_running: false }),
+      fetchFn: async (url) => {
+        fetched.push(url);
+        return { ok: true, json: async () => ({ jobs: [{ id: 'job_295', status: 'running', phases: [{ id: 'p', name: 'Execute', index: 0, status: 'running' }] }] }) };
+      },
+    });
+    await sel.afterSelect('s295');
+    expect(fetched).toContain('/api/chat/sessions/s295/journey');
+    expect(strip[0]).toMatchObject({ jobId: 'job_295', jobStatus: 'running' });
+    // chat.js selectSession must go through this path.
+    const body = chatJsSource().slice(chatJsSource().indexOf('async function selectSession'));
+    expect(body.slice(0, 600)).toMatch(/afterSelect\(/);
+  });
+});
+
+function chatJsSource() {
+  return fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js'), 'utf8');
+}

@@ -106,7 +106,7 @@ export function renderSessionList({
       ${timeStr ? `<div class="text-[10px] text-slate-500 font-mono pl-3.5 leading-none">${escapeHtml(timeStr)}</div>` : ''}
     `;
     item.addEventListener('click', () => {
-      if (typeof onSelectSession === 'function') onSelectSession(sess.id);
+      if (typeof onSelectSession === 'function') onSelectSession(sess.id, { userPick: true }); // CARD-485 D1
     });
     sessionList.appendChild(item);
   });
@@ -143,8 +143,7 @@ export async function loadSessions(arg1 = {}, arg2 = {}) {
     }
     const openId = pickSessionToOpen(state.sessions, storedId); // CARD-476: this device's last chat, else newest
     if (openId) {
-      if (typeof selectSessionFn === 'function') await selectSessionFn(openId);
-      renderSessionList({ sessionList, sessions: state.sessions, activeSessionId: state.activeSessionId, onSelectSession: selectSessionFn });
+      if (typeof selectSessionFn === 'function') await selectSessionFn(openId); // select re-renders the list (CARD-485)
     } else {
       if (typeof createNewSessionFn === 'function') await createNewSessionFn();
     }

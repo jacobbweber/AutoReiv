@@ -71,3 +71,9 @@ A Stop button that hides the reply while the model keeps working in the backgrou
 
 ## 3. Runbook
 Ask for a long answer, press Stop after a few words. Reload after 30 seconds: the reply didn't keep growing, and the server log shows the abort/checkpoint.
+
+---
+
+## Note (2026-09-25 ET, CARD-485 build)
+
+CARD-485 added a busy state for a reply running elsewhere (`state.sessionBusy`, `chat/session_select.js` `setSessionBusy`). Stop is visible then, but `onCancelStream` has no fetch to abort, so it does nothing. When this card is built, Stop must POST `/abort` for the active chat in both cases (own stream or `state.sessionBusy`) and then call `sessionSelect.stopWatching()` / re-check status.
