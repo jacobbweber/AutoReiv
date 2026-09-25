@@ -12,6 +12,11 @@
 
 ### Fixed
 
+- **CARD-486 Stop stops the reply on the server again**: The CARD-397 split dropped the server call from Stop. Pressing Stop only cut the browser off, so the model kept generating to the end (CARD-154 keeps work alive on disconnect), saved the whole reply, and held the only generation slot. The next message waited about 27 s in the scratch repro. Now:
+  - New `chat/stop.js` (`createStopHandler`) cancels this tab's request, then sends one `POST /api/chat/stream/{id}/abort` for the open chat. It does this both for your own reply and for a reply running on another device (the CARD-485 busy state, where Stop used to do nothing). The abort cancels the model request and checkpoints a running phase so the job can resume (CARD-259). Extra presses while the abort is pending are ignored. It then stops the status watch, clears busy, restores Send, reloads the chat and shows **Stopped**. If the server can't be reached it shows a warning and still restores Send.
+  - `GET /api/sessions/{id}/status` only reports running when a reply is in progress or a job phase is actually running. A stopped job (phase queued, resumable) or an approval that is waiting no longer reads as running, so busy clears after Stop in plan chats.
+  - A waiting approval stays parked. The words shown before Stop disappear on reload, as before the split (keeping them is CARD-489).
+  - Contracts: `tests/unit/frontend/chat_stop_486.test.js`, `tests/unit/web/test_card486_status_after_abort.py`, smoke TC-28/29 ([CARD-486]).
 - **CARD-485 Picking a chat works like before the split again**: Since CARD-397, `selectSession` only loaded messages. Now:
   - New `chat/session_select.js` redraws Recent Chats with the picked chat highlighted, and closes the sessions drawer when you pick from it (desktop and phone; automatic selects on load and New chat leave the drawer alone).
   - It restores the chat's job strip and inline phase chips from `/api/chat/sessions/{id}/journey` (waiting-for-approval job first; a late reply for a chat you left is ignored), and refreshes the context badge when Options is open.
