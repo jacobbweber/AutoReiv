@@ -1,7 +1,7 @@
 ---
 id: CARD-500
 title: "Teach: typed lesson ignored, wrong turn distilled, /learn 422, proposal card shows placeholder text"
-status: In Progress
+status: In Review
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -12,6 +12,7 @@ related:
   - CARD-497
   - CARD-502
   - CARD-503
+  - CARD-504
 labels:
   - type:bug
   - area:chat
@@ -21,7 +22,7 @@ labels:
 
 # [CARD-500] Teach: typed lesson ignored, wrong turn distilled, /learn 422, proposal card shows placeholder text
 
-> **Status**: In Progress (Jacob said **build**, 2026-09-25 6:50 PM ET, accepting D1-D7; branch `feat/card-500-teach-distill-contract`)
+> **Status**: In Review (built 2026-09-25 7:07 PM ET on `feat/card-500-teach-distill-contract`, not merged or pushed; Jacob said **build** at 6:50 PM ET accepting D1-D7)
 > **Created**: 2026-09-25 (found while building CARD-472)
 > **Related**: CARD-472 (moved Teach to `chat/teach_modal.js`), CARD-352 / CARD-358 (Teach and proposal persistence), CARD-497 (renames `factory_escalation` to `tool_escalation`), CARD-502 (Adopt does not go live and is lost on restart), CARD-503 (distill timeout fallback is silent)
 > **Labels**: `type:bug`, `area:chat`, `area:skills`, `P1` (raised from P2: every Teach today produces a lesson built from the wrong input)
@@ -152,3 +153,43 @@ Phone (http://192.168.1.99:8000):
 - Adopted skills going live and surviving restart: **CARD-502**.
 - Distill 4.5-second model timeout and silent fallback: **CARD-503**.
 - `factory_escalation` rename and the Training Factory wording in the `agent-authoring` skill blurb: **CARD-497**.
+
+## 9. Build note (2026-09-25 7:07 PM ET)
+
+**Branch** `feat/card-500-teach-distill-contract` from local qa `69580e8c`. Commits: `ced7c9c4` In Progress; `251a9bc2` failing tests; `57fe3fd8` backend fix; `a2a7ecd5` frontend fix; `c98a4535` Scavenger Pass and CHANGELOG. Not merged, not pushed.
+
+**What changed**
+- `distillation_service.py`: `_extract_turn_history` loads every message in the chat, finds the clicked id, requires an assistant reply (else `DistillTurnNotFound`), takes the user message before it, and collects tool calls and results from that turn only (plus tool rows right after the clicked reply). The old "last 20 messages, newest turn" logic is gone.
+- `routers/skills.py`: `DistillTurnNotFound` becomes 404 "That message is not a reply in this chat. Teach from one of the agent's replies."; nothing is saved.
+- `teach_modal.js`: body `{session_id, message_id, guidance}`; no id shows "Send a message first, then teach from the reply." and makes no request; errors use `readableError`.
+- `composer.js`: `/learn` passes the latest assistant reply's id from `state.messages`.
+- `render.js` (829 to 828 lines): title from `name`, slip and remedy from `plain_summary`, Adopt hidden on needs-tool cards, readable Adopt error, history cards receive `proposalOptions`.
+- `chat.js` (1,004 to 1,004): history render passes `proposalOptions: { sessionId, activeAgentId, showToastFn }`.
+- `utils/formatters.js`: new `readableError(data, status)` (string, `detail.message`, first 422 item as "field: msg", `message`, "Server returned N"). Scavenger: `authoringErrorMessage` in `tools_studio_authoring.js` now delegates to it.
+- Existing test updated: `test_distill_turn_detects_missing_native_tool_and_escalates` now clicks an assistant reply (it clicked a user message, which D4 rejects).
+
+**Tests**
+
+| Suite | Before fix | After fix |
+|-------|-----------|-----------|
+| Vitest `teach_distill_contract_500.test.js` | 7 red, 1 green (REQ-500-009 guard) | 8/8 pass |
+| pytest `test_card500_distill_turn.py` + `test_card500_distill_router.py` | 5 red of 6 (page-payload control green) | 6/6 pass |
+| Smoke TC-35 / TC-36, desktop + phone | 4 red | 4/4 pass |
+| Full Vitest | | 907 pass, 5 fail (known CARD-456) |
+| Full smoke | | 53/53 pass |
+| pytest unit | | 2051 pass, 11 skipped, 1 fail (known CARD-454 linter) |
+| pytest integration | | 107/107 pass |
+| ESLint `src/web/static` | | 4 errors, 5 warnings (baseline, none in touched files) |
+| ruff | | 9 (baseline) |
+
+**Scratch repro rerun** (`scratch/c500_run.ps1 -Wipe`, fake gateway, app on 8767; results in `scratch/c500_desktop.json`, `c500_phone.json`, `c500_ui2.json`, `c500_empty.json`, `c500_gateway.log`):
+- Teach on the first of two replies sent `{session_id, message_id: <first reply>, guidance: "ALWAYS-CITE-SOURCES"}`; the gateway log shows "User Prompt: DESKTOP first question about France" and "Human Guidance / Correction: ALWAYS-CITE-SOURCES".
+- Card: "Skill Proposal: Cite Sources", slip "FAKE SLIP: answered without a source", remedy "FAKE REMEDY: cite the source every time". Adopt returned 200 and toasted "Skill mounted to autoreiv. Active for your next message." (desktop and phone).
+- `/learn be shorter` opened Teach with "be shorter" for the latest reply; distill 200.
+- Needs-tool card buttons: "Ask Developer to build this tool", "Dismiss" (0 Adopt buttons), live and after reload.
+- After reload, a pending history card's Adopt returned 200 with the success toast (session id sent).
+- New empty chat, `/learn test`: toast "Send a message first, then teach from the reply.", modal stayed closed, 0 distill calls.
+- Unknown id: 404 with the plain sentence above.
+- Still open, as expected: the adopted skill is not in `/api/agents/autoreiv` `allowed_skill` (CARD-502). The page still loads `/api/agent_training_factory/jobs` from `factory.js` at startup (not from Teach; CARD-497 retires it). The needs-tool card title is still "Synthesized Skill" (filed CARD-504).
+
+**Follow-ups filed:** CARD-504 (needs-tool card title and empty runbook section, P3, Ready).
