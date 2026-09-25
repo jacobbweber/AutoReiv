@@ -1,10 +1,10 @@
 ---
 id: CARD-469
 title: "Chat composer wiring lost in the CARD-397 split: Enter-to-send, attachments, quick-prompt pick"
-status: In Review
+status: Done
 created: 2026-09-24
 updated: 2026-09-24
-branch: feat/card-469-composer-wiring
+branch: qa
 related:
   - CARD-397
   - CARD-465
@@ -28,7 +28,7 @@ labels:
 
 # [CARD-469] Chat composer wiring lost in the CARD-397 split: Enter-to-send, attachments, quick-prompt pick
 
-> **Status**: In Review (Jacob said `build` 2026-09-24 10:48 PM ET; built on `feat/card-469-composer-wiring`)
+> **Status**: Done (Jacob live-tested and said `merge to qa` 2026-09-24 11:32 PM ET)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-465 build on Jarvis. A Playwright probe pressed Enter in `#promptInput`. The keydown was **not** intercepted and the form did not submit, on both desktop and phone viewports.
 > **Root cause commit**: `7b563003` (CARD-397 chat.js decomposition, 2026-09-20 11:06 PM ET). `git blame` puts every broken line below on that commit.
@@ -264,3 +264,7 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
 | Smoke | 13/13 |
 | pytest `tests/unit` | 2015 passed, 11 skipped, 1 failed (known CARD-454) |
 | ESLint, full | 4 errors, 5 warnings (unchanged, CARD-456); changed files clean |
+
+## 7. Merge note (2026-09-24)
+
+Jacob live-tested on desktop and phone and replied **`merge to qa`** at 11:32 PM ET. `feat/card-469-composer-wiring` was merged `--no-ff` into local qa and the branch deleted. Follow-ups remain Ready: CARD-470 (Auto-run inverted, P0), CARD-471, CARD-472, CARD-473, CARD-474, CARD-475 (images to text-only models), CARD-476 (first send 422).
