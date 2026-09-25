@@ -3,11 +3,13 @@ id: CARD-470
 title: "Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking"
 status: Ready
 created: 2026-09-24
+updated: 2026-09-24
 branch: qa
 related:
   - CARD-397
   - CARD-469
   - REQ-HITL-028
+  - REQ-TOOLPOL-003
 labels:
   - type:bug
   - area:chat
@@ -18,10 +20,11 @@ labels:
 
 # [CARD-470] Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking
 
-> **Status**: Ready
+> **Status**: Ready (refined after Jacob's `continue`, 2026-09-24 ET)
 > **Created**: 2026-09-24
-> **Observed during**: CARD-469 planning. I diffed every `addEventListener` in pre-split `chat.js` (`7b563003^`) against current `chat.js` and `chat/*`, and checked every looked-up ID against `src/web/templates/index.html`. `git blame` puts the broken lines on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET). This was found by reading the code; it has **not** been checked live in a browser yet.
-> **Related**: CARD-397, CARD-469, REQ-HITL-028
+> **Observed during**: CARD-469 planning. `git blame` puts the broken line on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
+> **Verified live-safely (2026-09-24 ~11:45 PM ET, qa `ae9c0a18`)**: on the scratch smoke server (`scripts/smoke_server.py --port 8766`, data wiped under `scratch/smoke_data`, never live AppData), with a fake tool-calling LLM and a Playwright probe that intercepted `/api/chat/stream`. The results are in section 1, Beat 2.
+> **Related**: CARD-397, CARD-469, REQ-HITL-028, REQ-TOOLPOL-003
 > **Labels**: `type:bug`, `area:chat`, `area:hitl`, `area:frontend`, `P0`
 
 ---
@@ -42,30 +45,89 @@ Do not write product code until Jacob says **build** on this card.
 
 ### Beat 1: What Jacob means
 
-"Auto-run" off should mean AutoReiv asks before running tools, and on should mean safe tools run without asking. The choice should be remembered, and the chips should show which modes are on.
+With Auto-run **off**, AutoReiv must stop and ask before any tool that needs approval (writes, shell, code execution, git, card or spec edits). With it **on**, those tools run without asking. Blocked tools stay blocked either way. The choice should be remembered across reloads, and the chips next to the composer should show which modes are on.
 
-### Beat 2: What AutoReiv does now (qa `fc0b30dd`)
+### Beat 2: What AutoReiv does now (qa `ae9c0a18`, verified)
 
-1. **Inverted flag.** `src/web/static/modules/studios/chat.js` L816 sends `approvalAutoRun: approvalToggle ? !approvalToggle.checked : false`. `chat/stream.js` L31 maps that to `approval_mode: approvalAutoRun ? 'run' : 'ask'`, and the backend treats `run` as "do not ask" (`src/domain/orchestration/models.py` L45, `src/application/tools/native_packaging.py` L402).
-   - Result: with Auto-run **unchecked** (the default), every chat turn sends `approval_mode: "run"`. With it **checked**, turns send `"ask"`.
-   - Before the split: pre-split L3157 sent `state.approvalAutoRun`, which was set from `e.target.checked` (L2194-2197).
-2. **Remembered choice lost.** Pre-split L2190-2200 restored the toggle with `readLastApprovalAutoRun()` and saved it with `writeLastApprovalAutoRun()`. Both helpers still exist in `chat/hitl.js` L164/L173, but nothing calls them.
-3. **Chips lost.** No `change` listeners remain on `#verifyToggle` / `#approvalToggle` (pre-split L2183-2199), so `#verifyBadge` / `#approvalBadge` (index.html L563/L566) never reflect the toggles.
+1. **The flag is inverted (verified live).**
+   - `src/web/static/modules/studios/chat.js` L816: `approvalAutoRun: approvalToggle ? !approvalToggle.checked : false`.
+   - `src/web/static/modules/studios/chat/stream.js` L31: `approval_mode: approvalAutoRun ? 'run' : 'ask'`.
+   - Playwright probe, fresh browser:
+     - Auto-run unchecked (the default) sent **`approval_mode: "run"`**.
+     - Auto-run checked sent **`"ask"`**.
+     - With a saved preference of `autoreiv_approval_autorun='run'`, the toggle still loaded unchecked and sent `"run"`.
+   - Self-Verify is **not** inverted: L815 sends `self_verify: verifyToggle.checked`.
+   - Before the split (`7b563003^` chat.js): L3157 sent `state.approvalAutoRun`, and the change handler at L2194-2197 set it from `checked`. That was correct.
+2. **What `run` does on the backend (verified live).**
+   - `src/application/safety/tool_policy_gate.py` L558-562: any `REQUIRE_CONFIRM` verdict returns `None` (allowed) when mode is `run`. Otherwise it parks the call through `hitl_engine.park_tool_call`. Anything other than `"run"` counts as `ask`, including `"auto"` from `mcp_server.py` L221.
+   - Scratch probe with agent `autoreiv` and the tool `wiki_note_create`:
+     - `ask` sent SSE `approval_required` (`appr_99ffb57868ad`, "Parked for operator approval... The tool was not executed"), and no note file was written.
+     - `run` sent no approval event. `tool_output` returned `success: true`, and the note was written to `scratch/smoke_data/wiki/00_Inbox/card_470_probe.md`. The model then got a second turn with the tool result.
+   - Tools that `run` lets through without asking:
+     - `_DEFAULT_REQUIRE_CONFIRM` (L26-47): `cli_exec`, `execute_code`, `wiki_note_create`/`_update`/`_organize`, `write_card`, `write_spec`, `set_card_status`, `write_project_file`, `create_project`, `git_commit`, `sync_card_issue`, `execute_agent_database`, `repo_file_write`/`_patch`/`_rollback`, `repo_create_worktree`/`repo_remove_worktree`.
+     - MCP tools whose names look dangerous (write/delete/exec/shell/run/create/update…, L281-317 and L424-435).
+     - Anything listed in `settings.require_confirm_tools` (L437-449).
+     - Skill proposals: `skill_proposals.py` L491-508 (also reached through `agent_builder_tools.py` L343) parks a draft in `ask` mode and writes it directly in `run` mode.
+   - What still applies in `run` mode (`BLOCK` verdicts):
+     - the agent tool allowlist (L385-395)
+     - the capability subset
+     - `DangerousCommandFilter` for `cli_exec` (L411-422)
+     - `block_tools`
+   - There is **no separate per-agent approval setting** that would catch these. `hitl_engine.requires_approval` (`src/application/kernel/hitl_engine.py` L46) is never called, so the gate is the only approval layer. Kernel call site: `agent_kernel.py` L1150-1168. The mode is also passed into the tool context at `tool_registry.py` L188.
+3. **The inverted value spreads.**
+   - `src/web/routers/chat.py` passes `req.approval_mode` into the kernel, job-graph and handoff paths (L1939, L2050, L2077, L2267, L2279).
+   - Resume uses `stored_mode or req.approval_mode` (L1894).
+   - Jobs read it from plan args (L366).
+   - `handoff_engine.py` L354/531/553 copy the parent's mode into child envelopes (REQ-HITL-028, `models.py` L45).
+   - So any chat started since 2026-09-20 with Auto-run unchecked ran its jobs and child agents in `run` mode too.
+4. **Other surfaces checked. None of them are inverted.**
+   - Routines: `routines.js` L313/L536 map checked to `run`, and the backend (`routines.py` L65/94/138, `executor.py` L432) normalizes correctly.
+   - HITL resume paths (`hitl.py`) hard-code `ask`.
+   - Hosted MCP server: `"auto"`, which counts as `ask`.
+   - `native_tools.py` defaults to `ask`.
+   - **Education** (`education.js` L972) sends `state.approvalAutoRun`. Nothing sets that since the split (`store.js` L46 defaults it to `false`), so Education always sends `ask` and ignores the toggle. That is safe, but stale. `education.js` L1896 leaves the field out, so it also defaults to `ask`.
+5. **The saved choice is lost.** Pre-split L2190-2200 restored the toggle with `readLastApprovalAutoRun()` and saved it with `writeLastApprovalAutoRun()`. Both still exist in `chat/hitl.js` L164/L173 (key `autoreiv_approval_autorun`, value `'run'`/`'ask'`, fails safe to `ask`), but nothing calls them. Browsers that saved `'run'` before 2026-09-20 still have it stored.
+6. **The chips are dead (verified live).** There are no `change` listeners on `#verifyToggle` or `#approvalToggle` any more. The pre-split listeners were at L2183-2199. After checking both toggles, `#verifyBadge` and `#approvalBadge` (index.html L563/L566) stayed hidden. `state.verifyEnabled` is also no longer updated from the toggle.
+7. **The tooltip is vague.** index.html L447: "Allow safe tools to run without asking". Auto-run actually lets write, shell and exec tools run.
 
-### Beat 3: What will change
+### Beat 3: What will change (tests first)
 
-1. Send `approvalAutoRun: approvalToggle.checked`. On load, restore the toggle from `readLastApprovalAutoRun()` and save changes. Toggle both chips on `change`.
-   - Put the wiring in a small `chat/` helper, not in `chat.js` (CARD-456 cap).
-2. Tests first:
-   - Vitest with fakes: unchecked gives `approval_mode: "ask"` and checked gives `"run"` in the built payload.
-   - The toggle is restored from storage and saved on change.
-   - The chips follow the toggles.
-   - A source contract that `chat.js` never negates `approvalToggle.checked`.
-3. Smoke with `/api/chat/stream` intercepted: the default send has `approval_mode: "ask"`.
+1. Add a new helper `chat/runtime-toggles.js` exporting `setupRuntimeModeToggles({ approvalToggle, verifyToggle, approvalBadge, verifyBadge, state, storage })`. It must:
+   - restore `approvalToggle.checked` and `state.approvalAutoRun` from `readLastApprovalAutoRun()`
+   - on `change`, write `state.approvalAutoRun`, `writeLastApprovalAutoRun()` and toggle `#approvalBadge`
+   - on `change`, keep `state.verifyEnabled` in sync with the Verify toggle and toggle `#verifyBadge`
+   - set both chips correctly on load
+
+   `chat.js` gets one import and one call. L816 becomes `approvalAutoRun: !!approvalToggle?.checked`. `chat.js` stays at 1,045 lines or fewer.
+2. If Jacob approves decision D2, run a one-time reset: if a migration marker is missing, write `'ask'` and set the marker.
+3. Change the tooltip wording (decision D3).
+4. Tests to write first, and confirm they fail on qa before the fix:
+   - **Vitest `chat/runtime-toggles.test.js`** with fake DOM and storage:
+     - saved `'run'` restores checked; saved `'ask'` or nothing restores unchecked
+     - `change` saves the value and updates `state.approvalAutoRun`
+     - the chips' `hidden` class follows both toggles
+     - the one-time reset works (runs once, then respects the choice) if D2 is approved
+   - **Vitest payload test:** `buildChatStreamPayload({approvalAutoRun:false})` gives `ask`, and `true` gives `run`.
+   - **Vitest source contract:** `chat.js` never contains `!approvalToggle.checked`, calls `setupRuntimeModeToggles`, and stays at 1,045 lines or fewer.
+   - **Smoke TC-14/15/16** (`/api/chat/stream` intercepted):
+     - a fresh load sends `approval_mode: "ask"`
+     - checking Auto-run sends `"run"` and shows the chip
+     - after a reload, the choice and chip are still there
+   - **Backend:** the existing gate tests (`tests/unit/safety/test_tool_policy_gate.py`, `test_tool_policy_kernel_gate.py`, `tests/unit/kernel/test_hitl_kernel_gate.py`) already cover `ask` parking and `run` allowing. Re-run them as-is; no backend change.
+5. Proof for In Review:
+   - Vitest shows the new tests passing, with only the known CARD-456 failures (5) left.
+   - Smoke passes 16/16.
+   - The gate unit tests pass.
+   - Honesty gate passes, the broad `tests/unit` baseline holds, and CHANGELOG `[Unreleased]` has a **Security** line.
+   - A Jarvis runbook screenshot showing the approval prompt with Auto-run off.
 
 ### Beat 4: What dies
 
-Silent auto-run for every chat turn, and the inverted flag.
+- Silent auto-run on every default chat turn, and on the jobs and child agents it starts.
+- The `!approvalToggle.checked` negation.
+- The unused `readLastApprovalAutoRun`/`writeLastApprovalAutoRun` stop being unused (they get wired back in).
+- Dead chips.
+- The misleading "safe tools" tooltip.
 
 ---
 
@@ -73,14 +135,33 @@ Silent auto-run for every chat turn, and the inverted flag.
 
 - **[REQ-470-001]** WHILE `#approvalToggle` is unchecked, WHEN a chat turn is sent, THE SYSTEM SHALL send `approval_mode: "ask"`.
 - **[REQ-470-002]** WHILE `#approvalToggle` is checked, WHEN a chat turn is sent, THE SYSTEM SHALL send `approval_mode: "run"`.
-- **[REQ-470-003]** WHEN Chat loads, THE SYSTEM SHALL restore `#approvalToggle` from the last saved choice. WHEN it changes, THE SYSTEM SHALL save it.
-- **[REQ-470-004]** WHEN `#verifyToggle` or `#approvalToggle` changes, THE SYSTEM SHALL show or hide `#verifyBadge` / `#approvalBadge` to match.
+- **[REQ-470-003]** WHEN Chat loads with no saved choice, THE SYSTEM SHALL leave `#approvalToggle` unchecked (`ask`).
+- **[REQ-470-004]** WHEN Chat loads, THE SYSTEM SHALL restore `#approvalToggle` from `autoreiv_approval_autorun`. WHEN the toggle changes, THE SYSTEM SHALL save `'run'` or `'ask'`.
+- **[REQ-470-005]** WHEN `#approvalToggle` or `#verifyToggle` changes, and WHEN Chat loads, THE SYSTEM SHALL show `#approvalBadge` / `#verifyBadge` if and only if the matching toggle is checked.
+- **[REQ-470-006]** WHEN either toggle changes, THE SYSTEM SHALL update `state.approvalAutoRun` / `state.verifyEnabled`, so Education follows the same choice.
+- **[REQ-470-007]** (if D2 is approved) WHEN Chat first loads after this fix, THE SYSTEM SHALL reset a saved `'run'` to `'ask'` exactly once, and SHALL respect later choices.
+- **[REQ-470-008]** THE SYSTEM SHALL NOT derive `approval_mode` from a negated `.checked` anywhere in `src/web/static`.
+- **[REQ-470-009]** The Auto-run tooltip SHALL say that, when on, write and shell tools run without asking and blocked tools stay blocked.
 
-## 3. Runbook (under 1 minute)
+## 3. Runbook on Jarvis (under 1 minute)
 
-1. With Auto-run off, ask for something that needs a gated tool. AutoReiv asks for approval.
-2. Turn Auto-run on and reload. It is still on, and the chip shows.
+1. Reload Chat (Auto-run off, no chip). Ask for "create a wiki note titled test470". An approval prompt appears, and no note exists until you approve it.
+2. Open options, check Auto-run. The Auto-run chip shows. Reload: it is still checked and the chip is still there.
+3. Uncheck it again before normal use.
 
-## 4. Constraints
+## 4. Decisions for Jacob (recommendations in bold)
 
-Frontend only. Ship before CARD-469 because it is a safety bug. Until it is fixed, **leaving Auto-run checked actually means "ask"**.
+- **D1: Default on a fresh install.** **Off (`ask`).** Fails safe. This matches `readLastApprovalAutoRun` and the backend default.
+- **D2: Reset saved preferences once.** **Yes.** Reset a saved `'run'` to `'ask'` one time, using the marker key `autoreiv_approval_autorun_reset_470`. The UI has not shown the saved value since 2026-09-20, so nobody knowingly chose it.
+- **D3: Wording.**
+  - Tooltip: **"Off: AutoReiv asks before write, shell and code tools. On: they run without asking. Blocked tools stay blocked."**
+  - Chip text when on: **"Auto-run ON"**, in amber rather than sky blue, as a warning.
+- **D4: Education.** **Fold it in** through REQ-470-006. It uses the same state and adds no extra files. No separate card.
+- **D5: Past sessions.** Chats, jobs and handoffs started on 2026-09-20 or later with Auto-run unchecked ran gated tools without asking. There is no data fix. **If worried, review recent wiki, card and git changes.**
+
+## 5. Constraints
+
+- Frontend only. No backend change.
+- `chat.js` stays at 1,045 lines or fewer (CARD-469 cap).
+- Ship before the other chat cards, because this is a safety bug.
+- **Until this ships:** leaving Auto-run **checked** actually means "ask". Unchecked means tools run without asking.
