@@ -1,7 +1,7 @@
 ---
 id: CARD-469
 title: "Chat composer wiring lost in the CARD-397 split: Enter-to-send, attachments, quick-prompt pick"
-status: In Progress
+status: In Review
 created: 2026-09-24
 updated: 2026-09-24
 branch: feat/card-469-composer-wiring
@@ -26,7 +26,7 @@ labels:
 
 # [CARD-469] Chat composer wiring lost in the CARD-397 split: Enter-to-send, attachments, quick-prompt pick
 
-> **Status**: In Progress (Jacob said `build` 2026-09-24 10:48 PM ET)
+> **Status**: In Review (Jacob said `build` 2026-09-24 10:48 PM ET; built on `feat/card-469-composer-wiring`)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-465 build on Jarvis. A Playwright probe pressed Enter in `#promptInput`. The keydown was **not** intercepted and the form did not submit, on both desktop and phone viewports.
 > **Root cause commit**: `7b563003` (CARD-397 chat.js decomposition, 2026-09-20 11:06 PM ET). `git blame` puts every broken line below on that commit.
@@ -177,3 +177,55 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
 - Docs only until **build**. Frontend only; no API changes.
 - chat.js must not grow (CARD-456 cap).
 - The follow-up wiring bugs stay on CARD-470 to CARD-473.
+
+---
+
+## 6. Build notes (2026-09-24, In Review)
+
+**Branch**: `feat/card-469-composer-wiring`, cut from local qa `c7f9d296`. Not pushed, not merged.
+
+| Commit | What |
+|--------|------|
+| `6296fdb4` | docs: card In Progress with D1-D3 recorded; CARD-474 written |
+| `a7f4a3e4` | test: failing tests first (red on qa code) |
+| `85eea4cb` | fix: the rewiring + CHANGELOG |
+
+**What changed**
+
+- `chat/composer.js`: `setupComposerKeyboard({ promptInput, chatForm, isStreaming })`. Enter sends on every device (D1). An IME-confirming Enter (`isComposing` / keyCode 229) is ignored. While a reply streams, Enter is swallowed and nothing is submitted (D2).
+  - `setupComposerAttachments` takes `getStagedAttachments` and `fetchFn`.
+  - New `clearStagedAttachments(state, list)` clears in place.
+  - New `wireComposer(state, { chatForm, promptInput, showToastFn, onBeforeAttach })` looks up `#chatAttachBtn`, `#chatFileInput` and `#chatAttachmentsPreviewList` and wires the paperclip and Enter.
+  - The submit handler regained its `state.isStreaming` early return.
+  - The false "drop/paste" claim was removed from the header (that feature never existed).
+- New `chat/quick_prompts.js`: `setupQuickPromptPicker` on the real IDs. It handles toggle, filter, pick (event delegation on the list, indexing the filtered rows), Manage, outside click and Escape.
+  - Picks insert `template_text` (falling back to `prompt` / `content`) via `setComposerText(..., { focus: true })`, then close the picker and drawer and show the toast `Loaded "<title>"`.
+- `chat/chrome.js`: the ghost `chatPromptCatalogBtn` / `chatClosePromptsModalBtn` / `chatPromptsModalList` lookups are gone, along with the dead `renderQuickPrompts` / `loadQuickPrompts`. It now calls `setupQuickPromptPicker` and exports `closeChatOptionsDrawer()`. The paperclip uses it to close the drawer, as it did before the split. chrome.js went from 714 to 661 lines.
+- `chat.js`: one `wireComposer(state, {...})` call replaces the two positional calls. The payload takes a copy of the staged list, and `clearStagedAttachments` replaces the reassignment. **chat.js went from 1,045 to 1,041 lines.**
+
+**Tests: red on qa, then green**
+
+- `tests/unit/frontend/chat_composer_wiring_469.test.js` (17 tests). On qa, 11 failed:
+  - IME guard, streaming guard, submit streaming guard.
+  - Five `wireComposer` tests.
+  - Three contract tests.
+  - The six that passed on qa test helper behaviour that was already correct in isolation; the bug was the call site.
+- `tests/unit/frontend/chat_quick_prompts_469.test.js` (11 tests). On qa the module did not exist, so the whole file failed.
+- Smoke TC-9 to TC-12 (`tests/e2e/smoke.spec.js`). All 4 failed on qa:
+  - TC-9 and TC-10: no stream POST on Enter.
+  - TC-11: the picker never became visible.
+  - TC-12: no file chooser opened.
+- After the fix: 28/28 new Vitest tests pass and smoke is 12/12.
+
+| Suite | Result | Baseline |
+|-------|--------|----------|
+| Vitest (full) | 807 passed, 5 failed | 779 passed + 28 new; the 5 failures are the known CARD-456 ones (the chat.js/render.js line caps, `per_agent_model_config` x1, `system_updates` x2) |
+| Smoke (full) | 12 passed | 8 + 4 new |
+| pytest `tests/unit` | 2015 passed, 11 skipped, 1 failed | unchanged; the failure is the known CARD-454 `test_platform_packs_all_pass_mechanical_linter` |
+| ESLint, changed files | 0 errors, 0 warnings | |
+| ESLint, full | 4 errors, 5 warnings | unchanged (CARD-456) |
+| Honesty gate | green, exit 0 | |
+
+**Scavenger Pass**: I ran ripgrep over `src`, `tests`, `steering`, `docs/adr` and `scripts` for `renderQuickPrompts`, `loadQuickPrompts`, the three ghost IDs, and the positional calls. The only hits left are the negative assertions in the new test, and `chat_options_drawer.test.js`, whose `chatPromptsBtn|...` alternation still matches the real ID. No orphaned imports remain; `setupComposerAttachments` / `setupComposerKeyboard` are now only called from `wireComposer`.
+
+**Serve**: restarted with `scripts\restart_serve.ps1 -HostAddr 0.0.0.0 -Port 8000` on this branch. Health returns 200 on 127.0.0.1 and 192.168.1.99. Static modules are sent `no-store`, so a normal reload picks up the new code.
