@@ -1,10 +1,10 @@
 ---
 id: CARD-469
 title: "Chat composer wiring lost in the CARD-397 split: Enter-to-send, attachments, quick-prompt pick"
-status: Ready
+status: In Progress
 created: 2026-09-24
 updated: 2026-09-24
-branch: qa
+branch: feat/card-469-composer-wiring
 related:
   - CARD-397
   - CARD-465
@@ -16,6 +16,7 @@ related:
   - CARD-471
   - CARD-472
   - CARD-473
+  - CARD-474
 labels:
   - type:bug
   - area:chat
@@ -25,7 +26,7 @@ labels:
 
 # [CARD-469] Chat composer wiring lost in the CARD-397 split: Enter-to-send, attachments, quick-prompt pick
 
-> **Status**: Ready (refined 2026-09-24 after `continue`)
+> **Status**: In Progress (Jacob said `build` 2026-09-24 10:48 PM ET)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-465 build on Jarvis. A Playwright probe pressed Enter in `#promptInput`. The keydown was **not** intercepted and the form did not submit, on both desktop and phone viewports.
 > **Root cause commit**: `7b563003` (CARD-397 chat.js decomposition, 2026-09-20 11:06 PM ET). `git blame` puts every broken line below on that commit.
@@ -82,7 +83,7 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
 **Files** (frontend only):
 
 - `src/web/static/modules/studios/chat/composer.js` changes in three ways:
-  - `setupComposerKeyboard` gains an IME guard, a phone policy (decision D1) and a streaming guard via `isStreaming()`.
+  - `setupComposerKeyboard` gains an IME guard and a streaming guard via `isStreaming()`. Enter behaves the same on every device (D1).
   - `setupComposerAttachments` takes `getStagedAttachments()` so the live `state` array is always the one used.
   - The submit handler (`setupComposerControls`) regains the `state.isStreaming` early return.
 - `src/web/static/modules/studios/chat/chrome.js` changes in two ways:
@@ -100,7 +101,7 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
    - Shift+Enter does not submit.
    - `isComposing === true` or `keyCode === 229` does not submit.
    - While streaming, Enter does not start a turn.
-   - In phone mode, Enter follows decision D1.
+   - Enter sends even when the device reports a coarse (touch) pointer (D1).
    - Clicking the attach button calls `fileInput.click()`. A `change` event with a fake `fetch` posts to `/api/chat/upload`, pushes onto `state.stagedAttachments` and renders a chip.
    - After a send clears the array, a new upload still appears (no stale reference).
    - Clicking `#chatPromptsBtn` un-hides the picker and fetches `/api/prompts`.
@@ -112,7 +113,7 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
 3. An ID contract in the same file: every `getEl('...')` / `$('...')` ID used by `chat/composer.js` and the Quick Prompts block in `chat/chrome.js` exists in `src/web/templates/index.html`. This is the check that would have caught the ghost IDs.
 4. Playwright smoke, added to the existing smoke spec and run through the CARD-467 temp-data launcher. Every network call is intercepted, so there are no LLM calls:
    - Desktop: typing and pressing Enter sends exactly one `POST /api/chat/stream`; Shift+Enter adds a newline.
-   - Phone viewport (390x844): Enter follows D1.
+   - Phone viewport (390x844): Enter sends too (D1).
    - The Quick Prompts button opens the picker (with `/api/prompts` fulfilled), and clicking an item fills the box.
    - `setInputFiles` on `#chatFileInput` (with `/api/chat/upload` fulfilled) shows a chip.
 
@@ -133,30 +134,21 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
 
 ---
 
-## 2. Decisions for Jacob (recommendations in bold)
+## 2. Decisions (Jacob, 2026-09-24 10:48 PM ET)
 
-- **D1: Enter on a phone.** Before the split, Enter sent on every device. On a touch keyboard that makes a multi-line message impossible, because touch keyboards have no easy Shift+Enter.
-  - **Recommend:** on touch-only devices (`matchMedia('(pointer: coarse)')` and not `(any-pointer: fine)`), Enter inserts a newline and the Send button sends.
-  - Set `enterkeyhint="enter"` on phones and `"send"` on desktop.
-  - Show the phone placeholder as "Type a message... (tap Send)".
-  - Desktop, and tablets with a hardware keyboard, keep Enter = send.
-  - The alternative is to restore the exact old behaviour (Enter sends everywhere).
-- **D2: Enter during a streaming reply.** **Recommend: ignore it**, as before the split. Do not queue the message and do not stop the reply. The Stop button is the way to interrupt.
-- **D3: Scope.** **Recommend: keep this card to the three composer features.** The other lost wiring goes on its own cards:
-  - CARD-470: the Auto-run toggle is inverted. **P0, and it should ship first.**
-  - CARD-471: the options drawer and tools modal.
-  - CARD-472: Workbench, Train and Teach.
-  - CARD-473: resync when the phone tab returns.
-  - Folding everything into one card would break the single-card rule and would push chat.js further past its cap.
+- **D1: Enter on a phone.** Restore the pre-split behaviour exactly. Enter sends on every device, phones included, and Shift+Enter makes a newline. On top of that, add the IME-composition guard, which is a safe addition.
+  - The phone-newline option (on a touch-only device, Enter makes a newline and you tap Send) was offered and **not** chosen. It is filed as a follow-up: **CARD-474**.
+- **D2: Enter during a streaming reply.** Ignore it, as before the split. Nothing is queued and nothing is stopped.
+- **D3: Scope.** This card covers only the three composer features: Enter, the paperclip and Quick Prompts. CARD-470 to CARD-473 stay separate.
 
 ---
 
 ## 3. Acceptance criteria (EARS)
 
-- **[REQ-469-001]** WHEN Enter is pressed in `#promptInput` without Shift on a device with a fine pointer, THE SYSTEM SHALL prevent the newline and submit `#chatForm` exactly once.
+- **[REQ-469-001]** WHEN Enter is pressed in `#promptInput` without Shift, on any device including phones, THE SYSTEM SHALL prevent the newline and submit `#chatForm` exactly once.
 - **[REQ-469-002]** WHEN Shift+Enter is pressed in `#promptInput`, THE SYSTEM SHALL insert a newline and SHALL NOT submit.
 - **[REQ-469-003]** WHILE an IME composition is active (`isComposing` or keyCode 229), THE SYSTEM SHALL NOT submit on Enter.
-- **[REQ-469-004]** WHILE the device is touch-only, WHEN Enter is pressed in `#promptInput`, THE SYSTEM SHALL insert a newline and leave sending to the Send button (subject to D1).
+- **[REQ-469-004]** THE SYSTEM SHALL apply the same Enter rule on touch devices as on desktop (D1). The phone-newline alternative is CARD-474.
 - **[REQ-469-005]** WHILE a reply is streaming, WHEN the chat form is submitted, THE SYSTEM SHALL NOT start another turn.
 - **[REQ-469-006]** WHEN `#chatAttachBtn` is clicked, THE SYSTEM SHALL open `#chatFileInput`. WHEN files are chosen, THE SYSTEM SHALL upload each to `/api/chat/upload`, stage it on `state.stagedAttachments` and show a removable chip in `#chatAttachmentsPreviewList`.
 - **[REQ-469-007]** WHEN a message with attachments is sent, THE SYSTEM SHALL clear the staged list in place, so that later uploads still stage and display.
@@ -176,7 +168,7 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
    - While the reply streams, pressing Enter does nothing.
 2. Click the paperclip and choose a small `.txt` file. A chip appears. Send, then attach another file: its chip appears too.
 3. Click Quick Prompts. The picker opens with prompts listed. Type to filter, then click one: its text fills the box, the box grows, and the picker closes. Escape and outside-click also close it.
-4. Phone (`http://192.168.1.99:8000`): Enter follows D1, the Send button sends, and the paperclip and Quick Prompts work.
+4. Phone (`http://192.168.1.99:8000`): the keyboard Enter/Go key sends, the Send button sends, and the paperclip and Quick Prompts work.
 
 ---
 
