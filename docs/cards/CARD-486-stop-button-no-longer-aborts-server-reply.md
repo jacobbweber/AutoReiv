@@ -1,7 +1,7 @@
 ---
 id: CARD-486
 title: "Stop no longer tells the server to stop: the abort call was lost in the CARD-397 split"
-status: Ready
+status: In Progress
 created: 2026-09-25
 branch: qa
 related:
@@ -23,7 +23,7 @@ labels:
 
 # [CARD-486] Stop no longer tells the server to stop: the abort call was lost in the CARD-397 split
 
-> **Status**: Ready (refined 2026-09-25 ET, "continue" #1)
+> **Status**: In Progress (build 2026-09-25 ET on `feat/card-486-stop-aborts-server`; D1-D7 accepted as recommended)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-485 planning (scratch server, Playwright `scratch/c485_stop.cjs`)
 > **Related**: CARD-397 (split), CARD-259 (kill/resume mid-LLM), CARD-154 (work survives disconnect), CARD-485 (busy state), CARD-488, follow-ups CARD-489 / CARD-490 / CARD-491
@@ -36,7 +36,7 @@ labels:
 | Jacob reply | Meaning |
 |-------------|---------|
 | **`continue`** | Refine. **Still no product code** |
-| **`build`** | Fix test-first on `fix/card-486-stop-aborts-server` |
+| **`build`** | Fix test-first on `feat/card-486-stop-aborts-server` |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
 
 Do not write product code until Jacob says **build** on this card.
@@ -164,7 +164,7 @@ When I press Stop, the agent really stops: the model stops generating, nothing k
 - `chat.js` ≤ 1,045 lines
 
 ## 5. Build order
-1. Card In Progress (branch `fix/card-486-stop-aborts-server`).
+1. Card In Progress (branch `feat/card-486-stop-aborts-server`).
 2. Failing tests (above).
 3. Fix:
    - `chat/stop.js`
