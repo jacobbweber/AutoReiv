@@ -1,7 +1,7 @@
 ---
 id: CARD-475
 title: "Image attachments are sent to text-only models; one image breaks the whole chat session"
-status: In Progress
+status: In Review
 created: 2026-09-24
 updated: 2026-09-25
 branch: feat/card-475-image-attachments-text-only
@@ -10,6 +10,9 @@ related:
   - CARD-143
   - CARD-235
   - CARD-479
+  - CARD-481
+  - CARD-482
+  - CARD-483
   - CARD-480
 labels:
   - type:bug
@@ -21,7 +24,7 @@ labels:
 
 # [CARD-475] Image attachments are sent to text-only models; one image breaks the whole chat session
 
-> **Status**: Ready (refined after Jacob's `continue`, 2026-09-25 ~1:15 AM ET, qa `8929a743`)
+> **Status**: In Review (build done 2026-09-25 on `feat/card-475-image-attachments-text-only`; waiting on Jarvis runbook)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 live test, 2026-09-24 at 11:02 PM and 11:05 PM ET. Jacob attached a phone screenshot in Chat (Direct mode) and got no reply. After that, even "Hi" in the same session got no reply.
 > **Verified 2026-09-25 ET**:
@@ -169,3 +172,64 @@ Attaching a picture must never break a chat. If the current model can't see imag
 - `chat.js` stays at 1,045 lines or fewer, and `render.js` is at its 800-line cap, so any rendering change goes in a helper.
 - No writes to live data.
 - Follow-ups: CARD-479 (document attachments and Direct mode), CARD-480 (vision helper).
+
+---
+
+## 6. Build notes (2026-09-25)
+
+**Branch:** `feat/card-475-image-attachments-text-only`, from local `qa` at `7eff1b6f`. `qa` was not pushed or reset.
+
+**Commits**
+- `e6b88c9d` docs(cards): In Progress, with Jacob's D1-D6 recorded.
+- `0c762880` test(chat): the failing tests, red on the qa code. The Python modules did not exist yet; the stream parser and operator contract failed 9/10, including "Hi" in a poisoned session returning an empty reply; Vitest 4/4 failed.
+- `70e10b4c` fix(chat): the implementation. Three of the new test files were changed only by `ruff format`; no assertions changed.
+- (this commit) docs: CHANGELOG, build notes, follow-up cards CARD-481/482/483.
+
+**What changed (files)**
+- `src/application/gateway/attachment_images.py` (new): `current_turn_images()`, `prepare_image_turn()`, `image_notice_text()` (D6 wording), `notice_payload()`.
+- `src/application/gateway/model_capabilities.py` (new): `ModelCapabilityResolver` (override > runtime "provider refused" > saved provider metadata > name guess > text-only), `is_multimodal_rejection()`, `merge_vision_metadata()`. Settings keys: `model_vision_overrides`, `model_vision_metadata`.
+- `src/application/gateway/gateway_service.py`: `set_capability_resolver()`. `stream()` and `complete()` prepare images per request, yield one `StreamChunk(notice=...)` when images were dropped, and retry once without images on a "not multimodal" rejection. `_execute_with_retry` no longer burns backoff retries on that rejection.
+- `src/infrastructure/gateway/openai_adapter.py`, `ollama_adapter.py`: the history `Local Path:` scan is removed, and images come only from `ChatMessage.images`. `list_models()` reads Ollama `capabilities` and the gateway `description`/`root`.
+- `src/infrastructure/gateway/openai_stream_tool_calls.py`: a bare JSON error line, `data: {"error"}`, or vLLM `{"object":"error"}` raises `GatewayError`. `ollama_adapter.stream()` raises on `{"error": ...}` lines.
+- `src/application/kernel/empty_reply.py` (new), plus `agent_kernel.py`:
+  - An empty reply means `ERROR` "The model returned an empty reply." in `stream_turn`, and `EmptyModelReplyError` in `run_turn`. No row is saved.
+  - Empty assistant rows are skipped when history is loaded, in both paths.
+  - `KernelEventType.NOTICE` is forwarded once per turn.
+- `src/web/routers/chat.py`: `NOTICE` becomes SSE `attachment_notice`. `GET /api/sessions/{id}/messages` hides empty assistant rows.
+- `src/web/routers/settings.py`: discover returns `can_view_images`, `vision_source` and `vision_override`, and saves provider vision metadata. New `POST /api/settings/model-capabilities` (`vision: true|false|null`).
+- `src/web/app.py`: wires the resolver to the live settings store.
+- Frontend:
+  - `chat/stream.js` collects `attachment_notice` and renders `.chat-attachment-notice` (sky, `role="status"`) after the finalize reload.
+  - New `studios/settings_model_vision.js` adds the per-model **Can view images** checkbox.
+  - `settings.js` gets +3 lines, and `index.html` gets the new column.
+  - `chat.js` is unchanged at 1,032 lines.
+
+**Deviation from the plan (same effect, simpler):** Beat 3 said chat/kernel would set `images` from `req.attachments`. Instead, the gateway reads the latest user message's attachment text. This covers Direct mode, AutoReiv ReAct, jobs and resumes with one code path, and needs no change to the saved message schema. Tool-loop steps inside the same turn still carry that turn's image to a vision model, which is the intended "current turn".
+
+**Replaced tests:** two CARD-144 tests in `tests/unit/gateway/test_multimodal_vision.py` asserted that the adapters re-read `Local Path:` from message text. That is the behaviour D3 removes. They were replaced by the gateway tests in `test_image_turn_gating_475.py`, and the other CARD-144 tests are unchanged.
+
+**Tests (branch, 2026-09-25)**
+
+| Suite | Result | Known failures |
+|---|---|---|
+| New CARD-475 Python (`tests/unit/gateway/*475*`, `tests/unit/kernel/test_empty_reply_475.py`, OC-475) plus the 3 remaining CARD-144 tests | 36 passed (33 new) | none |
+| `tests/unit` (all) | 2041 passed, 11 skipped, 1 failed | `test_platform_packs_all_pass_mechanical_linter` (CARD-454) |
+| `tests/integration` (incl. operator contracts) | 107 passed | none |
+| Vitest (all) | 848 passed, 5 failed | all 5 are CARD-456: `chat_monolith_decomposition_397` x2, `per_agent_model_config`, `system_updates` x2 |
+| ESLint `lint:frontend` | 4 errors, 5 warnings | CARD-456 (none in changed files) |
+| ruff check (repo) | 9 findings | CARD-454; the only finding in changed files is the old `chat.py` I001 |
+| Smoke (Playwright via `scripts/smoke_server.py`) | 18/19 | TC-7 theme colour flake. It fails the same way on the unchanged test commit, so it is filed as CARD-481. TC-19 flaked once in 6 full runs and then passed 10/10 with `--repeat-each` (see CARD-482) |
+| Honesty gate (`honesty_smoke_pack_261.py --validate`) | merge gate green, no blockers | none |
+
+**Scratch repro** (`scripts/smoke_server.py` on :8766 plus a Spark-like fake on :8791 that returns HTTP 200 and a bare JSON error for image requests to non-vision models):
+- Direct and AutoReiv, image on nemotron: reply "Hello from nemotron-3.5-lightning (images seen: 0)" plus the exact D6 notice, with no error. The next "Hi" answers normally. The fake never received image bytes.
+- Poisoned session (image turn + empty row + "Hi" + empty row, the live shape): "Hi" answers. The thread API hides both empty rows.
+- gemma-4-26b-a4b ticked: the image went out once (`images: 1`), and the next "Hi" had `images: 0`.
+- Discover: nemotron is text-only (`default`), and gemma is `override`.
+
+**Live read-only check:** Spark `/v1/models` describes `gemma-4-26b-a4b` as "multimodal" and `nemotron-3-nano-omni` as "image/video/audio". Both will read as vision after Refresh Models, with no tick needed. nemotron-3.5-lightning stays text-only. Only nemotron-3.5-lightning is `loaded` right now.
+
+**Scavenger Pass:**
+- Removed both adapters' history-scan blocks and the now-unused `re` import in `ollama_adapter.py`.
+- `ModelDescriptor.is_multimodal` is now consumed, where before it was set and never read.
+- No dead helpers were left behind.
