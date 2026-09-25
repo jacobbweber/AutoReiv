@@ -1,10 +1,10 @@
 ---
 id: CARD-470
 title: "Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking"
-status: Ready
+status: In Progress
 created: 2026-09-24
 updated: 2026-09-24
-branch: qa
+branch: feat/card-470-auto-run-toggle-fix
 related:
   - CARD-397
   - CARD-469
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-470] Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking
 
-> **Status**: Ready (refined after Jacob's `continue`, 2026-09-24 ET)
+> **Status**: In Progress (Jacob said `build` 2026-09-24 11:52 PM ET; all recommendations D1-D5 accepted)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning. `git blame` puts the broken line on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
 > **Verified live-safely (2026-09-24 ~11:45 PM ET, qa `ae9c0a18`)**: on the scratch smoke server (`scripts/smoke_server.py --port 8766`, data wiped under `scratch/smoke_data`, never live AppData), with a fake tool-calling LLM and a Playwright probe that intercepted `/api/chat/stream`. The results are in section 1, Beat 2.
@@ -149,7 +149,7 @@ With Auto-run **off**, AutoReiv must stop and ask before any tool that needs app
 2. Open options, check Auto-run. The Auto-run chip shows. Reload: it is still checked and the chip is still there.
 3. Uncheck it again before normal use.
 
-## 4. Decisions for Jacob (recommendations in bold)
+## 4. Decisions (all accepted by Jacob, 2026-09-24 11:52 PM ET)
 
 - **D1: Default on a fresh install.** **Off (`ask`).** Fails safe. This matches `readLastApprovalAutoRun` and the backend default.
 - **D2: Reset saved preferences once.** **Yes.** Reset a saved `'run'` to `'ask'` one time, using the marker key `autoreiv_approval_autorun_reset_470`. The UI has not shown the saved value since 2026-09-20, so nobody knowingly chose it.
@@ -157,7 +157,7 @@ With Auto-run **off**, AutoReiv must stop and ask before any tool that needs app
   - Tooltip: **"Off: AutoReiv asks before write, shell and code tools. On: they run without asking. Blocked tools stay blocked."**
   - Chip text when on: **"Auto-run ON"**, in amber rather than sky blue, as a warning.
 - **D4: Education.** **Fold it in** through REQ-470-006. It uses the same state and adds no extra files. No separate card.
-- **D5: Past sessions.** Chats, jobs and handoffs started on 2026-09-20 or later with Auto-run unchecked ran gated tools without asking. There is no data fix. **If worried, review recent wiki, card and git changes.**
+- **D5: Past sessions (accepted: no data fix).** Chats, jobs and handoffs started on 2026-09-20 or later with Auto-run unchecked ran gated tools without asking. There is no data fix. **If worried, review recent wiki, card and git changes.**
 
 ## 5. Constraints
 
