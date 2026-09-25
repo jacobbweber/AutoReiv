@@ -1,7 +1,7 @@
 ---
 id: CARD-476
 title: "First Chat message with no active session fails with HTTP 422 (session auto-create lost in the CARD-397 split)"
-status: Ready
+status: In Progress
 created: 2026-09-24
 branch: qa
 related:
@@ -19,7 +19,7 @@ labels:
 
 # [CARD-476] First Chat message with no active session fails with HTTP 422 (session auto-create lost in the CARD-397 split)
 
-> **Status**: Ready (refined 2026-09-25 ET, planning only)
+> **Status**: In Progress (build started 2026-09-25 ET on `feat/card-476-session-auto-create-restore`; Jacob accepted D1-D5 as recommended)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 reproduction on the scratch smoke server. With no active session (fresh data), pressing Enter produced `POST /api/chat/stream` **422 Unprocessable Entity**.
 > **Related**: CARD-397 (split), CARD-469, CARD-473 (phone catch-up), CARD-466 (New chat into + Options), CARD-484 (typed text lost on failed send)
