@@ -12,6 +12,7 @@ related:
   - CARD-471
   - CARD-486
   - CARD-487
+  - CARD-488
 labels:
   - type:bug
   - area:chat
@@ -219,3 +220,4 @@ Write these, run them and confirm red on qa `2cc71d1a` before any fix.
 **Notes:**
 - As before the split, a chat whose job is finished also shows its strip (DONE) and phase chips when opened.
 - Stop while a reply runs elsewhere doesn't stop it yet: CARD-486.
+- Switching chats while your own reply streams keeps showing the old chat and blocks sending (same before the split): CARD-488.
