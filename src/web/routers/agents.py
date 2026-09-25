@@ -13,7 +13,7 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from src.domain.kernel.models import AgentTone
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentTone
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
 from src.web.mcp_mount_reconcile import mcp_save_http_body, reconcile_saved_mcp_server
@@ -38,7 +38,7 @@ class AgentProfilePayload(BaseModel):
     allowed_skill: Optional[List[str]] = None
     pack_tool_names: Optional[List[str]] = None
     show_in_chat: Optional[bool] = True
-    max_turns: Optional[int] = 10
+    max_turns: Optional[int] = DEFAULT_AGENT_MAX_TURNS
     history_retention_days: Optional[int] = 30
     storage_enabled: Optional[bool] = False
     storage_type: Optional[str] = "sqlite"

@@ -39,7 +39,7 @@ Empty due ledger — **seed once, then grade** (still no curation loop):
 3. `education_mastery_upsert` once with prompt + expected_answer from that note.
 4. Prompt front-only → `education_flashcard_grade` → report honestly → **stop**.
 
-Target fixed tool count for a seeded due card: **next → grade** (2 tools). Empty-due seed path: **next → (optional one wiki_note_read) → upsert → grade** (≤4 tools). Both fit under the default budget of 10 without raising `max_turns`.
+Target fixed tool count for a seeded due card: **next → grade** (2 tools). Empty-due seed path: **next → (optional one wiki_note_read) → upsert → grade** (≤4 tools). Both stay far under the default turn budget; never raise `max_turns` to make this skill fit.
 
 ## Forbidden mid-turn (CARD-444)
 
@@ -93,4 +93,4 @@ Prefer the platform pack body under `platform-packs/tutor/skills/flashcard-turn/
 
 ## Successor
 
-- Due-review packaging / queue UX: **CARD-439** (Done tools); pack default max_turns: **CARD-445** (separate — do not raise budget as a crutch for this skill).
+- Due-review packaging / queue UX: **CARD-439** (Done tools); default turn budget for every agent: **CARD-445** (separate — do not raise budget as a crutch for this skill).

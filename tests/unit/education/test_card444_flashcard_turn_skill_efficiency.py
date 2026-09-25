@@ -15,6 +15,9 @@ from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 
 DEFAULT_MAX_TURNS = AgentProfile.model_fields["max_turns"].default
+# CARD-445 raised the agent default to 50; CARD-444 still proves the skill fits the old tight
+# budget of 10, so a bigger default can never hide a regression in flashcard-turn efficiency.
+CARD444_EFFICIENCY_CEILING = 10
 BUDGET_TERMINATOR_PREFIX = "Execution terminated: Max turn budget of"
 FLASH_SKILL = Path("platform-packs/tutor/skills/flashcard-turn/SKILL.md")
 PACK_JSON = Path("platform-packs/tutor/pack.json")
@@ -93,7 +96,7 @@ def test_seeded_due_flashcard_turn_under_default_max_turns(tmp_path: Path):
     Records tool-call names for one successful flashcard turn and asserts the
     budget terminator string is absent (tool count << default max_turns).
     """
-    assert DEFAULT_MAX_TURNS == 10
+    assert CARD444_EFFICIENCY_CEILING <= DEFAULT_MAX_TURNS
 
     repo = _repo(tmp_path)
     tools = _tools(repo)
@@ -144,7 +147,7 @@ def test_seeded_due_flashcard_turn_under_default_max_turns(tmp_path: Path):
     # REQ-444-003 / 004: tool count under default max_turns; no budget terminator
     # Each tool call consumes one ReAct turn; final assistant report is another.
     react_turns_used = len(tool_call_names) + 1  # +1 final report turn
-    assert react_turns_used < DEFAULT_MAX_TURNS
+    assert react_turns_used < CARD444_EFFICIENCY_CEILING
     assert react_turns_used <= 3  # next + grade + report
     proof_report = {
         "tool_call_names": tool_call_names,
@@ -203,7 +206,7 @@ def test_empty_due_seed_path_at_most_one_wiki_read(tmp_path: Path):
     assert tool_call_names.count("wiki_note_search") == 0
     assert tool_call_names.count("wiki_note_list") == 0
     react_turns_used = len(tool_call_names) + 1
-    assert react_turns_used < DEFAULT_MAX_TURNS
+    assert react_turns_used < CARD444_EFFICIENCY_CEILING
     assert react_turns_used <= 5
 
 

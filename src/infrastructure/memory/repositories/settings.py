@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, List, Optional
 
-from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentOrigin, AgentProfile, AgentTone
 from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
 
 
@@ -329,6 +329,32 @@ class SettingsRepositoryMixin:
                 seed_version=seed_version,
                 seed_content_hash=seed_content_hash,
             )
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def raise_agent_max_turns(self, from_value: int, to_value: int) -> List[str]:
+        """Set max_turns to ``to_value`` on every agent row stored at exactly ``from_value`` [CARD-445].
+
+        Touches only the max_turns column (never user_modified): max_turns is an operator
+        setting, not a pack lock [CARD-449]. Returns the sorted agent ids that changed.
+        """
+        conn = self._get_connection()
+        try:
+            raised = {
+                r[0]
+                for r in conn.execute("SELECT id FROM custom_agents WHERE max_turns = ?", (from_value,)).fetchall()
+            }
+            raised |= {
+                r[0]
+                for r in conn.execute(
+                    "SELECT agent_id FROM agent_overrides WHERE max_turns = ?", (from_value,)
+                ).fetchall()
+            }
+            conn.execute("UPDATE custom_agents SET max_turns = ? WHERE max_turns = ?", (to_value, from_value))
+            conn.execute("UPDATE agent_overrides SET max_turns = ? WHERE max_turns = ?", (to_value, from_value))
+            conn.commit()
+            return sorted(raised)
         finally:
             if self._mem_conn is None:
                 conn.close()
@@ -698,7 +724,7 @@ class SettingsRepositoryMixin:
                 show_in_chat=show_in_chat,
                 visibility=visibility_val,
                 fleet=fleet_val,
-                max_turns=r["max_turns"] or 10,
+                max_turns=r["max_turns"] or DEFAULT_AGENT_MAX_TURNS,
                 history_retention_days=r["history_retention_days"] if r["history_retention_days"] is not None else 30,
                 is_builtin=bool(r["is_builtin"]),
                 storage_enabled=storage_enabled,
@@ -841,7 +867,7 @@ class SettingsRepositoryMixin:
                         show_in_chat=show_in_chat,
                         visibility=visibility_val,
                         fleet=fleet_val,
-                        max_turns=r["max_turns"] or 10,
+                        max_turns=r["max_turns"] or DEFAULT_AGENT_MAX_TURNS,
                         history_retention_days=r["history_retention_days"]
                         if r["history_retention_days"] is not None
                         else 30,

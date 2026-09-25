@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.domain.kernel.models import AgentTone
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentTone
 from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
@@ -236,7 +236,7 @@ class AgentBuilderTools:
             "avatar_icon": avatar,
             "model": "default",
             "allowed_tool_names": suggested_tools,
-            "max_turns": 10,
+            "max_turns": DEFAULT_AGENT_MAX_TURNS,
         }
 
     def _draft_kwargs(self, **kwargs: Any) -> Dict[str, Any]:

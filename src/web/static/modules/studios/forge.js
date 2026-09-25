@@ -85,6 +85,9 @@ import {
 } from './forge/config.js';
 import { setupPlatformDefaults } from './forge/platform_defaults.js';
 
+/** Default turn budget for an agent with no stored value; keep equal to DEFAULT_AGENT_MAX_TURNS in src/domain/kernel/models.py [CARD-445]. */
+export const DEFAULT_AGENT_MAX_TURNS = 50;
+
 export { formatAgentSelectOption };
 
 /**
@@ -269,7 +272,7 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeDescInput) forgeDescInput.value = agent.description || '';
     if (forgeSystemPrompt) forgeSystemPrompt.value = agent.system_prompt || '';
     await loadTones(agent.tone || 'default');
-    if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || 10;
+    if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || DEFAULT_AGENT_MAX_TURNS;
     if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
     const agentProv = agent.provider || 'default';
     if (forgeProviderSelect) forgeProviderSelect.value = agentProv;
@@ -476,7 +479,7 @@ export function initAgentForge(state, callbacks = {}) {
         allowed_skill: checkedSkills,
         pack_tool_names: packTools,
         show_in_chat: forgeShowInChat ? forgeShowInChat.checked : true,
-        max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
+        max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : DEFAULT_AGENT_MAX_TURNS, 10) || DEFAULT_AGENT_MAX_TURNS,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
         storage_enabled: Boolean(forgeStorageEnabled && forgeStorageEnabled.checked),
         storage_type: forgeStorageType ? forgeStorageType.value : 'sqlite',
