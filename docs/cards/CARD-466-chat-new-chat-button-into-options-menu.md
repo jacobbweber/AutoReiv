@@ -109,3 +109,9 @@ Starting a new chat belongs in the **+** menu next to the chat box, not at the t
 - Refine: say **continue**.
 - Start implementation: say **build**.
 - After the runbook passes: say **merge to qa**.
+
+---
+
+## Note (2026-09-25 ET, CARD-476 planning)
+
+Correction to Beat 2 item 3: automatic new-session creation on an empty list is **not wired today**. The `chat.js` `loadSessions` wrapper (L601-607) does not pass `createNewSessionFn`, so `chrome.js` L143-145 never runs. CARD-476 restores it, so REQ-466-005 depends on CARD-476 landing first (or together). No code conflict with this card.
