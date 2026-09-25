@@ -13,14 +13,21 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.domain.orchestration.models import JobStatus, PhaseStatus
+from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers import chat as chat_mod
-from tests.unit.orchestration.test_card259_kill_resume import (  # noqa: F401  (fixtures)
-    _two_phase_job,
-    orch,
-    store,
-    temp_db_path,
-)
+from tests.unit.orchestration.test_card259_kill_resume import _two_phase_job
+
+
+@pytest.fixture
+def store(tmp_path):
+    return SQLiteStateStore(db_path=str(tmp_path / "card486.db"))
+
+
+@pytest.fixture
+def orch(store):
+    return JobPhaseOrchestrator(store)
 
 
 class _Tel:
