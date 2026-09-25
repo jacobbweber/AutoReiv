@@ -1,7 +1,7 @@
 ---
 id: CARD-467
 title: "Test runs must never touch live AppData (Playwright smoke server + pytest bootstrap)"
-status: In Review
+status: Done
 created: 2026-09-24
 branch: qa
 related:
@@ -19,7 +19,7 @@ labels:
 
 # [CARD-467] Test runs must never touch live AppData (Playwright smoke server + pytest bootstrap)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-24 (refined 2026-09-24 on `continue`)
 > **Observed during**: CARD-445 preflight on Jarvis - the shell running preflight had `AUTOREIV_DATA_DIR=C:\Users\jacob\AppData\Local\AutoReiv` (process scope only; not set at Windows User or Machine scope).
 > **Related**: [CARD-455](./CARD-455-isolate-card388-agents-api-test-from-appdata.md) (same leak on the pytest side - absorbed here, Decision 1), [CARD-443](./CARD-443-platform-tutor-pack-appdata-sync.md) (startup promotion writes pack files), CARD-294 (`scratch/` is the only allowed checkout write zone), CARD-459 (serve bootstraps twice)
