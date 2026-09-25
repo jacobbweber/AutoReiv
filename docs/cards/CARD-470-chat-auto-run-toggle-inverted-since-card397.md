@@ -1,7 +1,7 @@
 ---
 id: CARD-470
 title: "Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking"
-status: In Review
+status: Done
 created: 2026-09-24
 updated: 2026-09-24
 branch: feat/card-470-auto-run-toggle-fix
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-470] Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking
 
-> **Status**: In Review, round 2 (approval cards restored 2026-09-25 ~12:45 AM ET; first build 2026-09-25 ~12:10 AM ET on `feat/card-470-auto-run-toggle-fix`; Jacob said `build` 2026-09-24 11:52 PM ET, D1-D5 accepted)
+> **Status**: Done (Jacob live-tested round 2 and said `merge to qa`, 2026-09-25 12:44 AM ET)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning. `git blame` puts the broken line on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
 > **Verified live-safely (2026-09-24 ~11:45 PM ET, qa `ae9c0a18`)**: on the scratch smoke server (`scripts/smoke_server.py --port 8766`, data wiped under `scratch/smoke_data`, never live AppData), with a fake tool-calling LLM and a Playwright probe that intercepted `/api/chat/stream`. The results are in section 1, Beat 2.
@@ -280,4 +280,10 @@ Commits `2d7049b9` (red tests), `c3e27a8f` (fix) and `be79085a` (CARD-343 contra
 
 ### Live AppData
 The two pending approvals from round 1 are still `pending` in live data. They will now show in the tray when Jacob opens those sessions. He can Reject them, or Approve if he wants the notes.
+
+---
+
+## 8. Merge note (2026-09-25 ET)
+
+Jacob live-tested round 2 on Jarvis and replied `merge to qa`. `feat/card-470-auto-run-toggle-fix` was merged into qa with `--no-ff`. The full suites were rerun on qa before the push, and the only failures were the known CARD-454 and CARD-456 ones. Follow-ups CARD-476 (addendum), CARD-477 and CARD-478 are Ready.
 
