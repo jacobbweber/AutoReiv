@@ -1,7 +1,7 @@
 ---
 id: CARD-485
 title: "Picking a chat doesn't move the list highlight or restore its job strip and running-turn status (lost in the CARD-397 split)"
-status: Ready
+status: In Progress
 created: 2026-09-25
 branch: qa
 related:
@@ -21,7 +21,7 @@ labels:
 
 # [CARD-485] Picking a chat doesn't move the list highlight or restore its job strip and running-turn status (lost in the CARD-397 split)
 
-> **Status**: Ready (refined 2026-09-25 ET, planning only)
+> **Status**: In Progress (build started 2026-09-25 ET on `feat/card-485-session-select-restore`; Jacob accepted D1-D5 as recommended)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-476 build (scratch server, Playwright).
 > **Related**: CARD-397 (split), CARD-476 (session guard/restore), CARD-473 (phone catch-up), CARD-466 (New chat into + Options), CARD-471 (Options drawer wiring), CARD-486 (Stop doesn't stop the server), CARD-487 (watch a running reply live)
