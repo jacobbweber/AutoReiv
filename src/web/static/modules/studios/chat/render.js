@@ -237,7 +237,6 @@ export function renderSkillProposalCard(proposal, {
   sessionId = null,
   showToastFn = null,
   onAdoptSuccess = null,
-  onEscalate = null,
 } = {}) {
   const targetContainer = container || $('messagesContainer');
   if (!targetContainer || !proposal) return null;
@@ -373,13 +372,7 @@ export function renderSkillProposalCard(proposal, {
       });
     }
 
-    const escalateBtn = cardEl.querySelector('.btn-escalate-factory');
-    if (escalateBtn && typeof onEscalate === 'function') {
-      escalateBtn.addEventListener('click', () => {
-        onEscalate(proposal.factory_escalation || {});
-      });
-    }
-
+    // .btn-escalate-factory is handled by the delegated listener in chat/teach_modal.js [CARD-472]
     const dismissBtn = cardEl.querySelector('.btn-dismiss-proposal');
     if (dismissBtn) {
       dismissBtn.addEventListener('click', () => {
