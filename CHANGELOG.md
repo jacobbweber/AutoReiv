@@ -21,6 +21,20 @@
 ### Security
 
 - **CARD-470 Chat Auto-run toggle no longer inverted**: Since the CARD-397 split (2026-09-20), `chat.js` sent `!approvalToggle.checked`, so with Auto-run **unchecked** (the default) every chat turn went out as `approval_mode: "run"`. That let tools that need approval (`cli_exec`, `execute_code`, wiki note writes, card/spec/project writes, `git_commit`, repo file writes, risky MCP tools, skill proposals) run without asking, and the mode carried into jobs and handoff child agents. Blocked tools stayed blocked. Unchecked now sends `"ask"` and checked sends `"run"`. New `chat/runtime_toggles.js` `setupRuntimeModeToggles()` restores the remembered choice (`autoreiv_approval_autorun`, default off/ask on a fresh install), saves changes, keeps `state.approvalAutoRun` / `state.verifyEnabled` in sync (Education follows the same choice), and shows the Self-Verify and Auto-run chips again. A saved `run` from before the fix is reset to `ask` once (marker `autoreiv_approval_autorun_reset_470`), because the UI had hidden that value. Tooltip now reads "Off: AutoReiv asks before write, shell and code tools. On: they run without asking. Blocked tools stay blocked." and the chip reads **Auto-run ON** in amber. No data fix for sessions run since 2026-09-20. Backend unchanged. Contracts: `tests/unit/frontend/chat_runtime_toggles_470.test.js`, smoke TC-14..TC-17 ([CARD-470]).
+- **CARD-470 Approve/Reject cards restored**: Jacob's live test found that parked tools never showed an approval card, so a parked turn looked like "no reply, nothing saved". The backend had parked correctly. The CARD-397 split had broken both approval surfaces:
+  - `setupPendingHitl` called `pendingApprovalsUrl(sessionId)` with shifted arguments, so it asked for `?agent_id=<session id>`.
+  - It read `data.pending` from an API that returns a bare array.
+  - It looked for `.hitl-approve-btn` buttons the card never renders, and rendered into the message list, which is wiped on the finalize reload, instead of the pinned `#pendingHitlHost` tray.
+  - The inline card in the reply bubble had no button listeners and showed `tool` with no arguments.
+
+  The fix restores the pre-split behaviour in `chat/hitl.js`:
+  - `setupPendingHitl` queries by the open session, renders into `#pendingHitlHost`, dedupes by approval id and drops resolved rows.
+  - New `wireHitlCardButtons()` posts the decision and resumes the turn when the backend did not.
+  - New `renderInlineHitlCard()` builds the inline card and leaves `goal_plan_review` to the plan card.
+  - `chat.js` refreshes the tray on park SSE events.
+  - `setupComposerSizing` gained `pressRegions`, and chat passes `#pendingHitlHost`, so the first tap on Approve/Reject after typing is no longer lost when the composer shrinks on blur.
+
+  `chat.js` is now 1,032 lines. Contracts: `tests/unit/frontend/chat_hitl_approval_card_470.test.js`, the new press-region case in `chat_composer_grow_465.test.js`, smoke TC-18 ([CARD-470]).
 
 ### Added
 

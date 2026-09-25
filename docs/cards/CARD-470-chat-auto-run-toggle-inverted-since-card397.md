@@ -20,7 +20,7 @@ labels:
 
 # [CARD-470] Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking
 
-> **Status**: In Review (built 2026-09-25 ~12:10 AM ET on `feat/card-470-auto-run-toggle-fix`; Jacob said `build` 2026-09-24 11:52 PM ET, D1-D5 accepted)
+> **Status**: In Review, round 2 (approval cards restored 2026-09-25 ~12:45 AM ET; first build 2026-09-25 ~12:10 AM ET on `feat/card-470-auto-run-toggle-fix`; Jacob said `build` 2026-09-24 11:52 PM ET, D1-D5 accepted)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning. `git blame` puts the broken line on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
 > **Verified live-safely (2026-09-24 ~11:45 PM ET, qa `ae9c0a18`)**: on the scratch smoke server (`scripts/smoke_server.py --port 8766`, data wiped under `scratch/smoke_data`, never live AppData), with a fake tool-calling LLM and a Playwright probe that intercepted `/api/chat/stream`. The results are in section 1, Beat 2.
@@ -223,4 +223,61 @@ Tests ran only against scratch data. Live AppData was not touched.
 - The Auto-run ON chip and the multi-phase `#goalBadge` are both amber. They are told apart by their text.
 
 **Runbook on Jarvis**: section 3.
+
+---
+
+## 7. Live test round 1 failed, then fixed (2026-09-25 ET)
+
+### What Jacob saw (~12:09 and ~12:10 AM ET, from his phone)
+He hard-refreshed, left Auto-run unchecked and asked for a wiki note. He got no approval card, no reply, and no note.
+
+### Diagnosis
+Sources: the serve log, a read-only look at the live DB, and a repro on the scratch server with a fake tool-calling model.
+
+The backend did the right thing:
+- The phone created fresh sessions `ffcb7e81…` ("Create a note test470") and `18ef9a3f…` ("Create me a test note"), agent `autoreiv`.
+- It sent `approval_mode: "ask"`.
+- The model called `wiki_note_create`.
+- The gate parked it: `pending_approvals` rows `appr_36d481b04e49` and `appr_7512d98f94b6` are still `pending`, and each tool message reads `Tool Error: approval_required:<id>`.
+- No stream error was logged, so the CARD-469 "Reply failed" notice correctly did not show.
+- Neither CARD-475 (screenshot poisoning) nor CARD-476 (no session) was involved.
+
+The approval UI was lost in the CARD-397 split:
+1. The tray poll asked for `?agent_id=<session id>` (log: `GET /api/approvals/pending?agent_id=18ef9a3f…`), so it matched nothing.
+2. It read `data.pending`, but the API returns a bare array.
+3. Its buttons (`.hitl-approve-btn`) never exist, and it rendered into the message list, which the finalize reload wipes.
+4. The inline card had no listeners, and the finalize reload wiped it too.
+5. Found while fixing: a first tap on the tray right after typing was swallowed, because the composer shrinks on blur (CARD-465) and moves the card before `pointerup`.
+
+Pre-split `7b563003^` `chat.js` L1285-1370 and L3311-3360 had working versions of all of this.
+
+### Fix
+Commits `2d7049b9` (red tests), `c3e27a8f` (fix) and `be79085a` (CARD-343 contract moved). See the CHANGELOG. Scratch repro after the fix, with the fake model:
+- The tray card appears with the tool name and arguments.
+- Approve writes `scratch/smoke_data/wiki/00_Inbox/card_470_probe.md`.
+- The turn resumes with `resume: true, approval_mode: "ask"`, the model replies "done", and the tray clears.
+
+### Added requirements
+- **[REQ-470-010]** WHEN a tool is parked for approval in the open session, THE SYSTEM SHALL show an Approve/Reject card in `#pendingHitlHost` that survives the finalize reload.
+- **[REQ-470-011]** WHEN Approve or Reject is pressed, THE SYSTEM SHALL post the decision and, if the backend did not resume, resume the chat turn.
+- **[REQ-470-012]** WHEN `approval_required` arrives live, THE SYSTEM SHALL render a working inline card, except for `goal_plan_review`.
+- **[REQ-470-013]** A tap on an approval card SHALL NOT be lost to the composer's blur shrink.
+
+### Proof (round 2)
+| Suite | Result |
+|---|---|
+| Vitest | 839 passed, 5 failed (known CARD-456) |
+| Smoke | 18/18 |
+| Gate and HITL API tests, unchanged | 29/29 |
+| Broad `tests/unit` | 2015 passed, 11 skipped, 1 failed (known CARD-454) |
+| Honesty gate | green |
+| ESLint | baseline unchanged |
+
+### Follow-ups
+- CARD-477: parked or failed tool rows say "✓ Complete". This predates the split.
+- CARD-478: the Auto-run ON chip is the same colour as the goal chip.
+- CARD-476 addendum: a stored active session is not restored.
+
+### Live AppData
+The two pending approvals from round 1 are still `pending` in live data. They will now show in the tray when Jacob opens those sessions. He can Reject them, or Approve if he wants the notes.
 
