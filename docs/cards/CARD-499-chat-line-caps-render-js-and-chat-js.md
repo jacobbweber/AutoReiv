@@ -40,7 +40,7 @@ labels:
 
 **Beat 1: What Jacob means.** The chat code stays in the small files CARD-397 promised, and the size test passes again.
 
-**Beat 2: What AutoReiv does now.** `tests/unit/frontend/chat_monolith_decomposition_397.test.js` asserts `chat.js` < 1,000 lines and every `chat/*.js` < 800. On qa `6bedb5b0`, `chat.js` is 1,012 and `chat/render.js` is 836. Both tests fail and are carried as known failures under CARD-456.
+**Beat 2: What AutoReiv does now.** `tests/unit/frontend/chat_monolith_decomposition_397.test.js` asserts `chat.js` < 1,000 lines and every `chat/*.js` < 800. On qa `6bedb5b0`, `chat.js` is 1,012 and `chat/render.js` is 836. Both tests fail and are carried as known failures under CARD-456. After CARD-472 (branch `feat/card-472-workbench-artifact-teach-wiring`): `chat.js` 1,004, `render.js` 829; still red.
 
 **Beat 3: What will change.**
 - `render.js`: move `openArtifactModal` (L102-233; after CARD-472 no chat path calls it, so delete it if CARD-496 confirms nothing else does) and `renderSkillProposalCard` (L234-395) into `chat/skill_proposal.js`. CARD-496 also removes L760-850.

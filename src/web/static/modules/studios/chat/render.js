@@ -237,7 +237,6 @@ export function renderSkillProposalCard(proposal, {
   sessionId = null,
   showToastFn = null,
   onAdoptSuccess = null,
-  onEscalate = null,
 } = {}) {
   const targetContainer = container || $('messagesContainer');
   if (!targetContainer || !proposal) return null;
@@ -303,9 +302,9 @@ export function renderSkillProposalCard(proposal, {
             </button>
             ${needsTool
               ? `
-              <button type="button" class="btn-escalate-factory px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook requires missing tools — generate tool & agent pack in Factory Studio">
+              <button type="button" class="btn-escalate-factory px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook needs a tool the agent doesn't have — ask the Developer to build it">
                 <span>🚀</span>
-                <span>Send to Factory Studio</span>
+                <span>Ask Developer to build this tool</span>
               </button>
               `
               : ''}
@@ -373,13 +372,7 @@ export function renderSkillProposalCard(proposal, {
       });
     }
 
-    const escalateBtn = cardEl.querySelector('.btn-escalate-factory');
-    if (escalateBtn && typeof onEscalate === 'function') {
-      escalateBtn.addEventListener('click', () => {
-        onEscalate(proposal.factory_escalation || {});
-      });
-    }
-
+    // .btn-escalate-factory is handled by the delegated listener in chat/teach_modal.js [CARD-472]
     const dismissBtn = cardEl.querySelector('.btn-dismiss-proposal');
     if (dismissBtn) {
       dismissBtn.addEventListener('click', () => {

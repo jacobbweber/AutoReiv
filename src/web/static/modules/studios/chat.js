@@ -22,6 +22,7 @@ export * from './chat/composer.js';
 export * from './chat/chrome.js';
 export * from './chat/workbench.js';
 export * from './chat/train_modal.js';
+export * from './chat/teach_modal.js'; // CARD-472
 export * from './chat/session_select.js'; // CARD-485 (hydrateJobPhaseStateFromJourney moved here)
 
 import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD-470
@@ -74,15 +75,9 @@ import {
   bindChatJobViewShortcut,
 } from './chat/chrome.js';
 
-import {
-  initWorkbench,
-  refreshWorkbenchArtifactCount as refreshWorkbenchArtifactCountDirect,
-} from './chat/workbench.js';
-
-import {
-  setupTrainModal,
-  setupTeachAgentModal,
-} from './chat/train_modal.js';
+import { initWorkbench, collectWorkbenchElements } from './chat/workbench.js';
+import { setupTrainModal } from './chat/train_modal.js';
+import { setupTeachAgentModal } from './chat/teach_modal.js'; // CARD-472
 
 // Verification tokens for REQ-VERIFY-EXT-004: 'verified', 'skipped_no_checker', 'failed'
 export const VERIFY_STATUS_SKIPPED = 'skipped_no_checker';
@@ -579,6 +574,17 @@ export function initChatStudio(state, callbacks = {}) {
     }));
   }
 
+  // Dual-Pane Workbench Canvas [CARD-138, CARD-306, CARD-472] /api/sessions/ /api/artifacts/
+  const workbench = initWorkbench(collectWorkbenchElements(), { renderMarkdownFn: renderChatMarkdown, copyToClipboardFn: copyToClipboard,
+    showToastFn: showToast, exportMessageToWikiFn: callbacks.exportMessageToWiki || null, getActiveSessionId: () => state.activeSessionId });
+  function openWorkbench(artifact = {}) { return workbench.openWorkbench(artifact); }
+  function closeWorkbench() { return workbench.closeWorkbench(); }
+  function openArtifactById(id) { return workbench.openArtifactById(id); }
+  function refreshWorkbenchArtifactCount() { return workbench.refreshWorkbenchArtifactCount(); }
+  function renderChatMarkdown(el, md, opts = {}) { // every chat render opens artifacts the same way
+    return renderMarkdown(el, md, { onOpenArtifact: openArtifactById, onRefreshWorkbench: refreshWorkbenchArtifactCount, ...opts });
+  }
+
   const ensureSession = () => ensureActiveSession(state, { createNewSession, showToastFn: showToast });
   const sessionSelect = createSessionSelect(state, { // CARD-485: list, drawer, journey strip, running status
     sessionList, onSelectSession: selectSession, chatSessionsDrawer, viewChat, sendBtn, stopBtn,
@@ -623,7 +629,7 @@ export function initChatStudio(state, callbacks = {}) {
         messages: state.messages,
         isStreaming: state.isStreaming,
         activeAgentTitle,
-        renderMarkdownFn: renderMarkdown,
+        renderMarkdownFn: renderChatMarkdown,
         openWorkbenchFn: openWorkbench,
         onRefreshWorkbench: refreshWorkbenchArtifactCount,
         onTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
@@ -636,25 +642,13 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
-  // Dual-Pane Workbench Canvas [CARD-138, CARD-306] /api/sessions/ /api/artifacts/
-  const workbench = initWorkbench(state, { showToastFn: showToast });
-  function openWorkbench(artifact = {}) {
-    return workbench.openWorkbench(artifact);
-  }
-  function closeWorkbench() {
-    return workbench.closeWorkbench();
-  }
-  function refreshWorkbenchArtifactCount() {
-    return refreshWorkbenchArtifactCountDirect(state.activeSessionId);
-  }
-
   // Composer sizing: grows on focus up to min(8 lines, 40% of visible column) [CARD-465]
   setupComposerSizing({
     promptInput,
     columnEl: $('chatMessagesViewport')?.parentElement || null,
     messagesContainer,
     composerRegion: $('chatInputWrapper'),
-    pressRegions: [$('pendingHitlHost')], // CARD-470
+    pressRegions: [$('pendingHitlHost'), messagesContainer], // CARD-470; CARD-472: View Full Report / Workbench clicks
     isStickToBottom,
   });
 
@@ -674,6 +668,7 @@ export function initChatStudio(state, callbacks = {}) {
     showToastFn: showToast,
     callbacks,
     messagesContainer,
+    openDeveloperSessionFn: openDeveloperSession, // CARD-472: needs-tool proposals open a Developer chat
   });
 
   // Chat Chrome, Options Drawer, Diagnostics & Quick Prompts [CARD-135, CARD-136, CARD-152, CARD-161]
@@ -872,10 +867,7 @@ export function initChatStudio(state, callbacks = {}) {
       if (state.activeSessionId) {
         await loadMessages(state.activeSessionId);
       } else if (streamContentEl && accumulatedContent) {
-        await renderMarkdown(streamContentEl, accumulatedContent, {
-          onOpenArtifact: openWorkbench,
-          onRefreshWorkbench: refreshWorkbenchArtifactCount,
-        });
+        await renderChatMarkdown(streamContentEl, accumulatedContent);
         // Promote ephemeral stream bubble → durable assistant bubble with action row
         streamBubble.remove();
         appendMessageBubbleDirect('assistant', accumulatedContent, {
@@ -884,7 +876,7 @@ export function initChatStudio(state, callbacks = {}) {
         }, {
           messagesContainer,
           activeAgentTitle,
-          renderMarkdownFn: renderMarkdown,
+          renderMarkdownFn: renderChatMarkdown,
           openWorkbenchFn: openWorkbench,
           onTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
           exportMessageToWikiFn: callbacks.exportMessageToWiki || null,

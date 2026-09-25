@@ -1026,4 +1026,99 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(t.aborts).toEqual([]);
     });
   }
+  // CARD-472: Workbench, one artifact opener, badge, Teach X, and the needs-tool Developer handoff.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    async function setup472(page, request) {
+      const tag = `${vp.name}-${Date.now()}`;
+      const S = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `W 472 ${tag}` } })).json();
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'developer', title: `D 472 ${tag}` } })).json();
+      const t = { S, DEV, artifactGets: [], talks: [], distills: 0, devPrompt: '' };
+      const proposal = {
+        status: 'ok', needs_tool: true, target_agent_id: 'autoreiv',
+        factory_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC34 things', suggested_tool_name: 'get_tc34_tool', starter_objectives: ['Return TC34 data'] },
+      };
+      await page.route('**/api/sessions/*/messages', (route) => {
+        const url = route.request().url();
+        if (url.includes(S.id)) {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+            { role: 'user', content: 'make the tc33 report' },
+            { id: 'm472', role: 'assistant', content: 'Report ready. See [TC33 report](artifact://art_tc33) and [Old report](artifact://art_tc33_missing).' },
+            { id: 'p472', role: 'skill_proposal', content: JSON.stringify(proposal) },
+          ]) });
+        }
+        if (url.includes(DEV.id)) {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ role: 'user', content: t.devPrompt }]) });
+        }
+        return route.continue();
+      });
+      await page.route('**/api/artifacts/art_tc33*', (route) => {
+        const url = route.request().url();
+        t.artifactGets.push(url.includes('missing') ? 'missing' : 'tc33');
+        if (url.includes('missing')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: false }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, artifact: { id: 'art_tc33', session_id: S.id, title: 'TC33 Fixture Report', content: 'TC33 fixture body', summary: 's', item_count: 1 } }) });
+      });
+      await page.route('**/api/tools_studio/authoring/talk', (route) => {
+        const body = route.request().postDataJSON();
+        t.talks.push(body);
+        t.devPrompt = `Create tool ${body.draft.tool_name}: ${body.draft.behavior}`;
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'developer', prompt: t.devPrompt, opened_chat: true, opened_job: false, job_id: null }) });
+      });
+      page.on('request', (r) => { if (r.url().includes('/api/skills/distill')) t.distills += 1; });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      await page.locator('#toggleSidebarBtn').click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+      await page.locator('#sessionList > div', { hasText: S.title }).click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeHidden();
+      await expect(page.locator('#messagesContainer')).toContainText('Report ready');
+      return t;
+    }
+
+    const closeWorkbench = async (page) => {
+      if (vp.name === 'phone') await page.locator('#workbenchMobileBackBtn').click();
+      else await page.locator('#workbenchCloseBtn').click();
+      await expect(page.locator('#chatWorkbenchPane')).toBeHidden();
+    };
+
+    test(`TC-33 (${vp.name}): Workbench opens from the header, a reply and View Full Report; badge counts; missing report toasts [CARD-472]`, async ({ page, request }) => {
+      const t = await setup472(page, request);
+      await expect(page.locator('#workbenchArtifactBadge')).toHaveText('2');
+      await page.locator('#workbenchToggleBtn').click();
+      await expect(page.locator('#chatWorkbenchPane')).toBeVisible();
+      await closeWorkbench(page);
+      await page.locator('.workbench-msg-btn').first().click();
+      await expect(page.locator('#chatWorkbenchPane')).toBeVisible();
+      await expect(page.locator('#workbenchContentPreview')).toContainText('Report ready');
+      await closeWorkbench(page);
+      await page.locator('#messagesContainer .open-artifact-btn[data-artifact-id="art_tc33"]').click();
+      await expect(page.locator('#chatWorkbenchPane')).toBeVisible();
+      await expect(page.locator('#workbenchArtifactTitle')).toHaveText('TC33 Fixture Report');
+      await expect(page.locator('#artifactModal')).toBeHidden();
+      await closeWorkbench(page);
+      await page.locator('#messagesContainer .open-artifact-btn[data-artifact-id="art_tc33_missing"]').click();
+      await expect(page.locator('#toastContainer')).toContainText('Artifact not found');
+      await expect(page.locator('#chatWorkbenchPane')).toBeHidden();
+      expect(t.artifactGets).toEqual(['tc33', 'missing']);
+    });
+
+    test(`TC-34 (${vp.name}): Teach X closes without distilling; needs-tool proposal opens a Developer chat [CARD-472]`, async ({ page, request }) => {
+      const t = await setup472(page, request);
+      await page.locator('.msg-teach-agent-btn').first().click();
+      await expect(page.locator('#teachAgentModal')).toBeVisible();
+      await page.locator('#closeTeachAgentModalBtn').click();
+      await expect(page.locator('#teachAgentModal')).toBeHidden();
+      expect(t.distills).toBe(0);
+      const ask = page.locator('.skill-proposal-card .btn-escalate-factory');
+      await expect(ask).toContainText('Ask Developer to build this tool');
+      await ask.click();
+      await expect.poll(() => t.talks.length).toBe(1);
+      expect(t.talks[0].intent).toBe('create');
+      expect(t.talks[0].draft.tool_name).toBe('get_tc34_tool');
+      expect(t.talks[0].draft.behavior).toContain('Look up TC34 things');
+      await expect(page.locator('#messagesContainer')).toContainText('get_tc34_tool');
+    });
+  }
+
 });

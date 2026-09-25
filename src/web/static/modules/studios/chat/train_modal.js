@@ -6,7 +6,6 @@
 import { $, $query, safeCreateIcons } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
 import { buildTrainAgentPayload, submitTrainAgentJob } from './training.js';
-import { renderSkillProposalCard } from './render.js';
 
 export function closeTrainModal({
   trainAgentHandshakeModal,
@@ -228,94 +227,5 @@ export function setupTrainModal(elements, {
 
   return {
     closeTrainModal: closeFn,
-  };
-}
-
-export function setupTeachAgentModal(state, elements = {}, { showToastFn, callbacks, messagesContainer } = {}) {
-  const getEl = (key) => elements[key] || $(key);
-  const teachAgentModal = getEl('teachAgentModal');
-  const teachAgentTargetAgentBadge = getEl('teachAgentTargetAgentBadge');
-  const teachAgentGuidanceInput = getEl('teachAgentGuidanceInput');
-  const submitTeachAgentBtn = getEl('submitTeachAgentBtn');
-  const cancelTeachAgentBtn = getEl('cancelTeachAgentBtn');
-
-  const showToast = showToastFn || (() => {});
-  let activeTeachMessageId = null;
-  let activeTeachTargetAgentId = null;
-
-  function openTeachAgentModal(opts = {}) {
-    activeTeachMessageId = opts.messageId || null;
-    activeTeachTargetAgentId = opts.targetAgentId || state.selectedAgentId || 'autoreiv';
-    if (teachAgentTargetAgentBadge) {
-      teachAgentTargetAgentBadge.textContent = activeTeachTargetAgentId;
-    }
-    if (teachAgentGuidanceInput) {
-      teachAgentGuidanceInput.value = opts.guidance || '';
-    }
-    if (teachAgentModal) {
-      teachAgentModal.classList.remove('hidden');
-      teachAgentModal.classList.add('flex');
-    }
-    safeCreateIcons();
-  }
-
-  function closeTeachAgentModal() {
-    activeTeachMessageId = null;
-    activeTeachTargetAgentId = null;
-    if (teachAgentGuidanceInput) teachAgentGuidanceInput.value = '';
-    if (teachAgentModal) {
-      teachAgentModal.classList.add('hidden');
-      teachAgentModal.classList.remove('flex');
-    }
-  }
-
-  if (cancelTeachAgentBtn) {
-    cancelTeachAgentBtn.addEventListener('click', closeTeachAgentModal);
-  }
-
-  if (submitTeachAgentBtn) {
-    submitTeachAgentBtn.addEventListener('click', async () => {
-      const targetAgent = activeTeachTargetAgentId || state.selectedAgentId || 'autoreiv';
-      const guidance = teachAgentGuidanceInput ? teachAgentGuidanceInput.value.trim() : '';
-      const messageId = activeTeachMessageId;
-      submitTeachAgentBtn.disabled = true;
-      submitTeachAgentBtn.textContent = 'Distilling...';
-
-      try {
-        const res = await fetch('/api/skills/distill', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: state.activeSessionId,
-            message_id: messageId,
-            target_agent_id: targetAgent,
-            operator_guidance: guidance,
-          }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
-        }
-        const proposal = await res.json();
-        closeTeachAgentModal();
-        renderSkillProposalCard(proposal, {
-          container: messagesContainer,
-          activeAgentId: targetAgent,
-          sessionId: state.activeSessionId,
-          showToastFn: showToast,
-          callbacks,
-        });
-      } catch (err) {
-        showToast(`Distillation failed: ${err.message}`, 'error');
-      } finally {
-        submitTeachAgentBtn.disabled = false;
-        submitTeachAgentBtn.textContent = 'Distill Skill Runbook';
-      }
-    });
-  }
-
-  return {
-    openTeachAgentModal,
-    closeTeachAgentModal,
   };
 }

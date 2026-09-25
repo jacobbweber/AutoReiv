@@ -204,7 +204,7 @@ describe('CARD-470 chat.js wiring contracts', () => {
     expect(src).not.toMatch(/data\.pending \|\|/);
   });
   it('a tap on the approval tray is not lost to the composer shrink (pressRegions)', () => {
-    expect(chatSrc).toMatch(/pressRegions: \[\$\('pendingHitlHost'\)\]/);
+    expect(chatSrc).toMatch(/pressRegions: \[[^\]]*\$\('pendingHitlHost'\)/); // CARD-472 adds messagesContainer
   });
   it('chat.js stays within its cap', () => {
     expect(chatSrc.split('\n').length).toBeLessThanOrEqual(1045);

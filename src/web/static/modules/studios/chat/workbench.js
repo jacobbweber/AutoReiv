@@ -3,7 +3,7 @@
  * Manages side-by-side artifact inspection, preview/raw tabs, badge counts, and export.
  */
 
-import { safeCreateIcons } from '../../dom.js';
+import { $, safeCreateIcons } from '../../dom.js';
 
 export function countDomSessionArtifacts(messagesContainer) {
   if (!messagesContainer) return 0;
@@ -62,12 +62,24 @@ export async function refreshWorkbenchArtifactCount({
   return count;
 }
 
+const WORKBENCH_ELEMENT_IDS = [
+  'chatWorkbenchPane', 'workbenchArtifactTitle', 'workbenchArtifactMeta', 'workbenchContentPreview',
+  'workbenchContentRaw', 'workbenchTabPreview', 'workbenchTabRaw', 'workbenchToggleBtn', 'workbenchCloseBtn',
+  'workbenchMobileBackBtn', 'workbenchCopyBtn', 'workbenchSaveWikiBtn', 'workbenchArtifactBadge', 'messagesContainer',
+];
+
+/** The real template elements initWorkbench needs [CARD-472]. */
+export function collectWorkbenchElements() {
+  return Object.fromEntries(WORKBENCH_ELEMENT_IDS.map((id) => [id, $(id)]));
+}
+
 export function initWorkbench(elements, {
   renderMarkdownFn = null,
   copyToClipboardFn = null,
   showToastFn = null,
   exportMessageToWikiFn = null,
   getActiveSessionId = () => null,
+  fetchFn = null,
 } = {}) {
   const {
     chatWorkbenchPane,
@@ -157,6 +169,25 @@ export function initWorkbench(elements, {
     }
   }
 
+  // One opener for every "View Full Report" card: fetch, then open [CARD-472]
+  async function openArtifactById(artifactId) {
+    const id = String(artifactId || '').trim();
+    const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
+    let art = null;
+    try {
+      const res = id && fn ? await fn(`/api/artifacts/${encodeURIComponent(id)}`) : null;
+      if (res && res.ok) art = ((await res.json()) || {}).artifact || null;
+    } catch {
+      art = null;
+    }
+    if (!art) {
+      if (typeof showToastFn === 'function') showToastFn('Artifact not found', 'error');
+      return false;
+    }
+    openWorkbench({ title: art.title || 'Session Artifact', meta: `Session artifact · ${art.id || id}`, content: art.content || art.summary || '' });
+    return true;
+  }
+
   // Setup DOM event listeners
   if (workbenchToggleBtn) {
     workbenchToggleBtn.addEventListener('click', () => {
@@ -180,7 +211,7 @@ export function initWorkbench(elements, {
         copyToClipboardFn(text);
       }
       if (typeof showToastFn === 'function') {
-        showToastFn('success', 'Artifact copied to clipboard');
+        showToastFn('Artifact copied to clipboard', 'success');
       }
     });
   }
@@ -191,7 +222,7 @@ export function initWorkbench(elements, {
       if (typeof exportMessageToWikiFn === 'function') {
         exportMessageToWikiFn(content);
       } else if (typeof showToastFn === 'function') {
-        showToastFn('info', 'Saving artifact to Wiki...');
+        showToastFn('Saving artifact to Wiki...', 'info');
       }
     });
   }
@@ -203,12 +234,14 @@ export function initWorkbench(elements, {
   return {
     openWorkbench,
     closeWorkbench,
+    openArtifactById,
     setWorkbenchTab,
     refreshWorkbenchArtifactCount: () => refreshWorkbenchArtifactCount({
       activeSessionId: getActiveSessionId(),
       messagesContainer,
       workbenchArtifactBadge,
       workbenchToggleBtn,
+      fetchFn,
     }),
     getActiveArtifact: () => activeWorkbenchArtifact,
     getActiveTab: () => activeWorkbenchTab,
