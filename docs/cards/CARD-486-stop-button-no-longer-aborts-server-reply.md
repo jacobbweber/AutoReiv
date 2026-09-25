@@ -1,7 +1,7 @@
 ---
 id: CARD-486
 title: "Stop no longer tells the server to stop: the abort call was lost in the CARD-397 split"
-status: In Review
+status: Done
 created: 2026-09-25
 branch: qa
 related:
@@ -24,7 +24,7 @@ labels:
 
 # [CARD-486] Stop no longer tells the server to stop: the abort call was lost in the CARD-397 split
 
-> **Status**: In Review (build 2026-09-25 ET on `feat/card-486-stop-aborts-server`; D1-D7 accepted as recommended)
+> **Status**: Done (merged to qa 2026-09-25 ET; build 2026-09-25 ET on `feat/card-486-stop-aborts-server`; D1-D7 accepted as recommended)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-485 planning (scratch server, Playwright `scratch/c485_stop.cjs`)
 > **Related**: CARD-397 (split), CARD-259 (kill/resume mid-LLM), CARD-154 (work survives disconnect), CARD-485 (busy state), CARD-488, follow-ups CARD-489 / CARD-490 / CARD-491
@@ -251,3 +251,7 @@ CARD-485 added a busy state for a reply running elsewhere (`state.sessionBusy`, 
   - server abort: cut after chunk 5, next message **0.06 s**.
 
 **Follow-ups:** CARD-492 (the device that started a reply isn't told it was stopped). Note added to CARD-488 (Stop after switching chats targets the open chat).
+
+## Merge note (2026-09-25 ET)
+
+Jacob said **merge to qa**. Merged `feat/card-486-stop-aborts-server` into qa with `--no-ff`; post-merge focused CARD-486/485 tests, unit/integration and smoke re-run on qa before push. Follow-ups: CARD-489, CARD-490, CARD-491, CARD-492; CARD-488 note (Stop target after switching chats).
