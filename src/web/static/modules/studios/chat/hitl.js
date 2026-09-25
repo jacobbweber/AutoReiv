@@ -399,91 +399,108 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || '') === 'goal_plan_review';
 }
 
-export function setupPendingHitl(state, messagesContainer, { onResumeTurn, showToastFn } = {}) {
-  const showToast = showToastFn || (() => {});
+/**
+ * Wire [data-hitl-decision] buttons on an approval card: post the decision, resume the chat turn
+ * when the backend did not already resume it, then run onDone (tray refresh) [CARD-470].
+ */
+export function wireHitlCardButtons(cardEl, { approvalId, approvalSessionId, state, onResumeTurn, onDone } = {}) {
+  if (!cardEl || typeof cardEl.querySelectorAll !== 'function') return;
+  cardEl.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const openSid = (state && state.activeSessionId) || '';
+      const result = await submitHitlDecision(approvalId, btn.getAttribute('data-hitl-decision'), cardEl, openSid);
+      if (result.ok && onResumeTurn && shouldResumeChatAfterHitl({
+        approvalSessionId: approvalSessionId || openSid,
+        openSessionId: openSid,
+        backendResumed: Boolean(result.body && result.body.resumed),
+        nestedStatus: result.body && result.body.nested ? result.body.nested.status : null,
+      })) {
+        await onResumeTurn('', { isResume: true });
+      }
+      if (onDone) await onDone();
+    });
+  });
+}
+
+/** Inline Approve/Reject card in the live reply bubble for an `approval_required` SSE event [CARD-470]. */
+export function renderInlineHitlCard(cardEl, ev, { state, onResumeTurn, onDone } = {}) {
+  const id = ev && ev.approval_id;
+  const toolName = (ev && ev.tool_name) || 'tool';
+  if (!cardEl || !id || isGoalPlanReviewTool(toolName)) return false;
+  cardEl.classList.remove('hidden');
+  cardEl.setAttribute('data-approval-id', id);
+  cardEl.innerHTML = buildHitlCardInnerHtml({
+    title: 'Approval required',
+    toolName,
+    message: ev.message || 'Waiting for operator approval',
+    argsText: formatHitlArgs(ev.arguments),
+  });
+  wireHitlCardButtons(cardEl, { approvalId: id, approvalSessionId: ev.session_id, state, onResumeTurn, onDone });
+  if (typeof cardEl.scrollIntoView === 'function') cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  return true;
+}
+
+/**
+ * Pinned approval tray (#pendingHitlHost) [CARD-295, CARD-343]. Restored to the pre-CARD-397
+ * behaviour in CARD-470: query by open session, bare-array response, dedupe by approval id.
+ */
+export function setupPendingHitl(state, messagesContainer, { pendingHitlHost, onResumeTurn, doc } = {}) {
+  const host = pendingHitlHost || null;
+  const makeEl = (tag) => (doc || document).createElement(tag);
 
   async function refreshPendingHitl() {
+    if (!host) return;
     try {
-      const res = await fetch(pendingApprovalsUrl(state.activeSessionId));
+      const res = await fetch(pendingApprovalsUrl(state.selectedAgentId, state.activeSessionId));
       if (!res.ok) return;
-      const data = await res.json();
-      renderPendingHitlCards(data.pending || []);
-    } catch (e) {
-      console.warn('Failed to fetch pending approvals:', e);
+      const pending = await res.json();
+      renderPendingHitlCards(Array.isArray(pending) ? pending : []);
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load pending approvals:', err);
     }
   }
 
   function renderPendingHitlCards(pending) {
-    if (!messagesContainer) return;
-    messagesContainer.querySelectorAll('.hitl-pending-card').forEach((el) => el.remove());
-    if (!pending || pending.length === 0) return;
-
-    pending.forEach((req) => {
-      if (shouldSkipPendingHitlCard(req, state.activeSessionId)) return;
-      const el = document.createElement('div');
-      el.className = 'hitl-pending-card my-3 p-4 rounded-xl border border-amber-500/50 bg-amber-950/20 text-slate-200 text-xs shadow-md animate-fade-in';
-      el.setAttribute('data-request-id', req.id);
-      el.innerHTML = buildHitlCardInnerHtml(req, { pendingHitlLabel, formatHitlArgs });
-      messagesContainer.appendChild(el);
-
-      const approveBtn = el.querySelector('.hitl-approve-btn');
-      const rejectBtn = el.querySelector('.hitl-reject-btn');
-
-      if (approveBtn) {
-        approveBtn.addEventListener('click', async () => {
-          approveBtn.disabled = true;
-          if (rejectBtn) rejectBtn.disabled = true;
-          approveBtn.textContent = 'Approving...';
-          const success = await submitHitlDecision(req.id, true);
-          if (success) {
-            approveBtn.textContent = 'Approved ✓';
-            approveBtn.className = 'hitl-approve-btn px-3 py-1.5 rounded-lg bg-emerald-900/60 text-emerald-300 font-semibold cursor-default border border-emerald-700/50';
-            if (rejectBtn) rejectBtn.remove();
-            showToast('Action approved and running', 'success');
-            await refreshPendingHitl();
-            if (shouldResumeChatAfterHitl(req, isGoalPlanReviewTool(req.tool_name)) && onResumeTurn) {
-              await onResumeTurn('Approved. Proceed with execution.', { isResume: true, resumeJobId: req.job_id || null });
-            }
-          } else {
-            approveBtn.disabled = false;
-            if (rejectBtn) rejectBtn.disabled = false;
-            approveBtn.textContent = 'Approve & Run';
-            showToast('Failed to submit approval', 'error');
-          }
-        });
-      }
-
-      if (rejectBtn) {
-        rejectBtn.addEventListener('click', async () => {
-          if (approveBtn) approveBtn.disabled = true;
-          rejectBtn.disabled = true;
-          rejectBtn.textContent = 'Rejecting...';
-          const success = await submitHitlDecision(req.id, false);
-          if (success) {
-            rejectBtn.textContent = 'Rejected ✗';
-            rejectBtn.className = 'hitl-reject-btn px-3 py-1.5 rounded-lg bg-rose-900/60 text-rose-300 font-semibold cursor-default border border-rose-700/50';
-            if (approveBtn) approveBtn.remove();
-            showToast('Action rejected', 'info');
-            await refreshPendingHitl();
-          } else {
-            if (approveBtn) approveBtn.disabled = false;
-            rejectBtn.disabled = false;
-            rejectBtn.textContent = 'Reject';
-            showToast('Failed to submit rejection', 'error');
-          }
-        });
-      }
-
-      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    if (!host) return;
+    const liveIds = new Set();
+    if (messagesContainer && typeof messagesContainer.querySelectorAll === 'function') {
+      messagesContainer.querySelectorAll('[data-approval-id]').forEach((el) => liveIds.add(el.getAttribute('data-approval-id')));
+    }
+    const keep = new Set();
+    pending.forEach((item) => {
+      const id = item && item.id;
+      if (shouldSkipPendingHitlCard({ id, item, liveIds, isStreaming: state.isStreaming, originSid: state.activeSessionId })) return;
+      keep.add(id);
+      if (host.querySelector(`[data-approval-id="${id}"]`)) return;
+      const card = makeEl('div');
+      card.className = 'hitl-approval-card rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 space-y-2 text-xs';
+      card.setAttribute('data-approval-id', id);
+      card.setAttribute('data-approval-session', item.session_id || '');
+      if (item.routine_id) card.setAttribute('data-routine-id', item.routine_id);
+      const isPhaseChild = approvalBelongsToOriginSession(item.session_id, state.activeSessionId)
+        && String(item.session_id || '') !== String(state.activeSessionId || '');
+      card.innerHTML = buildHitlCardInnerHtml({
+        title: pendingHitlLabel(item),
+        toolName: item.tool_name || 'tool',
+        message: item.routine_id
+          ? 'Parked by a routine. Approve or Reject here to continue that run.'
+          : (isPhaseChild
+            ? 'Phase HITL on this Job - Approve here on the origin chat (no need to open Formulate/Execute orphans).'
+            : (item.message || 'Waiting for operator approval')),
+        argsText: formatHitlArgs(item.arguments),
+      });
+      wireHitlCardButtons(card, { approvalId: id, approvalSessionId: item.session_id, state, onResumeTurn, onDone: refreshPendingHitl });
+      host.appendChild(card);
+    });
+    host.querySelectorAll('[data-approval-id]').forEach((el) => {
+      if (!keep.has(el.getAttribute('data-approval-id'))) el.remove();
     });
     safeCreateIcons();
   }
 
   function startPendingHitlPoll() {
     return setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        refreshPendingHitl();
-      }
+      if (document.visibilityState === 'visible') refreshPendingHitl();
     }, 4000);
   }
 
@@ -493,4 +510,3 @@ export function setupPendingHitl(state, messagesContainer, { onResumeTurn, showT
     startPendingHitlPoll,
   };
 }
-

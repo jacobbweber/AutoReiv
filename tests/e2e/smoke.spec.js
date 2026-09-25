@@ -546,4 +546,99 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(alert).toBeVisible();
     await expect(alert).toContainText('not a multimodal model');
   });
+
+  // CARD-470: Auto-run was inverted after the CARD-397 split. Unchecked must send "ask".
+  // /api/chat/stream is intercepted, so no tool can run.
+  async function sendAndCapture(page, streamPosts, text) {
+    const n = streamPosts.length;
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type(text);
+    await input.press('Enter');
+    await expect.poll(() => streamPosts.length).toBe(n + 1);
+    return streamPosts[n];
+  }
+
+  test('TC-14: Auto-run off by default sends approval_mode "ask" [CARD-470]', async ({ page }) => {
+    const streamPosts = await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await expect(page.locator('#approvalToggle')).not.toBeChecked();
+    await expect(page.locator('#approvalBadge')).toBeHidden();
+    const body = await sendAndCapture(page, streamPosts, 'default mode');
+    expect(body.approval_mode).toBe('ask');
+  });
+
+  test('TC-15: Checking Auto-run sends "run" and shows the amber chip [CARD-470]', async ({ page }) => {
+    const streamPosts = await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await page.locator('#approvalToggle').check();
+    await expect(page.locator('#approvalBadge')).toBeVisible();
+    await expect(page.locator('#approvalBadge')).toHaveText('Auto-run ON');
+    const body = await sendAndCapture(page, streamPosts, 'auto mode');
+    expect(body.approval_mode).toBe('run');
+  });
+
+  test('TC-16: The Auto-run choice survives a reload [CARD-470]', async ({ page }) => {
+    await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await page.locator('#approvalToggle').check();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('autoreiv_approval_autorun'))).toBe('run');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('load');
+    if (!(await page.locator('#view-chat').isVisible())) await page.locator('#dock-chat').click();
+    await expect(page.locator('#approvalToggle')).toBeChecked();
+    await expect(page.locator('#approvalBadge')).toBeVisible();
+  });
+
+  test('TC-17: A saved "run" from before the fix is reset to "ask" once [CARD-470]', async ({ page }) => {
+    // Seed a pre-fix saved 'run' (no reset marker) on the first real page load only.
+    await page.addInitScript(() => {
+      try {
+        if (location.protocol.startsWith('http') && !sessionStorage.getItem('card470_seeded')) {
+          localStorage.setItem('autoreiv_approval_autorun', 'run');
+          sessionStorage.setItem('card470_seeded', '1');
+        }
+      } catch { /* about:blank has no storage */ }
+    });
+    const streamPosts = await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await expect(page.locator('#approvalToggle')).not.toBeChecked();
+    const body = await sendAndCapture(page, streamPosts, 'after reset');
+    expect(body.approval_mode).toBe('ask');
+    expect(await page.evaluate(() => localStorage.getItem('autoreiv_approval_autorun'))).toBe('ask');
+  });
+
+  test('TC-18: A parked tool shows an Approve/Reject card; Reject posts the decision [CARD-470]', async ({ page }) => {
+    const row = { id: 'appr_smoke', session_id: null, agent_id: 'autoreiv', routine_id: null, tool_name: 'wiki_note_create', arguments: { title: 'test470' }, status: 'pending' };
+    let decided = null;
+    await page.route('**/api/chat/stream', (route) => {
+      row.session_id = route.request().postDataJSON().session_id;
+      return route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: 'event: approval_required\ndata: ' + JSON.stringify({ type: 'approval_required', approval_id: 'appr_smoke', tool_name: 'wiki_note_create', arguments: { title: 'test470' }, message: 'Parked for operator approval (appr_smoke). The tool was not executed.' }) + '\n\nevent: turn_done\ndata: {"content": ""}\n\n',
+      });
+    });
+    await page.route('**/api/approvals/pending**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(decided || !row.session_id ? [] : [row]) }));
+    await page.route('**/api/approvals/appr_smoke/decision', (route) => {
+      decided = route.request().postDataJSON();
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'REJECTED', resumed: true }) });
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    const created = page.waitForResponse((r) => r.url().endsWith('/api/sessions') && r.request().method() === 'POST');
+    await page.locator('#newChatBtn').dispatchEvent('click');
+    await created;
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type('Create a wiki note titled test470');
+    await input.press('Enter');
+    const card = page.locator('#pendingHitlHost [data-approval-id="appr_smoke"]');
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('wiki_note_create');
+    await expect(card).toContainText('test470');
+    await card.locator('[data-hitl-decision="REJECTED"]').click();
+    await expect.poll(() => decided && decided.decision).toBe('REJECTED');
+  });
 });

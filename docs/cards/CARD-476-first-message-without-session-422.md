@@ -67,3 +67,12 @@ Typing in a brand-new Chat, or after the last session was deleted, should just w
 ## 3. Runbook
 
 Delete or clear the active session, type "hi" and press Enter. It sends and a new session appears in the list.
+
+---
+
+## Addendum (2026-09-25 ET, CARD-470 diagnosis)
+
+Reproduced again on the scratch server. The page was loaded with `localStorage.autoreiv_active_session_id` already set to an existing `autoreiv` session, yet the first send still posted `session_id: null`, giving 422 `string_type` on `body.session_id`. So the stored active session is not restored either, not just missing auto-create. Clicking **New chat** first works.
+
+Jacob's CARD-470 live test did **not** hit this: both of his sends had fresh sessions.
+

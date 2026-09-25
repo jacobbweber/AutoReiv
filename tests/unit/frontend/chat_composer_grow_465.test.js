@@ -199,6 +199,21 @@ describe('setupComposerSizing [REQ-465-001..006]', () => {
     expect(px(env.promptInput)).toBe(LINE);
   });
 
+  it('CARD-470: a press on the approval tray (pressRegions) also lands before the shrink', () => {
+    const env = makeEnv();
+    const timers = [];
+    env.win.setTimeout = (fn) => timers.push(fn);
+    const tray = new FakeTarget();
+    setupComposerSizing({ ...env, pressRegions: [tray], isStickToBottom: () => false });
+    env.promptInput.userFocus();
+    tray.fire('pointerdown');
+    env.promptInput.blur();
+    expect(px(env.promptInput)).toBe(8 * LINE);
+    env.doc.fire('pointerup');
+    timers.splice(0).forEach((fn) => fn());
+    expect(px(env.promptInput)).toBe(LINE);
+  });
+
   it('auto-focus when Chat opens keeps one line; a click or typing grows it', () => {
     const env = makeEnv();
     setupComposerSizing({ ...env, isStickToBottom: () => false });
