@@ -641,4 +641,41 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await card.locator('[data-hitl-decision="REJECTED"]').click();
     await expect.poll(() => decided && decided.decision).toBe('REJECTED');
   });
+
+  test('TC-19: An image on a text-only model shows the attachment notice under the reply [CARD-475]', async ({ page }) => {
+    const notice = "This model can't view images, so it only saw the file name `pic.png`. "
+      + 'Switch to a vision model (e.g. gemma-4-26b-a4b) to include pictures.';
+    await page.route('**/api/chat/upload', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'up-3', filename: 'pic.png', size_bytes: 70, content_type: 'image/png', url: '/x', path: '/x' }),
+      })
+    );
+    await page.route('**/api/chat/stream', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body:
+          `event: attachment_notice\ndata: ${JSON.stringify({ type: 'attachment_notice', message: notice, files: ['pic.png'] })}\n\n`
+          + 'event: token\ndata: {"text": "I cannot see the picture."}\n\n'
+          + 'event: turn_done\ndata: {"content": "I cannot see the picture."}\n\n',
+      })
+    );
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    await page.locator('#chatOptionsToggleBtn').click();
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.locator('#chatAttachBtn').click()]);
+    await chooser.setFiles({ name: 'pic.png', mimeType: 'image/png', buffer: Buffer.from('png') });
+    await expect(page.locator('#chatAttachmentsPreviewList')).toContainText('pic.png');
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type('What is this?');
+    await input.press('Enter');
+    const shown = page.locator('#messagesContainer .chat-attachment-notice');
+    await expect(shown).toBeVisible();
+    await expect(shown).toHaveText(notice);
+    await expect(page.locator('#messagesContainer .chat-stream-error')).toHaveCount(0);
+  });
 });

@@ -8,11 +8,13 @@ import logging
 import random
 from typing import AsyncIterator, Dict, List, Optional, Tuple
 
+from src.application.gateway.attachment_images import notice_payload, prepare_image_turn
 from src.application.gateway.demuxer import ReasoningDemuxer
 from src.application.gateway.generation_semaphore import (
     DEFAULT_MAX_CONCURRENT_GENERATIONS,
     GenerationSemaphore,
 )
+from src.application.gateway.model_capabilities import ModelCapabilityResolver, is_multimodal_rejection
 from src.application.gateway.ports import LLMProviderPort
 from src.domain.gateway.errors import (
     AllProvidersFailedError,
@@ -46,6 +48,23 @@ class MultiProviderGateway:
         self.default_provider_id = default_provider_id
         self.default_model_id: Optional[str] = None
         self._generation_semaphore = generation_semaphore or GenerationSemaphore(max_concurrent_generations)
+        self._capability_resolver: Optional[ModelCapabilityResolver] = None
+
+    def set_capability_resolver(self, resolver: ModelCapabilityResolver) -> None:
+        """Which models can view images [CARD-475]. The app wires one backed by Settings."""
+        self._capability_resolver = resolver
+
+    @property
+    def capability_resolver(self) -> ModelCapabilityResolver:
+        if self._capability_resolver is None:
+            self._capability_resolver = ModelCapabilityResolver()
+        return self._capability_resolver
+
+    def _prepare_images(self, request: CompletionRequest, *, force_text_only: bool = False):
+        """Current-turn images only, and only for vision models [CARD-475, REQ-475-001/002]."""
+        can_view = (not force_text_only) and self.capability_resolver.can_view_images(request.model)
+        messages, dropped, attached = prepare_image_turn(request.messages, can_view_images=can_view)
+        return request.model_copy(update={"messages": messages}), dropped, attached
 
     @property
     def max_concurrent_generations(self) -> int:
@@ -113,6 +132,8 @@ class MultiProviderGateway:
             except AuthenticationError:
                 raise
             except (ProviderUnavailableError, GatewayError) as e:
+                if is_multimodal_rejection(e):
+                    raise  # CARD-475: the caller retries once without images
                 last_err = e
                 if attempt < max_retries:
                     backoff = self.calculate_backoff(
@@ -159,8 +180,18 @@ class MultiProviderGateway:
         for model_candidate in candidates:
             try:
                 provider, _ = self.resolve_provider(model_candidate)
-                candidate_req = request.model_copy(update={"model": model_candidate})
-                return await self._execute_with_retry(provider, candidate_req, max_retries=max_retries)
+                base_req = request.model_copy(update={"model": model_candidate})
+                candidate_req, _dropped, attached = self._prepare_images(base_req)
+                try:
+                    return await self._execute_with_retry(provider, candidate_req, max_retries=max_retries)
+                except Exception as e:
+                    if not (attached and is_multimodal_rejection(e)):
+                        raise
+                    # REQ-475-005: the provider refused images; retry once without them.
+                    logger.warning("Model %s refused images (%s); retrying once without them.", model_candidate, e)
+                    self.capability_resolver.mark_text_only(model_candidate)
+                    retry_req, _d, _a = self._prepare_images(base_req, force_text_only=True)
+                    return await self._execute_with_retry(provider, retry_req, max_retries=max_retries)
 
             except AuthenticationError:
                 # Auth errors are non-retryable credential mistakes, fail fast
@@ -210,11 +241,16 @@ class MultiProviderGateway:
         candidates = [request.model] + (fallback_models or [])
         failures: Dict[str, str] = {}
         active_stream = None
+        provider = None
+        base_req = request
+        dropped: Optional[List[str]] = None
+        attached = False
 
         for model_candidate in candidates:
             try:
                 provider, _ = self.resolve_provider(model_candidate)
-                candidate_req = request.model_copy(update={"model": model_candidate, "stream": True})
+                base_req = request.model_copy(update={"model": model_candidate, "stream": True})
+                candidate_req, dropped, attached = self._prepare_images(base_req)
                 raw_gen = provider.stream(candidate_req)
                 # Test the generator by pulling the first item or catching immediate errors
                 active_stream = raw_gen
@@ -234,18 +270,46 @@ class MultiProviderGateway:
                 failures=failures,
             )
 
+        if dropped:
+            yield StreamChunk(notice=notice_payload(dropped))
+
+        yielded = False
         try:
-            if demux_reasoning:
-                demuxer = ReasoningDemuxer()
-                async for chunk in demuxer.demux_stream(active_stream):
-                    yield chunk
-            else:
-                async for chunk in active_stream:
-                    yield chunk
+            async for chunk in self._pipe(active_stream, demux_reasoning):
+                yielded = True
+                yield chunk
+            return
+        except Exception as e:
+            if yielded or not attached or not is_multimodal_rejection(e):
+                raise
+            logger.warning("Model %s refused images (%s); retrying once without them.", base_req.model, e)
         finally:
             closer = getattr(active_stream, "aclose", None)
             if callable(closer):
                 await closer()
+
+        # REQ-475-005: the provider refused images; retry once without them, with the notice.
+        self.capability_resolver.mark_text_only(base_req.model)
+        retry_req, dropped, _ = self._prepare_images(base_req, force_text_only=True)
+        if dropped:
+            yield StreamChunk(notice=notice_payload(dropped))
+        retry_stream = provider.stream(retry_req)
+        try:
+            async for chunk in self._pipe(retry_stream, demux_reasoning):
+                yield chunk
+        finally:
+            closer = getattr(retry_stream, "aclose", None)
+            if callable(closer):
+                await closer()
+
+    @staticmethod
+    async def _pipe(stream, demux_reasoning: bool) -> AsyncIterator[StreamChunk]:
+        if demux_reasoning:
+            async for chunk in ReasoningDemuxer().demux_stream(stream):
+                yield chunk
+        else:
+            async for chunk in stream:
+                yield chunk
 
     async def list_models(self, provider_id: Optional[str] = None) -> List[ModelDescriptor]:
         """

@@ -743,6 +743,23 @@ async def discover_models(
             available_ram_gb=available_ram_gib,
         )
 
+    # CARD-475: remember which models the provider says can view images, then resolve
+    # each model (override > provider > name guess > text-only) for the checkbox.
+    from src.application.gateway.model_capabilities import (
+        METADATA_SETTING,
+        OVERRIDES_SETTING,
+        ModelCapabilityResolver,
+        merge_vision_metadata,
+    )
+
+    if store is not None:
+        try:
+            store.set_setting(METADATA_SETTING, merge_vision_metadata(store.get_setting(METADATA_SETTING), models))
+        except Exception as e:
+            logger.warning("Could not save model vision metadata: %s", e)
+    resolver = ModelCapabilityResolver(settings_getter=store.get_setting if store is not None else None)
+    overrides = (store.get_setting(OVERRIDES_SETTING) if store is not None else None) or {}
+
     discovered = []
     for m in models:
         if m.param_size_b:
@@ -771,10 +788,41 @@ async def discover_models(
                 "estimated_ram_gb": est_ram,
                 "fit_status": fit_status,
                 "notes": notes,
+                "can_view_images": resolver.can_view_images(m.id),
+                "vision_source": resolver.vision_source(m.id),
+                "vision_override": overrides.get(m.id) if isinstance(overrides, dict) else None,
             }
         )
 
     return {"models": discovered}
+
+
+class ModelVisionOverride(BaseModel):
+    model_id: str
+    vision: Optional[bool] = None
+
+
+@router.post("/api/settings/model-capabilities")
+async def set_model_vision_override(request: Request, body: ModelVisionOverride):
+    """Per-model "Can view images" checkbox [CARD-475, D2]. ``vision: null`` clears the override."""
+    from src.application.gateway.model_capabilities import OVERRIDES_SETTING, ModelCapabilityResolver
+
+    model_id = (body.model_id or "").strip()
+    if not model_id:
+        raise HTTPException(status_code=400, detail="model_id is required")
+    store = request.app.state.store
+    overrides = dict(store.get_setting(OVERRIDES_SETTING) or {})
+    if body.vision is None:
+        overrides.pop(model_id, None)
+    else:
+        overrides[model_id] = bool(body.vision)
+    store.set_setting(OVERRIDES_SETTING, overrides)
+    resolver = ModelCapabilityResolver(settings_getter=store.get_setting)
+    return {
+        "model_id": model_id,
+        "can_view_images": resolver.can_view_images(model_id),
+        "vision_source": resolver.vision_source(model_id),
+    }
 
 
 @router.post("/api/settings/models/refresh")
