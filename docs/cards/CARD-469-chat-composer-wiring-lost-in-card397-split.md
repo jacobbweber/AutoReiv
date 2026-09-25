@@ -17,6 +17,8 @@ related:
   - CARD-472
   - CARD-473
   - CARD-474
+  - CARD-475
+  - CARD-476
 labels:
   - type:bug
   - area:chat
@@ -229,3 +231,36 @@ The composer placeholder says "Enter to send, Shift+Enter for newline", so Enter
 **Scavenger Pass**: I ran ripgrep over `src`, `tests`, `steering`, `docs/adr` and `scripts` for `renderQuickPrompts`, `loadQuickPrompts`, the three ghost IDs, and the positional calls. The only hits left are the negative assertions in the new test, and `chat_options_drawer.test.js`, whose `chatPromptsBtn|...` alternation still matches the real ID. No orphaned imports remain; `setupComposerAttachments` / `setupComposerKeyboard` are now only called from `wireComposer`.
 
 **Serve**: restarted with `scripts\restart_serve.ps1 -HostAddr 0.0.0.0 -Port 8000` on this branch. Health returns 200 on 127.0.0.1 and 192.168.1.99. Static modules are sent `no-store`, so a normal reload picks up the new code.
+
+### 6.1 Live-test finding: "attachment sends, no reply" (2026-09-24 11:06 PM ET)
+
+**What Jacob saw**: on the phone, the chip appeared but the reply never came. Plain text replied fine.
+
+**Root cause** (two parts):
+
+1. **Backend, pre-existing, not from the split → CARD-475.** The gateway turns any `Local Path:` image in the history into an `image_url` part. Jacob's default model (vLLM `nemotron-3.5-lightning`) returns **400 "not a multimodal model"**, which I confirmed with a direct probe. The stream sends only `event: error`. Because the image stays in the history, every later turn in that session fails the same way.
+   - The serve log shows `POST /api/chat/upload 200` then `POST /api/chat/stream 200` at 11:02 PM and 11:05 PM ET.
+   - Live DB sessions `00178cc5...` (msg 8, plus "Hi" at msg 10) and `c1509a00...` (msg 4) have empty assistant rows.
+2. **Frontend, lost in the split, in scope here: silence.** Pre-split chat.js (`7b563003^` L3430-3435) rendered `error` events as "Error: ..." in the reply bubble. The split dropped that branch. On top of that, the finalize step reloads the messages from the DB and wipes the stream bubble, so the failed turn just vanished.
+
+**The attachment payload is not the cause.** The shape matches the pre-split payload (`attachments: [{id, filename, size_bytes, content_type, url, path}]`), and the backend accepted it and embedded the image.
+
+**Fix (test-first)**:
+
+- `chat/stream.js` gains `trackStreamOutcome()`, which captures an `error` event, `turn_done.error`, or a stream with no events at all.
+- `chat/stream.js` also gains `reportStreamOutcome()`, which appends `.chat-stream-error` (`role="alert"`, "Reply failed: <reason>") to the message list **after** the reload, and shows an error toast.
+- `chat.js` notes every event and reports after finalizing. Its line count stayed at 1,045, no growth.
+
+**Tests**:
+
+- `tests/unit/frontend/chat_stream_error_469.test.js` (7 tests) went 7/7 red on `85eea4cb`, then green.
+- Smoke TC-13 (intercepted `event: error` after an image attach) went red, then green.
+- A one-off Playwright run against the **scratch** smoke server (port 8766) with a fake text-only OpenAI-compatible LLM, a real upload and a real backend showed the alert "Reply failed: [vllm] ... Provider HTTP error 400 ... not a multimodal model". The one-off spec was deleted afterwards.
+- The reproduction also found **CARD-476**: with no active session, the first send gets a 422 because the pre-split session auto-create was lost. It stays separate (D3).
+
+| Suite | Result |
+|-------|--------|
+| Vitest | 814 passed, 5 failed (known CARD-456) |
+| Smoke | 13/13 |
+| pytest `tests/unit` | 2015 passed, 11 skipped, 1 failed (known CARD-454) |
+| ESLint, full | 4 errors, 5 warnings (unchanged, CARD-456); changed files clean |
