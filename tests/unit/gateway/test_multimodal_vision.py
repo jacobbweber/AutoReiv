@@ -85,51 +85,6 @@ def test_messages_without_images_remain_plain_string():
     assert formatted[0]["content"] == "Just plain text without images"
 
 
-def test_openai_adapter_resolves_local_path_images(tmp_path):
-    import base64
-    img_file = tmp_path / "test.png"
-    raw = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
-    img_file.write_bytes(raw)
-
-    adapter = OpenAIProviderAdapter(
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai",
-        provider_id="gemini",
-        api_key="test-key",
-    )
-    messages = [
-        ChatMessage(
-            role=Role.USER,
-            content=f"Look at this screenshot\n*(Attached Image: `test.png`, Local Path: `{img_file}`)*",
-        )
-    ]
-    formatted = adapter._format_messages(messages)
-    assert len(formatted) == 1
-    msg = formatted[0]
-    assert isinstance(msg["content"], list)
-    assert len(msg["content"]) == 2
-    assert msg["content"][0]["type"] == "text"
-    assert msg["content"][1]["type"] == "image_url"
-    assert "data:image/png;base64," in msg["content"][1]["image_url"]["url"]
-
-
-def test_ollama_adapter_resolves_local_path_images(tmp_path):
-    import base64
-    img_file = tmp_path / "test.jpg"
-    raw = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
-    img_file.write_bytes(raw)
-
-    adapter = OllamaProviderAdapter(
-        base_url="http://localhost:11434",
-    )
-    messages = [
-        ChatMessage(
-            role=Role.USER,
-            content=f"Look at this screenshot\n*(Attached Image: `test.jpg`, Local Path: `{img_file}`)*",
-        )
-    ]
-    formatted = adapter._format_messages(messages)
-    assert len(formatted) == 1
-    msg = formatted[0]
-    assert "images" in msg
-    assert len(msg["images"]) == 1
-    assert len(msg["images"][0]) > 20
+# CARD-475: the adapters no longer scan message text for Local Path images. The gateway
+# attaches the current turn's images on ChatMessage.images, only for vision models.
+# See tests/unit/gateway/test_image_turn_gating_475.py.
