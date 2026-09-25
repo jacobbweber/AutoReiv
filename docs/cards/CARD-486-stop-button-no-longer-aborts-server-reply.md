@@ -1,7 +1,7 @@
 ---
 id: CARD-486
 title: "Stop no longer tells the server to stop: the abort call was lost in the CARD-397 split"
-status: In Progress
+status: In Review
 created: 2026-09-25
 branch: qa
 related:
@@ -13,6 +13,7 @@ related:
   - CARD-489
   - CARD-490
   - CARD-491
+  - CARD-492
 labels:
   - type:bug
   - area:chat
@@ -23,7 +24,7 @@ labels:
 
 # [CARD-486] Stop no longer tells the server to stop: the abort call was lost in the CARD-397 split
 
-> **Status**: In Progress (build 2026-09-25 ET on `feat/card-486-stop-aborts-server`; D1-D7 accepted as recommended)
+> **Status**: In Review (build 2026-09-25 ET on `feat/card-486-stop-aborts-server`; D1-D7 accepted as recommended)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-485 planning (scratch server, Playwright `scratch/c485_stop.cjs`)
 > **Related**: CARD-397 (split), CARD-259 (kill/resume mid-LLM), CARD-154 (work survives disconnect), CARD-485 (busy state), CARD-488, follow-ups CARD-489 / CARD-490 / CARD-491
@@ -200,3 +201,53 @@ When I press Stop, the agent really stops: the model stops generating, nothing k
 ## Note (2026-09-25 ET, CARD-485 build)
 
 CARD-485 added a busy state for a reply running elsewhere (`state.sessionBusy`, `chat/session_select.js` `setSessionBusy`). Stop is visible then, but `onCancelStream` has no fetch to abort, so it does nothing. When this card is built, Stop must POST `/abort` for the active chat in both cases (own stream or `state.sessionBusy`) and then call `sessionSelect.stopWatching()` / re-check status. This is covered by REQ-486-002/003 above.
+
+
+---
+
+## Build note (2026-09-25 ET, `feat/card-486-stop-aborts-server`, In Review)
+
+**Commits**
+- `cd697816` card In Progress
+- `535802d3` failing tests, confirmed red:
+  - Vitest 7/7 red (no `chat/stop.js`);
+  - pytest `/status`-after-abort red, the other 3 green as guards;
+  - smoke TC-28/29 desktop+phone 4/4 red (0 `/abort` requests)
+- `82a839cf` fix
+- `9ad37e8b` test fixtures lint (F811)
+- `86e6c7d0` CHANGELOG
+- this commit: In Review
+
+**What changed**
+- New `src/web/static/modules/studios/chat/stop.js`: `createStopHandler`, `postStreamAbort`, `abortUrl`, `STOPPED_TOAST`, `STOP_FAILED_TOAST`.
+- `chat.js` builds `stopHandler` and passes `onCancelStream: stopHandler.stop`. It is now 1,009 lines (cap 1,045). `composer.js` is unchanged; it already calls `onCancelStream` on click.
+- `session_select.js`: `createSessionSelect()` also returns `setBusy`.
+- `src/web/routers/chat.py`: new `_job_has_running_phase`. `/status` counts an open job only when a phase is RUNNING. Stores without `list_phases_for_job` keep the old answer.
+- The REQ-486-008 test had a self-hang: the third press needed its own release. It was fixed in the fix commit, and the assertion is unchanged.
+
+**Tests (on the branch)**
+
+| Suite | Result |
+|---|---|
+| `chat_stop_486.test.js` | 7/7 |
+| `chat_session_select_485.test.js` | 9/9 |
+| `test_card486_status_after_abort.py` + `test_stream_resilience.py` + `test_card259_kill_resume.py` | 18/18 |
+| Full Vitest | 877 pass, 5 fail (known CARD-456) |
+| `pytest tests/unit` | 2045 pass, 11 skip, 1 fail (known CARD-454) |
+| `pytest tests/integration` | 107 pass |
+| Full smoke | 39/39 (TC-28/29 desktop+phone included) |
+| ESLint | baseline 4 errors / 5 warnings |
+| ruff | baseline 9 |
+
+**Scratch repro** (`scripts/smoke_server.py --port 8767` + `scratch/c486_fake_gateway.py`, 1 word / 0.5 s, 60 words; no real AppData)
+- Real browser Stop (`scratch/c486_ui.cjs`):
+  - 1 `/abort` request;
+  - the model request was cancelled **58 ms** after the click (`req1 CANCELLED by server after chunk 4`);
+  - 0 chunks in the next 3 s;
+  - Send back, "Stopped" toast;
+  - the next message's first words showed after **173 ms**.
+- API comparison (`scratch/c486_driver2.py`):
+  - dropping the browser connection only: the model finished all 60 words, and the next message waited **27.3 s**;
+  - server abort: cut after chunk 5, next message **0.06 s**.
+
+**Follow-ups:** CARD-492 (the device that started a reply isn't told it was stopped). Note added to CARD-488 (Stop after switching chats targets the open chat).
