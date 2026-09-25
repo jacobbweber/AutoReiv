@@ -1,10 +1,10 @@
 ---
 id: CARD-475
 title: "Image attachments are sent to text-only models; one image breaks the whole chat session"
-status: In Review
+status: Done
 created: 2026-09-24
 updated: 2026-09-25
-branch: feat/card-475-image-attachments-text-only
+branch: qa
 related:
   - CARD-469
   - CARD-143
@@ -24,7 +24,7 @@ labels:
 
 # [CARD-475] Image attachments are sent to text-only models; one image breaks the whole chat session
 
-> **Status**: In Review (build done 2026-09-25 on `feat/card-475-image-attachments-text-only`; waiting on Jarvis runbook)
+> **Status**: Done (merged to qa 2026-09-25 after Jacob's "merge to qa")
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 live test, 2026-09-24 at 11:02 PM and 11:05 PM ET. Jacob attached a phone screenshot in Chat (Direct mode) and got no reply. After that, even "Hi" in the same session got no reply.
 > **Verified 2026-09-25 ET**:
@@ -233,3 +233,7 @@ Attaching a picture must never break a chat. If the current model can't see imag
 - Removed both adapters' history-scan blocks and the now-unused `re` import in `ollama_adapter.py`.
 - `ModelDescriptor.is_multimodal` is now consumed, where before it was set and never read.
 - No dead helpers were left behind.
+
+## 7. Merge note (2026-09-25)
+
+Jacob replied `merge to qa` after the Jarvis runbook. Merged `feat/card-475-image-attachments-text-only` into `qa` with `--no-ff`; post-merge suites rerun on qa (only known CARD-454/456 failures). No card index lists CARD-475, so only this card changed. Follow-ups stay Ready: CARD-481, CARD-482, CARD-483 (plus CARD-479, CARD-480).
