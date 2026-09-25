@@ -1,7 +1,7 @@
 ---
 id: CARD-445
 title: "Global Default Turn Budget 50 for All Agents (One-Time Upgrade From 10)"
-status: In Progress
+status: In Review
 created: 2026-09-23
 updated: 2026-09-24
 branch: feat/card-445-global-turn-budget-50
@@ -25,7 +25,7 @@ labels:
 
 # [CARD-445] Global Default Turn Budget 50 for All Agents (One-Time Upgrade From 10)
 
-> **Status**: In Progress (Jacob said **build** 2026-09-24 8:06 PM ET)
+> **Status**: In Review (built 2026-09-24 on `feat/card-445-global-turn-budget-50`; not merged, not pushed)
 > **Created**: 2026-09-23 - **Rewritten**: 2026-09-24 after Jacob's decisions (was "Tutor Education-Mode Default Turn Budget")
 > **Observed during**: CARD-438 live test - Tutor Learning OS quiz/flashcard tool loops ran out of the hidden default of 10 turns.
 > **ADR Reference**: none (a default value change, not an architecture change)
@@ -177,7 +177,26 @@ Do **not** write product code until Jacob says **build** on this card.
 
 ---
 
-## 5. Reply phrases
+## 5. Build notes (2026-09-24, branch `feat/card-445-global-turn-budget-50`)
+
+**What shipped**
+
+1. `DEFAULT_AGENT_MAX_TURNS = 50` in `src/domain/kernel/models.py`, used by `AgentProfile`, `guardrails.py`, `routers/agents.py` (`AgentProfilePayload`), both `settings.py` fallbacks, `agent_builder_tools.py`, and the `handoff_engine.py` child-profile fallback. Frontend: `forge.js` exports `DEFAULT_AGENT_MAX_TURNS = 50` for both fallbacks; `#forgeMaxTurnsInput value="50"`. A unit contract keeps the JS/HTML value equal to the Python constant.
+2. `custom_agents.max_turns DEFAULT 50` for new databases. Existing databases keep the old column default (SQLite cannot alter a default without a table rebuild), which is harmless: both inserts (`save_custom_agent_profile`, `save_agent_override`) always bind `max_turns` explicitly - covered by a test that inserts a fresh profile into a DB and reads back 50.
+3. `src/infrastructure/agents/max_turns_upgrade.py` `apply_default_max_turns_upgrade(store)` + repository `raise_agent_max_turns(from, to)`: updates only the `max_turns` column on rows stored at exactly 10 in `custom_agents` and `agent_overrides` (never `user_modified`, per CARD-449), then writes settings key `agent_max_turns_default_50_applied` = `{applied_at, from: 10, to: 50, raised: [...]}`. Called from `install_platform_agent_packs` right after `promote_platform_packs` (startup path); failures are logged, never block boot. If the key exists it does nothing.
+4. flashcard-turn `SKILL.md`: no numeric budget. The Tutor pack is not locked, so CARD-443 promotion copies the new SKILL.md into AppData at startup (checked live below).
+5. `test_card444_flashcard_turn_skill_efficiency.py` now keeps its own tight `CARD444_EFFICIENCY_CEILING = 10`, so the bigger default cannot hide a flashcard-turn efficiency regression.
+6. Pack manifest: no `max_turns` (REQ-445-008 test).
+
+**Correction found during build:** handoff children are clamped by `bound_child_max_turns` to 10..15, so a delegated child still gets at most 15 turns. Left to CARD-462 (open decision 5 there).
+
+**Tests:** new `tests/unit/agents/test_card445_global_turn_budget.py` (28 tests, Red first). Broad `tests/unit`: 2002 passed, 11 skipped, 2 failed - CARD-454 linter (known) and `test_req_388_002` (fails on clean qa too: live Developer is named "Super Developer"; tracked by CARD-455). Platform-pack suites (unit agent_packs + pack integration contracts): 132 passed, 5 skipped, same 388 failure. Vitest: 750 passed, 5 failed (the known CARD-456 set). Playwright smoke: 7/7 (run with a scratch data dir - see CARD-467). Honesty smoke `--validate`: green. Ruff on touched files clean (full-repo ruff: the 10 known CARD-454 errors); ESLint `forge.js` clean (full lint: known CARD-456 errors in education/study/settings modules).
+
+**Backup before live restart:** `%LOCALAPPDATA%\AutoReiv\backups\autoreiv-pre-card445-20260924-203202.db` (integrity ok). Pre-values: autoreiv 10, direct 10, developer 25/25 (locked), tutor 100/100; keep-customizations on.
+
+---
+
+## 6. Reply phrases
 
 - Refine the card: say **continue**.
 - Start implementation: say **build**.
