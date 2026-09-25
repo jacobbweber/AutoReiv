@@ -66,3 +66,9 @@ Stale chat after coming back to the phone.
 ## 3. Runbook
 
 On the phone, start a longer reply, switch apps for 20 seconds and come back. The finished reply appears without a reload.
+
+---
+
+## Note (2026-09-25 ET, CARD-485 planning)
+
+CARD-485 restores the pre-split background-status check as a shared helper (`watchSessionStatus` in `chat/session_select.js`: busy state, 2 s poll, reload when done). Build CARD-485 first, then call that helper here on `visibilitychange`/`focus` instead of writing a second one. CARD-487 covers watching a running reply live.
