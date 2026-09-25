@@ -607,4 +607,38 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     expect(body.approval_mode).toBe('ask');
     expect(await page.evaluate(() => localStorage.getItem('autoreiv_approval_autorun'))).toBe('ask');
   });
+
+  test('TC-18: A parked tool shows an Approve/Reject card; Reject posts the decision [CARD-470]', async ({ page }) => {
+    const row = { id: 'appr_smoke', session_id: null, agent_id: 'autoreiv', routine_id: null, tool_name: 'wiki_note_create', arguments: { title: 'test470' }, status: 'pending' };
+    let decided = null;
+    await page.route('**/api/chat/stream', (route) => {
+      row.session_id = route.request().postDataJSON().session_id;
+      return route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: 'event: approval_required\ndata: ' + JSON.stringify({ type: 'approval_required', approval_id: 'appr_smoke', tool_name: 'wiki_note_create', arguments: { title: 'test470' }, message: 'Parked for operator approval (appr_smoke). The tool was not executed.' }) + '\n\nevent: turn_done\ndata: {"content": ""}\n\n',
+      });
+    });
+    await page.route('**/api/approvals/pending**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(decided || !row.session_id ? [] : [row]) }));
+    await page.route('**/api/approvals/appr_smoke/decision', (route) => {
+      decided = route.request().postDataJSON();
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'REJECTED', resumed: true }) });
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    const created = page.waitForResponse((r) => r.url().endsWith('/api/sessions') && r.request().method() === 'POST');
+    await page.locator('#newChatBtn').dispatchEvent('click');
+    await created;
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type('Create a wiki note titled test470');
+    await input.press('Enter');
+    const card = page.locator('#pendingHitlHost [data-approval-id="appr_smoke"]');
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('wiki_note_create');
+    await expect(card).toContainText('test470');
+    await card.locator('[data-hitl-decision="REJECTED"]').click();
+    await expect.poll(() => decided && decided.decision).toBe('REJECTED');
+  });
 });
