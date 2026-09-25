@@ -67,14 +67,14 @@ Do not write product code until Jacob says **build** on this card.
    - `job_phase_orchestrator.py:179` builds specs with `max_turns=10` and passes `spec.max_turns` through (L219, 236, 467, 483); `followup.py:114` copies it;
    - `phases.max_turns INTEGER NOT NULL DEFAULT 10` (schema L38);
    - the kernel ignores all of these and loops `range(agent.max_turns)`.
-4. **Handoffs:** `HandoffEnvelope.max_turns=10`, `timeout_seconds=60.0` (models.py L43-44). Children get `bound_child_max_turns(envelope.max_turns, profile.max_turns)` (`handoff_engine.py:329`). `timeout_seconds` appears unused in orchestration (verify at build).
+4. **Handoffs:** `HandoffEnvelope.max_turns=10`, `timeout_seconds=60.0` (models.py L43-44). Children get `bound_child_max_turns(envelope.max_turns, profile.max_turns)` (`handoff_engine.py:39`, used ~L329) = `min(max(envelope, profile, _MIN_CHILD_TURNS=10), _MAX_CHILD_TURNS=15)`, so after CARD-445 a delegated child whose profile says 50 still gets only **15**. `timeout_seconds` appears unused in orchestration (verify at build).
 
 ### Beat 3: What will change
 
 1. **Per-reply time limit (chat).** A wall-clock limit per reply, checked at each loop pass and before each tool call. When it passes, end through CARD-461's helper with reason `time_limit` ("I ran out of time for one reply..."). An in-flight model call or tool is not killed mid-way; the check happens between steps. Global setting in Settings, default per Open decision 1.
 2. **Per-run time limit (standing Jobs).** The same check for phase runs, with its own setting (Open decision 2). The existing per-call `STANDING_PHASE_LLM_TIMEOUT_SECONDS` stays as-is.
 3. **Real job budgets.** Kernel accepts an optional per-run `max_turns` override. When a standing Job phase runs, use the phase's `max_turns` if set, else the agent's. Phase fields become `Optional[int] = None` meaning "inherit the agent's budget" (no hidden 10). Existing phase rows with 10 are treated per Open decision 3.
-4. **Handoff envelope 10 / 60s:** the envelope `max_turns` default becomes None (inherit child profile); `timeout_seconds` is either wired to the same time-limit check or removed (decide at build from actual usage).
+4. **Handoff envelope 10 / 60s and the 10..15 child clamp:** the envelope `max_turns` default becomes None (inherit child profile); decide whether `_MAX_CHILD_TURNS = 15` stays as a deliberate delegation cap or goes (Open decision 5); `timeout_seconds` is either wired to the same time-limit check or removed (decide at build from actual usage).
 
 ### Beat 4: What dies today
 
@@ -121,6 +121,7 @@ Do not write product code until Jacob says **build** on this card.
 2. **Standing Job run time limit:** proposed **30 minutes** per phase run.
 3. **Job turn budget:** should standing Jobs just use the agent's budget (simplest), or get their own default (e.g. 100)? And should existing phase rows stored with 10 be treated as "inherit" (proposed) or kept at 10?
 4. **Split?** Keep as one card, or split time limit and job budgets.
+5. **Delegated child cap:** keep the 15-turn cap for handoff children (proposed: keep, as a runaway guard for delegation), or let children use their own profile budget (50)?
 
 ---
 

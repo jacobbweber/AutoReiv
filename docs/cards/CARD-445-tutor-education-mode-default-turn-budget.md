@@ -121,7 +121,7 @@ Do **not** write product code until Jacob says **build** on this card.
 
 - What happens at the limit (a summary instead of a bare error) -> [CARD-461](./CARD-461-graceful-ending-at-turn-limit.md).
 - Loop detection changes -> [CARD-460](./CARD-460-kernel-repeat-guard-reuse-result-before-stop.md).
-- Orchestration / job / handoff `max_turns=10`: `domain/orchestration/models.py` (`HandoffEnvelope` L43, Phase / PhaseSpec L175-184, 212, 245-247, 304, 410), `job_phase_orchestrator.py:179`, `phases.max_turns DEFAULT 10` (schema L38). Nothing enforces those phase values today; the kernel uses `agent.max_turns`. Handoff children use `max(envelope, profile, MIN)`, so a child agent at 50 gets 50. -> [CARD-462](./CARD-462-per-reply-time-limit-and-chat-vs-job-budgets.md).
+- Orchestration / job / handoff `max_turns=10`: `domain/orchestration/models.py` (`HandoffEnvelope` L43, Phase / PhaseSpec L175-184, 212, 245-247, 304, 410), `job_phase_orchestrator.py:179`, `phases.max_turns DEFAULT 10` (schema L38). Nothing enforces those phase values today; the kernel uses `agent.max_turns`. Handoff children use `min(max(envelope, profile, 10), 15)` (`bound_child_max_turns`), so a delegated child is still capped at **15** even when its profile says 50 - that cap is CARD-462's to revisit. -> [CARD-462](./CARD-462-per-reply-time-limit-and-chat-vs-job-budgets.md).
 - `developer_authoring` / `developer_mediation` internal budget of 8 (a separate flow).
 
 ### Beat 4: What dies today
