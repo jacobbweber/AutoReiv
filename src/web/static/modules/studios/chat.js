@@ -31,10 +31,8 @@ import {
 } from './chat/hitl.js';
 
 import { populateTrainAgentTargetOptions } from './chat/training.js';
-
-import {
-  setupChatScroll,
-} from './chat/scroll.js';
+import { setupRuntimeModeToggles } from './chat/runtime_toggles.js'; // CARD-470
+import { setupChatScroll } from './chat/scroll.js';
 
 import {
   buildChatStreamPayload,
@@ -689,6 +687,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   // Composer paperclip + Enter-to-send on the real template IDs [CARD-469]
   wireComposer(state, { chatForm, promptInput, showToastFn: showToast, onBeforeAttach: () => closeChatOptionsDrawer() });
+  setupRuntimeModeToggles(state, { approvalToggle, verifyToggle, approvalBadge: $('approvalBadge'), verifyBadge: $('verifyBadge') }); // CARD-470
 
   // Train Modal [CARD-119, CARD-165, CARD-306]
   setupTrainModal(state, {
@@ -813,7 +812,7 @@ export function initChatStudio(state, callbacks = {}) {
         content: userPrompt,
         resume: options.isResume,
         selfVerify: verifyToggle ? verifyToggle.checked : false,
-        approvalAutoRun: approvalToggle ? !approvalToggle.checked : false,
+        approvalAutoRun: !!approvalToggle?.checked, // CARD-470: checked = run, unchecked = ask
         attachments: [...(state.stagedAttachments || [])],
       });
 

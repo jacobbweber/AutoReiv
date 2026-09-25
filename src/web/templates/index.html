@@ -444,7 +444,7 @@
                       </label>
 
                       <!-- Auto-run Chip -->
-                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs text-slate-200 cursor-pointer select-none transition" title="Allow safe tools to run without asking">
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs text-slate-200 cursor-pointer select-none transition" title="Off: AutoReiv asks before write, shell and code tools. On: they run without asking. Blocked tools stay blocked.">
                         <input type="checkbox" id="approvalToggle" class="rounded bg-[#08090c] border-white/[0.08] text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
                         <i data-lucide="zap" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-105 transition"></i>
                         <span class="font-medium">Auto-run</span>
@@ -563,8 +563,8 @@
                         <span id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-emerald-300 font-mono whitespace-nowrap">
                           Verify Active
                         </span>
-                        <span id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-sky-950/80 border border-sky-800/80 text-sky-300 font-mono whitespace-nowrap">
-                          Auto-run
+                        <span id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-700/80 text-amber-300 font-mono whitespace-nowrap" title="Auto-run is on: write, shell and code tools run without asking">
+                          Auto-run ON
                         </span>
                         <span id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono whitespace-nowrap">
                           🎯 Multi-phase job
