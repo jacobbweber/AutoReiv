@@ -1,7 +1,7 @@
 ---
 id: CARD-488
 title: "Switching chats while your own reply is streaming keeps showing the old chat and blocks sending"
-status: Ready
+status: In Progress
 created: 2026-09-25
 branch: qa
 related:
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-488] Switching chats while your own reply is streaming keeps showing the old chat and blocks sending
 
-> **Status**: Ready (refined 2026-09-25 ET, "continue" #1)
+> **Status**: In Progress (build 2026-09-25 ET on `feat/card-488-switch-during-own-reply`; D1-D7 accepted as recommended)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-485 build (scratch server, Playwright `scratch/c485_ownstream.cjs`). Re-reproduced on qa `2bd55bd0` with a real slow reply (`scratch/c488_ui.cjs`).
 > **Related**: CARD-485 (select path, busy state), CARD-486 (Stop), CARD-487 (live replay), CARD-154 (server work survives disconnect), follow-ups CARD-493 / CARD-494
