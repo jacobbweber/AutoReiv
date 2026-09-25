@@ -546,4 +546,65 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(alert).toBeVisible();
     await expect(alert).toContainText('not a multimodal model');
   });
+
+  // CARD-470: Auto-run was inverted after the CARD-397 split. Unchecked must send "ask".
+  // /api/chat/stream is intercepted, so no tool can run.
+  async function sendAndCapture(page, streamPosts, text) {
+    const n = streamPosts.length;
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type(text);
+    await input.press('Enter');
+    await expect.poll(() => streamPosts.length).toBe(n + 1);
+    return streamPosts[n];
+  }
+
+  test('TC-14: Auto-run off by default sends approval_mode "ask" [CARD-470]', async ({ page }) => {
+    const streamPosts = await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await expect(page.locator('#approvalToggle')).not.toBeChecked();
+    await expect(page.locator('#approvalBadge')).toBeHidden();
+    const body = await sendAndCapture(page, streamPosts, 'default mode');
+    expect(body.approval_mode).toBe('ask');
+  });
+
+  test('TC-15: Checking Auto-run sends "run" and shows the amber chip [CARD-470]', async ({ page }) => {
+    const streamPosts = await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await page.locator('#approvalToggle').check();
+    await expect(page.locator('#approvalBadge')).toBeVisible();
+    await expect(page.locator('#approvalBadge')).toHaveText('Auto-run ON');
+    const body = await sendAndCapture(page, streamPosts, 'auto mode');
+    expect(body.approval_mode).toBe('run');
+  });
+
+  test('TC-16: The Auto-run choice survives a reload [CARD-470]', async ({ page }) => {
+    await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await page.locator('#approvalToggle').check();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('autoreiv_approval_autorun'))).toBe('run');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('load');
+    if (!(await page.locator('#view-chat').isVisible())) await page.locator('#dock-chat').click();
+    await expect(page.locator('#approvalToggle')).toBeChecked();
+    await expect(page.locator('#approvalBadge')).toBeVisible();
+  });
+
+  test('TC-17: A saved "run" from before the fix is reset to "ask" once [CARD-470]', async ({ page }) => {
+    // Seed a pre-fix saved 'run' (no reset marker) on the first real page load only.
+    await page.addInitScript(() => {
+      try {
+        if (location.protocol.startsWith('http') && !sessionStorage.getItem('card470_seeded')) {
+          localStorage.setItem('autoreiv_approval_autorun', 'run');
+          sessionStorage.setItem('card470_seeded', '1');
+        }
+      } catch { /* about:blank has no storage */ }
+    });
+    const streamPosts = await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await expect(page.locator('#approvalToggle')).not.toBeChecked();
+    const body = await sendAndCapture(page, streamPosts, 'after reset');
+    expect(body.approval_mode).toBe('ask');
+    expect(await page.evaluate(() => localStorage.getItem('autoreiv_approval_autorun'))).toBe('ask');
+  });
 });
