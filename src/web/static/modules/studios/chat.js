@@ -23,12 +23,7 @@ export * from './chat/chrome.js';
 export * from './chat/workbench.js';
 export * from './chat/train_modal.js';
 
-import {
-  formatHitlArgs,
-  pendingHitlLabel,
-  buildHitlCardInnerHtml,
-  setupPendingHitl,
-} from './chat/hitl.js';
+import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD-470
 
 import { populateTrainAgentTargetOptions } from './chat/training.js';
 import { setupRuntimeModeToggles } from './chat/runtime_toggles.js'; // CARD-470
@@ -499,10 +494,7 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   // Pending HITL Approvals [CARD-295, CARD-343]
-  const pendingHitl = setupPendingHitl(state, messagesContainer, {
-    onResumeTurn: executeChatTurn,
-    showToastFn: showToast,
-  });
+  const pendingHitl = setupPendingHitl(state, messagesContainer, { pendingHitlHost: $('pendingHitlHost'), onResumeTurn: executeChatTurn });
   const refreshPendingHitl = pendingHitl.refreshPendingHitl;
 
   // Agents & Engine Selection
@@ -682,6 +674,7 @@ export function initChatStudio(state, callbacks = {}) {
     columnEl: $('chatMessagesViewport')?.parentElement || null,
     messagesContainer,
     composerRegion: $('chatInputWrapper'),
+    pressRegions: [$('pendingHitlHost')], // CARD-470
     isStickToBottom,
   });
 
@@ -844,6 +837,7 @@ export function initChatStudio(state, callbacks = {}) {
         onEvent: (eventType, ev) => {
           outcome.note(eventType, ev);
           updateJobChromeFromEvent(eventType, ev);
+          if (isHitlParkSseEvent(eventType, ev)) refreshPendingHitl(); // CARD-470: live Approve/Reject tray
 
           if (eventType === 'tool_execution_start' && toolBadge) {
             toolBadge.classList.remove('hidden');
@@ -858,13 +852,8 @@ export function initChatStudio(state, callbacks = {}) {
             handoffBadge.classList.add('flex');
             handoffBadge.innerHTML = renderAgentHandoffCardHtml(ev);
             safeCreateIcons();
-          } else if (eventType === 'approval_required' && hitlCard) {
-            hitlCard.classList.remove('hidden');
-            hitlCard.innerHTML = buildHitlCardInnerHtml(ev, { pendingHitlLabel, formatHitlArgs });
-            const hitlApprovalCardEl = hitlCard;
-            if (typeof hitlApprovalCardEl.scrollIntoView === 'function') {
-              hitlApprovalCardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+          } else if (eventType === 'approval_required') {
+            renderInlineHitlCard(hitlCard, ev, { state, onResumeTurn: executeChatTurn, onDone: refreshPendingHitl }); // CARD-470
           } else if (eventType === 'plan_formulated') {
             if (planMilestoneCard && planStepsContainer) {
               planMilestoneCard.classList.remove('hidden');

@@ -40,7 +40,7 @@ class FakeEl {
   }
   set innerHTML(v) {
     this._html = String(v);
-    this._buttons = [...this._html.matchAll(/data-hitl-decision="(\w+)"(?![^>]*disabled)/g)].map((m) => new FakeButton(m[1]));
+    this._buttons = [...this._html.matchAll(/<button[^>]*>/g)].map((m) => m[0]).filter((tag) => !/\sdisabled[\s>]/.test(tag)).map((tag) => tag.match(/data-hitl-decision="(\w+)"/)).filter(Boolean).map((m) => new FakeButton(m[1]));
   }
   get innerHTML() { return this._html; }
   setAttribute(k, v) { this.attrs[k] = String(v); }
@@ -202,6 +202,9 @@ describe('CARD-470 chat.js wiring contracts', () => {
     const src = read('src/web/static/modules/studios/chat/hitl.js');
     expect(src).not.toMatch(/hitl-approve-btn|hitl-reject-btn/);
     expect(src).not.toMatch(/data\.pending \|\|/);
+  });
+  it('a tap on the approval tray is not lost to the composer shrink (pressRegions)', () => {
+    expect(chatSrc).toMatch(/pressRegions: \[\$\('pendingHitlHost'\)\]/);
   });
   it('chat.js stays within its cap', () => {
     expect(chatSrc.split('\n').length).toBeLessThanOrEqual(1045);

@@ -72,6 +72,7 @@ export function setupComposerSizing({
   columnEl = null,
   messagesContainer = null,
   composerRegion = null,
+  pressRegions = [], // CARD-470: e.g. #pendingHitlHost, so Approve/Reject is not lost to the shrink
   isStickToBottom = null,
   win = typeof window !== 'undefined' ? window : null,
   doc = typeof document !== 'undefined' ? document : null,
@@ -124,11 +125,13 @@ export function setupComposerSizing({
     if (!pressing) fit();
   });
 
-  if (composerRegion && typeof composerRegion.addEventListener === 'function') {
-    composerRegion.addEventListener('pointerdown', () => {
-      pressing = true;
-    });
-  }
+  [composerRegion, ...(pressRegions || [])].forEach((region) => {
+    if (region && typeof region.addEventListener === 'function') {
+      region.addEventListener('pointerdown', () => {
+        pressing = true;
+      });
+    }
+  });
   const release = () => {
     if (!pressing) return;
     pressing = false;
