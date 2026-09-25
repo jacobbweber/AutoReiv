@@ -1,6 +1,6 @@
 ---
 id: CARD-472
-title: "Workbench, Train-agent handshake and Teach modal close wiring lost in the CARD-397 split"
+title: "Workbench, artifact open and Teach modal wiring lost in the CARD-397 split"
 status: Ready
 created: 2026-09-24
 updated: 2026-09-25
@@ -9,10 +9,14 @@ related:
   - CARD-397
   - CARD-469
   - CARD-138
-  - CARD-165
   - CARD-306
   - CARD-352
+  - CARD-358
+  - CARD-422
   - CARD-495
+  - CARD-496
+  - CARD-497
+  - CARD-498
 labels:
   - type:bug
   - area:chat
@@ -20,13 +24,13 @@ labels:
   - P1
 ---
 
-# [CARD-472] Workbench, Train-agent handshake and Teach modal close wiring lost in the CARD-397 split
+# [CARD-472] Workbench, artifact open and Teach modal wiring lost in the CARD-397 split
 
-> **Status**: Ready (refined after Jacob's **continue**, 2026-09-25)
+> **Status**: Ready. Rescoped to keep-and-fix on 2026-09-25 after Jacob confirmed retiring the Factory (see CARD-495..498).
 > **Created**: 2026-09-24
-> **Observed during**: CARD-469 planning. I diffed every `addEventListener` in pre-split `chat.js` (`7b563003^`) against current `chat.js` and `chat/*`. `git blame` puts the broken call sites on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
-> **Reproduced**: 2026-09-25 ~3:15 PM ET on a scratch server (`scripts/smoke_server.py` on 127.0.0.1:8767 with a throwaway data dir, fake Ollama on 18434, no real AppData), driven by a Playwright script on desktop 1280x800 and phone 390x844. qa `f895c0cc`.
-> **Related**: CARD-397, CARD-469, CARD-138, CARD-165, CARD-306, CARD-352, follow-up **CARD-495**
+> **Observed during**: CARD-469 planning (diff of pre-split `chat.js` listeners). `git blame` puts the broken call sites on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
+> **Reproduced**: 2026-09-25 about 3:15-3:35 PM ET on a scratch server (`scripts/smoke_server.py` on 127.0.0.1:8767, throwaway data, fake Ollama on 18434, no real AppData), Playwright on desktop 1280x800 and phone 390x844, qa `f895c0cc`. Scripts: `scratch/c472_ui.cjs`, `scratch/c472_artifact.cjs`, `scratch/c472_404.cjs`.
+> **Related**: CARD-397, CARD-469, CARD-138, CARD-306, CARD-352, CARD-358, CARD-422 (Tools Studio developer chat), Factory retirement CARD-495..498
 > **Labels**: `type:bug`, `area:chat`, `area:frontend`, `P1`
 
 ---
@@ -39,186 +43,148 @@ labels:
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
 
-Do not write product code until Jacob says **build** on this card.
-
 ---
 
 ## 1. Four Beats
 
 ### Beat 1: What Jacob means
 
-The buttons in chat should do what they say:
+The chat buttons that survive the Factory retirement should work:
 
-- **Workbench**: the header button and each message's "Workbench" button open the side panel with that text. "View Full Report" on an artifact card opens that saved artifact. Close, back, Preview/Raw, Copy and Save to Wiki all work.
-- **Training handshake**: when it opens (today only from Lab Monitor → Retry), X and Cancel close it and Start launches the job.
-- **Teach modal**: X closes it, just like Cancel.
+- **Workbench.** The header button and each reply's Workbench button open the side panel with that text.
+- **Artifacts.** "View Full Report" opens that saved report, and the Workbench button shows how many reports the chat has.
+- **Copy.** Copy says "Artifact copied to clipboard".
+- **Teach.** The Teach modal's X closes it. When a lesson needs a new tool, the proposal card's button hands it to the Developer instead of the retired Factory.
 
-### Beat 2: What AutoReiv does now (qa `f895c0cc`, reproduced)
+The training popup is **not** fixed here. It goes away with the Factory (CARD-496).
 
-Every result below was the same on desktop and on phone:
+### Beat 2: What AutoReiv does now (qa `f895c0cc`, reproduced on desktop and phone)
 
-| Action | Expected | Actual |
-|--------|----------|--------|
-| Click header `#workbenchToggleBtn` | Pane opens | Pane stays hidden |
-| Click a message's Workbench button | Pane opens with the reply | Pane stays hidden; the title is still the template default "Workbench Canvas" |
-| Click "View Full Report" on an `artifact://` card | Artifact opens | Nothing opens (no pane, no artifact modal) |
-| Artifact badge on the Workbench button, with 1 artifact card in chat | Shows "1" | Hidden, empty |
-| Teach → X | Modal closes | Stays open |
-| Teach → Cancel | Modal closes | Closes (works) |
-| Lab Monitor → Retry | Training modal opens | Opens (works), with `data-agent-id` pre-filled |
-| Training modal X / Cancel | Modal closes | **Stays open**. The user is stuck behind a full-screen modal until they reload |
-| Training modal Start | `POST /api/agent_training_factory/jobs` | **0 requests** |
-| Training modal "Advanced requirements" toggle | Expands | Works (it looks itself up with `$()`) |
+1. **The Workbench never opens.** `chat.js` L640 calls `initWorkbench(state, { showToastFn })`, but `chat/workbench.js` L65-87 destructures 13 page elements from its first argument. So:
+   - the pane can't un-hide;
+   - the toggle, Close, back, Preview/Raw, Copy and Save to Wiki listeners (L161-197) never bind;
+   - the markdown, clipboard, wiki and session helpers are never passed.
+   Repro: the header button and the message Workbench button both leave the pane hidden.
+2. **The artifact count never shows.** `chat.js` L647-648 passes a session id string to `refreshWorkbenchArtifactCount`, which expects an object (`workbench.js` L40). Repro: 1 artifact card in chat, badge hidden.
+3. **"View Full Report" depends on how the card was drawn.**
+   - For history cards, `render.js` L524 calls `renderMarkdownFn(bodyEl, content)` with no options. The card listener (L83-89) falls back to the older `openArtifactModal(artId)`, which fetches `/api/artifacts/{id}`. On a 404 it fails silently, because no toast function is passed.
+   - For cards drawn at the end of a streamed reply, `chat.js` L875-878 passes `onOpenArtifact: openWorkbench`, which gets an id string instead of `{title, content}`.
+   - Repro with a real (routed) artifact: one card opened the older popup, another did nothing. With a missing id: `GET /api/artifacts/art_c472_demo` returned 404 and nothing was shown.
+4. **Copy toast arguments are reversed.** `workbench.js` L183 and L194 call `showToastFn('success', 'Artifact copied...')`, but the signature is `showToast(message, type)`.
+5. **Teach X has no listener.** `setupTeachAgentModal` (`chat/train_modal.js` L234) binds Cancel (L273) and Submit (L285), but not `#closeTeachAgentModalBtn` (index.html L5300). Repro: X leaves the modal open; Cancel works.
+6. **"Send to Factory Studio" on a needs-tool proposal is dead.**
+   - `render.js` L306 renders the button, and L376-380 only binds it when `onEscalate` is passed.
+   - The live path (`train_modal.js` L301) and the history path (`render.js` L699) never pass it.
+   - The Factory it points at is being retired.
+7. **Not a bug:** the 404 seen in the first repro was that made-up artifact id, not a page-load request. `scratch/c472_404.cjs` shows no 4xx on page load or when opening chat, on desktop or phone.
 
-Root causes (file:line on qa `f895c0cc`):
-
-1. **Workbench is never given its elements.** `src/web/static/modules/studios/chat.js` L640 calls `initWorkbench(state, { showToastFn: showToast })`. But `chat/workbench.js` L65-87 `initWorkbench(elements, {...})` destructures 13 element refs (`chatWorkbenchPane`, title, meta, preview, raw, tabs, toggle, close, mobile back, copy, save-to-wiki, badge, `messagesContainer`) from its first argument. `state` has none of them. So:
-   - `openWorkbench` (L114-151) can't un-hide the pane.
-   - The listeners (L161-197) never bind.
-   - `renderMarkdownFn`, `getActiveSessionId`, `copyToClipboardFn` and `exportMessageToWikiFn` are not passed either.
-   - All 13 IDs exist exactly once in `src/web/templates/index.html` (pane L594, toggle L253).
-2. **Badge refresh gets the wrong type.** `chat.js` L647-648 calls `refreshWorkbenchArtifactCountDirect(state.activeSessionId)` with a string. `workbench.js` L40 expects `{ activeSessionId, messagesContainer, workbenchArtifactBadge, workbenchToggleBtn }`. So the badge never shows.
-3. **"View Full Report" passes an id where an object is expected.** `chat/render.js` L86 calls `onOpenArtifact(artId)` with a string. `chat.js` L876 wires `onOpenArtifact: openWorkbench`, and `openWorkbench` expects `{ title, meta, content }`.
-   - Nothing fetches `GET /api/artifacts/{id}`.
-   - Once the pane is rewired, this would open an **empty** Workbench.
-   - The existing `openArtifactModal` (render.js L101+, which does fetch) is skipped whenever `onOpenArtifact` is set.
-4. **Toast arguments are reversed.** `workbench.js` L183 and L194 call `showToastFn('success', 'Artifact copied...')`. The signature is `showToast(message, type)`, so the toast would read "success".
-5. **Training modal gets the wrong argument shape.** `chat.js` L666-670 calls `setupTrainModal(state, { trainAgentTargetSelect, showToastFn, onJobSubmitted })`. `chat/train_modal.js` L49-67 expects `(elements, { state, promptInput, messagesContainer, showToastFn, maybeAutoscrollMessagesFn })`. So Close, Cancel and Start (L92-227) never bind. `onJobSubmitted` isn't a supported option at all.
-6. **The chat "Train agent" toggle has no handler on purpose.** `index.html` L453-454 says: "CARD-306: Train Agent checkbox removed from Chat Options - Training Factory owns training (keep-one). Modal retained for Factory." `#trainAgentToggle` is now a hidden, `aria-hidden` checkbox, and `#trainAgentBadge` (L572) is only ever hidden. This is a product removal, not lost wiring. What's left is dead markup.
-7. **Dead lookups.** `trainAgentTargetSelect`, `trainAgentNameInput` and `trainAgentNameGroup` are not in the template (the repro confirmed they are missing). Yet `chat.js` L319 and L479-480, `train_modal.js` L13-31/L101-107 and `forge/lab_monitor.js` L135-147 still reference them. Retry already carries the agent in `modal.dataset.agentId` (L126-128), and Start already falls back to it (train_modal.js L105).
-8. **Teach X was never re-bound.** `setupTeachAgentModal` (`train_modal.js` L234) binds Cancel (L273) and Submit (L285), but never `#closeTeachAgentModalBtn` (index.html L5300).
-
-### End-to-end check: does each feature still earn its place?
-
-| Feature | Backend | Durable state | Reachable in UI? | Verdict |
-|---------|---------|---------------|------------------|---------|
-| Workbench | Doesn't need one for message text. Artifacts: `GET /api/artifacts/{id}` (`routers/artifacts.py` L67) returns 200, or 404 for unknown ids (probed); `GET /api/sessions/{id}/artifacts` (L43) returns 200. Save to Wiki reuses `wiki/export.js` `exportMessageToWiki`, which already works from the message row | Artifacts saved by tools (`application/skills/worker_tools.py` L186-203, `state_store.save_artifact`); the Workbench itself keeps no state | Yes: a header button on every chat, a button on every assistant message, and artifact cards | **Rewire.** Live product, and all the pieces exist |
-| Teach modal | `POST /api/skills/distill` (`routers/skills.py` L276) returned **200** in the probe with a SKILL.md proposal; `/api/skills/adopt` exists | The proposal is saved as a session message (`message_id` returned, `adoption_state: pending`); adopt writes the skill | Yes: a Teach button on every assistant message | **Rewire X** (one listener) |
-| Chat "Train agent" toggle | n/a | n/a | No: hidden by CARD-306 | **Remove** the dead markup and lookups |
-| Training handshake modal | `POST/GET /api/agent_training_factory/jobs` (`routers/agent_training_factory.py` L237/L375/L419): create returned 200 with `job_id`, list and get returned 200 | Jobs are stored in the DB through `FactoryPacketRepository` | **Barely.** Its only opener is Lab Monitor → Retry (`lab_monitor.js` L683-703). Lab Monitor opens only from an `open-lab-drawer-btn` in chat (render.js L780), which appears only after a job was started. Forge's Lab Monitor button (L563-574) goes to Factory Studio, and Factory Studio has no job list or "start training" at all. `POST /api/agents/{id}/gaps/{gap}/train` (`routers/gaps.py` L117) has no UI caller | **Rewire the three buttons here** (without this, Retry traps you behind a modal you can't close). Whether the autonomous training loop needs a real front door or should be retired is a bigger product question, filed as **CARD-495** |
+**Out of scope (moved to CARD-496):** the training popup's X, Cancel and Start are unbound (`chat.js` L666-670 passes `state` first to `setupTrainModal`). It opens only from Lab Monitor → Retry on an existing job, and Jacob's live DB has 0 Factory jobs. The hidden `#trainAgentToggle`, `#trainAgentBadge` and the missing target-select lookups (`chat.js` L319, L479-481) are also removed there.
 
 ### Beat 3: What will change
 
-1. **Workbench:**
-   - Add `collectWorkbenchElements()` in `chat/workbench.js`, which looks up the 13 IDs.
-   - `chat.js` then calls `initWorkbench(collectWorkbenchElements(), { renderMarkdownFn, getActiveSessionId, copyToClipboardFn: copyToClipboard, exportMessageToWikiFn: callbacks.exportMessageToWiki, showToastFn })`.
-   - Fix the badge call (`workbench.refreshArtifactCount()`, bound inside the module) and the toast argument order.
-2. **Artifact cards:** add `openArtifactById(id)` in `workbench.js`. It fetches `/api/artifacts/{id}` and opens the Workbench with the title, "Session artifact · id" and the content. If the artifact is missing, it shows a toast "Artifact not found" and doesn't open an empty pane. `chat.js` passes it as `onOpenArtifact`. `render.js` is unchanged.
-3. **Training modal:** add `collectTrainModalElements()` in `train_modal.js`. `chat.js` calls `setupTrainModal(collectTrainModalElements(), { state, promptInput, messagesContainer, showToastFn, maybeAutoscrollMessagesFn })`.
-4. **Remove dead training bits:** the `trainAgentToggle` hidden input, the `trainAgentBadge` span, the `trainAgentTargetSelect` lookup and `populateTrainAgentTargetOptions` call in `chat.js`, and the unsupported `onJobSubmitted`. `train_modal.js` and `lab_monitor.js` keep tolerating a missing select, so existing unit tests that pass one explicitly still work.
-5. **Teach:** bind `#closeTeachAgentModalBtn` to `closeTeachAgentModal`.
-6. **Guard:** a jsdom test that builds the real template and runs each `collect*Elements()` helper, asserting every key resolves to an element. A source contract fails if `chat.js` passes `state` as the first argument to `initWorkbench` or `setupTrainModal`.
-
-`chat.js` is at 1,012 lines (cap 1,045). The lookups move into the modules, so the net change is about +/-5 lines.
+1. **`chat/workbench.js`:**
+   - `collectWorkbenchElements()` looks up the 13 template IDs plus `#messagesContainer`.
+   - `initWorkbench` gains `openArtifactById(id)`. It fetches `GET /api/artifacts/{id}` once and opens the Workbench with the artifact's title, "Session artifact · id" and its content. On a non-OK response, a missing artifact or a network error, it shows the error toast **"Artifact not found"** and leaves the pane closed.
+   - The toast argument order is fixed.
+2. **`chat.js`:**
+   - `initWorkbench(collectWorkbenchElements(), { renderMarkdownFn, copyToClipboardFn, showToastFn, exportMessageToWikiFn, getActiveSessionId })`.
+   - A single `renderChatMarkdown(el, md)` wrapper injects `onOpenArtifact: openArtifactById` and the badge refresh. Every chat render path uses it (`loadMessages`, the end-of-stream fallback, the appended bubble), so every "View Full Report" goes through `openArtifactById`.
+   - The badge refresh calls the bound `workbench.refreshWorkbenchArtifactCount()`.
+   - `chat.js` must not grow; the target is fewer lines than 1,012.
+3. **New `chat/teach_modal.js`** holds `setupTeachAgentModal`, moved out of `train_modal.js`.
+   - X closes the modal like Cancel.
+   - One delegated click handler on `#messagesContainer` covers the needs-tool button on both live and history proposal cards. It reads the card's `data-factory-escalation` and summary, then posts to the existing Tools Studio developer-chat endpoint `POST /api/tools_studio/authoring/talk` with `{ intent: 'create', draft: { tool_name, behavior } }`. The behavior text carries the seed intent, the observed slip, the remedy and the objectives.
+   - It then opens that Developer chat with the prompt filled in, via chat's `openDeveloperSession`, the same path Tools Studio uses (CARD-422).
+   - If that fails, it shows an error toast and opens Tools Studio for the agent.
+   - The button label becomes **"Ask Developer to build this tool"**. The `btn-escalate-factory` class and `factory_escalation` field keep their names until CARD-496 (class) and CARD-497 (field) rename them.
+4. **`render.js`:** only the button label and title change, with no net growth (the file is already over its cap; see CARD-499).
 
 ### Beat 4: What dies
 
-- Setup helpers called with the wrong argument shape.
-- A Workbench that can't open, and an artifact badge that never counts.
-- A training modal that traps you.
-- The hidden CARD-306 leftovers (`#trainAgentToggle`, `#trainAgentBadge`, the lookups for the missing select and name input).
+- Workbench setup called with `state`.
+- A badge that never counts.
+- Two different artifact viewers depending on render path, and silent artifact failures.
+- The reversed Copy toast.
+- The Teach X that does nothing.
+- The escalation button pointing at a retired Factory.
 
 ## 2. Acceptance criteria (EARS)
 
 - **[REQ-472-001]** WHEN Jacob clicks `#workbenchToggleBtn` while the pane is hidden, THE SYSTEM SHALL show `#chatWorkbenchPane` with the last opened artifact, or the "Workbench is empty" note. WHEN he clicks it again, or clicks Close or Mobile back, THE SYSTEM SHALL hide the pane.
-- **[REQ-472-002]** WHEN Jacob clicks a message's Workbench button, THE SYSTEM SHALL show the pane with that message's text rendered in Preview and verbatim in Raw, titled "<agent> Output".
-- **[REQ-472-003]** WHEN Jacob clicks "View Full Report" on an artifact card, THE SYSTEM SHALL fetch `GET /api/artifacts/{id}` and show that artifact's title and content in the pane. IF the fetch fails or returns 404, THEN THE SYSTEM SHALL show the error toast "Artifact not found" and SHALL NOT open an empty pane.
-- **[REQ-472-004]** WHILE the open chat contains N distinct artifact cards (N > 0), THE SYSTEM SHALL show N on `#workbenchArtifactBadge`. WHEN N is 0, THE SYSTEM SHALL hide the badge.
+- **[REQ-472-002]** WHEN Jacob clicks a reply's Workbench button, THE SYSTEM SHALL show the pane with that reply rendered in Preview and verbatim in Raw.
+- **[REQ-472-003]** WHEN Jacob clicks "View Full Report" on any artifact card (live or history), THE SYSTEM SHALL fetch `GET /api/artifacts/{id}` once and show that artifact's title and content in the Workbench. IF the response is not OK, has no artifact, or the request fails, THEN THE SYSTEM SHALL show the error toast "Artifact not found" and SHALL NOT open the pane.
+- **[REQ-472-004]** WHILE the open chat has N distinct artifacts (N > 0, the larger of the session API count and the DOM cards), THE SYSTEM SHALL show N on `#workbenchArtifactBadge`. WHEN N is 0, THE SYSTEM SHALL hide the badge.
 - **[REQ-472-005]** WHEN Jacob clicks Preview or Raw, THE SYSTEM SHALL switch the visible tab. WHEN he clicks Copy, THE SYSTEM SHALL copy the raw text and show the success toast "Artifact copied to clipboard". WHEN he clicks Save to Wiki, THE SYSTEM SHALL call the existing wiki export with the raw text.
-- **[REQ-472-006]** WHILE `#trainAgentHandshakeModal` is open, WHEN Jacob clicks X or Cancel, THE SYSTEM SHALL hide the modal and clear `data-agent-id` and the form fields.
-- **[REQ-472-007]** WHILE `#trainAgentHandshakeModal` is open from Retry, WHEN Jacob clicks Start, THE SYSTEM SHALL send exactly one `POST /api/agent_training_factory/jobs` with the `target_agent_id` from Retry, close the modal, and on success show "Training Job <id> initiated!" and open Lab Monitor on that job. IF the POST fails, THEN THE SYSTEM SHALL show "Failed to start training loop: <reason>" and re-enable Start.
-- **[REQ-472-008]** THE SYSTEM SHALL NOT render `#trainAgentToggle` or `#trainAgentBadge` in Chat (CARD-306 keep-one: training lives in the Factory).
-- **[REQ-472-009]** WHEN Jacob clicks `#closeTeachAgentModalBtn`, THE SYSTEM SHALL close the Teach modal and clear its guidance, the same as Cancel, and SHALL NOT call `/api/skills/distill`.
-- **[REQ-472-010]** THE SYSTEM SHALL resolve every element that `initWorkbench` and `setupTrainModal` destructure to a real template element at startup (enforced by the guard test).
+- **[REQ-472-006]** WHEN Jacob clicks `#closeTeachAgentModalBtn`, THE SYSTEM SHALL close the Teach modal and clear its guidance, the same as Cancel, and SHALL NOT call `/api/skills/distill`.
+- **[REQ-472-007]** WHEN Jacob clicks "Ask Developer to build this tool" on a needs-tool proposal card (live or history), THE SYSTEM SHALL post `POST /api/tools_studio/authoring/talk` with `intent: 'create'` and a draft carrying the suggested tool name and the proposal's intent, slip and remedy, then open that Developer chat with the returned prompt. IF the request fails, THEN THE SYSTEM SHALL show an error toast and open Tools Studio for the target agent.
+- **[REQ-472-008]** THE SYSTEM SHALL build the Workbench from `collectWorkbenchElements()` and SHALL NOT pass `state` as its first argument (guard test). Every chat markdown render SHALL use the single artifact opener.
 
-## 3. Decisions (recommendations in bold)
+## 3. Decisions (Jacob accepted all, 2026-09-25)
 
-| # | Decision | Options | Recommendation |
-|---|----------|---------|----------------|
-| D1 | Workbench: rewire or remove? | (a) rewire; (b) remove the pane and buttons | **(a) Rewire.** It's visible on every chat and every assistant message, and the artifact backend works. Removing it would also mean removing the message-row button, the header button and the artifact cards |
-| D2 | What "View Full Report" opens | (a) the Workbench, after fetching `/api/artifacts/{id}`; (b) the older artifact modal (`openArtifactModal`, with pin/promote/delete); (c) leave it passing an id (it would open an empty Workbench) | **(a).** CARD-306 made the Workbench the single artifact viewer, and its empty-state text promises exactly this. The pin/promote/delete modal stays reachable from the session artifact shelf. Keep one viewer per click |
-| D3 | Where the element lookups live | (a) `collect*Elements()` in each module; (b) inline `$()` calls in `chat.js` | **(a).** It keeps `chat.js` under its cap and gives the guard test one function to check |
-| D4 | Chat "Train agent" toggle: rewire or remove? | (a) restore the pre-split `change` handler; (b) remove the hidden input and badge | **(b) Remove.** CARD-306 deliberately moved training to the Factory, so rewiring would bring back a second entry point Jacob already cut. Update `chat_train_workbench_keep_one_306.test.js` to assert the elements are absent instead of hidden |
-| D5 | Training modal buttons: rewire or remove? | (a) rewire Close/Cancel/Start now; (b) delete the modal and the Retry button | **(a) Rewire.** It's a few lines, it removes a real trap (a full-screen modal with no way out), and the jobs API works and saves jobs. Whether the autonomous loop should get a proper front door or be retired is filed as **CARD-495** |
-| D6 | Missing `trainAgentTargetSelect` / name input | (a) add them to the modal; (b) drop the `chat.js` lookups and rely on `modal.dataset.agentId`, keeping the module code tolerant | **(b).** Retry already knows the agent. Adding a picker is CARD-495 territory (starting new jobs) |
-| D7 | Teach X | (a) bind it to close; (b) remove the X | **(a).** Every other modal has an X |
-| D8 | Guard against this bug class | (a) jsdom `collect*Elements()` resolve test plus a source contract on the `chat.js` call shapes; (b) behavioural tests only | **(a) plus the behavioural tests.** CARD-397 broke three helpers the same way, so a cheap structural guard is worth it |
-| D9 | pytest | (a) none (no backend change); (b) add an integration test for `/api/skills/distill` and jobs create | **(a) for this card.** Both endpoints answered 200 in the repro and already have server-side coverage |
+| # | Decision | Choice |
+|---|----------|--------|
+| D1 | Workbench: rewire or remove | **Rewire** |
+| D2 | What "View Full Report" opens | **The Workbench, through one fetch-then-open function on every path**. The older artifact popup is no longer reached from chat clicks |
+| D3 | Where element lookups live | **In each module** (`collectWorkbenchElements()`) |
+| D4 | Teach | **Keep it** (it's a Skills feature); move it to `chat/teach_modal.js` |
+| D5 | Needs-tool escalation | **Developer chat through `/api/tools_studio/authoring/talk` with the proposal attached; Tools Studio as fallback** |
+| D6 | Training popup | **Out of scope**; removed in CARD-496 |
+| D7 | Guard | **A source guard on `chat.js` call shapes plus the element-resolve test** |
+| D8 | pytest | **None** (no backend change) |
 
 ## 4. Failing-tests-first plan
 
-Commit these red first (confirm each fails on qa), then fix.
+**Vitest:** new `tests/unit/frontend/chat_workbench_teach_wiring_472.test.js` (jsdom plus the real `index.html` body)
 
-**Vitest (new `tests/unit/frontend/chat_workbench_train_teach_wiring_472.test.js`, jsdom plus the real `index.html` body)**
+1. `collectWorkbenchElements()` returns a real element for every key (REQ-008).
+2. Toggle shows then hides the pane; Close and Mobile back hide it; Raw/Preview switch tabs (REQ-001, REQ-005).
+3. `openWorkbench({title, content})` renders through `renderMarkdownFn`, and Raw holds the verbatim text (REQ-002).
+4. `openArtifactById`:
+   - on 200 it shows the title and content;
+   - on 404, a missing artifact or a rejected fetch, it shows toast `('Artifact not found', 'error')` and the pane stays hidden (REQ-003).
+5. The badge shows "2" for two distinct cards plus a duplicate, and is hidden for none (REQ-004).
+6. Copy calls `copyToClipboardFn(raw)` and `showToastFn('Artifact copied to clipboard', 'success')`. Save to Wiki calls `exportMessageToWikiFn(raw)` (REQ-005).
+7. `setupTeachAgentModal` from `chat/teach_modal.js`: open, then X hides and clears guidance, with no fetch (REQ-006).
+8. Escalation:
+   - clicking `.btn-escalate-factory` inside a proposal card posts to `/api/tools_studio/authoring/talk` with the tool name and intent, then calls `openDeveloperSessionFn(sessionId, prompt)`;
+   - on failure it shows an error toast and calls `openToolsStudio(agentId)` (REQ-007).
+9. Guard (REQ-008):
+   - `chat.js` has no `initWorkbench(state`;
+   - it has no `onOpenArtifact: openWorkbench`;
+   - every `renderMarkdownFn:` in `chat.js` is `renderChatMarkdown`.
 
-1. `collectWorkbenchElements()` returns all 13 keys as elements (REQ-010). Red: the helper doesn't exist.
-2. `initWorkbench(collectWorkbenchElements(), opts)`:
-   - toggle click shows the pane, and a second click hides it;
-   - Close and Mobile back hide it;
-   - Raw/Preview switch the visible tab (REQ-001, REQ-005).
-3. `openWorkbench({title, content})` sets the title and renders the preview through `renderMarkdownFn`; Raw holds the verbatim text (REQ-002).
-4. `openArtifactById('art_1')` with a fake fetch:
-   - on 200 it shows the artifact title and content;
-   - on 404 it shows an error toast and the pane stays hidden (REQ-003).
-5. With 2 distinct `.open-artifact-btn` in `messagesContainer` (plus one duplicate), refresh shows badge "2"; with 0 it hides the badge (REQ-004).
-6. Copy calls `copyToClipboardFn(raw)` and `showToastFn('Artifact copied to clipboard', 'success')`, in that argument order. Save to Wiki calls `exportMessageToWikiFn(raw)` (REQ-005).
-7. `setupTrainModal(collectTrainModalElements(), { state, ... })`, after `populateTrainModalForRetry({ job: { target_agent_id: 'demo' } })` and un-hiding the modal:
-   - X hides it and clears `data-agent-id`; the same for Cancel (REQ-006);
-   - Start sends exactly one POST with `target_agent_id: 'demo'`, closes the modal and shows the toast "Training Job fjob_x initiated!";
-   - a failing POST shows the error toast and re-enables Start (REQ-007).
-8. The template has no `#trainAgentToggle` / `#trainAgentBadge` (REQ-008). Update the CARD-306 test accordingly.
-9. `setupTeachAgentModal` plus `openTeachAgentModal({ messageId })`, then X, hides the modal and clears guidance, with no fetch (REQ-009).
-10. Source contract: `chat.js` has no `initWorkbench(state` or `setupTrainModal(state` (REQ-010).
+`skill_distillation_ui.test.js` gets `teach_modal.js` added to its source list; its assertions are unchanged.
 
-**Playwright smoke (`tests/e2e/smoke.spec.js`, inside the existing desktop + phone viewport loop, stubbed stream like TC-9)**
+**Playwright smoke** (`tests/e2e/smoke.spec.js`, desktop and phone loop; sessions created through `request`, messages and artifacts routed to fixtures)
 
-- **TC-33** (desktop, phone): the stubbed reply contains `[Report](artifact://art_tc33)`, and `/api/artifacts/art_tc33` is routed to a fixture.
-  - The badge shows 1.
+- **TC-33** (desktop, phone):
+  - The history reply has `artifact://art_tc33` (routed to a fixture) and `artifact://art_tc33_missing` (routed 404).
+  - The badge shows 2.
   - The header toggle opens the pane.
-  - The message Workbench button shows the reply.
-  - "View Full Report" shows the fixture title.
-  - Close hides the pane. On phone, the pane is full screen and Mobile back hides it.
-- **TC-34** (desktop, phone): Teach from a reply opens the modal; X closes it; no `/api/skills/distill` request is sent.
-- **TC-35** (desktop, phone):
-  - Route `/api/agent_training_factory/jobs/fjob_tc35` to a fixture and call `window.openLabMonitorDrawer('fjob_tc35')`. Retry opens the training modal. X closes it.
-  - Retry again, then Cancel closes it.
-  - Retry again, then Start sends one routed POST, the modal closes, and the success toast shows.
-- **TC-36** (desktop): Chat Options has no Train agent control and no `#trainAgentToggle` in the DOM.
+  - The reply's Workbench button shows the reply.
+  - "View Full Report" on art_tc33 shows "TC33 Fixture Report".
+  - Close hides the pane (phone: Mobile back).
+  - The missing report shows the toast "Artifact not found" and the pane stays hidden.
+- **TC-34** (desktop, phone):
+  - Teach from the reply, then X, closes the modal with no distill request.
+  - The history needs-tool proposal card shows "Ask Developer to build this tool". Clicking it posts one routed `/api/tools_studio/authoring/talk` and opens the Developer chat, with the prompt in the composer.
 
-**pytest:** none (D9). The full unit and integration suites still run as regression.
+**pytest:** none. The unit and integration suites still run as regression.
 
-## 5. Build order (after **build**)
+## 5. Build order
 
-1. Card to In Progress (docs commit).
-2. Failing Vitest plus smoke TC-33..36 (commit; confirm red).
-3. `workbench.js`: `collectWorkbenchElements`, `openArtifactById`, a bound badge refresh, and the toast argument order.
-4. `train_modal.js`: `collectTrainModalElements` and the Teach X listener.
-5. `chat.js`: the correct call shapes; drop the dead train lookups and `onJobSubmitted`. Keep it at or under 1,045 lines.
-6. `index.html`: remove `#trainAgentToggle` and `#trainAgentBadge`. Update the CARD-306 test.
-7. CHANGELOG `[Unreleased] ### Fixed`, then In Review with a build note.
+1. In Progress (docs).
+2. Red tests (Vitest and TC-33/34).
+3. `workbench.js`.
+4. `teach_modal.js` (move plus X plus escalation), trimming `train_modal.js`.
+5. `chat.js` wiring (no growth).
+6. `render.js` label only.
+7. CHANGELOG, Scavenger Pass, preflight, scratch repro rerun, In Review.
 
-## 6. Runbook (Jarvis, after build; scratch server or `:8000`)
+## 6. Runbook (Jarvis, after build)
 
-1. **Workbench, header:** open a chat and click **Workbench** in the header. The side panel opens with "Workbench is empty". Click it again and it closes.
-2. **Workbench, message:** send "hi". On the reply, click **Workbench**. The panel shows the reply. Click **Raw**: plain text. Click **Preview**: formatted. Click **Copy**: the toast says "Artifact copied to clipboard", and pasting gives the reply. Click **Save to Wiki**: the usual wiki export happens. Close with X.
-3. **Artifact card:** in a chat where a tool saved an artifact (a "View Full Report" card), the Workbench button shows a count. Click **View Full Report**: the panel shows that report's title and text.
-4. **Phone** (192.168.1.99:8000): repeat 1-2. The panel covers the screen, and the back arrow returns to chat.
-5. **Teach:** on a reply, click **Teach**, then the **X**. The modal closes and nothing is submitted. Open it again, and **Cancel** also closes it.
-6. **Training Retry:** open Lab Monitor on an existing job (from a "View in Lab Monitor" link) and click **Retry**. Then:
-   - **X** closes the modal.
-   - **Retry** again, then **Cancel** closes it.
-   - **Retry** again, then **Launch Autonomous Loop**: the toast shows "Training Job ... initiated!" and Lab Monitor switches to the new job.
-7. **Chat Options** shows no Train agent switch.
+See the build note for the numbered desktop and phone steps.
 
-## 7. Repro script and evidence
+## 7. Follow-ups
 
-- `scratch/c472_ui.cjs` (Playwright, Node) against `scratch/c472_run.ps1 serve`:
-  - `scratch/c472_fake_gateway.py` replies "Report ready. See [C472 demo report](artifact://art_c472_demo) now.".
-  - The script seeds a job through `POST /api/agent_training_factory/jobs`, opens Lab Monitor with `window.openLabMonitorDrawer(jobId)`, and probes `/api/skills/distill`, `/api/sessions/{id}/artifacts` and `/api/artifacts/{missing}` directly.
-- Output: `scratch/c472_ui_out.txt`; screenshots `scratch/c472_desktop.png` and `scratch/c472_phone.png`.
-- The only console noise was one unrelated 404 resource load on page start (not investigated here).
-
-## 8. Out of scope / follow-ups
-
-- **CARD-495**: the autonomous training loop has no front door. There's no way to start a new job or list jobs, and Lab Monitor opens only from a chat link that appears after a job starts. Factory Studio (declared the owner by CARD-306) has neither. Rehome it or retire it.
-- `render.js` is 836 lines, already over the 800 target. This card doesn't touch it.
+CARD-495..498 (Factory retirement), CARD-499 (line caps).

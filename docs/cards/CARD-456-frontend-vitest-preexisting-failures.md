@@ -9,6 +9,7 @@ related:
   - CARD-153
   - CARD-196
   - CARD-451
+  - CARD-499
 labels:
   - type:test
   - area:frontend
@@ -53,7 +54,7 @@ On `qa` `e54021ff`, with no CARD-450 changes (verified by stashing), 5 tests fai
 
 ### Beat 3: What will change
 
-1. Decompose `chat.js` / `chat/render.js` under the caps, or re-baseline the caps with Jacob's agreement.
+1. (Child card: **CARD-499**.) Decompose `chat.js` / `chat/render.js` under the caps, or re-baseline the caps with Jacob's agreement.
 2. Remove the dead matrix call from `settings.js`, or update REQ-MODEL-005.
 3. Rewrite `system_updates.test.js` to the CARD-451 markup contract.
 4. Fix the ESLint errors so the preflight ESLint stage is green.

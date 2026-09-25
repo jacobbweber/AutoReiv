@@ -1,0 +1,84 @@
+---
+id: CARD-498
+title: "Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables"
+status: Ready
+created: 2026-09-25
+branch: qa
+related:
+  - CARD-495
+  - CARD-496
+  - CARD-497
+labels:
+  - type:migration
+  - area:factory
+  - area:data
+  - P2
+---
+
+# [CARD-498] Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables
+
+> **Status**: Ready (after CARD-497)
+> **Created**: 2026-09-25
+> **Series**: CARD-495 → CARD-496 → CARD-497 → **CARD-498**
+> **Labels**: `type:migration`, `area:factory`, `area:data`, `P2`
+
+---
+
+## Gate language (exact reply phrases)
+
+| Jacob reply | Meaning |
+|-------------|---------|
+| **`continue`** | Refine. No product code |
+| **`build`** | Build test-first |
+| **`merge to qa`** | After In Review and the runbook passes on Jarvis |
+
+---
+
+## 1. Four Beats
+
+**Beat 1: What Jacob means.** Nobody loses history. If an install has old training jobs, they're saved to a backup file before the tables go away.
+
+**Beat 2: What AutoReiv does now.**
+- `schema.py` L381-429 creates `factory_jobs`, `factory_graphs`, `factory_packets` and `factory_eval_runs`, and `prompt_registry.py` L170 creates `factory_phase_instructions`.
+- Jacob's live DB (read-only check, 2026-09-25) has **0 rows** in all of them. Other installs may have rows.
+
+**Beat 3: What will change.**
+- **Step 1, in the release with CARD-497:** stop creating these tables. On startup, if any exists with rows and `backups/factory-retire-*.json` does not exist yet:
+  - export every row as JSON to `backups/factory-retire-<YYYYMMDD-HHMMSS>.json`;
+  - log one line with the counts;
+  - never block startup on an export failure (log a warning and skip the drop).
+- **Step 2, the next release:** `DROP TABLE IF EXISTS` each one, only when the export file exists or the table is empty. Remove the CARD-497 308 redirects.
+- The backup scheduler keeps including the export file.
+
+**Beat 4: What dies.** The `factory_*` tables.
+
+## 2. Acceptance criteria (EARS)
+
+- **[REQ-498-001]** WHEN the app starts and a `factory_*` table has rows and no export exists, THE SYSTEM SHALL write `backups/factory-retire-<timestamp>.json` with every row, and log the counts.
+- **[REQ-498-002]** IF the export fails, THEN THE SYSTEM SHALL log a warning, keep the tables and continue starting.
+- **[REQ-498-003]** WHEN step 2 runs, THE SYSTEM SHALL drop a `factory_*` table only if it is empty or its rows are in an export file.
+- **[REQ-498-004]** New installs SHALL NOT create `factory_*` tables.
+
+## 3. Decisions
+
+| # | Decision | Recommendation |
+|---|----------|----------------|
+| D1 | Export format | **JSON per table** (readable; tiny volumes) |
+| D2 | Import back | **No importer** (no UI would read it) |
+
+## 4. Failing-tests-first plan
+
+pytest against a temp data dir:
+- with rows: export written, counts logged, tables kept (step 1);
+- export failure: startup continues;
+- step 2: drop only after export;
+- a fresh DB has no `factory_*` tables.
+
+Never run against live AppData.
+
+## 5. Runbook
+
+1. Copy a DB with seeded factory rows into a scratch data dir and start the scratch server.
+2. `backups/factory-retire-*.json` appears with the rows.
+3. Restart: no second export.
+4. On Jarvis, startup logs "0 rows, nothing to export".
