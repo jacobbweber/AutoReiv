@@ -292,6 +292,10 @@ describe('CARD-472 guard: chat.js call shapes', () => {
     expect(chatJs).toMatch(/onOpenArtifact:\s*openArtifactById/);
   });
 
+  it('REQ-472-003: a press in the message list lets the click land before the focused composer shrinks', () => {
+    expect(chatJs).toMatch(/pressRegions:\s*\[[^\]]*\bmessagesContainer\b[^\]]*\]/);
+  });
+
   it('REQ-472-001: the badge refresh no longer passes a bare session id', () => {
     expect(chatJs).not.toMatch(/refreshWorkbenchArtifactCountDirect\(\s*state\.activeSessionId\s*\)/);
   });
