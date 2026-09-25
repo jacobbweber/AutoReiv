@@ -69,6 +69,9 @@ describe('CARD-343 Real-time HITL Approval Surfacing', () => {
   });
 
   it('scrolls approval card into view on approval_required event during live turn', () => {
-    expect(chatJs).toMatch(/hitlApprovalCardEl\.scrollIntoView/);
+    // CARD-470: the inline card (with working Approve/Reject) is rendered by chat/hitl.js renderInlineHitlCard.
+    const hitlJs = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/hitl.js'), 'utf-8');
+    expect(chatJs).toMatch(/eventType === 'approval_required'\) \{\s*renderInlineHitlCard\(hitlCard, ev,/);
+    expect(hitlJs).toMatch(/export function renderInlineHitlCard[\s\S]*?cardEl\.scrollIntoView/);
   });
 });
