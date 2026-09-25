@@ -1,7 +1,7 @@
 ---
 id: CARD-488
 title: "Switching chats while your own reply is streaming keeps showing the old chat and blocks sending"
-status: In Review
+status: Done
 created: 2026-09-25
 branch: qa
 related:
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-488] Switching chats while your own reply is streaming keeps showing the old chat and blocks sending
 
-> **Status**: In Review (build 2026-09-25 ET on `feat/card-488-switch-during-own-reply`; D1-D7 accepted as recommended)
+> **Status**: Done (merged to qa 2026-09-25 ET; build 2026-09-25 ET on `feat/card-488-switch-during-own-reply`; D1-D7 accepted as recommended)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-485 build (scratch server, Playwright `scratch/c485_ownstream.cjs`). Re-reproduced on qa `2bd55bd0` with a real slow reply (`scratch/c488_ui.cjs`).
 > **Related**: CARD-485 (select path, busy state), CARD-486 (Stop), CARD-487 (live replay), CARD-154 (server work survives disconnect), follow-ups CARD-493 / CARD-494
@@ -253,3 +253,7 @@ CARD-486 Stop (`chat/stop.js`) cancels this tab's request and POSTs `/abort` for
 - The repro also confirms CARD-494: B's reply waited in the queue until A finished or was stopped.
 
 **Follow-ups:** no new gaps. CARD-493 (list markers) and CARD-494 (waiting hint) were confirmed by the repro.
+
+## Merge note (2026-09-25 ET)
+
+Jacob said **merge to qa**. Merged `feat/card-488-switch-during-own-reply` into qa with `--no-ff`; focused CARD-488/486/485 Vitest, pytest unit + integration and full smoke re-run on qa before push. Follow-ups: CARD-493 (list markers), CARD-494 (waiting hint).
