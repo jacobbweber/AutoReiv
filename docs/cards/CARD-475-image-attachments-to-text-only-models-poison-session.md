@@ -1,10 +1,10 @@
 ---
 id: CARD-475
 title: "Image attachments are sent to text-only models; one image breaks the whole chat session"
-status: Ready
+status: In Progress
 created: 2026-09-24
 updated: 2026-09-25
-branch: qa
+branch: feat/card-475-image-attachments-text-only
 related:
   - CARD-469
   - CARD-143
@@ -152,6 +152,8 @@ Attaching a picture must never break a chat. If the current model can't see imag
 - **D4: The 4 empty live rows.** **Leave the data alone**, and skip them at replay and render time. No migration: it is 4 rows, and skipping handles any future ones.
 - **D5: Poisoned live sessions.** **Heal automatically** through D3, no data change. The screenshot files stay on disk.
 - **D6: Notice wording.** **"This model can't view images, so it only saw the file name `<name>`. Switch to a vision model (e.g. gemma-4-26b-a4b) to include pictures."**
+
+**Jacob's answers (2026-09-25 7:32 AM ET):** `build`, all six recommendations accepted: D1 drop the image with a notice (vision helper stays CARD-480, off); D2 unknown models are text-only, one retry without images on a 'not multimodal' rejection, plus a per-model 'can view images' checkbox after Refresh Models; D3 never re-send earlier pictures, even to vision models; D4 leave the 4 empty live rows, skip them in history and the thread view, no migration; D5 poisoned sessions heal through D3; D6 the notice wording above, exactly.
 
 ## 4. Runbook (Jarvis, phone)
 
