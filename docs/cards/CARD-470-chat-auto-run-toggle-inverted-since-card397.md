@@ -1,7 +1,7 @@
 ---
 id: CARD-470
 title: "Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking"
-status: In Progress
+status: In Review
 created: 2026-09-24
 updated: 2026-09-24
 branch: feat/card-470-auto-run-toggle-fix
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-470] Chat Auto-run toggle is inverted since the CARD-397 split: unchecked means tools run without asking
 
-> **Status**: In Progress (Jacob said `build` 2026-09-24 11:52 PM ET; all recommendations D1-D5 accepted)
+> **Status**: In Review (built 2026-09-25 ~12:10 AM ET on `feat/card-470-auto-run-toggle-fix`; Jacob said `build` 2026-09-24 11:52 PM ET, D1-D5 accepted)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning. `git blame` puts the broken line on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET).
 > **Verified live-safely (2026-09-24 ~11:45 PM ET, qa `ae9c0a18`)**: on the scratch smoke server (`scripts/smoke_server.py --port 8766`, data wiped under `scratch/smoke_data`, never live AppData), with a fake tool-calling LLM and a Playwright probe that intercepted `/api/chat/stream`. The results are in section 1, Beat 2.
@@ -165,3 +165,62 @@ With Auto-run **off**, AutoReiv must stop and ask before any tool that needs app
 - `chat.js` stays at 1,045 lines or fewer (CARD-469 cap).
 - Ship before the other chat cards, because this is a safety bug.
 - **Until this ships:** leaving Auto-run **checked** actually means "ask". Unchecked means tools run without asking.
+
+---
+
+## 6. Build notes (2026-09-25 ET)
+
+**Commits** on `feat/card-470-auto-run-toggle-fix` (from local qa `e91a2bfb`, not pushed):
+- `577c7c2c` docs(cards): In Progress with decisions
+- `b316e4c1` test(chat): red tests
+- `8a544246` fix(chat): the fix
+- `d8cb119a` docs(changelog): Security entry
+- plus this In Review commit
+
+**What changed**
+- New `src/web/static/modules/studios/chat/runtime_toggles.js`:
+  - `setupRuntimeModeToggles(state, {...})` restores the choice, saves changes, keeps `state.approvalAutoRun` / `state.verifyEnabled` in sync and drives both chips.
+  - `resetSavedAutoRunOnce()` handles D2, using marker `autoreiv_approval_autorun_reset_470`.
+  - Storage errors fail safe to `ask`.
+- `chat.js`:
+  - L816 is now `approvalAutoRun: !!approvalToggle?.checked`.
+  - One import and one call were added. The scroll import was collapsed to one line.
+  - 1,043 lines (cap 1,045).
+- `index.html`:
+  - The Auto-run tooltip uses the D3 text.
+  - `#approvalBadge` is amber and reads "Auto-run ON", with its own tooltip.
+- Backend unchanged. Education follows the toggle through `state.approvalAutoRun` (REQ-470-006).
+
+**Red, then green**
+- On qa code, the Vitest suite failed to load (module missing). With only the new module present, 3 source/template contracts still failed against qa's `chat.js` and `index.html`.
+- On qa code, smoke TC-14..17 failed for the right reasons:
+  - TC-14: got `run`, expected `ask`
+  - TC-15: chip hidden
+  - TC-16: nothing saved
+  - TC-17: got `run` after a saved pre-fix `run`
+- All of them are green after the fix.
+
+**Proof**
+
+| Suite | Result |
+|---|---|
+| `chat_runtime_toggles_470.test.js` | 11/11 |
+| Vitest (full) | 825 passed, 5 failed (known CARD-456) |
+| Smoke | 17/17 |
+| Gate tests, unchanged (`test_tool_policy_gate.py`, `test_tool_policy_kernel_gate.py`, `kernel/test_hitl_kernel_gate.py`) | 15/15 |
+| Broad `tests/unit` | 2015 passed, 11 skipped, 1 failed (known CARD-454) |
+| Platform-pack suites | 124 passed, 5 skipped |
+| ESLint | 4 errors / 5 warnings (unchanged baseline); new files clean |
+| Honesty gate | green |
+
+Tests ran only against scratch data. Live AppData was not touched.
+
+**Scavenger Pass**
+- `readLastApprovalAutoRun` / `writeLastApprovalAutoRun` are live again.
+- The old tooltip text is gone from `src`.
+- The negated `.checked` is gone. REQ-470-008 guards `chat.js`, `stream.js` and `education.js`.
+- Noted, not changed: `coupleGoalAndVerify` in `chat/stream.js` is used only by tests (it was already unused before the split, so it is not a CARD-397 loss). It is out of scope.
+- The Auto-run ON chip and the multi-phase `#goalBadge` are both amber. They are told apart by their text.
+
+**Runbook on Jarvis**: section 3.
+
