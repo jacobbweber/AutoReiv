@@ -1,7 +1,7 @@
 ---
 id: CARD-476
 title: "First Chat message with no active session fails with HTTP 422 (session auto-create lost in the CARD-397 split)"
-status: Ready
+status: Done
 created: 2026-09-24
 branch: qa
 related:
@@ -10,6 +10,7 @@ related:
   - CARD-473
   - CARD-466
   - CARD-484
+  - CARD-485
 labels:
   - type:bug
   - area:chat
@@ -19,7 +20,7 @@ labels:
 
 # [CARD-476] First Chat message with no active session fails with HTTP 422 (session auto-create lost in the CARD-397 split)
 
-> **Status**: Ready (refined 2026-09-25 ET, planning only)
+> **Status**: Done (merged to qa 2026-09-25 ET per Jacob's "merge to qa")
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 reproduction on the scratch smoke server. With no active session (fresh data), pressing Enter produced `POST /api/chat/stream` **422 Unprocessable Entity**.
 > **Related**: CARD-397 (split), CARD-469, CARD-473 (phone catch-up), CARD-466 (New chat into + Options), CARD-484 (typed text lost on failed send)
@@ -159,3 +160,39 @@ Reproduced again on the scratch server. The page was loaded with `localStorage.a
 Jacob's CARD-470 live test did **not** hit this: both of his sends had fresh sessions.
 
 > *Superseded by §1 Beat 2 (2026-09-25 planning): the stored key was never read, not even pre-split; newest wins. The null send came from the load race or an empty list.*
+
+---
+
+## Build notes (2026-09-25 ET)
+
+**Branch:** `feat/card-476-session-auto-create-restore` off local qa `975d8ef0`. Commits: `c55bc806` (In Progress), `f901d0a7` (failing tests), `9600d2b3` (fix), then this docs/CHANGELOG commit.
+
+**What changed**
+- `chat/session_guard.js` (new): `ensureActiveSession` (waits for in-flight loads, including an agent switch, then creates at most one session via single-flight; toast and keep text on failure), `pickSessionToOpen`, `singleFlight`, `trackSessionsLoad`, `LAST_SESSION_KEY`.
+- `chat.js` (1,036 lines, cap 1,045): wraps `loadSessions` in `trackSessionsLoad`, passes `createNewSessionFn`, single-flights `createNewSession` per agent, hands `ensureSession` to the composer and the paperclip, tracks the startup `loadAgents()`. Uses `LAST_SESSION_KEY`; dropped the redundant key write in `openDeveloperSession` (its `selectSession` writes it).
+- `chat/chrome.js`: `loadSessions` opens the stored chat if it is in the list, else newest, and re-renders the list so the open chat is highlighted. `createNewSession` fails on non-2xx and renders the list, so an auto-created chat shows immediately (found in the repro: desktop list stayed empty after the auto-create).
+- `chat/composer.js`: the submit guard runs before the composer is cleared, and ignores a second Enter while the session is being made. `onBeforeAttach` is awaited.
+
+**Beyond the plan:** list re-render after create/select; the guard also waits when a load is in flight with a stale id (agent switch); Vitest 10-12 added for these (12 total).
+
+**Tests (vs known failures)**
+| Suite | Result | Known |
+|---|---|---|
+| Vitest CARD-476 | 12/12 pass (9 red on qa first) | |
+| Smoke TC-20..23 desktop + phone | 8/8 pass (6 red on qa; TC-23 fallback green on qa by design) | |
+| Smoke full | 27/27 pass | TC-7 flake (CARD-481) did not show |
+| Vitest full | 860 pass, 5 fail | CARD-456 (5) |
+| ESLint | 4 errors, 5 warnings (baseline identical; new files clean) | CARD-456 |
+| pytest tests/unit | 2041 pass, 11 skip, 1 fail | CARD-454 |
+| pytest tests/integration | 107 pass | |
+| ruff | 9 findings (baseline) | CARD-454 |
+
+**Repro (`scratch/c476_repro.cjs`, fresh `scripts/smoke_server.py --port 8767`, no AppData):** fresh desktop and phone: one chat auto-created and shown, send posts its id, 200, no toast. Stored older chat on desktop and phone: the older chat opens and the send uses it. Stored missing id: newest. Immediate send: real id, not null. Direct API null is still 422 (D3). Agent switch to an agent with no chats (`tutor`) creates one.
+
+**Follow-up:** CARD-485 (clicking a chat doesn't move the highlight, job strip/running status on select lost in the split).
+
+---
+
+## Merge note (2026-09-25 ET)
+
+Jacob said **merge to qa**. `feat/card-476-session-auto-create-restore` merged `--no-ff` into qa and pushed; branch deleted. Post-merge test results are in the merge report. Follow-up: CARD-485.

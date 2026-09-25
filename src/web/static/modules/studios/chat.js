@@ -28,6 +28,7 @@ import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD
 import { populateTrainAgentTargetOptions } from './chat/training.js';
 import { setupRuntimeModeToggles } from './chat/runtime_toggles.js'; // CARD-470
 import { setupChatScroll } from './chat/scroll.js';
+import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
 
 import {
   buildChatStreamPayload,
@@ -599,15 +600,18 @@ export function initChatStudio(state, callbacks = {}) {
 
   // Sessions and Messages Management via Submodules
   async function loadSessions() {
-    await loadSessionsDirect(state, {
+    await trackSessionsLoad(state, loadSessionsDirect(state, {
       sessionList,
       onSelectSession: selectSession,
+      createNewSessionFn: createNewSession, // CARD-476: an agent with no chats gets one (pre-split)
       showToastFn: showToast,
-    });
+    }));
   }
 
+  const ensureSession = () => ensureActiveSession(state, { createNewSession, showToastFn: showToast });
+
   async function createNewSession() {
-    await createNewSessionDirect(state, {
+    await singleFlight(state, 'sessionCreating', () => createNewSessionDirect(state, {
       sessionList,
       messagesContainer,
       onSelectSession: selectSession,
@@ -616,13 +620,13 @@ export function initChatStudio(state, callbacks = {}) {
       resetInlineJobChrome,
       refreshPendingHitl,
       refreshWorkbenchArtifactCount,
-    });
+    }), state.selectedAgentId);
   }
 
   async function selectSession(sessionId) {
     if (!sessionId) return;
     state.activeSessionId = sessionId;
-    storageSet('autoreiv_active_session_id', sessionId);
+    storageSet(LAST_SESSION_KEY, sessionId);
     resetJobPhaseStrip();
     resetInlineJobChrome();
     await loadMessages(sessionId);
@@ -679,7 +683,7 @@ export function initChatStudio(state, callbacks = {}) {
   });
 
   // Composer paperclip + Enter-to-send on the real template IDs [CARD-469]
-  wireComposer(state, { chatForm, promptInput, showToastFn: showToast, onBeforeAttach: () => closeChatOptionsDrawer() });
+  wireComposer(state, { chatForm, promptInput, showToastFn: showToast, onBeforeAttach: () => { closeChatOptionsDrawer(); return ensureSession(); } });
   setupRuntimeModeToggles(state, { approvalToggle, verifyToggle, approvalBadge: $('approvalBadge'), verifyBadge: $('verifyBadge') }); // CARD-470
 
   // Train Modal [CARD-119, CARD-165, CARD-306]
@@ -933,6 +937,7 @@ export function initChatStudio(state, callbacks = {}) {
     stopBtn,
     state,
     onExecuteTurn: executeChatTurn,
+    ensureSession,
     onOpenTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
     onCancelStream: () => {
       if (activeAbortController) {
@@ -961,7 +966,6 @@ export function initChatStudio(state, callbacks = {}) {
     updateEngineSelectorUi('developer');
     updateActiveAgentHeader();
     state.activeSessionId = id;
-    storageSet('autoreiv_active_session_id', id);
     await loadSessions();
     await selectSession(id);
     const needle = String(composerText || '').trim().slice(0, 80);
@@ -985,7 +989,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   // Initial startup
   pendingHitl.startPendingHitlPoll();
-  loadAgents();
+  trackSessionsLoad(state, loadAgents()); // CARD-476: an early send waits for the first load
   syncActiveProjectIndicator();
 
   return {

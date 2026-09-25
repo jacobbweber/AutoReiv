@@ -678,4 +678,99 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(shown).toHaveText(notice);
     await expect(page.locator('#messagesContainer .chat-stream-error')).toHaveCount(0);
   });
+
+  // CARD-476: a chat always has a session; the last one on this device is restored.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    async function openChat476(page, { agentId = null, storedSessionId = null } = {}) {
+      const posts = [];
+      await page.route('**/api/chat/stream', async (route) => {
+        posts.push(route.request().postDataJSON());
+        await route.fulfill({
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          body: 'event: token\ndata: {"text": "ok"}\n\nevent: turn_done\ndata: {"content": "ok"}\n\n',
+        });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.addInitScript(({ a, s }) => {
+        try {
+          if (a) localStorage.setItem('autoreiv_active_agent_id', a);
+          if (s) localStorage.setItem('autoreiv_active_session_id', s);
+        } catch { /* ignore */ }
+      }, { a: agentId, s: storedSessionId });
+      // Wait for a chat to be opened (its messages load) so restore, not the load race, is tested.
+      const opened = page.waitForResponse((r) => /\/api\/sessions\/[^/]+\/messages/.test(r.url()));
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      if (storedSessionId) await opened;
+      return posts;
+    }
+
+    async function seedSessions476(request, agentId) {
+      const older = await (await request.post('/api/sessions', { data: { agent_id: agentId, title: 'older 476' } })).json();
+      await new Promise((r) => setTimeout(r, 1100));
+      const newer = await (await request.post('/api/sessions', { data: { agent_id: agentId, title: 'newer 476' } })).json();
+      return { older, newer };
+    }
+
+    async function send476(page, text = 'hi') {
+      const input = page.locator('#promptInput');
+      await input.click();
+      await input.type(text);
+      await input.press('Enter');
+    }
+
+    test(`TC-20 (${vp.name}): an agent with no chats gets one, and the first message sends [CARD-476]`, async ({ page, request }) => {
+      const agentId = `smoke-476-${vp.name}-${Date.now()}`;
+      const made = await request.post('/api/agents', { data: { id: agentId, name: `Smoke 476 ${vp.name}`, system_prompt: 'Smoke test agent.' } });
+      expect(made.ok()).toBeTruthy();
+      const posts = await openChat476(page, { agentId });
+      await expect.poll(async () => (await (await request.get(`/api/sessions?agent_id=${agentId}`)).json()).length).toBe(1);
+      const [sess] = await (await request.get(`/api/sessions?agent_id=${agentId}`)).json();
+      await send476(page);
+      await expect.poll(() => posts.length).toBe(1);
+      expect(posts[0].session_id).toBe(sess.id);
+      await expect(page.getByText('HTTP 422')).toHaveCount(0);
+    });
+
+    test(`TC-21 (${vp.name}): reload reopens this device's last chat, not the newest [CARD-476]`, async ({ page, request }) => {
+      const { older } = await seedSessions476(request, 'autoreiv');
+      const posts = await openChat476(page, { agentId: 'autoreiv', storedSessionId: older.id });
+      await send476(page);
+      await expect.poll(() => posts.length).toBe(1);
+      expect(posts[0].session_id).toBe(older.id);
+      expect(await page.evaluate(() => localStorage.getItem('autoreiv_active_session_id'))).toBe(older.id);
+    });
+
+    test(`TC-22 (${vp.name}): a send right after load never posts a null session [CARD-476]`, async ({ page, request }) => {
+      await seedSessions476(request, 'autoreiv');
+      const posts = [];
+      await page.route('**/api/chat/stream', async (route) => {
+        posts.push(route.request().postDataJSON());
+        await route.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: 'event: turn_done\ndata: {"content": "ok"}\n\n' });
+      });
+      // Hold the session list so the send is sure to race the load.
+      await page.route('**/api/sessions?agent_id=*', async (route) => {
+        await new Promise((r) => setTimeout(r, 1500));
+        await route.continue();
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      await send476(page, 'fast');
+      await expect.poll(() => posts.length, { timeout: 10000 }).toBe(1);
+      expect(typeof posts[0].session_id).toBe('string');
+      expect(posts[0].session_id.length).toBeGreaterThan(0);
+    });
+
+    test(`TC-23 (${vp.name}): a stored chat that no longer exists falls back to the newest [CARD-476]`, async ({ page, request }) => {
+      const { newer } = await seedSessions476(request, 'autoreiv');
+      const posts = await openChat476(page, { agentId: 'autoreiv', storedSessionId: 'gone-476-session' });
+      await send476(page);
+      await expect.poll(() => posts.length).toBe(1);
+      expect(posts[0].session_id).toBe(newer.id);
+    });
+  }
 });

@@ -12,6 +12,12 @@
 
 ### Fixed
 
+- **CARD-476 The first Chat message no longer fails with HTTP 422, and each device reopens its last chat**: Since the CARD-397 split, an agent with no chats had no session. The empty-list create in `chat/chrome.js` was never wired, and the send path had no guard, so the first message posted `session_id: null` and got a 422 ("Chat turn failed: Stream error: HTTP 422"). Sending before the chat list finished loading did the same. Now:
+  - `chat.js` passes `createNewSessionFn` again, so an agent with no chats gets one on load and on agent switch. The new chat shows in the list right away.
+  - New `chat/session_guard.js` `ensureActiveSession()` runs before every send and paperclip upload. It waits for any in-flight load (including an agent switch), creates at most one session (single-flight), and if that fails it doesn't send, shows "Couldn't start a new chat", and keeps the typed text. The backend stays strict (a null `session_id` is still 422).
+  - On load, the chat saved in `autoreiv_active_session_id` (per device) reopens when it is in the current agent's list; otherwise the newest opens. The key was written but never read before.
+  - `createNewSession` now treats a non-2xx reply as a failure.
+  - Contracts: `tests/unit/frontend/chat_session_guard_476.test.js`, smoke TC-20..TC-23 (desktop + phone) ([CARD-476]).
 - **CARD-475 An image no longer breaks a chat session**: Sending a screenshot to the default vLLM model (`nemotron-3.5-lightning`, text-only) made the Spark gateway answer HTTP 200 with a bare JSON error line (`... is not a multimodal model`). The stream parser skipped it and the kernel saved an empty assistant row. The adapters also re-read every `Local Path:` image in the whole history on every turn, so every later message in that chat failed the same way. Now:
   - The gateway (`src/application/gateway/attachment_images.py`) attaches image bytes only for the latest user message, and only when the model can view images. Earlier pictures are never re-sent, even to vision models (D3). The adapters no longer scan history. Chats that were stuck heal on the next message, with no data change (D5).
   - A text-only model gets a short note instead of the bytes, and the user sees an `attachment_notice` under the reply, worded exactly: "This model can't view images, so it only saw the file name `<name>`. Switch to a vision model (e.g. gemma-4-26b-a4b) to include pictures." (D1, D6).

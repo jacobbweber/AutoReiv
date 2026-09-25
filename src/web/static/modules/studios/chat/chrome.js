@@ -10,6 +10,7 @@ import { filterToolsList, formatContextBudgetBadge, querySessionContext } from '
 import { loadJourneyTimeline } from './journey.js';
 import { openObserveJob } from '../observability.js';
 import { setupQuickPromptPicker } from './quick_prompts.js';
+import { pickSessionToOpen, readStoredSessionId } from './session_guard.js';
 
 /** CARD-408: View Job sits beside Copy on the Chat job strip. */
 export const CHAT_JOB_VIEW_BTN_SELECTOR = '.chat-job-chrome-view-btn';
@@ -119,6 +120,7 @@ export async function loadSessions(arg1 = {}, arg2 = {}) {
   const selectSessionFn = opts.selectSessionFn || opts.onSelectSession || null;
   const createNewSessionFn = opts.createNewSessionFn || null;
   const fetchFn = opts.fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
+  const storedId = opts.storedSessionId !== undefined ? opts.storedSessionId : readStoredSessionId();
 
   try {
     const exclude = state.activeSessionId ? `&exclude_session_id=${encodeURIComponent(state.activeSessionId)}` : '';
@@ -139,8 +141,10 @@ export async function loadSessions(arg1 = {}, arg2 = {}) {
     if (stillThere || state.isStreaming) {
       return;
     }
-    if (state.sessions && state.sessions.length > 0) {
-      if (typeof selectSessionFn === 'function') await selectSessionFn(state.sessions[0].id);
+    const openId = pickSessionToOpen(state.sessions, storedId); // CARD-476: this device's last chat, else newest
+    if (openId) {
+      if (typeof selectSessionFn === 'function') await selectSessionFn(openId);
+      renderSessionList({ sessionList, sessions: state.sessions, activeSessionId: state.activeSessionId, onSelectSession: selectSessionFn });
     } else {
       if (typeof createNewSessionFn === 'function') await createNewSessionFn();
     }
@@ -165,10 +169,13 @@ export async function createNewSession(arg1 = {}, arg2 = {}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agent_id: state.selectedAgentId || 'autoreiv', title }),
     });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`); // CARD-476: a failed create leaves no session
     const sess = await res.json();
     if (!Array.isArray(state.sessions)) state.sessions = [];
     state.sessions.unshift(sess);
     if (typeof selectSessionFn === 'function') await selectSessionFn(sess.id);
+    // CARD-476: show the new chat in the list right away (auto-created or New chat).
+    renderSessionList({ sessionList: opts.sessionList || null, sessions: state.sessions, activeSessionId: state.activeSessionId, onSelectSession: selectSessionFn });
     return sess;
   } catch (err) {
     console.error('[AutoReiv UI] Failed to create session:', err);
