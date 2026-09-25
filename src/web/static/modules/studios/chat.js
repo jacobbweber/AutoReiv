@@ -648,7 +648,7 @@ export function initChatStudio(state, callbacks = {}) {
     columnEl: $('chatMessagesViewport')?.parentElement || null,
     messagesContainer,
     composerRegion: $('chatInputWrapper'),
-    pressRegions: [$('pendingHitlHost')], // CARD-470
+    pressRegions: [$('pendingHitlHost'), messagesContainer], // CARD-470; CARD-472: View Full Report / Workbench clicks
     isStickToBottom,
   });
 
