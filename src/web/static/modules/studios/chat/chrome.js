@@ -9,6 +9,7 @@ import { copyToClipboard } from '../../utils/clipboard.js';
 import { filterToolsList, formatContextBudgetBadge, querySessionContext } from './stream.js';
 import { loadJourneyTimeline } from './journey.js';
 import { openObserveJob } from '../observability.js';
+import { setupQuickPromptPicker } from './quick_prompts.js';
 
 /** CARD-408: View Job sits beside Copy on the Chat job strip. */
 export const CHAT_JOB_VIEW_BTN_SELECTOR = '.chat-job-chrome-view-btn';
@@ -306,66 +307,6 @@ export function toggleToolsModal({
   }
 }
 
-export function renderQuickPrompts({
-  chatPromptsModalList,
-  quickPrompts,
-  onSelectPrompt,
-} = {}) {
-  if (!chatPromptsModalList) return;
-  if (!Array.isArray(quickPrompts) || quickPrompts.length === 0) {
-    chatPromptsModalList.innerHTML = `
-      <div class="text-center py-8 text-slate-500 text-xs">
-        <i data-lucide="sparkles" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
-        <p>No quick prompts configured.</p>
-      </div>
-    `;
-    safeCreateIcons();
-    return;
-  }
-
-  chatPromptsModalList.innerHTML = quickPrompts
-    .map(
-      (p, idx) => `
-      <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-brand-500/50 cursor-pointer transition space-y-1 group" data-prompt-idx="${idx}">
-        <div class="flex items-center justify-between">
-          <span class="font-semibold text-xs text-slate-200 group-hover:text-brand-300 transition">${escapeHtml(p.title || 'Quick Prompt')}</span>
-          <span class="text-[10px] text-slate-500 font-mono uppercase">${escapeHtml(p.category || 'General')}</span>
-        </div>
-        <p class="text-xs text-slate-400 leading-relaxed line-clamp-2">${escapeHtml(p.prompt || p.content || '')}</p>
-      </div>
-    `
-    )
-    .join('');
-
-  chatPromptsModalList.querySelectorAll('[data-prompt-idx]').forEach((el) => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.getAttribute('data-prompt-idx'), 10);
-      const item = quickPrompts[idx];
-      if (item && typeof onSelectPrompt === 'function') {
-        onSelectPrompt(item.prompt || item.content || '');
-      }
-    });
-  });
-  safeCreateIcons();
-}
-
-export async function loadQuickPrompts({
-  chatPromptsModalList,
-  onSelectPrompt,
-  fetchFn = null,
-} = {}) {
-  const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
-  try {
-    const res = await fn('/api/prompts');
-    if (!res.ok) return;
-    const data = await res.json();
-    const list = Array.isArray(data) ? data : (data?.prompts || []);
-    renderQuickPrompts({ chatPromptsModalList, quickPrompts: list, onSelectPrompt });
-  } catch (err) {
-    console.warn('[AutoReiv UI] Failed to load quick prompts:', err);
-  }
-}
-
 export function renderChatDebugTab({
   chatDebugContent,
   activeDebugData,
@@ -468,6 +409,15 @@ export async function loadChatDebug(sessionId, {
   }
 }
 
+/** Close the Chat options drawer from outside setupChatChrome (paperclip upload) [CARD-469]. */
+export function closeChatOptionsDrawer(getEl = $) {
+  toggleChatOptionsDrawer(false, {
+    chatOptionsDrawer: getEl('chatOptionsDrawer'),
+    chatOptionsToggleBtn: getEl('chatOptionsToggleBtn'),
+    chatOptionsToggleIcon: getEl('chatOptionsToggleIcon'),
+  });
+}
+
 export function setupChatChrome(state, elements = {}, callbacks = {}) {
   const getEl = (key) => elements[key] || $(key);
   const chatOptionsToggleBtn = getEl('chatOptionsToggleBtn');
@@ -485,10 +435,6 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
   const chatToolsModalTitle = getEl('chatToolsModalTitle');
   const chatToolsModalBadge = getEl('chatToolsModalBadge');
   const chatToolsSearchInput = getEl('chatToolsSearchInput');
-  const chatPromptCatalogBtn = getEl('chatPromptCatalogBtn');
-  const chatClosePromptsModalBtn = getEl('chatClosePromptsModalBtn');
-  const chatPromptsQuickPicker = getEl('chatPromptsQuickPicker');
-  const chatPromptsModalList = getEl('chatPromptsModalList');
   const promptInput = getEl('promptInput');
   const chatShowJourneyBtn = getEl('chatShowJourneyBtn');
   const chatJourneyDrawer = getEl('chatJourneyDrawer');
@@ -579,22 +525,22 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
     });
   }
 
-  if (chatPromptCatalogBtn) {
-    chatPromptCatalogBtn.addEventListener('click', () => {
-      loadQuickPrompts({
-        chatPromptsQuickPicker,
-        chatPromptsModalList,
-        promptInput,
-        showToastFn: showToast,
-      });
-    });
-  }
-
-  if (chatClosePromptsModalBtn) {
-    chatClosePromptsModalBtn.addEventListener('click', () => {
-      if (chatPromptsQuickPicker) chatPromptsQuickPicker.classList.add('hidden');
-    });
-  }
+  // Quick Prompts picker on the real template IDs [CARD-152, CARD-469]
+  const closeDrawer = () => toggleChatOptionsDrawer(false, { chatOptionsDrawer, chatOptionsToggleBtn, chatOptionsToggleIcon });
+  setupQuickPromptPicker({
+    chatPromptsBtn: getEl('chatPromptsBtn'),
+    chatPromptsQuickPicker: getEl('chatPromptsQuickPicker'),
+    chatPromptsQuickSearch: getEl('chatPromptsQuickSearch'),
+    chatPromptsQuickList: getEl('chatPromptsQuickList'),
+    chatManagePromptsBtn: getEl('chatManagePromptsBtn'),
+    promptInput,
+    showToastFn: showToast,
+    onPicked: closeDrawer,
+    onManage: () => {
+      closeDrawer();
+      $('navPrompts')?.click();
+    },
+  });
 
   if (chatShowJourneyBtn) {
     chatShowJourneyBtn.addEventListener('click', () => {

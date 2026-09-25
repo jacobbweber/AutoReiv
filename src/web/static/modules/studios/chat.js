@@ -59,8 +59,8 @@ import {
 } from './chat/render.js';
 
 import {
-  setupComposerAttachments,
-  setupComposerKeyboard,
+  wireComposer,
+  clearStagedAttachments,
   setupComposerControls,
   setupComposerSizing,
   setComposerText,
@@ -70,6 +70,7 @@ import {
   loadSessions as loadSessionsDirect,
   createNewSession as createNewSessionDirect,
   setupChatChrome,
+  closeChatOptionsDrawer,
   syncChatJobViewButton,
   bindChatJobViewShortcut,
 } from './chat/chrome.js';
@@ -685,11 +686,8 @@ export function initChatStudio(state, callbacks = {}) {
     isStickToBottom,
   });
 
-  // Composer attachments and keyboard
-  setupComposerAttachments(state, { showToastFn: showToast });
-  setupComposerKeyboard(promptInput, chatForm, () => {
-    if (chatForm) chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
-  });
+  // Composer paperclip + Enter-to-send on the real template IDs [CARD-469]
+  wireComposer(state, { chatForm, promptInput, showToastFn: showToast, onBeforeAttach: () => closeChatOptionsDrawer() });
 
   // Train Modal [CARD-119, CARD-165, CARD-306]
   setupTrainModal(state, {
@@ -814,7 +812,7 @@ export function initChatStudio(state, callbacks = {}) {
         resume: options.isResume,
         selfVerify: verifyToggle ? verifyToggle.checked : false,
         approvalAutoRun: approvalToggle ? !approvalToggle.checked : false,
-        attachments: state.stagedAttachments || [],
+        attachments: [...(state.stagedAttachments || [])],
       });
 
       const response = await fetch('/api/chat/stream', {
@@ -826,9 +824,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       if (!response.ok) throw new Error(`Stream error: HTTP ${response.status}`);
 
-      state.stagedAttachments = [];
-      const previewList = $('chatAttachmentsPreviewList');
-      if (previewList) previewList.innerHTML = '';
+      clearStagedAttachments(state, $('chatAttachmentsPreviewList'));
 
       await consumeChatStream(response, {
         onToken: (text) => {

@@ -1,6 +1,6 @@
 /**
  * Chat Studio: Composer & Attachments Submodule [CARD-143, CARD-235, CARD-397]
- * Manages textarea keybindings, sizing [CARD-465], staged attachments, drop/paste, and send/stop controls.
+ * Manages textarea keybindings [CARD-469], sizing [CARD-465], staged attachments, and send/stop controls.
  */
 
 import { escapeHtml, formatBytes } from '../../utils/formatters.js';
@@ -238,12 +238,16 @@ export function setupComposerAttachments({
   chatAttachBtn,
   chatFileInput,
   chatAttachmentsPreviewList,
-  stagedAttachments,
+  stagedAttachments = null,
+  getStagedAttachments = null,
   getSessionId = () => null,
   showToastFn = null,
   onBeforeAttach = null,
+  fetchFn = null,
 } = {}) {
   if (!chatAttachBtn || !chatFileInput) return;
+  // Resolve the list on every use so a caller that clears/replaces it never strands uploads [CARD-469].
+  const staged = () => (typeof getStagedAttachments === 'function' ? getStagedAttachments() : stagedAttachments);
 
   chatAttachBtn.addEventListener('click', () => {
     chatFileInput.click();
@@ -256,7 +260,8 @@ export function setupComposerAttachments({
 
     for (const file of files) {
       try {
-        const uploaded = await uploadStagedFile(file, getSessionId());
+        const uploaded = await uploadStagedFile(file, getSessionId(), fetchFn);
+        const stagedAttachments = staged();
         stagedAttachments.push({
           id: uploaded.id,
           filename: uploaded.filename,
@@ -280,23 +285,62 @@ export function setupComposerAttachments({
   });
 }
 
+/**
+ * Enter sends, Shift+Enter is a newline, on every device including phones [CARD-469 D1].
+ * Enter that confirms an IME composition is left alone; Enter mid-stream is swallowed [D2].
+ */
 export function setupComposerKeyboard({
   promptInput,
   chatForm,
+  isStreaming = () => false,
 } = {}) {
   if (!promptInput) return;
   promptInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (chatForm) {
-        if (typeof chatForm.requestSubmit === 'function') {
-          chatForm.requestSubmit();
-        } else {
-          chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
-        }
-      }
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    if (e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    if (isStreaming() || !chatForm) return;
+    if (typeof chatForm.requestSubmit === 'function') {
+      chatForm.requestSubmit();
+    } else {
+      const evt = typeof Event === 'function' ? new Event('submit', { cancelable: true }) : { type: 'submit' };
+      chatForm.dispatchEvent(evt);
     }
   });
+}
+
+/** Clear staged attachments in place (keeps the array identity the upload handler reads) [CARD-469]. */
+export function clearStagedAttachments(state, chatAttachmentsPreviewList = null) {
+  if (!state) return;
+  if (Array.isArray(state.stagedAttachments)) state.stagedAttachments.length = 0;
+  else state.stagedAttachments = [];
+  renderStagedAttachments({ chatAttachmentsPreviewList, stagedAttachments: state.stagedAttachments });
+}
+
+/**
+ * Wire the composer's paperclip and Enter-to-send from the real template IDs [CARD-469].
+ * Replaces the positional calls the CARD-397 split left in chat.js, which wired nothing.
+ */
+export function wireComposer(state, {
+  getEl = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null),
+  chatForm = null,
+  promptInput = null,
+  showToastFn = null,
+  onBeforeAttach = null,
+  fetchFn = null,
+} = {}) {
+  if (!Array.isArray(state.stagedAttachments)) state.stagedAttachments = [];
+  setupComposerAttachments({
+    chatAttachBtn: getEl('chatAttachBtn'),
+    chatFileInput: getEl('chatFileInput'),
+    chatAttachmentsPreviewList: getEl('chatAttachmentsPreviewList'),
+    getStagedAttachments: () => state.stagedAttachments,
+    getSessionId: () => state.activeSessionId || null,
+    showToastFn,
+    onBeforeAttach,
+    fetchFn,
+  });
+  setupComposerKeyboard({ promptInput, chatForm, isStreaming: () => !!state.isStreaming });
 }
 
 export function setupComposerControls({
@@ -312,7 +356,7 @@ export function setupComposerControls({
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!promptInput) return;
+      if (!promptInput || state.isStreaming) return;
       const text = promptInput.value.trim();
       if (!text && (!state.stagedAttachments || state.stagedAttachments.length === 0)) return;
 
