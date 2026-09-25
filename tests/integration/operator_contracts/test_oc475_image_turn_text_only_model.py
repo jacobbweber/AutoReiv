@@ -26,9 +26,7 @@ import pytest
 from src.domain.gateway.models import ChatMessage, Role
 from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
-PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
-)
+PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
 TEXT_ONLY = "nemotron-3.5-lightning"
 VISION = "gemma-4-26b-a4b"
 D6 = (
@@ -73,9 +71,10 @@ class FakeSpark:
                 )
                 model = payload.get("model", "")
                 if images and model != VISION:
-                    body = json.dumps(
-                        {"error": {"message": f"{model} is not a multimodal model", "code": 400}}
-                    ).encode() + b"\n"
+                    body = (
+                        json.dumps({"error": {"message": f"{model} is not a multimodal model", "code": 400}}).encode()
+                        + b"\n"
+                    )
                 else:
                     text = f"Reply from {model} (images seen: {images})"
                     frames = [
@@ -251,7 +250,9 @@ def test_session_poisoned_before_the_fix_answers_hi_and_hides_empty_rows(spark_c
     assert not [d for e, d in events if e == "error"]
 
     thread = client.get(f"/api/sessions/{sid}/messages").json()
-    assert not [m for m in thread if m["role"] == "assistant" and not (m["content"] or "").strip() and not m["tool_calls"]]
+    assert not [
+        m for m in thread if m["role"] == "assistant" and not (m["content"] or "").strip() and not m["tool_calls"]
+    ]
     assert thread[-1]["content"].startswith(f"Reply from {TEXT_ONLY}")
 
 
@@ -266,15 +267,21 @@ def test_discover_reports_vision_and_saves_provider_metadata(spark_client):
 
     res = client.post("/api/settings/model-capabilities", json={"model_id": f"vllm/{TEXT_ONLY}", "vision": True})
     assert res.status_code == 200
-    models = {m["name"]: m for m in client.get(
-        "/api/models/discover", params={"provider_id": "vllm", "host_url": spark.url}
-    ).json()["models"]}
+    models = {
+        m["name"]: m
+        for m in client.get("/api/models/discover", params={"provider_id": "vllm", "host_url": spark.url}).json()[
+            "models"
+        ]
+    }
     assert models[TEXT_ONLY]["can_view_images"] is True
     assert models[TEXT_ONLY]["vision_source"] == "override"
 
     res = client.post("/api/settings/model-capabilities", json={"model_id": f"vllm/{TEXT_ONLY}", "vision": None})
     assert res.status_code == 200
-    models = {m["name"]: m for m in client.get(
-        "/api/models/discover", params={"provider_id": "vllm", "host_url": spark.url}
-    ).json()["models"]}
+    models = {
+        m["name"]: m
+        for m in client.get("/api/models/discover", params={"provider_id": "vllm", "host_url": spark.url}).json()[
+            "models"
+        ]
+    }
     assert models[TEXT_ONLY]["vision_source"] == "default"

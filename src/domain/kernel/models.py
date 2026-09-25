@@ -183,6 +183,7 @@ class KernelEventType(str, Enum):
     TURN_END = "turn_end"
     REACT_STATE = "react_state"
     AUTO_TRAIN_PROGRESS = "auto_train_progress"
+    NOTICE = "notice"
     ERROR = "error"
 
 
@@ -197,5 +198,8 @@ class KernelEvent(BaseModel):
     react: Optional[Dict[str, Any]] = Field(default=None, description="Named ReAct overlay payload [REQ-KERNEL-002]")
     auto_train: Optional[Dict[str, Any]] = Field(
         default=None, description="In-flight auto-training synthesis progress [REQ-FACT-024]"
+    )
+    notice: Optional[Dict[str, Any]] = Field(
+        default=None, description="Operator notice payload, e.g. attachment_notice [CARD-475]"
     )
     is_finished: bool = Field(default=False, description="True when complete")

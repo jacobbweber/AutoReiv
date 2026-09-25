@@ -15,17 +15,22 @@ from src.application.kernel.context_compactor import (
     resolve_max_tool_chars,
 )
 from src.application.kernel.cycle_detector import CycleDetector
+from src.application.kernel.empty_reply import (
+    EMPTY_REPLY_MESSAGE,
+    is_empty_reply,
+    skip_empty_assistant_rows,
+)
 from src.application.kernel.hitl_engine import HITLApprovalEngine
+from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
 from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
     calculate_token_attribution,
 )
-from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
 from src.application.telemetry.collector import TelemetryCollector
-from src.domain.gateway.errors import RateLimitError
+from src.domain.gateway.errors import EmptyModelReplyError, RateLimitError
 from src.domain.gateway.models import (
     ChatMessage,
     CompletionRequest,
@@ -905,7 +910,8 @@ class AgentKernel:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
-        history = list(self.state_store.get_messages(session_id=session_id))
+        # CARD-475 [REQ-475-006]: empty assistant rows from failed streams are not replayed.
+        history = skip_empty_assistant_rows(self.state_store.get_messages(session_id=session_id))
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
@@ -1094,6 +1100,13 @@ class AgentKernel:
 
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
+                if is_empty_reply(assistant_msg.content, None):
+                    # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
+                    self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                    self._ace_flush_failed_turn(
+                        session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
+                    )
+                    raise EmptyModelReplyError(EMPTY_REPLY_MESSAGE, provider_id=provider_name)
                 user_req_text = user_content or ""
                 if not user_req_text and history:
                     for hm in reversed(history):
@@ -1280,7 +1293,9 @@ class AgentKernel:
             "job_id": job_id,
             "assigned_agent_id": agent.id,
         }
-        history = self.state_store.get_messages(session_id=session_id)
+        # CARD-475 [REQ-475-006]: empty assistant rows from failed streams are not replayed.
+        history = skip_empty_assistant_rows(self.state_store.get_messages(session_id=session_id))
+        notices_sent: set = set()
         if resume:
             replay = self._nested_park_replay_events(history)
             if replay:
@@ -1359,6 +1374,15 @@ class AgentKernel:
             try:
                 stream_gen = self.gateway.stream(req, demux_reasoning=True)
                 async for chunk in stream_gen:
+                    if chunk.notice:
+                        # CARD-475: e.g. an image dropped for a text-only model; once per turn.
+                        note_text = str(chunk.notice.get("message") or "")
+                        if note_text and note_text not in notices_sent:
+                            notices_sent.add(note_text)
+                            yield KernelEvent(
+                                event_type=KernelEventType.NOTICE, content=note_text, notice=dict(chunk.notice)
+                            )
+                        continue
                     if first_token_time is None and (chunk.content or chunk.reasoning_content or chunk.tool_calls):
                         first_token_time = time.perf_counter()
                         ttft_ms = (first_token_time - turn_start) * 1000
@@ -1497,6 +1521,16 @@ class AgentKernel:
 
             # If no tool calls returned, stream is complete
             if not collected_tool_calls:
+                if is_empty_reply(full_content, None):
+                    # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
+                    failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                    if failed_ev:
+                        yield failed_ev
+                    self._ace_flush_failed_turn(
+                        session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
+                    )
+                    yield KernelEvent(event_type=KernelEventType.ERROR, content=EMPTY_REPLY_MESSAGE, is_finished=True)
+                    return
                 user_req_text = user_content or ""
                 if not user_req_text and history:
                     for hm in reversed(history):

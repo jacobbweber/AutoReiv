@@ -476,6 +476,11 @@ def create_app(
     app.state.mcp_manager = mcp_manager
     app.state.native_custom_tools = native_custom_tools
     app.state.gateway = gateway
+    # CARD-475: which models can view images (Settings override > provider metadata > name).
+    from src.application.gateway.model_capabilities import ModelCapabilityResolver
+
+    if hasattr(gateway, "set_capability_resolver"):
+        gateway.set_capability_resolver(ModelCapabilityResolver(settings_getter=store.get_setting))
     app.state.hw_calc = hw_calc
     app.state.settings_service = settings_service
     app.state.obs_service = obs_service

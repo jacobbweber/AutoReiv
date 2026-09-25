@@ -27,9 +27,7 @@ from src.domain.gateway.models import (
 from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
 from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
-PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
-)
+PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
 
 D6 = (
     "This model can't view images, so it only saw the file name `shot.png`. "

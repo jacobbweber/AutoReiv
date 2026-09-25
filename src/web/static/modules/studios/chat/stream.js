@@ -266,11 +266,18 @@ export async function consumeChatStream(response, {
 export function trackStreamOutcome() {
   let events = 0;
   let error = null;
+  const notices = []; // CARD-475: e.g. "This model can't view images..."
   return {
     note(eventType, ev = {}) {
       events += 1;
-      if (eventType === 'error') error = String(ev?.error || ev?.message || ev?.content || 'The reply failed.');
+      if (eventType === 'attachment_notice') {
+        const text = String(ev?.message || '').trim();
+        if (text && !notices.includes(text)) notices.push(text);
+      } else if (eventType === 'error') error = String(ev?.error || ev?.message || ev?.content || 'The reply failed.');
       else if (eventType === 'turn_done' && ev?.error && !error) error = String(ev.error);
+    },
+    notices() {
+      return [...notices];
     },
     failureMessage() {
       if (error) return error;
@@ -285,6 +292,17 @@ export function reportStreamOutcome(outcome, {
   showToastFn = null,
   doc = typeof document !== 'undefined' ? document : null,
 } = {}) {
+  // CARD-475: notices render after the finalize reload, like the CARD-469 error.
+  const notices = outcome && typeof outcome.notices === 'function' ? outcome.notices() : [];
+  if (messagesContainer && doc) {
+    notices.forEach((text) => {
+      const note = doc.createElement('div');
+      note.className = 'chat-attachment-notice mx-auto my-2 max-w-3xl px-3 py-2 rounded-xl border border-sky-900/60 bg-sky-950/40 text-sky-200 text-xs break-words';
+      note.setAttribute('role', 'status');
+      note.textContent = text;
+      messagesContainer.appendChild(note);
+    });
+  }
   const message = outcome && typeof outcome.failureMessage === 'function' ? outcome.failureMessage() : null;
   if (!message) return false;
   if (messagesContainer && doc) {

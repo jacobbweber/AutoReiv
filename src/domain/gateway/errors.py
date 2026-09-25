@@ -49,3 +49,7 @@ class AllProvidersFailedError(GatewayError):
     def __str__(self) -> str:
         summary = ", ".join(f"{k}: {v}" for k, v in self.failures.items())
         return f"{self.message} (Failures: {summary})"
+
+
+class EmptyModelReplyError(GatewayError):
+    """The model finished with no text and no tool calls [CARD-475]."""

@@ -58,6 +58,27 @@ def accumulate_stream_tool_call_delta(
                 acc["function"]["arguments"] = (acc["function"].get("arguments") or "") + str(arg_piece)
 
 
+def _try_json(text: str) -> Any:
+    try:
+        return json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
+def stream_error_message(data: Any) -> Optional[str]:
+    """Error text carried inside a 200 stream: ``{"error": ...}`` or vLLM ``{"object": "error"}`` [CARD-475]."""
+    if not isinstance(data, dict):
+        return None
+    err = data.get("error")
+    if err:
+        if isinstance(err, dict):
+            return str(err.get("message") or err)
+        return str(err)
+    if data.get("object") == "error":
+        return str(data.get("message") or "provider error")
+    return None
+
+
 def finalize_pending_stream_tool_calls(
     pending: Dict[int, Dict[str, Any]],
     parse_tool_calls,
@@ -97,6 +118,12 @@ async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest
                     line = line.strip()
                     if not line:
                         continue
+                    if not line.startswith("data:"):
+                        # CARD-475: the Spark gateway answers HTTP 200 with a bare JSON error line.
+                        bare_error = stream_error_message(_try_json(line))
+                        if bare_error:
+                            raise GatewayError(f"Provider stream error: {bare_error}", provider_id=adapter.provider_id)
+                        continue
                     if line.startswith("data:"):
                         data_str = line[len("data:") :].strip()
                         if data_str == "[DONE]":
@@ -105,6 +132,9 @@ async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest
                             data = json.loads(data_str)
                         except json.JSONDecodeError:
                             continue
+                        frame_error = stream_error_message(data)
+                        if frame_error:
+                            raise GatewayError(f"Provider stream error: {frame_error}", provider_id=adapter.provider_id)
 
                         choices = data.get("choices", [])
                         if not choices:
@@ -170,5 +200,7 @@ async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest
                 f"Streaming connection failed to OpenAI at {adapter.base_url}: {e}",
                 provider_id=adapter.provider_id,
             ) from e
+        except GatewayError:
+            raise
         except Exception as e:
             raise GatewayError(f"OpenAI stream error: {e}", provider_id=adapter.provider_id) from e

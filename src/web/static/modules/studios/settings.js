@@ -5,6 +5,7 @@
 import { $, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { renderSettingsMcpStatus } from './tools_studio_catalog.js';
+import { modelVisionCell, wireModelVisionToggles } from './settings_model_vision.js';
 
 export const PRESETS_DEFAULTS = {
   ollama: { url: 'http://127.0.0.1:11434', keyPlaceholder: 'Optional for Local' },
@@ -842,7 +843,7 @@ export function initSettingsStudio(state, callbacks = {}) {
         modelFitTableBody.innerHTML = '';
         if (models.length === 0) {
           modelFitTableBody.innerHTML =
-            '<tr><td colspan="5" class="p-3 text-center text-slate-400">No models discovered from active providers.</td></tr>';
+            '<tr><td colspan="6" class="p-3 text-center text-slate-400">No models discovered from active providers.</td></tr>';
         } else {
           models.forEach((r) => {
             const fitText = r.fit_status || 'runnable';
@@ -866,9 +867,11 @@ export function initSettingsStudio(state, callbacks = {}) {
                   ${fitText}
                 </span>
               </td>
+              ${modelVisionCell(r, escapeHtml)}
             `;
             modelFitTableBody.appendChild(row);
           });
+          wireModelVisionToggles(modelFitTableBody);
         }
       }
 

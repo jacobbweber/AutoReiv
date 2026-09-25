@@ -70,6 +70,10 @@ class StreamChunk(BaseModel):
     finish_reason: Optional[str] = Field(default=None, description="Finish reason if stream ended")
     is_finished: bool = Field(default=False, description="True when the final chunk has arrived")
     usage: Optional[Dict[str, Any]] = Field(default=None, description="Token usage on the finished chunk")
+    notice: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Operator notice from the gateway, e.g. an image dropped for a text-only model [CARD-475]",
+    )
 
 
 class CompletionResponse(BaseModel):

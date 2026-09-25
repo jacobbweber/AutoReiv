@@ -5,12 +5,12 @@ Communicates with Ollama REST API (/api/chat) for streaming and non-streaming in
 
 import base64
 import json
-import re
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
+from src.application.gateway.model_capabilities import looks_like_vision_name
 from src.application.gateway.ports import LLMProviderPort
 from src.application.kernel.context_compactor import get_model_context_limit
 from src.domain.gateway.errors import (
@@ -92,24 +92,8 @@ class OllamaProviderAdapter(LLMProviderPort):
                 "role": m.role.value,
                 "content": m.content,
             }
+            # CARD-475: images come only from m.images (current turn, vision models only).
             images_to_send = list(m.images or [])
-            if not images_to_send and m.role == Role.USER and m.content and "Local Path:" in m.content:
-                matches = re.findall(r"Local Path:\s*[`\"]?([^`\"\r\n\)]+)[`\"]?", m.content)
-                for p_str in matches:
-                    try:
-                        p = Path(p_str.strip())
-                        if p.exists() and p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
-                            if p.stat().st_size <= 10 * 1024 * 1024:
-                                ext = p.suffix.lower().lstrip(".")
-                                mtype = f"image/{ext}" if ext != "jpg" else "image/jpeg"
-                                b64 = base64.b64encode(p.read_bytes()).decode("ascii")
-                                images_to_send.append({
-                                    "media_type": mtype,
-                                    "data_base64": b64,
-                                    "filename": p.name,
-                                })
-                    except Exception:
-                        pass
 
             if images_to_send:
                 img_list = []
@@ -257,6 +241,9 @@ class OllamaProviderAdapter(LLMProviderPort):
                         data = json.loads(line)
                     except json.JSONDecodeError:
                         continue
+                    if isinstance(data, dict) and data.get("error"):
+                        # CARD-475: an error line inside a 200 stream is a failure, not an empty reply.
+                        raise GatewayError(f"Ollama stream error: {data['error']}", provider_id=self.provider_id)
 
                     done = data.get("done", False)
                     msg = data.get("message", {})
@@ -290,7 +277,7 @@ class OllamaProviderAdapter(LLMProviderPort):
                 f"Streaming connection failed to Ollama at {self.base_url}: {e}",
                 provider_id=self.provider_id,
             ) from e
-        except ModelNotFoundError:
+        except GatewayError:
             raise
         except Exception as e:
             raise GatewayError(f"Ollama stream error: {e}", provider_id=self.provider_id) from e
@@ -318,7 +305,8 @@ class OllamaProviderAdapter(LLMProviderPort):
 
                 quant = details.get("quantization_level", "Q4_K_M")
                 family = details.get("family", "unknown")
-                is_vision = "vision" in name.lower() or "llava" in name.lower()
+                # CARD-475: Ollama reports capabilities (e.g. ["completion", "vision"]).
+                is_vision = "vision" in (item.get("capabilities") or []) or looks_like_vision_name(name)
 
                 descriptors.append(
                     ModelDescriptor(

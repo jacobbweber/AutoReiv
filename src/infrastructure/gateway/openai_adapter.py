@@ -14,6 +14,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
+from src.application.gateway.model_capabilities import description_says_vision, looks_like_vision_name
 from src.application.gateway.ports import LLMProviderPort
 from src.domain.gateway.errors import (
     AuthenticationError,
@@ -139,24 +140,9 @@ class OpenAIProviderAdapter(LLMProviderPort):
         raw_items = []
         for m in messages:
             content_val = m.content if m.content is not None else ""
+            # CARD-475: images come only from m.images, set by the gateway for the
+            # current turn and only for vision models. History is never re-scanned.
             images_to_send = list(m.images or [])
-            if not images_to_send and m.role == Role.USER and content_val and "Local Path:" in content_val:
-                matches = re.findall(r"Local Path:\s*[`\"]?([^`\"\r\n\)]+)[`\"]?", content_val)
-                for p_str in matches:
-                    try:
-                        p = Path(p_str.strip())
-                        if p.exists() and p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
-                            if p.stat().st_size <= 10 * 1024 * 1024:
-                                ext = p.suffix.lower().lstrip(".")
-                                mtype = f"image/{ext}" if ext != "jpg" else "image/jpeg"
-                                b64 = base64.b64encode(p.read_bytes()).decode("ascii")
-                                images_to_send.append({
-                                    "media_type": mtype,
-                                    "data_base64": b64,
-                                    "filename": p.name,
-                                })
-                    except Exception:
-                        pass
 
             if images_to_send:
                 content_parts: List[Dict[str, Any]] = [{"type": "text", "text": content_val}]
@@ -441,7 +427,10 @@ class OpenAIProviderAdapter(LLMProviderPort):
             descriptors: List[ModelDescriptor] = []
             for item in data.get("data", []):
                 model_id = item.get("id", "unknown")
-                is_vision = "vision" in model_id.lower() or "4o" in model_id.lower()
+                # CARD-475: gateway description first, then the name guess.
+                is_vision = description_says_vision(
+                    " ".join(str(item.get(k) or "") for k in ("description", "root"))
+                ) or looks_like_vision_name(model_id)
                 descriptors.append(
                     ModelDescriptor(
                         id=f"{self.provider_id}/{model_id}",

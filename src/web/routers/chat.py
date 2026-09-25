@@ -417,6 +417,10 @@ async def _forward_kernel_event(queue, event, profile) -> None:
         if not payload.get("assigned_agent_id"):
             payload["assigned_agent_id"] = profile.id
         await queue.put(_sse("react_state", payload))
+    elif event.event_type == KernelEventType.NOTICE:
+        # CARD-475: e.g. attachment_notice when a text-only model got an image.
+        payload = dict(event.notice or {})
+        await queue.put(_sse(payload.get("type") or "notice", {"message": event.content, **payload}))
     elif event.event_type == KernelEventType.ERROR:
         await queue.put(_sse("error", {"error": event.content}))
 
@@ -1467,8 +1471,11 @@ async def update_session(request: Request, session_id: str, req: UpdateSessionRe
 
 @router.get("/api/sessions/{session_id}/messages")
 async def get_session_messages(request: Request, session_id: str):
+    from src.application.kernel.empty_reply import skip_empty_assistant_rows
+
     store = request.app.state.store
-    msgs = store.get_messages(session_id=session_id)
+    # CARD-475 [REQ-475-006]: hide empty assistant rows saved by failed streams before the fix.
+    msgs = skip_empty_assistant_rows(store.get_messages(session_id=session_id))
     return [
         {
             "id": getattr(m, "id", None),

@@ -47,9 +47,11 @@ class ScriptedLLM(LLMProviderPort):
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         self.requests.append(request)
-        chunks = self.stream_chunks.pop(0) if self.stream_chunks else [
-            StreamChunk(content="fine", is_finished=True, finish_reason="stop")
-        ]
+        chunks = (
+            self.stream_chunks.pop(0)
+            if self.stream_chunks
+            else [StreamChunk(content="fine", is_finished=True, finish_reason="stop")]
+        )
         for c in chunks:
             yield c
 
@@ -120,10 +122,12 @@ async def test_stream_turn_history_skips_empty_assistant_rows(store):
     llm = ScriptedLLM()
     kernel = _kernel(store, llm)
     session = store.create_session(agent_id="general-assistant", title="poisoned")
-    store.save_message(session_id=session.id, agent_id="general-assistant",
-                       message=ChatMessage(role=Role.USER, content="first"))
-    store.save_message(session_id=session.id, agent_id="general-assistant",
-                       message=ChatMessage(role=Role.ASSISTANT, content=""))
+    store.save_message(
+        session_id=session.id, agent_id="general-assistant", message=ChatMessage(role=Role.USER, content="first")
+    )
+    store.save_message(
+        session_id=session.id, agent_id="general-assistant", message=ChatMessage(role=Role.ASSISTANT, content="")
+    )
     events = [e async for e in kernel.stream_turn(_profile(), session.id, "Hi")]
 
     assert [e for e in events if e.event_type == KernelEventType.TURN_END]
@@ -137,10 +141,12 @@ async def test_run_turn_history_skips_empty_assistant_rows(store):
     llm = ScriptedLLM()
     kernel = _kernel(store, llm)
     session = store.create_session(agent_id="general-assistant", title="poisoned-run")
-    store.save_message(session_id=session.id, agent_id="general-assistant",
-                       message=ChatMessage(role=Role.USER, content="first"))
-    store.save_message(session_id=session.id, agent_id="general-assistant",
-                       message=ChatMessage(role=Role.ASSISTANT, content=""))
+    store.save_message(
+        session_id=session.id, agent_id="general-assistant", message=ChatMessage(role=Role.USER, content="first")
+    )
+    store.save_message(
+        session_id=session.id, agent_id="general-assistant", message=ChatMessage(role=Role.ASSISTANT, content="")
+    )
     msg = await kernel.run_turn(agent=_profile(), session_id=session.id, user_content="Hi")
     assert msg.content == "fine"
     sent = llm.requests[0].messages
@@ -150,9 +156,9 @@ async def test_run_turn_history_skips_empty_assistant_rows(store):
 @pytest.mark.asyncio
 async def test_stream_turn_forwards_attachment_notice(store, tmp_path):
     png = tmp_path / "abc_shot.png"
-    png.write_bytes(base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
-    ))
+    png.write_bytes(
+        base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+    )
     content = f"what is this?\n*(Attached Image: `shot.png`, 68 bytes, format: `image/png`, Local Path: `{png}`)*"
     llm = ScriptedLLM()
     kernel = _kernel(store, llm)
