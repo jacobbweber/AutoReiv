@@ -1208,5 +1208,46 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       page.context()._consoleErrors = page.context()._consoleErrors.filter((m) => !m.includes('422'));
     });
   }
+  // CARD-502: the Adopt message comes from the server answer; the restart warning shows when keep-customizations is off.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    test(`TC-37 (${vp.name}): Adopt shows "<name> is on for <agent>"; the restart warning shows when customizations reset [CARD-502]`, async ({ page, request }) => {
+      const tag = `${vp.name}-${Date.now()}`;
+      const S = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `A 502 ${tag}` } })).json();
+      const prop = (skill, name) => ({ status: 'ok', needs_tool: false, target_agent_id: 'autoreiv', skill_id: skill, name, plain_summary: { observed_slip: `${name} slip`, remedy: `${name} remedy` }, runbook_markdown: `---\nname: ${skill}\n---\n# ${name}` });
+      await page.route('**/api/sessions/*/messages', (route) => {
+        if (!route.request().url().includes(S.id)) return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+          { id: 'u502', role: 'user', content: 'a question' },
+          { id: 'r502', role: 'assistant', content: 'An answer TC37' },
+          { id: 'p502a', role: 'skill_proposal', content: JSON.stringify(prop('tc37-on', 'TC37 Stays On')) },
+          { id: 'p502b', role: 'skill_proposal', content: JSON.stringify(prop('tc37-warn', 'TC37 Resets')) },
+        ]) });
+      });
+      const adopts = [];
+      await page.route('**/api/skills/adopt', (route) => {
+        const body = route.request().postDataJSON();
+        adopts.push(body);
+        const resets = body.skill_id === 'tc37-warn';
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'adopted', target_agent_id: 'autoreiv', skill_id: body.skill_id, name: resets ? 'TC37 Resets' : 'TC37 Stays On', active: true, already_adopted: false, resets_on_restart: resets }) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      await page.locator('#toggleSidebarBtn').click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+      await page.locator('#sessionList > div', { hasText: `A 502 ${tag}` }).click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeHidden();
+      const on = page.locator('.skill-proposal-card', { hasText: 'TC37 Stays On' });
+      await on.locator('.btn-adopt-skill').click();
+      await expect(page.locator('#toastContainer')).toContainText('TC37 Stays On is on for autoreiv from your next message.');
+      await expect(on).toContainText('TC37 Stays On is on for autoreiv from your next message.');
+      const warn = page.locator('.skill-proposal-card', { hasText: 'TC37 Resets' });
+      await warn.locator('.btn-adopt-skill').click();
+      await expect(page.locator('#toastContainer')).toContainText('Keep my agent customizations is off, so it will be removed on the next restart.');
+      expect(adopts.map((a) => a.skill_id)).toEqual(['tc37-on', 'tc37-warn']);
+      await expect(page.locator('#messagesContainer')).not.toContainText('Active for your next message');
+    });
+  }
 
 });
