@@ -1,7 +1,7 @@
 ---
 id: CARD-465
 title: "Chat Studio: composer grows to about 8 lines on focus and pushes the messages up"
-status: In Review
+status: Done
 created: 2026-09-24
 branch: qa
 adr: none
@@ -19,7 +19,7 @@ labels:
 
 # [CARD-465] Chat Studio: composer grows to about 8 lines on focus and pushes the messages up
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-24
 > **Observed during**: Jacob using Chat Studio on Jarvis - writing longer prompts in a one-line box is cramped.
 > **ADR Reference**: none
@@ -153,3 +153,5 @@ Do not write product code until Jacob says **build** on this card.
 - Playwright proof (scratch server via `scripts/smoke_server.py`, 8 seeded exchanges), `scratch/card465_proof/`: desktop 1440x900 (Chat window column 469px) idle box 20px / list 346px -> clicked 160px (8 lines) / list 206px, list bottom 332 above box top 363, pinned to latest; 20 lines stays 160px; blur empty -> 20px. iPhone 13 emulation (column 511px) idle 20px -> 156px (8 lines at 19.5px), list 397 -> 260px. No page errors.
 - Found while probing: Enter does not send (composer keyboard/attachments/quick-prompt wiring lost in CARD-397) -> CARD-469.
 - Tests: new `tests/unit/frontend/chat_composer_grow_465.test.js` (29); `developer_projects_integration` updated for the setter; smoke TC-8. Vitest 779 passed / 5 failed (CARD-456). Smoke 8/8. Broad `tests/unit` 2015 / 11 skipped / 1 failed (CARD-454). Platform-pack suites 124 / 5 skipped. Honesty `--validate` green. ESLint clean on touched files (full lint = known CARD-456 errors); preflight stops at the known CARD-454 ruff stage.
+
+- Merged to qa 2026-09-24 after Jacob's live test on desktop and phone (`merge to qa`). Enter-to-send remains open as CARD-469.
