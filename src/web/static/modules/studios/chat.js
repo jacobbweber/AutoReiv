@@ -39,6 +39,7 @@ import {
 import {
   buildChatStreamPayload,
   consumeChatStream,
+  trackStreamOutcome, reportStreamOutcome, // CARD-469: failed replies are shown
   querySessionStatus,
   renderAgentHandoffCardHtml,
 } from './chat/stream.js';
@@ -803,6 +804,7 @@ export function initChatStudio(state, callbacks = {}) {
     activeAbortController = new AbortController();
     let accumulatedContent = '';
     let accumulatedReasoning = '';
+    const outcome = trackStreamOutcome();
 
     try {
       const payload = buildChatStreamPayload({
@@ -841,6 +843,7 @@ export function initChatStudio(state, callbacks = {}) {
           maybeAutoscrollMessages();
         },
         onEvent: (eventType, ev) => {
+          outcome.note(eventType, ev);
           updateJobChromeFromEvent(eventType, ev);
 
           if (eventType === 'tool_execution_start' && toolBadge) {
@@ -917,6 +920,7 @@ export function initChatStudio(state, callbacks = {}) {
           exportMessageToWikiFn: callbacks.exportMessageToWiki || null,
         });
       }
+      reportStreamOutcome(outcome, { messagesContainer, showToastFn: showToast });
 
       await refreshPendingHitl();
       await refreshWorkbenchArtifactCount();

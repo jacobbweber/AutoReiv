@@ -258,3 +258,42 @@ export async function consumeChatStream(response, {
     }
   }
 }
+
+/**
+ * Track how a chat stream ended so a failed reply is reported instead of vanishing [CARD-469].
+ * Pre-CARD-397 chat.js rendered `error` events in the bubble; the split dropped that branch.
+ */
+export function trackStreamOutcome() {
+  let events = 0;
+  let error = null;
+  return {
+    note(eventType, ev = {}) {
+      events += 1;
+      if (eventType === 'error') error = String(ev?.error || ev?.message || ev?.content || 'The reply failed.');
+      else if (eventType === 'turn_done' && ev?.error && !error) error = String(ev.error);
+    },
+    failureMessage() {
+      if (error) return error;
+      return events === 0 ? 'The reply ended without a response.' : null;
+    },
+  };
+}
+
+/** Show a failed reply as a visible alert in the message list plus an error toast. Returns true when shown. */
+export function reportStreamOutcome(outcome, {
+  messagesContainer = null,
+  showToastFn = null,
+  doc = typeof document !== 'undefined' ? document : null,
+} = {}) {
+  const message = outcome && typeof outcome.failureMessage === 'function' ? outcome.failureMessage() : null;
+  if (!message) return false;
+  if (messagesContainer && doc) {
+    const el = doc.createElement('div');
+    el.className = 'chat-stream-error mx-auto my-2 max-w-3xl px-3 py-2 rounded-xl border border-rose-900/60 bg-rose-950/40 text-rose-300 text-xs font-mono break-words';
+    el.setAttribute('role', 'alert');
+    el.textContent = `Reply failed: ${message}`;
+    messagesContainer.appendChild(el);
+  }
+  if (typeof showToastFn === 'function') showToastFn(`Reply failed: ${message}`, 'error');
+  return true;
+}
