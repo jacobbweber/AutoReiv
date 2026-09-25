@@ -1,7 +1,7 @@
 ---
 id: CARD-465
 title: "Chat Studio: composer grows to about 8 lines on focus and pushes the messages up"
-status: In Progress
+status: In Review
 created: 2026-09-24
 branch: qa
 adr: none
@@ -19,7 +19,7 @@ labels:
 
 # [CARD-465] Chat Studio: composer grows to about 8 lines on focus and pushes the messages up
 
-> **Status**: In Progress
+> **Status**: In Review
 > **Created**: 2026-09-24
 > **Observed during**: Jacob using Chat Studio on Jarvis - writing longer prompts in a one-line box is cramped.
 > **ADR Reference**: none
@@ -96,6 +96,7 @@ Do not write product code until Jacob says **build** on this card.
 2. Cap: `min(8 lines, ~40% of the visible chat column)` on all devices (no separate phone number).
 3. Options drawer stays open when the composer grows; the cap absorbs it.
 4. Applies to all chat surfaces automatically (single `#promptInput`).
+5. Build finding: Chat auto-focuses the box when its window opens (`ui/agent_desktop/window.js` `focusComposer`). "Focused" therefore means **engaged** - a click/tap in the box or a key press - so opening Chat keeps it one line until you click or type.
 
 ---
 
@@ -140,3 +141,15 @@ Do not write product code until Jacob says **build** on this card.
 - Refine: say **continue**.
 - Start implementation: say **build**.
 - After the runbook passes: say **merge to qa**.
+
+---
+
+## 6. Build notes (2026-09-24, branch `feat/card-465-chat-composer-grows-on-focus`)
+
+- `chat/composer.js`: `computeComposerHeight()` (pure), `getVisibleColumnHeight()` (column limited by `visualViewport`), `setupComposerSizing()` (focus/blur/input/pointerdown/keydown, window + visualViewport resize, ResizeObserver on `#chatInputWrapper` to keep a pinned list pinned, pointer-press guard), `setComposerText()`.
+- `chat.js` wires sizing with `isStickToBottom` from `setupChatScroll`; column = parent of `#chatMessagesViewport`.
+- Template: `#chatMessagesViewport` (relative) wraps `#messagesContainer` + Jump to latest (`absolute bottom-3`); `max-h-36` and `bottom-28` removed.
+- Write sites via `setComposerText`: `app.js`, `chat.js` x2, `chat/stream.js`, `tools_studio.js`, `forge/lab_monitor.js`, `prompts.js`, `projects.js`, `chat/composer.js` (send and `/learn` clears).
+- Playwright proof (scratch server via `scripts/smoke_server.py`, 8 seeded exchanges), `scratch/card465_proof/`: desktop 1440x900 (Chat window column 469px) idle box 20px / list 346px -> clicked 160px (8 lines) / list 206px, list bottom 332 above box top 363, pinned to latest; 20 lines stays 160px; blur empty -> 20px. iPhone 13 emulation (column 511px) idle 20px -> 156px (8 lines at 19.5px), list 397 -> 260px. No page errors.
+- Found while probing: Enter does not send (composer keyboard/attachments/quick-prompt wiring lost in CARD-397) -> CARD-469.
+- Tests: new `tests/unit/frontend/chat_composer_grow_465.test.js` (29); `developer_projects_integration` updated for the setter; smoke TC-8. Vitest 779 passed / 5 failed (CARD-456). Smoke 8/8. Broad `tests/unit` 2015 / 11 skipped / 1 failed (CARD-454). Platform-pack suites 124 / 5 skipped. Honesty `--validate` green. ESLint clean on touched files (full lint = known CARD-456 errors); preflight stops at the known CARD-454 ruff stage.
