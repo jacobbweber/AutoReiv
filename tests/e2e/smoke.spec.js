@@ -1120,5 +1120,93 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#messagesContainer')).toContainText('get_tc34_tool');
     });
   }
+  // CARD-500: Teach sends the clicked reply + guidance; the card shows the real proposal; /learn; readable errors; needs-tool hides Adopt.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    async function setup500(page, request, { distillStatus = 200 } = {}) {
+      const tag = `${vp.name}-${Date.now()}`;
+      const S = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `T 500 ${tag}` } })).json();
+      const t = { S, distills: [], adopts: [], factoryAfterLoad: 0, loaded: false };
+      const good = {
+        status: 'ok', needs_tool: false, target_agent_id: 'autoreiv', skill_id: 'tc35-cite-sources', name: 'TC35 Cite Sources',
+        plain_summary: { observed_slip: 'TC35 slip: no sources given.', remedy: 'TC35 remedy: cite a source for each claim.' },
+        runbook_markdown: '---\nname: tc35-cite-sources\n---\n# TC35', message_id: 'p500new',
+      };
+      const needsTool = {
+        status: 'ok', needs_tool: true, target_agent_id: 'autoreiv', name: 'TC36 Needs Tool',
+        factory_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC36 things', suggested_tool_name: 'get_tc36_tool', starter_objectives: [] },
+      };
+      await page.route('**/api/sessions/*/messages', (route) => {
+        if (!route.request().url().includes(S.id)) return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+          { id: 'u500a', role: 'user', content: 'first question' },
+          { id: 'r500a', role: 'assistant', content: 'First answer TC35' },
+          { id: 'u500b', role: 'user', content: 'second question' },
+          { id: 'r500b', role: 'assistant', content: 'Second answer TC36' },
+          { id: 'p500', role: 'skill_proposal', content: JSON.stringify(needsTool) },
+        ]) });
+      });
+      await page.route('**/api/skills/distill', (route) => {
+        t.distills.push(route.request().postDataJSON());
+        if (distillStatus !== 200) {
+          return route.fulfill({ status: distillStatus, contentType: 'application/json', body: JSON.stringify({ detail: [{ loc: ['body', 'message_id'], msg: 'Input should be a valid string', type: 'string_type' }] }) });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(good) });
+      });
+      await page.route('**/api/skills/adopt', (route) => {
+        t.adopts.push(route.request().postDataJSON());
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ok' }) });
+      });
+      page.on('request', (r) => { if (t.loaded && r.url().includes('/api/agent_training_factory')) t.factoryAfterLoad += 1; });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      await page.locator('#toggleSidebarBtn').click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+      await page.locator('#sessionList > div', { hasText: `T 500 ${tag}` }).click();
+      await expect(page.locator('#chatSessionsDrawer')).toBeHidden();
+      await expect(page.locator('#messagesContainer')).toContainText('Second answer TC36');
+      t.loaded = true;
+      return t;
+    }
+
+    test(`TC-35 (${vp.name}): Teach on the first reply sends that reply and the lesson; card shows the real name, slip and remedy; Adopt toasts [CARD-500]`, async ({ page, request }) => {
+      const t = await setup500(page, request);
+      await page.locator('.msg-teach-agent-btn[data-message-id="r500a"]').click();
+      await expect(page.locator('#teachAgentModal')).toBeVisible();
+      await page.locator('#teachAgentGuidanceInput').fill('cite your sources');
+      await page.locator('#submitTeachAgentBtn').click();
+      await expect.poll(() => t.distills.length).toBe(1);
+      expect(t.distills[0]).toEqual({ session_id: t.S.id, message_id: 'r500a', guidance: 'cite your sources' });
+      const card = page.locator('.skill-proposal-card', { hasText: 'TC35 Cite Sources' });
+      await expect(card).toBeVisible();
+      await expect(card).toContainText('TC35 slip: no sources given.');
+      await expect(card).toContainText('TC35 remedy: cite a source for each claim.');
+      await expect(card).not.toContainText('Synthesized Skill');
+      await card.locator('.btn-adopt-skill').click();
+      await expect(page.locator('#toastContainer')).toContainText('Skill mounted to autoreiv');
+      expect(t.adopts[0].session_id).toBe(t.S.id);
+      expect(t.factoryAfterLoad).toBe(0);
+    });
+
+    test(`TC-36 (${vp.name}): /learn opens Teach for the latest reply; a 422 reads as a sentence; needs-tool card shows only Ask Developer and Dismiss [CARD-500]`, async ({ page, request }) => {
+      const t = await setup500(page, request, { distillStatus: 422 });
+      const needs = page.locator('.skill-proposal-card', { hasText: 'TC36 Needs Tool' });
+      await expect(needs.locator('.btn-escalate-factory')).toBeVisible();
+      await expect(needs.locator('.btn-dismiss-proposal')).toBeVisible();
+      await expect(needs.locator('.btn-adopt-skill')).toHaveCount(0);
+      await page.locator('#promptInput').fill('/learn be shorter');
+      await page.locator('#promptInput').press('Enter');
+      await expect(page.locator('#teachAgentModal')).toBeVisible();
+      await expect(page.locator('#teachAgentGuidanceInput')).toHaveValue('be shorter');
+      await page.locator('#submitTeachAgentBtn').click();
+      await expect.poll(() => t.distills.length).toBe(1);
+      expect(t.distills[0]).toEqual({ session_id: t.S.id, message_id: 'r500b', guidance: 'be shorter' });
+      await expect(page.locator('#toastContainer')).toContainText('Input should be a valid string');
+      await expect(page.locator('#toastContainer')).not.toContainText('[object Object]');
+      // The routed 422 is intentional; the browser logs it as a failed resource load.
+      page.context()._consoleErrors = page.context()._consoleErrors.filter((m) => !m.includes('422'));
+    });
+  }
 
 });
