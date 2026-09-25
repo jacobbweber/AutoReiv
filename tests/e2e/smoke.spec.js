@@ -1092,12 +1092,12 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#chatWorkbenchPane')).toBeVisible();
       await expect(page.locator('#workbenchContentPreview')).toContainText('Report ready');
       await closeWorkbench(page);
-      await page.locator('.open-artifact-btn[data-artifact-id="art_tc33"]').click();
+      await page.locator('#messagesContainer .open-artifact-btn[data-artifact-id="art_tc33"]').click();
       await expect(page.locator('#chatWorkbenchPane')).toBeVisible();
       await expect(page.locator('#workbenchArtifactTitle')).toHaveText('TC33 Fixture Report');
       await expect(page.locator('#artifactModal')).toBeHidden();
       await closeWorkbench(page);
-      await page.locator('.open-artifact-btn[data-artifact-id="art_tc33_missing"]').click();
+      await page.locator('#messagesContainer .open-artifact-btn[data-artifact-id="art_tc33_missing"]').click();
       await expect(page.locator('#toastContainer')).toContainText('Artifact not found');
       await expect(page.locator('#chatWorkbenchPane')).toBeHidden();
       expect(t.artifactGets).toEqual(['tc33', 'missing']);

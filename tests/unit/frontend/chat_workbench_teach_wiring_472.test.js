@@ -14,7 +14,7 @@ const templateIds = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1
 
 async function load(rel) {
   try {
-    return await import(`../../../src/web/static/modules/studios/chat/${rel}`);
+    return await import(`../../../src/web/static/modules/studios/chat/${rel.replace(/\.js$/, '')}.js`);
   } catch {
     return {};
   }

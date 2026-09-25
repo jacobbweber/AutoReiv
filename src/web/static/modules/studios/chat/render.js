@@ -303,9 +303,9 @@ export function renderSkillProposalCard(proposal, {
             </button>
             ${needsTool
               ? `
-              <button type="button" class="btn-escalate-factory px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook requires missing tools — generate tool & agent pack in Factory Studio">
+              <button type="button" class="btn-escalate-factory px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook needs a tool the agent doesn't have — ask the Developer to build it">
                 <span>🚀</span>
-                <span>Send to Factory Studio</span>
+                <span>Ask Developer to build this tool</span>
               </button>
               `
               : ''}
