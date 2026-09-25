@@ -22,6 +22,7 @@ export * from './chat/composer.js';
 export * from './chat/chrome.js';
 export * from './chat/workbench.js';
 export * from './chat/train_modal.js';
+export * from './chat/session_select.js'; // CARD-485 (hydrateJobPhaseStateFromJourney moved here)
 
 import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD-470
 
@@ -29,6 +30,7 @@ import { populateTrainAgentTargetOptions } from './chat/training.js';
 import { setupRuntimeModeToggles } from './chat/runtime_toggles.js'; // CARD-470
 import { setupChatScroll } from './chat/scroll.js';
 import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
+import { createSessionSelect } from './chat/session_select.js'; // CARD-485
 
 import {
   buildChatStreamPayload,
@@ -205,40 +207,6 @@ export function isHitlParkSseEvent(eventType, ev = {}) {
   return false;
 }
 
-export function hydrateJobPhaseStateFromJourney(journey) {
-  const jobs = journey && Array.isArray(journey.jobs) ? journey.jobs : [];
-  if (!jobs.length) return null;
-  const rank = (s) => (s = String(s || '').toLowerCase()) === 'waiting_approval' ? 0 : (s === 'running' || s === 'in_progress' || s === 'queued' ? 1 : (s === 'failed' ? 2 : 3));
-  const job = [...jobs].sort((a, b) => rank(a.status) - rank(b.status))[0];
-  if (!job || !job.id) return null;
-  const phases = Array.isArray(job.phases) ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0)) : [];
-  const activePhase = phases.find((p) => {
-    const s = String(p.status || '').toLowerCase();
-    return s === 'waiting_approval' || s === 'running' || s === 'in_progress';
-  }) || phases[phases.length - 1] || null;
-  const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
-  const next = {
-    jobId: job.id,
-    jobStatus,
-    phaseCount: phases.length || undefined,
-    phaseName: activePhase ? activePhase.name : undefined,
-    phaseIndex: activePhase != null && activePhase.index != null ? activePhase.index : undefined,
-    phaseId: activePhase ? activePhase.id : undefined,
-    assignedAgentId: activePhase ? activePhase.assigned_agent_id : undefined,
-  };
-  if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
-    next.reactState = 'PARKED';
-    next.jobStatus = 'waiting_approval';
-  } else if (jobStatus === 'running' || jobStatus === 'in_progress') {
-    next.reactState = next.reactState || 'THINKING';
-  } else if (jobStatus === 'done') {
-    next.reactState = 'DONE';
-  } else if (jobStatus === 'failed') {
-    next.reactState = 'FAILED';
-  }
-  return next;
-}
-
 export function applyJobPhaseEvent(current, eventType, ev) {
   const next = { ...(current || {}) };
   const data = ev || {};
@@ -313,6 +281,7 @@ export function initChatStudio(state, callbacks = {}) {
   const {
     maybeAutoscrollMessages,
     isStickToBottom,
+    jumpMessagesToLatest,
   } = setupChatScroll({
     messagesContainer,
     chatJumpToLatestBtn,
@@ -609,6 +578,12 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   const ensureSession = () => ensureActiveSession(state, { createNewSession, showToastFn: showToast });
+  const sessionSelect = createSessionSelect(state, { // CARD-485: list, drawer, journey strip, running status
+    sessionList, onSelectSession: selectSession, chatSessionsDrawer, viewChat, sendBtn, stopBtn,
+    loadMessages, refreshPendingHitl, refreshWorkbenchArtifactCount, jumpToLatest: jumpMessagesToLatest,
+    setJobPhaseState: (next) => { jobPhaseState = next; renderJobPhaseStrip(); },
+    setInlineJobChromeModel: (model) => { inlineJobChromeModel = model; remountInlineJobChrome(); },
+  });
 
   async function createNewSession() {
     await singleFlight(state, 'sessionCreating', () => createNewSessionDirect(state, {
@@ -623,15 +598,13 @@ export function initChatStudio(state, callbacks = {}) {
     }), state.selectedAgentId);
   }
 
-  async function selectSession(sessionId) {
+  async function selectSession(sessionId, { userPick = false } = {}) {
     if (!sessionId) return;
     state.activeSessionId = sessionId;
     storageSet(LAST_SESSION_KEY, sessionId);
     resetJobPhaseStrip();
     resetInlineJobChrome();
-    await loadMessages(sessionId);
-    await refreshPendingHitl();
-    await refreshWorkbenchArtifactCount();
+    await sessionSelect.afterSelect(sessionId, { userPick });
   }
 
   async function loadMessages(sessionId) {
@@ -717,6 +690,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   // Main chat turn execution and streaming
   async function executeChatTurn(userPrompt, options = {}) {
+    sessionSelect.stopWatching(); // CARD-485: this tab's own stream takes over
     resetInlineJobChrome();
     state.isStreaming = true;
     const emptyPlaceholder = messagesContainer?.querySelector('.text-center');
@@ -1028,9 +1002,7 @@ export function initChatStudio(state, callbacks = {}) {
     remountInlineJobChrome,
     resetInlineJobChrome,
     refreshWorkbenchArtifactCount,
-    checkSessionBackgroundStatus: async (sessionId = state.activeSessionId) => {
-      return querySessionStatus(sessionId);
-    },
+    watchSessionStatus: (sessionId = state.activeSessionId) => sessionSelect.watchSessionStatus(sessionId), // CARD-485, for CARD-473
     querySessionStatus,
   };
 }

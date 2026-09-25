@@ -362,7 +362,7 @@ export function setupComposerControls({
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!promptInput || state.isStreaming || preparing) return;
+      if (!promptInput || state.isStreaming || state.sessionBusy || preparing) return; // CARD-485: busy elsewhere
       const text = promptInput.value.trim();
       if (!text && (!state.stagedAttachments || state.stagedAttachments.length === 0)) return;
 
