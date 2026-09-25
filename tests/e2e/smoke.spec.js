@@ -515,4 +515,35 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#chatAttachmentsPreviewList')).toBeVisible();
     await expect(page.locator('#chatAttachmentsPreviewList')).toContainText('smoke.txt');
   });
+
+  test('TC-13: A failed reply (backend error event) shows an error, not silence [CARD-469]', async ({ page }) => {
+    await page.route('**/api/chat/upload', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'up-2', filename: 'pic.png', size_bytes: 70, content_type: 'image/png', url: '/x', path: '/x' }),
+      })
+    );
+    await page.route('**/api/chat/stream', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: 'event: error\ndata: {"error": "[vllm] Provider HTTP error 400: text-only-model is not a multimodal model"}\n\n',
+      })
+    );
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    await page.locator('#chatOptionsToggleBtn').click();
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.locator('#chatAttachBtn').click()]);
+    await chooser.setFiles({ name: 'pic.png', mimeType: 'image/png', buffer: Buffer.from('png') });
+    await expect(page.locator('#chatAttachmentsPreviewList')).toContainText('pic.png');
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type('What is this?');
+    await input.press('Enter');
+    const alert = page.locator('#messagesContainer .chat-stream-error');
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText('not a multimodal model');
+  });
 });
