@@ -1,7 +1,7 @@
 ---
 id: CARD-467
 title: "Test runs must never touch live AppData (Playwright smoke server + pytest bootstrap)"
-status: In Progress
+status: In Review
 created: 2026-09-24
 branch: qa
 related:
@@ -19,7 +19,7 @@ labels:
 
 # [CARD-467] Test runs must never touch live AppData (Playwright smoke server + pytest bootstrap)
 
-> **Status**: In Progress
+> **Status**: In Review
 > **Created**: 2026-09-24 (refined 2026-09-24 on `continue`)
 > **Observed during**: CARD-445 preflight on Jarvis - the shell running preflight had `AUTOREIV_DATA_DIR=C:\Users\jacob\AppData\Local\AutoReiv` (process scope only; not set at Windows User or Machine scope).
 > **Related**: [CARD-455](./CARD-455-isolate-card388-agents-api-test-from-appdata.md) (same leak on the pytest side - absorbed here, Decision 1), [CARD-443](./CARD-443-platform-tutor-pack-appdata-sync.md) (startup promotion writes pack files), CARD-294 (`scratch/` is the only allowed checkout write zone), CARD-459 (serve bootstraps twice)
@@ -102,7 +102,7 @@ Running the test gate must never touch my real AutoReiv data or agent packs.
 1. Note the LastWriteTime of `%LOCALAPPDATA%\AutoReiv\packs\developer\pack.json`.
 2. In a shell with `$env:AUTOREIV_DATA_DIR = "$env:LOCALAPPDATA\AutoReiv"`, run `npm run test:smoke`.
 3. Expected: 7 passed; the pack.json timestamp is unchanged; `scratch/smoke_data/packs/` exists.
-4. Guard check: run `python scripts/smoke_server.py --check-only` with the env var set to the live folder: prints the scratch paths it will use and exits 0; the unit tests cover the refuse path.
+4. Guard check: `python scripts/smoke_server.py --check-only` (env var still set to live) prints only `scratch\smoke_data` paths and `OK`, exit 0. `python scripts/smoke_server.py --data-dir "$env:LOCALAPPDATA\AutoReiv"` prints `REFUSED` with one line per path, exit 2, and starts nothing.
 
 ---
 
@@ -110,3 +110,16 @@ Running the test gate must never touch my real AutoReiv data or agent packs.
 
 - Docs-only until **build**. Test tooling and config only (`scripts/smoke_server.py`, `playwright.config.js`, `tests/conftest.py`, new unit tests); no product code under `src/`.
 - Do not run a smoke or pytest session against live AppData while building; use the guard.
+
+---
+
+## 6. Build notes (2026-09-24, branch `feat/card-467-smoke-data-dir-isolation`)
+
+- `scripts/smoke_server.py`: forces `AUTOREIV_DATA_DIR` / `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH` / `AUTOREIV_BACKUP_DIR` under `scratch/smoke_data` and points `LOCALAPPDATA` at `scratch/smoke_data/_localappdata` for the server process, so the `platform_default()` fallbacks some routers/phases use also stay in scratch. Guard = `live_data_problems()` over every resolved path against `live_data_roots()` (`%LOCALAPPDATA%\AutoReiv`, `~/.autoreiv`, and the live DB's `data_dir` setting) plus "must be under `<checkout>/scratch`". Wipe runs only after the guard passes and only below `scratch/`. `--check-only`, `--data-dir`, `--host`, `--port`.
+- `playwright.config.js`: launcher command, `reuseExistingServer: false`, timeout 30 s, env paths under `scratch/smoke_data`.
+- `tests/conftest.py`: `isolate_pytest_data_env()` force-sets temp paths (and drops `AUTOREIV_BACKUP_DIR`); `pytest_configure` calls `live_appdata_problems()` (same guard, loaded from the script) and `pytest.exit(returncode=3)` if any path is live. The import-time `src.web.app.app` now boots on the temp tree - no `src/` change needed.
+- CARD-455 absorbed: `test_req_388_002` passes with live Developer still "Super Developer" (red confirmed first with the old conftest).
+- Removed `scratch/smoke_autoreiv.db`, `scratch/smoke_wiki`, `scratch/smoke_data_card445`.
+- Evidence of the old leak: the red run of `test_req_388_002` with the old conftest rewrote live `packs/{autoreiv,direct,developer,tutor}/pack.json` (mtime 9:21:23 PM ET; Developer name unchanged).
+- Proof: live pack/skill files (47) identical by mtime + SHA-256 before/after `npm run test:smoke` and a full `tests/unit` run, both with `AUTOREIV_DATA_DIR` set to live AppData.
+- Tests: `tests/unit/scripts/test_card467_smoke_isolation.py` (12). Broad `tests/unit` 2015 passed / 11 skipped / 1 failed (CARD-454 linter). Platform-pack suites 124 passed / 5 skipped. Vitest 750 / 5 failed (CARD-456). Smoke 7/7. Honesty `--validate` green. Ruff/ESLint clean on touched files; full ruff = 10 known CARD-454 errors (preflight aborts at that stage), full ESLint = known CARD-456 errors.
