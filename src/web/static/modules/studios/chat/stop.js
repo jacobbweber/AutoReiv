@@ -44,6 +44,7 @@ function showSend(sendBtn, stopBtn) {
 export function createStopHandler(state, deps = {}) {
   const {
     getController = () => null,
+    getStreamSessionId = () => null, // CARD-488: Stop targets this tab's streaming chat first
     clearController = () => {},
     stopWatching = () => {},
     setBusy = () => {},
@@ -57,7 +58,7 @@ export function createStopHandler(state, deps = {}) {
   let pending = null;
 
   async function run() {
-    const sessionId = state.activeSessionId;
+    const sessionId = getStreamSessionId() || state.activeSessionId;
     const controller = getController();
     if (controller) {
       try {

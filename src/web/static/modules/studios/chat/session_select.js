@@ -231,6 +231,8 @@ export function createSessionSelect(state, deps = {}) {
     fetchFn = null,
     queryStatusFn = querySessionStatus,
     isPageVisible = pageVisible,
+    getStreamSessionId = () => null, // CARD-488: this tab's streaming chat, if any
+    detachOwnStream = () => {},
     getEl = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null),
     refreshContext = () => loadChatSessionContext(state, {
       chatContextTokensBadge: getEl('chatContextTokensBadge'),
@@ -253,6 +255,8 @@ export function createSessionSelect(state, deps = {}) {
 
   async function afterSelect(sessionId, { userPick = false } = {}) {
     if (!sessionId) return;
+    const streaming = getStreamSessionId();
+    if (streaming && streaming !== sessionId) detachOwnStream(); // CARD-488 D1: server keeps going
     watcher.stop();
     renderSessionList({ sessionList, sessions: state.sessions, activeSessionId: sessionId, onSelectSession });
     if (userPick) collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
