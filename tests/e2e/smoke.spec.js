@@ -431,4 +431,88 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await page.locator('#messagesContainer').click({ position: { x: 10, y: 10 } });
     await expect.poll(() => input.evaluate((el) => el.getBoundingClientRect().height)).toBeLessThan(idle + 2);
   });
+
+  // CARD-469: composer wiring restored after the CARD-397 split. All network calls that would
+  // reach an LLM or write uploads are intercepted.
+  async function openChatWithInterceptedStream(page) {
+    const streamPosts = [];
+    await page.route('**/api/chat/stream', async (route) => {
+      streamPosts.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body: 'data: {"type":"token","text":"ok"}\n\ndata: [DONE]\n\n',
+      });
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#view-chat')).toBeVisible();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    return streamPosts;
+  }
+
+  test('TC-9: Enter sends once, Shift+Enter adds a newline [CARD-469]', async ({ page }) => {
+    const streamPosts = await openChatWithInterceptedStream(page);
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type('line one');
+    await input.press('Shift+Enter');
+    await input.type('line two');
+    await expect(input).toHaveValue('line one\nline two');
+    expect(streamPosts.length).toBe(0);
+    await input.press('Enter');
+    await expect.poll(() => streamPosts.length).toBe(1);
+    expect(streamPosts[0].content).toBe('line one\nline two');
+    await expect(input).toHaveValue('');
+  });
+
+  test('TC-10: Enter also sends on a phone-sized touch viewport (D1) [CARD-469]', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const streamPosts = await openChatWithInterceptedStream(page);
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type('from the phone');
+    await input.press('Enter');
+    await expect.poll(() => streamPosts.length).toBe(1);
+    expect(streamPosts[0].content).toBe('from the phone');
+  });
+
+  test('TC-11: Quick Prompts picker opens and a pick fills the composer [CARD-469]', async ({ page }) => {
+    await page.route('**/api/prompts', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { id: 'smoke-1', title: 'Smoke Prompt', category: 'test', description: 'd', template_text: 'Hello from a quick prompt' },
+        ]),
+      })
+    );
+    await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    await expect(page.locator('#chatOptionsDrawer')).toBeVisible();
+    await page.locator('#chatPromptsBtn').click();
+    await expect(page.locator('#chatPromptsQuickPicker')).toBeVisible();
+    await page.locator('#chatPromptsQuickList [data-quick-idx="0"]').click();
+    await expect(page.locator('#promptInput')).toHaveValue('Hello from a quick prompt');
+    await expect(page.locator('#chatPromptsQuickPicker')).toBeHidden();
+  });
+
+  test('TC-12: Paperclip attach stages a chip [CARD-469]', async ({ page }) => {
+    await page.route('**/api/chat/upload', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'up-1', filename: 'smoke.txt', size_bytes: 5, content_type: 'text/plain', url: '/x', path: '/x' }),
+      })
+    );
+    await openChatWithInterceptedStream(page);
+    await page.locator('#chatOptionsToggleBtn').click();
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.locator('#chatAttachBtn').click(),
+    ]);
+    await chooser.setFiles({ name: 'smoke.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+    await expect(page.locator('#chatAttachmentsPreviewList')).toBeVisible();
+    await expect(page.locator('#chatAttachmentsPreviewList')).toContainText('smoke.txt');
+  });
 });
