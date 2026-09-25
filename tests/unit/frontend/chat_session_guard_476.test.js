@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 import { setupComposerControls, setupComposerAttachments } from '../../../src/web/static/modules/studios/chat/composer.js';
-import { loadSessions } from '../../../src/web/static/modules/studios/chat/chrome.js';
+import { loadSessions, createNewSession } from '../../../src/web/static/modules/studios/chat/chrome.js';
 
 /**
  * CARD-476 - the first Chat message with no session must not post `session_id: null` (422).
@@ -166,5 +166,44 @@ describe('CARD-476 attach', () => {
     });
     await handlers.change({ target: { files: [new Blob(['x'], { type: 'image/png' })] } });
     expect(sent).toEqual(['att-1']);
+  });
+});
+
+describe('CARD-476 new chat shows in the list', () => {
+  it('10. a created session is rendered in the session list as the active one', async () => {
+    vi.stubGlobal('document', { createElement: () => ({ className: '', innerHTML: '', addEventListener() {} }) });
+    try {
+      const sessionList = { innerHTML: '', items: [], appendChild(el) { this.items.push(el); } };
+      const state = { selectedAgentId: 'autoreiv', activeSessionId: null, sessions: [], agents: [] };
+      await createNewSession(state, {
+        sessionList,
+        fetchFn: async () => jsonResponse({ id: 'made-1', title: 'AutoReiv Chat' }),
+        onSelectSession: async (id) => { state.activeSessionId = id; },
+      });
+      expect(sessionList.items).toHaveLength(1);
+      expect(sessionList.items[0].innerHTML).toContain('AutoReiv Chat');
+      expect(sessionList.items[0].className).toContain('bg-slate-800 text-white');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('11. a failed create (HTTP 500) leaves no session', async () => {
+    const state = { selectedAgentId: 'autoreiv', activeSessionId: null, sessions: [], agents: [] };
+    const onSelectSession = vi.fn();
+    const out = await createNewSession(state, { fetchFn: async () => jsonResponse({ detail: 'x' }, false), onSelectSession });
+    expect(out).toBe(null);
+    expect(onSelectSession).not.toHaveBeenCalled();
+    expect(state.activeSessionId).toBe(null);
+  });
+});
+
+describe('CARD-476 agent switch race', () => {
+  it('12. a send while an agent switch reloads the list uses the new chat, not the old one', async () => {
+    const createNewSession = vi.fn();
+    const state = { selectedAgentId: 'tutor', activeSessionId: 'old-agents-chat' };
+    state.sessionsLoading = tick(20).then(() => { state.activeSessionId = 'tutor-chat'; });
+    expect(await ensure(state, { createNewSession })).toBe('tutor-chat');
+    expect(createNewSession).not.toHaveBeenCalled();
   });
 });

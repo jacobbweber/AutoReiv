@@ -259,7 +259,8 @@ export function setupComposerAttachments({
   chatFileInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    if (typeof onBeforeAttach === 'function') onBeforeAttach();
+    // Awaited so a session made here (CARD-476) is used for the upload, not attachments/global.
+    if (typeof onBeforeAttach === 'function') await onBeforeAttach();
 
     for (const file of files) {
       try {
@@ -355,11 +356,13 @@ export function setupComposerControls({
   onExecuteTurn,
   onOpenTeachAgent,
   onCancelStream,
+  ensureSession = null,
 } = {}) {
+  let preparing = false; // CARD-476: a second Enter while the session is being made is ignored
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!promptInput || state.isStreaming) return;
+      if (!promptInput || state.isStreaming || preparing) return;
       const text = promptInput.value.trim();
       if (!text && (!state.stagedAttachments || state.stagedAttachments.length === 0)) return;
 
@@ -373,6 +376,13 @@ export function setupComposerControls({
           });
         }
         return;
+      }
+
+      // CARD-476: never send with no session; if one can't be made, keep the typed text.
+      if ((!state.activeSessionId || state.sessionsLoading) && typeof ensureSession === 'function') {
+        preparing = true;
+        const sessionId = await Promise.resolve(ensureSession()).finally(() => { preparing = false; });
+        if (!sessionId) return;
       }
 
       setComposerText(promptInput, '');
