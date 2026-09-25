@@ -629,10 +629,10 @@ export function initChatStudio(state, callbacks = {}) {
         messages: state.messages,
         isStreaming: state.isStreaming,
         activeAgentTitle,
-        renderMarkdownFn: renderChatMarkdown,
-        openWorkbenchFn: openWorkbench,
+        renderMarkdownFn: renderChatMarkdown, openWorkbenchFn: openWorkbench,
         onRefreshWorkbench: refreshWorkbenchArtifactCount,
         onTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
+        proposalOptions: { sessionId, activeAgentId: state.selectedAgentId, showToastFn: showToast }, // CARD-500
         exportMessageToWikiFn: callbacks.exportMessageToWiki || null,
         maybeAutoscrollMessagesFn: maybeAutoscrollMessages,
       });

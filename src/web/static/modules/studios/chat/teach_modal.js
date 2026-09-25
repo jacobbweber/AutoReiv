@@ -5,6 +5,7 @@
 
 import { $, safeCreateIcons } from '../../dom.js';
 import { renderSkillProposalCard } from './render.js';
+import { readableError } from '../../utils/formatters.js';
 import { TOOLS_AUTHORING_TALK_URL, authoringErrorMessage, interpretAuthoringTalk } from '../tools_studio_authoring.js';
 
 function readEscalation(card) {
@@ -41,8 +42,14 @@ export function setupTeachAgentModal(state, elements = {}, {
   let activeTeachMessageId = null;
   let activeTeachTargetAgentId = null;
 
+  const NO_REPLY = 'Send a message first, then teach from the reply.'; // CARD-500 REQ-500-004
+
   function openTeachAgentModal(opts = {}) {
-    activeTeachMessageId = opts.messageId || null;
+    if (!opts.messageId) {
+      showToast(NO_REPLY, 'warning');
+      return;
+    }
+    activeTeachMessageId = opts.messageId;
     activeTeachTargetAgentId = opts.targetAgentId || state.selectedAgentId || 'autoreiv';
     if (teachAgentTargetAgentBadge) teachAgentTargetAgentBadge.textContent = activeTeachTargetAgentId;
     if (teachAgentGuidanceInput) teachAgentGuidanceInput.value = opts.guidance || '';
@@ -71,23 +78,20 @@ export function setupTeachAgentModal(state, elements = {}, {
       const targetAgent = activeTeachTargetAgentId || state.selectedAgentId || 'autoreiv';
       const guidance = teachAgentGuidanceInput ? teachAgentGuidanceInput.value.trim() : '';
       const messageId = activeTeachMessageId;
+      if (!messageId) {
+        showToast(NO_REPLY, 'warning');
+        return;
+      }
       submitTeachAgentBtn.disabled = true;
       submitTeachAgentBtn.textContent = 'Distilling...';
       try {
         const res = await doFetch('/api/skills/distill', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: state.activeSessionId,
-            message_id: messageId,
-            target_agent_id: targetAgent,
-            operator_guidance: guidance,
-          }),
+          // CARD-500 REQ-500-001: the exact fields the server reads (D1, D2)
+          body: JSON.stringify({ session_id: state.activeSessionId, message_id: messageId, guidance }),
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(readableError(await res.json().catch(() => ({})), res.status));
         const proposal = await res.json();
         closeTeachAgentModal();
         renderSkillProposalCard(proposal, {

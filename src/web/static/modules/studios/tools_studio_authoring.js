@@ -4,6 +4,8 @@
  * A queued or empty mediation result is not success.
  */
 
+import { readableError } from '../utils/formatters.js';
+
 export const DEVELOPER_AGENT_ID = 'developer';
 export const TOOLS_AUTHORING_JOBS_URL = '/api/tools_studio/authoring/jobs';
 export const TOOLS_AUTHORING_TALK_URL = '/api/tools_studio/authoring/talk';
@@ -13,12 +15,9 @@ const INTENTS = new Set(['create', 'modify', 'delete']);
 const PACKAGING = new Set(['', 'native', 'mcp']);
 const CODE_KEYS = ['code', 'implementation', 'source_code', 'script'];
 
+/** Same readable sentence as Teach/Adopt; one helper for string, object and 422-list details [CARD-500]. */
 export function authoringErrorMessage(data, status) {
-  const detail = data && data.detail;
-  if (typeof detail === 'string' && detail.trim()) return detail.trim();
-  if (detail && typeof detail.message === 'string' && detail.message.trim()) return detail.message.trim();
-  if (data && typeof data.message === 'string' && data.message.trim()) return data.message.trim();
-  return `Server returned ${status || 'an error'}`;
+  return readableError(data, status);
 }
 
 export function normalizeToolIntentDraft(raw = {}) {
