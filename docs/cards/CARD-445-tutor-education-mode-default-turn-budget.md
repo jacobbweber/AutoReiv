@@ -1,10 +1,10 @@
 ---
 id: CARD-445
 title: "Global Default Turn Budget 50 for All Agents (One-Time Upgrade From 10)"
-status: Ready
+status: In Progress
 created: 2026-09-23
 updated: 2026-09-24
-branch: qa
+branch: feat/card-445-global-turn-budget-50
 adr: none
 parent: CARD-438
 related:
@@ -25,7 +25,7 @@ labels:
 
 # [CARD-445] Global Default Turn Budget 50 for All Agents (One-Time Upgrade From 10)
 
-> **Status**: Ready
+> **Status**: In Progress (Jacob said **build** 2026-09-24 8:06 PM ET)
 > **Created**: 2026-09-23 - **Rewritten**: 2026-09-24 after Jacob's decisions (was "Tutor Education-Mode Default Turn Budget")
 > **Observed during**: CARD-438 live test - Tutor Learning OS quiz/flashcard tool loops ran out of the hidden default of 10 turns.
 > **ADR Reference**: none (a default value change, not an architecture change)
