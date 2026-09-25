@@ -12,6 +12,12 @@
 
 ### Fixed
 
+- **CARD-485 Picking a chat works like before the split again**: Since CARD-397, `selectSession` only loaded messages. Now:
+  - New `chat/session_select.js` redraws Recent Chats with the picked chat highlighted, and closes the sessions drawer when you pick from it (desktop and phone; automatic selects on load and New chat leave the drawer alone).
+  - It restores the chat's job strip and inline phase chips from `/api/chat/sessions/{id}/journey` (waiting-for-approval job first; a late reply for a chat you left is ignored), and refreshes the context badge when Options is open.
+  - It asks `/api/sessions/{id}/status`. While the reply is still running elsewhere it shows Stop, hides Send, blocks sending and re-checks every 2 s (only while that chat is open and the page visible). When the reply finishes it restores Send and reloads the reply. Switching chats or starting your own reply stops the check.
+  - Restoring the last chat on load goes through the same path. `hydrateJobPhaseStateFromJourney` moved into the module (still re-exported from `chat.js`). The stub `checkSessionBackgroundStatus` is replaced by `watchSessionStatus` for CARD-473. `chat.js` is down to 1,008 lines. Live replay of a running reply is CARD-487.
+  - Contracts: `tests/unit/frontend/chat_session_select_485.test.js`, a behaviour test in `chat_hitl_journey_295.test.js`, smoke TC-24..TC-27 (desktop + phone) ([CARD-485]).
 - **CARD-476 The first Chat message no longer fails with HTTP 422, and each device reopens its last chat**: Since the CARD-397 split, an agent with no chats had no session. The empty-list create in `chat/chrome.js` was never wired, and the send path had no guard, so the first message posted `session_id: null` and got a 422 ("Chat turn failed: Stream error: HTTP 422"). Sending before the chat list finished loading did the same. Now:
   - `chat.js` passes `createNewSessionFn` again, so an agent with no chats gets one on load and on agent switch. The new chat shows in the list right away.
   - New `chat/session_guard.js` `ensureActiveSession()` runs before every send and paperclip upload. It waits for any in-flight load (including an agent switch), creates at most one session (single-flight), and if that fails it doesn't send, shows "Couldn't start a new chat", and keeps the typed text. The backend stays strict (a null `session_id` is still 422).

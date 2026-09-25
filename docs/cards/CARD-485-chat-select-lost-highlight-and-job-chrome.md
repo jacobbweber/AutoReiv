@@ -1,7 +1,7 @@
 ---
 id: CARD-485
 title: "Picking a chat doesn't move the list highlight or restore its job strip and running-turn status (lost in the CARD-397 split)"
-status: In Progress
+status: In Review
 created: 2026-09-25
 branch: qa
 related:
@@ -21,7 +21,7 @@ labels:
 
 # [CARD-485] Picking a chat doesn't move the list highlight or restore its job strip and running-turn status (lost in the CARD-397 split)
 
-> **Status**: In Progress (build started 2026-09-25 ET on `feat/card-485-session-select-restore`; Jacob accepted D1-D5 as recommended)
+> **Status**: In Review (built 2026-09-25 ET on `feat/card-485-session-select-restore`; not merged)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-476 build (scratch server, Playwright).
 > **Related**: CARD-397 (split), CARD-476 (session guard/restore), CARD-473 (phone catch-up), CARD-466 (New chat into + Options), CARD-471 (Options drawer wiring), CARD-486 (Stop doesn't stop the server), CARD-487 (watch a running reply live)
@@ -172,3 +172,50 @@ Write these, run them and confirm red on qa `2cc71d1a` before any fix.
 - **CARD-466** (New chat into + Options): no conflict. New chat goes through `createNewSession` → `selectSession`, which gets the highlight via CARD-476's re-render. D1 keeps the drawer untouched on automatic selects, so moving the button doesn't matter.
 - **CARD-471** (Options drawer wiring): only REQ-485-008 touches the drawer (one context refresh call). The close paths, Compact and tools modal stay in CARD-471.
 - **CARD-476** (done): its list re-render after load and create stays. This card adds the re-render on click.
+
+---
+
+## Build notes (2026-09-25 ET)
+
+**Branch:** `feat/card-485-session-select-restore` off local qa `e39401b8`. Commits: `295b0c89` (In Progress), `e244e540` (failing tests), `f4bf18c7` (fix), then this docs/CHANGELOG commit.
+
+**What changed**
+- `chat/session_select.js` (new, 283 lines):
+  - `hydrateJobPhaseStateFromJourney` (moved from `chat.js`) and `pickJourneyJob`;
+  - `buildInlineJobChromeFromJourney`;
+  - `hydrateJobChromeFromSession` (stale guard);
+  - `setSessionBusy`;
+  - `createSessionStatusWatcher` (2 s, visible-only, per-session single in-flight, never touches this tab's own stream);
+  - `createSessionSelect().afterSelect`.
+- `chat.js` (1,008 lines, cap 1,045):
+  - `selectSession(id, { userPick })` delegates to `afterSelect`;
+  - `executeChatTurn` stops the watcher;
+  - the controller exposes `watchSessionStatus` (the stub `checkSessionBackgroundStatus` is gone; nothing else called it).
+- `chat/chrome.js`: list clicks pass `{ userPick: true }`. The CARD-476 re-render after the load-time select is removed, because select now re-renders.
+- `chat/composer.js`: submit is ignored while `state.sessionBusy` (a reply is running elsewhere).
+- Busy uses `state.sessionBusy`, not `state.isStreaming`, so an agent switch during a remote reply still loads that agent's chats.
+- **Cache version not bumped:** static files are served `Cache-Control: no-store` (checked on :8000), and `app.js?v` is only bumped occasionally (last in CARD-437), so a normal reload picks up the change.
+
+**Tests (vs known failures)**
+
+| Suite | Result | Known |
+|---|---|---|
+| Vitest CARD-485 + CARD-295 behaviour | 10/10 pass (all 10 red on qa first) | |
+| Smoke TC-24..27 desktop + phone | 8/8 pass (8 red on qa first) | |
+| Smoke full | 35/35 pass | Run 1: TC-15 failed once with `net::ERR_NO_BUFFER_SPACE` (Windows socket exhaustion); it passed alone and on the full rerun |
+| Vitest full | 870 pass, 5 fail | CARD-456 (5) |
+| ESLint | 4 errors, 5 warnings (baseline); new and changed files clean | CARD-456 |
+| pytest tests/unit | 2041 pass, 11 skip, 1 fail | CARD-454 |
+| pytest tests/integration | 107 pass | |
+| ruff | 9 findings (baseline) | CARD-454 |
+
+**Repro (`scratch/c485_repro.cjs`, fresh `scripts/smoke_server.py --port 8767`, no AppData), desktop and phone:**
+- highlight moves to the picked chat `[false,false,true]`;
+- the drawer closes;
+- 1 `/journey` and 1 `/status` request on select, and on load too;
+- job strip visible, 1 inline chrome block;
+- Stop shown and Send hidden while status says running.
+
+**Notes:**
+- As before the split, a chat whose job is finished also shows its strip (DONE) and phase chips when opened.
+- Stop while a reply runs elsewhere doesn't stop it yet: CARD-486.
