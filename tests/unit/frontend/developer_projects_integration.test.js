@@ -44,7 +44,9 @@ describe('Developer Agent and Projects Studio Workspace Integration [CARD-391]',
     expect(projectsJs).toContain("agentSelect.value = 'developer'");
     expect(projectsJs).toContain("agentSelect.dispatchEvent(new Event('change'))");
     expect(projectsJs).toContain("$('promptInput')");
-    expect(projectsJs).toContain("promptInput.value = `I'm pairing with you on ${projName}");
+    // CARD-465: composer writes go through the shared setter so the box resizes
+    expect(projectsJs).toContain('setComposerText(');
+    expect(projectsJs).toContain("`I'm pairing with you on ${projName}");
   });
 
   it('[REQ-391-001] chat.js caches chatActiveProjectPill and chatActiveProjectName elements', () => {

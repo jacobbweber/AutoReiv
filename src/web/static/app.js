@@ -24,6 +24,7 @@ import { initThemeEngine } from './modules/ui/theme-engine.js';
 import { studioRegistry } from './modules/studios/registry.js';
 import { eventBus, EVENTS } from './modules/events/event-bus.js';
 import { setupModal, handleEscapeKey } from './modules/ui/modal.js';
+import { setComposerText } from './modules/studios/chat/composer.js';
 
 export function initApp() {
   try {
@@ -306,10 +307,13 @@ export function initApp() {
       const promptInput = $('promptInput');
       if (promptInput) {
         const cleanId = String(targetAgentId || '').trim();
-        promptInput.value = cleanId && cleanId !== 'all'
-          ? `I want to design a new capability for agent "${cleanId}". Let's talk through what it needs.`
-          : "I want to design a new capability. Let's talk through what it needs.";
-        promptInput.focus();
+        setComposerText(
+          promptInput,
+          cleanId && cleanId !== 'all'
+            ? `I want to design a new capability for agent "${cleanId}". Let's talk through what it needs.`
+            : "I want to design a new capability. Let's talk through what it needs.",
+          { focus: true },
+        );
       }
     },
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),

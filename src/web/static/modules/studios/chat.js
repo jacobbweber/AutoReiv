@@ -62,6 +62,8 @@ import {
   setupComposerAttachments,
   setupComposerKeyboard,
   setupComposerControls,
+  setupComposerSizing,
+  setComposerText,
 } from './chat/composer.js';
 
 import {
@@ -314,6 +316,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   const {
     maybeAutoscrollMessages,
+    isStickToBottom,
   } = setupChatScroll({
     messagesContainer,
     chatJumpToLatestBtn,
@@ -673,6 +676,15 @@ export function initChatStudio(state, callbacks = {}) {
     return refreshWorkbenchArtifactCountDirect(state.activeSessionId);
   }
 
+  // Composer sizing: grows on focus up to min(8 lines, 40% of visible column) [CARD-465]
+  setupComposerSizing({
+    promptInput,
+    columnEl: $('chatMessagesViewport')?.parentElement || null,
+    messagesContainer,
+    composerRegion: $('chatInputWrapper'),
+    isStickToBottom,
+  });
+
   // Composer attachments and keyboard
   setupComposerAttachments(state, { showToastFn: showToast });
   setupComposerKeyboard(promptInput, chatForm, () => {
@@ -950,7 +962,7 @@ export function initChatStudio(state, callbacks = {}) {
   async function startNewAgentAuthoring() {
     state.selectedAgentId = 'autoreiv';
     await createNewSession();
-    if (promptInput) promptInput.value = 'I am ready to create a new agent.';
+    setComposerText(promptInput, 'I am ready to create a new agent.');
   }
 
   async function openDeveloperSession(sessionId, composerText = '') {
@@ -970,8 +982,7 @@ export function initChatStudio(state, callbacks = {}) {
     );
     if (promptInput) {
       if (!visible && composerText) {
-        promptInput.value = composerText;
-        promptInput.dispatchEvent(new Event('input'));
+        setComposerText(promptInput, composerText);
       }
       promptInput.focus();
     }

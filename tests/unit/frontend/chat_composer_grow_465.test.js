@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
@@ -47,6 +47,11 @@ function makeTextarea(doc) {
   el.focus = () => {
     doc.activeElement = el;
     el.fire('focus');
+  };
+  // A click/tap into the box: pointerdown then focus.
+  el.userFocus = () => {
+    el.fire('pointerdown');
+    el.focus();
   };
   el.blur = () => {
     if (doc.activeElement === el) doc.activeElement = null;
@@ -125,7 +130,7 @@ describe('setupComposerSizing [REQ-465-001..006]', () => {
     const env = makeEnv();
     setupComposerSizing({ ...env, isStickToBottom: () => false });
     expect(px(env.promptInput)).toBe(LINE);
-    env.promptInput.focus();
+    env.promptInput.userFocus();
     expect(px(env.promptInput)).toBe(8 * LINE);
     env.promptInput.blur();
     expect(px(env.promptInput)).toBe(LINE);
@@ -134,7 +139,7 @@ describe('setupComposerSizing [REQ-465-001..006]', () => {
   it('blur with 3 lines fits content; 20 lines focused caps and scrolls inside', () => {
     const env = makeEnv();
     setupComposerSizing({ ...env, isStickToBottom: () => false });
-    env.promptInput.focus();
+    env.promptInput.userFocus();
     env.promptInput.value = Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n');
     env.promptInput.fire('input');
     expect(px(env.promptInput)).toBe(8 * LINE);
@@ -149,7 +154,7 @@ describe('setupComposerSizing [REQ-465-001..006]', () => {
   it('phone: visualViewport resize recomputes the cap', () => {
     const env = makeEnv({ columnHeight: 800, viewportHeight: 800 });
     setupComposerSizing({ ...env, isStickToBottom: () => false });
-    env.promptInput.focus();
+    env.promptInput.userFocus();
     expect(px(env.promptInput)).toBe(8 * LINE);
     env.win.visualViewport.height = 250; // keyboard opened
     env.win.visualViewport.fire('resize');
@@ -160,14 +165,14 @@ describe('setupComposerSizing [REQ-465-001..006]', () => {
     const env = makeEnv({ messages: { scrollTop: 1600, scrollHeight: 2000, clientHeight: 400 } });
     setupComposerSizing({ ...env, isStickToBottom: () => true });
     env.messagesContainer.scrollHeight = 2100;
-    env.promptInput.focus();
+    env.promptInput.userFocus();
     expect(env.messagesContainer.scrollTop).toBe(2100);
   });
 
   it('leaves a scrolled-up list where the user was reading', () => {
     const env = makeEnv({ messages: { scrollTop: 300, scrollHeight: 2000, clientHeight: 400 } });
     setupComposerSizing({ ...env, isStickToBottom: () => false });
-    env.promptInput.focus();
+    env.promptInput.userFocus();
     expect(env.messagesContainer.scrollTop).toBe(300);
   });
 
@@ -184,7 +189,7 @@ describe('setupComposerSizing [REQ-465-001..006]', () => {
     const timers = [];
     env.win.setTimeout = (fn) => timers.push(fn);
     setupComposerSizing({ ...env, isStickToBottom: () => false });
-    env.promptInput.focus();
+    env.promptInput.userFocus();
     expect(px(env.promptInput)).toBe(8 * LINE);
     env.composerRegion.fire('pointerdown');
     env.promptInput.blur();
@@ -192,6 +197,20 @@ describe('setupComposerSizing [REQ-465-001..006]', () => {
     env.doc.fire('pointerup');
     timers.splice(0).forEach((fn) => fn());
     expect(px(env.promptInput)).toBe(LINE);
+  });
+
+  it('auto-focus when Chat opens keeps one line; a click or typing grows it', () => {
+    const env = makeEnv();
+    setupComposerSizing({ ...env, isStickToBottom: () => false });
+    env.promptInput.focus(); // programmatic (window.js focusComposer)
+    expect(px(env.promptInput)).toBe(LINE);
+    env.promptInput.fire('pointerdown');
+    expect(px(env.promptInput)).toBe(8 * LINE);
+    env.promptInput.blur();
+    env.promptInput.focus();
+    expect(px(env.promptInput)).toBe(LINE);
+    env.promptInput.fire('keydown');
+    expect(px(env.promptInput)).toBe(8 * LINE);
   });
 
   it('is null-safe', () => {
@@ -211,11 +230,13 @@ describe('setComposerText shared setter [REQ-465-005/009]', () => {
     expect(px(env.promptInput)).toBe(LINE);
   });
 
-  it('focus option focuses the composer (then it is at the cap)', () => {
+  it('focus option focuses the composer and fits the filled text (no click yet)', () => {
     const env = makeEnv();
     setupComposerSizing({ ...env, isStickToBottom: () => false });
     setComposerText(env.promptInput, 'hello', { focus: true });
     expect(env.doc.activeElement).toBe(env.promptInput);
+    expect(px(env.promptInput)).toBe(LINE);
+    env.promptInput.fire('keydown'); // Jacob starts typing
     expect(px(env.promptInput)).toBe(8 * LINE);
   });
 
@@ -235,8 +256,13 @@ describe('setComposerText shared setter [REQ-465-005/009]', () => {
     const src = fs.readFileSync(path.join(root, rel), 'utf-8');
     expect(src).not.toMatch(/promptInput\.value\s*=[^=]/);
     expect(src).not.toMatch(/promptInput\.dispatchEvent\(new Event\('input'\)\)/);
-    expect(src).not.toMatch(/promptInput\.style\.height/);
-    if (rel !== 'modules/studios/chat/composer.js') {
+    if (rel === 'modules/studios/chat/composer.js') {
+      // Only the sizing helper may set the height; the old send-path reset is gone.
+      const controls = src.slice(src.indexOf('export function setupComposerControls'));
+      expect(controls).not.toMatch(/style\.height/);
+      expect(controls).toMatch(/setComposerText\(promptInput, ''\)/);
+    } else {
+      expect(src).not.toMatch(/promptInput\.style\.height/);
       expect(src).toMatch(/setComposerText/);
     }
   });

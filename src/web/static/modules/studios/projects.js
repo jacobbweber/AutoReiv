@@ -6,6 +6,7 @@ import { $, escapeHtml, isMobile } from '../dom.js';
 import { fetchJSON } from '../services/api.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { showToast } from '../ui/toast.js';
+import { setComposerText } from './chat/composer.js';
 
 /** @param {string} rel */
 export function normalizeBrowseRel(rel) {
@@ -677,9 +678,11 @@ export function initProjectsStudio(state, callbacks = {}) {
       const promptInput = $('promptInput');
       if (promptInput) {
         const projName = activeProject.name || activeProject.slug || 'active project';
-        promptInput.value = `I'm pairing with you on ${projName}. Inspect the workspace structure, read our active work cards, and outline the current status.`;
-        promptInput.dispatchEvent(new Event('input'));
-        promptInput.focus();
+        setComposerText(
+          promptInput,
+          `I'm pairing with you on ${projName}. Inspect the workspace structure, read our active work cards, and outline the current status.`,
+          { focus: true },
+        );
       }
 
       toast(`Pairing with Developer on ${activeProject.name || activeProject.slug}`, 'success');
