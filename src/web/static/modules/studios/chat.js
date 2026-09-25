@@ -32,6 +32,7 @@ import { setupChatScroll } from './chat/scroll.js';
 import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
 import { createSessionSelect } from './chat/session_select.js'; // CARD-485
 import { createStopHandler } from './chat/stop.js'; // CARD-486
+import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
 
 import {
   buildChatStreamPayload,
@@ -310,7 +311,7 @@ export function initChatStudio(state, callbacks = {}) {
   const promptInput = $('promptInput');
   const sendBtn = $('sendBtn');
   const stopBtn = $('stopBtn');
-  let activeAbortController = null;
+  const ownStream = createOwnStreamTracker(state, { sendBtn, stopBtn, messagesContainer }); // CARD-488: detached on switch
   const verifyToggle = $('verifyToggle');
   const approvalToggle = $('approvalToggle');
   const goalBadge = $('goalBadge');
@@ -581,6 +582,7 @@ export function initChatStudio(state, callbacks = {}) {
   const ensureSession = () => ensureActiveSession(state, { createNewSession, showToastFn: showToast });
   const sessionSelect = createSessionSelect(state, { // CARD-485: list, drawer, journey strip, running status
     sessionList, onSelectSession: selectSession, chatSessionsDrawer, viewChat, sendBtn, stopBtn,
+    getStreamSessionId: ownStream.sessionId, detachOwnStream: ownStream.detach, // CARD-488
     loadMessages, refreshPendingHitl, refreshWorkbenchArtifactCount, jumpToLatest: jumpMessagesToLatest,
     setJobPhaseState: (next) => { jobPhaseState = next; renderJobPhaseStrip(); },
     setInlineJobChromeModel: (model) => { inlineJobChromeModel = model; remountInlineJobChrome(); },
@@ -693,7 +695,8 @@ export function initChatStudio(state, callbacks = {}) {
   async function executeChatTurn(userPrompt, options = {}) {
     sessionSelect.stopWatching(); // CARD-485: this tab's own stream takes over
     resetInlineJobChrome();
-    state.isStreaming = true;
+    const turnCtl = new AbortController();
+    const turn = ownStream.begin(state.activeSessionId, turnCtl); // CARD-488: sets state.isStreaming
     const emptyPlaceholder = messagesContainer?.querySelector('.text-center');
     if (emptyPlaceholder) emptyPlaceholder.remove();
     if (sendBtn) { sendBtn.disabled = true; sendBtn.classList.add('hidden'); }
@@ -772,7 +775,6 @@ export function initChatStudio(state, callbacks = {}) {
       });
     }
 
-    activeAbortController = new AbortController();
     let accumulatedContent = '';
     let accumulatedReasoning = '';
     const outcome = trackStreamOutcome();
@@ -792,7 +794,7 @@ export function initChatStudio(state, callbacks = {}) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        signal: activeAbortController.signal,
+        signal: turnCtl.signal,
       });
 
       if (!response.ok) throw new Error(`Stream error: HTTP ${response.status}`);
@@ -860,6 +862,7 @@ export function initChatStudio(state, callbacks = {}) {
         },
       });
 
+      if (!ownStream.isCurrent(turn)) return; // CARD-488: detached; the chat on screen is another one
       state.messages.push({ role: 'assistant', content: accumulatedContent, reasoning: accumulatedReasoning });
       const streamingBadge = streamBubble.querySelector('.text-brand-400.animate-pulse');
       if (streamingBadge) streamingBadge.remove();
@@ -887,26 +890,26 @@ export function initChatStudio(state, callbacks = {}) {
           exportMessageToWikiFn: callbacks.exportMessageToWiki || null,
         });
       }
-      reportStreamOutcome(outcome, { messagesContainer, showToastFn: showToast });
+      if (ownStream.isCurrent(turn)) reportStreamOutcome(outcome, { messagesContainer, showToastFn: showToast });
 
       await refreshPendingHitl();
       await refreshWorkbenchArtifactCount();
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      if (err.name !== 'AbortError' && ownStream.isCurrent(turn)) {
         showToast(`Chat turn failed: ${err.message}`, 'error');
         if (streamContentEl) streamContentEl.innerHTML = `<span class="text-rose-400">Error: ${escapeHtml(err.message)}</span>`;
       }
     } finally {
-      state.isStreaming = false;
-      activeAbortController = null;
-      if (sendBtn) { sendBtn.disabled = false; sendBtn.classList.remove('hidden'); }
-      if (stopBtn) { stopBtn.disabled = true; stopBtn.classList.add('hidden'); }
-      maybeAutoscrollMessages();
+      if (ownStream.end(turn)) { // CARD-488: a detached turn leaves the view alone
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.classList.remove('hidden'); }
+        if (stopBtn) { stopBtn.disabled = true; stopBtn.classList.add('hidden'); }
+        maybeAutoscrollMessages();
+      }
     }
   }
 
   const stopHandler = createStopHandler(state, { // CARD-486: Stop tells the server to stop
-    getController: () => activeAbortController, clearController: () => { activeAbortController = null; },
+    getController: ownStream.controller, clearController: ownStream.detach, getStreamSessionId: ownStream.sessionId, // CARD-488
     stopWatching: sessionSelect.stopWatching, setBusy: sessionSelect.setBusy, sendBtn, stopBtn, loadMessages,
     recheckStatus: sessionSelect.watchSessionStatus, showToast,
   });

@@ -927,4 +927,103 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(aborts.length).toBe(1);
     });
   }
+
+  // CARD-488: switching chats (or agent) while your own reply streams shows the other chat; Stop hits the right chat.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    async function setup488(page, request, { agent = null } = {}) {
+      const tag = `${vp.name}-${Date.now()}`;
+      const A = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `A 488 ${tag}` } })).json();
+      await new Promise((r) => setTimeout(r, 1100));
+      const B = await (await request.post('/api/sessions', { data: { agent_id: agent || 'autoreiv', title: `B 488 ${tag}` } })).json();
+      const t = { A, B, posts: [], aborts: [] };
+      await page.route('**/api/sessions/*/messages', (route) => {
+        if (!route.request().url().includes(B.id)) return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ role: 'user', content: 'hello from B' }, { role: 'assistant', content: 'B answered' }]) });
+      });
+      await page.route('**/api/chat/stream', async (route) => {
+        const body = route.request().postDataJSON();
+        t.posts.push(body.session_id === A.id ? 'A' : body.session_id === B.id ? 'B' : 'other');
+        if (body.session_id === A.id) return; // A's reply never finishes
+        await route.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: 'event: token\ndata: {"text": "ok"}\n\nevent: turn_done\ndata: {"content": "ok"}\n\n' });
+      });
+      await page.route('**/api/chat/stream/*/abort', (route) => {
+        const url = route.request().url();
+        t.aborts.push(url.includes(A.id) ? 'A' : url.includes(B.id) ? 'B' : 'other');
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'aborted', task_cancelled: true }) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      await expect(page.locator('#sessionList > div', { hasText: A.title })).toHaveCount(1);
+      t.pick = async (sess) => {
+        await page.locator('#toggleSidebarBtn').click();
+        await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+        await page.locator('#sessionList > div', { hasText: sess.title }).click();
+        await expect(page.locator('#chatSessionsDrawer')).toBeHidden();
+      };
+      t.send = async (text) => {
+        const input = page.locator('#promptInput');
+        await input.click();
+        await input.type(text);
+        await input.press('Enter');
+      };
+      await t.pick(A);
+      await t.send('a long story in A');
+      await expect(page.locator('#stopBtn')).toBeVisible();
+      await expect(page.locator('[data-stream-bubble="true"]')).toHaveCount(1);
+      return t;
+    }
+
+    test(`TC-30 (${vp.name}): switching chats during your own reply shows the other chat and sends there [CARD-488]`, async ({ page, request }) => {
+      const t = await setup488(page, request);
+      await t.pick(t.B);
+      await expect(page.locator('#messagesContainer')).toContainText('hello from B');
+      await expect(page.locator('#messagesContainer')).not.toContainText('a long story in A');
+      await expect(page.locator('[data-stream-bubble="true"]')).toHaveCount(0);
+      await expect(page.locator('#sendBtn')).toBeVisible();
+      await expect(page.locator('#stopBtn')).toBeHidden();
+      await t.send('hi from B');
+      await expect.poll(() => t.posts.filter((p) => p === 'B').length).toBe(1);
+      await expect(page.locator('#promptInput')).toHaveValue('');
+      expect(t.aborts).toEqual([]);
+    });
+
+    test(`TC-31 (${vp.name}): back on the running chat, Stop stops that chat [CARD-488]`, async ({ page, request }) => {
+      let aStopped = false;
+      let t = null;
+      await page.route('**/api/sessions/*/status', (route) => {
+        const isA = t && route.request().url().includes(t.A.id);
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ is_running: Boolean(isA && !aStopped) }) });
+      });
+      page.on('request', (r) => { if (t && /\/abort$/.test(r.url()) && r.url().includes(t.A.id)) aStopped = true; });
+      t = await setup488(page, request);
+      await t.pick(t.B);
+      await expect(page.locator('#sendBtn')).toBeVisible();
+      expect(t.aborts).toEqual([]);
+      await t.pick(t.A);
+      await expect(page.locator('#stopBtn')).toBeVisible();
+      await page.locator('#stopBtn').click();
+      await expect.poll(() => t.aborts.length).toBe(1);
+      expect(t.aborts).toEqual(['A']);
+      await expect(page.locator('#sendBtn')).toBeVisible();
+    });
+
+    test(`TC-32 (${vp.name}): switching agent during your own reply opens that agent's chat [CARD-488]`, async ({ page, request }) => {
+      const agentId = `smoke-488-${vp.name}-${Date.now()}`;
+      const made = await request.post('/api/agents', { data: { id: agentId, name: `Smoke 488 ${vp.name}`, system_prompt: 'Smoke test agent.' } });
+      expect(made.ok()).toBeTruthy();
+      const t = await setup488(page, request, { agent: agentId });
+      await page.evaluate((id) => {
+        const sel = document.getElementById('agentSelect');
+        sel.value = id;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }, agentId);
+      await expect(page.locator('#messagesContainer')).toContainText('hello from B');
+      await expect(page.locator('[data-stream-bubble="true"]')).toHaveCount(0);
+      await expect(page.locator('#sendBtn')).toBeVisible();
+      await expect(page.locator('#stopBtn')).toBeHidden();
+      expect(t.aborts).toEqual([]);
+    });
+  }
 });

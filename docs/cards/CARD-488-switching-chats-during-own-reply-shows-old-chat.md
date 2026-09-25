@@ -1,7 +1,7 @@
 ---
 id: CARD-488
 title: "Switching chats while your own reply is streaming keeps showing the old chat and blocks sending"
-status: Ready
+status: Done
 created: 2026-09-25
 branch: qa
 related:
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-488] Switching chats while your own reply is streaming keeps showing the old chat and blocks sending
 
-> **Status**: Ready (refined 2026-09-25 ET, "continue" #1)
+> **Status**: Done (merged to qa 2026-09-25 ET; build 2026-09-25 ET on `feat/card-488-switch-during-own-reply`; D1-D7 accepted as recommended)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-485 build (scratch server, Playwright `scratch/c485_ownstream.cjs`). Re-reproduced on qa `2bd55bd0` with a real slow reply (`scratch/c488_ui.cjs`).
 > **Related**: CARD-485 (select path, busy state), CARD-486 (Stop), CARD-487 (live replay), CARD-154 (server work survives disconnect), follow-ups CARD-493 / CARD-494
@@ -197,3 +197,63 @@ Desktop http://127.0.0.1:8000 and phone http://192.168.1.99:8000.
 ## Note (2026-09-25 ET, CARD-486 build)
 
 CARD-486 Stop (`chat/stop.js`) cancels this tab's request and POSTs `/abort` for `state.activeSessionId`. If Jacob switches chats while his own reply streams (this card's bug) and then presses Stop, the browser request is cancelled but the server abort goes to the **newly opened** chat. The original reply keeps running on the server. When this card is built, track the streaming chat's id in `executeChatTurn` and have Stop abort that id (pass a `getStreamSessionId` dep to `createStopHandler`), with a Vitest case for it. **Confirmed on qa `2bd55bd0` (repro above) and covered by D3 / REQ-488-006.**
+
+
+---
+
+## Build note (2026-09-25 ET, `feat/card-488-switch-during-own-reply`, In Review)
+
+**Commits**
+- `b9806c66`: card In Progress.
+- `bcba6b3e`: failing tests, confirmed red.
+  - Vitest: 7 of 8 red. The 8th, re-selecting the streaming chat, passes as a guard.
+  - Smoke TC-30/31/32 on desktop and phone: 6 of 6 red. B still showed A's content, Send was hidden, and the agent switch kept the old chat.
+- `0fc4f2b3`: fix.
+- `78676d0b`: CHANGELOG.
+- This commit: In Review.
+
+**What changed**
+- New `src/web/static/modules/studios/chat/own_stream.js` (`createOwnStreamTracker`: `begin` / `end` / `detach` / `isCurrent` / `runIfCurrent` / `sessionId` / `controller`).
+- `chat.js`:
+  - `let activeAbortController` is replaced by the tracker. `executeChatTurn` calls `begin`.
+  - A detached turn skips the success path, notices, error display and its `finally` button reset.
+  - `createSessionSelect` gets `getStreamSessionId` and `detachOwnStream`. Stop gets `getStreamSessionId`, and `clearController` is now `detach`.
+  - 1,012 lines (cap 1,045).
+- `session_select.js`: `afterSelect` detaches when the picked chat isn't the streaming one.
+- `stop.js`: the target is this tab's streaming chat, otherwise the open chat.
+- `chrome.js`: `loadSessions` no longer returns early while streaming, so an agent switch opens that agent's chat.
+- Scavenger Pass: `activeAbortController` is gone. Nothing else went stale; `render.js` and `hitl.js` still read `state.isStreaming`, which now means only "this tab's reply is attached".
+
+**Tests (on the branch)**
+
+| Suite | Result |
+|---|---|
+| `chat_switch_during_reply_488.test.js` + CARD-486 + CARD-485 Vitest | 24/24 |
+| Smoke TC-24..32 (CARD-485/486/488, desktop + phone) | 18/18 |
+| Full Vitest | 885 pass, 5 fail (known CARD-456) |
+| `pytest tests/unit` | 2045 pass, 11 skip, 1 fail (known CARD-454) |
+| `pytest tests/integration` | 107 pass |
+| Full smoke | 45/45 |
+| ESLint | baseline 4 errors / 5 warnings |
+| ruff | baseline 9 |
+
+**Scratch repro** (`scratch/c488_ui.cjs`, scratch server + slow fake model; no real AppData)
+- **After picking B mid-reply:**
+  - B's messages are shown, with no A text and no stream bubble.
+  - Send is visible and Stop hidden.
+  - Enter in B sent 1 request, for B, and the box cleared.
+  - 0 aborts on switch.
+- **Back on A:**
+  - Busy/Stop is shown.
+  - Stop sent 1 abort, for **A**.
+  - The model request for A was cut **150 ms** later (`req3 CANCELLED by server after chunk 8`).
+  - B's queued reply started 20 ms after that and finished.
+- **Letting A finish while B is open:** B stays on screen. Back on A, the full 60-word reply shows.
+- **Before the fix (qa `2bd55bd0`):** B showed A's prompt and bubble, and Enter did nothing. Stop aborted B while A kept running.
+- The repro also confirms CARD-494: B's reply waited in the queue until A finished or was stopped.
+
+**Follow-ups:** no new gaps. CARD-493 (list markers) and CARD-494 (waiting hint) were confirmed by the repro.
+
+## Merge note (2026-09-25 ET)
+
+Jacob said **merge to qa**. Merged `feat/card-488-switch-during-own-reply` into qa with `--no-ff`; focused CARD-488/486/485 Vitest, pytest unit + integration and full smoke re-run on qa before push. Follow-ups: CARD-493 (list markers), CARD-494 (waiting hint).

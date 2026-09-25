@@ -138,7 +138,7 @@ export async function loadSessions(arg1 = {}, arg2 = {}) {
       state.activeSessionId &&
       Array.isArray(state.sessions) &&
       state.sessions.some((s) => s.id === state.activeSessionId);
-    if (stillThere || state.isStreaming) {
+    if (stillThere) { // CARD-488: an agent switch mid-reply opens that agent's chat (the reply detaches)
       return;
     }
     const openId = pickSessionToOpen(state.sessions, storedId); // CARD-476: this device's last chat, else newest

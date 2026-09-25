@@ -12,6 +12,13 @@
 
 ### Fixed
 
+- **CARD-488 Switching chats during your own reply shows the chat you picked**: Picking another chat, pressing New chat or switching agent while this tab was streaming a reply kept the old chat on screen, because rendering is skipped while streaming. It also hid Send, so Enter was ignored, and Stop then aborted the newly opened chat while the original reply kept running on the server. One flag, `state.isStreaming`, meant both "this tab is streaming" and "the open chat is streaming". Now:
+  - New `chat/own_stream.js` (`createOwnStreamTracker`) tracks this tab's reply apart from the chat on screen.
+  - Switching to a different chat detaches it. Only the browser request is cancelled and the server keeps going (CARD-154). Streaming is cleared, the stream bubble is removed, and Send comes back, so the picked chat renders and sends normally.
+  - A detached turn can no longer write into the view (messages, notices, errors, button state).
+  - Back on the first chat, the CARD-485 busy state shows while it is still running, and Stop aborts **that** chat. Stop always targets this tab's streaming chat, otherwise the open chat.
+  - Switching agent mid-reply now opens that agent's chat: `loadSessions` no longer returns early while streaming.
+  - Contracts: `tests/unit/frontend/chat_switch_during_reply_488.test.js`, smoke TC-30/31/32 ([CARD-488]).
 - **CARD-486 Stop stops the reply on the server again**: The CARD-397 split dropped the server call from Stop. Pressing Stop only cut the browser off, so the model kept generating to the end (CARD-154 keeps work alive on disconnect), saved the whole reply, and held the only generation slot. The next message waited about 27 s in the scratch repro. Now:
   - New `chat/stop.js` (`createStopHandler`) cancels this tab's request, then sends one `POST /api/chat/stream/{id}/abort` for the open chat. It does this both for your own reply and for a reply running on another device (the CARD-485 busy state, where Stop used to do nothing). The abort cancels the model request and checkpoints a running phase so the job can resume (CARD-259). Extra presses while the abort is pending are ignored. It then stops the status watch, clears busy, restores Send, reloads the chat and shows **Stopped**. If the server can't be reached it shows a warning and still restores Send.
   - `GET /api/sessions/{id}/status` only reports running when a reply is in progress or a job phase is actually running. A stopped job (phase queued, resumable) or an approval that is waiting no longer reads as running, so busy clears after Stop in plan chats.
