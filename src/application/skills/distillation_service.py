@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
+class DistillTurnNotFound(LookupError):
+    """The message id is not an agent reply in that chat [CARD-500 REQ-500-004]."""
+
+
 class SkillDistillationService:
     """Extracts turn context, diagnoses procedural friction, and adopts skills into user packs."""
 
@@ -167,9 +171,7 @@ class SkillDistillationService:
                     getattr(session, "agent_id", None) or getattr(session, "lead_agent_id", None) or target_agent
                 )
 
-        raw_messages = []
-        if hasattr(self.store, "get_messages"):
-            raw_messages = self.store.get_messages(session_id, limit=20)
+        raw_messages = list(self.store.get_messages(session_id)) if hasattr(self.store, "get_messages") else []
 
         # Also direct query to inspect message IDs if store has connection
         if hasattr(self.store, "_get_connection"):
@@ -183,27 +185,26 @@ class SkillDistillationService:
             except Exception:
                 pass
 
-        for msg in reversed(raw_messages):
-            role_val = getattr(msg.role, "value", str(msg.role)).lower()
-            if role_val == "user" and not user_prompt:
-                user_prompt = msg.content or ""
-            elif role_val == "assistant" and not assistant_resp:
-                assistant_resp = msg.content or ""
-                if getattr(msg, "tool_calls", None):
-                    for tc in msg.tool_calls:
-                        tool_calls.append(
-                            {
-                                "name": tc.name,
-                                "arguments": tc.arguments,
-                            }
-                        )
-            elif role_val == "tool":
-                tool_results.append(
-                    {
-                        "name": getattr(msg, "name", None) or "tool",
-                        "content": (msg.content or "")[:600],
-                    }
-                )
+        # CARD-500 REQ-500-002/004: distill the clicked reply's turn only; no fallback to "latest".
+        roles = [getattr(m.role, "value", str(m.role)).lower() for m in raw_messages]
+        clicked = next((i for i, m in enumerate(raw_messages) if getattr(m, "id", None) == message_id), None)
+        if clicked is None or roles[clicked] != "assistant":
+            raise DistillTurnNotFound("That message is not a reply in this chat. Teach from one of the agent's replies.")
+        start = next((i for i in range(clicked - 1, -1, -1) if roles[i] == "user"), -1)
+        if start >= 0:
+            user_prompt = raw_messages[start].content or ""
+        end = clicked
+        while end + 1 < len(raw_messages) and roles[end + 1] == "tool":
+            end += 1
+        for i in range(start + 1, end + 1):
+            msg = raw_messages[i]
+            if roles[i] == "assistant":
+                for tc in getattr(msg, "tool_calls", None) or []:
+                    tool_calls.append({"name": tc.name, "arguments": tc.arguments})
+                if msg.content and i <= clicked:
+                    assistant_resp = msg.content  # the clicked reply wins; else the last non-empty one
+            elif roles[i] == "tool":
+                tool_results.append({"name": getattr(msg, "name", None) or "tool", "content": (msg.content or "")[:600]})
 
         return {
             "target_agent_id": target_agent,

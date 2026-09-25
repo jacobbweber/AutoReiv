@@ -276,7 +276,7 @@ class AdoptSkillRequest(BaseModel):
 @router.post("/api/skills/distill")
 async def post_distill_skill(request: Request, payload: DistillSkillRequest):
     """[REQ-SKIL-010, REQ-SKIL-015] Analyze recent conversation turn and synthesize a persistent SKILL.md proposal."""
-    from src.application.skills.distillation_service import SkillDistillationService
+    from src.application.skills.distillation_service import DistillTurnNotFound, SkillDistillationService
 
     store = request.app.state.store
     session = store.get_session(payload.session_id) if hasattr(store, "get_session") else None
@@ -294,11 +294,14 @@ async def post_distill_skill(request: Request, payload: DistillSkillRequest):
         data_dir=data_dir,
         agent_registry=registry,
     )
-    result = await service.distill_turn(
-        session_id=payload.session_id,
-        message_id=payload.message_id,
-        guidance=payload.guidance,
-    )
+    try:
+        result = await service.distill_turn(
+            session_id=payload.session_id,
+            message_id=payload.message_id,
+            guidance=payload.guidance,
+        )
+    except DistillTurnNotFound as exc:  # CARD-500 REQ-500-004: plain reason, no fallback
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return result
 
 
