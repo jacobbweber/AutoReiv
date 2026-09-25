@@ -394,4 +394,41 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
     expect(finalBg).toBe('rgb(45, 212, 191)');
   });
+
+  test('TC-8: Chat composer grows on focus and the message list stays visible and scrollable [CARD-465]', async ({
+    page,
+  }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#view-chat')).toBeVisible();
+    const input = page.locator('#promptInput');
+    const list = page.locator('#messagesContainer');
+    await expect(input).toBeVisible();
+
+    const idle = await input.evaluate((el) => el.getBoundingClientRect().height);
+    const listIdle = await list.evaluate((el) => el.clientHeight);
+    // Chat auto-focuses the box on open; it stays one line until clicked [CARD-465].
+    expect(idle).toBeLessThan(40);
+    await input.click();
+    await expect.poll(() => input.evaluate((el) => el.getBoundingClientRect().height)).toBeGreaterThan(idle * 2);
+    const focused = await input.evaluate((el) => el.getBoundingClientRect().height);
+
+    // Pushes up, never covers: list shrank, still visible, still scrollable, and ends above the composer.
+    const listFocused = await list.evaluate((el) => el.clientHeight);
+    expect(listFocused).toBeLessThan(listIdle);
+    expect(listFocused).toBeGreaterThan(0);
+    await expect(list).toBeVisible();
+    expect(await list.evaluate((el) => getComputedStyle(el).overflowY)).toBe('auto');
+    const listBottom = await list.evaluate((el) => el.getBoundingClientRect().bottom);
+    const inputTop = await input.evaluate((el) => el.getBoundingClientRect().top);
+    expect(listBottom).toBeLessThanOrEqual(inputTop + 1);
+
+    // Cap: never more than 40% of the chat column.
+    const column = await page.locator('#chatMessagesViewport').evaluate((el) => el.parentElement.clientHeight);
+    expect(focused).toBeLessThanOrEqual(Math.ceil(column * 0.4) + 1);
+
+    // Blur while empty -> back to one line.
+    await page.locator('#messagesContainer').click({ position: { x: 10, y: 10 } });
+    await expect.poll(() => input.evaluate((el) => el.getBoundingClientRect().height)).toBeLessThan(idle + 2);
+  });
 });

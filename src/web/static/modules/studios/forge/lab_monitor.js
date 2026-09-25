@@ -8,6 +8,7 @@ import { $, safeCreateIcons } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
 import { showToast } from '../../ui/toast.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
+import { setComposerText } from '../chat/composer.js';
 
 let currentLabJobData = null;
 let labPollTimer = null;
@@ -162,7 +163,7 @@ export function populateTrainModalForRetry(jobData, elements = {}) {
 
   const promptInput = elements.promptInput || $('promptInput');
   if (promptInput && seedIntent) {
-    promptInput.value = seedIntent;
+    setComposerText(promptInput, seedIntent);
   }
 
   const deliverableSelect = elements.deliverableType || $('trainDeliverableType');

@@ -34,6 +34,7 @@ import {
   interpretAuthoringTalk,
   normalizeToolIntentDraft,
 } from './tools_studio_authoring.js';
+import { setComposerText } from './chat/composer.js';
 
 export { TOOLS_STUDIO_LABEL, TOOLS_STUDIO_TAB, planToolsStudioDeepLink };
 
@@ -305,8 +306,7 @@ export function initToolsStudio(_state, callbacks = {}) {
     }
     const promptInput = $('promptInput');
     if (promptInput && plan.prompt) {
-      promptInput.value = plan.prompt;
-      promptInput.focus();
+      setComposerText(promptInput, plan.prompt, { focus: true });
     }
   }
 

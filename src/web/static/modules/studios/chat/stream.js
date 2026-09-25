@@ -4,6 +4,7 @@
  */
 
 import { escapeHtml } from '../../utils/formatters.js';
+import { setComposerText } from './composer.js';
 
 export const AUTOREIV_AGENT_ID = 'autoreiv';
 export const NEW_AGENT_STARTER_PROMPT = 'I am ready to create a new agent.';
@@ -161,10 +162,7 @@ export async function prepareNewAgentAuthoringSession({
     await createNewSession();
   }
   if (promptInput) {
-    promptInput.value = starterPrompt;
-    if (typeof promptInput.focus === 'function') {
-      promptInput.focus();
-    }
+    setComposerText(promptInput, starterPrompt, { focus: true });
   }
   return { filled: true, sent: false, prompt: starterPrompt, agentId };
 }

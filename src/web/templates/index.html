@@ -392,22 +392,25 @@
           </aside>
           <!-- Left / Main: Chat Messages Stream & Floating Input -->
           <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
-            <!-- Chat Messages Container -->
-            <div id="messagesContainer" role="log" aria-live="polite" aria-atomic="false" class="flex-1 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
-              <div class="text-center py-12 text-slate-400 space-y-2">
-                <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
-                  <i data-lucide="bot" class="w-6 h-6"></i>
+            <!-- Message list viewport: list + Jump to latest; shrinks as the composer grows [CARD-465] -->
+            <div id="chatMessagesViewport" class="relative flex-1 min-h-0 flex flex-col">
+              <!-- Chat Messages Container -->
+              <div id="messagesContainer" role="log" aria-live="polite" aria-atomic="false" class="flex-1 min-h-0 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
+                <div class="text-center py-12 text-slate-400 space-y-2">
+                  <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
+                    <i data-lucide="bot" class="w-6 h-6"></i>
+                  </div>
+                  <p class="text-sm font-medium">Select or create a conversation to begin.</p>
                 </div>
-                <p class="text-sm font-medium">Select or create a conversation to begin.</p>
               </div>
-            </div>
 
-
-            <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-28 z-20 flex justify-center">
-              <button type="button" id="chatJumpToLatestBtn" class="hidden pointer-events-auto items-center space-x-1.5 px-3 py-1.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-900/40 border border-brand-400/30 transition" title="Jump to latest messages" aria-label="Jump to latest">
-                <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
-                <span>Jump to latest</span>
-              </button>
+              <!-- Jump to latest sits on the list's bottom edge, never behind the composer [CARD-465] -->
+              <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-3 z-20 flex justify-center">
+                <button type="button" id="chatJumpToLatestBtn" class="hidden pointer-events-auto items-center space-x-1.5 px-3 py-1.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-900/40 border border-brand-400/30 transition" title="Jump to latest messages" aria-label="Jump to latest">
+                  <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                  <span>Jump to latest</span>
+                </button>
+              </div>
             </div>
 
             <div id="pendingHitlHost" class="px-3 md:px-8 pb-2 space-y-2 w-full max-w-4xl mx-auto"></div>
@@ -543,7 +546,7 @@
 
                   <!-- Prompt Input Textarea -->
                   <div class="w-full px-1">
-                    <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-36 leading-relaxed"></textarea>
+                    <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none leading-relaxed"></textarea>
                   </div>
 
                   <!-- Compact Controls Bar -->

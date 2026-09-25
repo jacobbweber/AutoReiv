@@ -5,6 +5,7 @@
 
 import { $, escapeHtml, isMobile, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
+import { setComposerText } from './chat/composer.js';
 
 export function initPromptsStudio() {
   const promptsStudioListPane = $('promptsStudioListPane');
@@ -330,9 +331,7 @@ export function initPromptsStudio() {
       if (chatTab) chatTab.click();
       const promptInput = $('promptInput');
       if (promptInput) {
-        promptInput.value = text;
-        promptInput.dispatchEvent(new Event('input'));
-        promptInput.focus();
+        setComposerText(promptInput, text, { focus: true });
         showToast('Prompt loaded into Chat Studio', 'info');
       }
     });

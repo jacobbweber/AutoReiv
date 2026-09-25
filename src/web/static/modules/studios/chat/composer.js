@@ -1,9 +1,181 @@
 /**
  * Chat Studio: Composer & Attachments Submodule [CARD-143, CARD-235, CARD-397]
- * Manages textarea keybindings, auto-resize, staged attachments, drop/paste, and send/stop controls.
+ * Manages textarea keybindings, sizing [CARD-465], staged attachments, drop/paste, and send/stop controls.
  */
 
 import { escapeHtml, formatBytes } from '../../utils/formatters.js';
+import { isScrolledNearBottom } from './scroll.js';
+
+// CARD-465: composer grows on focus up to an adaptive cap.
+export const COMPOSER_MAX_LINES = 8;
+export const COMPOSER_MAX_COLUMN_FRACTION = 0.4;
+
+/**
+ * Pure composer height rule [CARD-465 REQ-465-001/002/004/008].
+ * focused (engaged) -> cap; otherwise with text -> fit content up to cap; empty -> 1 line.
+ * cap = min(8 lines, 40% of the visible chat column), never below 1 line.
+ */
+export function computeComposerHeight({
+  contentHeight = 0,
+  lineHeight = 20,
+  paddingY = 0,
+  focused = false,
+  hasText = false,
+  columnHeight = 0,
+} = {}) {
+  const line = Math.max(1, Number(lineHeight) || 20);
+  const pad = Math.max(0, Number(paddingY) || 0);
+  const oneLine = line + pad;
+  const linesCap = COMPOSER_MAX_LINES * line + pad;
+  const col = Number(columnHeight) || 0;
+  const columnCap = col > 0 ? Math.floor(col * COMPOSER_MAX_COLUMN_FRACTION) : Infinity;
+  const cap = Math.max(oneLine, Math.min(linesCap, columnCap));
+  const content = Math.max(oneLine, Number(contentHeight) || 0);
+  let height;
+  if (focused) height = cap;
+  else if (!hasText) height = oneLine;
+  else height = Math.min(content, cap);
+  return { height, cap, oneLine, overflow: content > height };
+}
+
+/** Visible chat column height: the column, further limited by visualViewport (iOS keyboard). */
+export function getVisibleColumnHeight(columnEl, win = typeof window !== 'undefined' ? window : null) {
+  const col = Number(columnEl?.clientHeight) || 0;
+  const vv = Number(win?.visualViewport?.height) || 0;
+  if (col > 0 && vv > 0) return Math.min(col, vv);
+  return col || 0;
+}
+
+function readComposerMetrics(el, win) {
+  let lineHeight = 20;
+  let paddingY = 0;
+  try {
+    const cs = win && typeof win.getComputedStyle === 'function' ? win.getComputedStyle(el) : null;
+    if (cs) {
+      const fontSize = parseFloat(cs.fontSize) || 14;
+      const lh = parseFloat(cs.lineHeight);
+      lineHeight = Number.isFinite(lh) && lh > 0 ? lh : fontSize * 1.625;
+      paddingY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    }
+  } catch {
+    /* keep defaults */
+  }
+  return { lineHeight, paddingY };
+}
+
+/**
+ * Size the composer, pin a stuck-to-bottom list, and wire focus/blur/input/viewport listeners.
+ * Returns { fit } so callers can force a re-measure. Null-safe.
+ */
+export function setupComposerSizing({
+  promptInput,
+  columnEl = null,
+  messagesContainer = null,
+  composerRegion = null,
+  isStickToBottom = null,
+  win = typeof window !== 'undefined' ? window : null,
+  doc = typeof document !== 'undefined' ? document : null,
+} = {}) {
+  if (!promptInput || !promptInput.style) return { fit: () => null };
+  let pressing = false;
+  // Grow only when Jacob engages the box (click/tap or typing), not on the auto-focus when Chat opens.
+  let engaged = false;
+
+  const listPinned = () => {
+    if (!messagesContainer) return false;
+    if (typeof isStickToBottom === 'function') return Boolean(isStickToBottom());
+    return isScrolledNearBottom(messagesContainer);
+  };
+
+  const pin = (pinned) => {
+    if (pinned && messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  };
+
+  function fit() {
+    const pinned = listPinned();
+    const { lineHeight, paddingY } = readComposerMetrics(promptInput, win);
+    promptInput.style.height = 'auto';
+    const result = computeComposerHeight({
+      contentHeight: Number(promptInput.scrollHeight) || 0,
+      lineHeight,
+      paddingY,
+      focused: engaged && Boolean(doc && doc.activeElement === promptInput),
+      hasText: String(promptInput.value || '').length > 0,
+      columnHeight: getVisibleColumnHeight(columnEl, win),
+    });
+    promptInput.style.height = `${result.height}px`;
+    promptInput.style.overflowY = result.overflow ? 'auto' : 'hidden';
+    pin(pinned);
+    return result;
+  }
+
+  const engage = () => {
+    if (engaged) return;
+    engaged = true;
+    fit();
+  };
+  promptInput.addEventListener('pointerdown', engage);
+  promptInput.addEventListener('keydown', engage);
+  promptInput.addEventListener('focus', fit);
+  promptInput.addEventListener('input', fit);
+  promptInput.addEventListener('blur', () => {
+    engaged = false;
+    // A click inside the composer (Options drawer, send, toolbar) must land before we shrink.
+    if (!pressing) fit();
+  });
+
+  if (composerRegion && typeof composerRegion.addEventListener === 'function') {
+    composerRegion.addEventListener('pointerdown', () => {
+      pressing = true;
+    });
+  }
+  const release = () => {
+    if (!pressing) return;
+    pressing = false;
+    const defer = win && typeof win.setTimeout === 'function' ? win.setTimeout.bind(win) : (fn) => fn();
+    defer(fit, 0);
+  };
+  if (doc && typeof doc.addEventListener === 'function') {
+    doc.addEventListener('pointerup', release, true);
+    doc.addEventListener('pointercancel', release, true);
+  }
+
+  const onViewport = () => fit();
+  if (win && typeof win.addEventListener === 'function') win.addEventListener('resize', onViewport);
+  if (win?.visualViewport && typeof win.visualViewport.addEventListener === 'function') {
+    win.visualViewport.addEventListener('resize', onViewport);
+  }
+
+  // Options drawer / attachments / HITL change the space below the list: keep a pinned list pinned.
+  if (composerRegion && win && typeof win.ResizeObserver === 'function') {
+    try {
+      const ro = new win.ResizeObserver(() => pin(listPinned()));
+      ro.observe(composerRegion);
+    } catch {
+      /* ResizeObserver optional */
+    }
+  }
+
+  fit();
+  return { fit };
+}
+
+/**
+ * Shared composer setter [CARD-465 REQ-465-009]: every programmatic write goes through here
+ * so the composer resizes (the input event drives setupComposerSizing).
+ */
+export function setComposerText(el, text, { focus = false } = {}) {
+  if (!el) return false;
+  el.value = text == null ? '' : String(text);
+  try {
+    const evt = typeof Event === 'function' ? new Event('input', { bubbles: true }) : { type: 'input' };
+    if (typeof el.dispatchEvent === 'function') el.dispatchEvent(evt);
+  } catch {
+    /* ignore */
+  }
+  if (focus && typeof el.focus === 'function') el.focus();
+  return true;
+}
 
 export function renderStagedAttachments({
   chatAttachmentsPreviewList,
@@ -145,7 +317,7 @@ export function setupComposerControls({
       if (!text && (!state.stagedAttachments || state.stagedAttachments.length === 0)) return;
 
       if (text.startsWith('/learn')) {
-        promptInput.value = '';
+        setComposerText(promptInput, '');
         const guidance = text.replace(/^\/learn\s*/, '');
         if (typeof onOpenTeachAgent === 'function') {
           onOpenTeachAgent({
@@ -156,8 +328,7 @@ export function setupComposerControls({
         return;
       }
 
-      promptInput.value = '';
-      promptInput.style.height = 'auto';
+      setComposerText(promptInput, '');
       if (typeof onExecuteTurn === 'function') {
         await onExecuteTurn(text);
       }
