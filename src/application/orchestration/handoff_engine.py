@@ -11,7 +11,7 @@ from typing import Any, AsyncIterator, Callable, Optional
 
 from src.domain.agents.profiles import canonical_agent_id
 from src.domain.gateway.models import ChatMessage, Role
-from src.domain.kernel.models import AgentProfile, KernelEventType
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentProfile, KernelEventType
 from src.domain.orchestration.errors import HandoffPacketError
 from src.domain.orchestration.models import HandoffEnvelope, HandoffPacket, HandoffResult
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -327,7 +327,7 @@ class HandoffIsolationEngine:
         # 6. Bound Turns - at least 10 (or the specialist profile), cap 15.
         bounded_profile = target_profile.model_copy()
         bounded_profile.max_turns = bound_child_max_turns(
-            envelope.max_turns, getattr(target_profile, "max_turns", 10) or 10
+            envelope.max_turns, getattr(target_profile, "max_turns", DEFAULT_AGENT_MAX_TURNS) or DEFAULT_AGENT_MAX_TURNS
         )
 
         if on_event:

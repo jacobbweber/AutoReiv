@@ -683,6 +683,14 @@ def install_platform_agent_packs(
         checkout_root=checkout_root,
         pack_ids=ALL_PLATFORM_PACK_IDS,
     )
+    # CARD-445: one-time 10 -> 50 turn budget upgrade, after promotion (idempotent via settings key).
+    from src.infrastructure.agents.max_turns_upgrade import apply_default_max_turns_upgrade
+
+    try:
+        apply_default_max_turns_upgrade(getattr(agent_registry, "state_store", None))
+    except Exception:
+        logger.exception("CARD-445 max_turns default upgrade failed")
+
     installed = [
         r.pack_id
         for r in report.results

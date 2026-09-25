@@ -5,7 +5,7 @@ Deterministic Guardrails & Invariant Validation for Agent Profiles [REQ-SKIL-003
 import re
 from typing import Any, Dict, Optional, Set, Union
 
-from src.domain.kernel.models import AgentProfile, AgentTone
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentProfile, AgentTone
 from src.domain.settings.models import ModelPurpose
 
 
@@ -95,7 +95,7 @@ class AgentProfileGuardrail:
                     tone = tone_str
 
         # 6. Validate Max Turns Bound
-        max_turns = int(payload.get("max_turns", 10))
+        max_turns = int(payload.get("max_turns", DEFAULT_AGENT_MAX_TURNS))
         if max_turns < 1 or max_turns > 1000:
             raise AgentValidationError(
                 f"Invalid max_turns '{max_turns}'. Must be between 1 and 1000 turns to prevent runaway loops."

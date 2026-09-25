@@ -106,3 +106,11 @@ def test_kernel_errors():
     assert isinstance(err, KernelError)
     assert err.agent_id == "general-assistant"
     assert err.tool_name == "bash"
+
+
+def test_agent_profile_default_max_turns_is_shared_default():
+    """CARD-445 [REQ-445-001]: omitted max_turns uses DEFAULT_AGENT_MAX_TURNS (50)."""
+    from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS
+
+    profile = AgentProfile(id="d", name="D", description="d", system_prompt="You are a helpful AI assistant.")
+    assert profile.max_turns == DEFAULT_AGENT_MAX_TURNS == 50

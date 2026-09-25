@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     show_in_chat INTEGER DEFAULT 1,
     visibility TEXT DEFAULT 'public',
     fleet TEXT,
-    max_turns INTEGER DEFAULT 10,
+    max_turns INTEGER DEFAULT 50, -- CARD-445: keep equal to DEFAULT_AGENT_MAX_TURNS
     history_retention_days INTEGER DEFAULT 30,
     is_builtin BOOLEAN DEFAULT 0,
     storage_enabled INTEGER DEFAULT 0,
