@@ -1336,6 +1336,30 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#messagesContainer')).toContainText('get_tc39_inventory');
     });
 
+    test(`TC-44 (${vp.name}): Ask Developer on a gap starts a Developer reply with no further input [CARD-497]`, async ({ page }) => {
+      const streamPosts = [];
+      await page.route('**/api/chat/stream', async (route) => {
+        streamPosts.push(route.request().postDataJSON());
+        await route.fulfill({
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          body: 'data: {"type":"token","text":"TC44 Developer reply started"}\n\ndata: [DONE]\n\n',
+        });
+      });
+      const card = await openGaps(page);
+      await card.locator('.btn-gap-ask-developer').click();
+      await expect(page.locator('#view-chat')).toBeVisible();
+      await expect.poll(() => streamPosts.length, { timeout: 15000 }).toBe(1);
+      expect(streamPosts[0].agent_id).toBe('developer');
+      expect(streamPosts[0].resume).toBe(false);
+      expect(streamPosts[0].content).toContain('get_tc39_inventory');
+      expect(streamPosts[0].content).toContain('Look up TC39 inventory counts');
+      await expect(page.locator('#messagesContainer')).toContainText('TC44 Developer reply started');
+      await expect(page.locator('#promptInput')).toHaveValue('');
+      await page.waitForTimeout(1000);
+      expect(streamPosts.length).toBe(1);
+    });
+
     test(`TC-40 (${vp.name}): a saved layout with the Factory window loads cleanly without it [CARD-496]`, async ({ page }) => {
       await page.addInitScript(() => {
         if (sessionStorage.getItem('tc40-seeded')) return;

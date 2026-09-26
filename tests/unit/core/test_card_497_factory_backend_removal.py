@@ -474,3 +474,20 @@ def test_17_existing_factory_rows_survive_startup(tmp_path, monkeypatch):
     rows = conn.execute("SELECT id, status FROM factory_jobs").fetchall()
     conn.close()
     assert rows == [("fjob_old", "running")]
+
+def test_12e_talk_opens_an_empty_developer_session_so_the_client_sends_a_real_turn():
+    """REQ-497-016: /talk must not pre-save the intent as a user message; the browser sends it via /api/chat/stream."""
+    from src.application.tools.developer_mediation import ToolsDeveloperMediationService
+
+    store = MagicMock()
+    store.create_session.return_value = MagicMock(id="dev-497", title="t")
+    registry = MagicMock()
+    registry.get_profile.return_value = MagicMock()
+    out = ToolsDeveloperMediationService(store, orchestrator=None, registry=registry).open_chat(
+        "create", {"tool_name": "get_tc49_tool", "behavior": "Look up TC49 things"}
+    )
+    assert out["session_id"] == "dev-497"
+    assert out["opened_chat"] is True and out["opened_job"] is False
+    assert "get_tc49_tool" in out["prompt"]
+    store.save_message.assert_not_called()
+

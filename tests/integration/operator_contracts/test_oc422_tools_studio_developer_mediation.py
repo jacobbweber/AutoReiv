@@ -179,8 +179,8 @@ def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_cli
     assert _count(store, "jobs") == jobs_after_submit
     talk_messages = client.get(f"/api/sessions/{talked['session_id']}/messages")
     assert talk_messages.status_code == 200, talk_messages.text
-    talk_body = " ".join(item["content"] for item in talk_messages.json())
-    assert BEHAVIOR in talk_body
+    # REQ-497-016: the session starts empty; the browser sends the prompt as a real turn.
+    assert talk_messages.json() == []
     assert talked["session_id"]
     talk_session = store.get_session(talked["session_id"])
     assert talk_session.agent_id == "developer"
