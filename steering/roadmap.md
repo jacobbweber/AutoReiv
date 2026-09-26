@@ -102,8 +102,13 @@
   - [x] **CARD-511**: Check Developer-built native tools before registering them - **Done**.
   - [x] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool - **Done**.
   - [x] **CARD-520**: Rename `factory_escalation` to `tool_escalation`; Observability tool escalations get Ask Developer instead of Apply (folds CARD-526) - **Done**.
+  - [ ] **CARD-530**: Approving a HITL card while the Developer reply is still streaming must not cancel and resume the turn ("Cannot complete phase ... still queued").
+  - [ ] **CARD-532**: Live QA runner and dedicated test environment: the coding assistant runs each card's live-test journeys against a real serve with real models.
+  - [ ] **CARD-533**: Journey testing inside AutoReiv: Developer skill and tools, Projects Studio journey runs (depends on CARD-532).
+  - [ ] **CARD-529**: Developer modify-tool requests loop and fail in Formulate.
   - [ ] **CARD-512**: Retire the scaffold spine backend.
   - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
+  - [ ] **Education Studio** (no card yet).
 
 
 

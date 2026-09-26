@@ -1,0 +1,43 @@
+---
+id: CARD-533
+title: "Journey testing inside AutoReiv: a Developer skill and tools to run journeys, and a Projects Studio view of journey runs"
+status: Ready
+created: 2026-09-26
+branch: qa
+related:
+  - CARD-532
+labels:
+  - type:product
+  - area:developer
+  - area:projects
+  - P2
+---
+
+# [CARD-533] Journey testing built into AutoReiv
+
+> **Status**: Ready (approved by Jacob 2026-09-26 ~4:40 PM ET). **Depends on CARD-532** (the runner). Product feature: lives in `platform-packs/developer` and the app, not `.agents` (agents-vs-packs rule: `.agents` is coding-assistant tooling; product lives in `platform-packs`).
+> **Related**: CARD-532 (runner, environment, journey format)
+> **Labels**: `type:product`, `area:developer`, `area:projects`, `P2`
+
+## Why
+
+Long-term intent: AutoReiv and its Developer agent eventually test and build AutoReiv itself. CARD-532 gives the coding assistant a live QA runner; this card gives the same capability to the product.
+
+## Acceptance criteria (EARS)
+
+- **REQ-533-001 Developer skill:** A platform-pack skill in `platform-packs/developer/skills/` SHALL teach the Developer when and how to run a journey, read its report and summarize failures.
+- **REQ-533-002 Tools:** The Developer SHALL have tools to run a journey (by id, against the CARD-532 environment), read a run's report and screenshots, and summarize failures in plain words (step, expected, actual, screenshot).
+- **REQ-533-003 Projects Studio view:** Projects Studio SHALL list journey runs per project (time in local zone, journey, pass/fail, failing step) and open a run's screenshots and report.
+- **REQ-533-004 Built on CARD-532:** Uses the CARD-532 journey format, runner and report; no second runner.
+
+## Decisions (open, safety first)
+
+- **D1 What the tool may start:** it launches a browser and a server. Only the CARD-532 test environment (own port, throwaway data), never the live serve or Jacob's data? **Recommend yes, hard-coded.**
+- **D2 Sandbox and permissions:** which agents get the tools (Developer only?), process limits, timeouts, kill on cancel.
+- **D3 HITL:** approval before each run, or before runs that clone real data or use real models. **Recommend approval for clone and real-model runs.**
+- **D4 Model use:** journeys that call real models cost GPU time on the same vLLM; limits and scheduling.
+- **D5 Scope of self-building:** reading results only vs letting the Developer change code after a failure (out of scope here; a later card).
+
+## Done when
+
+The Developer can run a journey from a chat, read its report and explain a failure; Projects Studio shows the run; the safety decisions are implemented as decided.
