@@ -19,6 +19,7 @@ labels:
 > **Created**: 2026-09-25 (found while refining CARD-500)
 > **Related**: CARD-500, CARD-352
 > **Labels**: `type:bug`, `area:skills`, `P2`
+> **Measured (CARD-520 live test, 2026-09-26 ~2:05 PM ET):** on Jarvis, `nemotron-3.5-lightning` over vLLM took **6.4 s** for the weather Teach and returned **empty content** (`finish_reason: length`, 800/800 completion tokens spent on reasoning). Raising the timeout alone will not fix it; the 800-token `max_tokens` (or reasoning control) must change too. Replay script: `scratch\c520_distill_probe.py` (runs on a DB copy). CARD-520 REQ-520-015 now makes the fallback return Needs a tool when the guidance says a tool is missing.
 
 ---
 
