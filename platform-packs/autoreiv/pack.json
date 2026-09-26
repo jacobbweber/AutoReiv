@@ -88,7 +88,7 @@
     {
       "id": "agent-authoring",
       "name": "Agent Capability Intake",
-      "description": "Inspect an agent, then route a new tool or MCP server to the Developer, a new skill to Skill Studio or propose_skill, and a new agent to build-agent-pack.",
+      "description": "Use when the operator asks to teach an agent something, give it a new capability, or have it learn to do something new. Open with skill_view('agent-authoring'). Inspect the agent, ask what is missing, then hand a tool or MCP need to the Developer, a skill to Skill Studio, and a new agent to build-agent-pack.",
       "tools": [
         "inspect_agent_pack",
         "lookup_agents",
