@@ -1,9 +1,9 @@
 ---
 id: CARD-530
 title: "Approving a HITL card while the Developer turn is still streaming cancels the turn, resumes it from checkpoint, and ends with 'Cannot complete phase ... still queued'"
-status: In Review
+status: Done
 created: 2026-09-26
-branch: feat/card-530-approve-mid-stream
+branch: qa
 related:
   - CARD-520
   - CARD-470
@@ -25,7 +25,7 @@ labels:
 
 # [CARD-530] Approve during a live reply kills and resumes the turn; the phase is left queued and the job stuck
 
-> **Status**: In Review (built 2026-09-26 on `feat/card-530-approve-mid-stream` from qa `7b19ae1d`, D1-D9 accepted as recommended; not merged). Previously: Ready, refined 2026-09-26 ~4:55 PM ET from qa `51ee3460` (`continue`). Reproduced live on a scratch clone (port 8767, real vLLM) and with a deterministic harness. Waiting for `build` with the decisions below.
+> **Status**: Done (`merge to qa`, 2026-09-26 ~5:47 PM ET). Evidence: Grok Bot's own Playwright browser QA (desktop 1280x800 + phone 390x844) on scratch 8767 with real vLLM (approve mid-stream: 1 stream, 0 resumes, job Done, no errors); live repro on the fixed code gets 409 `turn_running` and the first stream finishes; startup repair of Jacob's stuck `job_3bdef1802655` verified (failed with the CARD-530 reason; second start no change). Built on `feat/card-530-approve-mid-stream` from qa `7b19ae1d`, D1-D9 accepted as recommended. Follow-ups: CARD-535, CARD-536. Earlier: Ready, refined 2026-09-26 ~4:55 PM ET from qa `51ee3460` (`continue`). Reproduced live on a scratch clone (port 8767, real vLLM) and with a deterministic harness. Waiting for `build` with the decisions below.
 > **Found**: CARD-520 live test round 2, step 7, 2026-09-26 ~2:32 PM ET, serve `93a1d4fe`. Not caused by CARD-520: the Ask Developer helper sent once.
 > **Related**: CARD-470 (inline Approve resumes the turn), CARD-259 (kill/resume checkpoint), CARD-219 (resume an open job), CARD-485/488 (session watcher, own stream), CARD-213 (orphan tool messages are dropped before the model call), CARD-532 (journey runner reuses this card's journey), CARD-534 (resume runs on the parent session)
 > **Labels**: `type:bug`, `area:jobs`, `area:chat`, `P1`
