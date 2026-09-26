@@ -1,9 +1,9 @@
 ---
 id: CARD-511
 title: "A Developer-built tool is registered without being run: check native and MCP tools once in the sandbox before they go live"
-status: In Review
+status: Done
 created: 2026-09-25
-branch: feat/card-511-tool-check
+branch: qa
 related:
   - ADR-0060
   - CARD-495
@@ -22,7 +22,7 @@ labels:
 
 # [CARD-511] Check a Developer-built tool once in the sandbox before it is registered
 
-> **Status**: In Review (built 2026-09-26 ~3:10 AM ET on `feat/card-511-tool-check`, not pushed or merged; evidence in section 8. Goes Done at `merge to qa`). Build started (`build`, 2026-09-26 ~1:52 AM ET: Jacob accepted D1-D13 exactly as recommended, including folding CARD-517 in (D10). Branch `feat/card-511-tool-check` from qa `3e709376`. Refined earlier the same night at qa `6f066514`)
+> **Status**: Done (2026-09-26 ~2:54 AM ET: live-tested on serve, Jacob approved the UI and said `merge to qa`; merged --no-ff into qa and pushed. Live results in section 9). Earlier: In Review (built 2026-09-26 on `feat/card-511-tool-check`, not pushed or merged; evidence in section 8. Goes Done at `merge to qa`). Build started (`build`, 2026-09-26 ~1:52 AM ET: Jacob accepted D1-D13 exactly as recommended, including folding CARD-517 in (D10). Branch `feat/card-511-tool-check` from qa `3e709376`. Refined earlier the same night at qa `6f066514`)
 > **Created**: 2026-09-25 (CARD-495 audit F6)
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted), decision **D6**: this card lands **before CARD-497** and keeps only the parts of `verification_battery.py` it needs, moved out of the Factory. CARD-497 then deletes the rest. This card is step 3 of 6: CARD-495 (Done), CARD-496 (Done), **CARD-511**, CARD-497, CARD-512, CARD-498.
 > **Related**: CARD-497 (deletes `verification_battery.py`, `tool_synthesizer.py`, `factory_packets.py`), CARD-472 (Ask Developer), CARD-423 (native lane), CARD-394 (MCP engineering tools), CARD-516/517/518 (filed from this reproduction)
@@ -256,3 +256,10 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 - Step 7 (MCP, in process through `register_mcp_service` with the real adapter and manager): the crash server, the server that cannot start, and the isError server are refused with `saved: false, mounted: false` and the real error; the good server is saved and mounted with `check.status: passed`. The crash case is the CARD-517 case.
 - Tools Studio labels on desktop (1440x900) and phone (390x844): Checked / Checked without a sample call: ...; no page errors (`scratch\c511_labels.cjs`, screenshots `scratch\c511_labels_*.png`).
 - Steps 2-6 (a real Developer chat) need the LLM and were not run by the agent; they are in Jacob's live test on serve.
+
+## 9. Live test on serve (Jarvis, 0.0.0.0:8000, 2026-09-26 ~2:40-2:54 AM ET)
+
+- API steps 1-4 (run on Jarvis via PowerShell): `c511_live_broken` got **422** at the **import** stage (ModuleNotFoundError); `c511_live_good` passed ("Checked"); `c511_live_high` got `checked_without_call` (high risk); `GET /api/tools/native` listed only `c511_live_good` and `c511_live_high`.
+- UI: Jacob checked Tools Studio (Checked labels, refusal message) and approved. Developer chat created `c511_word_count` (passed, 2:49 AM ET) and, on the retry path, a fixed `c511_broken_import` (passed, 2:53 AM ET).
+- The test tools (`c511_live_good`, `c511_live_high`, `c511_word_count`, `c511_broken_import`) were deleted from serve after the merge.
+- `checked_at` is UTC (`+00:00`) in both the 422 detail and the stored rows; a local `-04:00` value seen during the test comes from PowerShell's `ConvertFrom-Json` / `Invoke-RestMethod` re-formatting the date, not from AutoReiv.
