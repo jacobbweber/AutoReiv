@@ -317,7 +317,7 @@ def test_oc511_route_refuses_broken_native_tools_and_lists_checks(operator_clien
         )
         assert res.status_code == 422, res.text
         detail = res.json()["detail"]
-        assert detail["message"].startswith(f"Not registered: {name} failed the {stage} check")
+        assert detail["message"].startswith(f"Not registered: {name} failed the {stage.replace('_', ' ')} check")
         assert detail["check"]["stage"] == stage
         assert needle in detail["check"]["error"]
     assert client.get("/api/tools/native").json()["tools"] == []
