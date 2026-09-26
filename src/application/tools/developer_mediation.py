@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from typing import Any, Mapping, Optional
 
 from src.application.orchestration.chat_job_binding import output_packet_for_phase
@@ -73,6 +74,10 @@ def normalize_tool_draft(raw: Optional[Mapping[str, Any]], intent: str) -> dict[
         "path_context": str(source.get("path_context") or "").strip(),
         "packaging_preference": packaging,
     }
+    # REQ-520-016: keep the agent that needs the tool so Developer grants it (safe ids only).
+    target = str(source.get("target_agent_id") or "").strip()
+    if target and re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", target) and target not in {".", ".."}:
+        draft["target_agent_id"] = target
     if clean_intent in {"modify", "delete"} and not draft["tool_name"]:
         raise ToolsAuthoringError("tool_name is required for modify and delete")
     if clean_intent in {"create", "modify"} and not draft["behavior"]:
@@ -101,6 +106,11 @@ def format_developer_prompt(packet: Mapping[str, Any]) -> str:
     draft = packet.get("draft") if isinstance(packet.get("draft"), Mapping) else {}
     packaging = str(draft.get("packaging_preference") or "").strip() or "unspecified"
     tool_name = str(draft.get("tool_name") or "").strip() or "(new tool)"
+    target = str(draft.get("target_agent_id") or "").strip()
+    target_line = (
+        f"Target agent: {target}. Register with grant_agent_ids [\"{target}\"] so {target} can call it.\n"
+        if target else ""
+    )
     return (
         f"Tools Studio tool intent ({packet.get('intent')}).\n\n"
         f"Tool name: {tool_name}\n"
@@ -108,7 +118,8 @@ def format_developer_prompt(packet: Mapping[str, Any]) -> str:
         f"Language hint: {draft.get('language_hint') or 'none'}\n"
         f"Runtime hint: {draft.get('runtime_hint') or 'none'}\n"
         f"Path or context: {draft.get('path_context') or 'none'}\n"
-        f"Packaging preference (note only, not a completed package): {packaging}\n\n"
+        f"Packaging preference (note only, not a completed package): {packaging}\n"
+        f"{target_line}\n"
         "Both lanes exist. Native: register_native_tool in native-tool-engineering (no MCP server). "
         "MCP: mcp-engineering, then attach; Tools Studio groups tools under that server name. "
         "A filesystem path in this message is developer chat context, not a Tools Studio folder picker.\n\n"

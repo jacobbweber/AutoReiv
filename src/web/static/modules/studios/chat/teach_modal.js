@@ -16,7 +16,11 @@ export function buildDeveloperToolDraft(esc = {}, agentId = '') {
   const lines = [String(esc.seed_intent || '').trim()].filter(Boolean);
   if (objectives.length) lines.push(`Objectives:\n${objectives.map((o) => `- ${o}`).join('\n')}`);
   if (agentId) lines.push(`Requested from a Teach proposal for ${agentId}.`);
-  return { intent: 'create', tool_name: String(esc.suggested_tool_name || '').trim(), behavior: lines.join('\n\n') };
+  // REQ-520-016: name the agent so Developer grants the tool to it, not only the prose line.
+  return {
+    intent: 'create', tool_name: String(esc.suggested_tool_name || '').trim(), behavior: lines.join('\n\n'),
+    ...(agentId ? { target_agent_id: String(agentId) } : {}),
+  };
 }
 
 export function setupTeachAgentModal(state, elements = {}, {

@@ -91,7 +91,10 @@ export function buildGapDeveloperDraft(gap = {}, agentId = '') {
   const capability = String(gap.identified_capability || gap.missing_capability || '').trim();
   if (capability) lines.push(`Missing capability: ${capability}`);
   if (agentId) lines.push(`Requested from a capability gap for ${agentId}.`);
-  return { intent: 'create', tool_name: String(gap.suggested_tool_name || '').trim(), behavior: lines.join('\n\n') };
+  return {
+    intent: 'create', tool_name: String(gap.suggested_tool_name || '').trim(), behavior: lines.join('\n\n'),
+    ...(agentId ? { target_agent_id: String(agentId) } : {}),
+  };
 }
 
 /**
