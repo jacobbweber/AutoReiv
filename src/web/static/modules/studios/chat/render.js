@@ -4,9 +4,10 @@
  */
 
 import { $, safeCreateIcons } from '../../dom.js';
-import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown, readableError } from '../../utils/formatters.js';
+import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown } from '../../utils/formatters.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
 import { renderAgentHandoffCardHtml } from './stream.js';
+import { adoptResultMessage, adoptedBannerHtml } from './adopt_message.js';
 
 export * from './journey.js';
 
@@ -288,12 +289,7 @@ export function renderSkillProposalCard(proposal, {
 
       <div class="card-actions flex items-center justify-between gap-2 pt-1">
         ${isAdopted
-          ? `
-          <div class="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 font-medium flex items-center space-x-2 w-full">
-            <span>✓</span>
-            <span>Skill mounted to <strong>${escapeHtml(targetAgent)}</strong>. Active for your next message.</span>
-          </div>
-          `
+          ? adoptedBannerHtml(`On for <strong>${escapeHtml(targetAgent)}</strong>.`)
           : `
           <div class="flex items-center space-x-2">
             ${needsTool ? '' : `<button type="button" class="btn-adopt-skill px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5">
@@ -342,20 +338,11 @@ export function renderSkillProposalCard(proposal, {
               session_id: sessionId,
             }),
           });
-          if (!res.ok) throw new Error(readableError(await res.json().catch(() => ({})), res.status));
+          const { text, type } = adoptResultMessage(await res.json().catch(() => ({})), res.status, skillName, targetAgent);
           cardEl.dataset.adopted = 'true';
           const actionsContainer = cardEl.querySelector('.card-actions');
-          if (actionsContainer) {
-            actionsContainer.innerHTML = `
-              <div class="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 font-medium flex items-center space-x-2">
-                <span>✓</span>
-                <span>Skill mounted to <strong>${escapeHtml(targetAgent)}</strong>. Active for your next message.</span>
-              </div>
-            `;
-          }
-          if (typeof showToastFn === 'function') {
-            showToastFn(`Skill mounted to ${targetAgent}. Active for your next message.`, 'success');
-          }
+          if (actionsContainer) actionsContainer.innerHTML = adoptedBannerHtml(escapeHtml(text));
+          if (typeof showToastFn === 'function') showToastFn(text, type);
           if (typeof onAdoptSuccess === 'function') {
             await onAdoptSuccess(targetAgent);
           }

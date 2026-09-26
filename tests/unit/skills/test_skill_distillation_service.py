@@ -183,9 +183,24 @@ async def test_distill_turn_detects_missing_native_tool_and_escalates(test_env):
 
 
 def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):
-    """[REQ-SKIL-013] One-click adoption writes SKILL.md and registers in pack.json."""
+    """[REQ-SKIL-013] One-click adoption writes SKILL.md and registers in pack.json.
+
+    CARD-502: adopt goes through the agent save path, so it needs the agent registry.
+    """
+    from src.infrastructure.agents.registry import BuiltinAgentRegistry
+
     store, data_dir = test_env
-    service = SkillDistillationService(store=store, gateway=MockGateway(), data_dir=data_dir)
+    from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone, ModelPurpose
+
+    registry = BuiltinAgentRegistry(state_store=store)
+    registry.register_custom_agent(AgentProfile(
+        id="autoreiv", name="AutoReiv", description="fixture", system_prompt="You help.",
+        origin=AgentOrigin.PACK, tone=AgentTone.DEFAULT, purpose=ModelPurpose.TASK_EXECUTION,
+        allowed_skill=[], allowed_tool_names=[], show_in_chat=True,
+    ))
+    service = SkillDistillationService(
+        store=store, gateway=MockGateway(), data_dir=data_dir, agent_registry=registry
+    )
 
     runbook_md = (
         "---\n"
@@ -219,6 +234,7 @@ def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):
     assert "wiki-template-canonical-path" in manifest["allowed_skill"]
     skill_ids = [s["id"] for s in manifest.get("skills", [])]
     assert "wiki-template-canonical-path" in skill_ids
+    assert "wiki-template-canonical-path" in registry.get_agent("autoreiv").allowed_skill
 
 
 def test_adopt_skill_refuses_path_traversal(test_env):

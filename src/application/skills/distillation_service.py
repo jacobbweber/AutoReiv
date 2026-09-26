@@ -22,6 +22,14 @@ class DistillTurnNotFound(LookupError):
     """The message id is not an agent reply in that chat [CARD-500 REQ-500-003]."""
 
 
+class AdoptAgentNotFound(LookupError):
+    """Adopt named an agent that does not exist [CARD-502 REQ-502-007]."""
+
+
+class AdoptSkillConflict(ValueError):
+    """Adopt would overwrite a platform skill of the same id [CARD-502 REQ-502-008]."""
+
+
 class SkillDistillationService:
     """Extracts turn context, diagnoses procedural friction, and adopts skills into user packs."""
 
@@ -85,7 +93,8 @@ class SkillDistillationService:
         data_dir: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:
         """
-        Write runbook to packs/<agent_id>/skills/<skill_id>/SKILL.md and update pack manifest.
+        Write the runbook to packs/<agent_id>/skills/<skill_id>/SKILL.md and switch the skill on
+        through the shared agent save path [CARD-502].
         """
         clean_agent = (target_agent_id or "").strip()
         clean_skill = (skill_id or "").strip()
@@ -98,63 +107,52 @@ class SkillDistillationService:
         root = Path(data_dir) if data_dir is not None else self.data_dir
         if root is None:
             raise ValueError("Data directory is required for skill adoption.")
+        if self.agent_registry is None:
+            raise ValueError("Agent registry is required for skill adoption.")
 
-        agent_pack_dir = root / "packs" / clean_agent
-        if not agent_pack_dir.is_dir():
-            agent_pack_dir.mkdir(parents=True, exist_ok=True)
+        from src.application.agent_packs.schema import PLATFORM_SKILL_IDS, is_platform_pack
+        from src.application.agent_packs.skill_list import add_skill_to_agent
+        from src.infrastructure.skills.platform_pack_promotion import (
+            keep_customizations_enabled,
+            platform_seed_skills,
+        )
 
-        skill_dir = agent_pack_dir / "skills" / clean_skill
+        # CARD-502 REQ-502-007: never create a folder for an agent that does not exist
+        if self.agent_registry.get_agent(clean_agent) is None:
+            raise AdoptAgentNotFound(
+                f"There is no agent called {clean_agent}. Pick an agent that exists and try again."
+            )
+        # CARD-502 REQ-502-008: never overwrite a shipped skill with a lesson of the same id
+        if clean_skill in PLATFORM_SKILL_IDS or clean_skill in platform_seed_skills(clean_agent):
+            raise AdoptSkillConflict(
+                f"{clean_agent} already has a platform skill called {clean_skill}. "
+                "Rename the lesson and try again."
+            )
+
+        skill_dir = root / "packs" / clean_agent / "skills" / clean_skill
         skill_dir.mkdir(parents=True, exist_ok=True)
-
-        skill_file = skill_dir / "SKILL.md"
-        skill_file.write_text(runbook_markdown, encoding="utf-8")
-
-        # Update pack.json
-        pack_json_file = agent_pack_dir / "pack.json"
-        manifest_data: Dict[str, Any] = {}
-        if pack_json_file.is_file():
-            try:
-                manifest_data = json.loads(pack_json_file.read_text(encoding="utf-8"))
-            except Exception:
-                manifest_data = {}
-
-        allowed_skill = list(manifest_data.get("allowed_skill") or [])
-        if clean_skill not in allowed_skill:
-            allowed_skill.append(clean_skill)
-        manifest_data["allowed_skill"] = allowed_skill
-
-        skills_list = list(manifest_data.get("skills") or [])
-        existing_entry = next((s for s in skills_list if s.get("id") == clean_skill), None)
+        (skill_dir / "SKILL.md").write_text(runbook_markdown, encoding="utf-8")
 
         skill_title, skill_desc = self._parse_frontmatter(runbook_markdown, clean_skill)
-        if not existing_entry:
-            skills_list.append(
-                {
-                    "id": clean_skill,
-                    "name": skill_title,
-                    "description": skill_desc,
-                    "tools": [],
-                }
-            )
-        manifest_data["skills"] = skills_list
-
-        pack_json_file.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
-
-        # In-memory registry refresh if available
-        if self.agent_registry is not None:
-            profile = self.agent_registry.get_agent(clean_agent)
-            if profile is not None:
-                cur_allowed = list(getattr(profile, "allowed_skill", None) or [])
-                if clean_skill not in cur_allowed:
-                    cur_allowed.append(clean_skill)
-                    profile.allowed_skill = cur_allowed
-
-        rel_path = f"packs/{clean_agent}/skills/{clean_skill}/SKILL.md"
+        # CARD-502 REQ-502-001: same save path as Agent Studio so the skill survives restart
+        profile, already = add_skill_to_agent(
+            self.store,
+            self.agent_registry,
+            agent_id=clean_agent,
+            skill_id=clean_skill,
+            data_dir=root,
+            skill_entry={"id": clean_skill, "name": skill_title, "description": skill_desc, "tools": []},
+        )
+        active = clean_skill in list(getattr(profile, "allowed_skill", None) or [])
         return {
             "status": "adopted",
             "target_agent_id": clean_agent,
             "skill_id": clean_skill,
-            "file_path": rel_path,
+            "name": skill_title,
+            "file_path": f"packs/{clean_agent}/skills/{clean_skill}/SKILL.md",
+            "active": active,
+            "already_adopted": already,
+            "resets_on_restart": is_platform_pack(clean_agent) and not keep_customizations_enabled(self.store),
         }
 
     def _extract_turn_history(self, session_id: str, message_id: str) -> Dict[str, Any]:

@@ -386,12 +386,6 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     tool_reg = request.app.state.tool_reg
     store = request.app.state.store
 
-    from src.application.agent_packs.schema import is_platform_pack
-    from src.infrastructure.skills.platform_pack_promotion import (
-        record_operator_disabled_skills,
-        should_set_content_lock,
-    )
-
     existing = registry.get_agent(agent_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
@@ -436,123 +430,10 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     except AgentValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    if existing.is_builtin:
-        customization = AgentCustomization(
-            agent_id=agent_id,
-            name=profile.name,
-            provider=profile.provider,
-            api_base_url=profile.api_base_url,
-            api_key=profile.api_key,
-            context_window=profile.context_window,
-            tone=profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
-            system_prompt=profile.system_prompt,
-            model=profile.model,
-            purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
-            allowed_tool_names=profile.allowed_tool_names,
-            allowed_skill=profile.allowed_skill,
-            pack_tool_names=profile.pack_tool_names,
-            show_in_chat=profile.show_in_chat,
-            max_turns=profile.max_turns,
-            history_retention_days=profile.history_retention_days,
-            storage_enabled=profile.storage_enabled,
-            storage_type=profile.storage_type,
-            memory_enabled=profile.memory_enabled,
-            memory_retention_days=profile.memory_retention_days,
-            pinned_memory=profile.pinned_memory,
-            allow_autonomous_training=profile.allow_autonomous_training,
-            max_training_retries=profile.max_training_retries,
-            allow_wiki_access=profile.allow_wiki_access,
-            allowed_credentials=profile.allowed_credentials,
-            mcp_servers=profile.mcp_servers,
-        )
-        # CARD-449: set content lock only when pack-owned content actually changed
-        lock = True
-        if is_platform_pack(agent_id):
-            stock = list(getattr(existing, "allowed_skill", None) or [])
-            lock = should_set_content_lock(
-                existing=existing,
-                new_prompt=profile.system_prompt,
-                new_skills=list(profile.allowed_skill or []),
-                new_tools=list(profile.allowed_tool_names or []),
-                store=store,
-                pack_id=agent_id,
-                stock_skills=stock,
-            )
-            record_operator_disabled_skills(
-                store,
-                agent_id,
-                live_skills=list(profile.allowed_skill or []),
-                stock_skills=stock,
-            )
-        if lock:
-            customization.user_modified = True
-        else:
-            # Scalars-only save: do not newly lock; preserve an existing content lock
-            customization.user_modified = bool(getattr(existing, "user_modified", False))
-        store.save_agent_override(customization)
-        if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(customization.agent_id, modified=bool(customization.user_modified))
-    else:
-        registry.register_custom_agent(profile)
-        # Mirror into agent_overrides so operator customizations have an authoritative record
-        if store and hasattr(store, "save_agent_override"):
-            customization = AgentCustomization(
-                agent_id=agent_id,
-                name=profile.name,
-                provider=profile.provider,
-                api_base_url=profile.api_base_url,
-                api_key=profile.api_key,
-                context_window=profile.context_window,
-                tone=profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
-                system_prompt=profile.system_prompt,
-                model=profile.model,
-                purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
-                allowed_tool_names=profile.allowed_tool_names,
-                allowed_skill=profile.allowed_skill,
-                pack_tool_names=profile.pack_tool_names,
-                show_in_chat=profile.show_in_chat,
-                max_turns=profile.max_turns,
-                history_retention_days=profile.history_retention_days,
-                storage_enabled=profile.storage_enabled,
-                storage_type=profile.storage_type,
-                memory_enabled=profile.memory_enabled,
-                memory_retention_days=profile.memory_retention_days,
-                pinned_memory=profile.pinned_memory,
-                allow_autonomous_training=profile.allow_autonomous_training,
-                max_training_retries=profile.max_training_retries,
-                allow_wiki_access=profile.allow_wiki_access,
-                allowed_credentials=profile.allowed_credentials,
-                mcp_servers=profile.mcp_servers,
-            )
-            # CARD-449: lock only on real pack-content edits
-            lock = True
-            if is_platform_pack(agent_id):
-                stock = list(getattr(existing, "allowed_skill", None) or [])
-                lock = should_set_content_lock(
-                    existing=existing,
-                    new_prompt=profile.system_prompt,
-                    new_skills=list(profile.allowed_skill or []),
-                    new_tools=list(profile.allowed_tool_names or []),
-                    store=store,
-                    pack_id=agent_id,
-                    stock_skills=stock,
-                )
-                record_operator_disabled_skills(
-                    store,
-                    agent_id,
-                    live_skills=list(profile.allowed_skill or []),
-                    stock_skills=stock,
-                )
-            if lock:
-                customization.user_modified = True
-            else:
-                customization.user_modified = bool(getattr(existing, "user_modified", False))
-        store.save_agent_override(customization)
-        if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(
-                customization.agent_id,
-                modified=bool(getattr(customization, "user_modified", False)),
-            )
+    # CARD-502: one save path shared with Teach > Adopt
+    from src.application.agent_packs.skill_list import persist_agent_profile
+
+    persist_agent_profile(store, registry, existing, profile, agent_id=agent_id)
 
     # CARD-381 / CARD-389: Synchronize user-data packs/<agent_id>/pack.json
     data_dir = _data_dir_root(request)
