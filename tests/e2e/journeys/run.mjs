@@ -13,7 +13,7 @@ import { JourneyRun, VIEWPORTS, defaultReportRoot, reportDirFor, writeReport } f
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 export function parseArgs(argv) {
-  const out = { base: 'http://127.0.0.1:8770', journeys: [], viewports: ['desktop', 'phone'], out: '', card: '', attempts: 1, headed: false, judge: false };
+  const out = { base: 'http://127.0.0.1:8770', journeys: [], viewports: ['desktop', 'phone'], out: '', card: '', attempts: 1, headed: false, judge: false, append: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -25,6 +25,7 @@ export function parseArgs(argv) {
     else if (a === '--attempts') out.attempts = Math.max(1, Number(next()) || 1);
     else if (a === '--headed') out.headed = true;
     else if (a === '--judge') out.judge = true;
+    else if (a === '--append') out.append = true;
   }
   return out;
 }
@@ -48,7 +49,10 @@ async function main() {
   const startedAt = new Date().toString();
   const judge = { enabled: args.judge || process.env.AUTOREIV_QA_JUDGE === '1', url: process.env.AUTOREIV_QA_JUDGE_URL || '', model: process.env.AUTOREIV_QA_JUDGE_MODEL || '' };
   const browser = await chromium.launch({ headless: !args.headed });
-  const runs = [];
+  // --append: add to the report of an earlier run (live_qa.py runs each journey and viewport in a fresh env).
+  const prior = path.join(outDir, 'report.json');
+  const runs = args.append && fs.existsSync(prior) ? (JSON.parse(fs.readFileSync(prior, 'utf-8')).runs || []) : [];
+  const firstNew = runs.length;
   try {
     for (const file of files) {
       const journey = (await import(pathToFileURL(path.join(HERE, file)).href)).default;
@@ -80,7 +84,7 @@ async function main() {
   console.info(`[live-qa] report:  ${jsonPath}`);
   // A journey passes when its last attempt did not fail.
   const last = new Map();
-  runs.forEach((r) => last.set(`${r.journey.replace(/-try\d+$/, '')}|${r.viewport}`, r.outcome));
+  runs.slice(firstNew).forEach((r) => last.set(`${r.journey.replace(/-try\d+$/, '')}|${r.viewport}`, r.outcome));
   process.exit([...last.values()].some((o) => o === 'fail') ? 1 : 0);
 }
 

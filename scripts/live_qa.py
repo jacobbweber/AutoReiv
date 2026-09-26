@@ -143,7 +143,25 @@ def provider_payload(env: Mapping[str, str]) -> dict:
     return {"provider_id": "vllm", "default_provider_id": "vllm", "base_url": url, "openai_base_url": url, "default_model_id": model}
 
 
-def runner_command(port: int, journeys: list[str], viewports: list[str], out: str = "", attempts: int = 1, judge: bool = False, card: str = "") -> list[str]:
+def list_journeys(journeys_dir: Path = CHECKOUT / RUNNER_REL.parent) -> list[str]:
+    """Journey ids (file stems) under tests/e2e/journeys: card-<N>-<name>.mjs."""
+    return sorted(p.stem for p in Path(journeys_dir).glob("card-*.mjs"))
+
+
+def select_journeys(available: list[str], wanted: list[str]) -> list[str]:
+    """"card-530" or a full id prefix selects journeys; empty selects all."""
+    if not wanted:
+        return list(available)
+    return [j for j in available if any(j.startswith(w) for w in wanted)]
+
+
+def plan_runs(journeys: list[str], viewports: list[str]) -> list[tuple[str, str, bool]]:
+    """One (journey, viewport, append) per run; each run gets a fresh env, the first starts a new report."""
+    plan = [(j, v) for j in journeys for v in viewports]
+    return [(j, v, i > 0) for i, (j, v) in enumerate(plan)]
+
+
+def runner_command(port: int, journeys: list[str], viewports: list[str], out: str = "", attempts: int = 1, judge: bool = False, card: str = "", append: bool = False) -> list[str]:
     cmd = ["node", str(RUNNER_REL), "--base", f"http://127.0.0.1:{port}", "--viewports", ",".join(viewports), "--attempts", str(attempts)]
     if journeys:
         cmd += ["--journeys", ",".join(journeys)]
@@ -153,6 +171,8 @@ def runner_command(port: int, journeys: list[str], viewports: list[str], out: st
         cmd += ["--card", card]
     if judge:
         cmd.append("--judge")
+    if append:
+        cmd.append("--append")
     return cmd
 
 
@@ -248,6 +268,7 @@ def _parse(argv: Optional[list[str]]) -> argparse.Namespace:
             s.add_argument("--attempts", type=int, default=1)
             s.add_argument("--judge", action="store_true")
             s.add_argument("--keep", action="store_true", help="leave the env running afterwards")
+            s.add_argument("--shared-env", action="store_true", help="one env for all runs (default: a fresh env per journey and viewport)")
     for name in ("stop", "status"):
         sub.add_parser(name).add_argument("--port", type=int, default=DEFAULT_PORT)
     sub.add_parser("reset")
@@ -276,13 +297,27 @@ def main(argv: Optional[list[str]] = None) -> int:
         stop(DEFAULT_PORT)
         print(clone_appdata(live_appdata(os.environ), data_dir_for()))
         return 0
-    rc = start(args.port, args.data)
-    if rc:
-        return rc
+    wanted = [j.strip() for j in args.journeys.split(",") if j.strip()]
+    journeys = select_journeys(list_journeys(), wanted)
+    viewports = [v.strip() for v in args.viewports.split(",") if v.strip()]
+    if not journeys:
+        print(f"[live-qa] no journeys match {wanted}", file=sys.stderr)
+        return EXIT_REFUSED
+    # One report folder for the whole run: --card, else card-<N> for a single journey, else "journeys".
+    card = args.card or ("-".join(journeys[0].split("-")[:2]) if len(journeys) == 1 else "journeys")
+    runs = [(journeys, viewports, False)] if args.shared_env else [([j], [v], a) for j, v, a in plan_runs(journeys, viewports)]
+    worst = 0
     try:
-        journeys = [j for j in args.journeys.split(",") if j.strip()]
-        cmd = runner_command(args.port, journeys, args.viewports.split(","), args.out, args.attempts, args.judge, args.card)
-        return subprocess.call(cmd, cwd=str(CHECKOUT), shell=(os.name == "nt"))
+        for i, (js, vs, append) in enumerate(runs):
+            if i == 0 or not args.shared_env:
+                rc = start(args.port, args.data)
+                if rc:
+                    return rc
+            cmd = runner_command(args.port, js, vs, args.out, args.attempts, args.judge, card, append=append)
+            worst = max(worst, subprocess.call(cmd, cwd=str(CHECKOUT), shell=(os.name == "nt")))
+            if not args.shared_env and not (args.keep and i == len(runs) - 1):
+                stop(args.port)
+        return worst
     finally:
         if not args.keep:
             stop(args.port)
