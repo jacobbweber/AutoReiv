@@ -111,6 +111,8 @@
   - [ ] **CARD-534**: A resumed job phase runs on the parent chat session instead of its phase session.
   - [ ] **CARD-535**: After approving a propose_* draft once the reply has ended, the Developer does not continue.
   - [ ] **CARD-536**: Reopening a chat whose job failed shows Failed without the reason.
+  - [ ] **CARD-537**: AutoReiv refuses the weather question even after the Developer granted it get_weather (needs a product decision).
+  - [ ] **CARD-538**: Developer reply can end with "Reply failed: The model returned an empty reply" right after registering a tool.
   - [ ] **Education Studio** (no card yet).
 
 

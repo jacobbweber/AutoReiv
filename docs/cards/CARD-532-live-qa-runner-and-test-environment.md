@@ -1,13 +1,16 @@
 ---
 id: CARD-532
 title: "Live QA runner and a dedicated test environment: the coding assistant runs each card's live-test steps against a real serve with real models before handing the card to Jacob"
-status: In Progress
+status: In Review
 created: 2026-09-26
 branch: feat/card-532-live-qa-runner
 related:
   - CARD-520
   - CARD-530
   - CARD-533
+  - CARD-535
+  - CARD-537
+  - CARD-538
 labels:
   - type:tooling
   - area:qa
@@ -17,7 +20,7 @@ labels:
 
 # [CARD-532] Live QA runner + dedicated test environment
 
-> **Status**: In Progress (refined and built 2026-09-26 ~6:40 PM ET on `feat/card-532-live-qa-runner` from qa `e28f5143` without waiting for `build`, per the new operating model: D1 was Jacob's, D2-D6 are technical). Approved by Jacob 2026-09-26 ~4:40 PM ET. Coding-assistant tooling, not product: lives in `scripts/`, `tests/e2e/journeys/` and `.agents/`. CARD-533 builds the product feature on top of it.
+> **Status**: In Review (not merged; waiting for `merge to qa`). Refined and built 2026-09-26 ~6:40 PM ET on `feat/card-532-live-qa-runner` from qa `e28f5143` without waiting for `build`, per the new operating model: D1 was Jacob's, D2-D6 are technical). Approved by Jacob 2026-09-26 ~4:40 PM ET. Coding-assistant tooling, not product: lives in `scripts/`, `tests/e2e/journeys/` and `.agents/`. CARD-533 builds the product feature on top of it.
 > **Related**: CARD-520 (first journey), CARD-530 (second journey), CARD-533 (AutoReiv-side journey testing)
 > **Labels**: `type:tooling`, `area:qa`, `area:coding-assistant`, `P1`
 
@@ -70,3 +73,31 @@ Every card so far has been handed to Jacob with a runbook he walks by hand, and 
 ## Done when
 
 `scripts` command starts the 8770 environment (throwaway or cloned), both first journeys run at desktop and phone with screenshots and a summary on `C:`, a dead button / console error / error banner each fail a step (tested), the live-qa skill and definition-of-done are updated, and no new dependencies were added.
+
+## Build evidence (2026-09-26, times ET)
+
+**Commits on `feat/card-532-live-qa-runner`** (from qa `e28f5143`): `9f403068` refine; `025f0cfd` failing tests (confirmed red: `live_qa` and `runner.mjs` missing); `4a373b77` env + runner + journeys + skill + CHANGELOG; `1608355b` track `tests/e2e/journeys/lib` (the Python `lib/` rule in `.gitignore` hid it; negation added) and the Chat dock-toggle fix; `72433608` failing test (red) and `0863f0c9` fix: fresh env per journey and viewport; `2be24e9e` + `8c6eb5ac` CARD-520 journey new-chat check and reload.
+
+**Preflight** (`scratch\full_c532_*`, on the runner commit; later commits only touch the runner, journeys and one new unit test, rerun green):
+
+| Suite | qa baseline (m530) | CARD-532 |
+|---|---|---|
+| Unit | 2006 passed / 11 skipped / 1 failed | 2014 passed / 11 skipped / 1 failed (CARD-454 only); +1 later (9/9 in `test_card532_live_qa.py`) |
+| Integration | 103 | 103 |
+| Vitest | 924 passed / 3 failed | 940 passed / 3 failed (CARD-456 only) |
+| ESLint (`src/web/static`) | 4 errors + 5 warnings | 4 + 5; `tests/e2e/journeys` clean |
+| ruff | 7 | 7; new files clean |
+| Smoke | 73 | 73 |
+
+**Runner used for real** (`python scripts/live_qa.py run --journeys card-520,card-530 --card CARD-532 --attempts 2`, fresh throwaway env on :8770 per journey and viewport, real vLLM `nemotron-3.5-lightning`, ~6:37-6:58 PM ET):
+
+| Journey | Desktop 1280x800 | Phone 390x844 |
+|---|---|---|
+| CARD-530 approve mid-stream | PASS (approved `appr_fc3f487f1f89` while streaming; 1 stream, 0 resumes; job done) | PASS (`appr_abb852ae5a02`; job done) |
+| CARD-520 Teach -> Needs a tool -> Ask Developer -> grant | Steps 1-4 PASS (`get_weather` granted to autoreiv); AutoReiv then did not call it (WARN, same chat and new chat) | same |
+
+The watchers caught a real failure in one extra run: the Developer reply after registering ended "Reply failed: The model returned an empty reply" (CARD-538). The CARD-520 rerun needed 1-3 "Approved. Please continue..." nudges after the approvals (CARD-535). The Needs-a-tool card is still titled "Skill Proposal: Synthesized Skill" (CARD-504).
+
+**Report + screenshots:** `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-532\summary.md` (all four runs), `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-532\rerun-520\summary.md` (CARD-520 with the new-chat step). Best three: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-532\card-530-approve-mid-stream-desktop-03-an-approval-card-appears-while-the-reply-is-stil.png`, `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-532\card-530-approve-mid-stream-phone-05-the-reply-finishes-once-and-the-job-ends-honestl.png`, `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-532\rerun-520\card-520-teach-needs-tool-desktop-06-a-new-autoreiv-chat-answers-the-weather-question.png`.
+
+**What died:** `scratch\c530_browser_qa.mjs`, `scratch\c505_run.ps1`, `scratch\c505_serve.py` (untracked scratch tools, replaced by the runner).
