@@ -214,6 +214,55 @@ async def test_distill_needs_tool_result_uses_tool_escalation(tmp_path, store, m
     assert '"tool_escalation"' in prompt and OLD not in prompt
 
 
+class _FailingGateway:
+    default_model_id = "m"
+
+    async def complete(self, req):
+        raise TimeoutError()
+
+
+class _EmptyGateway:
+    """A reasoning model that spends max_tokens thinking and returns no content (Jarvis, 2026-09-26)."""
+
+    default_model_id = "m"
+
+    async def complete(self, req):
+        resp = AsyncMock()
+        resp.text = ""
+        return resp
+
+
+WEATHER = "AutoReiv has no weather tool; it needs a tool that returns the current weather for a city."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("gateway", [None, _FailingGateway(), _EmptyGateway()], ids=["no_gateway", "timeout", "empty_reply"])
+async def test_fallback_distill_still_sees_a_missing_tool_in_the_guidance(tmp_path, store, gateway):
+    """REQ-520-015: when the model gives nothing, guidance that names a missing tool still yields a tool escalation."""
+    Svc, data, sid, mid = _distill_env(tmp_path, store)
+    svc = Svc(store=store, gateway=gateway, data_dir=data)
+    result = await svc.distill_turn(session_id=sid, message_id=mid, guidance=WEATHER)
+    assert result["needs_tool"] is True
+    esc = result["tool_escalation"]
+    assert esc["target_agent_id"] == "autoreiv"
+    assert esc["seed_intent"] == WEATHER
+    assert esc["suggested_tool_name"] == "get_weather"
+    assert esc["deliverable_type"] == "tool"
+    assert result["runbook_markdown"] is None
+    saved = [m for m in store.get_messages(sid) if m.role == Role.SKILL_PROPOSAL]
+    assert json.loads(saved[-1].content)["needs_tool"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("guidance", ["Always cite the wiki page you used.", "Use the tool with limit 10 next time.", ""])
+async def test_fallback_distill_keeps_a_runbook_when_no_tool_is_missing(tmp_path, store, guidance):
+    Svc, data, sid, mid = _distill_env(tmp_path, store)
+    result = await Svc(store=store, gateway=None, data_dir=data).distill_turn(session_id=sid, message_id=mid, guidance=guidance)
+    assert result["needs_tool"] is False
+    assert result["tool_escalation"] is None
+    assert result["runbook_markdown"]
+
+
 # ---------------------------------------------------------------- migration (REQ-520-005)
 
 def test_startup_migration_rewrites_old_names_once(tmp_path, store, data_dir):
