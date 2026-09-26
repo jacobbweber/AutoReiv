@@ -1154,7 +1154,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       });
       await page.route('**/api/skills/adopt', (route) => {
         t.adopts.push(route.request().postDataJSON());
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ok' }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'adopted', active: true }) }); // CARD-502 answer shape
       });
       page.on('request', (r) => { if (t.loaded && r.url().includes('/api/agent_training_factory')) t.factoryAfterLoad += 1; });
       await page.setViewportSize({ width: vp.width, height: vp.height });
@@ -1184,7 +1184,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(card).toContainText('TC35 remedy: cite a source for each claim.');
       await expect(card).not.toContainText('Synthesized Skill');
       await card.locator('.btn-adopt-skill').click();
-      await expect(page.locator('#toastContainer')).toContainText('Skill mounted to autoreiv');
+      await expect(page.locator('#toastContainer')).toContainText('TC35 Cite Sources is on for autoreiv from your next message.');
       expect(t.adopts[0].session_id).toBe(t.S.id);
       expect(t.factoryAfterLoad).toBe(0);
     });

@@ -24,7 +24,7 @@ describe('CARD-358 Persistent Skill Proposal Cards in Chat History [REQ-SKIL-015
 
     it('renders adopted state receipt when proposal adoption_state is adopted', () => {
       expect(chatJs).toMatch(/adoption_state\s*===?\s*['"]adopted['"]/);
-      expect(chatJs).toContain('Skill mounted to');
+      expect(chatJs).toContain('On for <strong>'); // CARD-502: plain text replaces 'Skill mounted to'
     });
 
     it('passes message_id in adopt request payload to persist adoption state', () => {
