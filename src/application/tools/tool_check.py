@@ -150,7 +150,8 @@ class ToolCheckResult:
             reason = (self.error or "the sandbox did not start").strip().rstrip(".")
             return f"The check could not run: {reason}. Nothing was registered; try again."
         first = (self.error or "").strip().splitlines()[0] if (self.error or "").strip() else "no error output"
-        return f"Not registered: {self.tool} failed the {self.stage or 'tool'} check. {first}"
+        stage = (self.stage or "tool").replace("_", " ")
+        return f"Not registered: {self.tool} failed the {stage} check. {first}"
 
     def to_dict(self) -> dict[str, Any]:
         body = asdict(self)
@@ -500,7 +501,8 @@ def _exited_stderr(adapter: Any) -> str:
     if proc is None or proc.poll() is None or proc.stderr is None:
         return ""
     try:
-        return trim_error(proc.stderr.read() or "", 600) if proc.stderr else ""
+        text = proc.stderr.read() or ""
+        return trim_error(text, 600) if text.strip() else ""
     except Exception:
         return ""
 

@@ -289,6 +289,7 @@ async def test_card511_18_server_that_cannot_start_is_not_saved(mcp_tools, temp_
     assert res["mounted"] is False
     assert res["check"]["stage"] == "list"
     assert res["message"].startswith("Not registered: c511raw failed the list check")
+    assert "ModuleNotFoundError" in res["message"]  # the operator sees why, not "no error output"
     assert temp_store.get_setting("mcp_servers") in (None, [])
     tools.mcp_manager.mount_server.assert_not_awaited()
     assert not (tmp_path / "data" / "skills" / "mcp-c511raw").exists()
