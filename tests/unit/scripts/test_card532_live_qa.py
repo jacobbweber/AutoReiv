@@ -96,3 +96,21 @@ def test_runner_command_targets_the_qa_port_and_has_the_judge_off_by_default():
 def test_start_refuses_port_8000_before_touching_anything(tmp_path):
     with pytest.raises(ValueError):
         live_qa.start(8000, env={"LOCALAPPDATA": str(tmp_path)})
+
+
+def test_each_journey_and_viewport_gets_a_fresh_env_by_default(tmp_path):
+    """A tool built in the desktop run must not leak into the phone run (fresh throwaway env per run)."""
+    (tmp_path / "card-520-a.mjs").write_text("", encoding="utf-8")
+    (tmp_path / "card-530-b.mjs").write_text("", encoding="utf-8")
+    (tmp_path / "notes.txt").write_text("", encoding="utf-8")
+    assert live_qa.list_journeys(tmp_path) == ["card-520-a", "card-530-b"]
+    plan = live_qa.plan_runs(["card-520-a", "card-530-b"], ["desktop", "phone"])
+    assert plan == [
+        ("card-520-a", "desktop", False),
+        ("card-520-a", "phone", True),
+        ("card-530-b", "desktop", True),
+        ("card-530-b", "phone", True),
+    ]
+    assert live_qa.select_journeys(["card-520-a", "card-530-b"], ["card-530"]) == ["card-530-b"]
+    cmd = live_qa.runner_command(8770, ["card-530-b"], ["phone"], append=True)
+    assert "--append" in cmd
