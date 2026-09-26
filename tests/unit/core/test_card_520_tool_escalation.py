@@ -263,6 +263,28 @@ async def test_fallback_distill_keeps_a_runbook_when_no_tool_is_missing(tmp_path
     assert result["runbook_markdown"]
 
 
+# ---------------------------------------------------------------- target agent (REQ-520-016)
+
+def test_talk_keeps_the_target_agent_and_tells_developer_to_grant_it():
+    """Live test round 2: get_weather was registered with grant_agent_ids [] because only prose named autoreiv."""
+    from src.application.tools.developer_mediation import build_packet, format_developer_prompt
+
+    packet = build_packet("create", {"tool_name": "get_weather", "behavior": "Current weather for a city", "target_agent_id": "autoreiv"})
+    assert packet["draft"]["target_agent_id"] == "autoreiv"
+    prompt = format_developer_prompt(packet)
+    assert "Target agent: autoreiv" in prompt
+    assert 'grant_agent_ids ["autoreiv"]' in prompt
+
+
+def test_talk_without_a_target_agent_adds_no_grant_line_and_drops_unsafe_ids():
+    from src.application.tools.developer_mediation import build_packet, format_developer_prompt
+
+    plain = format_developer_prompt(build_packet("create", {"tool_name": "t", "behavior": "b"}))
+    assert "grant_agent_ids [" not in plain and "Target agent:" not in plain
+    bad = build_packet("create", {"tool_name": "t", "behavior": "b", "target_agent_id": "../etc passwd"})
+    assert bad["draft"].get("target_agent_id", "") == ""
+
+
 # ---------------------------------------------------------------- migration (REQ-520-005)
 
 def test_startup_migration_rewrites_old_names_once(tmp_path, store, data_dir):

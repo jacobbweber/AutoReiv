@@ -195,6 +195,17 @@ describe('REQ-520-011: one Ask Developer helper for gap, Teach and Observability
   });
 });
 
+describe('REQ-520-016: every Ask Developer draft names the agent that needs the tool', () => {
+  it('Teach, gap and Observability drafts carry target_agent_id', async () => {
+    const { buildDeveloperToolDraft } = await import('../../../src/web/static/modules/studios/chat/teach_modal.js');
+    expect(buildDeveloperToolDraft({ suggested_tool_name: 'get_weather', seed_intent: 'weather' }, 'autoreiv').target_agent_id).toBe('autoreiv');
+    const { buildGapDeveloperDraft } = await import('../../../src/web/static/modules/studios/forge/tools.js');
+    expect(buildGapDeveloperDraft({ turn_text: 'x' }, 'autoreiv').target_agent_id).toBe('autoreiv');
+    const { buildFrictionDeveloperDraft } = await import('../../../src/web/static/modules/studios/observability.js');
+    expect(buildFrictionDeveloperDraft(ESC).target_agent_id).toBe('autoreiv');
+  });
+});
+
 describe('REQ-520-013: Observability sections are all top level', () => {
   it('no details.obs-section is nested in another, and friction is top level', () => {
     const html = read('src/web/templates/index.html');
