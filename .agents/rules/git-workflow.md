@@ -9,22 +9,22 @@ description: Use when branching, committing, merging to qa, tagging, or cleaning
 
 ## 1. Branching Strategy & Staging Environments
 
-To ensure the Human Visionary and QA Tester can safely verify features before production releases, all work follows a structured branching model:
+To ensure features are live-tested by the coding assistant and accepted by the Human Visionary / Product Owner (review gate, **merge to qa**) before production releases, all work follows a structured branching model:
 
 ```text
 [main: Production (Tagged vX.Y.Z)]
    ▲
-   │ (Release PR after Human QA Approval)
+   │ (Release PR after Jacob's release approval)
 [qa: Integration & Human Testing Sandbox]
    ▲
-   │ (Feature PR with Human QA Runbook)
+   │ (Feature merge after review check-in + 'merge to qa')
 [feat/<slug> or fix/<issue-id>-<slug>]
 ```
 
 1. **`main` (Production Branch)**:
    - Contains production-ready, release-tagged code (`v1.0.0`, `v1.1.0`).
    - Merges into `main` occur exclusively from `qa` via release PRs.
-2. **`qa` (Integration & Human QA Branch)**:
+2. **`qa` (Integration & Review Branch)**:
    - The integration branch where features land for testing.
    - All feature and fix branches must target `qa` in their Pull Requests.
 3. **Working Branches (`feat/*`, `fix/*`, `chore/*`)**:

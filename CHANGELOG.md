@@ -7,6 +7,7 @@
 
 ### Changed
 
+- **Coding-assistant operating model (governance, Jacob 2026-09-26)**: Jacob is product owner, not the live tester. The coding assistant runs every card's live-test steps itself (Playwright, real models, desktop 1280x800 and phone 390x844, isolated test environment), fixes failures and files Ready cards for out-of-scope findings. Plan gate: **build** is asked only for product, design or architecture decisions; pure bug fixes proceed on the recommendations (recorded in the card). Review gate: one check-in per card with 2-3 screenshots on a C: path, then **merge to qa**. Updated `AGENTS.md`, `.agents/rules/human-engagement.md`, `definition-of-done.md`, `single-card.md`, `git-workflow.md`, skills `sdd-workflow` and `card-status`; CARD-532 builds the runner.
 - **CARD-530 Approving a card while a reply is still streaming no longer kills the reply**:
   - **Approve only records the decision during a live reply.** A `propose_tool` / `propose_skill` / `propose_workflow` draft never paused the turn, so its Approve never resumes the chat (`resume_chat: false` in the decision response). A tool that really parked resumes once, after this tab's stream has ended, and only if the same chat is still open.
   - **The server refuses a second turn instead of killing the first**: `POST /api/chat/stream` answers **409** `{"reason": "turn_running"}` while a reply for that chat is running; Stop is the only way to end a reply. The chat shows "A reply is still running in this chat" (warning), not a failed reply.

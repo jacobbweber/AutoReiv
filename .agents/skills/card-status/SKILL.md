@@ -76,6 +76,12 @@ python .agents/skills/card-status/scripts/list_card_status.py --json --recent 5
 
 ---
 
+## Card Lifecycle (operating model, 2026-09-26)
+
+`Ready` -> plan gate (**build** only for product, design or architecture decisions; pure bug fixes proceed on recommendations, recorded in the card) -> implementation -> assistant live QA (Playwright, real models, desktop + phone, isolated env; CARD-532 / skill `live-qa`) -> `In Review` (review check-in with 2-3 screenshots on a C: path) -> `Done` after Jacob's **merge to qa**. Jacob is product owner, not the live tester.
+
+---
+
 ## Metadata Support
 
 Parses both YAML frontmatter (`--- ... ---`) and Markdown blockquote headers (`> **Key**: value`), supporting:

@@ -13,8 +13,8 @@ description: >-
 
 ## 1. Role Division & Philosophy
 
-- **Human Visionary / Product Owner / QA Tester**: The human owns the _why_, the product vision, the ultimate business value, and the final experiential user acceptance.
-- **AI Agent (Principal SDLC Engineer)**: You own the _how_, technical rigor, architectural integrity, automated testing, implementation, documentation, and operational hygiene.
+- **Human Visionary / Product Owner**: The human owns the _why_, the product vision, the ultimate business value, and acceptance at the review gate. He is **not** the live tester (operating model, 2026-09-26).
+- **AI Agent (Principal SDLC Engineer)**: You own the _how_, technical rigor, architectural integrity, automated testing, implementation, **live QA of every card** (section 4), documentation, and operational hygiene.
 
 Your goal is to provide a **radically low cognitive barrier** for the human while maintaining rigorous, enterprise-grade software standards.
 
@@ -45,7 +45,7 @@ Your goal is to provide a **radically low cognitive barrier** for the human whil
 - Always verify understanding:
   1. Restate the core goal.
   2. Map out the requirement in EARS format or clear acceptance criteria.
-  3. Obtain explicit confirmation before executing code changes.
+  3. Obtain explicit confirmation (**build**) before code when the card has product, design or architecture decisions (section 5). Pure bug-fix cards with only technical decisions proceed on the recommendations; record them in the card.
 
 ---
 
@@ -60,17 +60,22 @@ To prevent context degradation, attention dilution, and cross-feature confusion:
    - **Intake**: Human prompts _"Work on Card #X"_.
    - **Branch**: Agent creates `feat/<slug>` cut from `qa`.
    - **Execute**: Run SDD $\rightarrow$ Test-Locked Delivery $\rightarrow$ DoD.
-   - **Handoff**: Merge to `qa` with Human QA runbook, then conclude the session.
+   - **Handoff**: Live QA (section 4), review check-in, merge to `qa` after **merge to qa**, then conclude the session.
 3. **Fresh Start**: If a new feature or unrelated bug fix is requested, advise starting a fresh conversation context.
 
 ---
 
-## 4. Human QA Handoff Standard
+## 4. Live QA And Review Check-in Standard
 
-When a vertical slice or feature is implemented and passes all automated tests:
+When a card is implemented and passes all automated tests:
 
-1. Provide a **Human Verification Runbook**:
-   - Exact commands to start the application / dev server.
-   - Exact input payload / curl command / UI action sequence to execute.
-   - Expected observable result vs. failure signals.
-2. Keep the QA steps concise and executable in under 2 minutes.
+1. **The assistant runs the card's live-test steps itself**: real browser via Playwright, real models, desktop 1280x800 and phone 390x844, against an isolated scratch/test environment (never Jacob's live data unless the card needs a clone). CARD-532's runner and skill `live-qa` formalize this.
+2. Fix what fails. File a Ready card for each out-of-scope finding.
+3. Send one **review check-in** per card: what changed, what was tested, results, open items and new cards, and 2-3 screenshots saved under a C: path (`C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`; D: paths cannot be attached).
+4. Jacob replies **merge to qa**. No merge or push without it.
+5. An occasional real-phone check by Jacob for layout-heavy work is optional, not a gate.
+
+## 5. Plan Gate
+
+- Ask Jacob for **build** only when the card has **product, design or architecture** decisions (Four Beats + decisions).
+- A pure bug-fix card whose decisions are only technical proceeds on the recommendations without waiting. Record the decisions and the chosen options in the card.

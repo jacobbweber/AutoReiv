@@ -1,7 +1,7 @@
 # AGENTS.md — AutoReiv coding-assistant governance
 
-> **Human**: Visionary, Product Owner, Final QA.  
-> **AI coding assistant**: Principal SDLC engineer — cards, automated tests, implementation, verification, docs.  
+> **Human**: Visionary and Product Owner (not the live tester).  
+> **AI coding assistant**: Principal SDLC engineer — cards, automated tests, implementation, live QA of every card, verification, docs.  
 > **Not** AutoReiv product packs. Product agents live under `platform-packs/` → user-data packs.
 
 ---
@@ -27,7 +27,11 @@ This wins over conflicting older “continue alone = approval” wording.
 - **Voice**: Plain sentences. What he sees and what it is for. Real technical names. Exact folder/path and the reply phrase he should use (`continue` / `build` / `merge to qa`). No tip/green-red/shorthand aimed at him.
 - **One primitive at a time**: agent, skill, tool, job, pack, Studio.
 - **Four beats before code**: (1) what he means (2) what AutoReiv does now (3) what will change (4) what dies today (the prune list). See `.agents/rules/code-hygiene-and-pruning.md`.
-- **Cards**: Scaffold Ready → he says **build** → implement → In Review → he live-tests. Long roadmaps stay in `steering/roadmap.md`.
+- **Operating model (Jacob, 2026-09-26)**: Jacob is product owner and visionary, not the live tester. The coding assistant runs every card's live-test steps itself (real browser via Playwright, real models, desktop 1280x800 and phone 390x844, isolated scratch/test environment), fixes what fails, and files Ready cards for out-of-scope findings. CARD-532 (live QA runner, skill `live-qa`) formalizes this.
+- **Cards**: Scaffold Ready -> **plan gate** -> implement -> assistant live QA -> In Review -> **review gate** -> he says **merge to qa**. Long roadmaps stay in `steering/roadmap.md`.
+  - **Plan gate**: ask for **build** only when the card has product, design or architecture decisions (Four Beats + decisions). A pure bug-fix card with only technical decisions proceeds on the recommendations without waiting; the decisions are still recorded in the card.
+  - **Review gate**: one check-in per card: what changed, what was tested, results, open items and new cards, and 2-3 screenshots saved under a C: path (`C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`; D: paths cannot be attached). No merge or push without **merge to qa**.
+  - An occasional real-phone check by Jacob for layout-heavy work (for example Education Studio) is optional, not a gate.
 - **`docs/cards/` hygiene**: ONLY `CARD-\d+-*.md` files. No APPLY / patch / snippet / RELEASE helpers in `docs/cards/`.
 - Details: `.agents/rules/human-engagement.md` (always on).
 

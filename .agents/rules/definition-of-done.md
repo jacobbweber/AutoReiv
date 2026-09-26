@@ -35,8 +35,10 @@ Companion: [ADR-0055](../../docs/adr/0055-operator-contract-testing-and-suite-hy
 
 ---
 
-## 3. Human QA Handoff Checklist
+## 3. Live QA And Review Check-in Checklist
 
-- [ ] **Reproduction / Verification Steps**: Step-by-step commands or actions so Jacob can verify the outcome in under 2 minutes (including specific UI clicks for frontend changes).
+- [ ] **Assistant live QA done**: The card's live-test steps were run by the assistant (Playwright real browser, real models, desktop 1280x800 and phone 390x844, isolated scratch/test environment); failures fixed; results recorded in the card. CARD-532 runner / skill `live-qa` when available.
+- [ ] **Out-of-scope findings filed**: Each one is a Ready card.
+- [ ] **Review check-in sent**: What changed, what was tested, results, open items and new cards, 2-3 screenshots under a C: path (`C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`). Merge only after Jacob's **merge to qa**.
 - [ ] **Observability**: Clear log outputs or visual endpoints highlighted for inspection.
 - [ ] **Contract Map**: For durable-state cards, name the OC-* (or new) operator contract that locks the job.

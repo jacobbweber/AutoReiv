@@ -70,7 +70,15 @@ In the card's Acceptance Criteria section (`docs/cards/CARD-xxx.md`), formulate 
 
 ---
 
-## Phase 5: Human Build Gate (Strict Stop Gate)
+## Phase 5: Plan Gate
 
-1. Present the completed card and wireframe/contract to Jacob.
-2. **DO NOT write production code** until Jacob explicitly replies with **build**.
+1. **Product, design or architecture decisions** in the card: present the card (Four Beats + decisions, wireframe/contract) and **DO NOT write production code** until Jacob replies **build**.
+2. **Pure bug fix with only technical decisions**: proceed on the recommendations without waiting. Record the decisions and the chosen options in the card.
+
+---
+
+## Phase 6: Live QA And Review Gate
+
+1. After tests-first delivery and preflight, the assistant runs the card's live-test steps itself (Playwright real browser, real models, desktop 1280x800 and phone 390x844, isolated scratch/test environment; CARD-532 runner / skill `live-qa`). Fix failures; file Ready cards for out-of-scope findings.
+2. Card In Review, then one check-in to Jacob: what changed, what was tested, results, open items and new cards, 2-3 screenshots under `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`.
+3. Merge or push only after Jacob replies **merge to qa**.
