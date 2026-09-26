@@ -22,8 +22,8 @@ from src.infrastructure.skills.platform_pack_promotion import (
     PLATFORM_PACK_SYNC_REPORT_SETTING,
     PLATFORM_SHIPPED_PROMPT_SETTING,
     list_pack_content_backups,
-    prompt_content_hash,
     promote_platform_packs,
+    prompt_content_hash,
 )
 from src.web.app import create_app
 
