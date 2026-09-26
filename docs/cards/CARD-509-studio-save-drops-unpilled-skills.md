@@ -107,3 +107,8 @@ Jacob's live install: see the next section (AutoReiv `coding` is on; Developer `
 ### Follow-ups (Ready, not next)
 - CARD-510 (new, P2, existed before): a Studio Save rebuilds the tool list from pills (AutoReiv loses `wiki_graph` and `read_document_file`; memory tools are added).
 - CARD-508 (updated): `selectOption` on a fresh Studio page reverts the agent picker; Save then saves the agent shown (no wrong-agent write).
+
+### Live install (Jacob's rule: AppData is not production until v1.0)
+- 2026-09-25 11:06 PM ET: serve stopped, `C:\Users\jacob\AppData\Local\AutoReiv` backed up to `scratch/appdata_backups/AutoReiv-AppData-pre-card509-wipe-20260925-230655.zip` (112 files, 21 MB; `autoreiv.db` integrity ok), then wiped. Serve restarted on this build for a fresh install.
+- Fresh install: AutoReiv, Direct, Developer and Tutor (all `unchanged`, Max Turns 50). AutoReiv has `coding` on with a pill; Developer has `build-agent-pack` on with a pill.
+- Gone with the wipe (still in the zip): Developer's SOLID/DRY prompt edit and Max Turns 25, Tutor's Max Turns 100, the wiki vault (34 files, it lived in AppData), chats and backups.
