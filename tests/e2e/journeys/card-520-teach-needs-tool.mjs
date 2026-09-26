@@ -89,16 +89,29 @@ export default {
       await waitReplyIdle(page, { timeoutMs: 300000 });
     }, { timeoutMs: 1300000 });
 
-    await j.step('AutoReiv answers the weather question with the new tool', async () => {
-      await openSessionByTitle(page, title, { agentId: 'autoreiv' });
+    async function askAndCheck(sid, label) {
       await send(page, QUESTION);
       await page.waitForTimeout(2000);
       await waitReplyIdle(page, { timeoutMs: 240000 });
-      const msgs = await getJson(request, `${base}/api/sessions/${encodeURIComponent(sessionId)}/messages`);
+      const msgs = await getJson(request, `${base}/api/sessions/${encodeURIComponent(sid)}/messages`);
       const used = (Array.isArray(msgs) ? msgs : []).filter((m) => String(m.role || '').toLowerCase() === 'tool'
         && newTools.some((t) => String(m.name || '') === t || String(m.content || '').includes(t)));
-      if (!used.length) throw new Error(`AutoReiv did not call ${newTools.join(' / ')} for the question`);
-      j.note(`tool rows for the new tool: ${used.length}; last: ${String(used[used.length - 1].content || '').slice(0, 160)}`);
+      if (!used.length) throw new Error(`AutoReiv did not call ${newTools.join(' / ')} for the question (${label})`);
+      j.note(`${label}: tool rows for the new tool: ${used.length}; last: ${String(used[used.length - 1].content || '').slice(0, 160)}`);
+    }
+
+    await j.step('AutoReiv answers the weather question with the new tool (same chat)', async () => {
+      await openSessionByTitle(page, title, { agentId: 'autoreiv' });
+      await askAndCheck(sessionId, 'same chat');
+    }, { timeoutMs: 260000, soft: true });
+
+    await j.step('A new AutoReiv chat answers the weather question with the new tool', async () => {
+      const t2 = `${title} new`;
+      const res = await request.post(`${base}/api/sessions`, { data: { agent_id: 'autoreiv', title: t2 } });
+      if (!res.ok()) throw new Error(`create session -> ${res.status()}`);
+      const sid2 = (await res.json()).id;
+      await openSessionByTitle(page, t2, { agentId: 'autoreiv' });
+      await askAndCheck(sid2, 'new chat');
     }, { timeoutMs: 260000, soft: true });
   },
 };
