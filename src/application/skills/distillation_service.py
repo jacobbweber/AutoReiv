@@ -14,6 +14,26 @@ from typing import Any, Dict, List, Optional, Union
 from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
 from src.domain.observability.models import LEGACY_TOOL_ESCALATION, TOOL_ESCALATION
 
+# CARD-520 REQ-520-015: guidance that says a tool is missing ("has no weather tool", "needs a tool").
+_NAMED_TOOL_RE = re.compile(
+    r"\b(?:no|needs? an?|requires? an?|missing an?|lacks? an?|(?:does ?n[o']?t|don'?t) have an?y?)\s+"
+    r"([a-z][a-z0-9 _-]{0,30}?)\s+tool\b"
+)
+_ANY_TOOL_RE = re.compile(r"\bno\s+tools?\b|\b(?:needs?|requires?|missing|lacks?|without|build|add)\b[^.;:!?]{0,40}\btool\b")
+_NAME_STOPWORDS = {"a", "an", "the", "new", "any", "real", "proper", "such"}
+
+
+def missing_tool_from_guidance(guidance: Optional[str]) -> Optional[str]:
+    """``None`` if the guidance does not say a tool is missing; else a suggested name (``get_weather``) or ``""``."""
+    text = (guidance or "").lower()
+    if not text.strip():
+        return None
+    named = _NAMED_TOOL_RE.search(text)
+    if named:
+        words = [w for w in re.split(r"[\s_-]+", named.group(1)) if w and w not in _NAME_STOPWORDS][:3]
+        return f"get_{'_'.join(words)}" if words else ""
+    return "" if _ANY_TOOL_RE.search(text) else None
+
 logger = logging.getLogger(__name__)
 
 SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -363,6 +383,33 @@ class SkillDistillationService:
         turn_data: Dict[str, Any],
         guidance: str,
     ) -> Dict[str, Any]:
+        # CARD-520 REQ-520-015: without the model, the operator's guidance still decides "needs a tool".
+        missing_tool = missing_tool_from_guidance(guidance)
+        if missing_tool is not None:
+            prompt = (turn_data.get("user_prompt") or "")[:100]
+            escalation: Dict[str, Any] = {
+                "target_agent_id": target_agent_id,
+                "seed_intent": guidance,
+                "starter_objectives": ["Implement verified tool handler", "Add schema guardrails"],
+                "deliverable_type": "tool",
+            }
+            if missing_tool:
+                escalation["suggested_tool_name"] = missing_tool
+            return {
+                "status": "ok",
+                "target_agent_id": target_agent_id,
+                "needs_tool": True,
+                "plain_summary": {
+                    "observed_slip": f"{target_agent_id} had no tool for '{prompt}'." if prompt
+                    else f"{target_agent_id} had no tool for this request.",
+                    "remedy": guidance,
+                },
+                TOOL_ESCALATION: escalation,
+                "skill_id": None,
+                "name": None,
+                "description": None,
+                "runbook_markdown": None,
+            }
         hint = guidance or turn_data["user_prompt"] or "procedural-rule"
         slug = self._slugify(hint[:30]) or "operational-guidance"
         name = slug.replace("-", " ").title()
