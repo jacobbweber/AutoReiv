@@ -62,7 +62,7 @@ def _row(servers, name: str) -> dict:
 
 
 def _catalog_names(tc: TestClient) -> set[str]:
-    res = tc.get("/api/agent_training_factory/capabilities")
+    res = tc.get("/api/tools_studio/capabilities")
     assert res.status_code == 200
     names = set()
     for ns in res.json().get("namespaces") or []:

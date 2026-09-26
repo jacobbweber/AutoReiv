@@ -10,6 +10,18 @@ from typing import Any, Callable, List, Optional
 
 from src.domain.orchestration.capability_gaps import CapabilityGap
 
+# Operator-visible gap statuses (moved from the retired Factory gap_link) [CARD-270, CARD-497 D8].
+GAP_PENDING = "pending"
+GAP_TRAINING = "training"  # legacy: only the retired Factory set it; reset to pending at startup
+GAP_TRAINED = "trained"
+GAP_CANT = "cant"
+GAP_FAILED = "failed"
+GAP_DISMISSED = "dismissed"
+
+ALLOWED_GAP_STATUSES = frozenset(
+    {GAP_PENDING, GAP_TRAINING, GAP_TRAINED, GAP_CANT, GAP_FAILED, GAP_DISMISSED, "resolved"}
+)
+
 
 class CapabilityGapRepository:
     """Repository for managing agent capability gaps."""
@@ -153,6 +165,21 @@ class CapabilityGapRepository:
             )
             conn.commit()
             return cur.rowcount > 0
+        finally:
+            if not self._connection_factory and getattr(self, "_mem_conn", None) is None and hasattr(conn, "close"):
+                conn.close()
+
+    def reset_stranded_training_gaps(self) -> int:
+        """Move every ``training`` gap back to ``pending``; idempotent. Returns rows changed [CARD-497 D8]."""
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE agent_capability_gaps SET status = ? WHERE status = ?",
+                (GAP_PENDING, GAP_TRAINING),
+            )
+            conn.commit()
+            return int(cur.rowcount or 0)
         finally:
             if not self._connection_factory and getattr(self, "_mem_conn", None) is None and hasattr(conn, "close"):
                 conn.close()

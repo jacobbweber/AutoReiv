@@ -70,6 +70,7 @@ Chosen option: **Option 3, retire the Factory**, because every job it did has a 
 * **D2**: Wiki research has no automatic job. It is a chat request to AutoReiv.
 * **D3**: Scenario replay and agent evaluation are dropped for now, with no card. Revisit only if a real need appears.
 * **D4**: `inspect_agent_pack` stays as a read-only chat tool, moved next to the orchestration tools (`orchestration_tools.py`), with its pack grant kept.
+  * *Note (CARD-497 D6, 2026-09-26)*: it landed in `AgentPackTools` (`application/skills/agent_pack_tools.py`), next to export/import/scaffold, instead of `orchestration_tools.py`; same name, output and pack grant.
 * **D5**: Skill Studio's `factory*` element ids stay (about 150 ids inside `#view-skill-studio`). Renaming them adds churn with no user benefit. Only `#view-factory` goes.
 * **D6**: CARD-511 lands before CARD-497 and may reuse the parts of `verification_battery.py` it needs. CARD-497 deletes only what CARD-511 does not keep.
 * **D7**: The unused auto-training pieces are deleted in CARD-497: the `allow_autonomous_training` and `max_training_retries` fields in the API and UI, the `JitToolSynthesizer` built in `agent_kernel.py` but never used, and the `AUTO_TRAIN_PROGRESS` event, which is never sent. The DB columns stay.

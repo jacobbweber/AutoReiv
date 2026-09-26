@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def _namespaces(client):
-    response = client.get("/api/agent_training_factory/capabilities")
+    response = client.get("/api/tools_studio/capabilities")
     assert response.status_code == 200, response.text
     return response.json()["namespaces"]
 

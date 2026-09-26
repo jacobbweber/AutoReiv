@@ -142,13 +142,13 @@ describe('CARD-511: native catalog rows show the tool check', () => {
   it('loadCatalogModel reads /api/tools/native for the labels and survives its failure', async () => {
     const { loadCatalogModel: load, renderCatalogMarkup: render } = await import(CATALOG);
     const ok = await load(async (url) => {
-      if (url === '/api/agent_training_factory/capabilities') return { ok: true, json: async () => ({ namespaces }) };
+      if (url === '/api/tools_studio/capabilities') return { ok: true, json: async () => ({ namespaces }) };
       if (url === '/api/tools/native') return { ok: true, json: async () => ({ tools: nativeTools }) };
       return { ok: true, json: async () => [] };
     });
     expect(render(ok)).toContain('>Checked<');
     const down = await load(async (url) => {
-      if (url === '/api/agent_training_factory/capabilities') return { ok: true, json: async () => ({ namespaces }) };
+      if (url === '/api/tools_studio/capabilities') return { ok: true, json: async () => ({ namespaces }) };
       if (url === '/api/tools/native') throw new Error('offline');
       return { ok: true, json: async () => [] };
     });

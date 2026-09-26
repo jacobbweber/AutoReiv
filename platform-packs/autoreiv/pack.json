@@ -87,13 +87,13 @@
     },
     {
       "id": "agent-authoring",
-      "name": "Agent Capability Architecture & Training Intake",
-      "description": "Socratic requirement discovery, agent pack inspection, deliverable taxonomy recommendation, and training job dispatch to the 8-phase factory pipeline.",
+      "name": "Agent Capability Intake",
+      "description": "Inspect an agent, then route a new tool or MCP server to the Developer, a new skill to Skill Studio or propose_skill, and a new agent to build-agent-pack.",
       "tools": [
         "inspect_agent_pack",
-        "launch_factory_training",
         "lookup_agents",
-        "handoff_to_agent"
+        "handoff_to_agent",
+        "propose_skill"
       ]
     },
     {
@@ -161,8 +161,7 @@
     "wiki_graph",
     "promote_artifact_to_wiki",
     "read_document_file",
-    "inspect_agent_pack",
-    "launch_factory_training"
+    "inspect_agent_pack"
   ],
   "show_in_chat": true
 }

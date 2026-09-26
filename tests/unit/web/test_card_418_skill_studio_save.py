@@ -48,7 +48,7 @@ async def test_skill_studio_save_without_agent_writes_store_and_sqlite(tmp_path,
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         saved = await ac.post(
-            "/api/agent_training_factory/scaffold/save",
+            "/api/skill_studio/save",
             json={
                 "skill_id": "dock-notes",
                 "name": "Dock Notes",
@@ -82,7 +82,7 @@ async def test_skill_studio_save_without_agent_writes_store_and_sqlite(tmp_path,
         assert record is not None
         assert record["requires_tools"] == ["inspect_widget"]
 
-        opened = await ac.get("/api/agent_training_factory/skills/dock-notes")
+        opened = await ac.get("/api/skill_studio/skills/dock-notes")
         assert opened.status_code == 200
         opened_body = opened.json()
         assert opened_body["requires_tools"] == ["inspect_widget"]

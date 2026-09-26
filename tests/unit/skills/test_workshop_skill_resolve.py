@@ -127,26 +127,26 @@ async def test_get_workshop_skill_opens_seed_pack_and_dotted_ids(tmp_path, monke
     app = create_app(state_store=SQLiteStateStore(db_path=str(db_path)))
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        listed = await ac.get("/api/agent_training_factory/skills")
+        listed = await ac.get("/api/skill_studio/skills")
         assert listed.status_code == 200
         ids = {row["id"] for row in listed.json()["skills"]}
         assert "coordination" in ids
         assert "My.Skill" in ids
         assert "group/notes" in ids
 
-        opened = await ac.get("/api/agent_training_factory/skills/coordination")
+        opened = await ac.get("/api/skill_studio/skills/coordination")
         assert opened.status_code == 200
         body = opened.json()
         assert body["skill_id"] == "coordination"
         assert body["name"] == "Agent Coordination & Handoff"
         assert body["markdown_content"]
 
-        dotted_res = await ac.get("/api/agent_training_factory/skills/My.Skill")
+        dotted_res = await ac.get("/api/skill_studio/skills/My.Skill")
         assert dotted_res.status_code == 200
         assert dotted_res.json()["requires_tools"] == ["inspect_widget"]
         assert "Keep-the-body." in dotted_res.json()["markdown_content"]
 
-        nested_res = await ac.get("/api/agent_training_factory/skills/group/notes")
+        nested_res = await ac.get("/api/skill_studio/skills/group/notes")
         assert nested_res.status_code == 200
         assert nested_res.json()["skill_id"] == "group/notes"
 
@@ -161,9 +161,9 @@ async def test_get_workshop_skill_opens_seed_pack_and_dotted_ids(tmp_path, monke
         assert "My.Skill" not in platform_ids
         assert "coordination" in platform_ids
 
-        missing = await ac.get("/api/agent_training_factory/skills/not-a-real-skill")
+        missing = await ac.get("/api/skill_studio/skills/not-a-real-skill")
         assert missing.status_code == 404
         assert missing.json()["detail"] == "Skill 'not-a-real-skill' not found"
 
-        unsafe = await ac.get("/api/agent_training_factory/skills/../etc")
+        unsafe = await ac.get("/api/skill_studio/skills/../etc")
         assert unsafe.status_code in (400, 404)

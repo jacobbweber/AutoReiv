@@ -161,7 +161,7 @@ export function createSkillWorkshop({
     } = els();
     try {
       const encoded = String(skillId).split('/').map((part) => encodeURIComponent(part)).join('/');
-      const resp = await fetch(`/api/agent_training_factory/skills/${encoded}${query ? `?${query}` : ''}`);
+      const resp = await fetch(`/api/skill_studio/skills/${encoded}${query ? `?${query}` : ''}`);
       const data = await resp.json().catch(() => ({}));
       const view = applyLoadedSkillView(data, skillId);
       if (!resp.ok || view.notFound) throw new Error(view.detail || data.detail || `HTTP ${resp.status}`);

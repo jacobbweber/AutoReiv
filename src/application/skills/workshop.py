@@ -1,4 +1,4 @@
-"""Factory workshop persistence: skill-store body + SQLite bindings [CARD-411]."""
+"""Skill Studio workshop persistence: skill-store body + SQLite bindings [CARD-411, CARD-497]."""
 
 from __future__ import annotations
 

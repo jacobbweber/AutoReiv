@@ -192,7 +192,7 @@ def test_oc425_pack_py_bootstrap_is_not_native_custom(tmp_path, monkeypatch):
         assert registry.get_tool_origin("widget_ping") == "legacy_pack_tool"
         assert registry.get_tool_origin("widget_ping") != "native_custom"
 
-        response = client.get("/api/agent_training_factory/capabilities")
+        response = client.get("/api/tools_studio/capabilities")
         assert response.status_code == 200, response.text
         namespaces = response.json()["namespaces"]
         matches = []

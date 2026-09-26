@@ -9,7 +9,7 @@ export const PACKET_VERSION = 1;
 export const DEVELOPER_AGENT_ID = 'developer';
 export const AUTHORING_JOBS_URL = '/api/skill_studio/authoring/jobs';
 export const AUTHORING_LINT_URL = '/api/skill_studio/authoring/lint';
-export const SILENT_RUNBOOK_URL = '/api/agent_training_factory/scaffold/runbook';
+export const SILENT_RUNBOOK_URL = '/api/skill_studio/runbook';
 
 const PATCH_FIELDS = new Set([
   'name',

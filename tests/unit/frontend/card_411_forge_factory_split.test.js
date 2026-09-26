@@ -47,7 +47,7 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
     expect(html).toContain('id="factoryExistingSkillSelect"');
     expect(factory).toContain('requires_tools');
     expect(factory).toContain('applyWorkshopMetadata');
-    expect(factory).toContain('/api/agent_training_factory/skills/');
+    expect(factory).toContain('/api/skill_studio/skills/');
     expect(factory).toContain('syncFrontmatter');
     expect(factory).toContain("tier: 'pack'");
   });

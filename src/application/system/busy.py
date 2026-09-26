@@ -1,8 +1,8 @@
 """
 Busy-state detection for software-update deferral [CARD-451 REQ-451-015].
 
-Busy = active chat streams, running routines, or Studio/Factory jobs in
-queued / running / waiting_approval.
+Busy = active chat streams, running routines, or Studio jobs in
+queued / running / waiting_approval. The Factory checker is gone [CARD-497].
 """
 
 from __future__ import annotations
@@ -11,9 +11,6 @@ import logging
 from typing import Any, Callable, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
-
-_ACTIVE_JOB_STATUSES = frozenset({"queued", "running", "waiting_approval"})
-
 
 class BusyDetector:
     """Composable busy checker; callables are injectable for tests."""
@@ -24,12 +21,10 @@ class BusyDetector:
         chat_stream_checker: Optional[Callable[[], bool]] = None,
         routine_checker: Optional[Callable[[], bool]] = None,
         studio_job_checker: Optional[Callable[[], bool]] = None,
-        factory_job_checker: Optional[Callable[[], bool]] = None,
     ) -> None:
         self._chat_stream_checker = chat_stream_checker or _default_chat_streams_busy
         self._routine_checker = routine_checker or (lambda: False)
         self._studio_job_checker = studio_job_checker or (lambda: False)
-        self._factory_job_checker = factory_job_checker or (lambda: False)
 
     def is_busy(self) -> Tuple[bool, str]:
         reasons: List[str] = []
@@ -48,11 +43,6 @@ class BusyDetector:
                 reasons.append("running Studio job")
         except Exception as exc:
             logger.debug("studio job busy check failed: %s", exc)
-        try:
-            if self._factory_job_checker():
-                reasons.append("running Factory/training job")
-        except Exception as exc:
-            logger.debug("factory job busy check failed: %s", exc)
         if reasons:
             return True, ", ".join(reasons)
         return False, ""
@@ -77,8 +67,8 @@ def _default_chat_streams_busy() -> bool:
     return False
 
 
-def make_store_busy_detector(store: Any, factory_repo: Any = None) -> BusyDetector:
-    """Build a BusyDetector wired to SQLiteStateStore (+ optional Factory repo)."""
+def make_store_busy_detector(store: Any) -> BusyDetector:
+    """Build a BusyDetector wired to SQLiteStateStore."""
 
     def routines_busy() -> bool:
         if store is None:
@@ -119,23 +109,8 @@ def make_store_busy_detector(store: Any, factory_repo: Any = None) -> BusyDetect
             logger.debug("studio jobs busy scan failed: %s", exc)
             return False
 
-    def factory_jobs_busy() -> bool:
-        repo = factory_repo
-        if repo is None:
-            return False
-        try:
-            jobs = repo.list_jobs() if hasattr(repo, "list_jobs") else []
-            for j in jobs or []:
-                st = str(getattr(j, "status", "")).lower()
-                if st in _ACTIVE_JOB_STATUSES:
-                    return True
-        except Exception as exc:
-            logger.debug("factory jobs busy scan failed: %s", exc)
-        return False
-
     return BusyDetector(
         chat_stream_checker=_default_chat_streams_busy,
         routine_checker=routines_busy,
         studio_job_checker=studio_jobs_busy,
-        factory_job_checker=factory_jobs_busy,
     )

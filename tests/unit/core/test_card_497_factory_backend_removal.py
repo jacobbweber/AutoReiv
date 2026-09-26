@@ -267,7 +267,7 @@ def test_11_retired_tools_strip_launch_factory_training_from_user_modified_pack(
 
 # 12 ------------------------------------------------------------------------
 def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_training():
-    from src.infrastructure.skills.platform_packs import load_platform_manifest
+    from tests.unit.agent_packs.catalog import load_platform_manifest
 
     manifest = load_platform_manifest("autoreiv")
     skill = next(s for s in manifest.skills if s.id == "agent-authoring")
@@ -344,7 +344,7 @@ def test_14_agents_api_drops_auto_training_fields(tmp_path, monkeypatch):
         json={
             "id": "c497-agent",
             "name": "C497 Agent",
-            "system_prompt": "You help.",
+            "system_prompt": "You help the operator with CARD-497 checks.",
             "allow_autonomous_training": True,
             "max_training_retries": 4,
         },
@@ -353,7 +353,7 @@ def test_14_agents_api_drops_auto_training_fields(tmp_path, monkeypatch):
     assert "allow_autonomous_training" not in created.json()["agent"]
     updated = client.put(
         "/api/agents/c497-agent",
-        json={"name": "C497 Agent", "system_prompt": "You help more.", "allow_autonomous_training": False},
+        json={"name": "C497 Agent", "system_prompt": "You help the operator with more CARD-497 checks.", "allow_autonomous_training": False},
     )
     assert updated.status_code == 200, updated.text
     assert "max_training_retries" not in json.dumps(updated.json())

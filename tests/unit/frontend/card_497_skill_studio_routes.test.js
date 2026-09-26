@@ -22,11 +22,11 @@ function walk(dir) {
 }
 
 describe('REQ-497-003: frontend call sites use the D4 routes', () => {
-  it('skill_studio.js uses capabilities, save and skills on the new routes', () => {
+  it('skill_studio.js uses capabilities, runbook and save on the new routes', () => {
     const src = read(`${STATIC}/modules/studios/skill_studio.js`);
     expect(src).toContain('/api/tools_studio/capabilities');
+    expect(src).toContain('/api/skill_studio/runbook');
     expect(src).toContain('/api/skill_studio/save');
-    expect(src).toContain('/api/skill_studio/skills');
   });
 
   it('skill_authoring.js SILENT_RUNBOOK_URL is /api/skill_studio/runbook', () => {

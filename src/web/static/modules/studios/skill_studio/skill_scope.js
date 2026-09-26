@@ -194,7 +194,7 @@ export function createSkillScopeUI({
     const assignedIds = getAssignedSkills() || [];
     let listed = [];
     try {
-      const res = await fetch('/api/agent_training_factory/skills');
+      const res = await fetch('/api/skill_studio/skills');
       if (res.ok) {
         const data = await res.json();
         listed = data.skills || [];

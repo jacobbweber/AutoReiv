@@ -133,9 +133,6 @@ class AgentKernel:
         self.user_skill_catalog = user_skill_catalog
         self.ace_pack_id: Optional[str] = None
         self._ace_tool_errors: List[Dict[str, Any]] = []
-        from src.application.orchestration.jit_synthesizer import JitToolSynthesizer
-
-        self.jit_synthesizer = JitToolSynthesizer(data_dir=self._resolve_ace_data_dir())
         self.capability_gap_repo = CapabilityGapRepository(state_store)
 
     def _resolve_ace_data_dir(self) -> Optional[str]:

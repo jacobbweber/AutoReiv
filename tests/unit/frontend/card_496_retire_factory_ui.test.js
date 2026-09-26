@@ -234,14 +234,14 @@ describe('D7, D8, D10 and leftovers', () => {
 });
 
 describe('REQ-496-009/010: Skill Studio keeps working on the existing backend', () => {
-  it('Skill Studio imports the moved helpers and still calls the Factory-prefixed routes', () => {
+  it('Skill Studio imports the moved helpers and calls its own routes (CARD-497 moved them)', () => {
     const skill = read(`${STATIC}/modules/studios/skill_studio.js`);
     expect(skill).toContain("from './skill_studio/workshop_meta.js'");
     expect(skill).toContain("from './skill_studio/skill_scope.js'");
-    expect(skill).toContain('/api/agent_training_factory/scaffold/save');
-    expect(skill).toContain('/api/agent_training_factory/capabilities');
+    expect(skill).toContain('/api/skill_studio/save');
+    expect(skill).toContain('/api/tools_studio/capabilities');
     expect(skill).not.toContain('getFactoryCtrl');
-    expect(read(`${STATIC}/modules/studios/tools_studio_catalog.js`)).toContain('/api/agent_training_factory/capabilities');
+    expect(read(`${STATIC}/modules/studios/tools_studio_catalog.js`)).toContain('/api/tools_studio/capabilities');
   });
 
   it('Skill Studio keeps its factory* ids (ADR-0060 D5)', () => {

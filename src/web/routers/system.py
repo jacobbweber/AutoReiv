@@ -38,8 +38,7 @@ def _get_update_service(request: Request) -> UpdateService:
     data_dir = None
     if getattr(request.app.state, "data_dir_paths", None) is not None:
         data_dir = str(request.app.state.data_dir_paths.root)
-    factory_repo = getattr(request.app.state, "factory_repo", None)
-    busy = make_store_busy_detector(store, factory_repo=factory_repo)
+    busy = make_store_busy_detector(store)
     restarter = getattr(request.app.state, "serve_restarter", None) or DetachedScriptRestarter()
     serve_host = getattr(request.app.state, "serve_host", None)
     serve_port = getattr(request.app.state, "serve_port", None)

@@ -60,7 +60,6 @@ from src.application.orchestration.wiki_thin_grounding import (
     is_wiki_related_ask,
     ungrounded_claimed_paths,
 )
-from src.infrastructure.serialization.json_safe import dumps_jsonable
 from src.application.orchestration.working_set_context import (
     build_phase_working_set,
     distill_durable_note,
@@ -73,6 +72,7 @@ from src.domain.kernel.models import KernelEventType
 from src.domain.orchestration.models import PhaseStatus
 from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
 from src.infrastructure.memory.repositories.sessions import generate_session_title_from_prompt
+from src.infrastructure.serialization.json_safe import dumps_jsonable
 
 GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
 
@@ -409,9 +409,6 @@ async def _forward_kernel_event(queue, event, profile) -> None:
         )
     elif event.event_type == KernelEventType.TURN_END:
         await queue.put(_sse("turn_done", {"content": event.content}))
-    elif event.event_type == KernelEventType.AUTO_TRAIN_PROGRESS:
-        payload = dict(event.auto_train or {})
-        await queue.put(_sse("auto_train_progress", payload))
     elif event.event_type == KernelEventType.REACT_STATE:
         payload = dict(event.react or {})
         if not payload.get("assigned_agent_id"):

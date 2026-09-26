@@ -88,7 +88,6 @@ def update_service(mock_store, git_pair, tmp_path: Path):
         chat_stream_checker=lambda: False,
         routine_checker=lambda: False,
         studio_job_checker=lambda: False,
-        factory_job_checker=lambda: False,
     )
     svc = UpdateService(
         state_store=mock_store,
@@ -268,7 +267,6 @@ def test_busy_defers_auto_update(update_service, mock_store, git_pair, tmp_path)
         chat_stream_checker=lambda: True,
         routine_checker=lambda: False,
         studio_job_checker=lambda: False,
-        factory_job_checker=lambda: False,
     )
     now = datetime.now().astimezone().replace(hour=12, minute=0, second=0, microsecond=0)
     res = update_service.run_auto_update_if_due(now=now)

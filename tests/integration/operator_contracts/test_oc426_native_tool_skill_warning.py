@@ -190,7 +190,7 @@ def test_oc426_older_skill_gains_warning_without_replacing_file_or_prompt(operat
     assert SEED_ONLY not in pack_body["markdown"]
 
     workshop = client.get(
-        f"/api/agent_training_factory/skills/{NATIVE_SKILL}",
+        f"/api/skill_studio/skills/{NATIVE_SKILL}",
         params={"agent_id": "developer"},
     )
     assert workshop.status_code == 200, workshop.text
