@@ -98,7 +98,7 @@
 
 - **Milestone 21 (Agent Training Factory retirement, [ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md))**:
   - [x] **CARD-495**: ADR-0060, gap and dependency audit, steering docs - **Done**.
-  - [ ] **CARD-496**: Remove the Factory screen, Lab Monitor, training popup and "Agent Training Optimization" panel; gap backlog opens Skill Studio or Developer.
+  - [x] **CARD-496**: Remove the Factory screen, Lab Monitor, training popup and "Agent Training Optimization" panel; gap backlog opens Skill Studio or Developer - **Done**.
   - [ ] **CARD-511**: Check Developer-built native tools before registering them.
   - [ ] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool.
   - [ ] **CARD-512**: Retire the scaffold spine backend.

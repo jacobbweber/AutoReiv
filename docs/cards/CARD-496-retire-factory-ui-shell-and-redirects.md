@@ -1,7 +1,7 @@
 ---
 id: CARD-496
 title: "Retire the Agent Training Factory (2/6): remove the Factory UI and redirect every entry point"
-status: In Review
+status: Done
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -24,7 +24,7 @@ labels:
 
 # [CARD-496] Retire the Agent Training Factory (2/6): remove the Factory UI and redirect every entry point
 
-> **Status**: In Review (2026-09-26 ~12:45 AM ET: built on `feat/card-496-retire-factory-ui`, commits `b9417f9c`, `39bea7b9`, `5350a5d3`, `340b4c1c`; preflight green apart from CARD-454/456; scratch runbook passed desktop and phone; not pushed or merged. Next gate: Jacob live-tests on serve, then `merge to qa`)
+> **Status**: Done (2026-09-26 ~1:00 AM ET: Jacob live-tested on his phone against serve with test gap `gap_c5d4dcc6af35` and said `merge to qa`; merged --no-ff into qa and pushed. Earlier: 2026-09-26 ~12:45 AM ET: built on `feat/card-496-retire-factory-ui`, commits `b9417f9c`, `39bea7b9`, `5350a5d3`, `340b4c1c`; preflight green apart from CARD-454/456; scratch runbook passed desktop and phone; not pushed or merged. Next gate: Jacob live-tests on serve, then `merge to qa`)
 > **Created**: 2026-09-25
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted). This card is step 2 of 6: CARD-495 (Done), **CARD-496**, CARD-511, CARD-497, CARD-512, CARD-498
 > **Scope**: frontend only. **No backend route changes.** Skill Studio keeps calling `/api/agent_training_factory/{capabilities,scaffold/*,skills}` until CARD-497 moves them.
