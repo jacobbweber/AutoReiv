@@ -38,3 +38,11 @@ Script: `scratch/c505_badge.cjs` (fast switching) vs `scratch/c505_badge2.cjs` (
 - Reproduce by hand: open Agent Studio, switch between two locked agents and an unlocked one quickly, and watch the badge.
 - If confirmed: tag each load with the agent id and drop answers for an agent that is no longer selected. Add Vitest for out-of-order answers and a smoke check (desktop and phone).
 - If not reproducible by hand: close as test-script timing.
+
+## New evidence (CARD-505 build, 2026-09-25 ET)
+
+On a fresh Agent Studio page (AutoReiv selected first), `selectOption` to Developer made the whole form snap back to AutoReiv, not only the badge: the name field showed AutoReiv, and the network log fetched `/api/agents/autoreiv/pack-content-backups` after the Developer requests. That points at a late Studio load re-rendering the previously selected agent over the newer choice (the Studio's initial agent load, not just `platform_defaults.js`). Debug script: `scratch/c505_badge_dbg.cjs`.
+
+With the CARD-505 fix, AutoReiv's badge on a fresh page is correctly hidden (it is up to date), so the original "empty badge" sighting for AutoReiv is expected now. The open question is the snap-back.
+
+Direction update: first reproduce by hand (open Agent Studio, immediately pick Developer, wait 3 s, check the name field). If confirmed, guard both the Studio agent load and the Platform defaults load with the selected agent id.

@@ -35,6 +35,8 @@ PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING = "platform_operator_disabled_skills"
 PLATFORM_OPERATOR_ADDED_SKILLS_SETTING = "platform_operator_added_skills"
 PLATFORM_PACK_CONTENT_BACKUPS_SETTING = "platform_pack_content_backups"
 PLATFORM_LOCK_MIGRATION_SETTING = "platform_pack_lock_migration_report"
+PLATFORM_PROMPT_BASELINE_NORMALIZED_SETTING = "platform_prompt_baseline_normalized"
+WHITESPACE_UNLOCK_BACKUP_REASON = "card505_whitespace_unlock"
 
 
 RESOLUTION_USER_MODIFIED = (
@@ -78,8 +80,23 @@ class PlatformPackSyncReport:
         }
 
 
+def normalize_prompt(prompt: Optional[str]) -> str:
+    """One comparable form of a system prompt [CARD-505 / REQ-505-001].
+
+    Line endings unified and outer whitespace trimmed, the same as the agent guardrail and
+    Agent Studio (which trim). Inner spacing is content and is kept.
+    """
+    return (prompt or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+
+
 def prompt_content_hash(prompt: str) -> str:
-    return hashlib.sha256((prompt or "").encode("utf-8")).hexdigest()
+    """Hash of the normalized prompt; used for shipped-prompt baselines [CARD-505]."""
+    return hashlib.sha256(normalize_prompt(prompt).encode("utf-8")).hexdigest()
+
+
+def _legacy_raw_hash(text: str) -> str:
+    """Pre-CARD-505 baseline format: hash of the exact bytes."""
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
 
 def keep_customizations_enabled(store: Any) -> bool:
@@ -225,14 +242,11 @@ def should_set_content_lock(
     baselines = _shipped_prompt_map(store) if store is not None else {}
     baseline = baselines.get(pack_id)
     prompt = new_prompt if new_prompt is not None else (getattr(existing, "system_prompt", None) or "")
-    if baseline is not None:
-        if prompt_content_hash(prompt) != baseline:
-            return True
-    else:
-        old_prompt = getattr(existing, "system_prompt", None) or ""
-        if prompt != old_prompt:
-            # No baseline yet: treat prompt text change as content edit
-            return True
+    old_prompt = getattr(existing, "system_prompt", None) or ""
+    # CARD-505 / D5: a save that leaves the prompt as stored (scalars, skill ticks) never locks
+    prompt_changed = normalize_prompt(prompt) != normalize_prompt(old_prompt)
+    if prompt_changed and (baseline is None or prompt_content_hash(prompt) != baseline):
+        return True
 
     # Skill disable alone is not a content lock — record instead when stock known
     if stock_skills is not None and new_skills is not None:
@@ -254,9 +268,61 @@ def pack_content_diverged_from_seed(
     baselines = _shipped_prompt_map(store) if store is not None else {}
     baseline = baselines.get(pack_id)
     stored = getattr(profile, "system_prompt", None) or ""
+    if normalize_prompt(stored) == normalize_prompt(seed_prompt):
+        return False  # CARD-505: equals the current platform prompt apart from spacing
     if baseline is not None:
         return prompt_content_hash(stored) != baseline
-    return stored != (seed_prompt or "")
+    return True
+
+
+def migrate_prompt_baselines(
+    *,
+    agent_registry: Any,
+    checkout_root: Optional[Union[str, Path]] = None,
+    pack_ids: Optional[Sequence[str]] = None,
+) -> list[dict[str, Any]]:
+    """One-time: re-save raw-bytes prompt baselines in the normalized form [CARD-505 / D3].
+
+    A baseline that is the raw hash of the current seed, or of the stored prompt (with or
+    without a trailing newline, i.e. the old stock text), is re-saved as the normalized hash.
+    Unknown baselines (an older seed the stored prompt does not match) are left alone.
+    Recorded in ``PLATFORM_PROMPT_BASELINE_NORMALIZED_SETTING``; later starts skip it.
+    """
+    from src.infrastructure.skills.platform_packs import ALL_PLATFORM_PACK_IDS, platform_packs_root
+
+    store = getattr(agent_registry, "state_store", None)
+    if store is None or not hasattr(store, "get_setting") or not hasattr(store, "set_setting"):
+        return []
+    if store.get_setting(PLATFORM_PROMPT_BASELINE_NORMALIZED_SETTING):
+        return []
+    baselines = _shipped_prompt_map(store)
+    root = platform_packs_root(checkout_root)
+    results: list[dict[str, Any]] = []
+    for pack_id in list(pack_ids) if pack_ids is not None else list(ALL_PLATFORM_PACK_IDS):
+        baseline = baselines.get(pack_id)
+        if baseline is None:
+            continue
+        seed = (_read_json(root / pack_id / "pack.json") or {}).get("system_prompt") or ""
+        profile = agent_registry.get_agent(pack_id) if agent_registry is not None else None
+        stored = getattr(profile, "system_prompt", None) or ""
+        if baseline in (prompt_content_hash(seed), prompt_content_hash(stored)):
+            action, new = "already_normalized", baseline
+        elif baseline == _legacy_raw_hash(seed):
+            action, new = "rehashed_from_seed", prompt_content_hash(seed)
+        elif stored and baseline == _legacy_raw_hash(stored):
+            action, new = "rehashed_from_stored_exact", prompt_content_hash(stored)
+        elif stored and baseline in {_legacy_raw_hash(stored + tail) for tail in ("\n", "\r\n")}:
+            action, new = "rehashed_from_stored", prompt_content_hash(stored)  # differed only by spacing
+        else:
+            action, new = "left_unknown", baseline
+        baselines[pack_id] = new
+        results.append({"pack_id": pack_id, "action": action})
+    store.set_setting(PLATFORM_SHIPPED_PROMPT_SETTING, baselines)
+    store.set_setting(
+        PLATFORM_PROMPT_BASELINE_NORMALIZED_SETTING,
+        {"migrated_at": datetime.now(timezone.utc).isoformat(), "results": results},
+    )
+    return results
 
 
 def backup_pack_content(store: Any, profile: Any, *, reason: str = "") -> dict[str, Any]:
@@ -334,14 +400,33 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
     return match
 
 
+def _seed_tools_removed(profile: Any, seed: dict[str, Any]) -> bool:
+    """True when the profile lacks a tool the shipped pack grants (operator removed it)."""
+    from src.application.agent_packs.schema import tools_for_platform_skills
+    from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES
+
+    pack_tools = list(seed.get("pack_tool_names") or [])
+    seed_tools = pack_tools + [
+        t for t in tools_for_platform_skills(list(seed.get("allowed_skill") or [])) if t not in pack_tools
+    ]
+    live = set(getattr(profile, "allowed_tool_names", None) or [])
+    return any(t not in live for t in seed_tools if t not in RETIRED_TOOL_NAMES)
+
+
 def migrate_false_content_locks(
     *,
     data_dir: Union[str, Path],
     agent_registry: Any,
     checkout_root: Optional[Union[str, Path]] = None,
     pack_ids: Optional[Sequence[str]] = None,
+    spacing_pack_ids: Optional[set[str]] = None,
 ) -> list[dict[str, Any]]:
-    """One-time: unlock platform agents locked only by scalar edits [CARD-449 / REQ-449-006]."""
+    """Unlock platform agents locked only by scalar edits [CARD-449 / REQ-449-006].
+
+    CARD-505: prompts compare normalized, so a lock caused only by spacing (for example a
+    trailing newline) is repaired too; those unlocks save a backup first.
+    ``spacing_pack_ids`` are packs whose baseline was re-saved by ``migrate_prompt_baselines``.
+    """
     from src.infrastructure.skills.platform_packs import ALL_PLATFORM_PACK_IDS, platform_packs_root
 
     store = getattr(agent_registry, "state_store", None)
@@ -376,7 +461,17 @@ def migrate_false_content_locks(
                 }
             )
             continue
-        # Unlock: settings-only false lock
+        if _seed_tools_removed(profile, seed):
+            # CARD-505: an operator tool removal is a real edit; unlocking would re-add the tool
+            results.append({"pack_id": pack_id, "action": "kept_locked", "reason": "tool allowlist edited"})
+            continue
+        # Unlock: settings-only (or CARD-505 spacing-only) false lock
+        stored = getattr(profile, "system_prompt", None) or ""
+        spacing = (pack_id in (spacing_pack_ids or set())) or (
+            stored != seed_prompt and normalize_prompt(stored) == normalize_prompt(seed_prompt)
+        )
+        if spacing:
+            backup_pack_content(store, profile, reason=WHITESPACE_UNLOCK_BACKUP_REASON)
         profile.user_modified = False
         if store is not None and hasattr(store, "mark_agent_user_modified"):
             store.mark_agent_user_modified(pack_id, modified=False)
@@ -387,8 +482,13 @@ def migrate_false_content_locks(
             if ov is not None:
                 ov.user_modified = False
                 store.save_agent_override(ov)
-        logger.info("CARD-449 lock migration: unlocked %s (settings-only divergence)", pack_id)
-        results.append({"pack_id": pack_id, "action": "unlocked", "reason": "settings-only; prompt at baseline"})
+        logger.info("CARD-449 lock migration: unlocked %s (spacing=%s)", pack_id, spacing)
+        reason = (
+            "prompt matched the platform version apart from spacing"
+            if spacing
+            else "settings-only; prompt at baseline"
+        )
+        results.append({"pack_id": pack_id, "action": "unlocked", "reason": reason})
     if store is not None and hasattr(store, "set_setting"):
         store.set_setting(
             PLATFORM_LOCK_MIGRATION_SETTING,
@@ -694,7 +794,8 @@ def promote_one_platform_pack(
     # Idempotent short-circuit when seed unchanged and profile already matches
     if stored_hash and stored_hash == seed_hash and not operator_added:
         live_prompt = getattr(existing, "system_prompt", None) or ""
-        if live_prompt == new_prompt and list(getattr(existing, "allowed_skill", None) or []) == new_allowed_skill:
+        same_prompt = normalize_prompt(live_prompt) == normalize_prompt(new_prompt)
+        if same_prompt and list(getattr(existing, "allowed_skill", None) or []) == new_allowed_skill:
             return PackSyncOutcome(
                 pack_id=pack_id,
                 status="unchanged",
@@ -712,7 +813,7 @@ def promote_one_platform_pack(
         ]
         seed_tools = [t for t in merged_tools if t not in RETIRED_TOOL_NAMES]
         diverged = (
-            live_prompt != new_prompt
+            normalize_prompt(live_prompt) != normalize_prompt(new_prompt)
             or live_skills != new_allowed_skill
             or set(live_tools) != set(seed_tools)
         )
@@ -746,15 +847,16 @@ def promote_one_platform_pack(
     stored_prompt = getattr(existing, "system_prompt", None) or ""
     prompt_at_baseline = baseline is None or prompt_content_hash(stored_prompt) == baseline
     applied_prompt = stored_prompt
-    if force_reset and new_prompt:
+    seed_prompt = normalize_prompt(new_prompt)  # CARD-505 / REQ-505-007: store what Studio would send
+    if force_reset and seed_prompt:
         # CARD-449: keep_customizations=false force-applies seed prompt
-        existing.system_prompt = new_prompt
-        applied_prompt = new_prompt
-    elif new_prompt and prompt_at_baseline:
-        if stored_prompt != new_prompt:
-            existing.system_prompt = new_prompt
-        applied_prompt = new_prompt
-    elif new_prompt and stored_prompt != new_prompt:
+        existing.system_prompt = seed_prompt
+        applied_prompt = seed_prompt
+    elif seed_prompt and prompt_at_baseline:
+        if stored_prompt != seed_prompt:
+            existing.system_prompt = seed_prompt
+        applied_prompt = seed_prompt
+    elif seed_prompt and normalize_prompt(stored_prompt) != seed_prompt:
         skipped_fields.append("system_prompt")
         logger.info(
             "Skipped system_prompt resync for %s: stored prompt diverged from shipped baseline",
@@ -871,6 +973,14 @@ def promote_platform_packs(
         results=[],
     )
 
+    # CARD-505: re-save raw-bytes prompt baselines in the normalized form (once)
+    try:
+        rehashed = migrate_prompt_baselines(agent_registry=agent_registry, checkout_root=checkout_root, pack_ids=list(ids))
+    except Exception:
+        logger.exception("CARD-505 prompt baseline migration failed")
+        rehashed = []
+    spacing_ids = {r["pack_id"] for r in rehashed if r.get("action") == "rehashed_from_stored"}
+
     # CARD-449: one-time false-lock migration (idempotent for already-unlocked)
     try:
         migration = migrate_false_content_locks(
@@ -878,6 +988,7 @@ def promote_platform_packs(
             agent_registry=agent_registry,
             checkout_root=checkout_root,
             pack_ids=list(ids),
+            spacing_pack_ids=spacing_ids,
         )
     except Exception:
         logger.exception("CARD-449 lock migration failed")
