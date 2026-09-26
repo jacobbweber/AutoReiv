@@ -121,7 +121,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(pillClick).not.toContain('openRunbookEditor');
     expect(forge).toContain('allowed_skill: checkedSkills');
     expect(forge).toContain('allowlistForSave');
-    expect(forge).toContain('pressedSkillIds');
+    expect(forge).toContain('skillsForSave'); // CARD-509: wraps pressedSkillIds, keeps pill-less skills
   });
 
   it('refresh restores pill state from the persisted allowlist [REQ-419-004]', () => {

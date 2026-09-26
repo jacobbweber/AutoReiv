@@ -55,6 +55,46 @@ def customization_from_profile(profile: Any, agent_id: str) -> AgentCustomizatio
     )
 
 
+def studio_can_show_skill(skill_id: str, data_root: Optional[Path], agent_id: Optional[str] = None) -> bool:
+    """Agent Studio shows a pill for this skill: a platform skill, or any skill with a SKILL.md [CARD-509]."""
+    from src.application.agent_packs.schema import PLATFORM_SKILL_IDS
+    from src.infrastructure.skills.platform_pack_promotion import find_skill_md
+
+    return skill_id in PLATFORM_SKILL_IDS or find_skill_md(data_root, skill_id, agent_id) is not None
+
+
+def studio_extra_skill_pills(profile: Any, shown_ids: set[str], data_root: Optional[Path]) -> list[dict[str, Any]]:
+    """Pills for allowed or shipped skills that no other list shows (for example AutoReiv ``coding``) [CARD-509 / D3].
+
+    ``shown_ids`` are the ids the catalog and the pack manifest already show. Skills without a
+    SKILL.md get no pill. Tools stay empty: the pill only switches the skill on or off.
+    """
+    from src.application.skills.runbook_frontmatter import frontmatter_view
+    from src.infrastructure.skills.platform_pack_promotion import find_skill_md, platform_seed_skills
+
+    agent_id = str(getattr(profile, "id", "") or "")
+    extras: list[dict[str, Any]] = []
+    for sid in list(getattr(profile, "allowed_skill", None) or []) + platform_seed_skills(agent_id):
+        if sid in shown_ids or any(e["id"] == sid for e in extras):
+            continue
+        path = find_skill_md(data_root, sid, agent_id)
+        if path is None:
+            continue
+        try:
+            view = frontmatter_view(path.read_text(encoding="utf-8"))
+        except OSError:
+            view = {}
+        extras.append(
+            {
+                "id": sid,
+                "name": str(view.get("name") or "").strip() or sid,
+                "description": str(view.get("description") or "").strip(),
+                "tools": [],
+            }
+        )
+    return extras
+
+
 def persist_agent_profile(
     store: Any,
     registry: Any,
@@ -63,11 +103,13 @@ def persist_agent_profile(
     *,
     agent_id: str,
     skills_only: bool = False,
+    data_dir: Optional[Path] = None,
 ) -> None:
     """Store an edited agent profile.
 
     ``skills_only`` is the Adopt path: only the skill list changed, so the content
     lock is never newly set and the prompt/tool checks are skipped.
+    ``data_dir`` lets the disabled-skill record skip skills Studio cannot show (CARD-509).
     """
     from src.application.agent_packs.schema import is_platform_pack
     from src.infrastructure.skills.platform_pack_promotion import (
@@ -89,9 +131,11 @@ def persist_agent_profile(
                 new_tools=list(profile.allowed_tool_names or []),
                 store=store,
                 pack_id=agent_id,
-                stock_skills=stock,
             )
-            record_operator_disabled_skills(store, agent_id, live_skills=live_skills, stock_skills=stock)
+            showable = {s for s in stock if studio_can_show_skill(s, data_dir, agent_id)}
+            record_operator_disabled_skills(
+                store, agent_id, live_skills=live_skills, stock_skills=stock, showable=showable
+            )
         # CARD-502: skills the operator switched on beyond the platform seed survive restart
         record_operator_added_skills(store, agent_id, live_skills=live_skills)
     user_modified = True if lock else bool(getattr(existing, "user_modified", False))
