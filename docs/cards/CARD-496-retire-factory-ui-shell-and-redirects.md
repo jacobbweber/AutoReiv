@@ -20,7 +20,7 @@ labels:
 
 # [CARD-496] Retire the Agent Training Factory (2/4): remove the Factory UI and redirect every entry point
 
-> **Status**: Ready (after CARD-495 is accepted)
+> **Status**: Ready (ADR-0060 Accepted 2026-09-25 with D1-D8; build after CARD-495 is Done). Card decisions D1-D3 below are still to confirm at `build`
 > **Created**: 2026-09-25
 > **Series**: CARD-495 → **CARD-496** → CARD-497 → CARD-498
 > **Labels**: `type:cleanup`, `area:factory`, `area:frontend`, `P1`

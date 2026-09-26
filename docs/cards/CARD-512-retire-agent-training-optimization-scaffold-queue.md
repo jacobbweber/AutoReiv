@@ -17,7 +17,7 @@ labels:
 
 # [CARD-512] Retire the always-empty "Agent Training Optimization" queue (scaffold spine)
 
-> **Status**: Ready (found in the CARD-495 audit, 2026-09-25 ET). Not next: build after CARD-497 and before CARD-498.
+> **Status**: Ready (found in the CARD-495 audit, 2026-09-25 ET; retire rather than fold into Tools Studio accepted as ADR-0060 D8). Not next: build after CARD-497 and before CARD-498.
 > **Related**: CARD-495 audit F16 and decision D8, CARD-496 (removes the panel), CARD-498 (data drop)
 > **Labels**: `type:cleanup`, `area:agents`, `P3`
 

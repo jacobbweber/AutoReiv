@@ -17,7 +17,7 @@ labels:
 
 # [CARD-498] Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables
 
-> **Status**: Ready (after CARD-497)
+> **Status**: Ready (after CARD-497 and CARD-512, per ADR-0060 4.5). Card decisions D1-D2 below are still to confirm at `build`
 > **Created**: 2026-09-25
 > **Series**: CARD-495 → CARD-496 → CARD-497 → **CARD-498**
 > **Labels**: `type:migration`, `area:factory`, `area:data`, `P2`

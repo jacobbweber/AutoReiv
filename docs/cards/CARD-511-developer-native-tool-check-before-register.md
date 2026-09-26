@@ -16,7 +16,7 @@ labels:
 
 # [CARD-511] Check a Developer-built native tool before it is registered
 
-> **Status**: Ready (found in the CARD-495 audit, 2026-09-25 ET). Not next: queue is Factory retirement CARD-495, CARD-496, then this card **before CARD-497**, then CARD-497, CARD-512, CARD-498.
+> **Status**: Ready (found in the CARD-495 audit, 2026-09-25 ET; placement and reuse of `verification_battery` parts accepted as ADR-0060 D6). Not next: queue is Factory retirement CARD-495, CARD-496, then this card **before CARD-497**, then CARD-497, CARD-512, CARD-498.
 > **Related**: CARD-495 audit F6 and decision D6, CARD-497 (deletes `verification_battery.py` / `tool_synthesizer.py`), CARD-472 (Ask Developer)
 > **Labels**: `type:product`, `area:tools`, `P2`
 

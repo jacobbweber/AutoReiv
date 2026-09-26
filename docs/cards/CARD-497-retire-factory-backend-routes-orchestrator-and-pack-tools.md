@@ -20,7 +20,7 @@ labels:
 
 # [CARD-497] Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs
 
-> **Status**: Ready (after CARD-496)
+> **Status**: Ready (after CARD-496 **and CARD-511**, per ADR-0060 D6). D4 and D7 accepted 2026-09-25 (see "Audit revisions"). Card decisions D1-D3 below are still to confirm at `build`
 > **Created**: 2026-09-25
 > **Series**: CARD-495 → CARD-496 → **CARD-497** → CARD-498
 > **Labels**: `type:cleanup`, `area:factory`, `area:backend`, `P1`
