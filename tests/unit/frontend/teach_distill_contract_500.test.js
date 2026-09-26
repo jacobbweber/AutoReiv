@@ -182,7 +182,7 @@ describe('CARD-500 proposal card', () => {
       factory_escalation: { suggested_tool_name: 'get_city_weather', seed_intent: 'weather' },
     }, { container: fakeEl() });
     expect(el.innerHTML).not.toContain('btn-adopt-skill');
-    expect(el.innerHTML).toContain('btn-escalate-factory');
+    expect(el.innerHTML).toContain('btn-escalate-developer'); // CARD-496 D10
     expect(el.innerHTML).toContain('btn-dismiss-proposal');
   });
 

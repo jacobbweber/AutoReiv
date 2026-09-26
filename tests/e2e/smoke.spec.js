@@ -45,7 +45,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#dock-wiki')).toBeVisible();
     await expect(page.locator('#dock-projects')).toBeVisible();
     await expect(page.locator('#dock-agents')).toBeVisible();
-    await expect(page.locator('#dock-factory')).toBeVisible();
+    await expect(page.locator('#dock-factory')).toHaveCount(0); // CARD-496: Factory retired (ADR-0060)
     await expect(page.locator('#dock-routines')).toBeVisible();
     await expect(page.locator('#dock-observability')).toBeVisible();
     await expect(page.locator('#dock-settings')).toBeVisible();
@@ -1110,7 +1110,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.locator('#closeTeachAgentModalBtn').click();
       await expect(page.locator('#teachAgentModal')).toBeHidden();
       expect(t.distills).toBe(0);
-      const ask = page.locator('.skill-proposal-card .btn-escalate-factory');
+      const ask = page.locator('.skill-proposal-card .btn-escalate-developer');
       await expect(ask).toContainText('Ask Developer to build this tool');
       await ask.click();
       await expect.poll(() => t.talks.length).toBe(1);
@@ -1192,7 +1192,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     test(`TC-36 (${vp.name}): /learn opens Teach for the latest reply; a 422 reads as a sentence; needs-tool card shows only Ask Developer and Dismiss [CARD-500]`, async ({ page, request }) => {
       const t = await setup500(page, request, { distillStatus: 422 });
       const needs = page.locator('.skill-proposal-card', { hasText: 'TC36 Needs Tool' });
-      await expect(needs.locator('.btn-escalate-factory')).toBeVisible();
+      await expect(needs.locator('.btn-escalate-developer')).toBeVisible();
       await expect(needs.locator('.btn-dismiss-proposal')).toBeVisible();
       await expect(needs.locator('.btn-adopt-skill')).toHaveCount(0);
       await page.locator('#promptInput').fill('/learn be shorter');
@@ -1278,6 +1278,105 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(String(puts[0].max_turns)).toBe('57');
       await pick('developer', 'Developer');
       await expect(page.locator('.forge-skill-pill[data-skill-id="build-agent-pack"]')).toHaveCount(1);
+    });
+  }
+
+  // CARD-496: the Factory UI is retired (ADR-0060). Gaps open Skill Studio or Developer; old layouts drop the Factory window;
+  // the app never calls Factory jobs or the scaffold queue; Skill Studio still lists tools through its current routes.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    const GAP = { id: 'gap-tc39', agent_id: 'autoreiv', status: 'pending', identified_capability: 'tc39_inventory_lookup', suggested_tool_name: 'get_tc39_inventory', turn_text: 'Look up TC39 inventory counts' };
+    async function openGaps(page) {
+      await page.route('**/api/agents/autoreiv/gaps*', (route) => {
+        if (route.request().method() !== 'GET') return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([GAP]) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-agents').click();
+      await expect.poll(async () => {
+        await page.selectOption('#forgeAgentSelect', 'autoreiv');
+        await page.waitForTimeout(700);
+        return page.inputValue('#forgeNameInput');
+      }, { timeout: 20000 }).toBe('AutoReiv');
+      await page.evaluate(() => { const d = document.getElementById('agentTrainingBacklogCard'); if (d) d.open = true; });
+      const card = page.locator('#agentTrainingBacklogCard');
+      await expect(card.locator('summary')).toContainText('Capability gaps');
+      await expect(card.locator('.btn-gap-open-skill-studio')).toHaveText('Open in Skill Studio');
+      await expect(card.locator('.btn-gap-ask-developer')).toHaveText('Ask Developer');
+      await expect(card.locator('.btn-dismiss-gap')).toBeVisible();
+      await expect(card).not.toContainText('Factory');
+      return card;
+    }
+
+    test(`TC-39 (${vp.name}): a capability gap opens Skill Studio or a Developer chat, never the Factory [CARD-496]`, async ({ page, request }) => {
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'developer', title: `D 496 ${vp.name}-${Date.now()}` } })).json();
+      const talks = [];
+      let devPrompt = '';
+      await page.route('**/api/tools_studio/authoring/talk', (route) => {
+        const body = route.request().postDataJSON();
+        talks.push(body);
+        devPrompt = `Create tool ${body.draft.tool_name}: ${body.draft.behavior}`;
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'developer', prompt: devPrompt, opened_chat: true, opened_job: false, job_id: null }) });
+      });
+      await page.route('**/api/sessions/*/messages', (route) => {
+        if (!route.request().url().includes(DEV.id)) return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ role: 'user', content: devPrompt }]) });
+      });
+      let card = await openGaps(page);
+      await card.locator('.btn-gap-open-skill-studio').click();
+      await expect(page.locator('#view-skill-studio')).toBeVisible();
+      await expect(page.locator('#view-factory')).toHaveCount(0);
+      card = await openGaps(page);
+      await card.locator('.btn-gap-ask-developer').click();
+      await expect.poll(() => talks.length).toBe(1);
+      expect(talks[0].intent).toBe('create');
+      expect(talks[0].draft.tool_name).toBe('get_tc39_inventory');
+      expect(talks[0].draft.behavior).toContain('Look up TC39 inventory counts');
+      await expect(page.locator('#view-chat')).toBeVisible();
+      await expect(page.locator('#messagesContainer')).toContainText('get_tc39_inventory');
+    });
+
+    test(`TC-40 (${vp.name}): a saved layout with the Factory window loads cleanly without it [CARD-496]`, async ({ page }) => {
+      await page.addInitScript(() => {
+        if (sessionStorage.getItem('tc40-seeded')) return;
+        sessionStorage.setItem('tc40-seeded', '1');
+        localStorage.setItem('autoreiv.agentDesktop.v1', JSON.stringify({
+          windows: { chat: { x: 20, y: 20, w: 600, h: 400 }, factory: { x: 40, y: 40, w: 720, h: 640 } },
+          gridOverlay: false, autoRestore: true, openWindows: ['chat', 'factory'],
+          savedPresets: [{ name: 'Old', windows: [{ tab: 'chat', x: 0, y: 0, w: 400, h: 300 }, { tab: 'factory', x: 400, y: 0, w: 400, h: 300 }] }],
+        }));
+        localStorage.setItem('autoreiv_factory_selected_agent_id', '__new__');
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#dock-chat')).toBeVisible();
+      await page.waitForTimeout(1500);
+      await expect(page.locator('#desktopWin-factory')).toHaveCount(0);
+      await expect(page.locator('#dock-factory')).toHaveCount(0);
+      await expect.poll(() => page.evaluate(() => localStorage.getItem('autoreiv_factory_selected_agent_id'))).toBeNull();
+      // The saved chat window is restored on desktop; a dock click on the focused window would minimize it.
+      if (!(await page.locator('#view-chat').isVisible())) await page.locator('#dock-chat').click();
+      await expect(page.locator('#view-chat')).toBeVisible();
+    });
+
+    test(`TC-41 (${vp.name}): Agent, Skill and Tools Studio load with no Factory job or scaffold-queue calls; Skill Studio lists tools [CARD-496]`, async ({ page }) => {
+      const retired = [];
+      page.on('request', (r) => {
+        const u = r.url();
+        if (u.includes('/api/agent_training_factory/jobs') || u.includes('/api/capabilities/scaffold')) retired.push(u);
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-agents').click();
+      await expect(page.locator('#view-agents')).toBeVisible();
+      await expect(page.locator('#forgeScaffoldQueueCard')).toHaveCount(0);
+      await page.locator('#dock-skill-studio').click();
+      await expect(page.locator('#view-skill-studio')).toBeVisible();
+      await expect.poll(() => page.locator('#factoryCapabilitiesContainer input[type="checkbox"][data-tool-name]').count(), { timeout: 20000 }).toBeGreaterThan(0);
+      await page.locator('#dock-tools-studio').click();
+      await expect(page.locator('#view-tools-studio')).toBeVisible();
+      await page.waitForTimeout(1000);
+      expect(retired).toEqual([]);
     });
   }
 

@@ -2,25 +2,24 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-describe('CARD-306 Train keep-one + Workbench honesty', () => {
+describe('CARD-306 Train keep-one + Workbench honesty (Factory retired in CARD-496)', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
   const forge = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge.js'), 'utf-8')
     + fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/forge/tools.js'), 'utf-8');
   const chat = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js'), 'utf-8');
-  const factory = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/factory.js'), 'utf-8');
 
-  it('hides Chat Options Train Agent control (Factory keep-one)', () => {
-    expect(html).toContain('id="trainAgentToggle"');
-    expect(html).toMatch(/id="trainAgentToggle"[^>]*class="[^"]*hidden/);
+  it('has no Train Agent control or training popup anywhere (CARD-496)', () => {
+    expect(html).not.toContain('id="trainAgentToggle"');
+    expect(html).not.toContain('id="trainAgentHandshakeModal"');
     expect(html).not.toMatch(/<span class="font-medium">Train Agent<\/span>/);
-    expect(html).toContain('id="trainAgentHandshakeModal"');
-    expect(factory).toContain('btn-train-gap');
   });
 
-  it('removes Train in Lab from Forge; routes to Factory', () => {
+  it('Agent Studio gap rows route to Skill Studio or the Developer, never a Factory (CARD-496)', () => {
     expect(forge).not.toContain('Train in Lab');
-    expect(forge).toContain('Open Training Factory');
-    expect(forge).toContain('btn-open-factory-gap');
+    expect(forge).not.toContain('Open Training Factory');
+    expect(forge).not.toContain('btn-open-factory-gap');
+    expect(forge).toContain('btn-gap-open-skill-studio');
+    expect(forge).toContain('btn-gap-ask-developer');
   });
 
   it('keeps Workbench toggle and empty honesty', () => {

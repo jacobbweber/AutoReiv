@@ -10,11 +10,28 @@ import { storageGet, storageSet } from '../utils/storage.js';
 export const PICKER_KEYS = Object.freeze({
   chat: 'autoreiv_active_agent_id',
   agents: 'autoreiv_forge_selected_agent_id',
-  factory: 'autoreiv_factory_selected_agent_id',
   routines: 'autoreiv_routines_filter_agent',
   observability: 'autoreiv_observe_selected_agent_id',
   tools: 'autoreiv_tools_studio_agent_id',
 });
+
+/** Picker keys whose studio is retired (CARD-496: the Factory, ADR-0060). */
+export const RETIRED_PICKER_STORAGE_KEYS = Object.freeze(['autoreiv_factory_selected_agent_id']);
+
+/**
+ * Remove stored selections for retired studio pickers [CARD-496 D8].
+ * @param {{ removeItem: (key: string) => void }|null} [store]
+ */
+export function clearRetiredPickerKeys(store = typeof localStorage !== 'undefined' ? localStorage : null) {
+  if (!store || typeof store.removeItem !== 'function') return;
+  RETIRED_PICKER_STORAGE_KEYS.forEach((key) => {
+    try {
+      store.removeItem(key);
+    } catch {
+      /* private mode */
+    }
+  });
+}
 
 /**
  * Agent Studio picker visibility [CARD-202, CARD-339].
@@ -180,26 +197,6 @@ export function bindStudioAgentPickers(agents, { state, root } = {}) {
     });
     if (bound.agents) storageSet(PICKER_KEYS.agents, bound.agents);
     remember(forgeEl, PICKER_KEYS.agents);
-  }
-
-  const factoryEl = doc.getElementById('factoryAgentSelect');
-  if (factoryEl) {
-    const factoryAgents = list.filter((a) => a && a.id !== 'agent_builder' && a.id !== 'agent-builder');
-    const factoryIds = ['__new__', ...factoryAgents.map((a) => a.id)];
-    const factorySelected = resolvePickerSelection({
-      currentValue: factoryEl.value,
-      storedValue: storageGet(PICKER_KEYS.factory),
-      validIds: factoryIds,
-      placeholders: ['__new__', ''],
-      fallback: '__new__',
-    });
-    bound.factory = fillAgentSelect(factoryEl, factoryAgents, {
-      selectedId: factorySelected,
-      label: (a) => `${a.name || a.id} (${a.id})`,
-      leading: { value: '__new__', text: '+ Create New Agent' },
-    });
-    storageSet(PICKER_KEYS.factory, bound.factory || '');
-    remember(factoryEl, PICKER_KEYS.factory);
   }
 
   const routinesEl = doc.getElementById('routinesFilterAgent');

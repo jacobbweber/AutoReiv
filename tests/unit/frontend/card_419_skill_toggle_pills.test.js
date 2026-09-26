@@ -15,7 +15,7 @@ import {
   toggleSkillInAllowlist,
 } from '../../../src/web/static/modules/studios/forge/skill_pills.js';
 import { operatorSkillPillModel, skillRowHtml } from '../../../src/web/static/modules/studios/forge/runbook.js';
-import { factoryAssignedSkillChrome } from '../../../src/web/static/modules/studios/factory/skill_scope.js';
+import { factoryAssignedSkillChrome } from '../../../src/web/static/modules/studios/skill_studio/skill_scope.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
 
@@ -36,7 +36,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
   const html = read('src/web/templates/index.html');
   const runbook = read('src/web/static/modules/studios/forge/runbook.js');
   const forge = read('src/web/static/modules/studios/forge.js');
-  const skillScope = read('src/web/static/modules/studios/factory/skill_scope.js');
+  const skillScope = read('src/web/static/modules/studios/skill_studio/skill_scope.js');
 
   it('presents skill scoping as toggle pills, not a skill editor [REQ-419-001]', () => {
     const row = skillRowHtml({
@@ -196,7 +196,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(skillScope).not.toContain('role="switch"');
     expect(skillScope).not.toContain('forge-skill-pill');
     expect(skillScope).not.toContain('factory-skill-open-btn');
-    expect(html).toContain('Turn skills on or off in Agent Studio');
+    expect(html).not.toContain('id="factoryCurrentSkillsList"'); // CARD-496: the Factory brief that hosted this list is gone
     expect(html).not.toContain('Runtime scoping uses the assigned-skills list on the Factory agent brief.');
   });
 });

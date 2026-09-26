@@ -6,8 +6,8 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { indexListedSkills } from '../../../src/web/static/modules/studios/factory/skill_scope.js';
-import { applyLoadedSkillView, skillDeleteRequest } from '../../../src/web/static/modules/studios/factory/workshop_meta.js';
+import { indexListedSkills } from '../../../src/web/static/modules/studios/skill_studio/skill_scope.js';
+import { applyLoadedSkillView, skillDeleteRequest } from '../../../src/web/static/modules/studios/skill_studio/workshop_meta.js';
 import { formatStandingJourneyEvent } from '../../../src/web/static/modules/studios/observability.js';
 import {
   AUTHORING_JOBS_URL,

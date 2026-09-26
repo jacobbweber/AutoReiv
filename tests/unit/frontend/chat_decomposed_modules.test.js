@@ -13,9 +13,6 @@ import {
   formatInlineJobChromeHtml,
 } from '../../../src/web/static/modules/studios/chat.js';
 import {
-  buildTrainAgentPayload,
-} from '../../../src/web/static/modules/studios/chat/training.js';
-import {
   buildChatStreamPayload,
   formatContextBudgetBadge,
   filterToolsList,
@@ -86,19 +83,6 @@ describe('Chat Decomposed Submodules [REQ-ARCH-003]', () => {
       const html = formatInlineJobChromeHtml(model);
       expect(html).toContain('Formulate');
       expect(html).toContain('Done');
-    });
-  });
-
-  describe('Training Submodule', () => {
-    it('builds train agent payload with auto-derived target agent ID', () => {
-      const payload = buildTrainAgentPayload({
-        seedIntent: 'Build a Docker Specialist',
-        targetType: 'remote',
-        targetLocation: 'jarvis',
-      });
-      expect(payload.target_agent_id).toBe('docker-specialist');
-      expect(payload.target_host).toBe('jarvis');
-      expect(payload.risk_policy).toBe('ask');
     });
   });
 

@@ -7,8 +7,11 @@ import { $ } from '../../dom.js';
 
 export const PREFS_KEY = 'autoreiv.agentDesktop.v1';
 
+/** Tabs that are no longer desktop windows: Sessions (CARD-305) and the retired Factory (CARD-496, ADR-0060). */
+export const RETIRED_DESKTOP_TABS = Object.freeze(['sessions', 'factory']);
+
 /**
- * CARD-305/CARD-279: Sessions is not a desktop window — drop stale prefs entries and normalize schema.
+ * CARD-305/CARD-279/CARD-496: drop retired windows (Sessions, Factory) from stale prefs and normalize schema.
  * @param {object} prefs
  * @returns {object}
  */
@@ -23,15 +26,17 @@ export function scrubSessionsFromDesktopPrefs(prefs) {
     };
   }
   const windows = { ...(prefs.windows || {}) };
-  if (windows.sessions) delete windows.sessions;
+  RETIRED_DESKTOP_TABS.forEach((tab) => {
+    if (windows[tab]) delete windows[tab];
+  });
   const openWindows = Array.isArray(prefs.openWindows)
-    ? prefs.openWindows.filter((t) => typeof t === 'string' && t !== 'sessions')
+    ? prefs.openWindows.filter((t) => typeof t === 'string' && !RETIRED_DESKTOP_TABS.includes(t))
     : [];
   const savedPresets = Array.isArray(prefs.savedPresets)
     ? prefs.savedPresets.map((p) => ({
         ...p,
         windows: Array.isArray(p.windows)
-          ? p.windows.filter((w) => w && typeof w === 'object' && w.tab !== 'sessions')
+          ? p.windows.filter((w) => w && typeof w === 'object' && !RETIRED_DESKTOP_TABS.includes(w.tab))
           : [],
       }))
     : [];

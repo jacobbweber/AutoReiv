@@ -72,7 +72,7 @@
   <link rel="stylesheet" href="/static/css/base.css?v=2.0.82">
   <link rel="stylesheet" href="/static/css/components.css?v=2.0.82">
   <link rel="stylesheet" href="/static/css/desktop.css?v=2.0.82">
-  <link rel="stylesheet" href="/static/css/studios.css?v=2.0.82">
+  <link rel="stylesheet" href="/static/css/studios.css?v=2.0.83">
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
   <div id="appRoot">
@@ -163,10 +163,6 @@
           <button id="tab-agents" data-tab="agents" role="tab" aria-selected="false" aria-controls="view-agents" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
             <i data-lucide="users" class="w-3.5 h-3.5"></i>
             <span>Agents</span>
-          </button>
-          <button id="tab-factory" data-tab="factory" data-studio="factory" role="tab" aria-selected="false" aria-controls="view-factory" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-            <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-emerald-400"></i>
-            <span id="navFactory">Factory</span>
           </button>
           <button id="tab-skill-studio" data-tab="skill-studio" data-studio="skill-studio" role="tab" aria-selected="false" aria-controls="view-skill-studio" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
             <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
@@ -450,8 +446,6 @@
                         <span class="font-medium">Auto-run</span>
                       </label>
 
-                      <!-- CARD-306: Train Agent checkbox removed from Chat Options — Training Factory owns training (keep-one). Modal retained for Factory. -->
-                      <input type="checkbox" id="trainAgentToggle" class="hidden" tabindex="-1" aria-hidden="true">
                     </div>
                   </div>
 
@@ -568,9 +562,6 @@
                         </span>
                         <span id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono whitespace-nowrap">
                           🎯 Multi-phase job
-                        </span>
-                        <span id="trainAgentBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-emerald-300 font-mono whitespace-nowrap">
-                          🏭 Train Agent
                         </span>
                       </div>
                     </div>
@@ -1347,14 +1338,14 @@
               </div>
             </details>
 
-            <!-- CARD-165 / CARD-195: Needs Training Backlog Queue [REQ-FACT-045] -->
+            <!-- CARD-165 / CARD-195 / CARD-496: Capability gaps (label renamed; ids kept) -->
             <details id="agentTrainingBacklogCard" class="forge-section" data-card="195" data-section="needs-training-backlog">
               <summary class="flex items-center justify-between">
                 <span class="flex items-center space-x-2">
-                  <span>⚡ Needs Training Backlog</span>
+                  <span>⚡ Capability gaps</span>
                   <span id="agentBacklogCountBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
                 </span>
-                <span class="text-[10px] text-slate-500">Capability Gaps</span>
+                <span class="text-[10px] text-slate-500">Missing tools</span>
               </summary>
               <div class="forge-section-body space-y-3">
                 <div class="p-4 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 shadow-sm">
@@ -1608,39 +1599,6 @@
                   </div>
                 </div>
 
-                <div id="forgeScaffoldQueueCard" class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-amber-500/20 space-y-2.5" data-card="304">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center space-x-2.5">
-              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <div>
-                <h3 class="text-xs font-bold text-amber-200">Agent Training Optimization</h3>
-                <p class="text-[10px] text-slate-400">Proposed skills and tools from capability gaps — approve before they go live.</p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div id="forgeScaffoldStatus" class="text-[11px] text-slate-400 font-mono">Idle - load candidates.</div>
-              <button id="forgeScaffoldRefreshBtn" type="button" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-200 border border-white/[0.08] transition">Refresh Queue</button>
-              <button id="forgeScaffoldOpenFactoryBtn" type="button" class="px-2.5 py-1 rounded-lg bg-brand-600/80 hover:bg-brand-500 text-[11px] font-medium text-white border border-brand-500/40 transition" title="Open Agent Training Factory for this agent">Open Training Factory</button>
-            </div>
-          </div>
-          <div class="overflow-x-auto rounded-lg border border-white/[0.06]">
-            <table class="min-w-full text-[11px]">
-              <thead class="bg-[#141721] text-slate-400">
-                <tr>
-                  <th class="text-left p-2 font-semibold">Name</th>
-                  <th class="text-left p-2 font-semibold">Phase</th>
-                  <th class="text-left p-2 font-semibold">Trust</th>
-                  <th class="text-left p-2 font-semibold">Sandboxed</th>
-                  <th class="text-left p-2 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="forgeScaffoldQueueBody" class="divide-y divide-white/[0.06] text-slate-300">
-                <tr><td colspan="5" class="p-2 text-slate-500">No candidates loaded.</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="text-[10px] text-slate-500 font-mono">Live path: /api/capabilities/scaffold/candidates (same durable store as Training Factory).</p>
-        </div>
 
             <!-- Section 1: Assigned Skills & Capabilities [CARD-389] -->
             <div id="forgeSkillsSection" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-4 shadow-sm">
@@ -3938,112 +3896,6 @@
       </section>
 
       <!-- ==================== VIEW 9: CAPABILITIES & SCAFFOLDING WORKSHOP [CARD-386] ==================== -->
-      <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full min-h-0 overflow-hidden relative hidden" data-card="314">
-        <div id="factoryStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
-          <!-- Factory Studio Top Navigation Bar -->
-        <div class="px-4 md:px-6 py-3 bg-[#0e1015]/90 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3 flex-shrink-0 backdrop-blur-md z-10">
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm shadow-emerald-500/10">
-              <i data-lucide="flask-conical" class="w-4 h-4"></i>
-            </div>
-            <div>
-              <div class="flex items-center space-x-2">
-                <h2 class="font-bold text-sm md:text-base text-white tracking-tight">Factory</h2>
-                <span id="factoryActiveStatusPill" class="px-2 py-0.5 rounded-full text-[10px] font-mono border bg-[#13161f] border-white/[0.08] text-slate-300">
-                  Ready
-                </span>
-              </div>
-              <p class="text-[11px] text-slate-400 hidden sm:block">Agent brief and assigned skills. Author runbooks in Skill Studio.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ==================== SUB-VIEW 0: CAPABILITY INTAKE WORKBENCH [CARD-351, CARD-386, CARD-387] ==================== -->
-        <div id="factoryIntakeView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-2 sm:p-4 flex flex-col">
-          
-          <!-- Top Horizontal Action Banner [CARD-387] -->
-          <div id="factoryTopActionBar" class="mb-3 p-3 sm:p-3.5 bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 flex-shrink-0">
-            <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 min-w-0 flex-1">
-              <!-- Step 1: Talk it out with Forge (Optional) -->
-              <button type="button" id="factoryIntakeTalkToForgeBtn" class="px-3.5 py-2 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/30 text-purple-300 hover:text-white text-xs font-semibold flex items-center justify-center space-x-1.5 transition shrink-0">
-                <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
-                <span>1. Talk it out with Forge <span class="text-[10px] text-purple-400/80 font-normal">(Optional)</span></span>
-              </button>
-
-              <!-- Step 2: Generate / Refine Runbook -->
-              <button type="button" id="factoryOpenSkillStudioBtn" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition flex items-center justify-center space-x-2 shrink-0" data-testid="factory-open-skill-studio">
-                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-                <span>Edit skills in Skill Studio</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 p-2 sm:p-4 bg-[#08090c] overflow-visible lg:overflow-hidden lg:min-h-0">
-            
-            <!-- COLUMN 1: AGENT BRIEF (lg:col-span-3) -->
-            <div id="factoryIntakeAgentCard" class="lg:col-span-12 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 h-auto overflow-visible lg:min-h-0 lg:overflow-y-auto">
-              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-                <div class="flex items-center space-x-2">
-                  <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
-                  <h3 id="factoryIntakeAgentName" class="text-xs font-bold text-white uppercase tracking-wider">1. Agent Brief</h3>
-                </div>
-                <div class="flex items-center space-x-1.5">
-                  <span id="factoryIntakeAgentIdBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/80 text-brand-300 border border-brand-500/30">New Agent</span>
-                  <span id="factoryAgentModeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-950/60 border border-brand-500/30 text-brand-400">New</span>
-                </div>
-              </div>
-
-              <!-- Live counts & pack path for inspections -->
-              <div class="flex items-center justify-between text-[11px] text-slate-400">
-                <span id="factoryIntakeLiveCounts" class="font-mono text-[10px] text-slate-500">Skills: 0 | Tools: 0</span>
-                <span id="factoryIntakeLivePackPath" class="font-mono text-[10px] text-slate-500 truncate max-w-[160px]">packs/&lt;agent_id&gt;</span>
-              </div>
-              <select id="factoryIntakePreFillSelect" class="hidden"><option value="">Standard Scaffolding</option></select>
-
-              <!-- Target Specialist Selector (Single Canonical Lever) -->
-              <div>
-                <label for="factoryAgentSelect" class="block text-[11px] font-semibold text-slate-400 mb-1">Target Specialist</label>
-                <select id="factoryAgentSelect" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-medium">
-                  <option value="__new__">+ Create New Agent</option>
-                </select>
-              </div>
-
-              <!-- Agent ID (Slug - Auto-derived in snake_case) -->
-              <div>
-                <label for="factoryAgentIdInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Agent ID (Slug)</label>
-                <input type="text" id="factoryAgentIdInput" placeholder="e.g. 3d_artist" readonly class="w-full bg-[#0d0f17] border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-slate-400 font-mono focus:outline-none cursor-not-allowed">
-                <p class="text-[10px] text-slate-500 mt-1">Directory: packs/&lt;agent_id&gt;/</p>
-              </div>
-
-              <!-- Agent Display Name -->
-              <div>
-                <label for="factoryAgentNameInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Display Name</label>
-                <input type="text" id="factoryAgentNameInput" placeholder="e.g. 3D Scene Artist" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
-              </div>
-
-              <!-- Persona / System Instructions -->
-              <div class="flex-1 flex flex-col min-h-0">
-                <label for="factoryAgentPromptInput" class="block text-[11px] font-semibold text-slate-400 mb-1">Role Persona / System Instructions</label>
-                <textarea id="factoryAgentPromptInput" rows="6" placeholder="Define this specialist's role, expertise, boundaries, and tone..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500 leading-relaxed resize-y"></textarea>
-              </div>
-
-              <!-- Allowed skills: display of the agent allowlist. On/off is Agent Studio pills [CARD-419]. -->
-              <div class="space-y-1.5 pt-1 border-t border-white/[0.04]" data-testid="factory-assigned-skills">
-                <div class="flex items-center justify-between">
-                  <label class="text-[11px] font-semibold text-slate-400">Skills allowed for this agent</label>
-                  <span id="factoryAssignedSkillsCount" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-slate-300">0 Assigned</span>
-                </div>
-                <div id="factoryCurrentSkillsList" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-[#08090c]/60 rounded-xl border border-white/[0.04]">
-                  <span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>
-                </div>
-                <p class="text-[10px] text-slate-500">Display only. Turn skills on or off in Agent Studio.</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </section>
 
 
       <section id="view-skill-studio" role="tabpanel" aria-labelledby="tab-skill-studio" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full min-h-0 overflow-hidden relative hidden" data-card="418">
@@ -4111,7 +3963,7 @@
                     <span>+ New Skill</span>
                   </button>
                 </div>
-                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Assigned skills stay on the Factory agent brief.</p>
+                <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Assign skills to agents in Agent Studio.</p>
               </div>
 
               <!-- Author Skill Form -->
@@ -4626,115 +4478,6 @@
         </div>
       </div>
 
-      <!-- ==================== TRAIN AGENT SOCRATIC HANDSHAKE MODAL [CARD-159, REQ-FACT-005] ==================== -->
-      <div id="trainAgentHandshakeModal" role="dialog" aria-modal="true" aria-labelledby="trainAgentModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
-        <!-- CARD-314: Factory train modal scrolls -->
-        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-xl max-h-[90vh] min-h-0 shadow-2xl overflow-hidden flex flex-col">
-          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90 flex-shrink-0">
-            <h3 id="trainAgentModalTitle" class="font-bold text-sm text-emerald-300 flex items-center space-x-2">
-              <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
-              <span>Train Specialist Agent (Lab Loop)</span>
-            </h3>
-            <button type="button" id="closeTrainAgentModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button>
-          </div>
-          <div class="p-6 space-y-4 text-xs text-slate-300 flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
-            <p class="text-slate-400">AutoReiv will run the Agent Training Factory (Ground to Promote) to research the role, ground in Wiki, author tools, and verify them in an isolated sandbox.</p>
-            
-            <!-- Locked Target Agent & Verified Pack Banner [CARD-195, REQ-FACT-043] -->
-            <div id="trainAgentTargetBadge" class="p-3 bg-[#08090c] border border-emerald-500/30 rounded-xl space-y-1.5">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  <span class="font-semibold text-slate-200" id="trainAgentTargetName">Specialist Agent</span>
-                  <span id="trainAgentTargetIdBadge" class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300">agent_id</span>
-                </div>
-                <span id="trainAgentLiveCounts" class="text-[10px] font-mono text-slate-400">0 skills · 0 tools</span>
-              </div>
-              <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                <span id="trainAgentLivePackPath">packs/agent/</span>
-                <span class="text-emerald-400/90 font-sans">Verified On-Disk Pack</span>
-              </div>
-              <p id="trainAgentLiveInfoText" class="text-[10px] text-slate-400 leading-tight hidden"></p>
-            </div>
-
-            <!-- Question 1: Target Host / Environment -->
-            <div class="space-y-1.5">
-              <div class="flex items-center justify-between">
-                <label for="trainTargetLocation" class="font-semibold text-slate-200 block">Target Workspace / Project Path <span class="text-slate-500 font-normal text-[11px]">(Optional)</span></label>
-                <span class="text-[10px] text-slate-500 font-mono">Local Machine (SSH queued in CARD-160)</span>
-              </div>
-              <input type="hidden" name="trainTargetType" value="local">
-              <input type="text" id="trainTargetLocation" autocomplete="off" placeholder="e.g. D:/projects/myapp (leave blank for system, OS, or hypervisor tools)" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-            </div>
-
-            <!-- Training Goal & Intent [CARD-186] -->
-            <div id="trainSeedIntentGroup" class="space-y-1.5">
-              <label for="trainSeedIntentInput" class="font-semibold text-slate-200 block">Training Goal &amp; Intent <span class="text-slate-500 font-normal text-[11px]">(Optional — auto-derived from objectives if blank)</span></label>
-              <input type="text" id="trainSeedIntentInput" autocomplete="off" placeholder="e.g. Expand Hyper-V management to support virtual switches and NICs" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-            </div>
-
-            <!-- Question 2: Seed Objectives -->
-            <div class="space-y-1.5">
-              <label for="trainSeedObjectives" class="font-semibold text-slate-200 block">Starter Capabilities &amp; Objectives</label>
-              <p class="text-[11px] text-slate-400">List 1 to 3 primary capabilities or tasks this agent should master (one per line):</p>
-              <textarea id="trainSeedObjectives" rows="3" placeholder="e.g.&#10;List virtual machines and their runtime health&#10;Start, stop, or snapshot VMs safely&#10;Report memory and vCPU allocations" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed resize-none"></textarea>
-            </div>
-
-            <!-- Deliverable Architecture Taxonomy [CARD-176, REQ-DELIV-003] -->
-            <div class="space-y-1.5">
-              <label for="trainDeliverableType" class="font-semibold text-slate-200 block">Deliverable Architecture</label>
-              <select id="trainDeliverableType" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-                <option value="auto" selected>Auto-detect (System Recommends)</option>
-                <option value="mcp">Model Context Protocol (MCP Server)</option>
-                <option value="tool">Native Atomic Tool</option>
-                <option value="skill">Procedural Skill Runbook Only</option>
-              </select>
-              <p class="text-[11px] text-slate-400">Choose MCP server for external tools, Native Tool for local helpers, or Skill Runbook for prompt instructions.</p>
-            </div>
-
-            <!-- Advanced Requirements & Constraints Accordion [CARD-176, REQ-DELIV-003] -->
-            <div id="trainAdvancedReqsAccordion" class="border border-white/[0.06] rounded-xl overflow-hidden">
-              <button type="button" id="toggleTrainAdvancedReqsBtn" class="w-full px-3.5 py-2.5 bg-[#08090c] hover:bg-white/[0.04] flex items-center justify-between text-slate-300 font-semibold text-xs transition">
-                <span class="flex items-center space-x-2">
-                  <i data-lucide="sliders" class="w-3.5 h-3.5 text-emerald-400"></i>
-                  <span>Advanced Requirements &amp; Constraints (Optional)</span>
-                </span>
-                <i data-lucide="chevron-down" id="trainAdvancedChevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"></i>
-              </button>
-              <div id="trainAdvancedReqsContent" class="hidden p-3.5 bg-[#08090c]/80 space-y-3 border-t border-white/[0.06]">
-                <div class="space-y-1">
-                  <label for="trainConstraintsInput" class="font-semibold text-slate-300 block text-[11px]">Technical Constraints &amp; Banned Actions</label>
-                  <input type="text" id="trainConstraintsInput" placeholder="e.g. No destructive drops, read-only mode, timeout &lt; 10s" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-                </div>
-                <div class="space-y-1">
-                  <label for="trainPrerequisitesInput" class="font-semibold text-slate-300 block text-[11px]">Prerequisites &amp; Required Binaries</label>
-                  <input type="text" id="trainPrerequisitesInput" placeholder="e.g. docker, powershell 7, curl, git" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-                </div>
-                <div class="space-y-1">
-                  <label for="trainReferenceDocsInput" class="font-semibold text-slate-300 block text-[11px]">Reference Docs / API Endpoints</label>
-                  <textarea id="trainReferenceDocsInput" rows="2" placeholder="e.g. Relevant API URLs, CLI syntax snippets, or schema guidelines" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
-                </div>
-              </div>
-            </div>
-
-            <!-- Question 3: Safety Policy -->
-            <div class="space-y-1.5">
-              <label class="font-semibold text-slate-200 block">Safety &amp; Approval Policy</label>
-              <label class="flex items-center space-x-2 p-2.5 rounded-xl bg-[#08090c] border border-white/[0.08] cursor-pointer">
-                <input type="checkbox" id="trainRequireApproval" checked class="rounded text-emerald-500 focus:ring-0">
-                <span class="text-xs">Require Human Approval for file modifications and state-changing actions</span>
-              </label>
-            </div>
-          </div>
-          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2 flex-shrink-0">
-            <button type="button" id="cancelTrainAgentBtn" class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
-            <button type="button" id="startTrainAgentBtn" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-              <i data-lucide="play" class="w-3.5 h-3.5"></i>
-              <span>Launch Autonomous Loop</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
       <!-- ==================== AGENT BRAIN INSPECTOR DRAWER [CARD-116] ==================== -->
       <div id="agentBrainDrawer" role="dialog" aria-modal="true" aria-labelledby="agentBrainDrawerTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/80 backdrop-blur-sm flex justify-end">
@@ -4819,166 +4562,6 @@
         </div>
       </div>
 
-      <!-- ==================== LAB TRAINING MONITOR DRAWER [CARD-164] ==================== -->
-      <div id="labMonitorDrawer" role="dialog" aria-modal="true" aria-labelledby="labMonitorDrawerTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/80 backdrop-blur-sm flex justify-end">
-        <div class="bg-[#0e1015] border-l border-white/[0.08] w-full max-w-2xl h-full shadow-2xl flex flex-col">
-          <!-- Drawer Header -->
-          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90 flex-shrink-0">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-8 h-8 rounded-lg bg-emerald-950/60 border border-emerald-800/50 flex items-center justify-center text-emerald-400">
-                <i data-lucide="flask-conical" class="w-4 h-4"></i>
-              </div>
-              <div>
-                <h3 id="labMonitorDrawerTitle" class="font-bold text-sm text-white flex items-center space-x-1.5">
-                  <span>Lab Training Monitor</span>
-                  <span id="labMonitorJobBadge" class="text-xs text-emerald-300 font-mono font-normal"></span>
-                </h3>
-                <p class="text-[11px] text-slate-400">Agent Training Factory phases, sandbox verification, and deployment</p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" id="refreshLabMonitorBtn" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/[0.06] transition" title="Refresh training status">
-                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-              </button>
-              <button type="button" id="closeLabMonitorDrawerBtn" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/[0.06] transition" title="Close Drawer">
-                <i data-lucide="x" class="w-4 h-4"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Drawer Body -->
-          <div class="flex-1 overflow-y-auto p-6 space-y-5">
-            <!-- Active Job Selector & Status Row -->
-            <div class="flex items-center justify-between bg-[#08090c] border border-white/[0.06] p-3 rounded-xl">
-              <div class="flex items-center space-x-3">
-                <label for="labJobSelect" class="text-xs font-semibold text-slate-400">Select Run:</label>
-                <select id="labJobSelect" class="bg-[#13161f] border border-white/[0.08] text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
-                  <!-- Populated dynamically -->
-                </select>
-              </div>
-              <div class="flex items-center space-x-2">
-                <button type="button" id="labRetryJobBtn" data-testid="lab-retry-job-btn" class="hidden px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" title="Retry this training attempt with preserved inputs">
-                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                  <span>Retry Training</span>
-                </button>
-                <div id="labJobStatusPill" class="px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center space-x-1.5 border-white/[0.08] bg-[#13161f] text-slate-400">
-                  <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                  <span class="status-text">No runs</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 5-Stage Visual Stepper [REQ-FACT-019] -->
-            <div class="space-y-2">
-              <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                <i data-lucide="git-commit" class="w-3.5 h-3.5 text-brand-400"></i>
-                <span>Training Stages</span>
-              </h4>
-              <div id="labStepperContainer" class="grid grid-cols-4 md:grid-cols-8 gap-2 text-center text-[10px] md:text-[11px]">
-                <div id="labStep1" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">1</div>
-                  <div class="step-name font-semibold text-slate-400">Intent</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="message-circle-question" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-                <div id="labStep2" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">2</div>
-                  <div class="step-name font-semibold text-slate-400">Ground</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="search" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-                <div id="labStep3" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">3</div>
-                  <div class="step-name font-semibold text-slate-400">Blueprint</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="compass" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-                <div id="labStep4" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">4</div>
-                  <div class="step-name font-semibold text-slate-400">Author</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="code" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-                <div id="labStep5" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">5</div>
-                  <div class="step-name font-semibold text-slate-400">Scenario</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="list-checks" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-                <div id="labStep6" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">6</div>
-                  <div class="step-name font-semibold text-slate-400">Code</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="shield-check" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-                <div id="labStep7" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">7</div>
-                  <div class="step-name font-semibold text-slate-400">Optimize</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="check-circle" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-                <div id="labStep8" class="lab-step p-2 rounded-xl border border-white/[0.06] bg-[#08090c] space-y-1">
-                  <div class="step-num text-[10px] font-mono text-slate-500">8</div>
-                  <div class="step-name font-semibold text-slate-400">Promote</div>
-                  <div class="step-icon text-slate-500"><i data-lucide="rocket" class="w-3.5 h-3.5 mx-auto"></i></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- HITL Deployment Action Card (Shows when waiting_approval or done) -->
-            <div id="labHitlCard" class="hidden rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
-                  <i data-lucide="award" class="w-4 h-4"></i>
-                  <span>Ready for Operator Deployment</span>
-                </div>
-                <span class="px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-mono text-[10px]">4/4 Stages Passed</span>
-              </div>
-              <p id="labHitlDesc" class="text-xs text-slate-300">New capability tools have passed all automated sandbox safety and idempotency tests.</p>
-              <div id="labHitlToolsList" class="flex flex-wrap gap-1.5 py-1"></div>
-              <div id="labHitlActionButtons" class="flex items-center space-x-2 pt-2 border-t border-emerald-800/40">
-                <button type="button" id="labApproveDeployBtn" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                  <span>Approve &amp; Deploy to Fleet</span>
-                </button>
-                <button type="button" id="labRejectDeployBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 border border-white/[0.08] rounded-lg text-xs font-medium transition">
-                  <span>Reject</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Authored Artifact Pills [CARD-171] -->
-            <div class="space-y-2">
-              <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                <i data-lucide="file-code" class="w-3.5 h-3.5 text-amber-400"></i>
-                <span>Authored Artifacts</span>
-              </h4>
-              <div id="labArtifactPills" data-testid="lab-artifact-pills" class="flex flex-wrap gap-1.5 min-h-[1.5rem]">
-                <span class="text-slate-500 text-[11px] italic">No authored artifacts yet.</span>
-              </div>
-            </div>
-
-            <!-- Live Packet / Activity Feed -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                  <i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i>
-                  <span>Live Activity Feed</span>
-                </h4>
-                <div class="flex items-center space-x-2">
-                  <button type="button" id="labCopyFeedBtn" data-testid="lab-copy-feed-btn" class="px-2 py-0.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 hover:text-white border border-white/[0.08] rounded text-[11px] font-medium flex items-center space-x-1 transition shadow-sm" title="Copy live activity feed to clipboard">
-                    <i data-lucide="copy" class="w-3 h-3"></i>
-                    <span id="labCopyFeedText">Copy</span>
-                  </button>
-                  <span id="labPacketsCount" class="text-[10px] font-mono text-slate-500">0 packets</span>
-                </div>
-              </div>
-              <div id="labPacketsFeed" class="bg-[#08090c] border border-white/[0.06] rounded-xl p-3 max-h-64 overflow-y-auto font-mono text-[11px] space-y-2 text-slate-300">
-                <div class="text-slate-500 italic py-2">No activity recorded for this job yet.</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Drawer Footer -->
-          <div class="px-6 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-between text-xs flex-shrink-0">
-            <span class="text-slate-500 text-[11px]">Autonomous capability loop active</span>
-            <button type="button" id="closeLabMonitorDrawerFooterBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
-          </div>
-        </div>
-      </div>
 
     </main>
   </div>
@@ -5338,7 +4921,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.85"></script>
+  <script type="module" src="/static/app.js?v=2.0.86"></script>
 </body>
 </html>
 

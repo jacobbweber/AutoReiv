@@ -1,5 +1,5 @@
 /**
- * Agent Studio: Tools, Baseline Callables, Remote MCP status & Credential Grants [CARD-183, CARD-421]
+ * Agent Studio: Tools, Baseline Callables, Capability gaps, Remote MCP status & Credential Grants [CARD-183, CARD-421, CARD-496]
  * Full MCP attach lives in Tools Studio. This card shows mounted-count status and opens Tools Studio.
  */
 
@@ -7,6 +7,7 @@ import { $, $queryAll, safeCreateIcons } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
 import { showToast } from '../../ui/toast.js';
 import { renderMcpStatusRowsMarkup } from '../tools_studio_catalog.js';
+import { TOOLS_AUTHORING_TALK_URL, authoringErrorMessage, interpretAuthoringTalk } from '../tools_studio_authoring.js';
 
 export function renderToolBadgeHtml(tool, activeAgent = null) {
   const tObj = typeof tool === 'string' ? { name: tool } : (tool || {});
@@ -53,10 +54,77 @@ export function renderBaselineTools(gridEl = null) {
   safeCreateIcons();
 }
 
+/** One capability gap row: Open in Skill Studio, Ask Developer, Dismiss [CARD-496 D2]. */
+export function capabilityGapRowHtml(gap = {}) {
+  const id = escapeHtml(gap.id || '');
+  const label = escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability');
+  const btn = 'px-2 py-0.5 rounded text-[10px] font-semibold transition';
+  return `
+      <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${id}">
+        <div class="flex flex-wrap items-center justify-between gap-1.5">
+          <span class="text-xs font-semibold text-amber-300 font-mono">${label}</span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" class="btn-gap-open-skill-studio ${btn} bg-brand-600 hover:bg-brand-500 text-white" data-gap-id="${id}" title="Write a skill for this gap in Skill Studio">Open in Skill Studio</button>
+            <button type="button" class="btn-gap-ask-developer ${btn} bg-indigo-600 hover:bg-indigo-500 text-white" data-gap-id="${id}" title="Ask Developer to build a tool for this gap">Ask Developer</button>
+            <button type="button" class="btn-dismiss-gap ${btn} bg-slate-800 hover:bg-slate-700 text-slate-400 font-medium" data-gap-id="${id}">Dismiss</button>
+          </div>
+        </div>
+        ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span></div>` : ''}
+        <p class="text-[11px] text-slate-400 whitespace-pre-wrap">${escapeHtml(gap.turn_text || gap.user_prompt || '')}</p>
+      </div>
+    `;
+}
+
+/** Open Skill Studio for the gap's agent [CARD-496 REQ-496-003]. */
+export function openGapInSkillStudio(agentId, callbacks = {}, toastFn = showToast) {
+  if (typeof callbacks.openSkillStudio === 'function') {
+    callbacks.openSkillStudio(agentId || null);
+    return true;
+  }
+  toastFn('Open Skill Studio from the dock to write a skill for this gap.', 'info');
+  return false;
+}
+
+/** Tools Studio authoring draft built from a capability gap [CARD-496 REQ-496-004]. */
+export function buildGapDeveloperDraft(gap = {}, agentId = '') {
+  const lines = [String(gap.turn_text || gap.user_prompt || '').trim()].filter(Boolean);
+  const capability = String(gap.identified_capability || gap.missing_capability || '').trim();
+  if (capability) lines.push(`Missing capability: ${capability}`);
+  if (agentId) lines.push(`Requested from a capability gap for ${agentId}.`);
+  return { intent: 'create', tool_name: String(gap.suggested_tool_name || '').trim(), behavior: lines.join('\n\n') };
+}
+
+/**
+ * Ask Developer: open a Developer chat with the gap attached; Tools Studio if that fails.
+ * Same path as Teach (chat/teach_modal.js) and Tools Studio Talk [CARD-472, CARD-496].
+ */
+export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callbacks = {}, toastFn = showToast } = {}) {
+  const doFetch = typeof fetchFn === 'function' ? fetchFn : (...args) => fetch(...args);
+  const draft = buildGapDeveloperDraft(gap, agentId);
+  try {
+    const res = await doFetch(TOOLS_AUTHORING_TALK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intent: 'create', draft }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(authoringErrorMessage(data, res.status));
+    const plan = interpretAuthoringTalk(data, draft);
+    if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
+    const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+    if (!chat || typeof chat.openDeveloperSession !== 'function') throw new Error('Developer chat is unavailable here.');
+    await chat.openDeveloperSession(plan.sessionId, plan.prompt);
+    return true;
+  } catch (err) {
+    toastFn(`Could not open a Developer chat: ${err.message || err}. Opening Tools Studio.`, 'error');
+    if (typeof callbacks.openToolsStudio === 'function') callbacks.openToolsStudio(agentId);
+    return false;
+  }
+}
+
 export async function loadAgentCapabilityGaps(agentId, callbacks = {}) {
   const agentBacklogList = $('agentBacklogList');
   const agentBacklogCountBadge = $('agentBacklogCountBadge');
-  const forgeTrainAgentBtn = $('forgeTrainAgentBtn');
   if (!agentBacklogList) return;
   if (!agentId) {
     agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
@@ -72,31 +140,24 @@ export async function loadAgentCapabilityGaps(agentId, callbacks = {}) {
       agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
       return;
     }
-    agentBacklogList.innerHTML = items.map((gap) => `
-      <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${escapeHtml(gap.id)}">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability')}</span>
-          <div class="flex items-center space-x-1.5">
-            <button type="button" class="btn-open-factory-gap px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}" title="Open Training Factory for this agent">Open Training Factory</button>
-            <button type="button" class="btn-dismiss-gap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-medium transition" data-gap-id="${escapeHtml(gap.id)}">Dismiss</button>
-          </div>
-        </div>
-        ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span></div>` : ''}
-        <p class="text-[11px] text-slate-400 whitespace-pre-wrap">${escapeHtml(gap.turn_text || gap.user_prompt || '')}</p>
-      </div>
-    `).join('');
+    agentBacklogList.innerHTML = items.map((gap) => capabilityGapRowHtml(gap)).join('');
+    const byId = new Map(items.map((gap) => [String(gap.id), gap]));
 
-    agentBacklogList.querySelectorAll('.btn-open-factory-gap').forEach((btn) => {
+    agentBacklogList.querySelectorAll('.btn-gap-open-skill-studio').forEach((btn) => {
       btn.addEventListener('click', () => {
-        // CARD-306: Forge does not launch a second lab — open Training Factory for this agent
-        if (typeof callbacks.openFactoryStudio === 'function') {
-          callbacks.openFactoryStudio(agentId);
-        } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
-          window.openFactoryStudioForAgent(agentId);
-        } else if (typeof forgeTrainAgentBtn !== 'undefined' && forgeTrainAgentBtn) {
-          forgeTrainAgentBtn.click();
-        } else {
-          showToast('Open Factory Studio from the dock to train this gap.', 'info');
+        openGapInSkillStudio(agentId, callbacks);
+      });
+    });
+
+    agentBacklogList.querySelectorAll('.btn-gap-ask-developer').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const el = e.currentTarget;
+        const gap = byId.get(String(el.dataset.gapId)) || {};
+        el.disabled = true;
+        try {
+          await askDeveloperAboutGap(gap, agentId, { callbacks });
+        } finally {
+          el.disabled = false;
         }
       });
     });

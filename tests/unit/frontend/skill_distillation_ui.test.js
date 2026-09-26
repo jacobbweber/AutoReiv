@@ -6,10 +6,10 @@ describe('CARD-352 In-Situ Skill Workshop: /learn Distillation & Chat Proposal U
   const htmlPath = path.resolve(__dirname, '../../../src/web/templates/index.html');
   const chatJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js');
   const renderJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/render.js');
-  const trainModalJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/train_modal.js');
+  const teachModalJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/teach_modal.js');
   const composerJsPath = path.resolve(__dirname, '../../../src/web/static/modules/studios/chat/composer.js');
   const html = fs.readFileSync(htmlPath, 'utf-8');
-  const chatJs = fs.readFileSync(chatJsPath, 'utf-8') + fs.readFileSync(renderJsPath, 'utf-8') + fs.readFileSync(trainModalJsPath, 'utf-8') + fs.readFileSync(trainModalJsPath.replace('train_modal.js', 'teach_modal.js'), 'utf-8') + fs.readFileSync(composerJsPath, 'utf-8');
+  const chatJs = fs.readFileSync(chatJsPath, 'utf-8') + fs.readFileSync(renderJsPath, 'utf-8') + fs.readFileSync(teachModalJsPath, 'utf-8') + fs.readFileSync(composerJsPath, 'utf-8');
 
   describe('Modal Markup in index.html [REQ-SKIL-011]', () => {
     it('contains #teachAgentModal with guidance textarea and action buttons', () => {
@@ -45,7 +45,7 @@ describe('CARD-352 In-Situ Skill Workshop: /learn Distillation & Chat Proposal U
 
     it('provides one-click adopt and factory escalation actions [REQ-SKIL-013, REQ-SKIL-014]', () => {
       expect(chatJs).toContain('btn-adopt-skill');
-      expect(chatJs).toContain('btn-escalate-factory');
+      expect(chatJs).toContain('btn-escalate-developer'); // CARD-496 D10
       expect(chatJs).toContain('btn-dismiss-proposal');
       expect(chatJs).toContain('/api/skills/adopt');
       expect(chatJs).toContain('/api/skills/distill');

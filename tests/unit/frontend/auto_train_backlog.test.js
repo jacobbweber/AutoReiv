@@ -1,5 +1,6 @@
 /**
- * CARD-165: Agent Studio Auto-Train Controls, Needs Training Backlog, and Chat Action.
+ * CARD-165: Agent Studio Auto-Train Controls, capability gap backlog, and Chat Action.
+ * CARD-496: the backlog is labelled "Capability gaps" and routes to Skill Studio / the Developer.
  * Verifies UI controls in index.html, forge.js, and chat.js [REQ-FACT-023, REQ-FACT-027, REQ-FACT-028].
  */
 
@@ -32,11 +33,10 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     expect(forgeJs).toContain("agentBacklogList");
   });
 
-  it('keeps auto_train_progress SSE; Chat Train in Lab button removed [CARD-296]', () => {
-    // CARD-296 design lock: remove Chat "Train in Lab" message action (Factory/Forge retain train gap).
+  it('drops the auto_train_progress SSE branch; Chat Train in Lab button stays removed [CARD-296, CARD-496]', () => {
     expect(chatJs).not.toContain("train-lab-msg-btn");
     expect(chatJs).not.toMatch(/>Train in Lab</);
-    expect(chatJs).toContain("auto_train_progress");
+    expect(chatJs).not.toContain("auto_train_progress");
   });
 
   it('never populates trainTargetLocation with agentId and resolves active agent correctly [REQ-FACT-028]', () => {
@@ -48,11 +48,12 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     expect(chatJs).not.toContain("state.activeAgentId");
   });
 
-  it('Factory/Forge still queue capability gaps; Chat no longer exposes Train in Lab [CARD-296]', () => {
-    const factoryJs = read('src/web/static/modules/studios/factory.js');
-    // Chat message Train in Lab removed; gap train remains in Factory studio.
-    expect(factoryJs).toContain("btn-train-gap");
-    expect(factoryJs).toContain("identified_capability");
+  it('Agent Studio lists capability gaps with Skill Studio / Developer actions, not training [CARD-496]', () => {
+    expect(indexHtml).toContain('Capability gaps');
+    expect(indexHtml).not.toContain('Needs Training Backlog');
+    expect(forgeJs).toContain("identified_capability");
+    expect(forgeJs).toContain("btn-gap-open-skill-studio");
+    expect(forgeJs).not.toContain("btn-train-gap");
     expect(chatJs).not.toContain("train-lab-msg-btn");
   });
 });

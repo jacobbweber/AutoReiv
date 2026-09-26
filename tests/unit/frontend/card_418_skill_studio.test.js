@@ -9,7 +9,7 @@ import path from 'path';
 import { DOCK_LAUNCHERS, VIEW_BY_TAB } from '../../../src/web/static/modules/ui/agent-desktop.js';
 import { openWindow } from '../../../src/web/static/modules/ui/agent_desktop/window.js';
 import { planSkillStudioDeepLink, SKILL_STUDIO_LABEL, SKILL_STUDIO_TAB } from '../../../src/web/static/modules/studios/skill_studio.js';
-import { applyLoadedSkillView } from '../../../src/web/static/modules/studios/factory/workshop_meta.js';
+import { applyLoadedSkillView } from '../../../src/web/static/modules/studios/skill_studio/workshop_meta.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
 
@@ -27,7 +27,6 @@ function sliceView(html, startId, endId) {
 
 describe('Skill Studio dock and deep link [CARD-418]', () => {
   const html = read('src/web/templates/index.html');
-  const factoryView = sliceView(html, 'view-factory', 'view-skill-studio');
   const skillView = sliceView(html, 'view-skill-studio', 'artifactModal');
 
   it('dock open presents Skill Studio without the Factory agent brief [REQ-418-001]', () => {
@@ -119,14 +118,13 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
   });
 
   it('Factory is not a second skill write surface and Forge does not save [REQ-418-003, REQ-418-004]', () => {
-    expect(factoryView).toContain('id="factoryIntakeAgentCard"');
-    expect(factoryView).toContain('id="factoryCurrentSkillsList"');
-    expect(factoryView).toContain('data-testid="factory-assigned-skills"');
-    expect(factoryView).toContain('Edit skills in Skill Studio');
-    expect(factoryView).not.toContain('id="factorySaveSkillBtn"');
-    expect(factoryView).not.toContain('id="factorySkillMarkdownEditor"');
-    expect(factoryView).not.toContain('id="factoryExistingSkillSelect"');
-    expect(factoryView).not.toContain('id="factoryCapabilitiesContainer"');
+    // CARD-496: the Factory view is gone; its editor ids now exist only once, inside Skill Studio.
+    expect(html).not.toContain('id="view-factory"');
+    expect(html).not.toContain('id="factoryIntakeAgentCard"');
+    for (const id of ['factorySaveSkillBtn', 'factorySkillMarkdownEditor', 'factoryExistingSkillSelect', 'factoryCapabilitiesContainer']) {
+      expect(html.split(`id="${id}"`).length - 1, id).toBe(1);
+      expect(skillView, id).toContain(`id="${id}"`);
+    }
 
     const runbook = read('src/web/static/modules/studios/forge/runbook.js');
     const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
@@ -138,6 +136,7 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
     expect(runbook).not.toContain('studioRunbookSaveBtn');
     expect(skillStudio).toContain('/api/agent_training_factory/scaffold/save');
     expect(skillStudio).toContain('requires_tools');
-    expect(read('src/web/static/modules/studios/factory.js')).not.toContain('/api/agent_training_factory/scaffold/save');
+    // CARD-496: the Factory window is gone, so Skill Studio is the only caller of the save route.
+    expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/factory.js'))).toBe(false);
   });
 });

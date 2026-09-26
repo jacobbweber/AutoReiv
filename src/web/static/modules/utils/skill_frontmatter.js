@@ -1,5 +1,5 @@
 /**
- * SKILL.md frontmatter helpers for the Factory workshop [CARD-411].
+ * SKILL.md frontmatter helpers for the Skill Studio workshop [CARD-411].
  * Structured metadata is the editor source of truth. The markdown body is preserved.
  */
 

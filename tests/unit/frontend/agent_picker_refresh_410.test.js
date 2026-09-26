@@ -93,14 +93,13 @@ describe('CARD-410 restored studio agent pickers', () => {
     installMemoryLocalStorage();
     localStorage.setItem(PICKER_KEYS.chat, 'developer');
     localStorage.setItem(PICKER_KEYS.agents, 'developer');
-    localStorage.setItem(PICKER_KEYS.factory, 'developer');
     localStorage.setItem(PICKER_KEYS.routines, 'developer');
     localStorage.setItem(PICKER_KEYS.observability, 'developer');
 
     selects = {
       agentSelect: createSelect('agentSelect'),
       forgeAgentSelect: createSelect('forgeAgentSelect'),
-      factoryAgentSelect: createSelect('factoryAgentSelect', '__new__'),
+      factoryAgentSelect: createSelect('factoryAgentSelect', '__new__'), // CARD-496: retired; must stay untouched
       routinesFilterAgent: createSelect('routinesFilterAgent', ''),
       observeAgentKpiSelect: createSelect('observeAgentKpiSelect', ''),
     };
@@ -155,11 +154,11 @@ describe('CARD-410 restored studio agent pickers', () => {
 
     expect(selects.agentSelect.value).toBe('developer');
     expect(selects.forgeAgentSelect.value).toBe('developer');
-    expect(selects.factoryAgentSelect.value).toBe('developer');
+    expect(selects.factoryAgentSelect.value).toBe('__new__');
     expect(selects.routinesFilterAgent.value).toBe('developer');
     expect(selects.observeAgentKpiSelect.value).toBe('developer');
     expect(state.selectedAgentId).toBe('developer');
-    expect(optionValues(selects.factoryAgentSelect)[0]).toBe('__new__');
+    expect(optionValues(selects.factoryAgentSelect)).toEqual([]);
     expect(optionValues(selects.routinesFilterAgent)[0]).toBe('');
     expect(optionValues(selects.observeAgentKpiSelect)[0]).toBe('');
   });

@@ -298,7 +298,7 @@ export function renderSkillProposalCard(proposal, {
             </button>`}
             ${needsTool
               ? `
-              <button type="button" class="btn-escalate-factory px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook needs a tool the agent doesn't have — ask the Developer to build it">
+              <button type="button" class="btn-escalate-developer px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook needs a tool the agent doesn't have — ask the Developer to build it">
                 <span>🚀</span>
                 <span>Ask Developer to build this tool</span>
               </button>
@@ -356,7 +356,7 @@ export function renderSkillProposalCard(proposal, {
       });
     }
 
-    // .btn-escalate-factory is handled by the delegated listener in chat/teach_modal.js [CARD-472]
+    // .btn-escalate-developer is handled by the delegated listener in chat/teach_modal.js [CARD-472]
     const dismissBtn = cardEl.querySelector('.btn-dismiss-proposal');
     if (dismissBtn) {
       dismissBtn.addEventListener('click', () => {
@@ -736,80 +736,20 @@ export function renderMessages(opts = {}, legacyContainer, legacyOpts = {}) {
 export function setupMessagesContainerDelegation(messagesContainer, callbacks = {}) {
   if (!messagesContainer) return;
   messagesContainer.addEventListener('click', async (e) => {
-    const launchFactoryBtn = e.target.closest('[data-action="launch-factory"]');
-    if (launchFactoryBtn) {
-      const agentId = launchFactoryBtn.getAttribute('data-agent-id');
-      if (typeof callbacks.openFactoryStudio === 'function') {
-        callbacks.openFactoryStudio(agentId);
-      } else if (typeof window.openFactoryStudioForAgent === 'function') {
-        window.openFactoryStudioForAgent(agentId);
+    // Handoff card buttons [CARD-496]. Chat passes the app callbacks nested under `callbacks`.
+    const appCallbacks = callbacks.callbacks || callbacks;
+    const openSkillBtn = e.target.closest('[data-action="open-skill-studio"]');
+    if (openSkillBtn) {
+      const agentId = openSkillBtn.getAttribute('data-agent-id');
+      if (typeof appCallbacks.openSkillStudio === 'function') {
+        appCallbacks.openSkillStudio(agentId || null);
       }
       return;
     }
     const openStudioBtn = e.target.closest('[data-action="open-studio"]');
     if (openStudioBtn) {
       const agentId = openStudioBtn.getAttribute('data-agent-id');
-      if (typeof callbacks.openAgentForge === 'function') {
-        callbacks.openAgentForge(agentId);
-      } else if (typeof window.openForgeStudioForAgent === 'function') {
-        window.openForgeStudioForAgent(agentId);
-      }
-      return;
-    }
-    const openLabBtn = e.target.closest('.open-lab-drawer-btn');
-    if (openLabBtn) {
-      const jobId = openLabBtn.getAttribute('data-job-id');
-      if (typeof window.openLabMonitorDrawer === 'function') {
-        window.openLabMonitorDrawer(jobId);
-      } else {
-        const labDrawer = $('labMonitorDrawer');
-        if (labDrawer) {
-          labDrawer.classList.remove('hidden');
-          const jobSelect = $('labJobSelect');
-          if (jobSelect && jobId) {
-            jobSelect.value = jobId;
-            jobSelect.dispatchEvent(new Event('change'));
-          }
-        }
-      }
-      return;
-    }
-    const approveBtn = e.target.closest('.approve-factory-btn');
-    if (approveBtn) {
-      const jobId = approveBtn.getAttribute('data-job-id');
-      if (!jobId) return;
-      approveBtn.disabled = true;
-      approveBtn.textContent = 'Deploying...';
-      try {
-        const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}/promote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || err.error || `HTTP ${res.status}`);
-        }
-        if (typeof callbacks.showToast === 'function') {
-          callbacks.showToast('Agent Pack approved and deployed to platform!', 'success');
-        }
-        approveBtn.textContent = 'Deployed';
-        approveBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
-        approveBtn.classList.add('bg-slate-700', 'cursor-default');
-        if (typeof callbacks.loadAgents === 'function') await callbacks.loadAgents();
-      } catch (err) {
-        approveBtn.disabled = false;
-        approveBtn.textContent = 'Approve & Deploy';
-        if (typeof callbacks.showToast === 'function') {
-          callbacks.showToast(`Promotion failed: ${err.message}`, 'error');
-        }
-      }
-      return;
-    }
-    const rejectBtn = e.target.closest('.reject-factory-btn');
-    if (rejectBtn) {
-      const card = rejectBtn.closest('.factory-promotion-card');
-      if (card) card.remove();
-      return;
+      if (typeof appCallbacks.openAgentStudio === 'function') appCallbacks.openAgentStudio(agentId || null);
     }
   });
 }

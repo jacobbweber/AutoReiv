@@ -190,16 +190,16 @@ export function renderAgentHandoffCardHtml({
         </div>
       </div>
       <p class="text-xs text-slate-300">
-        Specialist agent is ready for capability training. Open Factory Studio to blueprint and author custom tools and operating runbooks.
+        Add skills in Skill Studio, or open it in Agent Studio.
       </p>
       <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800">
-        <button type="button" data-action="launch-factory" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-          <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
-          <span>Launch Training in Factory</span>
+        <button type="button" data-action="open-skill-studio" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+          <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+          <span>Open in Skill Studio</span>
         </button>
         <button type="button" data-action="open-studio" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
           <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-          <span>Open in Studio</span>
+          <span>Open in Agent Studio</span>
         </button>
       </div>
     </div>

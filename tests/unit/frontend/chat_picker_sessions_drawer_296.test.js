@@ -70,8 +70,8 @@ describe('CARD-296 DOM contract — one agent picker + in-studio sessions drawer
     expect(chatJs).not.toMatch(/>Train in Lab</);
   });
 
-  it('keeps Train Agent checkbox (durable Factory path) and Workbench shelf', () => {
-    expect(html).toContain('id="trainAgentToggle"');
+  it('has no Train Agent checkbox (Factory retired, CARD-496) and keeps the Workbench shelf', () => {
+    expect(html).not.toContain('id="trainAgentToggle"');
     expect(html).toContain('id="chatWorkbenchPane"');
     expect(html).toContain('id="workbenchSaveWikiBtn"');
     expect(html).toContain('id="chatShowJourneyBtn"');
@@ -140,7 +140,7 @@ describe('CARD-296 dock launchers no longer include sessions', () => {
     expect(tabs).not.toContain('sessions');
     expect(tabs).toEqual(
       expect.arrayContaining([
-        'chat', 'wiki', 'projects', 'agents', 'factory', 'routines',
+        'chat', 'wiki', 'projects', 'agents', 'skill-studio', 'routines',
         'observability', 'settings', 'prompts', 'education',
       ]),
     );

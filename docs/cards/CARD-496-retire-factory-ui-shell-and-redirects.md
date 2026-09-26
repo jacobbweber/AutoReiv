@@ -1,7 +1,7 @@
 ---
 id: CARD-496
 title: "Retire the Agent Training Factory (2/6): remove the Factory UI and redirect every entry point"
-status: Ready
+status: Done
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -24,7 +24,7 @@ labels:
 
 # [CARD-496] Retire the Agent Training Factory (2/6): remove the Factory UI and redirect every entry point
 
-> **Status**: Ready for `build` (refined 2026-09-25 ~11:55 PM ET on qa `7b22c933`; the Factory UI was reproduced on a scratch server with fresh data; decisions D1-D10 below wait for Jacob)
+> **Status**: Done (2026-09-26 ~1:00 AM ET: Jacob live-tested on his phone against serve with test gap `gap_c5d4dcc6af35` and said `merge to qa`; merged --no-ff into qa and pushed. Earlier: 2026-09-26 ~12:45 AM ET: built on `feat/card-496-retire-factory-ui`, commits `b9417f9c`, `39bea7b9`, `5350a5d3`, `340b4c1c`; preflight green apart from CARD-454/456; scratch runbook passed desktop and phone; not pushed or merged. Next gate: Jacob live-tests on serve, then `merge to qa`)
 > **Created**: 2026-09-25
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted). This card is step 2 of 6: CARD-495 (Done), **CARD-496**, CARD-511, CARD-497, CARD-512, CARD-498
 > **Scope**: frontend only. **No backend route changes.** Skill Studio keeps calling `/api/agent_training_factory/{capabilities,scaffold/*,skills}` until CARD-497 moves them.
@@ -120,11 +120,11 @@ labels:
 
 ---
 
-## 4. Decisions (confirm at `build`)
+## 4. Decisions (decided 2026-09-26 ~12:00 AM ET: Jacob accepted D1-D10 exactly as recommended)
 
 D1-D3 are restated from the first draft, adjusted to what the scratch run showed. D4-D10 are new.
 
-| # | Decision | Recommendation |
+| # | Decision | Decided |
 |---|---|---|
 | D1 | Keep a "Factory" alias (dock button or URL) that opens Skill Studio? | **No.** One lever per job (ADR-0057/0060) |
 | D2 | Gap backlog actions | **Open in Skill Studio + Ask Developer** (Ask Developer uses the Teach/Tools Studio talk path, with Tools Studio as fallback); Dismiss stays |
@@ -217,3 +217,45 @@ These are folded into the sections above:
 - the picker `factory` key dropped;
 - the `AUTO_TRAIN_PROGRESS` handler and auto-training payload removed;
 - `openSkillStudio(agentId)` from the gap backlog.
+
+---
+
+## 8. Build evidence (2026-09-26 ~12:45 AM ET)
+
+**Branch** `feat/card-496-retire-factory-ui` from qa `66526b68` (not pushed):
+- `b9417f9c` docs(cards): record CARD-496 decisions D1-D10; start build
+- `39bea7b9` test(card-496): failing tests (new Vitest file: 21 of 22 failed on qa, the Skill Studio id guard passed; smoke: 11 failed - TC-1, TC-34 x2, TC-36 x2, TC-39 x2, TC-40 x2, TC-41 x2)
+- `5350a5d3` feat(card-496): retire the Factory UI (ADR-0060), including Vitest updates, the TC-40 fix and CHANGELOG
+- `340b4c1c` fix(card-496): Open in Agent Studio opens that agent right away (new `openAgentStudio` callback; +1 Vitest guard)
+
+**Preflight on Jarvis**
+
+| Suite | qa baseline | This branch | Notes |
+|---|---|---|---|
+| pytest unit | 2076 pass / 11 skip / 1 fail | 2076 / 11 / 1 | CARD-454 `test_platform_packs_all_pass_mechanical_linter` only (run on `5350a5d3`; later commits are JS/test only) |
+| pytest integration | 109 pass | 109 pass | |
+| Vitest | 918 pass / 5 fail (923) | 885 pass / 3 fail (888) | 923 - 56 (6 deleted Factory-only files) - 2 (removed `lab_monitor.js` it.each case in `chat_composer_grow_465`; removed Training submodule test in `chat_decomposed_modules`) + 23 (new file) = 888. Fails: CARD-456 `per_agent_model_config` x1 and `system_updates` x2. The other two CARD-456 failures (`chat_monolith_decomposition_397` line caps) now pass: `chat.js` 975 lines (cap 1000), `chat/render.js` 758 (cap 800) |
+| Playwright smoke | 57 | 63 pass | +6: TC-39/40/41 x desktop and phone |
+| ESLint | 4 errors / 5 warnings | 4 / 5 | CARD-456 baseline, no new findings |
+| ruff | 9 | 9 | CARD-454 baseline |
+
+Deleted Vitest files (56 tests): `factory_studio` 16, `card_411_factory_layout` 7, `lab_monitor_controls` 8, `lab_monitor_fail_reason` 3, `lab_monitor_artifact_preview` 3, `train_agent_handshake` 19. `factory_deliverable_modal` is kept (it only asserts the old modal is absent).
+
+**Scratch runbook** (`c505_run.ps1 -Data c496_rb -Wipe`, port 8767, one seeded gap `get_tc49_inventory`; probes `scratch/c496_rb.cjs` and `scratch/c496_rb2.cjs`, desktop 1280x800 and phone 390x844; all steps passed on both):
+1. Dock: 12 buttons (chat, wiki, projects, agents, skill-studio, tools-studio, routines, observability, settings, prompts, education, lumina), no Factory.
+2. Agent Studio > AutoReiv: no "Agent Training Optimization" under Capabilities; "Capability gaps 1" shows Open in Skill Studio, Ask Developer, Dismiss; no "Factory" text.
+3. Open in Skill Studio: Skill Studio opens pinned to AutoReiv; 105 tool checkboxes.
+4. Ask Developer: real `POST /api/tools_studio/authoring/talk` returned 200; Chat opened on a Developer session whose first message is "Tools Studio tool intent (create). Tool name: get_tc49_inventory ...".
+5. Skill Studio save: 200, payload `agent_id=autoreiv`, `auto_pin=true`; message "Saved c496_probe_desktop and pinned to autoreiv"; the skill appears in AutoReiv's Agent Studio pills and `GET /api/agents/autoreiv`. (Generate runbook was not used: the scratch server has no LLM.)
+6. Tools Studio loads.
+7. Teach needs-tool > Ask Developer: covered by smoke TC-34/TC-36 (mocked distill; the scratch server has no LLM).
+8. Old history: a chat with a `scaffold_agent_pack` result renders "Add skills in Skill Studio, or open it in Agent Studio." with Open in Skill Studio (opens Skill Studio) and Open in Agent Studio (opens Agent Studio on that agent).
+9. Saved layout with a Factory window + `autoreiv_factory_selected_agent_id`: no Factory window, key cleared. Desktop rewrites the stored layout without `factory`; phone does not rewrite it until the next layout save, but every read and write scrubs it, so nothing shows.
+10. No `/api/agent_training_factory/jobs` or `/api/capabilities/scaffold` requests; 0 console errors and 0 page errors. Remaining Factory-prefixed calls are Skill Studio's `capabilities`, `skills` and `scaffold/save` (kept by design).
+11. Serve restarted 2026-09-26 ~12:48 AM ET with `scripts\restart_serve.ps1 -HostAddr 0.0.0.0 -Port 8000` on this branch: `/api/health` 200 on 127.0.0.1 and 192.168.1.99; the served page has no `#tab-factory`, shows "Capability gaps", and loads `studios.css?v=2.0.83` (the server stamps `app.js?v=` with its own start-time value). Jacob's desktop and phone pass is pending.
+
+**Found during the build**
+- The old "Open in Studio" button on the agent-created card never worked (the handler looked for `callbacks.openAgentForge`, which chat never passed). Fixed here as "Open in Agent Studio".
+- CARD-515 (Ready): Skill Studio's dead assigned-skills render into the removed Factory brief, plus Factory-named Agent Studio ids.
+
+**No backend changes.** `git diff 66526b68..HEAD --stat -- "*.py"` is empty; Skill Studio routes and `factory*` ids are unchanged.

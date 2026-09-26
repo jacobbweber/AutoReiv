@@ -1,5 +1,5 @@
 /**
- * Operator-facing slug helper shared by Factory and Skill Studio.
+ * Operator-facing slug helper shared by Agent Studio and Skill Studio.
  * @param {string} text
  * @returns {string}
  */
