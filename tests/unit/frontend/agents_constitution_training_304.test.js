@@ -23,16 +23,12 @@ describe('CARD-304 Agents Constitution + Training Optimization + collapsed', () 
     expect(html).toContain('class="forge-section"');
   });
 
-  it('puts Agent Training Optimization above Platform Skills with Factory button', () => {
-    expect(html).toContain('Agent Training Optimization');
-    expect(html).toContain('Proposed skills and tools from capability gaps');
+  it('has no Agent Training Optimization panel or Factory button under Capabilities (CARD-496)', () => {
+    expect(html).not.toContain('Agent Training Optimization');
     expect(html).not.toContain('Self-Scaffold Candidate Queue');
-    const train = html.indexOf('Agent Training Optimization');
-    const skills = html.indexOf('id="forgeSkillsSection"');
-    const caps = html.indexOf('data-section="capabilities"');
-    expect(train).toBeGreaterThan(caps);
-    expect(train).toBeLessThan(skills);
-    expect(html).toContain('id="forgeScaffoldOpenFactoryBtn"');
-    expect(js).toContain('forgeScaffoldOpenFactoryBtn');
+    expect(html).not.toContain('id="forgeScaffoldQueueCard"');
+    expect(html).not.toContain('id="forgeScaffoldOpenFactoryBtn"');
+    expect(js).not.toContain('forgeScaffoldOpenFactoryBtn');
+    expect(html.indexOf('data-section="capabilities"')).toBeLessThan(html.indexOf('id="forgeSkillsSection"'));
   });
 });

@@ -1,15 +1,16 @@
 /**
  * Skill Studio — skill lifecycle and tool scoping [CARD-418].
- * Body is the former Factory workshop (pick/create, metadata, SKILL.md)
- * plus the tool catalog. The Factory agent brief is not on this screen.
- * Save still writes the skill store and SQLite bindings (CARD-411).
+ * Pick/create, metadata, SKILL.md and the tool catalog. Save writes the skill store and
+ * SQLite bindings (CARD-411). The Factory is retired (ADR-0060, CARD-496); the save, skills and
+ * capabilities routes keep their /api/agent_training_factory/* paths until CARD-497 moves them.
+ * Element ids keep their factory* prefix (ADR-0060 D5).
  */
 
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
 import { toSnakeCase } from '../utils/slug.js';
-import { createSkillWorkshop, skillDeleteRequest } from './factory/workshop_meta.js';
-import { createSkillScopeUI } from './factory/skill_scope.js';
+import { createSkillWorkshop, skillDeleteRequest } from './skill_studio/workshop_meta.js';
+import { createSkillScopeUI } from './skill_studio/skill_scope.js';
 
 export const SKILL_STUDIO_TAB = 'skill-studio';
 export const SKILL_STUDIO_LABEL = 'Skill Studio';
@@ -28,7 +29,7 @@ const COMMON_STOP_WORDS = new Set([
 ]);
 
 /**
- * Forge / dock handoff. Skill edits open Skill Studio, not the Factory write surface.
+ * Agent Studio / dock handoff into Skill Studio.
  * @param {{ agentId?: string|null, skillId?: string|null }} [link]
  */
 export function planSkillStudioDeepLink({ agentId = null, skillId = null } = {}) {
@@ -41,12 +42,6 @@ export function planSkillStudioDeepLink({ agentId = null, skillId = null } = {})
     skillId: skill || null,
     writeSurface: SKILL_STUDIO_TAB,
   };
-}
-
-let activeController = null;
-
-export function getSkillStudio() {
-  return activeController;
 }
 
 export function initSkillStudio(_state, callbacks = {}) {
@@ -366,13 +361,6 @@ export function initSkillStudio(_state, callbacks = {}) {
         }, 4000);
       }
       showToast(`💾 Skill ${skillId} saved${pinnedNote}.`, 'success');
-
-      if (pinAgentId && typeof callbacks.getFactoryCtrl === 'function') {
-        const factory = callbacks.getFactoryCtrl();
-        if (factory && typeof factory.loadFactoryStudio === 'function') {
-          await factory.loadFactoryStudio(pinAgentId);
-        }
-      }
     } catch (err) {
       console.error('[SkillStudio] Failed to save skill:', err);
       showToast(`Save failed: ${err.message}`, 'error');
@@ -654,6 +642,5 @@ export function initSkillStudio(_state, callbacks = {}) {
     syncAgentScope,
     stopPolling: () => {},
   };
-  activeController = controller;
   return controller;
 }

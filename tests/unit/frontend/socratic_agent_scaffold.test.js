@@ -66,7 +66,7 @@ describe('Quick Scaffold Modal Contract [REQ-FACT-047]', () => {
 });
 
 describe('Post-Creation Handoff Card [REQ-FACT-048]', () => {
-  it('renderAgentHandoffCardHtml generates interactive handoff card with Factory and Studio action buttons', () => {
+  it('renderAgentHandoffCardHtml generates a handoff card with Skill Studio and Agent Studio buttons [CARD-496]', () => {
     const cardHtml = renderAgentHandoffCardHtml({
       agentId: 'ansible-ops',
       agentName: 'Ansible Automation Lead',
@@ -75,10 +75,12 @@ describe('Post-Creation Handoff Card [REQ-FACT-048]', () => {
 
     expect(cardHtml).toContain('Ansible Automation Lead');
     expect(cardHtml).toContain('packs/ansible-ops');
-    expect(cardHtml).toContain('data-action="launch-factory"');
+    expect(cardHtml).not.toContain('data-action="launch-factory"');
+    expect(cardHtml).not.toContain('Factory');
+    expect(cardHtml).toContain('data-action="open-skill-studio"');
     expect(cardHtml).toContain('data-agent-id="ansible-ops"');
-    expect(cardHtml).toContain('Launch Training in Factory');
+    expect(cardHtml).toContain('Open in Skill Studio');
     expect(cardHtml).toContain('data-action="open-studio"');
-    expect(cardHtml).toContain('Open in Studio');
+    expect(cardHtml).toContain('Open in Agent Studio');
   });
 });

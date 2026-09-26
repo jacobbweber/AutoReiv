@@ -59,7 +59,7 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
         'wiki',
         'projects',
         'agents',
-        'factory',
+        'skill-studio',
         'routines',
         'observability',
         'settings',
@@ -67,6 +67,7 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
         'education',
       ])
     );
+    expect(tabs).not.toContain('factory'); // CARD-496: Factory retired (ADR-0060)
     expect(DOCK_LAUNCHERS.every((d) => d.icon && d.label && d.id)).toBe(true);
   });
 

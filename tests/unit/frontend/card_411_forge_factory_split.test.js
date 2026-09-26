@@ -1,5 +1,5 @@
 /**
- * CARD-411 REQ-411-003: Forge is not a skill write path. Factory owns structured editing.
+ * CARD-411 REQ-411-003: Forge is not a skill write path. Skill Studio owns structured editing (Factory retired, CARD-496).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -15,9 +15,9 @@ function read(rel) {
 describe('Forge vs Factory skill lever [CARD-411]', () => {
   const html = read('src/web/templates/index.html');
   const runbook = read('src/web/static/modules/studios/forge/runbook.js');
-  const factory = read('src/web/static/modules/studios/factory.js')
-    + read('src/web/static/modules/studios/factory/workshop_meta.js')
-    + read('src/web/static/modules/studios/factory/skill_scope.js');
+  const factory = read('src/web/static/modules/studios/skill_studio.js')
+    + read('src/web/static/modules/studios/skill_studio/workshop_meta.js')
+    + read('src/web/static/modules/studios/skill_studio/skill_scope.js');
 
   it('Agent Studio does not inspect runbooks inline and opens Skill Studio [CARD-419]', () => {
     expect(html).not.toContain('id="studioRunbookEditor"');
@@ -54,7 +54,7 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
 
   it('save writes tier pack and ignores a leftover tier select [CARD-429]', async () => {
     const { createSkillWorkshop } = await import(
-      '../../../src/web/static/modules/studios/factory/workshop_meta.js'
+      '../../../src/web/static/modules/studios/skill_studio/workshop_meta.js'
     );
     const workshop = createSkillWorkshop({
       showToast: () => {},

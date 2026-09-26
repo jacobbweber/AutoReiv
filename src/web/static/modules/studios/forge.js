@@ -1,9 +1,8 @@
 /**
  * Agent Studio Coordinator Module [REQ-FE-001, CARD-119, CARD-127, CARD-148, CARD-153, CARD-162, CARD-202, CARD-350, CARD-389, CARD-398]
  * Orchestrates agent inspection, editing, saving, deletion, and coordinates focused Agent Studio submodules:
- * - lab_monitor.js: Autonomous factory training monitor drawer, packet telemetry, live feeds, artifact preview
  * - proposals.js: Architectural governance proposals inbox, category badges, remedy execution, synthesis
- * - scaffold.js: Quick presets, quick scaffold modal, candidate queue, same-job origin resumption
+ * - scaffold.js: Quick presets and the quick scaffold modal
  * - tools.js: OS baseline tools, capability gaps backlog, remote MCP server management, credential grants
  * - runbook.js: Skill toggle rows and Open in Skill Studio [CARD-411, CARD-418, CARD-419]
  * - skill_pills.js: Agent↔skill toggle pills; on/off writes allowed_skill only [CARD-419]
@@ -28,18 +27,11 @@ import {
 export { isStudioAgentVisible, sortStudioAgentsAlphabetically };
 
 // Re-export all decomposed submodules for complete backward compatibility [CARD-398]
-export * from './forge/lab_monitor.js';
 export * from './forge/proposals.js';
 export * from './forge/scaffold.js';
 export * from './forge/tools.js';
 export * from './forge/runbook.js';
 export * from './forge/config.js';
-
-import {
-  setupLabMonitor,
-  openLabMonitorDrawer,
-  updateLabRunsBadge,
-} from './forge/lab_monitor.js';
 
 import {
   setupArchitecturalProposals,
@@ -48,7 +40,6 @@ import {
 
 import {
   setupScaffold,
-  loadForgeScaffoldQueue,
   startNewAgentPackFromStudio,
 } from './forge/scaffold.js';
 
@@ -490,11 +481,6 @@ export function initAgentForge(state, callbacks = {}) {
         })(),
         pinned_memory: forgePinnedMemory ? forgePinnedMemory.value.trim() : '',
         allow_wiki_access: Boolean(checkedSkills.includes('wiki')),
-        allow_autonomous_training: Boolean(activeForgeAgent && activeForgeAgent.allow_autonomous_training),
-        max_training_retries:
-          activeForgeAgent && typeof activeForgeAgent.max_training_retries === 'number'
-            ? activeForgeAgent.max_training_retries
-            : 2,
         mcp_servers: currentAgentMcpServers.length > 0
           ? currentAgentMcpServers
           : (activeForgeAgent && activeForgeAgent.mcp_servers ? activeForgeAgent.mcp_servers : []),
@@ -680,11 +666,6 @@ export function initAgentForge(state, callbacks = {}) {
   }
 
   // Wire Submodules
-  setupLabMonitor({
-    callbacks,
-    onLoadAgent: loadAgentForge,
-  });
-
   setupArchitecturalProposals({
     getActiveAgentId,
   });
@@ -719,16 +700,10 @@ export function initAgentForge(state, callbacks = {}) {
 
   setupToneManager();
 
-  // Initial badge check
-  updateLabRunsBadge();
-
   return {
     loadAgentForge,
     renderAgentToForge,
-    openLabMonitorDrawer,
-    updateLabRunsBadge,
     loadAgentCredentialGrants,
-    loadForgeScaffoldQueue,
     loadArchitecturalProposals,
   };
 }

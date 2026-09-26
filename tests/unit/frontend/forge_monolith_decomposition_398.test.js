@@ -64,8 +64,9 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
     expect(typeof forgeModule.buildQuickScaffoldPayload).toBe('function');
     expect(typeof forgeModule.openQuickScaffoldModal).toBe('function');
     expect(typeof forgeModule.closeQuickScaffoldModal).toBe('function');
-    expect(typeof forgeModule.loadForgeScaffoldQueue).toBe('function');
-    expect(typeof forgeModule.runForgeScaffoldAction).toBe('function');
+    // CARD-496: the Agent Training Optimization queue is retired
+    expect(forgeModule.loadForgeScaffoldQueue).toBeUndefined();
+    expect(forgeModule.runForgeScaffoldAction).toBeUndefined();
 
     // Architectural proposals
     expect(typeof forgeModule.renderProposalBadgeHtml).toBe('function');
@@ -74,17 +75,12 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
     expect(typeof forgeModule.runArchitecturalProposalAction).toBe('function');
     expect(typeof forgeModule.scanAndSynthesizeProposals).toBe('function');
 
-    // Lab training monitor drawer
-    expect(typeof forgeModule.buildExpectedPackPaths).toBe('function');
-    expect(typeof forgeModule.collectPacketArtifacts).toBe('function');
-    expect(typeof forgeModule.formatLabPacketFeedLines).toBe('function');
-    expect(typeof forgeModule.formatLabActivityFeedText).toBe('function');
-    expect(typeof forgeModule.populateTrainModalForRetry).toBe('function');
-    expect(typeof forgeModule.updateLabRunsBadge).toBe('function');
-    expect(typeof forgeModule.openLabMonitorDrawer).toBe('function');
-    expect(typeof forgeModule.closeLabMonitorDrawer).toBe('function');
-    expect(typeof forgeModule.openLabArtifactPreview).toBe('function');
-    expect(typeof forgeModule.closeLabArtifactPreview).toBe('function');
+    // Lab training monitor drawer is retired with the Factory [CARD-496]
+    for (const name of ['buildExpectedPackPaths', 'collectPacketArtifacts', 'formatLabPacketFeedLines', 'formatLabActivityFeedText',
+      'populateTrainModalForRetry', 'updateLabRunsBadge', 'openLabMonitorDrawer', 'closeLabMonitorDrawer',
+      'openLabArtifactPreview', 'closeLabArtifactPreview']) {
+      expect(forgeModule[name], name).toBeUndefined();
+    }
 
     // Skill rows: pills and Open in Skill Studio. Inline inspector is gone [CARD-419].
     expect(typeof forgeModule.skillRowHtml).toBe('function');

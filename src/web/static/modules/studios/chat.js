@@ -12,7 +12,6 @@ import { showToast } from '../ui/toast.js';
 
 // Re-export all decomposed submodules for complete backward compatibility [REQ-ARCH-003, CARD-397]
 export * from './chat/hitl.js';
-export * from './chat/training.js';
 export * from './chat/scroll.js';
 export * from './chat/stream.js';
 export * from './chat/job_chrome.js';
@@ -21,13 +20,11 @@ export * from './chat/render.js';
 export * from './chat/composer.js';
 export * from './chat/chrome.js';
 export * from './chat/workbench.js';
-export * from './chat/train_modal.js';
 export * from './chat/teach_modal.js'; // CARD-472
 export * from './chat/session_select.js'; // CARD-485 (hydrateJobPhaseStateFromJourney moved here)
 
 import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD-470
 
-import { populateTrainAgentTargetOptions } from './chat/training.js';
 import { setupRuntimeModeToggles } from './chat/runtime_toggles.js'; // CARD-470
 import { setupChatScroll } from './chat/scroll.js';
 import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
@@ -40,7 +37,6 @@ import {
   consumeChatStream,
   trackStreamOutcome, reportStreamOutcome, // CARD-469: failed replies are shown
   querySessionStatus,
-  renderAgentHandoffCardHtml,
 } from './chat/stream.js';
 
 import {
@@ -76,7 +72,6 @@ import {
 } from './chat/chrome.js';
 
 import { initWorkbench, collectWorkbenchElements } from './chat/workbench.js';
-import { setupTrainModal } from './chat/train_modal.js';
 import { setupTeachAgentModal } from './chat/teach_modal.js'; // CARD-472
 
 // Verification tokens for REQ-VERIFY-EXT-004: 'verified', 'skipped_no_checker', 'failed'
@@ -311,7 +306,6 @@ export function initChatStudio(state, callbacks = {}) {
   const approvalToggle = $('approvalToggle');
   const goalBadge = $('goalBadge');
   const jobPhaseStatusStrip = $('jobPhaseStatusStrip');
-  const trainAgentTargetSelect = $('trainAgentTargetSelect');
 
   let jobPhaseState = null;
   let inlineJobChromeModel = null;
@@ -470,10 +464,6 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       publishAgentsLoaded(await res.json());
-
-      if (trainAgentTargetSelect) {
-        populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, state.selectedAgentId || 'autoreiv');
-      }
 
       updateActiveAgentHeader();
       await loadSessions();
@@ -656,13 +646,6 @@ export function initChatStudio(state, callbacks = {}) {
   wireComposer(state, { chatForm, promptInput, showToastFn: showToast, onBeforeAttach: () => { closeChatOptionsDrawer(); return ensureSession(); } });
   setupRuntimeModeToggles(state, { approvalToggle, verifyToggle, approvalBadge: $('approvalBadge'), verifyBadge: $('verifyBadge') }); // CARD-470
 
-  // Train Modal [CARD-119, CARD-165, CARD-306]
-  setupTrainModal(state, {
-    trainAgentTargetSelect,
-    showToastFn: showToast,
-    onJobSubmitted: loadAgents,
-  });
-
   // Teach Agent Modal [CARD-352, REQ-SKIL-011]
   const teachAgentModalCtrl = setupTeachAgentModal(state, {}, {
     showToastFn: showToast,
@@ -679,7 +662,7 @@ export function initChatStudio(state, callbacks = {}) {
     getJobPhaseState: () => jobPhaseState,
   });
 
-  // Click delegation on messages container for handoff cards and laboratory
+  // Click delegation on messages container for agent handoff cards
   setupMessagesContainerDelegation(messagesContainer, {
     callbacks,
     showToast,
@@ -730,7 +713,6 @@ export function initChatStudio(state, callbacks = {}) {
         </div>
         <div class="reflexion-status-badge hidden p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 items-center space-x-2"></div>
         <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
-        <div class="handoff-status-badge hidden p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex-col space-y-1"></div>
         <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
           <button type="button" class="reasoning-toggle flex items-center justify-between w-full px-3 py-2 bg-amber-900/20 text-amber-300 font-semibold cursor-pointer">
             <span class="flex items-center space-x-1.5">
@@ -757,7 +739,6 @@ export function initChatStudio(state, callbacks = {}) {
     const reasoningToggle = streamBubble.querySelector('.reasoning-toggle');
     const reasoningIndicator = streamBubble.querySelector('.reasoning-indicator');
     const toolBadge = streamBubble.querySelector('.tool-status-badge');
-    const handoffBadge = streamBubble.querySelector('.handoff-status-badge');
     const hitlCard = streamBubble.querySelector('.hitl-approval-card');
     const planMilestoneCard = streamBubble.querySelector('.plan-milestone-card');
     const planStepsContainer = streamBubble.querySelector('.plan-steps-container');
@@ -823,11 +804,6 @@ export function initChatStudio(state, callbacks = {}) {
           } else if (eventType === 'tool_execution_complete' && toolBadge) {
             toolBadge.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Completed: <strong>${escapeHtml(ev.tool_name || 'tool')}</strong></span>`;
             safeCreateIcons();
-          } else if (eventType === 'handoff' && handoffBadge) {
-            handoffBadge.classList.remove('hidden');
-            handoffBadge.classList.add('flex');
-            handoffBadge.innerHTML = renderAgentHandoffCardHtml(ev);
-            safeCreateIcons();
           } else if (eventType === 'approval_required') {
             renderInlineHitlCard(hitlCard, ev, { state, onResumeTurn: executeChatTurn, onDone: refreshPendingHitl }); // CARD-470
           } else if (eventType === 'plan_formulated') {
@@ -848,11 +824,6 @@ export function initChatStudio(state, callbacks = {}) {
           } else if (eventType === 'step_complete') {
             const stepEl = streamBubble.querySelector(`#plan-step-${ev.step_index !== undefined ? ev.step_index : -1}`);
             if (stepEl) stepEl.className = 'plan-step-item p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 flex items-center justify-between text-xs transition';
-          } else if (eventType === 'auto_train_progress' && toolBadge) {
-            toolBadge.classList.remove('hidden');
-            toolBadge.classList.add('flex');
-            toolBadge.innerHTML = `<i data-lucide="cpu" class="w-3.5 h-3.5 text-brand-400 animate-spin"></i><span>Training: ${escapeHtml(ev.message || ev.stage || '')}</span>`;
-            safeCreateIcons();
           }
         },
       });

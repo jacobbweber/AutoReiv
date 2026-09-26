@@ -11,7 +11,6 @@ export const EVENTS = Object.freeze({
   TAB_SWITCH: 'tab:switch',
   ROUTINE_OPEN_MODAL: 'routine:open_modal',
   WIKI_EXPORT: 'wiki:export',
-  FACTORY_OPEN: 'factory:open',
   TOAST_SHOW: 'toast:show',
   STATE_CHANGE: 'state:change',
   SESSION_CHANGE: 'session:change',

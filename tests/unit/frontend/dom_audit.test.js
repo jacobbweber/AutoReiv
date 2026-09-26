@@ -59,14 +59,15 @@ describe('Dead UI Pruning Audit [CARD-369]', () => {
     });
   });
 
-  describe('Preserves All 11 Active Studios and Functional Controls [REQ-PRUNE-004]', () => {
-    it('preserves all 11 studio view sections', () => {
+  describe('Preserves All Active Studios and Functional Controls [REQ-PRUNE-004]', () => {
+    it('preserves every active studio view section (Factory retired, CARD-496)', () => {
       const studios = [
         'view-chat',
         'view-wiki',
         'view-projects',
         'view-agents',
-        'view-factory',
+        'view-skill-studio',
+        'view-tools-studio',
         'view-routines',
         'view-observability',
         'view-settings',
@@ -77,6 +78,7 @@ describe('Dead UI Pruning Audit [CARD-369]', () => {
       for (const studioId of studios) {
         expect(html).toContain(`id="${studioId}"`);
       }
+      expect(html).not.toContain('id="view-factory"');
     });
 
     it('preserves active form submit buttons and cross-studio bridges', () => {

@@ -1,5 +1,5 @@
 /**
- * Factory column-1 assigned skills + column-2 existing-skill picker [CARD-411 UX].
+ * Skill Studio assigned skills + existing-skill picker [CARD-411 UX, moved from studios/factory/ in CARD-496].
  * Assigned list is agent↔skill scoping only — not a write path into the runbook form.
  */
 
@@ -64,7 +64,7 @@ export function mergeEditableSkillOptions({
 }
 
 /**
- * Factory assigned-skills strip is display-only [CARD-419].
+ * Assigned-skills strip is display-only [CARD-419].
  * On/off lives on Agent Studio pills. This link opens Skill Studio and does not toggle the allowlist.
  */
 export function factoryAssignedSkillChrome(skillId) {

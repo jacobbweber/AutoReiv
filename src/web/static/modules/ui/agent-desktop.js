@@ -110,14 +110,6 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
     defaultSize: { w: 820, h: 580 },
   },
   {
-    id: 'dock-factory',
-    tab: 'factory',
-    label: 'Factory',
-    icon: 'flask-conical',
-    subtitle: 'Agent brief',
-    defaultSize: { w: 720, h: 640 },
-  },
-  {
     id: 'dock-skill-studio',
     tab: 'skill-studio',
     label: 'Skill Studio',
@@ -189,7 +181,6 @@ export const VIEW_BY_TAB = {
   wiki: 'view-wiki',
   projects: 'view-projects',
   agents: 'view-agents',
-  factory: 'view-factory',
   'skill-studio': 'view-skill-studio',
   'tools-studio': 'view-tools-studio',
   routines: 'view-routines',
@@ -503,7 +494,7 @@ export function initAgentDesktop(opts = {}) {
       return chatWin;
     }
 
-    // CARD-314: Factory deep-link / dock open must present as a full studio window, not a toast-sized chip.
+    // CARD-314: Skill and Tools Studio deep links open as a full studio window, not a toast-sized chip.
     return submoduleOpenWindow(resolved, opts, ctx);
   }
 

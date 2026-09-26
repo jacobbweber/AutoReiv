@@ -135,7 +135,7 @@ export function setupTeachAgentModal(state, elements = {}, {
   if (messagesContainer && !messagesContainer.dataset.teachEscalateBound) {
     messagesContainer.dataset.teachEscalateBound = '1';
     messagesContainer.addEventListener('click', (ev) => {
-      const btn = ev.target && typeof ev.target.closest === 'function' ? ev.target.closest('.btn-escalate-factory') : null;
+      const btn = ev.target && typeof ev.target.closest === 'function' ? ev.target.closest('.btn-escalate-developer') : null;
       const card = btn ? btn.closest('.skill-proposal-card') : null;
       if (!card || btn.disabled) return;
       btn.disabled = true;

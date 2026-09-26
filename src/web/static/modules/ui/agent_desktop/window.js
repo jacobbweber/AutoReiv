@@ -510,8 +510,8 @@ export function openWindow(tab, { focusComposer: doFocus = false } = {}, ctx) {
 
   root.classList.add('desktop-has-windows');
 
-  // CARD-314: Factory deep-link / dock open must present as a full studio window, not a toast-sized chip.
-  if ((tab === 'factory' || tab === 'skill-studio' || tab === 'tools-studio') && win && !win.maximized) {
+  // CARD-314: Skill and Tools Studio deep links open as a full studio window, not a toast-sized chip.
+  if ((tab === 'skill-studio' || tab === 'tools-studio') && win && !win.maximized) {
     const l = launcherForTabFn(tab);
     const def = (l && l.defaultSize) || { w: 960, h: 680 };
     const vp = viewportSizeFn();

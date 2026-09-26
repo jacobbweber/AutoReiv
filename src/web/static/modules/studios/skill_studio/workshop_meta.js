@@ -1,5 +1,5 @@
 /**
- * Factory workshop structured frontmatter controls [CARD-411].
+ * Skill Studio structured frontmatter controls [CARD-411, moved from studios/factory/ in CARD-496].
  * Tool picker state is the single lever for requires_tools.
  */
 

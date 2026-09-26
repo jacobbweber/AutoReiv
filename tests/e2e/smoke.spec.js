@@ -1354,7 +1354,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#desktopWin-factory')).toHaveCount(0);
       await expect(page.locator('#dock-factory')).toHaveCount(0);
       await expect.poll(() => page.evaluate(() => localStorage.getItem('autoreiv_factory_selected_agent_id'))).toBeNull();
-      await page.locator('#dock-chat').click();
+      // The saved chat window is restored on desktop; a dock click on the focused window would minimize it.
+      if (!(await page.locator('#view-chat').isVisible())) await page.locator('#dock-chat').click();
       await expect(page.locator('#view-chat')).toBeVisible();
     });
 

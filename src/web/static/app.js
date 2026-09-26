@@ -4,7 +4,7 @@
 
 import { $, $queryAll, isMobile, safeCreateIcons } from './modules/dom.js';
 import { state, subscribeAgentsLoaded } from './modules/state/store.js';
-import { bindStudioAgentPickers, PICKER_KEYS } from './modules/studios/agent_picker.js';
+import { bindStudioAgentPickers, clearRetiredPickerKeys, PICKER_KEYS } from './modules/studios/agent_picker.js';
 import { storageGet } from './modules/utils/storage.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
 import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
@@ -15,7 +15,6 @@ import { initSettingsStudio } from './modules/studios/settings.js';
 import { initWikiStudio, exportMessageToWiki, exportSessionToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
-import { initFactoryStudio } from './modules/studios/factory.js';
 import { initSkillStudio } from './modules/studios/skill_studio.js';
 import { initToolsStudio } from './modules/studios/tools_studio.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
@@ -27,6 +26,12 @@ import { setupModal, handleEscapeKey } from './modules/ui/modal.js';
 import { setComposerText } from './modules/studios/chat/composer.js';
 
 export function initApp() {
+  try {
+    clearRetiredPickerKeys(); // CARD-496 D8: the Factory picker key is retired
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to clear retired picker keys:', err);
+  }
+
   try {
     subscribeAgentsLoaded((agents) => {
       bindStudioAgentPickers(agents, { state });
@@ -100,7 +105,6 @@ export function initApp() {
   let wikiCtrl = null;
   let projectsCtrl = null;
   let promptsCtrl = null;
-  let factoryCtrl = null;
   let skillCtrl = null;
   let toolsCtrl = null;
   let educationCtrl = null;
@@ -125,7 +129,7 @@ export function initApp() {
       surfaceBtns.cockpit.className = activeSurfaceClass;
     } else if ((tabName === 'wiki' || tabName === 'projects') && surfaceBtns.vault) {
       surfaceBtns.vault.className = activeSurfaceClass;
-    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'factory' || tabName === 'skill-studio' || tabName === 'tools-studio' || tabName === 'settings') && surfaceBtns.fleet) {
+    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'skill-studio' || tabName === 'tools-studio' || tabName === 'settings') && surfaceBtns.fleet) {
       surfaceBtns.fleet.className = activeSurfaceClass;
     }
   }
@@ -163,11 +167,6 @@ export function initApp() {
     syncTabAria(tabName, tabBtns, tabViews);
     safeCreateIcons();
 
-    // Stop polling if leaving factory studio
-    if (tabName !== 'factory' && factoryCtrl && typeof factoryCtrl.stopPolling === 'function') {
-      factoryCtrl.stopPolling();
-    }
-
     // Isolated Tab Loader Execution [REQ-EDU-SHELL-005]
     try {
       if (tabName === 'chat' && chatCtrl) {
@@ -181,8 +180,6 @@ export function initApp() {
         obsCtrl.loadObservability();
       } else if (tabName === 'agents' && forgeCtrl) {
         forgeCtrl.loadAgentForge();
-      } else if (tabName === 'factory' && factoryCtrl) {
-        factoryCtrl.loadFactoryStudio();
       } else if (tabName === 'skill-studio' && skillCtrl) {
         skillCtrl.loadSkillStudio();
       } else if (tabName === 'tools-studio' && toolsCtrl) {
@@ -279,12 +276,6 @@ export function initApp() {
         await chatCtrl.startNewAgentAuthoring();
       }
     },
-    openFactoryStudio: (agentId = null) => {
-      switchTab('factory');
-      if (factoryCtrl && typeof factoryCtrl.loadFactoryStudio === 'function') {
-        factoryCtrl.loadFactoryStudio(agentId);
-      }
-    },
     openSkillStudio: (agentId = null, skillId = null) => {
       if (skillCtrl && typeof skillCtrl.queueDeepLink === 'function') {
         skillCtrl.queueDeepLink(agentId, skillId);
@@ -298,7 +289,6 @@ export function initApp() {
       }
       switchTab('tools-studio');
     },
-    getFactoryCtrl: () => factoryCtrl,
     onTalkToForge: async (targetAgentId = null) => {
       switchTab('chat');
       if (chatCtrl && typeof chatCtrl.switchSelectedAgent === 'function') {
@@ -399,12 +389,6 @@ export function initApp() {
       },
     },
     {
-      name: 'Factory Studio',
-      init: () => {
-        factoryCtrl = initFactoryStudio(state, sharedCallbacks);
-      },
-    },
-    {
       name: 'Education Studio',
       init: () => {
         // Dynamic import: one studio module failure must not blank initApp [REQ-EDU-SHELL-005]
@@ -462,12 +446,6 @@ export function initApp() {
   });
   studioRegistry.register('agents', {
     getController: () => forgeCtrl,
-  });
-  studioRegistry.register('factory', {
-    deactivate: () => {
-      if (factoryCtrl && typeof factoryCtrl.stopPolling === 'function') factoryCtrl.stopPolling();
-    },
-    getController: () => factoryCtrl,
   });
   studioRegistry.register('skill-studio', {
     deactivate: () => {

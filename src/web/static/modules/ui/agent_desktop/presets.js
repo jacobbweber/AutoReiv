@@ -22,7 +22,6 @@ const PRIORITY_TABS = [
   'wiki',
   'agents',
   'projects',
-  'factory',
   'skill-studio',
   'tools-studio',
   'routines',

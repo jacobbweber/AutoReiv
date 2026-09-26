@@ -287,18 +287,6 @@ body.radical-desktop-demo #view-settings.desktop-view-hosted {
   touch-action: pan-y;
 }
 
-/* CARD-314: Factory fills hosted desktop window (full studio, not toast); outer stays overflow-hidden for runs split pane; pipeline/runs scroll inside. */
-#view-factory,
-#factoryStudio {
-  min-height: 0;
-}
-body.radical-desktop-demo #view-factory.desktop-view-hosted #factoryStudio {
-  min-height: 0 !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  overflow: hidden !important;
-}
-
 /* CARD-328 / CARD-348: Lumina Cinema fills hosted desktop window; outer view respects var(--dw-h) */
 #view-lumina,
 #luminaStudio {
@@ -318,12 +306,6 @@ body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeView {
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior: contain;
   touch-action: pan-y !important;
-}
-#factoryIntakeView {
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
 }
 #view-settings details.settings-section {
   border-radius: 0.75rem;
