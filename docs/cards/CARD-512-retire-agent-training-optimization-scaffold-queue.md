@@ -46,3 +46,7 @@ Agent Studio shows an "Agent Training Optimization" panel with a candidate queue
 
 1. Agent Studio has no "Agent Training Optimization" panel.
 2. `GET /api/capabilities/registry` returns 200; `GET /api/capabilities/scaffold/candidates` does not.
+
+## Note from the CARD-497 refinement (2026-09-26)
+
+- `src/application/orchestration/self_scaffold_queue_e2e.py` (CARD-255, 335 lines) has no caller under `src/`; only `tests/unit/orchestration/test_self_scaffold_queue_e2e_255.py` imports it. It belongs to the scaffold-spine family, so it is left for this card to retire or keep with the spine. It imports `mid_job_self_scaffold.py`, which the Job pipeline still uses (`job_phase_orchestrator.py`), so keep that one.

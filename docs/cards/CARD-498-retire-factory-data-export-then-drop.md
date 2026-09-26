@@ -88,3 +88,10 @@ Never run against live AppData.
 - Also export, then drop, `factory_phase_instructions` (created in `prompt_registry.py` L170).
 - Delete the `factory_jobs` column migrations in `connection.py` L125-130+ in the drop release. Keep fresh installs and upgrades working (migration tests for both).
 - If CARD-512 retires the scaffold spine, export and drop `scaffold_spine` (`schema.py` L474) the same way.
+
+## Note from the CARD-497 refinement (2026-09-26)
+
+- CARD-497 (its D7) deletes `FactoryPacketRepository`, its `SQLiteStateStore` mixin and `domain/orchestration/factory_packets.py`, but keeps the tables, their CREATE SQL and column migrations. The export here should therefore read the tables with **plain SQL** (`SELECT *` to JSON per table), not through the repository.
+- `factory_phase_instructions` exists only where `prompt_registry.py` ran; that file is deleted in CARD-497. Export and drop it **if present**, and test both cases.
+- CARD-497 (D1) adds 308 redirects from the five old Skill Studio paths under `/api/agent_training_factory/`; remove them here.
+- Jacob's DB (read-only check, 2026-09-26): 0 rows in `factory_jobs`, `factory_graphs`, `factory_packets`, `factory_eval_runs` and `scaffold_spine`; no `factory_phase_instructions` table.
