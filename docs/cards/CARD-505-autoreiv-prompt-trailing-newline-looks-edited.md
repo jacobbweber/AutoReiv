@@ -1,7 +1,7 @@
 ---
 id: CARD-505
 title: "AutoReiv's system prompt looks operator-edited (trailing newline), so platform prompt updates never land and a Max Turns save locks it"
-status: In Review
+status: Done
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -21,7 +21,7 @@ labels:
 
 # [CARD-505] AutoReiv's system prompt looks operator-edited (trailing newline), so platform prompt updates never land and a Max Turns save locks it
 
-> **Status**: In Review (built 2026-09-25 on `feat/card-505-prompt-normalize`, not merged; see section 9)
+> **Status**: Done (Jacob said **merge to qa** 2026-09-25 10:12 PM ET; built on `feat/card-505-prompt-normalize`, see section 9)
 > **Created**: 2026-09-25 (found in the CARD-502 scratch repro)
 > **Related**: CARD-443 (platform promotion), CARD-449 (content lock, keep customizations), CARD-450 (Platform defaults badge, Reset), CARD-502 (shared save `persist_agent_profile`), CARD-506 (dead duplicate save paths that also call the lock check), CARD-508 (badge seen empty once while switching agents)
 > **Labels**: `type:bug`, `area:agents`, `P2`
