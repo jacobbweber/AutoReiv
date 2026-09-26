@@ -5,7 +5,7 @@
 import { $, $queryAll, isMobile, safeCreateIcons } from './modules/dom.js';
 import { state, subscribeAgentsLoaded } from './modules/state/store.js';
 import { bindStudioAgentPickers, clearRetiredPickerKeys, PICKER_KEYS } from './modules/studios/agent_picker.js';
-import { storageGet } from './modules/utils/storage.js';
+import { storageGet, storageSet } from './modules/utils/storage.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
 import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
 import { initChatStudio } from './modules/studios/chat.js';
@@ -281,6 +281,15 @@ export function initApp() {
         skillCtrl.queueDeepLink(agentId, skillId);
       }
       switchTab('skill-studio');
+    },
+    openAgentStudio: (agentId = null) => {
+      // CARD-496: open Agent Studio on this agent; the tab's own refresh reads the stored pick.
+      if (agentId) {
+        storageSet(PICKER_KEYS.agents, agentId);
+        const sel = $('forgeAgentSelect');
+        if (sel) sel.value = '';
+      }
+      switchTab('agents');
     },
     openToolsStudio: (agentId = null, scope = null) => {
       const resolvedScope = scope || (agentId ? 'agent' : 'platform');

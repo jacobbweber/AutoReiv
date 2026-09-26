@@ -749,10 +749,7 @@ export function setupMessagesContainerDelegation(messagesContainer, callbacks = 
     const openStudioBtn = e.target.closest('[data-action="open-studio"]');
     if (openStudioBtn) {
       const agentId = openStudioBtn.getAttribute('data-agent-id');
-      if (typeof appCallbacks.switchTab === 'function') {
-        appCallbacks.switchTab('agents');
-        if (typeof appCallbacks.onReloadAgents === 'function') await appCallbacks.onReloadAgents(agentId || null);
-      }
+      if (typeof appCallbacks.openAgentStudio === 'function') appCallbacks.openAgentStudio(agentId || null);
     }
   });
 }

@@ -157,6 +157,13 @@ describe('REQ-496-005: the "agent created" chat card', () => {
       expect(render, s).not.toContain(s);
     }
   });
+
+  it('Open in Agent Studio on the agent-created card opens Agent Studio on that agent', () => {
+    const render = read(`${STATIC}/modules/studios/chat/render.js`);
+    const app = read(`${STATIC}/app.js`);
+    expect(render).toMatch(/openAgentStudio\(agentId/);
+    expect(app).toMatch(/openAgentStudio: \(agentId = null\) => \{[\s\S]*?storageSet\(PICKER_KEYS\.agents, agentId\)[\s\S]*?switchTab\('agents'\)/);
+  });
 });
 
 describe('REQ-496-006: Quick Scaffold stays in Agent Studio', () => {
