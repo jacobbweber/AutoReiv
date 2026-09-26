@@ -1,7 +1,7 @@
 ---
 id: CARD-495
 title: "Retire the Agent Training Factory (1/4): ADR-0060 and steering docs"
-status: Ready
+status: Done
 created: 2026-09-25
 branch: qa
 related:
@@ -26,7 +26,7 @@ labels:
 
 # [CARD-495] Retire the Agent Training Factory (1/4): ADR-0060 and steering docs
 
-> **Status**: Ready for `build` (2026-09-25 11:39 PM ET: D1-D8 accepted; ADR-0060 drafted as Accepted; ADR-0048/0049/0056/0057 and steering amended on local qa. `build` = mark Done after Jacob reads the ADR, section 8)
+> **Status**: Done (2026-09-25 ~11:50 PM ET: Jacob said `build` with no wording changes and accepted D9 and D10. ADR-0060 Accepted. Commits stay on local qa and go out with the CARD-496 merge)
 > **Created**: 2026-09-25 (replaces the earlier CARD-495 "training loop has no front door", written the same day)
 > **Series**: CARD-495 (ADR and docs), then CARD-496 (UI shell), CARD-497 (backend), CARD-498 (data). Revised by the audit (section 1.4): CARD-495, CARD-496, CARD-511, CARD-497, CARD-512, CARD-498. Each lands on its own branch.
 > **Related**: CARD-472 (keep-and-fix chat wiring), CARD-417/418 and ADR-0057 (three Studios), CARD-386 (already deleted the Factory runs and pipeline views), CARD-368 (gaps to the backlog), CARD-306
@@ -230,3 +230,35 @@ On **`merge to qa`**: there is no branch to merge. It means push qa to origin, c
 - The only files changed are in `docs/` and `steering/`.
 - CARD-496..498, CARD-511 and CARD-512 statuses reflect the decisions.
 - The `status: Done` commit is on qa.
+
+## 9. Build result (2026-09-25 ~11:50 PM ET, qa `1397b0ac`)
+
+Jacob said `build` with no wording changes. D9 (no docs test) and D10 (`build` = mark Done) are accepted.
+
+Runbook step 3, `rg -n -i "factory" steering docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md` (long lines cut at 160 characters), then step 4, `git diff --stat 10f2bc75..HEAD`:
+
+```text
+docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md:6:> **Amended**: 2026-09-25 by [ADR-0060](./0060-retire-the-agent-training-factory.md): the Agent Traini...
+docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md:9:> **Related Cards**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-por...
+docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md:145:**Build unblocked (2026-09-22).** This ADR is Accepted and the CARD-414 cutover is on `qa`. Jacob lo...
+docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md:147:> **Amendment (2026-09-25, [ADR-0060](./0060-retire-the-agent-training-factory.md))**: The Agent Tra...
+steering\tech.md:23:- **State Management**: Reactive `createStore` factory (`src/web/static/modules/state/store.js`)
+steering\roadmap.md:81:  - [x] **CARD-386**: 3-Column Agent & Skill Scaffolder & Capabilities Workshop (Factory Studio overhaul).
+steering\roadmap.md:82:  - [x] **CARD-387**: Factory Scaffolder UX Top Action Banner, Auto Slug & Tool Batch Selection.
+steering\roadmap.md:99:- **Milestone 21 (Agent Training Factory retirement, [ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md))**:
+steering\roadmap.md:101:  - [ ] **CARD-496**: Remove the Factory screen, Lab Monitor, training popup and "Agent Training Optimization" panel; gap backlog opens ...
+steering\roadmap.md:103:  - [ ] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool.
+steering\roadmap.md:105:  - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
+steering\product.md:53:   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, education, forge (Agent Studio), obser...
+ 14 files changed, 464 insertions(+), 20 deletions(-)
+```
+
+Every hit is one of the following, so none describes the Factory as current:
+- a pointer to ADR-0060, or the ADR-0056 amendment (L6, L147);
+- history: the ADR-0056 L145 "at the time" wording, the CARD-411 file name in L9, and roadmap Done items L81-82;
+- the Milestone 21 retirement list;
+- tech.md's `createStore` factory function.
+
+Step 4: all 14 changed files are under `docs/` or `steering/` (no product code).
+
+Definition of done (section 8): met.
