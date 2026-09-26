@@ -170,9 +170,26 @@ class MCPClientAdapter:
         self._proc.stdin.write(raw_msg)
         self._proc.stdin.flush()
         line = self._proc.stdout.readline()
-        if not line and self._proc.poll() is not None:
-            err = self._proc.stderr.read() if self._proc.stderr else ""
-            raise RuntimeError(f"MCP server '{self.server_name}' process terminated unexpectedly: {err}")
+        if not line:
+            # EOF: the server closed its output, usually because it crashed. Never report
+            # this as an empty success [CARD-517]. Give it a moment to exit, then say why.
+            proc = self._proc
+            try:
+                proc.wait(timeout=2.0)
+            except Exception:
+                pass
+            code = proc.poll()
+            err = ""
+            if code is not None and proc.stderr:
+                try:
+                    err = proc.stderr.read() or ""
+                except Exception:
+                    err = ""
+            if code is None:
+                raise RuntimeError(f"MCP server '{self.server_name}' closed its output without answering.")
+            raise RuntimeError(
+                f"MCP server '{self.server_name}' process terminated unexpectedly (exit code {code}): {err.strip()}"
+            )
         return line
 
     async def _send_jsonrpc(
@@ -218,7 +235,7 @@ class MCPClientAdapter:
                     raise RuntimeError(f"MCP JSON-RPC Error: {payload['error']}")
                 return payload.get("result", {})
 
-            return {}
+            raise RuntimeError(f"MCP server '{self.server_name}' returned an empty response.")
 
     def get_stderr(self) -> str:
         """Read standard error from the subprocess if available."""
@@ -228,6 +245,14 @@ class MCPClientAdapter:
             except Exception:
                 return ""
         return ""
+
+    async def list_tools_raw(self) -> List[Dict[str, Any]]:
+        """tools/list as the server sent it. Raises instead of returning [] [CARD-511]."""
+        res = await asyncio.wait_for(self._send_jsonrpc("tools/list"), timeout=self.timeout_seconds)
+        tools = res.get("tools") if isinstance(res, dict) else None
+        if not isinstance(tools, list):
+            raise RuntimeError("tools/list did not return a tools array")
+        return tools
 
     async def list_tools(self) -> List[ToolDefinition]:
         """Query MCP tools/list (transport/discovery only — not authorization) [CARD-225]."""

@@ -80,6 +80,8 @@ MCP is one lane, not the only lane.
 - Call `register_mcp_service` with the server name, transport (`stdio` or `sse`), and endpoint or command.
 - Verify that AutoReiv reports `mounted: True` with discovered tool count.
 - Companion runbook is automatically created under `$DATA_DIR/skills/mcp-<name>/SKILL.md`.
+- **Registration checks the server first [CARD-511].** AutoReiv starts it, `tools/list` must return at least one tool with a valid name and an object `inputSchema`, then it calls one tool once (`sample_tool`, default the first) with `sample_arguments` or the minimum built from its schema. For a server that needs secrets, the network, or has side effects, pass `sample_call: "skip"` with a `skip_reason`.
+- If the result starts **`Not registered:`**, nothing was saved or mounted. Tell the operator the error, fix the server, and call `register_mcp_service` again. A scaffolded FastMCP server needs the `mcp` package in the Python that runs it; without it the check reports the import error.
 
 ## Pitfalls
 

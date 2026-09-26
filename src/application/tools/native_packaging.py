@@ -6,6 +6,10 @@ HITL tools still go through ToolPolicyGate before that sandbox runs.
 
 The Tools Studio form does not call this module. The developer agent does,
 via register_native_tool, or the operator does via /api/tools/native.
+
+CARD-511: register runs the tool check (tool_check.py) first. A tool that fails
+is not saved, mounted, granted or added to tool policy. Rows registered before
+CARD-511 have no ``check`` block, still mount at startup, and read "Not checked".
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
+from src.application.tools.tool_check import NATIVE_RUNNER, ToolCheckService, record_check_on_job
 from src.domain.gateway.models import ToolCall
 from src.domain.settings.models import AgentCustomization
 
@@ -33,31 +38,21 @@ _RUN_DEF_RE = re.compile(r"def\s+run\s*\(")
 _MAX_CODE_CHARS = 40_000
 _RISK_LEVELS = frozenset({"low", "medium", "high"})
 
-_RUNNER = """
-import json
-from pathlib import Path
-
-args = json.loads(Path("args.json").read_text(encoding="utf-8"))
-if not isinstance(args, dict):
-    raise SystemExit("native tool arguments must be an object")
-namespace = {"__name__": "native_tool"}
-source = Path("tool.py").read_text(encoding="utf-8")
-exec(compile(source, "tool.py", "exec"), namespace, namespace)
-fn = namespace.get("run")
-if not callable(fn):
-    raise SystemExit("native tool code must define run(**kwargs)")
-result = fn(**args)
-Path("result.json").write_text(
-    json.dumps({"ok": True, "result": result}, default=str),
-    encoding="utf-8",
-)
-"""
+_RUNNER = NATIVE_RUNNER  # the tool check calls tools through this same exec-and-call path [CARD-511]
 
 
 class NativeToolError(ValueError):
     def __init__(self, message: str, status_code: int = 400):
         super().__init__(message)
         self.status_code = status_code
+
+
+class NativeToolCheckFailed(NativeToolError):
+    """The tool check refused the tool. Nothing was saved [CARD-511]."""
+
+    def __init__(self, check: Mapping[str, Any]):
+        super().__init__(str(check.get("message") or "Not registered."), 422)
+        self.check = dict(check)
 
 
 def load_native_tool_names(store: Any) -> set[str]:
@@ -98,6 +93,7 @@ class NativeCustomToolService:
         policy_gate: Any = None,
         hitl_engine: Any = None,
         kernel: Any = None,
+        checker: Optional[ToolCheckService] = None,
     ) -> None:
         self.store = store
         self.tool_registry = tool_registry
@@ -105,6 +101,7 @@ class NativeCustomToolService:
         self.policy_gate = policy_gate
         self.hitl_engine = hitl_engine
         self.kernel = kernel
+        self.checker = checker or ToolCheckService()
 
     def list_tools(self) -> list[dict[str, Any]]:
         return [_public_record(row) for row in _read_rows(self.store)]
@@ -116,10 +113,24 @@ class NativeCustomToolService:
                 return row
         return None
 
-    def register(self, raw: Mapping[str, Any]) -> dict[str, Any]:
+    async def register(self, raw: Mapping[str, Any]) -> dict[str, Any]:
         record = self._validate(raw)
+        options = _check_options(raw)
         name = record["name"]
         self._reject_foreign_collision(name)
+        # CARD-511: run the tool once in the sandbox before anything is saved.
+        check = await self.checker.check_native(
+            name=name,
+            code=record["code"],
+            parameters=record["parameters"],
+            risk_level=record["risk_level"],
+            **options,
+        )
+        record_check_on_job(self.store, check)
+        if not check.ok:
+            logger.info("Native tool %s refused by the tool check: %s", name, check.status)
+            raise NativeToolCheckFailed(check.to_dict())
+        record["check"] = check.to_dict()
         rows = [row for row in _read_rows(self.store) if row.get("name") != name]
         rows.append(record)
         self.store.set_setting(NATIVE_CUSTOM_TOOLS_SETTING, rows)
@@ -136,6 +147,7 @@ class NativeCustomToolService:
                 "packaging": "native",
                 "mcp_required": False,
                 "granted_agent_ids": granted,
+                "message": check.operator_message(),
             }
         )
         return body
@@ -370,7 +382,26 @@ class NativeCustomToolService:
         return profile
 
 
+def _check_options(raw: Mapping[str, Any]) -> dict[str, Any]:
+    """Sample input and skip choice for the tool check [CARD-511 D4-D6]."""
+    sample_call = str(raw.get("sample_call") or "run").strip().lower()
+    if sample_call not in {"run", "skip"}:
+        raise NativeToolError("sample_call must be run or skip")
+    skip_reason = str(raw.get("skip_reason") or "").strip()
+    if sample_call == "skip" and not skip_reason:
+        raise NativeToolError("skip_reason is required when sample_call is skip (for example: needs an API key)")
+    sample_arguments = raw.get("sample_arguments")
+    if sample_arguments is not None and not isinstance(sample_arguments, Mapping):
+        raise NativeToolError("sample_arguments must be an object")
+    return {
+        "sample_arguments": dict(sample_arguments) if isinstance(sample_arguments, Mapping) else None,
+        "sample_call": sample_call,
+        "skip_reason": skip_reason or None,
+    }
+
+
 def _public_record(row: Mapping[str, Any]) -> dict[str, Any]:
+    check = row.get("check")
     return {
         "name": row.get("name"),
         "description": row.get("description"),
@@ -382,6 +413,7 @@ def _public_record(row: Mapping[str, Any]) -> dict[str, Any]:
         "mcp_required": False,
         "origin_label": catalog_origin_label("native_custom"),
         "has_code": bool(str(row.get("code") or "").strip()),
+        "check": dict(check) if isinstance(check, Mapping) else None,
     }
 
 

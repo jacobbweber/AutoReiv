@@ -67,6 +67,28 @@ export function originLabel(group) {
   return 'Platform';
 }
 
+/**
+ * Tool check label for a native custom row [CARD-511 REQ-511-011].
+ * @param {object|null|undefined} check
+ * @returns {string}
+ */
+export function nativeCheckLabel(check) {
+  if (!check || typeof check !== 'object') return 'Not checked';
+  if (check.status === 'passed') return 'Checked';
+  if (check.status === 'checked_without_call') {
+    const reason = String(check.skip_reason || '').trim();
+    return reason ? `Checked without a sample call: ${reason}` : 'Checked without a sample call';
+  }
+  return 'Not checked';
+}
+
+function nativeCheckKey(check) {
+  if (check && typeof check === 'object' && (check.status === 'passed' || check.status === 'checked_without_call')) {
+    return check.status;
+  }
+  return 'not_checked';
+}
+
 function groupKind(group) {
   if (!group) return 'platform';
   if (group.source === 'mcp') return 'mcp';
@@ -86,7 +108,9 @@ function dataOrigin(group) {
  * Platform / built-in namespaces stay in their own groups.
  * When a server has no tool list, capability namespaces keep the MCP grouping they already expose.
  *
- * @param {{ namespaces?: object[], platformServers?: object[], agentServers?: object[], agentId?: string }} input
+ * `nativeTools` (from /api/tools/native) adds each native row's tool check label [CARD-511].
+ *
+ * @param {{ namespaces?: object[], platformServers?: object[], agentServers?: object[], agentId?: string, nativeTools?: object[]|null }} input
  * @returns {object[]}
  */
 export function buildCatalogGroups({
@@ -94,9 +118,13 @@ export function buildCatalogGroups({
   platformServers = [],
   agentServers = [],
   agentId = '',
+  nativeTools = null,
 } = {}) {
   const groups = [];
   const claimed = new Set();
+  const nativeChecks = Array.isArray(nativeTools)
+    ? new Map(nativeTools.filter((row) => row && row.name).map((row) => [String(row.name), row.check || null]))
+    : null;
 
   function pushServer(server, scope, ownerId) {
     if (!server || !server.name) return;
@@ -129,11 +157,14 @@ export function buildCatalogGroups({
     if (!ns) return;
     const mcp = isMcpNamespace(ns);
     const source = catalogSource(ns);
-    const tools = (Array.isArray(ns.tools) ? ns.tools : [])
+    let tools = (Array.isArray(ns.tools) ? ns.tools : [])
       .map(toolRecord)
       .filter(Boolean)
       .filter((tool) => !claimed.has(tool.name));
     if (!tools.length) return;
+    if (source === 'native_custom' && nativeChecks) {
+      tools = tools.map((tool) => ({ ...tool, showCheck: true, check: nativeChecks.get(tool.name) || null }));
+    }
     const serverName = mcp
       ? String(ns.server_name || ns.name || '').replace(/^MCP:\s*/i, '')
       : '';
@@ -225,6 +256,7 @@ export function renderCatalogMarkup(groups) {
         <div class="min-w-0 flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
           <span class="font-mono text-[11px] text-slate-100">${escapeHtml(tool.name)}</span>
           ${tool.description ? `<span class="text-[11px] text-slate-400">${escapeHtml(tool.description)}</span>` : ''}
+          ${tool.showCheck ? `<span data-testid="tools-studio-check-label" data-check-status="${escapeHtml(nativeCheckKey(tool.check))}" class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] ${nativeCheckKey(tool.check) === 'not_checked' ? 'text-slate-400' : 'text-emerald-300'}">${escapeHtml(nativeCheckLabel(tool.check))}</span>` : ''}
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button type="button" data-action="tools-studio-modify" data-tool-name="${escapeHtml(tool.name)}" class="px-2 py-1 rounded-lg bg-white/[0.04] text-[11px] text-slate-200 border border-white/[0.08]">Modify</button>
@@ -520,11 +552,23 @@ export async function loadCatalogModel(fetchImpl, { agentId = '' } = {}) {
     const agentRes = await fetchImpl(`/api/agents/${encodeURIComponent(owner)}/mcp`);
     agentServers = agentRes && agentRes.ok ? await agentRes.json() : [];
   }
+  // CARD-511: native rows carry their tool check. The catalog still loads without it.
+  let nativeTools = null;
+  try {
+    const nativeRes = await fetchImpl('/api/tools/native');
+    if (nativeRes && nativeRes.ok) {
+      const nativeData = await nativeRes.json();
+      nativeTools = nativeData && Array.isArray(nativeData.tools) ? nativeData.tools : null;
+    }
+  } catch {
+    nativeTools = null;
+  }
   return buildCatalogGroups({
     namespaces: cap && Array.isArray(cap.namespaces) ? cap.namespaces : [],
     platformServers: Array.isArray(platformServers) ? platformServers : [],
     agentServers: Array.isArray(agentServers) ? agentServers : [],
     agentId: owner,
+    nativeTools,
   });
 }
 

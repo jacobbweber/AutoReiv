@@ -10,7 +10,6 @@ Evaluates newly authored tools sequentially across:
 
 import ast
 import logging
-import re
 import time
 from typing import Dict, List, Optional
 
@@ -66,19 +65,9 @@ def is_shallow_stub_artifact(
 
 
 
-def detect_path_safety_violation(tool_code: str) -> Optional[str]:
-    """Return reason if tool_code has path traversal / sandbox escape.
-
-    Absolute Windows paths (C:\\Users\\..., D:\\Archive\\...) are allowed.
-    """
-    code = tool_code or ''
-    if re.search(r'\.\.(?:/|\\)', code):
-        return "Path traversal segment ('..') detected. Disallowed."
-    if re.search(r'["\']/(?:etc|proc|sys)(?:/|\\|["\'])', code):
-        return 'Sensitive absolute Unix path literal detected. Disallowed.'
-    if re.search(r'["\'/]/(?:etc|proc|sys)/', code):
-        return 'Sensitive absolute Unix path literal detected. Disallowed.'
-    return None
+# Moved to src/application/tools/tool_check.py [ADR-0060 D6, CARD-511]; re-exported
+# for the Factory until CARD-497 deletes this module.
+from src.application.tools.tool_check import detect_path_safety_violation  # noqa: E402,F401
 
 
 class VerificationBatteryService:

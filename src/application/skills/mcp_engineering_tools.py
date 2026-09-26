@@ -34,12 +34,14 @@ class MCPEngineeringTools:
         tool_registry: Optional[ScopedToolRegistry] = None,
         data_dir: Optional[Union[str, Path]] = None,
         root_resolver: Optional[Any] = None,
+        tool_checker: Optional[Any] = None,
     ) -> None:
         self.state_store = state_store
         self.mcp_manager = mcp_manager
         self.tool_registry = tool_registry
         self.data_dir = Path(data_dir) if data_dir else None
         self.root_resolver = root_resolver
+        self.tool_checker = tool_checker
 
     def _get_mcp_manager(self) -> Optional[Any]:
         if self.mcp_manager is not None:
@@ -563,10 +565,15 @@ Register into AutoReiv using the `register_mcp_service` tool:
         headers: Optional[Dict[str, str]] = None,
         env: Optional[Dict[str, str]] = None,
         enabled: bool = True,
+        sample_arguments: Optional[Dict[str, Any]] = None,
+        sample_tool: Optional[str] = None,
+        sample_call: str = "run",
+        skip_reason: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Register newly deployed MCP server into AutoReiv's canonical store and mount it via MCPClientManager.
         Enforces the Single Lever Invariant: shares exact same store.set_setting and mount_server pipeline as Settings Studio [REQ-394-004].
+        CARD-511: the server is started, listed and called once first; a failing server is not saved.
         """
         clean_name = self._clean_server_name(name)
         if not clean_name:
@@ -586,6 +593,40 @@ Register into AutoReiv using the `register_mcp_service` tool:
         else:
             url = str(url_or_command).strip() if url_or_command else "http://localhost:8000/sse"
 
+        # CARD-511: check the server once before anything is saved or mounted.
+        from src.application.tools.tool_check import ToolCheckService, record_check_on_job
+
+        checker = self.tool_checker or ToolCheckService()
+        try:
+            check = await checker.check_mcp(
+                name=clean_name,
+                command=cmd,
+                env=env,
+                transport=transport,
+                url=url,
+                headers=headers,
+                sample_arguments=sample_arguments,
+                sample_tool=sample_tool,
+                sample_call=sample_call,
+                skip_reason=skip_reason,
+            )
+        except ValueError as exc:
+            return {"success": False, "registered": False, "saved": False, "mounted": False, "error": str(exc)}
+        record_check_on_job(self.state_store, check)
+        if not check.ok:
+            message = check.operator_message()
+            return {
+                "success": False,
+                "registered": False,
+                "server_name": clean_name,
+                "transport": transport,
+                "saved": False,
+                "mounted": False,
+                "message": message,
+                "error": message,
+                "check": check.to_dict(),
+            }
+
         server_dict = {
             "name": clean_name,
             "transport": transport,
@@ -594,6 +635,7 @@ Register into AutoReiv using the `register_mcp_service` tool:
             "headers": headers,
             "env": env,
             "enabled": enabled,
+            "check": check.to_dict(),
         }
 
         # 1. Update SQLite State Store (Single Lever Invariant)
@@ -645,6 +687,7 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     "saved": True,
                     "mounted": False,
                     "mount_error": str(exc),
+                    "check": check.to_dict(),
                     "diagnostics": [f"Config saved to store, but live mounting returned: {exc}"],
                 }
 
@@ -657,6 +700,8 @@ Register into AutoReiv using the `register_mcp_service` tool:
             "tool_count": len(mounted_tools),
             "tools": mounted_tools,
             "companion_skill_written": companion_written,
+            "message": check.operator_message(),
+            "check": check.to_dict(),
             "diagnostics": [
                 f"MCP server '{clean_name}' successfully registered in canonical store.",
                 f"Active mounted status: {mounted} ({len(mounted_tools)} tools discovered).",
@@ -721,7 +766,11 @@ Register into AutoReiv using the `register_mcp_service` tool:
 
         registry.register_tool(
             name="register_mcp_service",
-            description="Register a newly deployed MCP server into AutoReiv's canonical store and mount it live.",
+            description=(
+                "Register a newly deployed MCP server into AutoReiv's canonical store and mount it live. "
+                "The server is started, listed and called once first [CARD-511]; a result starting "
+                "'Not registered:' means nothing was saved: tell the operator, fix the server, call again."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
@@ -733,6 +782,10 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     "headers": {"type": "object", "description": "Optional HTTP headers."},
                     "env": {"type": "object", "description": "Optional environment variables."},
                     "enabled": {"type": "boolean", "default": True},
+                    "sample_tool": {"type": "string", "description": "Tool to call once in the check (default: the first listed)."},
+                    "sample_arguments": {"type": "object", "description": "Harmless input for that one call."},
+                    "sample_call": {"type": "string", "enum": ["run", "skip"], "description": "skip needs skip_reason."},
+                    "skip_reason": {"type": "string", "description": "Why the sample call is skipped (secrets, network, side effects)."},
                 },
                 "required": ["name"],
             },

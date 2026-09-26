@@ -1,7 +1,7 @@
 ---
 id: CARD-517
 title: "An MCP tool call that crashes the server is reported as success with empty output"
-status: Ready
+status: Done
 created: 2026-09-26
 branch: qa
 related:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-517] An MCP tool call that crashes the server is reported as success
 
-> **Status**: Ready (found in the CARD-511 scratch reproduction, 2026-09-26 ~1:20 AM ET, qa `6f066514`). **Recommended, folded into CARD-511 (its decision D10)**, because CARD-511's MCP pass rule depends on a truthful call result, and because an agent is told a failed action succeeded. Closes with CARD-511 if D10 is accepted.
+> **Status**: Done (folded into CARD-511 as decision D10 / REQ-511-013, accepted 2026-09-26 ~1:52 AM ET). Fixed in `fd53cf83` on `feat/card-511-tool-check`: `_sync_exchange` and `_send_jsonrpc` raise with the exit code and stderr instead of returning an empty result, so `call_tool` returns `success: false`. Tests: `test_card517_*` in `tests/unit/mcp/test_mcp_client_adapter.py`. Ships with the CARD-511 merge. Found in the CARD-511 scratch reproduction, 2026-09-26 ~1:20 AM ET, qa `6f066514`.
 > **Related**: CARD-511 (REQ-511-013)
 > **Labels**: `type:bug`, `area:mcp`, `P2`
 

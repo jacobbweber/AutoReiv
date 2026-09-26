@@ -5,12 +5,15 @@ graceful stdio fallback, and canonical single-lever registration.
 """
 
 import sys
+from pathlib import Path as _Path
+from unittest.mock import AsyncMock as _AsyncMock
 
 import pytest
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.mcp_engineering_tools import MCPEngineeringTools
 from src.application.telemetry.collector import TelemetryCollector
+from src.domain.gateway.models import ToolDefinition as _ToolDefinition
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -210,6 +213,7 @@ def test_deploy_mcp_container_fallback_to_stdio(mcp_tools, tmp_path):
 async def test_register_mcp_service_canonical_single_lever(mcp_tools, temp_store):
     """[REQ-394-004] Verify registration writes to canonical store.get_setting('mcp_servers')."""
     tools, _ = mcp_tools
+    tools.tool_checker = _PassingChecker()  # CARD-511: this test covers the save path only
 
     res = await tools.register_mcp_service(
         name="enterprise_db",
@@ -254,3 +258,105 @@ async def test_developer_agent_pack_has_mcp_engineering_tools(tmp_path):
     assert "test_mcp_server" in tool_reg
     assert "deploy_mcp_container" in tool_reg
     assert "register_mcp_service" in tool_reg
+
+
+# ---------------------------------------------------------------------------
+# CARD-511: register_mcp_service runs the MCP check before it saves (tests 18-21)
+# ---------------------------------------------------------------------------
+_RAW = str(_Path(__file__).resolve().parents[2] / "fixtures" / "mcp" / "raw_stdio_server.py")
+
+
+def _mock_manager():
+    manager = _AsyncMock()
+    manager.mount_server.return_value = [
+        _ToolDefinition(name="mcp_c511raw_lookup", description="Look up a city", parameters={"type": "object"})
+    ]
+    return manager
+
+
+async def _register(tools, mode_or_cmd, **extra):
+    cmd = mode_or_cmd if isinstance(mode_or_cmd, list) else [sys.executable, "-u", _RAW, mode_or_cmd]
+    return await tools.register_mcp_service(name="c511raw", transport="stdio", url_or_command=cmd, **extra)
+
+
+@pytest.mark.asyncio
+async def test_card511_18_server_that_cannot_start_is_not_saved(mcp_tools, temp_store, tmp_path):
+    tools, _ = mcp_tools
+    tools.mcp_manager = _mock_manager()
+    res = await _register(tools, [sys.executable, "-c", "import nonexistent_c511_mod"])
+    assert res["success"] is False
+    assert res["saved"] is False
+    assert res["mounted"] is False
+    assert res["check"]["stage"] == "list"
+    assert res["message"].startswith("Not registered: c511raw failed the list check")
+    assert "ModuleNotFoundError" in res["message"]  # the operator sees why, not "no error output"
+    assert temp_store.get_setting("mcp_servers") in (None, [])
+    tools.mcp_manager.mount_server.assert_not_awaited()
+    assert not (tmp_path / "data" / "skills" / "mcp-c511raw").exists()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "mode,stage,needle",
+    [
+        ("empty", "list", "no tools"),
+        ("badschema", "list", "bad name"),
+        ("iserror", "sample_call", "city not found"),
+        ("crash", "sample_call", "c511 deliberate failure"),
+    ],
+)
+async def test_card511_19_broken_servers_are_refused(mcp_tools, temp_store, mode, stage, needle):
+    tools, _ = mcp_tools
+    tools.mcp_manager = _mock_manager()
+    res = await _register(tools, mode)
+    assert res["success"] is False, res
+    assert res["check"]["stage"] == stage
+    assert needle in res["check"]["error"]
+    assert temp_store.get_setting("mcp_servers") in (None, [])
+    tools.mcp_manager.mount_server.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_card511_20_good_server_is_saved_with_its_check(mcp_tools, temp_store):
+    tools, _ = mcp_tools
+    tools.mcp_manager = _mock_manager()
+    res = await _register(tools, "good", sample_arguments={"city": "Oslo"})
+    assert res["success"] is True, res
+    assert res["saved"] is True
+    assert res["mounted"] is True
+    assert res["check"]["status"] == "passed"
+    assert res["check"]["sample_arguments"] == {"city": "Oslo"}
+    stored = temp_store.get_setting("mcp_servers")
+    assert stored[0]["name"] == "c511raw"
+    assert stored[0]["check"]["status"] == "passed"
+    tools.mcp_manager.mount_server.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_card511_21_unknown_sample_tool_lists_the_real_ones(mcp_tools, temp_store):
+    tools, _ = mcp_tools
+    tools.mcp_manager = _mock_manager()
+    res = await _register(tools, "good", sample_tool="nope")
+    assert res["success"] is False
+    assert res["check"]["stage"] == "sample_call"
+    assert "lookup" in res["check"]["error"]
+    assert "ping" in res["check"]["error"]
+
+
+@pytest.mark.asyncio
+async def test_card511_skip_still_lists_tools(mcp_tools, temp_store):
+    tools, _ = mcp_tools
+    tools.mcp_manager = _mock_manager()
+    res = await _register(tools, "crash", sample_call="skip", skip_reason="needs a token")
+    assert res["success"] is True, res
+    assert res["check"]["status"] == "checked_without_call"
+    assert res["check"]["skip_reason"] == "needs a token"
+
+
+class _PassingChecker:
+    """Stands in for the real MCP check where a test only covers the save path [CARD-511]."""
+
+    async def check_mcp(self, **kwargs):
+        from src.application.tools.tool_check import ToolCheckResult
+
+        return ToolCheckResult(tool=str(kwargs.get("name") or ""), lane="mcp", status="passed")

@@ -31,6 +31,7 @@ import {
   authoringErrorMessage,
   intentValidationError,
   interpretAuthoringSubmit,
+  formatToolCheckLines,
   interpretAuthoringTalk,
   normalizeToolIntentDraft,
 } from './tools_studio_authoring.js';
@@ -369,7 +370,7 @@ export function initToolsStudio(_state, callbacks = {}) {
       const openBtn = `<button type="button" id="toolsStudioOpenDeveloperChatBtn" data-testid="tools-studio-open-developer-chat" class="px-2.5 py-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white text-[11px] font-semibold">Open developer chat</button>`;
       showAuthoringStatus(
         'ok',
-        `<div>Developer job <span class="font-mono">${escapeHtml(plan.jobId)}</span> is ${escapeHtml(plan.status)}. Packaging was not applied.</div><div class="whitespace-pre-wrap text-slate-100">${escapeHtml(plan.reply)}</div>${openBtn}`,
+        `<div>Developer job <span class="font-mono">${escapeHtml(plan.jobId)}</span> is ${escapeHtml(plan.status)}. Packaging was not applied.</div><div class="whitespace-pre-wrap text-slate-100">${escapeHtml(plan.reply)}</div>${formatToolCheckLines(plan.toolChecks).map((line) => `<div data-testid="tools-studio-tool-check" class="text-[11px] font-mono text-amber-200 whitespace-pre-wrap">${escapeHtml(line)}</div>`).join('')}${openBtn}`,
       );
       const open = $('toolsStudioOpenDeveloperChatBtn');
       if (open) open.addEventListener('click', () => { openDeveloperChat(plan).catch((err) => showToast(err.message || String(err), 'error')); });

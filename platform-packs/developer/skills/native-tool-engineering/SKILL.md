@@ -46,6 +46,18 @@ Do not drop a new tool in that folder and call it a native custom tool. Native c
 6. `grant_agent_ids` appends the tool to those agents' existing allowlists (`save_agent_override`). A tool that is not granted is refused at the policy gate.
 7. Confirm `GET /api/tools/native` lists it with origin **Native custom**, and `mcp_servers` did not gain a server.
 
+## Registration runs the tool once [CARD-511]
+
+`register_native_tool` checks the tool before it saves anything:
+
+1. **Static**: the code parses, defines a module-level `run(**kwargs)`, and has no path traversal. `eval`/`exec` and bare `except` are warnings only.
+2. **Import**: the module runs in the sandbox (10 s) without calling `run`.
+3. **One sample call** (20 s) through the same runner that invoke uses. The result must be JSON. Pass harmless `sample_arguments` (a dry-run or read-only input); without them the check builds the minimum from `parameters`.
+
+The sandbox is a temp folder with secret-looking environment variables removed. It does **not** block the network or protect files, so the sample call really runs. For a tool that needs an API key, the network, or has side effects, pass `sample_call: "skip"` with a `skip_reason`. `risk_level: high` always skips the call. Import still runs, and the operator sees "Checked without a sample call: <reason>".
+
+If the result starts **`Not registered:`**, nothing was saved, mounted or granted. Tell the operator the error in plain words, fix the code, and call `register_native_tool` again. A good tool shows **Checked** in Tools Studio. Tools registered before this check show **Not checked**.
+
 Default `requires_hitl` is true. The call parks for operator approval until approval mode is run. That is the safety layer for this lane. MCP is not a substitute for it.
 
 ## A folder of scripts is chat context

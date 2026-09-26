@@ -230,3 +230,67 @@ def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_cli
     assert "scaffold_mcp" not in source
     assert "SkillToolBinding" not in source
     assert "skill_tool_bindings" not in source
+
+
+class _RegisteringKernel:
+    """Developer turn that calls the real register_native_tool with a broken tool [CARD-511]."""
+
+    def __init__(self, app):
+        self.app = app
+        self.results = []
+
+    async def run_turn(self, **kwargs):
+        from src.domain.gateway.models import ToolCall
+
+        call = ToolCall(
+            id="c511_call",
+            name="register_native_tool",
+            arguments={
+                "name": "c511_job_broken",
+                "description": "Broken on purpose.",
+                "code": "import nonexistent_c511_mod\n\ndef run(**kw):\n    return 1\n",
+            },
+        )
+        result = await self.app.state.tool_registry.execute(
+            call,
+            kwargs["agent"],
+            session_id=kwargs["session_id"],
+            approval_mode="run",
+            job_id=kwargs["job_id"],
+        )
+        self.results.append(result)
+        output = result.output if isinstance(result.output, dict) else {}
+        return ChatMessage(role=Role.ASSISTANT, content=str(output.get("message") or result.error or "no output"))
+
+
+def test_oc511_job_records_the_tool_check_and_the_tool_is_not_registered(operator_client):
+    """CARD-511 REQ-511-010: the Tools Studio job keeps the check result; persisted_tool stays false."""
+    client, store, _wiki = operator_client
+    app = client.app
+    kernel = _RegisteringKernel(app)
+    app.state.kernel = kernel
+
+    created = client.post("/api/tools_studio/authoring/jobs", json={"intent": "create", "draft": DRAFT})
+    assert created.status_code == 200, created.text
+    body = created.json()
+    assert body["persisted_tool"] is False
+    assert body["packaging_applied"] is False
+    assert body["reply"].startswith("Not registered: c511_job_broken failed the import check")
+    checks = body["tool_checks"]
+    assert len(checks) == 1
+    assert checks[0]["tool"] == "c511_job_broken"
+    assert checks[0]["status"] == "failed"
+    assert checks[0]["stage"] == "import"
+    assert checks[0]["message"].startswith("Not registered:")
+
+    events = store.list_standing_journey_events(body["job_id"])
+    assert any(event.get("kind") == "tools_studio_tool_check" for event in events)
+    latest = store.get_latest_job_phase_checkpoint(body["job_id"])
+    statuses = [cp.verifier_status for cp in store.list_job_phase_checkpoints(body["job_id"])]
+    assert "failed" in statuses, (statuses, latest)
+
+    fetched = client.get(f"/api/tools_studio/authoring/jobs/{body['job_id']}")
+    assert fetched.status_code == 200, fetched.text
+    assert fetched.json()["tool_checks"][0]["status"] == "failed"
+    assert fetched.json()["persisted_tool"] is False
+    assert all(row["name"] != "c511_job_broken" for row in client.get("/api/tools/native").json()["tools"])

@@ -10,7 +10,7 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 
 SENSITIVE_ENV_KEYWORDS = (
     "KEY",
@@ -56,13 +56,18 @@ class SandboxedSubprocessWorker:
     def sanitize_environment(
         cls,
         env_overrides: Optional[Dict[str, str]] = None,
+        drop_env_prefixes: Optional[Sequence[str]] = None,
     ) -> Dict[str, str]:
         """
         Produce a sanitized environment dict stripping sensitive host keys [REQ-SANDBOX-002].
+        ``drop_env_prefixes`` also removes keys with those prefixes (CARD-511 tool check).
         """
+        drop = tuple(p.upper() for p in (drop_env_prefixes or ()))
         clean_env: Dict[str, str] = {}
         for key, val in os.environ.items():
             upper_key = key.upper()
+            if drop and upper_key.startswith(drop):
+                continue
             if upper_key in SAFE_PASSTHROUGH_ENV_KEYS:
                 clean_env[key] = val
             elif not any(keyword in upper_key for keyword in SENSITIVE_ENV_KEYWORDS):
@@ -85,6 +90,7 @@ class SandboxedSubprocessWorker:
         mirror_dir: Optional[str] = None,
         stubs: Optional[Dict[str, str]] = None,
         workspace_dir: Optional[str] = None,
+        drop_env_prefixes: Optional[Sequence[str]] = None,
     ) -> SubprocessResult:
         """
         Execute command inside a fresh TemporaryDirectory [REQ-SANDBOX-001, REQ-SANDBOX-002, REQ-GUARD-002, REQ-FACT-008].
@@ -109,7 +115,7 @@ class SandboxedSubprocessWorker:
 
         is_external_workspace = workspace_dir is not None
         temp_dir = workspace_dir or tempfile.mkdtemp(prefix="autoreiv_sandbox_")
-        env = cls.sanitize_environment(env_overrides)
+        env = cls.sanitize_environment(env_overrides, drop_env_prefixes)
         output_files: Dict[str, str] = {}
         is_truncated = False
 

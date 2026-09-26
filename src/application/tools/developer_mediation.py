@@ -15,6 +15,7 @@ from typing import Any, Mapping, Optional
 
 from src.application.orchestration.chat_job_binding import output_packet_for_phase
 from src.application.orchestration.phase_llm_resilience import resolve_standing_phase_llm_timeout
+from src.application.tools.tool_check import tool_checks_for_job
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.orchestration.models import HandoffPacket, JobStatus, PhaseSpec, PhaseStatus
 
@@ -111,6 +112,9 @@ def format_developer_prompt(packet: Mapping[str, Any]) -> str:
         "Both lanes exist. Native: register_native_tool in native-tool-engineering (no MCP server). "
         "MCP: mcp-engineering, then attach; Tools Studio groups tools under that server name. "
         "A filesystem path in this message is developer chat context, not a Tools Studio folder picker.\n\n"
+        "Registering runs the tool once in the sandbox first (register_native_tool or register_mcp_service). "
+        "Pass harmless sample_arguments; use sample_call skip with skip_reason only for secrets, network or side effects. "
+        "If the result says Not registered, nothing was saved: tell the operator the error, fix it, and register again.\n\n"
         "Reply in this chat with the next concrete step. "
         "Tools Studio did not include implementation code and did not write a tool file."
     )
@@ -305,6 +309,7 @@ class ToolsDeveloperMediationService:
             "packet": packet,
             "persisted_tool": False,
             "packaging_applied": False,
+            "tool_checks": tool_checks_for_job(self._store, job.id),
             "watch": _watch(job.id, getattr(job, "session_id", None)),
         }
 
@@ -332,6 +337,7 @@ class ToolsDeveloperMediationService:
             "packet": dict(packet),
             "persisted_tool": False,
             "packaging_applied": False,
+            "tool_checks": tool_checks_for_job(self._store, job_id),
             "watch": _watch(job_id, session_id),
         }
 
@@ -372,6 +378,8 @@ class ToolsDeveloperMediationService:
                     name="Author",
                     success_rule=SUCCESS_RULE,
                     assigned_agent_id=DEVELOPER_AGENT_ID,
+                    # The phase rule is about Developer's reply. The tool itself is checked
+                    # at registration (tool_check.py), with or without a job [CARD-511 D1].
                     verify_checker=None,
                     max_turns=8,
                 )
