@@ -101,6 +101,7 @@
   - [x] **CARD-496**: Remove the Factory screen, Lab Monitor, training popup and "Agent Training Optimization" panel; gap backlog opens Skill Studio or Developer - **Done**.
   - [x] **CARD-511**: Check Developer-built native tools before registering them - **Done**.
   - [x] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool - **Done**.
+  - [x] **CARD-520**: Rename `factory_escalation` to `tool_escalation`; Observability tool escalations get Ask Developer instead of Apply (folds CARD-526) - **Done**.
   - [ ] **CARD-512**: Retire the scaffold spine backend.
   - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
 

@@ -1,7 +1,7 @@
 ---
 id: CARD-520
 title: "Rename the Teach/Observability remedy factory_escalation to tool_escalation, and replace Observability's always-failing Apply with Ask Developer"
-status: In Review
+status: Done
 created: 2026-09-26
 branch: qa
 related:
@@ -22,7 +22,7 @@ labels:
 
 # [CARD-520] `tool_escalation`: one name for "this needs a tool", and a working Ask Developer in Observability
 
-> **Status**: In Review (`build`, 2026-09-26 ~1:50 PM ET, D1-D12 accepted as recommended, D10 folds CARD-526). Branch `feat/card-520-tool-escalation` from local qa `5880e3b7`: failing tests `3de882ee` (+ `f4eb4b96` import fix), implementation `b702a304`. Serve runs the branch on 0.0.0.0:8000 with a live-test seed. Waiting for Jacob's live test, then `merge to qa`. Refined 2026-09-26 ~12:50 PM ET from `0f5cf9da`; split from CARD-497.
+> **Status**: Done (`merge to qa`, 2026-09-26 ~3:27 PM ET). Jacob's live tests on Jarvis passed steps 4, 5, 6 and 7 (tool-escalation card made; Observability Ask Developer opens a Developer chat that streams at once and the card reads Asked Developer; Teach shows Needs a tool; Ask Developer to build this tool opens a Developer chat that sends once). Fixes from live testing: REQ-520-015 (distill fallback still sees a missing tool, `4221810e` tests, `6f328ce2` fix) and REQ-520-016 (Ask Developer tells Developer the target agent to grant, `b2dac9f1` tests, `fab5d6fd` fix). Follow-ups filed, none blocking: CARD-527, CARD-528, CARD-529, CARD-530, CARD-531. Branch `feat/card-520-tool-escalation` from local qa `5880e3b7`; D1-D12 accepted as recommended, D10 folded CARD-526.
 > **Related**: CARD-497 (Done: D3, D14 and the shared real-send path `chat/developer_intent.js`, REQ-497-016), ADR-0060 section 4.1, CARD-472 (Teach Ask Developer), CARD-354 (friction recommendations), CARD-503 (distill timeout, affects the Teach live test), CARD-504 (needs-tool card title reads both names), CARD-525 and CARD-526 (filed from this reproduction)
 > **Labels**: `type:product`, `area:observability`, `area:skills`, `P2`
 
