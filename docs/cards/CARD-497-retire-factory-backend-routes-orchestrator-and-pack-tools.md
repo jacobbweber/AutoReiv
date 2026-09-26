@@ -25,7 +25,7 @@ labels:
 
 # [CARD-497] Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs
 
-> **Status**: Ready (refined on `continue`, 2026-09-26 ~9:50 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). Decisions D1-D14 are to confirm at `build`. The remedy rename (old D3) moves to successor card CARD-520.
+> **Status**: In Progress (`build`, 2026-09-26 ~9:44 AM ET: Jacob accepted D1-D14 exactly as recommended in the plan at `1a9da7ae`. Branch `feat/card-497-factory-backend-removal` from qa `1a9da7ae`). Refined on `continue`, 2026-09-26 ~9:30 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). The remedy rename (old D3) moves to successor card CARD-520.
 > **Created**: 2026-09-25
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted). This card is step 4 of 6: CARD-495 (Done), CARD-496 (Done), CARD-511 (Done), **CARD-497**, CARD-512, CARD-498.
 > **Series**: CARD-495, CARD-496, CARD-511, **CARD-497**, CARD-520 (split from this card), CARD-512, CARD-498
@@ -38,7 +38,7 @@ labels:
 | Jacob reply | Meaning |
 |-------------|---------|
 | **`continue`** | Refine. No product code |
-| **`build`** | Build test-first on `feat/card-497-factory-backend` |
+| **`build`** | Build test-first on `feat/card-497-factory-backend-removal` |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
 
 ---
@@ -114,7 +114,7 @@ labels:
 - **[REQ-497-014]** No module under `src/` SHALL import a deleted module. The deleted files SHALL be absent. `tool_check.py` SHALL stay Factory-free.
 - **[REQ-497-015]** The lanes in the table above SHALL keep passing their existing tests (Teach distill and Ask Developer, Observability runbook Apply, skill-eval sleep, Developer register with the CARD-511 check, gap backlog).
 
-## 3. Decisions (recommendations; confirm at `build`)
+## 3. Decisions (D1-D14 accepted as recommended, 2026-09-26 ~9:44 AM ET)
 
 | # | Decision | Recommendation |
 |---|----------|----------------|
