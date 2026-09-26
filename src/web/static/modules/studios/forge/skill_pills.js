@@ -83,6 +83,21 @@ export function pillsFromPersistedAgent(agent) {
   return allowed;
 }
 
+/**
+ * Skill list for Save [CARD-509]: each pill decides for its own skill; a loaded skill
+ * without a pill (no row in Studio) is kept exactly as loaded.
+ */
+export function skillsForSave(loaded, pillElements) {
+  const pilled = new Set();
+  (pillElements && typeof pillElements.forEach === 'function' ? pillElements : []).forEach((el) => {
+    const id = String((el && el.dataset && el.dataset.skillId) || '').trim();
+    if (id) pilled.add(id);
+  });
+  const pressed = pressedSkillIds(pillElements);
+  const kept = normalizeAllowedSkills(loaded).filter((id) => !pilled.has(id) || pressed.includes(id));
+  return normalizeAllowedSkills([...kept, ...pressed]);
+}
+
 export function pressedSkillIds(elements) {
   const ids = [];
   if (!elements || typeof elements.forEach !== 'function') return ids;

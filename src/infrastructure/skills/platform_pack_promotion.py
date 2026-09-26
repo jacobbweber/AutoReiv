@@ -171,17 +171,33 @@ def clear_operator_added_skills(store: Any, pack_id: str) -> None:
         store.set_setting(PLATFORM_OPERATOR_ADDED_SKILLS_SETTING, current)
 
 
-def _skill_md_exists(pack_dir: Path, skill_id: str) -> bool:
-    """An operator-added skill still has a runbook (any AppData pack, user skills, or platform packs)."""
+def find_skill_md(data_root: Optional[Path], skill_id: str, agent_id: Optional[str] = None) -> Optional[Path]:
+    """The skill's runbook: that agent's pack, user skills, any AppData pack, then platform packs."""
     from src.infrastructure.skills.platform_packs import platform_packs_root
 
-    data_root = pack_dir.parent.parent
-    pattern = f"*/skills/{skill_id}/SKILL.md"
-    return (
-        (data_root / "skills" / skill_id / "SKILL.md").is_file()
-        or any((data_root / "packs").glob(pattern))
-        or any(platform_packs_root().glob(pattern))
-    )
+    sid = str(skill_id or "").strip()
+    if not sid or "/" in sid or "\\" in sid or sid.startswith("."):
+        return None
+    candidates: list[Path] = []
+    if data_root is not None:
+        root = Path(data_root)
+        if agent_id:
+            candidates.append(root / "packs" / agent_id / "skills" / sid / "SKILL.md")
+        candidates.append(root / "skills" / sid / "SKILL.md")
+    for path in candidates:
+        if path.is_file():
+            return path
+    roots = ([Path(data_root) / "packs"] if data_root is not None else []) + [platform_packs_root()]
+    for base in roots:
+        found = next(iter(sorted(base.glob(f"*/skills/{sid}/SKILL.md"))), None)
+        if found is not None:
+            return found
+    return None
+
+
+def _skill_md_exists(pack_dir: Path, skill_id: str) -> bool:
+    """An operator-added skill still has a runbook (any AppData pack, user skills, or platform packs)."""
+    return find_skill_md(pack_dir.parent.parent, skill_id) is not None
 
 
 def get_operator_disabled_skills(store: Any, pack_id: str) -> set[str]:
@@ -194,14 +210,22 @@ def record_operator_disabled_skills(
     *,
     live_skills: list[str] | None,
     stock_skills: list[str] | None,
+    showable: Optional[set[str]] = None,
 ) -> list[str]:
-    """Persist stock skills the operator removed from the allowlist [CARD-449]."""
+    """Persist stock skills the operator removed from the allowlist [CARD-449].
+
+    CARD-509: skills already recorded stay recorded until switched back on (a later save
+    no longer forgets them), and with ``showable`` only skills Agent Studio could show
+    as a pill are recorded.
+    """
     if store is None or not hasattr(store, "set_setting"):
         return []
-    stock = set(stock_skills or [])
     live = set(live_skills or [])
-    disabled = sorted(stock - live)
+    removed = set(stock_skills or []) - live
+    if showable is not None:
+        removed &= set(showable)
     current = _operator_disabled_map(store)
+    disabled = sorted((set(current.get(pack_id, [])) | removed) - live)
     current[pack_id] = disabled
     store.set_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING, current)
     return disabled

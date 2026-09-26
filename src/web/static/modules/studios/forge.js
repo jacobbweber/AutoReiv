@@ -68,7 +68,7 @@ import {
 import {
   allowlistForSave,
   pillsFromPersistedAgent,
-  pressedSkillIds,
+  skillsForSave,
 } from './forge/skill_pills.js';
 
 import {
@@ -413,7 +413,7 @@ export function initAgentForge(state, callbacks = {}) {
       const pillNodes = typeof document !== 'undefined'
         ? document.querySelectorAll('.forge-skill-pill[data-skill-id]')
         : [];
-      const fromPills = pillNodes.length ? pressedSkillIds(pillNodes) : [...lastAllowedSkills];
+      const fromPills = skillsForSave([...lastAllowedSkills], pillNodes); // CARD-509: keep pill-less skills
       const checkedSkills = allowlistForSave(fromPills, { storageEnabled: isStorage });
 
       // Skill-first tool derivation: capabilities are declared strictly by skills

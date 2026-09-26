@@ -1250,4 +1250,35 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+  // CARD-509: a Studio Save keeps skills without a pill; coding and build-agent-pack now have pills.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    test(`TC-38 (${vp.name}): Studio shows coding and build-agent-pack pills; a Max Turns save keeps coding [CARD-509]`, async ({ page }) => {
+      const puts = [];
+      await page.route('**/api/agents/autoreiv', (route) => {
+        if (route.request().method() !== 'PUT') return route.continue();
+        puts.push(route.request().postDataJSON());
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'updated' }) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-agents').click();
+      const pick = async (id, name) => {
+        await expect.poll(async () => {
+          await page.selectOption('#forgeAgentSelect', id);
+          await page.waitForTimeout(700);
+          return page.inputValue('#forgeNameInput');
+        }, { timeout: 20000 }).toBe(name);
+      };
+      await pick('autoreiv', 'AutoReiv');
+      await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'true');
+      await page.evaluate(() => { const el = document.getElementById('forgeMaxTurnsInput'); el.value = '57'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+      await page.locator('#saveAgentBtn').evaluate((b) => b.click());
+      await expect.poll(() => puts.length).toBe(1);
+      expect(puts[0].allowed_skill).toContain('coding');
+      expect(String(puts[0].max_turns)).toBe('57');
+      await pick('developer', 'Developer');
+      await expect(page.locator('.forge-skill-pill[data-skill-id="build-agent-pack"]')).toHaveCount(1);
+    });
+  }
+
 });

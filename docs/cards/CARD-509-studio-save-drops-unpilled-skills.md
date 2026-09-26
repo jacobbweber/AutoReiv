@@ -1,7 +1,7 @@
 ---
 id: CARD-509
 title: "An Agent Studio save turns off every skill that has no pill (for example AutoReiv's coding skill)"
-status: Ready
+status: Done
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -10,6 +10,7 @@ related:
   - CARD-502
   - CARD-505
   - CARD-508
+  - CARD-510
 labels:
   - type:bug
   - area:agents
@@ -18,7 +19,7 @@ labels:
 
 # [CARD-509] An Agent Studio save turns off every skill that has no pill (for example AutoReiv's coding skill)
 
-> **Status**: Ready (found in the CARD-505 build repro; refined 2026-09-25 10:30 PM ET on qa after the CARD-505 merge; existed before CARD-505)
+> **Status**: Done (Jacob said **merge to qa** 2026-09-25 11:13 PM ET; built on `feat/card-509-unpilled-skills`, see section 9)
 > **Related**: CARD-450 (platform defaults), CARD-502 (shared save and operator skill lists), CARD-505
 > **Labels**: `type:bug`, `area:agents`, `P2`
 
@@ -62,3 +63,52 @@ Jacob's live install: see the next section (AutoReiv `coding` is on; Developer `
 ## Out of scope
 
 - CARD-508 (Studio form snaps back to the previous agent on a fresh page).
+
+## 9. Build note (2026-09-25 ET, branch `feat/card-509-unpilled-skills` from qa `375945f7`)
+
+### Commits
+- `b26c4284` docs(cards): CARD-509 In Progress
+- `e7c2dea6` failing tests first: Vitest 4/4 red; unit 4/5 red (the scalar-save control was green); smoke TC-38 desktop and phone red (no `coding` pill)
+- `a2bc1b72` fix (D1-D3; D4 and D5 need no code)
+- docs commit: this note, CHANGELOG, CARD-510, CARD-508 update
+
+### What changed
+- D1, client: new `skillsForSave(loaded, pills)` in `forge/skill_pills.js`. Each pill decides for its own skill; a loaded skill with no pill is kept as loaded. `forge.js` Save uses it (one line swapped; `forge.js` stays 734 lines; `render.js` and `chat.js` untouched).
+- D3, pills: `GET /api/agents` and `GET /api/agents/{id}` add a `pack_skills` row for every allowed or shipped skill that has a SKILL.md and no other pill (catalog platform skills, operator store skills, manifest skills). Name and description come from the SKILL.md front matter; tools stay empty. New `studio_extra_skill_pills` in `src/application/agent_packs/skill_list.py`. AutoReiv now shows `coding`; Developer shows `build-agent-pack`.
+- D2, server: `persist_agent_profile` records a removed skill as operator-disabled only when Studio could show it (`studio_can_show_skill`: a platform skill or a SKILL.md exists). While fixing this, the build found that `record_operator_disabled_skills` overwrote the record on every save, so a skill you switched off was forgotten by your next unrelated save and came back on restart. That was fixed in the same function: a recorded skill stays recorded until switched back on. It is covered by `test_a_skill_switched_off_stays_off_after_a_second_save_and_restart`.
+- The disabled record is now written once per save (it was written twice: once inside `should_set_content_lock`, once in `persist_agent_profile`). The CARD-506 dead paths still use the old call unchanged.
+- D4: no auto-repair of a locked Developer. D5: no one-time migration.
+
+### Scavenger Pass
+- `_skill_md_exists` (CARD-502) and the new pill code share one `find_skill_md` in `platform_pack_promotion.py`, which returns the path. There is no second SKILL.md search.
+- `pressedSkillIds` is now only called through `skillsForSave`, and the direct import in `forge.js` is gone. The CARD-419 source check was updated to look for `skillsForSave`.
+- No dead code was left behind.
+- Retirement note: the pill code reads operator skills through `operator_store_skills` in `src/application/skills/workshop.py` (a Factory-named module), the same way the skills catalog already does. Record this in the CARD-495 dependency audit.
+
+### Tests
+| Suite | Result | Baseline (qa `375945f7`) |
+|---|---|---|
+| New CARD-509 Vitest | 4 pass | new |
+| New CARD-509 unit | 5 pass | new |
+| New smoke TC-38 (desktop + phone) | 2 pass | new |
+| Unit (full) | 2076 pass / 11 skipped / 1 fail (CARD-454) | 2071 pass / 11 skipped / 1 fail (CARD-454) |
+| Integration (full) | 109 pass | 109 |
+| Vitest | 918 pass / 5 fail (CARD-456) | 914 / 5 |
+| Smoke | 57 pass | 55 |
+| ESLint | 4 errors / 5 warnings | same |
+| Ruff | 9 (CARD-454) | same |
+
+### Repro after the fix (scratch server on port 8767, fresh install; never Jacob's AppData)
+- Before the fix (qa code), one Max-Turns-only Save: AutoReiv lost `coding`; Developer lost `build-agent-pack`, which was recorded as disabled (`{"developer": ["build-agent-pack"]}`).
+- After the fix, the same Saves: AutoReiv keeps `coding` (Max Turns 51) and Developer keeps `build-agent-pack` (Max Turns 26). Nothing is recorded as disabled (`{"autoreiv": [], "developer": []}`). The `coding` pill shows on AutoReiv and the `build-agent-pack` pill on Developer, both on.
+- Developer: switched `build-agent-pack` off and saved, so it was off and recorded. After an unrelated second Save and a restart it was still off. Switched it back on and saved; after another restart it was on and the record was empty.
+- After a restart, all four platform agents report `unchanged` (AutoReiv used to re-apply on every restart).
+
+### Follow-ups (Ready, not next)
+- CARD-510 (new, P2, existed before): a Studio Save rebuilds the tool list from pills (AutoReiv loses `wiki_graph` and `read_document_file`; memory tools are added).
+- CARD-508 (updated): `selectOption` on a fresh Studio page reverts the agent picker; Save then saves the agent shown (no wrong-agent write).
+
+### Live install (Jacob's rule: AppData is not production until v1.0)
+- 2026-09-25 11:06 PM ET: serve stopped, `C:\Users\jacob\AppData\Local\AutoReiv` backed up to `scratch/appdata_backups/AutoReiv-AppData-pre-card509-wipe-20260925-230655.zip` (112 files, 21 MB; `autoreiv.db` integrity ok), then wiped. Serve restarted on this build for a fresh install.
+- Fresh install: AutoReiv, Direct, Developer and Tutor (all `unchanged`, Max Turns 50). AutoReiv has `coding` on with a pill; Developer has `build-agent-pack` on with a pill.
+- Gone with the wipe (still in the zip): Developer's SOLID/DRY prompt edit and Max Turns 25, Tutor's Max Turns 100, the wiki vault (34 files, it lived in AppData), chats and backups.

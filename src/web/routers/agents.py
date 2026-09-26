@@ -104,12 +104,27 @@ def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = Non
     return {"pack_skills": pack_skills, "ungrouped_pack_tools": []}
 
 
-def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-    from src.application.agent_packs.schema import is_platform_pack, is_visible_in_chat, resolve_scoped_tools
+def _public_agent(
+    profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None, data_dir: Optional[Path] = None
+) -> Dict[str, Any]:
+    from src.application.agent_packs.schema import (
+        PLATFORM_SKILL_IDS,
+        is_platform_pack,
+        is_visible_in_chat,
+        resolve_scoped_tools,
+    )
+    from src.application.agent_packs.skill_list import studio_extra_skill_pills
     from src.domain.kernel.models import AgentOrigin
 
     show_in_chat = is_visible_in_chat(profile)
     pack_bits = _pack_skills_payload(pack_manifest, tools_by_name)
+    if data_dir is not None:
+        # CARD-509 / D3: every allowed or shipped skill with a SKILL.md gets a pill
+        from src.application.skills.workshop import operator_store_skills
+
+        shown = set(PLATFORM_SKILL_IDS) | {s["id"] for s in pack_bits["pack_skills"]}
+        shown |= {s["id"] for s in operator_store_skills(data_dir)}
+        pack_bits["pack_skills"] += studio_extra_skill_pills(profile, shown, data_dir)
 
     if profile.is_builtin or profile.id == "agent-builder":
         origin_val = AgentOrigin.SYSTEM.value
@@ -320,7 +335,7 @@ async def list_agents(request: Request):
     profiles = registry.list_agents()
     data_dir = _data_dir_root(request)
     tools_by_name = _tools_by_name(request)
-    return [_public_agent(p, _load_pack_manifest(data_dir, p.id), tools_by_name) for p in profiles]
+    return [_public_agent(p, _load_pack_manifest(data_dir, p.id), tools_by_name, data_dir) for p in profiles]
 
 
 @router.get("/api/agents/{agent_id}")
@@ -329,11 +344,8 @@ async def get_agent_detail(request: Request, agent_id: str):
     profile = registry.get_agent(agent_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    return _public_agent(
-        profile,
-        _load_pack_manifest(_data_dir_root(request), profile.id),
-        _tools_by_name(request),
-    )
+    data_dir = _data_dir_root(request)
+    return _public_agent(profile, _load_pack_manifest(data_dir, profile.id), _tools_by_name(request), data_dir)
 
 
 @router.post("/api/agents")
@@ -433,7 +445,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     # CARD-502: one save path shared with Teach > Adopt
     from src.application.agent_packs.skill_list import persist_agent_profile
 
-    persist_agent_profile(store, registry, existing, profile, agent_id=agent_id)
+    persist_agent_profile(store, registry, existing, profile, agent_id=agent_id, data_dir=_data_dir_root(request))
 
     # CARD-381 / CARD-389: Synchronize user-data packs/<agent_id>/pack.json
     data_dir = _data_dir_root(request)
