@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.tools.native_packaging import NativeCustomToolService
+from src.application.tools.native_packaging import NativeCustomToolService, NativeToolCheckFailed
 
 
 class NativeToolEngineeringTools:
@@ -33,7 +33,7 @@ class NativeToolEngineeringTools:
         )
         return self.service
 
-    def register_native_tool(
+    async def register_native_tool(
         self,
         name: str,
         description: str,
@@ -42,19 +42,35 @@ class NativeToolEngineeringTools:
         requires_hitl: bool = True,
         risk_level: str = "medium",
         grant_agent_ids: Optional[list] = None,
+        sample_arguments: Optional[dict] = None,
+        sample_call: str = "run",
+        skip_reason: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Register one native AutoReiv tool. Does not attach an MCP server."""
-        return self._service().register(
-            {
+        """Register one native AutoReiv tool after one sandbox run [CARD-511]. Does not attach an MCP server."""
+        try:
+            return await self._service().register(
+                {
+                    "name": name,
+                    "description": description,
+                    "code": code,
+                    "parameters": parameters or {},
+                    "requires_hitl": requires_hitl,
+                    "risk_level": risk_level,
+                    "grant_agent_ids": grant_agent_ids or [],
+                    "sample_arguments": sample_arguments,
+                    "sample_call": sample_call,
+                    "skip_reason": skip_reason,
+                }
+            )
+        except NativeToolCheckFailed as exc:
+            # Relay this to the operator, fix the tool, and call register again.
+            return {
+                "success": False,
+                "registered": False,
                 "name": name,
-                "description": description,
-                "code": code,
-                "parameters": parameters or {},
-                "requires_hitl": requires_hitl,
-                "risk_level": risk_level,
-                "grant_agent_ids": grant_agent_ids or [],
+                "message": str(exc),
+                "check": exc.check,
             }
-        )
 
     def plan_native_folder(self, directory: str) -> dict[str, Any]:
         """Plan one tool per script in a directory. Does not register or open a folder picker."""
@@ -67,7 +83,9 @@ class NativeToolEngineeringTools:
             description=(
                 "Register a native AutoReiv custom tool that runs in the sandbox without an MCP server. "
                 "Code must define run(**kwargs). requires_hitl defaults to true. "
-                "Pass grant_agent_ids for agents allowed to call it."
+                "Pass grant_agent_ids for agents allowed to call it. "
+                "Registration runs the tool once in the sandbox first (import plus one sample call); "
+                "a result starting 'Not registered:' means nothing was saved: tell the operator, fix the code, call again."
             ),
             parameters={
                 "type": "object",
@@ -93,6 +111,16 @@ class NativeToolEngineeringTools:
                         "items": {"type": "string"},
                         "description": "Agent ids to add this tool onto, using the existing agent allowlist.",
                     },
+                    "sample_arguments": {
+                        "type": "object",
+                        "description": "Harmless input for the one check call. Omit to build it from parameters.",
+                    },
+                    "sample_call": {
+                        "type": "string",
+                        "enum": ["run", "skip"],
+                        "description": "skip only when the call needs secrets, the network or has side effects; give skip_reason.",
+                    },
+                    "skip_reason": {"type": "string", "description": "Why the sample call is skipped (shown to the operator)."},
                 },
                 "required": ["name", "description", "code"],
             },

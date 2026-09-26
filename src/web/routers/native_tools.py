@@ -11,7 +11,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from src.application.tools.native_packaging import NativeToolError
+from src.application.tools.native_packaging import NativeToolCheckFailed, NativeToolError
 
 router = APIRouter(prefix="/api/tools/native", tags=["Native custom tools"])
 
@@ -24,6 +24,10 @@ class NativeToolRegisterRequest(BaseModel):
     requires_hitl: bool = True
     risk_level: str = "medium"
     grant_agent_ids: list[str] = Field(default_factory=list)
+    # CARD-511 tool check: sample input, or skip the sample call with a reason.
+    sample_arguments: Optional[dict[str, Any]] = None
+    sample_call: str = "run"
+    skip_reason: str = ""
 
 
 class NativeToolInvokeRequest(BaseModel):
@@ -58,9 +62,12 @@ def list_native_tools(request: Request) -> dict[str, Any]:
 
 
 @router.post("")
-def register_native_tool(payload: NativeToolRegisterRequest, request: Request) -> dict[str, Any]:
+async def register_native_tool(payload: NativeToolRegisterRequest, request: Request) -> dict[str, Any]:
     try:
-        return _service(request).register(payload.model_dump())
+        return await _service(request).register(payload.model_dump())
+    except NativeToolCheckFailed as exc:
+        # CARD-511: the tool failed its one sandbox run and was not registered.
+        raise HTTPException(status_code=422, detail={"message": str(exc), "check": exc.check}) from exc
     except NativeToolError as exc:
         raise _http(exc) from exc
 

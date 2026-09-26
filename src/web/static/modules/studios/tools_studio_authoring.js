@@ -104,5 +104,26 @@ export function interpretAuthoringSubmit(data) {
     queuedOnly: false,
     persistedTool: false,
     packagingApplied: false,
+    toolChecks: Array.isArray(data.tool_checks) ? data.tool_checks : [],
   };
+}
+
+/**
+ * One line per tool check recorded on the job [CARD-511 REQ-511-010].
+ * @param {object[]|null|undefined} checks
+ * @returns {string[]}
+ */
+export function formatToolCheckLines(checks) {
+  if (!Array.isArray(checks)) return [];
+  return checks
+    .filter((check) => check && typeof check === 'object')
+    .map((check) => {
+      const message = String(check.message || '').trim();
+      if (message) return message;
+      const tool = String(check.tool || 'tool');
+      if (check.status === 'passed') return `Checked: ${tool}`;
+      if (check.status === 'checked_without_call') return `Checked without a sample call: ${String(check.skip_reason || '').trim()}`.trim();
+      if (check.status === 'could_not_run') return `The check could not run for ${tool}.`;
+      return `Not registered: ${tool} failed the ${String(check.stage || 'tool')} check.`;
+    });
 }

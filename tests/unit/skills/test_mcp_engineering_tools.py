@@ -5,12 +5,15 @@ graceful stdio fallback, and canonical single-lever registration.
 """
 
 import sys
+from pathlib import Path as _Path
+from unittest.mock import AsyncMock as _AsyncMock
 
 import pytest
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.mcp_engineering_tools import MCPEngineeringTools
 from src.application.telemetry.collector import TelemetryCollector
+from src.domain.gateway.models import ToolDefinition as _ToolDefinition
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -260,11 +263,6 @@ async def test_developer_agent_pack_has_mcp_engineering_tools(tmp_path):
 # ---------------------------------------------------------------------------
 # CARD-511: register_mcp_service runs the MCP check before it saves (tests 18-21)
 # ---------------------------------------------------------------------------
-from pathlib import Path as _Path
-from unittest.mock import AsyncMock as _AsyncMock
-
-from src.domain.gateway.models import ToolDefinition as _ToolDefinition
-
 _RAW = str(_Path(__file__).resolve().parents[2] / "fixtures" / "mcp" / "raw_stdio_server.py")
 
 
