@@ -308,7 +308,11 @@ async def post_distill_skill(request: Request, payload: DistillSkillRequest):
 @router.post("/api/skills/adopt")
 async def post_adopt_skill(request: Request, payload: AdoptSkillRequest):
     """[REQ-SKIL-013, REQ-SKIL-016] Adopt a distilled SKILL.md and update proposal status in session history."""
-    from src.application.skills.distillation_service import SkillDistillationService
+    from src.application.skills.distillation_service import (
+        AdoptAgentNotFound,
+        AdoptSkillConflict,
+        SkillDistillationService,
+    )
 
     store = request.app.state.store
     paths = getattr(request.app.state, "data_dir_paths", None)
@@ -347,6 +351,10 @@ async def post_adopt_skill(request: Request, payload: AdoptSkillRequest):
             store.update_message(payload.message_id, json.dumps(cdata))
 
         return result
+    except AdoptSkillConflict as exc:  # CARD-502 REQ-502-008
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AdoptAgentNotFound as exc:  # CARD-502 REQ-502-007
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

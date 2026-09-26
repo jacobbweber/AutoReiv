@@ -32,6 +32,7 @@ PLATFORM_SHIPPED_PROMPT_SETTING = "platform_shipped_prompt_hashes"
 PLATFORM_PACK_SYNC_REPORT_SETTING = "platform_pack_sync_last_report"
 PLATFORM_KEEP_CUSTOMIZATIONS_SETTING = "platform_pack_keep_customizations"
 PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING = "platform_operator_disabled_skills"
+PLATFORM_OPERATOR_ADDED_SKILLS_SETTING = "platform_operator_added_skills"
 PLATFORM_PACK_CONTENT_BACKUPS_SETTING = "platform_pack_content_backups"
 PLATFORM_LOCK_MIGRATION_SETTING = "platform_pack_lock_migration_report"
 
@@ -93,10 +94,10 @@ def keep_customizations_enabled(store: Any) -> bool:
     return bool(raw)
 
 
-def _operator_disabled_map(store: Any) -> dict[str, list[str]]:
+def _operator_skill_map(store: Any, key: str) -> dict[str, list[str]]:
     if store is None or not hasattr(store, "get_setting"):
         return {}
-    raw = store.get_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING) or {}
+    raw = store.get_setting(key) or {}
     if not isinstance(raw, dict):
         return {}
     out: dict[str, list[str]] = {}
@@ -104,6 +105,66 @@ def _operator_disabled_map(store: Any) -> dict[str, list[str]]:
         if isinstance(v, (list, tuple, set)):
             out[str(k)] = [str(x) for x in v if str(x).strip()]
     return out
+
+
+def _operator_disabled_map(store: Any) -> dict[str, list[str]]:
+    return _operator_skill_map(store, PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING)
+
+
+def platform_seed_skills(pack_id: str, checkout_root: Optional[Union[str, Path]] = None) -> list[str]:
+    """Skill ids the platform seed ships for a pack (empty when not a platform pack)."""
+    from src.infrastructure.skills.platform_packs import platform_packs_root
+
+    seed = _read_json(platform_packs_root(checkout_root) / pack_id / "pack.json") or {}
+    return [str(s) for s in (seed.get("allowed_skill") or [])]
+
+
+def get_operator_added_skills(store: Any, pack_id: str) -> list[str]:
+    return list(_operator_skill_map(store, PLATFORM_OPERATOR_ADDED_SKILLS_SETTING).get(pack_id, []))
+
+
+def record_operator_added_skills(
+    store: Any,
+    pack_id: str,
+    *,
+    live_skills: list[str] | None,
+    seed_skills: list[str] | None = None,
+) -> list[str]:
+    """Persist skills the operator switched on beyond the platform seed [CARD-502 / REQ-502-002].
+
+    Restart promotion re-applies these on top of the seed so Adopt and Studio ticks stay on.
+    """
+    if store is None or not hasattr(store, "set_setting"):
+        return []
+    seed = set(seed_skills if seed_skills is not None else platform_seed_skills(pack_id))
+    added = [s for s in (live_skills or []) if s not in seed]
+    current = _operator_skill_map(store, PLATFORM_OPERATOR_ADDED_SKILLS_SETTING)
+    if added:
+        current[pack_id] = added
+    else:
+        current.pop(pack_id, None)
+    store.set_setting(PLATFORM_OPERATOR_ADDED_SKILLS_SETTING, current)
+    return added
+
+
+def clear_operator_added_skills(store: Any, pack_id: str) -> None:
+    current = _operator_skill_map(store, PLATFORM_OPERATOR_ADDED_SKILLS_SETTING)
+    if pack_id in current and store is not None and hasattr(store, "set_setting"):
+        current.pop(pack_id, None)
+        store.set_setting(PLATFORM_OPERATOR_ADDED_SKILLS_SETTING, current)
+
+
+def _skill_md_exists(pack_dir: Path, skill_id: str) -> bool:
+    """An operator-added skill still has a runbook (any AppData pack, user skills, or platform packs)."""
+    from src.infrastructure.skills.platform_packs import platform_packs_root
+
+    data_root = pack_dir.parent.parent
+    pattern = f"*/skills/{skill_id}/SKILL.md"
+    return (
+        (data_root / "skills" / skill_id / "SKILL.md").is_file()
+        or any((data_root / "packs").glob(pattern))
+        or any(platform_packs_root().glob(pattern))
+    )
 
 
 def get_operator_disabled_skills(store: Any, pack_id: str) -> set[str]:
@@ -561,6 +622,7 @@ def promote_one_platform_pack(
             disabled_map.pop(pack_id, None)
             if store is not None and hasattr(store, "set_setting"):
                 store.set_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING, disabled_map)
+        clear_operator_added_skills(store, pack_id)
 
         existing.user_modified = False
         if store is not None and hasattr(store, "mark_agent_user_modified"):
@@ -619,8 +681,18 @@ def promote_one_platform_pack(
         )
         return outcome
 
+    # CARD-502: operator-added skills (Adopt / Studio tick) ride on top of the seed.
+    # keep-customizations off => back them up and drop them with the rest of the customizations.
+    operator_added = get_operator_added_skills(store, pack_id)
+    operator_owned = set(operator_added)  # never prune these skill folders, even on force-reset
+    if force_reset and operator_added:
+        backup_pack_content(store, existing, reason="force_reset_operator_added_skills")
+        clear_operator_added_skills(store, pack_id)
+        operator_added = []
+    operator_added = [s for s in operator_added if s not in new_stock and _skill_md_exists(dest, s)]
+
     # Idempotent short-circuit when seed unchanged and profile already matches
-    if stored_hash and stored_hash == seed_hash:
+    if stored_hash and stored_hash == seed_hash and not operator_added:
         live_prompt = getattr(existing, "system_prompt", None) or ""
         if live_prompt == new_prompt and list(getattr(existing, "allowed_skill", None) or []) == new_allowed_skill:
             return PackSyncOutcome(
@@ -634,7 +706,7 @@ def promote_one_platform_pack(
     # First Hybrid C+ boot (no stored hash): dual-read cutover
     if not stored_hash:
         live_prompt = getattr(existing, "system_prompt", None) or ""
-        live_skills = list(getattr(existing, "allowed_skill", None) or [])
+        live_skills = [s for s in (getattr(existing, "allowed_skill", None) or []) if s not in operator_added]
         live_tools = [
             t for t in (getattr(existing, "allowed_tool_names", None) or []) if t not in RETIRED_TOOL_NAMES
         ]
@@ -702,6 +774,7 @@ def promote_one_platform_pack(
         disabled=disabled,
         previous_stock=previous_stock,
     )
+    merged_skills += [s for s in operator_added if s not in merged_skills and s not in disabled]
     existing.allowed_skill = merged_skills
     existing.pack_tool_names = new_pack_tools
     existing.allowed_tool_names = final_tools
@@ -734,7 +807,7 @@ def promote_one_platform_pack(
     updated_skills, removed_skills = _sync_skill_filesystem(
         src=src,
         dest=dest,
-        previous_stock_skills=previous_stock,
+        previous_stock_skills=previous_stock - operator_owned,
         new_stock_skills=new_stock,
     )
     # pack.json projection: use platform pack_data but keep operator-edited prompt in projection
@@ -742,6 +815,15 @@ def promote_one_platform_pack(
     projection = dict(pack_data)
     if "system_prompt" in skipped_fields:
         projection["system_prompt"] = stored_prompt
+    if operator_added:
+        seed_ids = {s.get("id") for s in pack_data.get("skills") or [] if isinstance(s, dict)}
+        extra = [
+            s
+            for s in live_pack.get("skills") or []
+            if isinstance(s, dict) and s.get("id") in operator_added and s.get("id") not in seed_ids
+        ]
+        projection["allowed_skill"] = list(merged_skills)
+        projection["skills"] = list(pack_data.get("skills") or []) + extra
     try:
         refresh_live_pack_json_skill_projection(dest, projection)
     except Exception:
@@ -874,6 +956,7 @@ def reset_platform_pack_to_defaults(
     if pack_id in disabled_map and store is not None and hasattr(store, "set_setting"):
         disabled_map.pop(pack_id, None)
         store.set_setting(PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING, disabled_map)
+    clear_operator_added_skills(store, pack_id)
 
     return promote_platform_packs(
         data_dir,
