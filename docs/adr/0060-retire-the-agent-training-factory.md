@@ -57,7 +57,7 @@ Chosen option: **Option 3, retire the Factory**, because every job it did has a 
 | Promote (human approval) | Skill Studio decision step, Tools Studio jobs, Teach Adopt | Yes |
 | Edit phase instructions | Not needed | n/a |
 | Train from a capability gap | Agent Studio gap backlog: **Open in Skill Studio** and **Ask Developer** (CARD-496) | Parts exist; wiring in CARD-496 |
-| Teach "factory_escalation" remedy | "Ask Developer" (CARD-472); renamed `tool_escalation` (CARD-497) | Yes |
+| Teach "factory_escalation" remedy | "Ask Developer" (CARD-472); renamed `tool_escalation` (CARD-520, split from CARD-497) | Yes |
 | Chat tool `launch_factory_training` | Developer handoff | Yes |
 | Chat tool `inspect_agent_pack` | Kept and moved (D4) | Yes |
 | Lab Monitor, training popup, Factory screen | Observability traces and sessions; the three Studios | Yes |
