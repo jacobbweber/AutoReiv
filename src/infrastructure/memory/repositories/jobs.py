@@ -268,6 +268,19 @@ class JobRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+    def list_jobs_by_status(self, status: str) -> List[Job]:
+        """Jobs with ``status`` (for example "running"), oldest first [CARD-530 REQ-530-008]."""
+        conn = self._get_connection()
+        try:
+            rows = conn.execute(
+                f"SELECT {_JOB_COLUMNS} FROM jobs WHERE status = ? ORDER BY created_at",
+                (str(status),),
+            ).fetchall()
+            return [self._job_from_row(row) for row in rows]
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
     def list_phases_for_job(self, job_id: str) -> List[Phase]:
         """Phases for a job ordered by linear index [REQ-ORCH-033]."""
         conn = self._get_connection()

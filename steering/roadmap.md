@@ -108,6 +108,7 @@
   - [ ] **CARD-529**: Developer modify-tool requests loop and fail in Formulate.
   - [ ] **CARD-512**: Retire the scaffold spine backend.
   - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
+  - [ ] **CARD-534**: A resumed job phase runs on the parent chat session instead of its phase session.
   - [ ] **Education Studio** (no card yet).
 
 

@@ -6,7 +6,6 @@ Seeded from scratch/c530_race_harness.py, the interleaving seen in job_3bdef1802
 from __future__ import annotations
 
 import asyncio
-import json
 
 import pytest
 

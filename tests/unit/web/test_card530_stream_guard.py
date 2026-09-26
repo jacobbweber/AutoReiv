@@ -82,7 +82,6 @@ def client(tmp_path):
     from src.application.gateway.gateway_service import MultiProviderGateway
     from src.infrastructure.memory.sqlite_store import SQLiteStateStore
     from src.web.app import create_app
-
     from tests.unit.web.test_hitl_web_api import MockLLM
 
     store = SQLiteStateStore(db_path=":memory:")
@@ -161,7 +160,6 @@ def test_create_app_repairs_a_stuck_job_at_startup(tmp_path):
     from src.domain.orchestration.models import JobStatus, PhaseStatus, ReactState
     from src.infrastructure.memory.sqlite_store import SQLiteStateStore
     from src.web.app import create_app
-
     from tests.unit.web.test_hitl_web_api import MockLLM
 
     store = SQLiteStateStore(db_path=str(tmp_path / "startup.db"))

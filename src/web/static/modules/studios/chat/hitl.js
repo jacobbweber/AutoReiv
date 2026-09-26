@@ -218,7 +218,8 @@ export function approvalBelongsToOriginSession(approvalSessionId, originSessionI
   );
 }
 
-export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed, nestedStatus }) {
+export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed, nestedStatus, resumeChat }) {
+  if (resumeChat === false) return false; // CARD-530: a propose_* draft never parked the turn
   if (backendResumed) return false;
   if (nestedStatus === 'approval_required') return false;
   const approvalSid = String(approvalSessionId || '').trim();
@@ -399,9 +400,24 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || '') === 'goal_plan_review';
 }
 
+/** Resolve true once this tab's stream has ended (false after timeoutMs) [CARD-530]. */
+export function waitUntilIdle(state, { intervalMs = 250, timeoutMs = 15 * 60 * 1000 } = {}) {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const tick = () => {
+      if (!state || !state.isStreaming) { resolve(true); return; }
+      if (Date.now() - started >= timeoutMs) { resolve(false); return; }
+      setTimeout(tick, intervalMs);
+    };
+    tick();
+  });
+}
+
 /**
  * Wire [data-hitl-decision] buttons on an approval card: post the decision, resume the chat turn
  * when the backend did not already resume it, then run onDone (tray refresh) [CARD-470].
+ * CARD-530: never start a resume while this tab's reply is still streaming; a parked turn resumes once the
+ * stream ends (same chat only), and a propose_* draft (resume_chat false) never resumes.
  */
 export function wireHitlCardButtons(cardEl, { approvalId, approvalSessionId, state, onResumeTurn, onDone } = {}) {
   if (!cardEl || typeof cardEl.querySelectorAll !== 'function') return;
@@ -409,12 +425,18 @@ export function wireHitlCardButtons(cardEl, { approvalId, approvalSessionId, sta
     btn.addEventListener('click', async () => {
       const openSid = (state && state.activeSessionId) || '';
       const result = await submitHitlDecision(approvalId, btn.getAttribute('data-hitl-decision'), cardEl, openSid);
-      if (result.ok && onResumeTurn && shouldResumeChatAfterHitl({
+      const wantsResume = result.ok && onResumeTurn && shouldResumeChatAfterHitl({
         approvalSessionId: approvalSessionId || openSid,
         openSessionId: openSid,
         backendResumed: Boolean(result.body && result.body.resumed),
         nestedStatus: result.body && result.body.nested ? result.body.nested.status : null,
-      })) {
+        resumeChat: result.body ? result.body.resume_chat : undefined,
+      });
+      if (wantsResume && state && state.isStreaming) {
+        waitUntilIdle(state)
+          .then((idle) => (idle && state.activeSessionId === openSid ? onResumeTurn('', { isResume: true }) : null))
+          .catch(() => {});
+      } else if (wantsResume) {
         await onResumeTurn('', { isResume: true });
       }
       if (onDone) await onDone();
