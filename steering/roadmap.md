@@ -100,7 +100,7 @@
   - [x] **CARD-495**: ADR-0060, gap and dependency audit, steering docs - **Done**.
   - [x] **CARD-496**: Remove the Factory screen, Lab Monitor, training popup and "Agent Training Optimization" panel; gap backlog opens Skill Studio or Developer - **Done**.
   - [x] **CARD-511**: Check Developer-built native tools before registering them - **Done**.
-  - [ ] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool.
+  - [x] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool - **Done**.
   - [ ] **CARD-512**: Retire the scaffold spine backend.
   - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
 

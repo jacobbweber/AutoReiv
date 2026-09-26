@@ -1,9 +1,9 @@
 ---
 id: CARD-497
 title: "Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs"
-status: In Review
+status: Done
 created: 2026-09-25
-branch: feat/card-497-factory-backend-removal
+branch: qa
 related:
   - ADR-0060
   - CARD-495
@@ -25,7 +25,7 @@ labels:
 
 # [CARD-497] Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs
 
-> **Status**: In Review (2026-09-26 ~10:35 AM ET; build evidence below; not merged or pushed). Built on `build`, 2026-09-26 ~9:44 AM ET: Jacob accepted D1-D14 exactly as recommended in the plan at `1a9da7ae`. Branch `feat/card-497-factory-backend-removal` from qa `1a9da7ae`). Refined on `continue`, 2026-09-26 ~9:30 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). The remedy rename (old D3) moves to successor card CARD-520.
+> **Status**: Done (2026-09-26 ~12:05 PM ET: live-tested on serve; Jacob rechecked Ask Developer, approved and said `merge to qa`; merged --no-ff into qa and pushed. Live results in "Live test on serve"). Earlier: In Review (2026-09-26 ~10:35 AM ET; build evidence below; not merged or pushed). Built on `build`, 2026-09-26 ~9:44 AM ET: Jacob accepted D1-D14 exactly as recommended in the plan at `1a9da7ae`. Branch `feat/card-497-factory-backend-removal` from qa `1a9da7ae`). Refined on `continue`, 2026-09-26 ~9:30 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). The remedy rename (old D3) moves to successor card CARD-520.
 > **Created**: 2026-09-25
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted). This card is step 4 of 6: CARD-495 (Done), CARD-496 (Done), CARD-511 (Done), **CARD-497**, CARD-512, CARD-498.
 > **Series**: CARD-495, CARD-496, CARD-511, **CARD-497**, CARD-520 (split from this card), CARD-512, CARD-498
@@ -101,8 +101,13 @@ Run 3 detail and gaps:
 
 **Ask Developer retest (Jacob, ~11:40 AM ET):** steps 2-4 (intake, answers, handoff) worked. Step 1: Ask Developer on the TC49 gap opened a Developer chat that showed the "Tools Studio tool intent (create)" text as his message, but Developer did not reply until he typed "do you see my input to you?".
 - Root cause: `POST /api/tools_studio/authoring/talk` (`developer_mediation.open_chat`) saved the request as a USER message and never ran a turn. The browser's `openDeveloperSession` then saw the text already in the history and neither filled the message box nor called `/api/chat/stream`. The gap Ask Developer, Tools Studio Talk and Teach Ask Developer all share this path. The Skill Studio agent-created card has no Ask Developer button (only Open in Skill Studio / Agent Studio), and Observability Ask Developer is CARD-520 (not built).
-- Decision (Jacob): make it a real send. Fix, tests first (`16b3c874`): `/talk` opens an empty session; `openDeveloperSession` sends the request once through the normal chat send (`chat/developer_intent.js`), with guards for double clicks, busy chats and reopened sessions (REQ-497-016). The prompt text still matches CARD-422's packet format. app.js 2.0.87.
+- Decision (Jacob): make it a real send. Fix, tests first (`16b3c874`, fix `9b0896bc`): `/talk` opens an empty session; `openDeveloperSession` sends the request once through the normal chat send (`chat/developer_intent.js`), with guards for double clicks, busy chats and reopened sessions (REQ-497-016). The prompt text still matches CARD-422's packet format. app.js 2.0.87.
 - Retest: Ctrl+F5, Agent Studio, AutoReiv, Capability gaps, TC49, Ask Developer. The Developer reply starts streaming with no further input.
+
+**Final live results (Jacob, ~12:05 PM ET, serve at `9b0896bc`, app.js 2.0.87):**
+- Step 1: Ask Developer on the TC49 gap now sends immediately; the Developer reply starts with no further input. Jacob approved after the recheck.
+- Steps 2-4: the intake, the answers and the handoff to Developer all worked.
+- Jacob said `merge to qa`.
 
 **REQ-497-008 verdict:** the shipped skill and routing now do what the requirement asks. The skill opens, `inspect_agent_pack` is called, questions come first, and the handoff uses the right arguments. On `nemotron-3.5-lightning` the full flow (brief, yes, handoff, Developer result) is not reliable until CARD-524 (context) and CARD-523 (turn and handoff handling) land, or a larger model is used for AutoReiv.
 
