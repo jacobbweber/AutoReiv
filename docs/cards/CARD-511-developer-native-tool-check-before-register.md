@@ -1,9 +1,9 @@
 ---
 id: CARD-511
 title: "A Developer-built tool is registered without being run: check native and MCP tools once in the sandbox before they go live"
-status: Ready
+status: In Review
 created: 2026-09-25
-branch: qa
+branch: feat/card-511-tool-check
 related:
   - ADR-0060
   - CARD-495
@@ -22,7 +22,7 @@ labels:
 
 # [CARD-511] Check a Developer-built tool once in the sandbox before it is registered
 
-> **Status**: In Progress (`build`, 2026-09-26 ~1:52 AM ET: Jacob accepted D1-D13 exactly as recommended, including folding CARD-517 in (D10). Branch `feat/card-511-tool-check` from qa `3e709376`. Refined earlier the same night at qa `6f066514`)
+> **Status**: In Review (built 2026-09-26 ~3:10 AM ET on `feat/card-511-tool-check`, not pushed or merged; evidence in section 8. Goes Done at `merge to qa`). Build started (`build`, 2026-09-26 ~1:52 AM ET: Jacob accepted D1-D13 exactly as recommended, including folding CARD-517 in (D10). Branch `feat/card-511-tool-check` from qa `3e709376`. Refined earlier the same night at qa `6f066514`)
 > **Created**: 2026-09-25 (CARD-495 audit F6)
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted), decision **D6**: this card lands **before CARD-497** and keeps only the parts of `verification_battery.py` it needs, moved out of the Factory. CARD-497 then deletes the rest. This card is step 3 of 6: CARD-495 (Done), CARD-496 (Done), **CARD-511**, CARD-497, CARD-512, CARD-498.
 > **Related**: CARD-497 (deletes `verification_battery.py`, `tool_synthesizer.py`, `factory_packets.py`), CARD-472 (Ask Developer), CARD-423 (native lane), CARD-394 (MCP engineering tools), CARD-516/517/518 (filed from this reproduction)
@@ -223,3 +223,36 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 - Network or file-system jailing of the sandbox.
 - Re-checking tools already registered, and a "Check now" button.
 - Scenario replay (ADR-0060 D3).
+
+---
+
+## 8. Build evidence (2026-09-26, branch `feat/card-511-tool-check` from qa `3e709376`)
+
+**Commits**
+
+- `f9c2b14f` docs(cards): decisions D1-D13 accepted as recommended; In Progress
+- `aa92af88` test: failing tests first (tests 1-26, TC-42). Seen red: the two new unit files failed to import; 11 pytest failures (adapter crash, MCP 18-21, oc422, oc423); 5 Vitest failures; TC-42 failed on desktop and phone
+- `fd53cf83` feat: the check (`tool_check.py`), native and MCP registration refuse before save, CARD-517 adapter fix, Tools Studio labels and Submit lines, skill text
+- `c3f60aa0` docs(changelog)
+- `94d680cc` fix (found by the runbook): when an MCP server exits before `tools/list`, the message now shows its real error (it said "no error output"); stage reads "sample call". Regression assertion added to test 18 and seen red first
+- `d7469eba` test: oc423 and the Submit fallback line use the readable stage name
+- this commit: card In Review, CARD-517 Done, CARD-519 filed
+
+**Preflight (final code)**
+
+| Suite | Baseline | Now | Change |
+|---|---|---|---|
+| pytest unit | 2076 / 11 skipped / 1 fail | 2107 / 11 skipped / 1 fail | +31: `test_tool_check.py` 14, `test_native_packaging_check.py` 7, adapter +2 (CARD-517), MCP engineering +8 (18, 19 x4, 20, 21, skip). Only failure: CARD-454 linter |
+| pytest integration | 109 | 111 | +2: oc422 job check, oc423 route refusal |
+| Vitest | 885 / 3 fail | 890 / 3 fail | +5: card_423 +3, card_422 +2. Failures: CARD-456 only |
+| Playwright smoke | 63 | 65 | +2: TC-42 desktop and phone |
+| ESLint | 4 errors / 5 warnings | same | CARD-456 |
+| ruff | 9 | 9 | CARD-454 |
+
+**Runbook on scratch (port 8767, wiped data `c511_live`)**, `scratch\c511_runbook.py`, evidence `scratch\c511_runbook_evidence.json`:
+
+- Step 1: `c511_syntax_err` 422 static, `c511_import_err` 422 import, `c511_raises` 422 sample call, `c511_not_json` 422 sample call; `c511_good` 200 "Checked"; the list shows only the passing and skipped tools, each with its `check`; invoking `c511_good` works.
+- Skip path: `risk_level: high` gives 200 "Checked without a sample call: high risk: sample call skipped"; `sample_call: skip` without a reason gives 400; with a reason gives 200; `sample_arguments` are used for the call.
+- Step 7 (MCP, in process through `register_mcp_service` with the real adapter and manager): the crash server, the server that cannot start, and the isError server are refused with `saved: false, mounted: false` and the real error; the good server is saved and mounted with `check.status: passed`. The crash case is the CARD-517 case.
+- Tools Studio labels on desktop (1440x900) and phone (390x844): Checked / Checked without a sample call: ...; no page errors (`scratch\c511_labels.cjs`, screenshots `scratch\c511_labels_*.png`).
+- Steps 2-6 (a real Developer chat) need the LLM and were not run by the agent; they are in Jacob's live test on serve.
