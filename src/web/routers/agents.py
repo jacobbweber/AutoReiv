@@ -45,8 +45,6 @@ class AgentProfilePayload(BaseModel):
     memory_enabled: Optional[bool] = True
     memory_retention_days: Optional[int] = 30
     pinned_memory: Optional[str] = ""
-    allow_autonomous_training: Optional[bool] = False
-    max_training_retries: Optional[int] = 2
     allow_wiki_access: Optional[bool] = True
     allowed_credentials: Optional[List[str]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
@@ -163,8 +161,6 @@ def _public_agent(
         "memory_enabled": getattr(profile, "memory_enabled", True),
         "memory_retention_days": getattr(profile, "memory_retention_days", 30),
         "pinned_memory": getattr(profile, "pinned_memory", "") or "",
-        "allow_autonomous_training": getattr(profile, "allow_autonomous_training", False),
-        "max_training_retries": getattr(profile, "max_training_retries", 2),
         "allow_wiki_access": getattr(profile, "allow_wiki_access", True),
         "model": profile.model,
         "is_builtin": profile.is_builtin,
@@ -425,10 +421,6 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["pack_tool_names"] = existing.pack_tool_names or []
     if data.get("show_in_chat") is None:
         data["show_in_chat"] = existing.show_in_chat is not False
-    if data.get("allow_autonomous_training") is None:
-        data["allow_autonomous_training"] = getattr(existing, "allow_autonomous_training", False)
-    if data.get("max_training_retries") is None:
-        data["max_training_retries"] = getattr(existing, "max_training_retries", 2)
     if data.get("allow_wiki_access") is None:
         data["allow_wiki_access"] = getattr(existing, "allow_wiki_access", True)
     if data.get("allowed_credentials") is None:
@@ -501,7 +493,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         except Exception:
             pass
 
-    return {"status": "updated", "agent": profile.model_dump()}
+    # Dormant auto-training fields are not part of the API [CARD-497 D9].
+    return {"status": "updated", "agent": profile.model_dump(exclude={"allow_autonomous_training", "max_training_retries"})}
 
 
 @router.delete("/api/agents/{agent_id}")

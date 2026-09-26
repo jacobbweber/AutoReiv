@@ -329,7 +329,7 @@ describe('Tools Studio MCP hydrate [CARD-421]', () => {
     const calls = [];
     const groups = await loadCatalogModel(async (url) => {
       calls.push(url);
-      if (url === '/api/agent_training_factory/capabilities') {
+      if (url === '/api/tools_studio/capabilities') {
         return { ok: true, json: async () => ({ namespaces: sampleNamespaces }) };
       }
       if (url === '/api/settings/mcp') {
@@ -341,7 +341,7 @@ describe('Tools Studio MCP hydrate [CARD-421]', () => {
       return { ok: false, status: 404, json: async () => ({}) };
     }, { agentId: 'researcher' });
     expect(calls).toEqual([
-      '/api/agent_training_factory/capabilities',
+      '/api/tools_studio/capabilities',
       '/api/settings/mcp',
       '/api/agents/researcher/mcp',
       '/api/tools/native',

@@ -17,7 +17,6 @@ from src.application.tools import tool_check
 from src.application.tools.tool_check import (
     ToolCheckService,
     build_sample_arguments,
-    detect_path_safety_violation,
 )
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -212,9 +211,8 @@ def test_12_tool_check_has_no_factory_imports_and_owns_path_safety():
     forbidden = ("agent_training_factory", "verification_battery", "tool_synthesizer", "factory_packets")
     assert not [name for name in imported if any(bad in name for bad in forbidden)]
 
-    from src.application.orchestration import verification_battery
-
-    assert verification_battery.detect_path_safety_violation is detect_path_safety_violation
+    # CARD-497: the verification battery is deleted; tool_check owns path safety alone.
+    assert not (ROOT / "src/application/orchestration/verification_battery.py").exists()
     assert tool_check.detect_path_safety_violation("open('../x')")
 
 

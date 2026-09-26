@@ -134,7 +134,7 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
     expect(html).not.toContain('Author skill in Factory');
     expect(runbook).not.toContain("method: 'PUT'");
     expect(runbook).not.toContain('studioRunbookSaveBtn');
-    expect(skillStudio).toContain('/api/agent_training_factory/scaffold/save');
+    expect(skillStudio).toContain('/api/skill_studio/save');
     expect(skillStudio).toContain('requires_tools');
     // CARD-496: the Factory window is gone, so Skill Studio is the only caller of the save route.
     expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/factory.js'))).toBe(false);

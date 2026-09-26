@@ -2,7 +2,7 @@
  * Skill Studio — skill lifecycle and tool scoping [CARD-418].
  * Pick/create, metadata, SKILL.md and the tool catalog. Save writes the skill store and
  * SQLite bindings (CARD-411). The Factory is retired (ADR-0060, CARD-496); the save, skills and
- * capabilities routes keep their /api/agent_training_factory/* paths until CARD-497 moves them.
+ * capabilities routes are /api/skill_studio/* and /api/tools_studio/capabilities (CARD-497).
  * Element ids keep their factory* prefix (ADR-0060 D5).
  */
 
@@ -251,7 +251,7 @@ export function initSkillStudio(_state, callbacks = {}) {
     }
 
     try {
-      const resp = await fetch('/api/agent_training_factory/scaffold/runbook', {
+      const resp = await fetch('/api/skill_studio/runbook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -330,7 +330,7 @@ export function initSkillStudio(_state, callbacks = {}) {
     }
 
     try {
-      const resp = await fetch('/api/agent_training_factory/scaffold/save', {
+      const resp = await fetch('/api/skill_studio/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -374,7 +374,7 @@ export function initSkillStudio(_state, callbacks = {}) {
 
   async function loadCapabilities() {
     try {
-      const resp = await fetch('/api/agent_training_factory/capabilities');
+      const resp = await fetch('/api/tools_studio/capabilities');
       if (resp.ok) {
         const data = await resp.json();
         currentCapabilities = data.namespaces || [];

@@ -1,13 +1,15 @@
 """
-Unit tests for Autonomous Training controls on AgentProfile, AgentCustomization, Guardrails, and Pack Manifest [REQ-FACT-023].
+Unit tests for the dormant autonomous-training fields on AgentProfile, AgentCustomization and Guardrails [REQ-FACT-023].
+
+CARD-497 D9: the API and pack manifest no longer carry them, and the auto-train event is gone;
+the domain fields and DB columns stay until CARD-498.
 """
 
 import pytest
 from pydantic import ValidationError
 
-from src.application.agent_packs.schema import AgentPackManifest
 from src.domain.agents.guardrails import AgentProfileGuardrail
-from src.domain.kernel.models import AgentProfile, KernelEvent, KernelEventType
+from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization
 
 
@@ -92,23 +94,3 @@ def test_guardrail_clamps_or_defaults_invalid_retries():
     assert profile.allow_autonomous_training is True
     assert profile.max_training_retries == 2
 
-
-def test_pack_manifest_auto_train_fields():
-    manifest = AgentPackManifest(
-        id="hyperv",
-        name="Hyper-V Specialist",
-        allow_autonomous_training=True,
-        max_training_retries=3,
-    )
-    assert manifest.allow_autonomous_training is True
-    assert manifest.max_training_retries == 3
-
-
-def test_kernel_event_auto_train_progress():
-    event = KernelEvent(
-        event_type=KernelEventType.AUTO_TRAIN_PROGRESS,
-        content="Synthesizing tool in sandbox...",
-        auto_train={"stage": "sandbox_battery", "passed": True},
-    )
-    assert event.event_type == KernelEventType.AUTO_TRAIN_PROGRESS
-    assert event.auto_train["stage"] == "sandbox_battery"

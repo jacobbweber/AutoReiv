@@ -1,6 +1,6 @@
 """CARD-431 operator contract: save_agent_specification leaves the catalog.
 
-REQ-431-001: Tools Studio catalog (GET /api/agent_training_factory/capabilities)
+REQ-431-001: Tools Studio catalog (GET /api/tools_studio/capabilities)
 does not list save_agent_specification after boot.
 REQ-431-002: scaffold_agent_pack stays registered and Developer can call it
 when the turn asks to scaffold an agent pack.
@@ -47,7 +47,7 @@ def test_oc431_catalog_omits_save_and_developer_can_scaffold(operator_client):
     user_data = wiki.parent
     _refuse_live(user_data)
 
-    caps = client.get("/api/agent_training_factory/capabilities")
+    caps = client.get("/api/tools_studio/capabilities")
     assert caps.status_code == 200
     names = _catalog_names(caps.json())
     assert "save_agent_specification" not in names

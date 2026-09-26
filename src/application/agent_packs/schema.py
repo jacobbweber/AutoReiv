@@ -562,8 +562,6 @@ class AgentPackManifest(BaseModel):
     pinned_memory: str = ""
     mcp_server: Optional[PackMCPServerConfig] = None
     mcp_servers: List[PackMCPServerConfig] = Field(default_factory=list)
-    allow_autonomous_training: bool = False
-    max_training_retries: int = 2
     allow_wiki_access: bool = True
     allowed_credentials: List[str] = Field(default_factory=list)
     created_at: Optional[str] = None

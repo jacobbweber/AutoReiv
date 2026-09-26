@@ -1,4 +1,4 @@
-"""SKILL.md YAML frontmatter parse/serialize for the Factory workshop [CARD-411].
+"""SKILL.md YAML frontmatter parse/serialize for the Skill Studio workshop [CARD-411].
 
 Structured fields (name, description, tier, safety, requires_tools) round-trip
 without dropping the markdown body or unrelated frontmatter keys such as

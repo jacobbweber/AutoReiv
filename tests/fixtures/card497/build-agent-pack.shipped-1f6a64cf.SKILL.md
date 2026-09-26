@@ -22,7 +22,7 @@ When the human proposes creating a new specialist agent (e.g., "I want an Ansibl
 1. **Core Specialization**: What exact workflows, domains, or tasks should this agent master?
 2. **Environment & Execution**: Where does it operate (local machine, remote SSH hosts from Credential Vault, containerized sandbox)?
 3. **Safety & Guardrails**: What mutating operations require explicit human confirmation or mandatory dry-run `--check` modes?
-4. **Initial Tool Needs**: Does it rely on existing catalog tools (`cli_exec`, `remote_tools`), or does it need a new tool? The Developer agent builds new tools (hand off with a brief); Skill Studio writes new skills.
+4. **Initial Tool Needs**: Does it rely on existing catalog tools (`cli_exec`, `remote_tools`), or does it need dedicated tools trained in the Factory?
 
 ## Gold-Standard Prompt Blueprint
 
@@ -43,7 +43,7 @@ When synthesizing the agent's `system_prompt`, structure it with standard explic
 5. Confirm `show_in_chat` (default on). Off means a behind-the-scenes specialist; Chat pickers hide them; handoff can still target them.
 6. Optional: include CARD-123 workflow JSON (chapter list only). Do not copy transcripts, person facts, secrets, or `input_packet_json`.
 7. Call `scaffold_agent_pack` with that nested spec, or `export_agent_pack` / `import_agent_pack` for an existing folder/zip.
-8. Tell the human the agent id and render the post-creation confirmation with next steps: Skill Studio for more skills, the Developer agent for new tools.
+8. Tell the human the agent id and render the post-creation confirmation with training guidance.
 
 ## Pitfalls
 
@@ -51,7 +51,7 @@ When synthesizing the agent's `system_prompt`, structure it with standard explic
 - Do not leave `skills[0].tools` empty while placing tools only at the top level. Always place the tools in the skill's `tools` array.
 - Do not create a Pack Studio or a fourth primitive.
 - Do not invent new skills or new tools in Agent Studio. Studio edits a pack that is already here.
-- Do not ship new Python tool implementations in the zip. The Developer agent builds and registers new tools.
+- Do not ship new Python tool implementations in the zip. Factory Studio owns training and wiring new callables.
 - Do not restripe Chat's picker: leave `show_in_chat` true unless the human asked to hide the specialist.
 - Do not copy instance data. Workflows are the recipe, not this run's facts.
 - Users do not hand-edit Python tool implementations in Agent Studio.

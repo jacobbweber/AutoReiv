@@ -542,7 +542,7 @@ export async function fetchMcpServers(fetchImpl, scope, agentId = '') {
  * @returns {Promise<object[]>}
  */
 export async function loadCatalogModel(fetchImpl, { agentId = '' } = {}) {
-  const capRes = await fetchImpl('/api/agent_training_factory/capabilities');
+  const capRes = await fetchImpl('/api/tools_studio/capabilities');
   const cap = capRes && capRes.ok ? await capRes.json() : { namespaces: [] };
   const platRes = await fetchImpl('/api/settings/mcp');
   const platformServers = platRes && platRes.ok ? await platRes.json() : [];

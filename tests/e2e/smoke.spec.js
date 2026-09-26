@@ -1336,6 +1336,39 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#messagesContainer')).toContainText('get_tc39_inventory');
     });
 
+    test(`TC-44 (${vp.name}): Ask Developer on a gap starts a Developer reply with no further input [CARD-497]`, async ({ page }) => {
+      const streamPosts = [];
+      let release;
+      const held = new Promise((r) => { release = r; });
+      // The reply is held open so the live streaming bubble can be checked (a mocked stream saves nothing,
+      // so the history reload after the turn would be empty).
+      await page.route('**/api/chat/stream', async (route) => {
+        streamPosts.push(route.request().postDataJSON());
+        await held;
+        await route.fulfill({
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          body: 'data: {"type":"token","text":"TC44 Developer reply started"}\n\ndata: [DONE]\n\n',
+        }).catch(() => {});
+      });
+      const card = await openGaps(page);
+      await card.locator('.btn-gap-ask-developer').click();
+      await expect(page.locator('#view-chat')).toBeVisible();
+      await expect.poll(() => streamPosts.length, { timeout: 15000 }).toBe(1);
+      expect(streamPosts[0].agent_id).toBe('developer');
+      expect(streamPosts[0].resume).toBe(false);
+      expect(streamPosts[0].content).toContain('get_tc39_inventory');
+      expect(streamPosts[0].content).toContain('Look up TC39 inventory counts');
+      const msgs = page.locator('#messagesContainer');
+      await expect(msgs.locator('[data-stream-bubble="true"]')).toBeVisible();
+      await expect(msgs).toContainText('get_tc39_inventory');
+      await expect(page.locator('#promptInput')).toHaveValue('');
+      release();
+      await expect(msgs.locator('[data-stream-bubble="true"]')).toHaveCount(0, { timeout: 15000 });
+      await page.waitForTimeout(1000);
+      expect(streamPosts.length).toBe(1);
+    });
+
     test(`TC-40 (${vp.name}): a saved layout with the Factory window loads cleanly without it [CARD-496]`, async ({ page }) => {
       await page.addInitScript(() => {
         if (sessionStorage.getItem('tc40-seeded')) return;
@@ -1407,6 +1440,55 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(row(good).locator('[data-testid="tools-studio-check-label"]')).toHaveText('Checked');
       await expect(row(high).locator('[data-testid="tools-studio-check-label"]')).toHaveText('Checked without a sample call: high risk: sample call skipped');
       await expect(row(bad)).toHaveCount(0);
+      expect(errors).toEqual([]);
+    });
+
+    test(`TC-43 (${vp.name}): Skill Studio generates, saves and opens a skill through /api/skill_studio only [CARD-497]`, async ({ page, request }) => {
+      const gone = await request.get('/api/agent_training_factory/jobs');
+      expect(gone.status()).toBe(404);
+      const studioCalls = [];
+      const retired = [];
+      page.on('request', (r) => {
+        const u = r.url();
+        if (u.includes('/api/agent_training_factory')) retired.push(u);
+        if (u.includes('/api/skill_studio/') || u.includes('/api/tools_studio/capabilities')) studioCalls.push(`${r.method()} ${new URL(u).pathname}`);
+      });
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(String(e)));
+      const name = `TC43 ${vp.name} ${Date.now() % 100000}`;
+      const skillId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-skill-studio').click();
+      await expect(page.locator('#view-skill-studio')).toBeVisible();
+      await expect.poll(() => page.locator('#factoryCapabilitiesContainer input[type="checkbox"][data-tool-name]').count(), { timeout: 20000 }).toBeGreaterThan(0);
+      await page.locator('#factoryNewSkillFormBtn').click();
+      await page.locator('#factorySkillNameInput').fill(name);
+      await page.locator('#factorySkillTriggerInput').fill('Smoke-test a Skill Studio save');
+      await page.locator('#factorySkillIntentInput').fill('Write one short procedure.');
+      await page.locator('#factoryGenerateRunbookBtn').click();
+      await expect.poll(() => page.inputValue('#factorySkillMarkdownEditor'), { timeout: 75000 }).toMatch(/^---/);
+      await expect(page.locator('#factorySkillIdInput')).toHaveValue(skillId);
+      await page.locator('#factorySaveSkillBtn').click();
+      await expect.poll(() => studioCalls.includes('POST /api/skill_studio/save'), { timeout: 20000 }).toBe(true);
+      await expect(page.locator('#factoryExistingSkillSelect')).toHaveValue(skillId, { timeout: 20000 });
+
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      // Desktop restores the open Skill Studio window; a dock click on the focused window would minimize it (see TC-40).
+      await expect(page.locator('#dock-skill-studio')).toBeVisible();
+      await page.waitForTimeout(1500);
+      if (!(await page.locator('#view-skill-studio').isVisible())) await page.locator('#dock-skill-studio').click();
+      await expect(page.locator('#view-skill-studio')).toBeVisible();
+      await expect.poll(async () => page.locator(`#factoryExistingSkillSelect option[value="${skillId}"]`).count(), { timeout: 20000 }).toBe(1);
+      await page.selectOption('#factoryExistingSkillSelect', skillId);
+      await expect(page.locator('#factorySkillNameInput')).toHaveValue(name, { timeout: 20000 });
+      await expect.poll(() => page.inputValue('#factorySkillMarkdownEditor')).toContain(name);
+
+      expect(studioCalls).toContain('GET /api/tools_studio/capabilities');
+      expect(studioCalls).toContain('POST /api/skill_studio/runbook');
+      expect(studioCalls).toContain('GET /api/skill_studio/skills');
+      expect(studioCalls.some((c) => c.startsWith(`GET /api/skill_studio/skills/${skillId}`))).toBe(true);
+      expect(retired).toEqual([]);
       expect(errors).toEqual([]);
     });
   }

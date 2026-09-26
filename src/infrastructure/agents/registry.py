@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.skills.education_tools import EducationTools
 from src.application.skills.sysadmin_tools import SysadminTools
 from src.application.skills.system_agent_tools import SystemAgentTools
-from src.application.skills.education_tools import EducationTools
 from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.agents.profiles import (
@@ -310,7 +310,7 @@ class BuiltinAgentRegistry:
         builder_tools = AgentBuilderTools(agent_registry=agent_registry, tool_registry=tool_registry, store=store)
         builder_tools.register_tools(tool_registry)
 
-        # 7b. Agent Pack import/export/scaffold tools -> AutoReiv
+        # 7b. Agent Pack inspect/import/export/scaffold tools -> AutoReiv [CARD-497 D6]
         from src.application.skills.agent_pack_tools import AgentPackTools
 
         pack_tools = AgentPackTools(
@@ -320,17 +320,6 @@ class BuiltinAgentRegistry:
             data_dir=Path(skills_dir).parent if skills_dir else None,
         )
         pack_tools.register_tools(tool_registry)
-
-        # 7c. Factory Dispatch & Pack Inspection Tools -> Forge [CARD-355]
-        from src.application.skills.factory_dispatch_tools import FactoryDispatchTools
-
-        factory_dispatch_tools = FactoryDispatchTools(
-            agent_registry=agent_registry,
-            store=store,
-            tool_registry=tool_registry,
-            data_dir=Path(skills_dir).parent if skills_dir else None,
-        )
-        factory_dispatch_tools.register_tools(tool_registry)
 
         # 8. Orchestration & Subagent Handoff Tools
         from src.application.orchestration.directory_service import AgentDirectoryService

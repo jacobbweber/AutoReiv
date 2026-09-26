@@ -51,18 +51,11 @@ async def test_capability_gaps_api_lifecycle(tmp_path, monkeypatch):
         assert other_resp.status_code == 200
         assert len(other_resp.json()["gaps"]) == 0
 
-        # 3. Trigger train on the gap
+        # 3. The Factory train route is gone [CARD-497]; the gap stays pending
         train_resp = await ac.post(f"/api/agents/hyperv/gaps/{gap_id}/train")
-        assert train_resp.status_code == 200
-        train_data = train_resp.json()
-        assert train_data["success"] is True
-        assert "job_id" in train_data
-        assert train_data["job_id"].startswith("fjob_")
-
-        # Now pending list should be empty
-        list_resp2 = await ac.get("/api/agents/hyperv/gaps")
-        assert list_resp2.status_code == 200
-        assert len(list_resp2.json()["gaps"]) == 0
+        assert train_resp.status_code in (404, 405)
+        dismiss_first = await ac.delete(f"/api/agents/hyperv/gaps/{gap_id}")
+        assert dismiss_first.status_code == 200
 
         # 4. Create another gap and dismiss it
         create_resp2 = await ac.post(

@@ -46,7 +46,6 @@ from src.infrastructure.data.resolver import bootstrap_data_dir
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.mcp.client_adapter import MCPClientManager
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.web.routers.agent_training_factory import router as factory_router
 from src.web.routers.agents import router as agents_router
 from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.capabilities import router as capabilities_router
@@ -66,6 +65,8 @@ from src.web.routers.remote_hosts import router as remote_hosts_router
 from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
 from src.web.routers.skill_authoring import router as skill_authoring_router
+from src.web.routers.skill_studio import legacy_router as skill_studio_legacy_router
+from src.web.routers.skill_studio import router as skill_studio_router
 from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
@@ -287,6 +288,11 @@ def create_app(
     )
     capability_catalog = CapabilityCatalogResolver(capability_catalog_repo)
     capability_gap_repo = CapabilityGapRepository(store)
+    # Gaps stranded in "training" by the retired Factory go back to the backlog [CARD-497 D8].
+    try:
+        capability_gap_repo.reset_stranded_training_gaps()
+    except Exception as exc:  # a missing table on a brand-new DB is not fatal
+        logging.getLogger(__name__).debug("stranded gap reset skipped: %s", exc)
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
     # CARD-228: progressive SKILL.md — catalog resolve metadata-only; body on phase bind.
     _early_skill_catalog = getattr(registry, "user_skill_catalog", None)
@@ -333,20 +339,6 @@ def create_app(
     if hasattr(registry, "native_tool_engineering"):
         registry.native_tool_engineering.service = native_custom_tools
 
-    # 4b. Agent Training Factory Orchestrator [CARD-171, REQ-FACT-016]
-    from src.application.agent_training_factory import FactoryOrchestrator
-    from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
-
-    factory_repo = FactoryPacketRepository(store)
-    factory_orchestrator = FactoryOrchestrator(
-        repo=factory_repo,
-        store=store,
-        data_dir=data_paths.root,
-        poll_interval=2.0,
-        gateway=gateway,
-        wiki=wiki_service,
-    )
-
     backup_scheduler = DataDirBackupScheduler(
         paths=data_paths,
         store=store,
@@ -354,8 +346,7 @@ def create_app(
     )
 
     serve_host, serve_port = resolve_serve_bind()
-    factory_repo_for_busy = locals().get("factory_repo")
-    update_busy = make_store_busy_detector(store, factory_repo=factory_repo_for_busy)
+    update_busy = make_store_busy_detector(store)
     serve_restarter = DetachedScriptRestarter()
     update_service = UpdateService(
         state_store=store,
@@ -375,7 +366,6 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
-        factory_task = asyncio.create_task(factory_orchestrator.start())
         backup_task = asyncio.create_task(backup_scheduler.start())
         update_task = asyncio.create_task(update_scheduler.start())
         try:
@@ -440,12 +430,6 @@ def create_app(
             except (asyncio.CancelledError, Exception):
                 pass
             await mcp_manager.shutdown_all()
-            await factory_orchestrator.stop()
-            factory_task.cancel()
-            try:
-                await factory_task
-            except (asyncio.CancelledError, Exception):
-                pass
             if hasattr(scheduler.stop, "__await__") or asyncio.iscoroutinefunction(scheduler.stop):
                 await scheduler.stop()
             else:
@@ -495,7 +479,6 @@ def create_app(
     app.state.serve_host = serve_host
     app.state.serve_port = serve_port
     app.state.repo_root = str(Path(__file__).resolve().parents[2])
-    app.state.factory_repo = factory_repo
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
     app.state.job_orchestrator = job_orchestrator
@@ -512,8 +495,6 @@ def create_app(
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
-    app.state.factory_orchestrator = factory_orchestrator
-    app.state.factory_repo = factory_repo
     app.state.capability_gap_repo = capability_gap_repo
     app.state.capability_catalog_repo = capability_catalog_repo
     app.state.capability_catalog = capability_catalog
@@ -598,7 +579,8 @@ def create_app(
 
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)
-    app.include_router(factory_router)
+    app.include_router(skill_studio_router)
+    app.include_router(skill_studio_legacy_router)
     app.include_router(gaps_router)
     app.include_router(agents_router)
     app.include_router(skills_router)

@@ -64,7 +64,7 @@ async def test_factory_save_persists_sqlite_bindings_not_pack_json(tmp_path, mon
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         rejected = await ac.post(
-            "/api/agent_training_factory/scaffold/save",
+            "/api/skill_studio/save",
             json={
                 "agent_id": "autoreiv",
                 "skill_id": "widget-notes",
@@ -79,7 +79,7 @@ async def test_factory_save_persists_sqlite_bindings_not_pack_json(tmp_path, mon
         assert SkillToolBindingRepository(db_path=str(db_path)).get("widget-notes") is None
 
         saved = await ac.post(
-            "/api/agent_training_factory/scaffold/save",
+            "/api/skill_studio/save",
             json={
                 "agent_id": "autoreiv",
                 "skill_id": "widget-notes",
@@ -128,13 +128,13 @@ async def test_factory_save_persists_sqlite_bindings_not_pack_json(tmp_path, mon
         assert "inspect_widget" in names
         assert "stale_pack_tool" not in names
 
-        opened = await ac.get("/api/agent_training_factory/skills/widget-notes", params={"agent_id": "autoreiv"})
+        opened = await ac.get("/api/skill_studio/skills/widget-notes", params={"agent_id": "autoreiv"})
         assert opened.status_code == 200
         assert opened.json()["requires_tools"] == ["inspect_widget"]
         assert opened.json()["binding_source"] == "sqlite"
 
         cleared = await ac.post(
-            "/api/agent_training_factory/scaffold/save",
+            "/api/skill_studio/save",
             json={
                 "agent_id": "autoreiv",
                 "skill_id": "widget-notes",

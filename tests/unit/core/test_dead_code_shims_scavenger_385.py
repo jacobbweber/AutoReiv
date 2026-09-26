@@ -34,25 +34,22 @@ def test_factory_runner_shim_file_does_not_exist():
         importlib.import_module("src.application.orchestration.factory_runner")
 
 
-def test_orchestrator_does_not_export_factory_runner_alias():
-    """Verify that src.application.agent_training_factory.orchestrator does not export FactoryRunner."""
-    from src.application.agent_training_factory import orchestrator
-
-    assert not hasattr(orchestrator, "FactoryRunner"), (
-        "orchestrator still exposes obsolete FactoryRunner alias"
-    )
+def test_factory_orchestrator_package_does_not_exist():
+    """CARD-497: the whole agent_training_factory package (and its FactoryRunner alias) is deleted."""
+    assert not Path("src/application/agent_training_factory").exists()
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("src.application.agent_training_factory.orchestrator")
 
 
 def test_app_state_and_web_app_factory_orchestrator_cleanliness():
-    """Verify that the FastAPI application mounts the agent_training_factory router cleanly and has no factory_runner alias."""
+    """CARD-497: no Factory orchestrator, repo or runner on app.state, and the Factory jobs route is gone."""
     from src.infrastructure.memory.sqlite_store import SQLiteStateStore
     from src.web.app import create_app
 
     app = create_app(state_store=SQLiteStateStore(db_path=":memory:"))
-    assert hasattr(app.state, "factory_orchestrator"), "app.state missing canonical factory_orchestrator"
-    assert not hasattr(app.state, "factory_runner"), "app.state still exposes obsolete factory_runner alias"
+    for attr in ("factory_orchestrator", "factory_repo", "factory_runner"):
+        assert not hasattr(app.state, attr), f"app.state still exposes {attr}"
 
     client = TestClient(app)
     resp = client.get("/api/agent_training_factory/jobs")
-    assert resp.status_code == 200
-    assert "jobs" in resp.json()
+    assert resp.status_code == 404

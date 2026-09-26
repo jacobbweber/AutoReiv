@@ -51,7 +51,7 @@ def test_forge_platform_pack():
     assert "agent-authoring" in skill_ids
     tools = {t for s in manifest.skills if s.id == "agent-authoring" for t in s.tools}
     assert "inspect_agent_pack" in tools
-    assert "launch_factory_training" in tools
+    assert "launch_factory_training" not in tools  # retired Factory dispatch [CARD-497 D2]
 
 
 def test_autoreiv_pack_weekly_tasks_and_skills():

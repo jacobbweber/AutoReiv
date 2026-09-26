@@ -74,7 +74,7 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
     assert routines["skill-curator"]["agent_id"] == "developer"
     assert routines["skill-curator"]["enabled"] is False
 
-    caps = client.get("/api/agent_training_factory/capabilities").json()
+    caps = client.get("/api/tools_studio/capabilities").json()
     group_names = [ns["name"] for ns in caps["namespaces"]]
     assert "Built-in Primitives" not in group_names
     assert not any(str(name).startswith("Dynamic:") for name in group_names)

@@ -201,7 +201,7 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(skillStudio).not.toContain('bindSkillStudioAuthoring');
     expect(skillStudio).not.toContain('openObserveJob');
     expect(skillStudio).not.toContain('skillStudioAskDeveloperBtn');
-    expect(skillStudio).toContain('/api/agent_training_factory/scaffold/save');
+    expect(skillStudio).toContain('/api/skill_studio/save');
     expect(skillStudio).toContain('skillDeleteRequest');
     expect(skillStudio).toContain('window.confirm');
     expect(skillStudio).not.toContain('confirm_seed');

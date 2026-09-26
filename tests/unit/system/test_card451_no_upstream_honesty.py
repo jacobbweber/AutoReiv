@@ -67,7 +67,6 @@ def _svc(store, root: Path, data: Path) -> UpdateService:
             chat_stream_checker=lambda: False,
             routine_checker=lambda: False,
             studio_job_checker=lambda: False,
-            factory_job_checker=lambda: False,
         ),
         dep_installer=lambda _r: (True, "ok"),
         serve_host="0.0.0.0",

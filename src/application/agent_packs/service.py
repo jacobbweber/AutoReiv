@@ -207,8 +207,6 @@ class AgentPackService:
             memory_enabled=memory_enabled,
             memory_retention_days=memory_retention_days,
             pinned_memory=pinned_memory,
-            allow_autonomous_training=getattr(profile, "allow_autonomous_training", False),
-            max_training_retries=getattr(profile, "max_training_retries", 2),
             mcp_servers=mcp_servers,
             created_at=profile.created_at,
             updated_at=profile.updated_at,
@@ -563,8 +561,6 @@ class AgentPackService:
                 "memory_enabled": memory_enabled,
                 "memory_retention_days": memory_retention_days,
                 "pinned_memory": pinned_memory,
-                "allow_autonomous_training": getattr(manifest, "allow_autonomous_training", False),
-                "max_training_retries": getattr(manifest, "max_training_retries", 2),
                 "mcp_servers": merged_mcp,
             }
         else:
@@ -596,8 +592,6 @@ class AgentPackService:
                 "memory_enabled": memory_enabled,
                 "memory_retention_days": memory_retention_days,
                 "pinned_memory": pinned_memory,
-                "allow_autonomous_training": getattr(manifest, "allow_autonomous_training", False),
-                "max_training_retries": getattr(manifest, "max_training_retries", 2),
                 "mcp_servers": pack_mcp,
             }
 

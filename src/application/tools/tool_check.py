@@ -1,9 +1,8 @@
 """Check a Developer-built tool once in the sandbox before it is registered [CARD-511].
 
-ADR-0060 D6: of the Factory's verification battery, only ``detect_path_safety_violation``
-outlives the Factory, and it lives here now. This module must not import
-``agent_training_factory``, ``verification_battery``, ``tool_synthesizer`` or
-``factory_packets`` (CARD-497 deletes them).
+ADR-0060 D6: of the retired Factory's verification battery, only
+``detect_path_safety_violation`` survived, and it lives here. The Factory modules were
+deleted in CARD-497; this module has no Factory imports.
 
 Native tools: static (parse, module-level ``run``, path safety), import in the sandbox,
 then one sample call through the same exec-and-call runner that invoke uses.
@@ -106,7 +105,7 @@ def detect_path_safety_violation(tool_code: str) -> Optional[str]:
     """Return reason if tool_code has path traversal / sandbox escape.
 
     Absolute Windows paths (C:\\Users\\..., D:\\Archive\\...) are allowed.
-    Moved here from ``orchestration/verification_battery.py`` [ADR-0060 D6, CARD-511].
+    Moved here from the retired verification battery [ADR-0060 D6, CARD-511].
     """
     code = tool_code or ""
     if re.search(r"\.\.(?:/|\\)", code):

@@ -169,17 +169,16 @@ class ToolsDeveloperMediationService:
         self._kernel = kernel
 
     def open_chat(self, intent: str, draft: Optional[Mapping[str, Any]]) -> dict[str, Any]:
-        """New developer session whose first message is the form context. No job."""
+        """New, empty developer session plus the prompt. No job.
+
+        The browser sends ``prompt`` as a real turn via /api/chat/stream so the Developer replies at once
+        (CARD-497 REQ-497-016); pre-saving it here left a message that looked sent but never ran.
+        """
         self._require_store()
         self._require_developer()
         packet = build_packet(intent, draft or {})
         prompt = format_developer_prompt(packet)
         session = self._store.create_session(agent_id=DEVELOPER_AGENT_ID, title=_session_title(packet))
-        self._store.save_message(
-            session_id=session.id,
-            agent_id=DEVELOPER_AGENT_ID,
-            message=ChatMessage(role=Role.USER, content=prompt),
-        )
         logger.info("Tools Studio opened developer chat %s for %s", session.id, packet["intent"])
         return {
             "session_id": session.id,

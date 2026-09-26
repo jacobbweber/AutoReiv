@@ -1,7 +1,7 @@
 ---
 id: CARD-497
 title: "Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs"
-status: Ready
+status: Done
 created: 2026-09-25
 branch: qa
 related:
@@ -25,7 +25,7 @@ labels:
 
 # [CARD-497] Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs
 
-> **Status**: Ready (refined on `continue`, 2026-09-26 ~9:50 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). Decisions D1-D14 are to confirm at `build`. The remedy rename (old D3) moves to successor card CARD-520.
+> **Status**: Done (2026-09-26 ~12:05 PM ET: live-tested on serve; Jacob rechecked Ask Developer, approved and said `merge to qa`; merged --no-ff into qa and pushed. Live results in "Live test on serve"). Earlier: In Review (2026-09-26 ~10:35 AM ET; build evidence below; not merged or pushed). Built on `build`, 2026-09-26 ~9:44 AM ET: Jacob accepted D1-D14 exactly as recommended in the plan at `1a9da7ae`. Branch `feat/card-497-factory-backend-removal` from qa `1a9da7ae`). Refined on `continue`, 2026-09-26 ~9:30 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). The remedy rename (old D3) moves to successor card CARD-520.
 > **Created**: 2026-09-25
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted). This card is step 4 of 6: CARD-495 (Done), CARD-496 (Done), CARD-511 (Done), **CARD-497**, CARD-512, CARD-498.
 > **Series**: CARD-495, CARD-496, CARD-511, **CARD-497**, CARD-520 (split from this card), CARD-512, CARD-498
@@ -33,12 +33,90 @@ labels:
 
 ---
 
+## Build evidence (2026-09-26)
+
+**Commits** on `feat/card-497-factory-backend-removal` (from qa `1a9da7ae`): `b19f942c` (decisions accepted), `565bd2ce` (failing tests 1-19), `61b9d617` (implementation, D1-D14), `2506bb41` (TC-43 desktop reopen fix), plus this card update.
+
+**Tests first.** `565bd2ce` was run before any code change: 39 pytest failures (tests 1-17; 5b, 17 and a few 404 rows already held), Vitest card_497 5/5 failing, smoke TC-43 failing on desktop and phone (`GET /api/agent_training_factory/jobs` answered 200).
+
+**Preflight** (pytest first, smoke alone afterwards):
+
+| Suite | Before (qa `1a9da7ae`) | After | Change and reason |
+|---|---|---|---|
+| Unit | 2107 pass / 11 skip / 1 fail | 1965 pass / 11 skip / 1 fail | -189 deleted, +47 new (per file below). The fail is CARD-454 (`test_platform_packs_all_pass_mechanical_linter`, 4 Tutor tool-budget errors; the rewritten `agent-authoring` and `build-agent-pack` lint clean). |
+| Integration | 111 | 103 | -8: `factory/test_dogfood_factory_pipeline.py` (4), `factory/test_scaffolder_lifecycle.py` (1), `capabilities/test_dogfood_capability_gap_loop.py` 5 -> 2 (the train, promote and fail tests). |
+| Vitest | 890 pass / 3 fail | 895 pass / 3 fail | +5 `card_497_skill_studio_routes.test.js`. Fails are CARD-456. |
+| Smoke | 65 | 67 | +2 TC-43 (desktop, phone). |
+| ESLint | 4 errors / 5 warnings | same | CARD-456. |
+| ruff | 9 | 7 | `ruff --fix` also sorted two CARD-454 import blocks (`registry.py`, `chat.py`) in files this card edits. |
+
+**Unit tests deleted (189):** `tests/unit/agent_training_factory/` 17 files, 124 tests (test_author_phase 4, card185 5, card186 6, card270 4, deliverables_taxonomy 7, factory_prompts_and_healing 3, factory_quality_gates 18, factory_standards_and_collision 4, ground_phase 1, hyperv_multi_skill 7, intent_scenario_outer_rinse 26, lab_monitor_controls 2, live_test_fixes 12, mcp_scaffolding 6, registry_and_frontmatter 7, scaffolder_endpoints 3 (ported to tests 1-3), verify_rinse_and_path_safety 9); `web/test_factory_api.py` 2; `web/test_agent_training_factory_router.py` 4; `routers/test_agent_training_factory_prompts.py` 2; `orchestration/` test_factory_runner 4, test_factory_packets 5, test_capability_loop 4, test_phase_prompt_registry 4, test_verification_battery 8, test_tool_synthesizer 13; `kernel/test_in_flight_synthesis.py` 7; `skills/test_factory_dispatch_tools.py` 5 (the two inspect tests are ported as 10b/10c); `skills/test_sandbox_runner.py` 5; `kernel/test_agent_profile_auto_train.py` 8 -> 6 (the auto-train event test and the manifest-fields test; 14b replaces the latter).
+
+**Unit tests added (47):** `web/test_skill_studio_routes.py` 21 (tests 1-6); `core/test_card_497_factory_backend_removal.py` 26 (tests 7-17).
+
+**Changed, same count:** `core/test_dead_code_shims_scavenger_385.py` (two tests flipped to absence and 404), `tools/test_tool_check.py` (verification_battery must not exist), `agent_packs/test_card_126_platform_packs.py` (no `launch_factory_training`), `web/test_gaps_api.py` (train answers 404; gap dismissed instead), `system/test_card451_*` (no Factory checker kwarg), URL-only: test_card_418_skill_studio_save, test_card_411_factory_skill_bindings, test_workshop_skill_resolve, test_mcp_disable_unmount, oc423, oc425, oc426, oc429, oc431, Vitest card_411/418/420/421/423/496.
+
+**Runbook on scratch** (`c497_live`, port 8767, stopped afterwards):
+1. Health 200; the server log has no Factory orchestrator lines (only the probe requests below).
+2. `GET /jobs`, `GET /gaps`, `GET /phases/instructions`, `POST /api/agents/autoreiv/gaps/gap_x/train`: all 404.
+3. `GET /api/agent_training_factory/capabilities` -> 308, `Location: /api/tools_studio/capabilities`; followed: `total_tools` 104 on both. `POST .../scaffold/runbook` through the 308 (httpx) -> 200 with a runbook. (Python's urllib refuses to follow a POST 308; browsers and httpx do.)
+4. Skill Studio generate/save/open: covered by smoke TC-43 (desktop and phone), which also asserts only `/api/skill_studio/*` and `/api/tools_studio/capabilities` requests.
+5. Tools Studio catalog: `launch_factory_training` absent, `inspect_agent_pack` present.
+6. Stranded gap: `gap_009f29df3635` set to `training` in SQLite, server restarted -> `pending` in the API and DB; dismiss -> 200 `dismissed`.
+7. Fallback: `GET /api/agents/autoreiv` has `inspect_agent_pack`, no `launch_factory_training`, no auto-training fields; `GET /api/skill_studio/skills/agent-authoring` shows "Agent Capability Intake" and no "Factory".
+9. Busy: `make_store_busy_detector` on the scratch DB with a queued Studio job -> `(True, "running Studio job")`, idle after removing it. (`/api/system/updates/auto-status` only shows a reason after a deferred scheduled update, so the detector was checked directly.)
+
+**vLLM:** `http://192.168.1.218:8099/v1/models` answered 200 (7 models) at ~10:15 AM ET, so step 7's LLM path can be tried live.
+
+## Live test on serve (2026-09-26, Jacob + follow-up)
+
+**Jacob's findings (~10:50 AM ET, tip `9a858322`):**
+- Step 4 gap button: Open in Skill Studio opened an empty form. Not a CARD-497 regression: the gap prefill was never built (CARD-496 REQ-496-003 only opens Skill Studio for the agent). Filed **CARD-522**. Runbook step 6 now points at Ask Developer.
+- Step 5 IPMI intake: AutoReiv never opened `agent-authoring`, and its one `handoff_to_agent({"agent_id": "developer", "task": ...})` failed with a TypeError, which the reply hid. No job, A2A link or Developer session was created.
+
+**Fix (D2, tests first):**
+- `ac4bc60f` failing tests 12b/12c: the skill description must say "teach", "new capability" and "learn to", and the protocol must name `handoff_to_agent(target_agent_id="developer", task_directive=...)` and keep the order inspect, ask, show the brief, yes, hand off.
+- `7ddb8b47` agent-authoring v2.1.0 (description and protocol; "report honestly" step).
+- `61f374ac` failing test 12d, then `7ffb2f16`: **one routing line in AutoReiv's system prompt**, needed because the skill text alone was not enough. The retest still called `activate_skill(["agent-authoring"])`, which only loads platform tool domains.
+- `0f3b9a69` failing tests, then `b8a77319`: the routing line and the description name `skill_view(pack_id="agent-authoring")`. With the positional hint the model guessed `skills=` and `skill_name=` and got TypeErrors.
+- The AppData copies (`packs/autoreiv/pack.json`, `packs/autoreiv/skills/agent-authoring/SKILL.md`) refreshed on restart (hash-gated platform seed; the pack is not `user_modified`).
+
+**Live LLM retests on serve** (chat API, fresh sessions, approval mode ask, vLLM `nemotron-3.5-lightning`):
+
+| Run | Tip | agent-authoring opened | inspect_agent_pack | Asked first | Handoff |
+|---|---|---|---|---|---|
+| 1 (11:09 AM ET) | `7ddb8b47` | No: `activate_skill(["agent-authoring"])` failed, then drifted into wiki work and parked a `wiki_note_create` (rejected) | No | No | No |
+| 2 (11:15 AM ET) | `7ffb2f16` | No: `skill_view(skills=...)` and `skill_view(skill_name=...)` TypeErrors | Yes | Yes (4 questions) | No |
+| 3 (11:20-11:29 AM ET) | `b8a77319` | **Yes**, first try: `skill_view(pack_id="agent-authoring")` | **Yes** (after `lookup_agents`) | **Yes** (4 questions, turn 1) | **Yes**, turn 4: `handoff_to_agent(target_agent_id="developer", task_directive="Build a Python tool using pyghmi over lanplus to read IPMI sensor temperatures ...")` |
+
+Run 3 detail and gaps:
+- Turns 2 and 3 re-asked questions that had already been answered. Root cause: the context resolves to 8192 (no window configured) and compaction keeps only the last 8 messages, so the operator's answer drops out inside a tool-heavy turn. Filed **CARD-524**.
+- `ask_clarification` does not end the turn: six calls in one turn.
+- In turn 4 the handoff went out without showing the brief and getting a yes (the operator had asked to see the brief).
+- The Developer child session `..._child_c67b1144` ran 15 turns on blocked tools. It came back as "Status: completed | Turns Used: 1 | Conclusion: Execution terminated: Max turn budget of 15 reached", and AutoReiv then re-asked the questions.
+- A chat-mode handoff writes **no `jobs` / `job_a2a_links` row**; the only trace is the child session.
+- These tool and kernel issues are filed as **CARD-523**.
+
+**Cleanup:** 3 test approvals were rejected (1 `wiki_note_create`, 2 auto `propose_skill`; their 2 proposals are now `rejected`). The 3 retest sessions and the Developer child were deleted from `autoreiv.db` (sessions, messages, telemetry_spans, tool_policy_decisions, pending_approvals). A backup taken before the cleanup is at `scratch/autoreiv_pre_c497_cleanup.db`. Jacob's own session `f67162a7-...` was left alone.
+
+**Ask Developer retest (Jacob, ~11:40 AM ET):** steps 2-4 (intake, answers, handoff) worked. Step 1: Ask Developer on the TC49 gap opened a Developer chat that showed the "Tools Studio tool intent (create)" text as his message, but Developer did not reply until he typed "do you see my input to you?".
+- Root cause: `POST /api/tools_studio/authoring/talk` (`developer_mediation.open_chat`) saved the request as a USER message and never ran a turn. The browser's `openDeveloperSession` then saw the text already in the history and neither filled the message box nor called `/api/chat/stream`. The gap Ask Developer, Tools Studio Talk and Teach Ask Developer all share this path. The Skill Studio agent-created card has no Ask Developer button (only Open in Skill Studio / Agent Studio), and Observability Ask Developer is CARD-520 (not built).
+- Decision (Jacob): make it a real send. Fix, tests first (`16b3c874`, fix `9b0896bc`): `/talk` opens an empty session; `openDeveloperSession` sends the request once through the normal chat send (`chat/developer_intent.js`), with guards for double clicks, busy chats and reopened sessions (REQ-497-016). The prompt text still matches CARD-422's packet format. app.js 2.0.87.
+- Retest: Ctrl+F5, Agent Studio, AutoReiv, Capability gaps, TC49, Ask Developer. The Developer reply starts streaming with no further input.
+
+**Final live results (Jacob, ~12:05 PM ET, serve at `9b0896bc`, app.js 2.0.87):**
+- Step 1: Ask Developer on the TC49 gap now sends immediately; the Developer reply starts with no further input. Jacob approved after the recheck.
+- Steps 2-4: the intake, the answers and the handoff to Developer all worked.
+- Jacob said `merge to qa`.
+
+**REQ-497-008 verdict:** the shipped skill and routing now do what the requirement asks. The skill opens, `inspect_agent_pack` is called, questions come first, and the handoff uses the right arguments. On `nemotron-3.5-lightning` the full flow (brief, yes, handoff, Developer result) is not reliable until CARD-524 (context) and CARD-523 (turn and handoff handling) land, or a larger model is used for AutoReiv.
+
 ## Gate language (exact reply phrases)
 
 | Jacob reply | Meaning |
 |-------------|---------|
 | **`continue`** | Refine. No product code |
-| **`build`** | Build test-first on `feat/card-497-factory-backend` |
+| **`build`** | Build test-first on `feat/card-497-factory-backend-removal` |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
 
 ---
@@ -113,8 +191,9 @@ labels:
 - **[REQ-497-013]** WHEN the app starts on a DB that has `factory_*` tables with rows, it SHALL start cleanly and leave those tables and rows unchanged (CARD-498 exports them).
 - **[REQ-497-014]** No module under `src/` SHALL import a deleted module. The deleted files SHALL be absent. `tool_check.py` SHALL stay Factory-free.
 - **[REQ-497-015]** The lanes in the table above SHALL keep passing their existing tests (Teach distill and Ask Developer, Observability runbook Apply, skill-eval sleep, Developer register with the CARD-511 check, gap backlog).
+- **[REQ-497-016]** (added after Jacob's live test, 2026-09-26) WHEN the operator clicks Ask Developer on a capability gap, Talk to Developer in Tools Studio, or Ask Developer to build this tool in Teach, the app SHALL open a new Developer chat and send the request as a real turn, so the Developer reply starts with no further input. `/api/tools_studio/authoring/talk` SHALL NOT pre-save the request as a message. The request SHALL be sent once: not twice on a double click, and not again when the session is reopened or opened on another device. IF the chat is already busy, THEN the request SHALL go into the message box with a notice and not be sent.
 
-## 3. Decisions (recommendations; confirm at `build`)
+## 3. Decisions (D1-D14 accepted as recommended, 2026-09-26 ~9:44 AM ET)
 
 | # | Decision | Recommendation |
 |---|----------|----------------|
@@ -210,8 +289,8 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 3. **Redirects:** `GET /api/agent_training_factory/capabilities` without following redirects returns 308 with `Location: /api/tools_studio/capabilities`. Following it returns the same `total_tools` as the new URL. `POST .../scaffold/runbook` through the redirect still returns a runbook.
 4. **Skill Studio (desktop, Ctrl+F5):** open an existing skill, Generate, Save. DevTools Network shows only `/api/skill_studio/*` and `/api/tools_studio/capabilities`. The saved skill reopens with its tools.
 5. **Tools Studio:** the catalog loads with the CARD-511 Checked labels, and `launch_factory_training` is not in it.
-6. **Stranded gap:** put a gap in `training` in the scratch DB (a script with `update_gap_status`), then restart. It shows in Agent Studio's backlog as pending; Open in Skill Studio, Ask Developer and Dismiss work.
-7. **AutoReiv intake (needs the LLM on the Spark):** "Teach AutoReiv to read IPMI sensor temperatures." AutoReiv inspects itself, asks a question or two, and hands off to Developer with a brief; it never mentions the Factory. **Fallback without the LLM:** `GET /api/agents/autoreiv` lists `inspect_agent_pack` and not `launch_factory_training`, and `GET /api/skill_studio/skills/agent-authoring` shows the new body.
+6. **Stranded gap:** put a gap in `training` in the scratch DB (a script with `update_gap_status`), then restart. It shows in Agent Studio's backlog as pending, and Ask Developer and Dismiss work. Ask Developer opens a Developer chat and the Developer reply starts right away with no further input (REQ-497-016). For a gap whose suggested tool does not exist yet (TC49 `gap_c5d4dcc6af35`, `get_tc49_inventory`), **Ask Developer is the right next action**. Open in Skill Studio only opens Skill Studio pinned to the agent with an empty form; prefilling it from the gap is CARD-522 (it was never built, CARD-496 REQ-496-003).
+7. **AutoReiv intake (needs the LLM on the Spark):** "Teach AutoReiv to read IPMI sensor temperatures." AutoReiv inspects itself, asks a question or two, and hands off to Developer with a brief; it never mentions the Factory. It opens the runbook with `skill_view(pack_id="agent-authoring")` (AutoReiv's system prompt routes teach / new-capability requests there), shows the brief, and on the operator's yes calls `handoff_to_agent(target_agent_id="developer", task_directive=<brief>)`; the Developer result comes back in the same chat as "Subagent Handoff ...". **Fallback without the LLM:** `GET /api/agents/autoreiv` lists `inspect_agent_pack` and not `launch_factory_training`, and `GET /api/skill_studio/skills/agent-authoring` shows the new body.
 8. **Teach regression:** Teach on a chat turn that needs a tool still shows Ask Developer (CARD-472).
 9. **Busy check:** with a Studio job queued, `GET /api/system/updates/auto-status` reports busy with "running Studio job" and never "Factory".
 10. **Phone** (`http://192.168.1.99:8000` after serve restart): repeat 4 and 5.
@@ -219,7 +298,7 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 
 ## 7. Definition of done
 
-- REQ-497-001..015 pass; tests were written first and seen failing.
+- REQ-497-001..016 pass; tests were written first and seen failing.
 - Full suites pass apart from the known CARD-454/456 failures, with the count changes explained per file.
 - The runbook passes on scratch and serve (desktop and phone).
 - CARD-498's card notes the plain-SQL export and the maybe-missing `factory_phase_instructions`. CARD-512's card notes `self_scaffold_queue_e2e.py`. ADR-0060 carries the D6 location note.

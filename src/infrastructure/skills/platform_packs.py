@@ -466,6 +466,7 @@ RETIRED_TOOL_NAMES: tuple[str, ...] = (
     "get_weekly_summary",
     "list_wiki_templates",
     "get_wiki_template",
+    "launch_factory_training",  # retired Factory dispatch [CARD-497 D12]
 )
 
 

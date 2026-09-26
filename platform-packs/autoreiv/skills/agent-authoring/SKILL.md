@@ -1,58 +1,43 @@
 ---
-name: Agent Capability Architecture & Training Intake
-description: "Conversational intake partner for Agent Training Factory: Socratic requirement discovery, pack inspection, deliverable taxonomy recommendation, and training job dispatch."
-version: 1.0.0
+name: Agent Capability Intake
+description: "Use when the operator asks to teach an agent something, give it a new capability, or have it learn to do something new. Open with skill_view(pack_id=\"agent-authoring\"). Inspect the agent, ask what is missing, then hand a tool or MCP need to the Developer, a skill to Skill Studio, and a new agent to build-agent-pack."
+version: 2.1.0
 tier: platform
 requires_tools:
   - inspect_agent_pack
-  - launch_factory_training
   - lookup_agents
   - handoff_to_agent
+  - propose_skill
 safety:
   read_only: false
   requires_hitl: true
   untrusted_input_allowed: false
 verification:
   kind: assertion
-  rule: Dispatched training job ID is returned and verifiable in Agent Training Factory runner.
+  rule: The request ends in exactly one route - a Developer handoff with a brief, a skill proposal (Skill Studio or propose_skill), or the build-agent-pack runbook.
 ---
 
-# Agent Capability Architecture & Training Intake
+# Agent Capability Intake
 
-Act as the specialized Capability Architect and intake partner for AutoReiv's Agent Training Factory. Help operators formulate, ground, and synthesize new agent capabilities (Native Atomic Tools, Model Context Protocol MCP servers, and Procedural Skill Runbooks).
+Use this when the operator wants an agent to be able to do something new: "teach AutoReiv to ...", "give the agent a new capability", "can it learn to ...". Work out what is missing, then send it to the one place that builds it. You do not build tools here, and nothing is "trained".
 
-## Core Protocols
+## Protocol
 
-1. **Target Agent Discovery**:
-   - Identify the recipient agent.
-   - Use `lookup_agents` or `inspect_agent_pack` to verify current tools and skills, ensuring new capabilities do not duplicate existing functionality.
-
-2. **Socratic Elicitation**:
-   - Ask focused, probing questions covering:
-     - What the operator is trying to accomplish.
-     - Target host (local machine vs. remote server).
-     - Exact CLI cmdlets, APIs, file formats, or schemas involved.
-     - Failure modes, timeouts, and required inputs/outputs.
-
-3. **Context Grounding**:
-   - Ingest relevant API documentation snippets, error logs, or sample commands provided by the operator.
-
-4. **Deliverable Taxonomy Recommendation**:
-   - **Native Atomic Tool (tool)**: For discrete Python actions executing host-level commands, system scripts, or specialized Python libraries.
-   - **Model Context Protocol (mcp)**: For external multi-tool services, containerized servers, or enterprise API surfaces.
-   - **Procedural Skill Runbook (skill)**: For multi-step operational workflows, runbooks, or guidelines that combine existing tools.
-
-5. **Starter Objectives & Human Confirmation**:
-   - Formulate 1 to 3 clear, testable, verifiable starter objectives.
-   - Present a concise, structured brief summarizing Target Agent, Training Intent, Starter Objectives, Deliverable Type, and Reference Docs.
-   - Obtain operator confirmation before initiating training.
-
-6. **Dispatch & Transition**:
-   - Upon confirmation, invoke `launch_factory_training` with the distilled fields.
-   - Report the created `job_id` and invite the operator to monitor the 8-phase manufacturing progress in Factory Studio.
+1. **Find the agent.** Use `lookup_agents` to confirm the agent id, then `inspect_agent_pack` to read its current tools and skills. Do not propose something the agent already has.
+2. **Ask what is missing.** Before any handoff, ask a few focused questions and wait for the answers: what the operator is trying to do, where it runs (this machine or a remote host), the exact commands, APIs or file formats, and what a good result looks like.
+3. **Pick the route.**
+   - **A new tool or MCP server** (a callable that does not exist yet): write a short brief (target agent, what the tool does, inputs and outputs, host, reference docs).
+   - **A new skill** (a procedure that combines tools the agent already has): draft it for `propose_skill`, or tell the operator to open Skill Studio to write and save it.
+   - **A new agent**: follow the `build-agent-pack` runbook.
+4. **Show the brief and get a yes.** Show the brief or proposal and wait for the operator's yes before acting.
+5. **Act on the yes.**
+   - Tool or MCP: call `handoff_to_agent(target_agent_id="developer", task_directive=<brief>)`. Use exactly these argument names. The Developer builds, checks and registers the tool, and its result comes back in this chat.
+   - Skill: call `propose_skill` with the draft, or point to Skill Studio.
+6. **Report honestly.** If a tool call fails, tell the operator what failed and what you will do next. Never replace a failed handoff with general advice.
 
 ## Done-when
 
-- Requirements are elicited Socratically and grounded in real target APIs/commands.
-- Deliverable type is categorized into tool, mcp, or skill.
-- Training job is dispatched via `launch_factory_training` with an authentic `job_id` returned.
+- The agent's current tools and skills were checked with `inspect_agent_pack`.
+- The operator answered the questions and said yes to the brief.
+- The request went to exactly one route: a Developer handoff with a brief, a skill proposal, or build-agent-pack.
+- The operator was told where to follow it up (this chat for the Developer result, Skill Studio or Agent Studio).
