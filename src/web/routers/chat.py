@@ -69,6 +69,7 @@ from src.application.orchestration.working_set_context import (
 )
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
+from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import PhaseStatus
 from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
 from src.infrastructure.memory.repositories.sessions import generate_session_title_from_prompt
@@ -492,6 +493,58 @@ async def _apply_verify_gate(
     }
 
 
+def session_turn_running(session_id: str) -> bool:
+    """True while a chat worker for ``session_id`` is still running [CARD-530 REQ-530-003]."""
+    task = _active_stream_tasks.get(session_id)
+    return bool(task is not None and not task.done())
+
+
+def _phase_run_token(orch, phase_id: str):
+    fn = getattr(orch, "phase_run_token", None)
+    try:
+        return fn(phase_id) if callable(fn) else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+PHASE_COMPLETE_REFUSED_REASON = (
+    "Another run of this job changed this step while it was finishing, so it could not be recorded. "
+    "The job was stopped so it does not hang; send the request again to re-run it."
+)
+
+
+async def complete_phase_or_fail(*, orch, queue, job, phase, output_packet) -> bool:
+    """Complete ``phase``; if the state machine refuses, fail phase and job honestly [CARD-530 REQ-530-005]."""
+    try:
+        orch.complete_phase(phase.id, output_packet)
+        return True
+    except InvalidPhaseTransitionError as exc:
+        logger.warning("complete_phase refused job=%s phase=%s: %s [CARD-530]", job.id, phase.id, exc)
+        orch.fail_phase(phase.id, PHASE_COMPLETE_REFUSED_REASON)
+        await queue.put(
+            _sse(
+                "phase_complete",
+                {
+                    "job_id": job.id,
+                    "phase_id": phase.id,
+                    "status": "failed",
+                    "react_state": "FAILED",
+                    "reason": PHASE_COMPLETE_REFUSED_REASON,
+                },
+            )
+        )
+        honesty = format_job_failed_honesty(
+            job_id=job.id,
+            phase_name=getattr(phase, "name", None),
+            reason=PHASE_COMPLETE_REFUSED_REASON,
+        )
+        await queue.put(_sse("token", {"text": honesty}))
+        await queue.put(
+            _sse("turn_done", {"content": honesty, "job_failed": True, "reason": PHASE_COMPLETE_REFUSED_REASON})
+        )
+        return False
+
+
 async def _stream_turn_bound(
     *,
     queue,
@@ -516,6 +569,7 @@ async def _stream_turn_bound(
     stream_turn one phase, then complete/fail/park.
     Returns done|parked|failed.
     """
+    run_token = _phase_run_token(orch, phase.id)  # CARD-530 D3
     await queue.put(
         _sse(
             "phase_start",
@@ -602,9 +656,13 @@ async def _stream_turn_bound(
         except asyncio.CancelledError:
             # CARD-259: operator kill / worker cancel is a checkpoint, not fail_phase.
             # Abort already stops this worker; leave the same job_id resumable.
+            # CARD-530: pass this run's token so a newer run's phase is never re-queued.
             ck = getattr(orch, "checkpoint_mid_llm_kill_phase", None)
             if callable(ck):
-                ck(phase.id)
+                try:
+                    ck(phase.id, run_token=run_token)
+                except TypeError:
+                    ck(phase.id)
             raise
         except asyncio.TimeoutError:
             last_fail_kind = "timeout"
@@ -827,7 +885,15 @@ async def _stream_turn_bound(
         )
         return "parked"
 
-    orch.complete_phase(phase.id, output_packet_for_phase(phase, last_content, extra_facts=gate.get("facts") or []))
+    completed = await complete_phase_or_fail(
+        orch=orch,
+        queue=queue,
+        job=job,
+        phase=phase,
+        output_packet=output_packet_for_phase(phase, last_content, extra_facts=gate.get("facts") or []),
+    )
+    if not completed:
+        return "failed"
     await queue.put(
         _sse(
             "phase_complete",
@@ -1822,6 +1888,16 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
 
+    # CARD-530 REQ-530-003: never kill a running turn to start another; Stop (abort) is the only kill.
+    if session_turn_running(req.session_id):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "reason": "turn_running",
+                "message": "A reply is still running in this chat. Wait for it to finish, or press Stop.",
+            },
+        )
+
     queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
     verify_checker = (req.verify_checker or "").strip() or None
     self_verify = bool(req.self_verify)
@@ -2368,14 +2444,11 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             await queue.put(_sse("error", {"error": str(e)}))
             await queue.put(_sse("turn_done", {"content": err_msg, "error": str(e)}))
         finally:
-            _active_stream_tasks.pop(req.session_id, None)
-            _active_stream_agents.pop(req.session_id, None)
+            # Only clear the slot this worker owns (abort may have handed it to a newer turn).
+            if _active_stream_tasks.get(req.session_id) is asyncio.current_task():
+                _active_stream_tasks.pop(req.session_id, None)
+                _active_stream_agents.pop(req.session_id, None)
             await queue.put(None)
-
-    # Cancel any previous task for this session if still running
-    prev_task = _active_stream_tasks.get(req.session_id)
-    if prev_task and not prev_task.done():
-        prev_task.cancel()
 
     stream_task = asyncio.create_task(worker())
     _active_stream_tasks[req.session_id] = stream_task

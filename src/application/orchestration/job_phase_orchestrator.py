@@ -49,6 +49,10 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
 
+# CARD-530 D3: which run owns a running phase (one serve process). start_phase mints a token; a cancelled
+# worker may only re-queue the phase if it still holds the current token.
+_PHASE_RUN_TOKENS: dict[str, str] = {}
+
 _TERMINAL_PHASE = {PhaseStatus.DONE, PhaseStatus.FAILED, PhaseStatus.CANCELLED}
 _TERMINAL_JOB = {JobStatus.DONE, JobStatus.FAILED, JobStatus.CANCELLED}
 _STARTABLE_PHASE = {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}
@@ -313,8 +317,13 @@ class JobPhaseOrchestrator:
         phase.react_state = ReactState.THINKING
         updated = self._store.update_phase(phase)
         self._store.update_job_status(job.id, JobStatus.RUNNING.value, current_phase_id=updated.id)
+        _PHASE_RUN_TOKENS[updated.id] = uuid.uuid4().hex
         logger.info("Started phase %s on job %s", updated.id, job.id)
         return updated
+
+    def phase_run_token(self, phase_id: str) -> Optional[str]:
+        """Token of the run that last started ``phase_id`` in this process [CARD-530 D3]."""
+        return _PHASE_RUN_TOKENS.get(phase_id)
 
     def complete_phase(
         self,
@@ -958,10 +967,24 @@ class JobPhaseOrchestrator:
         )
         return job
 
-    def checkpoint_mid_llm_kill_phase(self, phase_id: str) -> dict:
-        """Operator/worker kill mid-LLM: checkpoint + re-queue, never fail/cancel [CARD-259]."""
+    def checkpoint_mid_llm_kill_phase(self, phase_id: str, run_token: Optional[str] = None) -> dict:
+        """Operator/worker kill mid-LLM: checkpoint + re-queue, never fail/cancel [CARD-259].
+
+        ``run_token`` (a cancelled worker's own token): when a newer run has started the phase since,
+        leave it alone [CARD-530 REQ-530-004]. Stop (no token) always checkpoints.
+        """
         phase = self._store.get_phase(phase_id)
         job = self._store.get_job(phase.job_id)
+        current_token = _PHASE_RUN_TOKENS.get(phase_id)
+        if run_token and current_token and current_token != run_token:
+            logger.info("Skipped stale kill checkpoint job=%s phase=%s (newer run owns it)", phase.job_id, phase.id)
+            return kill_checkpoint_payload(
+                job_id=phase.job_id,
+                phase_id=phase.id,
+                phase_name=getattr(phase, "name", None),
+                checkpointed=False,
+                extra={"stale_run": True, "phase_status": phase.status.value},
+            )
         if phase.status in {PhaseStatus.FAILED, PhaseStatus.CANCELLED, PhaseStatus.DONE}:
             return kill_checkpoint_payload(
                 job_id=phase.job_id,

@@ -7,6 +7,14 @@
 
 ### Changed
 
+- **CARD-530 Approving a card while a reply is still streaming no longer kills the reply**:
+  - **Approve only records the decision during a live reply.** A `propose_tool` / `propose_skill` / `propose_workflow` draft never paused the turn, so its Approve never resumes the chat (`resume_chat: false` in the decision response). A tool that really parked resumes once, after this tab's stream has ended, and only if the same chat is still open.
+  - **The server refuses a second turn instead of killing the first**: `POST /api/chat/stream` answers **409** `{"reason": "turn_running"}` while a reply for that chat is running; Stop is the only way to end a reply. The chat shows "A reply is still running in this chat" (warning), not a failed reply.
+  - **A cancelled reply can no longer re-queue a phase a newer run owns** (per-phase run token), which is what left the phase `queued` and raised "Cannot complete phase ... still queued".
+  - **No stuck jobs**: if a phase cannot be completed at the end of a reply, the phase and job end `failed` with a plain reason. At startup, jobs already stuck this way (job running, phase queued with DONE) are marked failed once, with a `reconciled_stuck_phase` event; jobs that are resumable after Stop are untouched.
+  - **One decision note, no duplicate rows**: approving or rejecting a draft proposal saves one "Approved: propose_tool (...)" note in the chat you are looking at, instead of "tool accepted" TOOL rows in both the phase and parent sessions.
+  - **Job strip tells the truth**: an error shows "Job failed: <reason>" and FAILED, never DONE; "Resumed" clears when the resumed phase completes.
+  - Contracts: `tests/unit/orchestration/test_card530_concurrent_resume.py`, `tests/unit/web/test_card530_stream_guard.py`, `tests/unit/frontend/card_530_approve_mid_stream.test.js`, smoke TC-46 (desktop and phone) ([CARD-530]).
 - **CARD-520 `tool_escalation`: one name for "this needs a tool", and Ask Developer in Observability (ADR-0060)**:
   - **Rename**: Teach distill results and friction recommendations use `tool_escalation` (was `factory_escalation`). The distill prompt asks for the new key and still accepts the old one from the model. Friction recommendations now carry `tool_name`, `payload_bytes` and `session_id`, and read "`<tool>` needs pagination or a filter" / "Ask Developer to add pagination or a filter to `<tool>`: it returned N bytes (limit 8 KB)." No operator text says Factory.
   - **Startup migration** (`application/observability/tool_escalation_migration.py`): rewrites stored `skill_proposal` messages, friction proposals and `skills/_friction_recommendations.json` once, by parsing JSON; malformed rows are skipped and a second run changes nothing. Readers still accept the old name for one release (CARD-498 removes them).

@@ -1494,6 +1494,58 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+  // CARD-530: Approve while the reply is still streaming must not start a second stream (it killed the live turn).
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    test(`TC-46 (${vp.name}): Approve during a live reply starts no second stream; a parked resume waits for the reply to end [CARD-530]`, async ({ page }) => {
+      const posts = [];
+      let release;
+      const held = new Promise((r) => { release = r; });
+      const row = { id: 'appr_tc46', session_id: null, agent_id: 'developer', routine_id: null, tool_name: 'propose_tool', arguments: { what: 'get_tc46 tool' }, status: 'pending' };
+      let decided = null;
+      await page.route('**/api/chat/stream', async (route) => {
+        const body = route.request().postDataJSON();
+        posts.push(body);
+        if (posts.length === 1) {
+          row.session_id = `${body.session_id}::phase::phase_tc46`;
+          await held;
+        }
+        await route.fulfill({
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          body: 'event: token\ndata: {"text": "TC46 reply"}\n\nevent: turn_done\ndata: {"content": "TC46 reply"}\n\n',
+        }).catch(() => {});
+      });
+      await page.route('**/api/approvals/pending**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(decided || !row.session_id ? [] : [row]) }));
+      await page.route('**/api/approvals/appr_tc46/decision', (route) => {
+        decided = route.request().postDataJSON();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'approved', resume_chat: true, execution: { ran: false } }) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-chat').click();
+      await expect(page.locator('#promptInput')).toBeVisible();
+      const created = page.waitForResponse((r) => r.url().endsWith('/api/sessions') && r.request().method() === 'POST');
+      await page.locator('#newChatBtn').dispatchEvent('click');
+      await created;
+      const input = page.locator('#promptInput');
+      await input.click();
+      await input.type('Build a tc46 tool');
+      await input.press('Enter');
+      const card = page.locator('#pendingHitlHost [data-approval-id="appr_tc46"]');
+      await expect(card).toBeVisible({ timeout: 12000 });
+      await card.locator('[data-hitl-decision="APPROVED"]').click();
+      await expect.poll(() => decided && decided.decision).toBe('APPROVED');
+      await page.waitForTimeout(1500);
+      expect(posts.length).toBe(1);  // the live reply is not killed by a resume
+      release();
+      await expect.poll(() => posts.length, { timeout: 10000 }).toBe(2);
+      expect(posts[1].resume).toBe(true);
+      await page.waitForTimeout(800);
+      expect(posts.length).toBe(2);
+      await expect(page.locator('#messagesContainer .chat-stream-error')).toHaveCount(0);
+    });
+  }
+
   // CARD-520: Observability tool-escalation card: top-level section, Needs a tool, Ask Developer (real send), Asked Developer.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
     test(`TC-45 (${vp.name}): a tool-escalation card offers Ask Developer, the Developer reply starts, the card shows Asked Developer [CARD-520]`, async ({ page, request }) => {

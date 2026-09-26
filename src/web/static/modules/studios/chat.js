@@ -32,6 +32,7 @@ import { createSessionSelect } from './chat/session_select.js'; // CARD-485
 import { createStopHandler } from './chat/stop.js'; // CARD-486
 import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
 import { sendDeveloperIntent } from './chat/developer_intent.js'; // CARD-497 REQ-497-016
+import { handleTurnRunning } from './chat/turn_running.js'; // CARD-530 REQ-530-003
 
 import {
   buildChatStreamPayload,
@@ -146,8 +147,14 @@ export function formatJobPhaseStrip(state) {
   }
   const agent = (state && (state.assignedAgentId || state.agentId)) || 'agent';
   const reactState = String((state && state.reactState) || '').toUpperCase();
-  const resumed = Boolean(state && state.resumedFromCheckpoint);
+  const failReason = String((state && state.failReason) || '').trim();
+  const failed = String((state && state.jobStatus) || '').toLowerCase() === 'failed';
+  const resumed = Boolean(state && state.resumedFromCheckpoint) && !failed;
   let jobStatusLabel = jobStatus ? `Job ${jobStatus}` : (jobId ? "Job" : "");
+  if (failed && failReason) {
+    // CARD-530 REQ-530-007: say why, never DONE next to a failed job.
+    jobStatusLabel = `Job failed: ${failReason.length > 160 ? `${failReason.slice(0, 157)}...` : failReason}`;
+  }
   if (resumed && jobStatusLabel) {
     jobStatusLabel = `${jobStatusLabel} | Resumed (resumed_from_checkpoint)`;
   }
@@ -225,6 +232,15 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   } else if (eventType === 'phase_complete') {
     if (data.status) next.jobStatus = data.status;
     if (data.react_state) next.reactState = data.react_state;
+    if (data.status === 'done' || data.status === 'failed') next.resumedFromCheckpoint = false; // CARD-530
+    if (data.status === 'failed' && (data.reason || data.last_fail_reason)) next.failReason = data.reason || data.last_fail_reason;
+  } else if (eventType === 'error' || (eventType === 'turn_done' && (data.error || data.job_failed))) {
+    // CARD-530 REQ-530-007: a failed turn shows Failed and the reason, not the last react_state.
+    next.jobStatus = 'failed';
+    next.reactState = 'FAILED';
+    next.resumedFromCheckpoint = false;
+    const reason = String(data.error || data.reason || '').trim();
+    if (reason) next.failReason = reason;
   } else if (eventType === 'react_state') {
     if (data.react_state) next.reactState = data.react_state;
     if (data.job_status) next.jobStatus = data.job_status;
@@ -774,6 +790,8 @@ export function initChatStudio(state, callbacks = {}) {
         signal: turnCtl.signal,
       });
 
+      // CARD-530 REQ-530-003: a 409 turn_running is a gentle notice (chat/turn_running.js), not a failure.
+      if (response.status === 409) return handleTurnRunning({ state, streamBubble, isResume: options.isResume, userPrompt, restoreComposer: (t) => promptInput && setComposerText(promptInput, t), showToast, loadMessages });
       if (!response.ok) throw new Error(`Stream error: HTTP ${response.status}`);
 
       clearStagedAttachments(state, $('chatAttachmentsPreviewList'));

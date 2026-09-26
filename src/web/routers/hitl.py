@@ -58,6 +58,8 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
 
     execution = None
     decision_norm = (req.decision or "").strip().lower()
+    # CARD-530 REQ-530-006: propose_* drafts never park the turn; their tool call already has its result.
+    draft_proposal = bool(record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS)
     if record and record.get("tool_name") == PROPOSE_FOLLOWUP_TOOL:
         args = record.get("arguments") or {}
         orch = JobPhaseOrchestrator(store)
@@ -184,6 +186,23 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
         persist_sessions.append(approval_session)
     if display_session and display_session not in persist_sessions and not routine_id:
         persist_sessions.append(display_session)
+    if draft_proposal:
+        # One decision note where the operator looks; no TOOL rows (the running turn already has the draft result).
+        args_meta = dict((record or {}).get("arguments") or {})
+        what = str(args_meta.get("what") or "").strip()
+        verb = "Approved" if decision_norm in {"approved", "approve"} else "Rejected"
+        note = f"{verb}: {tool_name}" + (f" ({what})" if what else "") + f". {content}"
+        note_session = display_session or approval_session
+        if note_session:
+            try:
+                store.save_message(
+                    session_id=note_session,
+                    agent_id=agent_id,
+                    message=ChatMessage(role=Role.ASSISTANT, content=note, name="hitl_decision"),
+                )
+            except Exception:
+                logger.exception("Failed to persist HITL decision note for %s on %s", approval_id, note_session)
+        persist_sessions = []
     for sid in persist_sessions:
         try:
             store.save_message(session_id=sid, agent_id=agent_id, message=tool_msg)
@@ -238,6 +257,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
         "status": decision_norm,
         "approval_id": approval_id,
         "execution": execution,
+        "resume_chat": not draft_proposal,  # CARD-530 REQ-530-002
         "nested": nested,
         "routine_id": routine_id or None,
         "resumed": bool(routine_resume and routine_resume.get("ran")),

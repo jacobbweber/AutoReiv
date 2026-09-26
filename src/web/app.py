@@ -300,6 +300,15 @@ def create_app(
         migrate_tool_escalation_names(store, data_paths.root)
     except Exception as exc:
         logging.getLogger(__name__).warning("tool_escalation migration skipped: %s", exc)
+    # Jobs stuck by a concurrent resume (phase queued/DONE, job running) end failed, once [CARD-530 D6].
+    try:
+        from src.application.orchestration.stuck_phase_reconciler import reconcile_stuck_phases
+
+        repaired = reconcile_stuck_phases(store)
+        if repaired:
+            logging.getLogger(__name__).warning("CARD-530: repaired stuck jobs %s", repaired)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("stuck job repair skipped: %s", exc)
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
     # CARD-228: progressive SKILL.md — catalog resolve metadata-only; body on phase bind.
     _early_skill_catalog = getattr(registry, "user_skill_catalog", None)
