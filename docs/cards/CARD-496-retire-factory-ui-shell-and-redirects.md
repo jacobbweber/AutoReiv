@@ -1,7 +1,7 @@
 ---
 id: CARD-496
 title: "Retire the Agent Training Factory (2/6): remove the Factory UI and redirect every entry point"
-status: Ready
+status: In Progress
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -24,7 +24,7 @@ labels:
 
 # [CARD-496] Retire the Agent Training Factory (2/6): remove the Factory UI and redirect every entry point
 
-> **Status**: Ready for `build` (refined 2026-09-25 ~11:55 PM ET on qa `7b22c933`; the Factory UI was reproduced on a scratch server with fresh data; decisions D1-D10 below wait for Jacob)
+> **Status**: In Progress (2026-09-26 ~12:00 AM ET: Jacob said `build` and accepted D1-D10 as recommended; branch `feat/card-496-retire-factory-ui` from qa `66526b68`)
 > **Created**: 2026-09-25
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted). This card is step 2 of 6: CARD-495 (Done), **CARD-496**, CARD-511, CARD-497, CARD-512, CARD-498
 > **Scope**: frontend only. **No backend route changes.** Skill Studio keeps calling `/api/agent_training_factory/{capabilities,scaffold/*,skills}` until CARD-497 moves them.
@@ -120,11 +120,11 @@ labels:
 
 ---
 
-## 4. Decisions (confirm at `build`)
+## 4. Decisions (decided 2026-09-26 ~12:00 AM ET: Jacob accepted D1-D10 exactly as recommended)
 
 D1-D3 are restated from the first draft, adjusted to what the scratch run showed. D4-D10 are new.
 
-| # | Decision | Recommendation |
+| # | Decision | Decided |
 |---|---|---|
 | D1 | Keep a "Factory" alias (dock button or URL) that opens Skill Studio? | **No.** One lever per job (ADR-0057/0060) |
 | D2 | Gap backlog actions | **Open in Skill Studio + Ask Developer** (Ask Developer uses the Teach/Tools Studio talk path, with Tools Studio as fallback); Dismiss stays |
