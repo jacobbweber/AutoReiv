@@ -1,7 +1,7 @@
 ---
 id: CARD-509
 title: "An Agent Studio save turns off every skill that has no pill (for example AutoReiv's coding skill)"
-status: In Review
+status: Done
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -19,7 +19,7 @@ labels:
 
 # [CARD-509] An Agent Studio save turns off every skill that has no pill (for example AutoReiv's coding skill)
 
-> **Status**: In Review (built 2026-09-25 on `feat/card-509-unpilled-skills`, not merged; see section 9)
+> **Status**: Done (Jacob said **merge to qa** 2026-09-25 11:13 PM ET; built on `feat/card-509-unpilled-skills`, see section 9)
 > **Related**: CARD-450 (platform defaults), CARD-502 (shared save and operator skill lists), CARD-505
 > **Labels**: `type:bug`, `area:agents`, `P2`
 
