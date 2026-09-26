@@ -68,6 +68,39 @@ labels:
 
 **vLLM:** `http://192.168.1.218:8099/v1/models` answered 200 (7 models) at ~10:15 AM ET, so step 7's LLM path can be tried live.
 
+## Live test on serve (2026-09-26, Jacob + follow-up)
+
+**Jacob's findings (~10:50 AM ET, tip `9a858322`):**
+- Step 4 gap button: Open in Skill Studio opened an empty form. Not a CARD-497 regression: the gap prefill was never built (CARD-496 REQ-496-003 only opens Skill Studio for the agent). Filed **CARD-522**. Runbook step 6 now points at Ask Developer.
+- Step 5 IPMI intake: AutoReiv never opened `agent-authoring`, and its one `handoff_to_agent({"agent_id": "developer", "task": ...})` failed with a TypeError, which the reply hid. No job, A2A link or Developer session was created.
+
+**Fix (D2, tests first):**
+- `ac4bc60f` failing tests 12b/12c: the skill description must say "teach", "new capability" and "learn to", and the protocol must name `handoff_to_agent(target_agent_id="developer", task_directive=...)` and keep the order inspect, ask, show the brief, yes, hand off.
+- `7ddb8b47` agent-authoring v2.1.0 (description and protocol; "report honestly" step).
+- `61f374ac` failing test 12d, then `7ffb2f16`: **one routing line in AutoReiv's system prompt**, needed because the skill text alone was not enough. The retest still called `activate_skill(["agent-authoring"])`, which only loads platform tool domains.
+- `0f3b9a69` failing tests, then `b8a77319`: the routing line and the description name `skill_view(pack_id="agent-authoring")`. With the positional hint the model guessed `skills=` and `skill_name=` and got TypeErrors.
+- The AppData copies (`packs/autoreiv/pack.json`, `packs/autoreiv/skills/agent-authoring/SKILL.md`) refreshed on restart (hash-gated platform seed; the pack is not `user_modified`).
+
+**Live LLM retests on serve** (chat API, fresh sessions, approval mode ask, vLLM `nemotron-3.5-lightning`):
+
+| Run | Tip | agent-authoring opened | inspect_agent_pack | Asked first | Handoff |
+|---|---|---|---|---|---|
+| 1 (11:09 AM ET) | `7ddb8b47` | No: `activate_skill(["agent-authoring"])` failed, then drifted into wiki work and parked a `wiki_note_create` (rejected) | No | No | No |
+| 2 (11:15 AM ET) | `7ffb2f16` | No: `skill_view(skills=...)` and `skill_view(skill_name=...)` TypeErrors | Yes | Yes (4 questions) | No |
+| 3 (11:20-11:29 AM ET) | `b8a77319` | **Yes**, first try: `skill_view(pack_id="agent-authoring")` | **Yes** (after `lookup_agents`) | **Yes** (4 questions, turn 1) | **Yes**, turn 4: `handoff_to_agent(target_agent_id="developer", task_directive="Build a Python tool using pyghmi over lanplus to read IPMI sensor temperatures ...")` |
+
+Run 3 detail and gaps:
+- Turns 2 and 3 re-asked questions that had already been answered. Root cause: the context resolves to 8192 (no window configured) and compaction keeps only the last 8 messages, so the operator's answer drops out inside a tool-heavy turn. Filed **CARD-524**.
+- `ask_clarification` does not end the turn: six calls in one turn.
+- In turn 4 the handoff went out without showing the brief and getting a yes (the operator had asked to see the brief).
+- The Developer child session `..._child_c67b1144` ran 15 turns on blocked tools. It came back as "Status: completed | Turns Used: 1 | Conclusion: Execution terminated: Max turn budget of 15 reached", and AutoReiv then re-asked the questions.
+- A chat-mode handoff writes **no `jobs` / `job_a2a_links` row**; the only trace is the child session.
+- These tool and kernel issues are filed as **CARD-523**.
+
+**Cleanup:** 3 test approvals were rejected (1 `wiki_note_create`, 2 auto `propose_skill`; their 2 proposals are now `rejected`). The 3 retest sessions and the Developer child were deleted from `autoreiv.db` (sessions, messages, telemetry_spans, tool_policy_decisions, pending_approvals). A backup taken before the cleanup is at `scratch/autoreiv_pre_c497_cleanup.db`. Jacob's own session `f67162a7-...` was left alone.
+
+**REQ-497-008 verdict:** the shipped skill and routing now do what the requirement asks. The skill opens, `inspect_agent_pack` is called, questions come first, and the handoff uses the right arguments. On `nemotron-3.5-lightning` the full flow (brief, yes, handoff, Developer result) is not reliable until CARD-524 (context) and CARD-523 (turn and handoff handling) land, or a larger model is used for AutoReiv.
+
 ## Gate language (exact reply phrases)
 
 | Jacob reply | Meaning |
@@ -245,8 +278,8 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 3. **Redirects:** `GET /api/agent_training_factory/capabilities` without following redirects returns 308 with `Location: /api/tools_studio/capabilities`. Following it returns the same `total_tools` as the new URL. `POST .../scaffold/runbook` through the redirect still returns a runbook.
 4. **Skill Studio (desktop, Ctrl+F5):** open an existing skill, Generate, Save. DevTools Network shows only `/api/skill_studio/*` and `/api/tools_studio/capabilities`. The saved skill reopens with its tools.
 5. **Tools Studio:** the catalog loads with the CARD-511 Checked labels, and `launch_factory_training` is not in it.
-6. **Stranded gap:** put a gap in `training` in the scratch DB (a script with `update_gap_status`), then restart. It shows in Agent Studio's backlog as pending; Open in Skill Studio, Ask Developer and Dismiss work.
-7. **AutoReiv intake (needs the LLM on the Spark):** "Teach AutoReiv to read IPMI sensor temperatures." AutoReiv inspects itself, asks a question or two, and hands off to Developer with a brief; it never mentions the Factory. **Fallback without the LLM:** `GET /api/agents/autoreiv` lists `inspect_agent_pack` and not `launch_factory_training`, and `GET /api/skill_studio/skills/agent-authoring` shows the new body.
+6. **Stranded gap:** put a gap in `training` in the scratch DB (a script with `update_gap_status`), then restart. It shows in Agent Studio's backlog as pending, and Ask Developer and Dismiss work. For a gap whose suggested tool does not exist yet (TC49 `gap_c5d4dcc6af35`, `get_tc49_inventory`), **Ask Developer is the right next action**. Open in Skill Studio only opens Skill Studio pinned to the agent with an empty form; prefilling it from the gap is CARD-522 (it was never built, CARD-496 REQ-496-003).
+7. **AutoReiv intake (needs the LLM on the Spark):** "Teach AutoReiv to read IPMI sensor temperatures." AutoReiv inspects itself, asks a question or two, and hands off to Developer with a brief; it never mentions the Factory. It opens the runbook with `skill_view(pack_id="agent-authoring")` (AutoReiv's system prompt routes teach / new-capability requests there), shows the brief, and on the operator's yes calls `handoff_to_agent(target_agent_id="developer", task_directive=<brief>)`; the Developer result comes back in the same chat as "Subagent Handoff ...". **Fallback without the LLM:** `GET /api/agents/autoreiv` lists `inspect_agent_pack` and not `launch_factory_training`, and `GET /api/skill_studio/skills/agent-authoring` shows the new body.
 8. **Teach regression:** Teach on a chat turn that needs a tool still shows Ask Developer (CARD-472).
 9. **Busy check:** with a Studio job queued, `GET /api/system/updates/auto-status` reports busy with "running Studio job" and never "Factory".
 10. **Phone** (`http://192.168.1.99:8000` after serve restart): repeat 4 and 5.
