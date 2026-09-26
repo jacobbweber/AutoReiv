@@ -21,6 +21,7 @@ labels:
 > **Created**: 2026-09-25 (found in the CARD-500 scratch repro)
 > **Related**: CARD-500 (card shows `name` and `plain_summary`), CARD-472 (Ask Developer handoff), CARD-497 (`factory_escalation` rename)
 > **Labels**: `type:bug`, `area:chat`, `area:skills`, `P3`
+> **Note (CARD-520, 2026-09-26)**: the distill result key is now `tool_escalation` (old stored rows migrated at startup). Read `tool_escalation` first; `readToolEscalation()` in `modules/studios/tool_escalation.js` also reads the old key for one release.
 
 ---
 

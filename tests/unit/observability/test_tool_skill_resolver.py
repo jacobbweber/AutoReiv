@@ -95,7 +95,7 @@ def test_synthesize_recommendation_payload_bloat_with_limit(temp_data_dir: Path)
     assert "limit" in rec.proposed_patch.lower() or "pagination" in rec.proposed_patch.lower()
 
 
-def test_synthesize_recommendation_payload_bloat_factory_escalation(temp_data_dir: Path):
+def test_synthesize_recommendation_payload_bloat_tool_escalation(temp_data_dir: Path):
     resolver = ToolSkillResolver(data_dir=temp_data_dir)
     # Unknown/native tool that has no pagination
     incident = FrictionIncident(
@@ -111,8 +111,10 @@ def test_synthesize_recommendation_payload_bloat_factory_escalation(temp_data_di
 
     rec = resolver.synthesize_recommendation(incident)
     assert rec is not None
-    assert rec.remedy_kind == "factory_escalation"
-    assert "Factory" in rec.summary or "Factory" in rec.proposed_patch
+    assert rec.remedy_kind == "tool_escalation"  # CARD-520
+    assert rec.tool_name == "raw_hardware_dump"
+    assert "Ask Developer" in rec.proposed_patch
+    assert "Factory" not in rec.summary + rec.proposed_patch
 
 
 def test_apply_recommendation_to_user_data_skill(temp_data_dir: Path):

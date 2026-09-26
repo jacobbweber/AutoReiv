@@ -250,8 +250,8 @@ def test_2_simulation_payload_bloat_inspection(sim_environment):
 
     resolver = ToolSkillResolver(data_dir=user_data)
     rec = resolver.synthesize_recommendation(inc)
-    assert rec.remedy_kind == "factory_escalation"
-    assert "Factory Studio" in rec.proposed_patch
+    assert rec.remedy_kind == "tool_escalation"  # CARD-520
+    assert "Ask Developer to add pagination or a filter to read_project_file" in rec.proposed_patch
     assert "unbounded payload" in rec.summary.lower()
 
 

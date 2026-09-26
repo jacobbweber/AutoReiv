@@ -7,7 +7,7 @@ import { $, $queryAll, safeCreateIcons } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
 import { showToast } from '../../ui/toast.js';
 import { renderMcpStatusRowsMarkup } from '../tools_studio_catalog.js';
-import { TOOLS_AUTHORING_TALK_URL, authoringErrorMessage, interpretAuthoringTalk } from '../tools_studio_authoring.js';
+import { askDeveloperWithDraft } from '../tools_studio_authoring.js';
 
 export function renderToolBadgeHtml(tool, activeAgent = null) {
   const tObj = typeof tool === 'string' ? { name: tool } : (tool || {});
@@ -91,7 +91,10 @@ export function buildGapDeveloperDraft(gap = {}, agentId = '') {
   const capability = String(gap.identified_capability || gap.missing_capability || '').trim();
   if (capability) lines.push(`Missing capability: ${capability}`);
   if (agentId) lines.push(`Requested from a capability gap for ${agentId}.`);
-  return { intent: 'create', tool_name: String(gap.suggested_tool_name || '').trim(), behavior: lines.join('\n\n') };
+  return {
+    intent: 'create', tool_name: String(gap.suggested_tool_name || '').trim(), behavior: lines.join('\n\n'),
+    ...(agentId ? { target_agent_id: String(agentId) } : {}),
+  };
 }
 
 /**
@@ -99,21 +102,14 @@ export function buildGapDeveloperDraft(gap = {}, agentId = '') {
  * Same path as Teach (chat/teach_modal.js) and Tools Studio Talk [CARD-472, CARD-496].
  */
 export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callbacks = {}, toastFn = showToast } = {}) {
-  const doFetch = typeof fetchFn === 'function' ? fetchFn : (...args) => fetch(...args);
   const draft = buildGapDeveloperDraft(gap, agentId);
   try {
-    const res = await doFetch(TOOLS_AUTHORING_TALK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent: 'create', draft }),
+    await askDeveloperWithDraft(draft, {
+      intent: 'create',
+      fetchFn,
+      switchTab: callbacks.switchTab,
+      getChatCtrl: typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl : () => null,
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(authoringErrorMessage(data, res.status));
-    const plan = interpretAuthoringTalk(data, draft);
-    if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
-    const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
-    if (!chat || typeof chat.openDeveloperSession !== 'function') throw new Error('Developer chat is unavailable here.');
-    await chat.openDeveloperSession(plan.sessionId, plan.prompt);
     return true;
   } catch (err) {
     toastFn(`Could not open a Developer chat: ${err.message || err}. Opening Tools Studio.`, 'error');

@@ -8,6 +8,7 @@ import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown } from '../../
 import { copyToClipboard } from '../../utils/clipboard.js';
 import { renderAgentHandoffCardHtml } from './stream.js';
 import { adoptResultMessage, adoptedBannerHtml } from './adopt_message.js';
+import { readToolEscalation } from '../tool_escalation.js';
 
 export * from './journey.js';
 
@@ -264,7 +265,7 @@ export function renderSkillProposalCard(proposal, {
          data-target-agent-id="${escapeHtml(targetAgent)}"
          data-runbook-markdown="${escapeHtml(runbookMarkdown)}"
          data-message-id="${escapeHtml(messageId || '')}"
-         data-factory-escalation="${escapeHtml(JSON.stringify(proposal.factory_escalation || {}))}">
+         data-tool-escalation="${escapeHtml(JSON.stringify(readToolEscalation(proposal)))}">
       <div class="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
         <div class="flex items-center space-x-2">
           <span class="text-base">💡</span>

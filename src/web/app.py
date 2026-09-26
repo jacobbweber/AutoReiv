@@ -293,6 +293,13 @@ def create_app(
         capability_gap_repo.reset_stranded_training_gaps()
     except Exception as exc:  # a missing table on a brand-new DB is not fatal
         logging.getLogger(__name__).debug("stranded gap reset skipped: %s", exc)
+    # Stored pre-CARD-520 remedy names become tool_escalation, once (idempotent) [CARD-520 D2].
+    try:
+        from src.application.observability.tool_escalation_migration import migrate_tool_escalation_names
+
+        migrate_tool_escalation_names(store, data_paths.root)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("tool_escalation migration skipped: %s", exc)
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
     # CARD-228: progressive SKILL.md — catalog resolve metadata-only; body on phase bind.
     _early_skill_catalog = getattr(registry, "user_skill_catalog", None)

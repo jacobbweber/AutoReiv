@@ -1035,6 +1035,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       const t = { S, DEV, artifactGets: [], talks: [], distills: 0, devPrompt: '' };
       const proposal = {
         status: 'ok', needs_tool: true, target_agent_id: 'autoreiv',
+        // CARD-520: this history card keeps the old key on purpose; Ask Developer must still work for it.
         factory_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC34 things', suggested_tool_name: 'get_tc34_tool', starter_objectives: ['Return TC34 data'] },
       };
       await page.route('**/api/sessions/*/messages', (route) => {
@@ -1133,7 +1134,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       };
       const needsTool = {
         status: 'ok', needs_tool: true, target_agent_id: 'autoreiv', name: 'TC36 Needs Tool',
-        factory_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC36 things', suggested_tool_name: 'get_tc36_tool', starter_objectives: [] },
+        tool_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC36 things', suggested_tool_name: 'get_tc36_tool', starter_objectives: [] },
       };
       await page.route('**/api/sessions/*/messages', (route) => {
         if (!route.request().url().includes(S.id)) return route.continue();
@@ -1493,4 +1494,73 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+  // CARD-520: Observability tool-escalation card: top-level section, Needs a tool, Ask Developer (real send), Asked Developer.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    test(`TC-45 (${vp.name}): a tool-escalation card offers Ask Developer, the Developer reply starts, the card shows Asked Developer [CARD-520]`, async ({ page, request }) => {
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'developer', title: `D 520 ${vp.name}-${Date.now()}` } })).json();
+      const ESC = {
+        id: 'rec_tc45', agent_id: 'autoreiv', skill_path: null, friction_type: 'payload_bloat', remedy_kind: 'tool_escalation',
+        tool_name: 'get_tc45_dump', payload_bytes: 20790, session_id: 'sess_tc45', status: 'pending', created_at: '2026-09-26T17:00:00Z',
+        summary: 'get_tc45_dump needs pagination or a filter (unbounded payload).',
+        proposed_patch: 'Ask Developer to add pagination or a filter to get_tc45_dump: it returned 20790 bytes (limit 8 KB).',
+      };
+      const PATCH = { ...ESC, id: 'rec_tc45_patch', remedy_kind: 'runbook_patch', tool_name: 'wiki_note_search', skill_path: 'skills/wiki/SKILL.md', summary: 'Enforce pagination limit on wiki_note_search.', proposed_patch: '- limit 10' };
+      const t = { talks: [], escalations: [], streamPosts: [], escalated: false };
+      await page.route('**/api/observability/friction/recommendations*', (route) => {
+        if (route.request().method() !== 'GET') return route.continue();
+        const esc = t.escalated ? { ...ESC, status: 'escalated', developer_session_id: DEV.id } : ESC;
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([esc, PATCH]) });
+      });
+      await page.route('**/api/observability/friction/recommendations/*/escalate', (route) => {
+        t.escalations.push({ url: route.request().url(), body: route.request().postDataJSON() });
+        t.escalated = true;
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, escalated: true }) });
+      });
+      await page.route('**/api/tools_studio/authoring/talk', (route) => {
+        const body = route.request().postDataJSON();
+        t.talks.push(body);
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'developer', prompt: `Tools Studio tool intent (modify)\n\nTool: ${body.draft.tool_name}\n${body.draft.behavior}`, opened_chat: true, opened_job: false, job_id: null }) });
+      });
+      let release;
+      const held = new Promise((r) => { release = r; });
+      await page.route('**/api/chat/stream', async (route) => {
+        t.streamPosts.push(route.request().postDataJSON());
+        await held;
+        await route.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: 'data: {"type":"token","text":"TC45 reply"}\n\ndata: [DONE]\n\n' }).catch(() => {});
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-observability').click();
+      await expect(page.locator('#view-observability')).toBeVisible();
+      const section = page.locator('#view-observability details[data-obs-section="friction"]');
+      await section.locator(':scope > summary').click();  // one click: no Logs or Capability Catalog first
+      const card = page.locator('#frictionRecommendationsList [data-rec-id="rec_tc45"]').first();
+      await expect(card).toBeVisible();
+      await expect(card).toContainText('Needs a tool');
+      await expect(card).toContainText('get_tc45_dump needs pagination or a filter');
+      await expect(card.locator('.apply-friction-btn')).toHaveCount(0);
+      await expect(card.locator('.dismiss-friction-btn')).toBeVisible();
+      const patchCard = page.locator('#frictionRecommendationsList [data-rec-id="rec_tc45_patch"]').first();
+      await expect(patchCard.locator('.apply-friction-btn')).toBeVisible();
+      await expect(page.locator('#view-observability')).not.toContainText('Factory');
+      await card.locator('.ask-developer-friction-btn').click();
+      await expect.poll(() => t.talks.length).toBe(1);
+      expect(t.talks[0].intent).toBe('modify');
+      expect(t.talks[0].draft.tool_name).toBe('get_tc45_dump');
+      await expect(page.locator('#view-chat')).toBeVisible();
+      await expect.poll(() => t.streamPosts.length, { timeout: 15000 }).toBe(1);
+      expect(t.streamPosts[0].agent_id).toBe('developer');
+      expect(t.streamPosts[0].content).toContain('get_tc45_dump');
+      await expect(page.locator('#messagesContainer [data-stream-bubble="true"]')).toBeVisible();
+      await expect.poll(() => t.escalations.length).toBe(1);
+      expect(t.escalations[0].url).toContain('/rec_tc45/escalate');
+      expect(t.escalations[0].body).toEqual({ developer_session_id: DEV.id });
+      release();
+      await page.waitForTimeout(800);
+      expect(t.streamPosts.length).toBe(1);
+      await page.locator('#dock-observability').click();
+      if (!(await page.locator('#view-observability').isVisible())) await page.locator('#dock-observability').click();
+      await expect(page.locator('#frictionRecommendationsList [data-rec-id="rec_tc45"]').first()).toContainText('Asked Developer');
+    });
+  }
 });

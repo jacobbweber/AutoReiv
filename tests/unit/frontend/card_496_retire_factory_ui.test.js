@@ -223,13 +223,13 @@ describe('D7, D8, D10 and leftovers', () => {
     expect(forge).not.toMatch(/lab_monitor/);
   });
 
-  it('the Teach button class is btn-escalate-developer; the data attribute stays until CARD-497', () => {
+  it('the Teach button class is btn-escalate-developer; the data attribute is data-tool-escalation (CARD-520)', () => {
     const render = read(`${STATIC}/modules/studios/chat/render.js`);
     const teach = read(`${STATIC}/modules/studios/chat/teach_modal.js`);
     expect(render).toContain('btn-escalate-developer');
     expect(render).not.toContain('btn-escalate-factory');
     expect(teach).toContain(".btn-escalate-developer'");
-    expect(render).toContain('data-factory-escalation');
+    expect(render).toContain('data-tool-escalation');
   });
 });
 

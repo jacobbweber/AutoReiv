@@ -2,13 +2,16 @@
 Observability, KPI Metrics & System Logs Router [REQ-WEB-005, REQ-OBS-001 - REQ-OBS-008].
 """
 
+import json
+import re
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.domain.observability.models import TelemetryFilter
+from src.domain.observability.models import TOOL_ESCALATION, TelemetryFilter, normalize_remedy_kind
 
 router = APIRouter(tags=["Observability"])
 
@@ -314,16 +317,84 @@ async def post_friction_audit(request: Request, payload: FrictionAuditRequest):
     return result
 
 
+_ESCALATE_RE = re.compile(r"Escalate (\S+) to")
+_BYTES_RE = re.compile(r"\((\d+) bytes\)")
+_APPLY_REASONS = {
+    "tool_escalation": (409, "This recommendation needs a tool change, not a runbook patch. Use Ask Developer."),
+}
+
+
+def _friction_data_dir(request: Request) -> str:
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+    if data_dir is None:
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        data_dir = str(DataDirResolver().platform_default())
+    return str(data_dir)
+
+
+def _friction_ledger(data_dir: Any) -> Path:
+    return Path(data_dir) / "skills" / "_friction_recommendations.json"
+
+
+def _normalize_friction_rec(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Old records read as tool_escalation with tool_name/payload_bytes derived from the text [CARD-520 REQ-520-004]."""
+    data["remedy_kind"] = normalize_remedy_kind(data.get("remedy_kind"))
+    text = f"{data.get('summary') or ''} {data.get('proposed_patch') or ''}"
+    if not data.get("tool_name"):
+        m = _ESCALATE_RE.search(text)
+        if m:
+            data["tool_name"] = m.group(1)
+    if not data.get("payload_bytes"):
+        m = _BYTES_RE.search(text)
+        if m:
+            data["payload_bytes"] = int(m.group(1))
+    return data
+
+
+def _find_friction_rec(store: Any, data_dir: Any, rec_id: str) -> Tuple[Optional[Dict[str, Any]], bool]:
+    """Return (record, is_proposal) from the proposal table, else the user-data ledger."""
+    if hasattr(store, "get_proposal"):
+        try:
+            prop = store.get_proposal(rec_id)
+            return _normalize_friction_rec(json.loads(prop.payload_json)), True
+        except Exception:
+            pass
+    ledger = _friction_ledger(data_dir)
+    if ledger.is_file():
+        try:
+            for fr in json.loads(ledger.read_text(encoding="utf-8")):
+                if fr.get("id") == rec_id:
+                    return _normalize_friction_rec(fr), False
+        except Exception:
+            pass
+    return None, False
+
+
+def _update_friction_ledger(data_dir: Any, rec_id: str, **fields: Any) -> None:
+    ledger = _friction_ledger(data_dir)
+    if not ledger.is_file():
+        return
+    try:
+        file_recs = json.loads(ledger.read_text(encoding="utf-8"))
+        for fr in file_recs:
+            if fr.get("id") == rec_id:
+                fr.update(fields)
+        ledger.write_text(json.dumps(file_recs, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
 @router.get("/api/observability/friction/recommendations")
 async def get_friction_recommendations(
     request: Request,
     status: Optional[str] = None,
     limit: int = 50,
 ):
-    """List staged runbook recommendations [CARD-354]."""
-    import json
-    from pathlib import Path
-
+    """List staged runbook recommendations [CARD-354, CARD-520]."""
     store = request.app.state.store
     recs: list[dict[str, Any]] = []
 
@@ -336,9 +407,9 @@ async def get_friction_recommendations(
                 or "rec_" in p.id
             ):
                 try:
-                    data = json.loads(p.payload_json)
+                    data = _normalize_friction_rec(json.loads(p.payload_json))
                     if p.status == "approved":
-                        data["status"] = "applied"
+                        data["status"] = "escalated" if data.get("status") == "escalated" else "applied"
                     elif p.status == "rejected":
                         data["status"] = "dismissed"
                     if status and data.get("status") != status:
@@ -350,98 +421,83 @@ async def get_friction_recommendations(
         return recs[:limit]
 
     # Fallback to user data ledger
-    data_dir = getattr(request.app.state, "data_dir", None)
-    if data_dir is None:
-        paths = getattr(request.app.state, "data_dir_paths", None)
-        data_dir = getattr(paths, "root", None) if paths is not None else None
-    if data_dir is not None:
-        ledger = Path(data_dir) / "skills" / "_friction_recommendations.json"
-        if ledger.is_file():
-            try:
-                file_recs = json.loads(ledger.read_text(encoding="utf-8"))
-                existing_ids = {r.get("id") for r in recs}
-                for fr in file_recs:
-                    if fr.get("id") not in existing_ids:
-                        if status and fr.get("status") != status:
-                            continue
-                        recs.append(fr)
-            except Exception:
-                pass
+    ledger = _friction_ledger(_friction_data_dir(request))
+    if ledger.is_file():
+        try:
+            file_recs = json.loads(ledger.read_text(encoding="utf-8"))
+            existing_ids = {r.get("id") for r in recs}
+            for fr in file_recs:
+                if fr.get("id") not in existing_ids:
+                    fr = _normalize_friction_rec(fr)
+                    if status and fr.get("status") != status:
+                        continue
+                    recs.append(fr)
+        except Exception:
+            pass
 
     return recs[:limit]
 
 
 @router.post("/api/observability/friction/recommendations/{rec_id}/apply")
 async def apply_friction_recommendation(request: Request, rec_id: str):
-    """Apply a staged runbook recommendation directly to SKILL.md under user data [CARD-354]."""
-    import json
-    from pathlib import Path
-
+    """Apply a runbook patch to SKILL.md; say plainly why anything else cannot be applied [CARD-354, CARD-520]."""
     from src.domain.observability.models import RunbookRecommendation
     from src.domain.observability.tool_skill_resolver import ToolSkillResolver
 
     store = request.app.state.store
-    data_dir = getattr(request.app.state, "data_dir", None)
-    if data_dir is None:
-        paths = getattr(request.app.state, "data_dir_paths", None)
-        data_dir = getattr(paths, "root", None) if paths is not None else None
-    if data_dir is None:
-        from src.infrastructure.data.resolver import DataDirResolver
-
-        data_dir = str(DataDirResolver().platform_default())
-
-    resolver = ToolSkillResolver(data_dir=data_dir)
-    target_rec: Optional[RunbookRecommendation] = None
-
-    if hasattr(store, "get_proposal"):
-        try:
-            prop = store.get_proposal(rec_id)
-            data = json.loads(prop.payload_json)
-            target_rec = RunbookRecommendation(**data)
-        except Exception:
-            target_rec = None
-
-    if target_rec is None:
-        ledger = Path(data_dir) / "skills" / "_friction_recommendations.json"
-        if ledger.is_file():
-            try:
-                file_recs = json.loads(ledger.read_text(encoding="utf-8"))
-                for fr in file_recs:
-                    if fr.get("id") == rec_id:
-                        target_rec = RunbookRecommendation(**fr)
-                        break
-            except Exception:
-                pass
-
-    if target_rec is None:
+    data_dir = _friction_data_dir(request)
+    data, _ = _find_friction_rec(store, data_dir, rec_id)
+    if data is None:
         raise HTTPException(status_code=404, detail=f"Recommendation '{rec_id}' not found.")
+    try:
+        target_rec = RunbookRecommendation(**data)
+        applied, reason = ToolSkillResolver(data_dir=data_dir).apply_with_reason(target_rec)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not apply the patch: {exc}") from exc
 
-    applied = resolver.apply_recommendation(target_rec)
     if not applied:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to apply recommendation to '{target_rec.skill_path}'.",
-        )
+        if reason == "no_skill":
+            tool = target_rec.tool_name or "this tool"
+            raise HTTPException(status_code=409, detail=f"No skill lists {tool}, so there is nothing to patch.")
+        if reason == "missing_file":
+            raise HTTPException(status_code=404, detail=f"The skill file {target_rec.skill_path} no longer exists.")
+        code, message = _APPLY_REASONS.get(reason, (500, f"Could not apply the patch ({reason})."))
+        raise HTTPException(status_code=code, detail=message)
 
     if hasattr(store, "update_proposal_status"):
         try:
             store.update_proposal_status(rec_id, "approved")
         except Exception:
             pass
+    _update_friction_ledger(data_dir, rec_id, status="applied")
+    return {"success": True, "applied": True, "reason": reason, "recommendation_id": rec_id}
 
-    # Synchronize file ledger if present
-    ledger = Path(data_dir) / "skills" / "_friction_recommendations.json"
-    if ledger.is_file():
+
+class FrictionEscalateRequest(BaseModel):
+    developer_session_id: str
+
+
+@router.post("/api/observability/friction/recommendations/{rec_id}/escalate")
+async def escalate_friction_recommendation(request: Request, rec_id: str, payload: FrictionEscalateRequest):
+    """Record that a tool escalation was handed to a Developer chat [CARD-520 REQ-520-009]."""
+    store = request.app.state.store
+    data_dir = _friction_data_dir(request)
+    data, is_proposal = _find_friction_rec(store, data_dir, rec_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"Recommendation '{rec_id}' not found.")
+    if data.get("remedy_kind") != TOOL_ESCALATION:
+        raise HTTPException(status_code=409, detail="Only a tool escalation can be sent to Developer.")
+    data["status"] = "escalated"
+    data["developer_session_id"] = payload.developer_session_id
+    if is_proposal:
         try:
-            file_recs = json.loads(ledger.read_text(encoding="utf-8"))
-            for fr in file_recs:
-                if fr.get("id") == rec_id:
-                    fr["status"] = "applied"
-            ledger.write_text(json.dumps(file_recs, indent=2), encoding="utf-8")
-        except Exception:
-            pass
-
-    return {"success": True, "applied": True, "recommendation_id": rec_id}
+            store.update_proposal_payload(rec_id, json.dumps(data))
+            store.update_proposal_status(rec_id, "approved")
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Could not record the escalation: {exc}") from exc
+    _update_friction_ledger(data_dir, rec_id, status="escalated", developer_session_id=payload.developer_session_id)
+    return {"success": True, "status": "escalated", "recommendation_id": rec_id,
+            "developer_session_id": payload.developer_session_id}
 
 
 @router.post("/api/observability/friction/recommendations/{rec_id}/dismiss")
