@@ -341,7 +341,7 @@ def test_13_unedited_shipped_seed_is_refreshed(tmp_path):
     dest = tmp_path / "skills" / "build-agent-pack" / "SKILL.md"
     dest.parent.mkdir(parents=True)
     old = (FIXTURES / "build-agent-pack.shipped-1f6a64cf.SKILL.md").read_bytes()
-    dest.write_bytes(old.replace(b"\n", b"\r\n"))  # Windows checkout copies CRLF
+    dest.write_bytes(old.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))  # CRLF copy, whatever the checkout wrote
     seed_bundled_skill_packs(tmp_path / "skills", ["build-agent-pack"])
     now = dest.read_text(encoding="utf-8")
     assert "trained in the Factory" not in now
