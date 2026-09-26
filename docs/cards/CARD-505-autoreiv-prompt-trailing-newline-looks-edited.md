@@ -1,7 +1,7 @@
 ---
 id: CARD-505
 title: "AutoReiv's system prompt looks operator-edited (trailing newline), so platform prompt updates never land and a Max Turns save locks it"
-status: In Progress
+status: In Review
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -12,6 +12,7 @@ related:
   - CARD-502
   - CARD-506
   - CARD-508
+  - CARD-509
 labels:
   - type:bug
   - area:agents
@@ -20,7 +21,7 @@ labels:
 
 # [CARD-505] AutoReiv's system prompt looks operator-edited (trailing newline), so platform prompt updates never land and a Max Turns save locks it
 
-> **Status**: In Progress (Jacob said **build** 2026-09-25 9:31 PM ET, accepting D1-D8; branch `feat/card-505-prompt-normalize`)
+> **Status**: In Review (built 2026-09-25 on `feat/card-505-prompt-normalize`, not merged; see section 9)
 > **Created**: 2026-09-25 (found in the CARD-502 scratch repro)
 > **Related**: CARD-443 (platform promotion), CARD-449 (content lock, keep customizations), CARD-450 (Platform defaults badge, Reset), CARD-502 (shared save `persist_agent_profile`), CARD-506 (dead duplicate save paths that also call the lock check), CARD-508 (badge seen empty once while switching agents)
 > **Labels**: `type:bug`, `area:agents`, `P2`
@@ -178,3 +179,45 @@ Phone (http://192.168.1.99:8000):
 - Deleting the dead save paths: **CARD-506**.
 - Platform defaults badge seen empty once while a script switched agents quickly: **CARD-508**.
 - User (non-platform) packs: at startup their `pack.json` prompt overwrites the stored prompt when they differ (`src/infrastructure/skills/platform_packs.py` L741-745). Studio keeps them in sync, so no fix is planned here.
+
+## 9. Build note (2026-09-25 ET, branch `feat/card-505-prompt-normalize` from qa `02a48059`)
+
+### Commits
+- `56d25cb7` docs(cards): CARD-505 In Progress
+- `7a2a3b03` failing tests first: 11 unit (10 red; the real-edit control green) + 1 integration (red)
+- `3d437203` fix: `normalize_prompt`, baseline migration, extended lock repair, no lock on unchanged prompt, trimmed AutoReiv seed + hygiene test
+- `83519aab` ruff import sort in the new test file
+- `57e86bcf` test (red): a spacing false lock that also removed a shipped tool stays locked
+- `875ddaf9` fix: the lock repair keeps a lock when a shipped tool was removed. The first full integration run caught this: `test_oc_s1_reconcile_idempotent_user_edits_survive` (OC-S1) had only passed before because the trailing newline made every prompt look edited.
+- docs commit: this note, CHANGELOG, CARD-509, CARD-508 update
+
+### What changed (Scavenger Pass)
+One `normalize_prompt()` replaces the scattered exact-text prompt compares in `platform_pack_promotion.py` (hash, lock check, divergence check, short-circuit, cutover, clean path, Reset). Promotion and Reset store the normalized seed, so what the platform stores equals what Studio sends back. `_legacy_raw_hash` exists only for the one-time baseline migration. The new `_seed_tools_removed` sits next to the lock repair it serves. No dead code left behind; no new duplicate save path.
+
+### Tests
+| Suite | Result | Baseline |
+|---|---|---|
+| New CARD-505 unit (`test_card505_prompt_normalize.py`) | 12 pass | new |
+| New CARD-505 integration (`test_card505_prompt_restart.py`) | 1 pass | new |
+| Unit (full) | 2071 pass / 11 skipped / 1 fail (CARD-454) | 2059 pass / 11 skipped / 1 fail (CARD-454) |
+| Integration (full) | 109 pass | 108 (+1 new) |
+| Vitest | 914 pass / 5 fail (CARD-456) | same |
+| Smoke (desktop + phone) | 55 pass | 55 |
+| ESLint | 4 errors / 5 warnings | same |
+| Ruff | 9 (CARD-454) | same |
+
+### Repro after the fix (scratch data and a sqlite copy only; live AppData never written)
+- A. Fresh install: second start shows autoreiv, developer and tutor `unchanged`, nothing skipped. A Max-Turns-only Studio save on AutoReiv does not lock it and keeps the new Max Turns. A real Developer prompt edit through the UI locks it; after restart Developer is `skipped_user_modified` and keeps its text.
+- B. Simulated platform prompt update (temp checkout): AutoReiv, Direct and Tutor get the new line; locked Developer does not.
+- C. Falsely locked install (built with the old code at `02a48059`: a Max Turns save locked AutoReiv and the old repair said `kept_locked`): first start on the new code unlocked it ("prompt matched the platform version apart from spacing"), wrote backup `card505_whitespace_unlock`, kept Max Turns, and AutoReiv was `promoted`.
+- D. Copy of Jacob's live database (sqlite backup into scratch, deleted afterwards): AutoReiv `promoted` once (stored prompt becomes the trimmed 3,160-character platform prompt, stays unlocked); Developer stays locked (`kept_locked`) with "Always follow SOLID and DRY principles." and Max Turns 25; Tutor and Direct unchanged.
+
+### What Jacob's live install does on first start of this build
+- Developer stays locked and keeps its edited prompt (the SOLID/DRY line) and Max Turns 25.
+- AutoReiv gets one normal update (the trimmed platform prompt), then shows as up to date on later starts. It stays unlocked, Max Turns unchanged.
+- Settings gain `platform_prompt_baseline_normalized` (one-time record). No `card505_whitespace_unlock` backup is written on live, because AutoReiv is not falsely locked there.
+
+### Gaps / follow-ups
+- CARD-509 (new, P2, existed before): an Agent Studio save turns off skills that have no pill (AutoReiv `coding`, Developer `build-agent-pack`), and makes AutoReiv re-apply on every restart.
+- CARD-508 (updated): the Studio form can snap back to the previously selected agent on a fresh page; not only the badge.
+- Known limit: the lock repair now keeps a lock when any shipped tool is missing from the agent. A falsely locked agent whose platform tool list grew since the lock stays locked until Reset to platform defaults. None of Jacob's agents are in that state.
