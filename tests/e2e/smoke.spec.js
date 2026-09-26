@@ -1441,7 +1441,10 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#factoryExistingSkillSelect')).toHaveValue(skillId, { timeout: 20000 });
 
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.locator('#dock-skill-studio').click();
+      // Desktop restores the open Skill Studio window; a dock click on the focused window would minimize it (see TC-40).
+      await expect(page.locator('#dock-skill-studio')).toBeVisible();
+      await page.waitForTimeout(1500);
+      if (!(await page.locator('#view-skill-studio').isVisible())) await page.locator('#dock-skill-studio').click();
       await expect(page.locator('#view-skill-studio')).toBeVisible();
       await expect.poll(async () => page.locator(`#factoryExistingSkillSelect option[value="${skillId}"]`).count(), { timeout: 20000 }).toBe(1);
       await page.selectOption('#factoryExistingSkillSelect', skillId);
