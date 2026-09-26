@@ -125,6 +125,20 @@ describe('REQ-530-003: a 409 turn_running is a gentle notice, not a failed reply
   it('executeChatTurn handles 409 without the red error', () => {
     const src = read('src/web/static/modules/studios/chat.js');
     expect(src).toContain('response.status === 409');
-    expect(src).toContain('still running');
+    expect(src).toContain('handleTurnRunning');
+    expect(read('src/web/static/modules/studios/chat/turn_running.js')).toContain('still running');
+  });
+
+  it('handleTurnRunning removes the bubble, restores the text and warns (no red error)', async () => {
+    const { handleTurnRunning } = await import('../../../src/web/static/modules/studios/chat/turn_running.js');
+    const state = { messages: [{ role: 'user', content: 'hi' }], activeSessionId: 's1' };
+    const bubble = { remove: vi.fn() };
+    const restore = vi.fn(); const toast = vi.fn(); const load = vi.fn(async () => {});
+    await handleTurnRunning({ state, streamBubble: bubble, userPrompt: 'hi', restoreComposer: restore, showToast: toast, loadMessages: load });
+    expect(bubble.remove).toHaveBeenCalled();
+    expect(state.messages).toHaveLength(0);
+    expect(restore).toHaveBeenCalledWith('hi');
+    expect(toast.mock.calls[0][1]).toBe('warning');
+    expect(load).toHaveBeenCalledWith('s1');
   });
 });

@@ -32,6 +32,7 @@ import { createSessionSelect } from './chat/session_select.js'; // CARD-485
 import { createStopHandler } from './chat/stop.js'; // CARD-486
 import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
 import { sendDeveloperIntent } from './chat/developer_intent.js'; // CARD-497 REQ-497-016
+import { handleTurnRunning } from './chat/turn_running.js'; // CARD-530 REQ-530-003
 
 import {
   buildChatStreamPayload,
@@ -789,17 +790,8 @@ export function initChatStudio(state, callbacks = {}) {
         signal: turnCtl.signal,
       });
 
-      if (response.status === 409) {
-        // CARD-530 REQ-530-003: the server refuses a second turn while one is still running; not a failure.
-        streamBubble.remove();
-        if (!options.isResume && userPrompt) {
-          state.messages.pop();
-          if (promptInput) setComposerText(promptInput, userPrompt);
-        }
-        showToast('A reply is still running in this chat. Wait for it to finish, or press Stop.', 'warning');
-        if (state.activeSessionId) await loadMessages(state.activeSessionId);
-        return;
-      }
+      // CARD-530 REQ-530-003: a 409 turn_running is a gentle notice (chat/turn_running.js), not a failure.
+      if (response.status === 409) return handleTurnRunning({ state, streamBubble, isResume: options.isResume, userPrompt, restoreComposer: (t) => promptInput && setComposerText(promptInput, t), showToast, loadMessages });
       if (!response.ok) throw new Error(`Stream error: HTTP ${response.status}`);
 
       clearStagedAttachments(state, $('chatAttachmentsPreviewList'));
