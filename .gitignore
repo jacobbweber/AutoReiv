@@ -139,6 +139,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+# CARD-532: journey runner helpers (JS), not a Python build lib
+!tests/e2e/journeys/lib/
 lib64/
 parts/
 sdist/
