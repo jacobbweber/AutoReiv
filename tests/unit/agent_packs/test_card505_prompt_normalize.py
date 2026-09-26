@@ -212,6 +212,25 @@ def test_real_prompt_edit_stays_locked_and_kept(boot, tmp_path):
     assert "card505_whitespace_unlock" not in [b.get("reason") for b in list_pack_content_backups(store, "autoreiv")]
 
 
+def test_spacing_false_lock_with_a_removed_tool_stays_locked(boot):
+    """REQ-505-006 guard: a lock that also removed a shipped tool is a real edit (OC-S1)."""
+    _client, store, app = boot()
+    seed = _seed_prompt().strip()
+    _legacy_state(store, app.state.registry, stored=seed, old_seed=seed + "\n", locked=True)
+    prof = store.get_agent_profile("autoreiv")
+    removed = prof.allowed_tool_names[0]
+    prof.allowed_tool_names = prof.allowed_tool_names[1:]
+    store.save_custom_agent_profile(prof)
+    ov = store.get_agent_override("autoreiv")
+    ov.allowed_tool_names = list(prof.allowed_tool_names)
+    store.save_agent_override(ov)
+    _promote(app)
+    assert _is_locked(store)
+    assert removed not in (store.get_agent_profile("autoreiv").allowed_tool_names or [])
+    mig = {r["pack_id"]: r for r in (store.get_setting(PLATFORM_LOCK_MIGRATION_SETTING) or {}).get("results") or []}
+    assert mig["autoreiv"]["action"] == "kept_locked"
+
+
 def test_reset_to_platform_defaults_then_scalar_save_does_not_relock(boot):
     """REQ-505-007: Reset no longer re-arms the false lock."""
     client, store, app = boot()
