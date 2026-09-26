@@ -110,6 +110,7 @@ export default {
       const res = await request.post(`${base}/api/sessions`, { data: { agent_id: 'autoreiv', title: t2 } });
       if (!res.ok()) throw new Error(`create session -> ${res.status()}`);
       const sid2 = (await res.json()).id;
+      await openApp(page, base); // reload so the drawer lists the chat created through the API
       await openSessionByTitle(page, t2, { agentId: 'autoreiv' });
       await askAndCheck(sid2, 'new chat');
     }, { timeoutMs: 260000, soft: true });
