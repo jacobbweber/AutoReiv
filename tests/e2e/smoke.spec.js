@@ -1338,13 +1338,18 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
 
     test(`TC-44 (${vp.name}): Ask Developer on a gap starts a Developer reply with no further input [CARD-497]`, async ({ page }) => {
       const streamPosts = [];
+      let release;
+      const held = new Promise((r) => { release = r; });
+      // The reply is held open so the live streaming bubble can be checked (a mocked stream saves nothing,
+      // so the history reload after the turn would be empty).
       await page.route('**/api/chat/stream', async (route) => {
         streamPosts.push(route.request().postDataJSON());
+        await held;
         await route.fulfill({
           status: 200,
           headers: { 'Content-Type': 'text/event-stream' },
           body: 'data: {"type":"token","text":"TC44 Developer reply started"}\n\ndata: [DONE]\n\n',
-        });
+        }).catch(() => {});
       });
       const card = await openGaps(page);
       await card.locator('.btn-gap-ask-developer').click();
@@ -1354,8 +1359,12 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(streamPosts[0].resume).toBe(false);
       expect(streamPosts[0].content).toContain('get_tc39_inventory');
       expect(streamPosts[0].content).toContain('Look up TC39 inventory counts');
-      await expect(page.locator('#messagesContainer')).toContainText('TC44 Developer reply started');
+      const msgs = page.locator('#messagesContainer');
+      await expect(msgs.locator('[data-stream-bubble="true"]')).toBeVisible();
+      await expect(msgs).toContainText('get_tc39_inventory');
       await expect(page.locator('#promptInput')).toHaveValue('');
+      release();
+      await expect(msgs.locator('[data-stream-bubble="true"]')).toHaveCount(0, { timeout: 15000 });
       await page.waitForTimeout(1000);
       expect(streamPosts.length).toBe(1);
     });

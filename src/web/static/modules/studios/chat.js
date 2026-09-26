@@ -31,6 +31,7 @@ import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY 
 import { createSessionSelect } from './chat/session_select.js'; // CARD-485
 import { createStopHandler } from './chat/stop.js'; // CARD-486
 import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
+import { sendDeveloperIntent } from './chat/developer_intent.js'; // CARD-497 REQ-497-016
 
 import {
   buildChatStreamPayload,
@@ -909,16 +910,19 @@ export function initChatStudio(state, callbacks = {}) {
     state.activeSessionId = id;
     await loadSessions();
     await selectSession(id);
-    const needle = String(composerText || '').trim().slice(0, 80);
-    const visible = Boolean(
-      needle && (state.messages || []).some((msg) => String((msg && msg.content) || '').includes(needle)),
-    );
-    if (promptInput) {
-      if (!visible && composerText) {
-        setComposerText(promptInput, composerText);
-      }
-      promptInput.focus();
-    }
+    // CARD-497 REQ-497-016: a real send - the Developer reply starts now, as if typed and Enter pressed.
+    const outcome = sendDeveloperIntent({
+      sessionId: id,
+      prompt: composerText,
+      state,
+      send: (text) => {
+        if (promptInput) setComposerText(promptInput, '');
+        return executeChatTurn(text);
+      },
+      fillComposer: (text) => { if (promptInput) setComposerText(promptInput, text); },
+      toast: showToast,
+    });
+    if (promptInput && outcome.status !== 'sent') promptInput.focus();
     return id;
   }
 

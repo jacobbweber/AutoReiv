@@ -99,6 +99,11 @@ Run 3 detail and gaps:
 
 **Cleanup:** 3 test approvals were rejected (1 `wiki_note_create`, 2 auto `propose_skill`; their 2 proposals are now `rejected`). The 3 retest sessions and the Developer child were deleted from `autoreiv.db` (sessions, messages, telemetry_spans, tool_policy_decisions, pending_approvals). A backup taken before the cleanup is at `scratch/autoreiv_pre_c497_cleanup.db`. Jacob's own session `f67162a7-...` was left alone.
 
+**Ask Developer retest (Jacob, ~11:40 AM ET):** steps 2-4 (intake, answers, handoff) worked. Step 1: Ask Developer on the TC49 gap opened a Developer chat that showed the "Tools Studio tool intent (create)" text as his message, but Developer did not reply until he typed "do you see my input to you?".
+- Root cause: `POST /api/tools_studio/authoring/talk` (`developer_mediation.open_chat`) saved the request as a USER message and never ran a turn. The browser's `openDeveloperSession` then saw the text already in the history and neither filled the message box nor called `/api/chat/stream`. The gap Ask Developer, Tools Studio Talk and Teach Ask Developer all share this path. The Skill Studio agent-created card has no Ask Developer button (only Open in Skill Studio / Agent Studio), and Observability Ask Developer is CARD-520 (not built).
+- Decision (Jacob): make it a real send. Fix, tests first (`16b3c874`): `/talk` opens an empty session; `openDeveloperSession` sends the request once through the normal chat send (`chat/developer_intent.js`), with guards for double clicks, busy chats and reopened sessions (REQ-497-016). The prompt text still matches CARD-422's packet format. app.js 2.0.87.
+- Retest: Ctrl+F5, Agent Studio, AutoReiv, Capability gaps, TC49, Ask Developer. The Developer reply starts streaming with no further input.
+
 **REQ-497-008 verdict:** the shipped skill and routing now do what the requirement asks. The skill opens, `inspect_agent_pack` is called, questions come first, and the handoff uses the right arguments. On `nemotron-3.5-lightning` the full flow (brief, yes, handoff, Developer result) is not reliable until CARD-524 (context) and CARD-523 (turn and handoff handling) land, or a larger model is used for AutoReiv.
 
 ## Gate language (exact reply phrases)
@@ -181,6 +186,7 @@ Run 3 detail and gaps:
 - **[REQ-497-013]** WHEN the app starts on a DB that has `factory_*` tables with rows, it SHALL start cleanly and leave those tables and rows unchanged (CARD-498 exports them).
 - **[REQ-497-014]** No module under `src/` SHALL import a deleted module. The deleted files SHALL be absent. `tool_check.py` SHALL stay Factory-free.
 - **[REQ-497-015]** The lanes in the table above SHALL keep passing their existing tests (Teach distill and Ask Developer, Observability runbook Apply, skill-eval sleep, Developer register with the CARD-511 check, gap backlog).
+- **[REQ-497-016]** (added after Jacob's live test, 2026-09-26) WHEN the operator clicks Ask Developer on a capability gap, Talk to Developer in Tools Studio, or Ask Developer to build this tool in Teach, the app SHALL open a new Developer chat and send the request as a real turn, so the Developer reply starts with no further input. `/api/tools_studio/authoring/talk` SHALL NOT pre-save the request as a message. The request SHALL be sent once: not twice on a double click, and not again when the session is reopened or opened on another device. IF the chat is already busy, THEN the request SHALL go into the message box with a notice and not be sent.
 
 ## 3. Decisions (D1-D14 accepted as recommended, 2026-09-26 ~9:44 AM ET)
 
@@ -278,7 +284,7 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 3. **Redirects:** `GET /api/agent_training_factory/capabilities` without following redirects returns 308 with `Location: /api/tools_studio/capabilities`. Following it returns the same `total_tools` as the new URL. `POST .../scaffold/runbook` through the redirect still returns a runbook.
 4. **Skill Studio (desktop, Ctrl+F5):** open an existing skill, Generate, Save. DevTools Network shows only `/api/skill_studio/*` and `/api/tools_studio/capabilities`. The saved skill reopens with its tools.
 5. **Tools Studio:** the catalog loads with the CARD-511 Checked labels, and `launch_factory_training` is not in it.
-6. **Stranded gap:** put a gap in `training` in the scratch DB (a script with `update_gap_status`), then restart. It shows in Agent Studio's backlog as pending, and Ask Developer and Dismiss work. For a gap whose suggested tool does not exist yet (TC49 `gap_c5d4dcc6af35`, `get_tc49_inventory`), **Ask Developer is the right next action**. Open in Skill Studio only opens Skill Studio pinned to the agent with an empty form; prefilling it from the gap is CARD-522 (it was never built, CARD-496 REQ-496-003).
+6. **Stranded gap:** put a gap in `training` in the scratch DB (a script with `update_gap_status`), then restart. It shows in Agent Studio's backlog as pending, and Ask Developer and Dismiss work. Ask Developer opens a Developer chat and the Developer reply starts right away with no further input (REQ-497-016). For a gap whose suggested tool does not exist yet (TC49 `gap_c5d4dcc6af35`, `get_tc49_inventory`), **Ask Developer is the right next action**. Open in Skill Studio only opens Skill Studio pinned to the agent with an empty form; prefilling it from the gap is CARD-522 (it was never built, CARD-496 REQ-496-003).
 7. **AutoReiv intake (needs the LLM on the Spark):** "Teach AutoReiv to read IPMI sensor temperatures." AutoReiv inspects itself, asks a question or two, and hands off to Developer with a brief; it never mentions the Factory. It opens the runbook with `skill_view(pack_id="agent-authoring")` (AutoReiv's system prompt routes teach / new-capability requests there), shows the brief, and on the operator's yes calls `handoff_to_agent(target_agent_id="developer", task_directive=<brief>)`; the Developer result comes back in the same chat as "Subagent Handoff ...". **Fallback without the LLM:** `GET /api/agents/autoreiv` lists `inspect_agent_pack` and not `launch_factory_training`, and `GET /api/skill_studio/skills/agent-authoring` shows the new body.
 8. **Teach regression:** Teach on a chat turn that needs a tool still shows Ask Developer (CARD-472).
 9. **Busy check:** with a Studio job queued, `GET /api/system/updates/auto-status` reports busy with "running Studio job" and never "Factory".
@@ -287,7 +293,7 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 
 ## 7. Definition of done
 
-- REQ-497-001..015 pass; tests were written first and seen failing.
+- REQ-497-001..016 pass; tests were written first and seen failing.
 - Full suites pass apart from the known CARD-454/456 failures, with the count changes explained per file.
 - The runbook passes on scratch and serve (desktop and phone).
 - CARD-498's card notes the plain-SQL export and the maybe-missing `factory_phase_instructions`. CARD-512's card notes `self_scaffold_queue_e2e.py`. ADR-0060 carries the D6 location note.
