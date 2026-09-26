@@ -135,7 +135,7 @@ async def test_distill_turn_extracts_context_and_synthesizes_skill(test_env):
 
 @pytest.mark.asyncio
 async def test_distill_turn_detects_missing_native_tool_and_escalates(test_env):
-    """[REQ-SKIL-014] When distillation identifies tool gap, it generates Factory escalation."""
+    """[REQ-SKIL-014, CARD-520] When distillation identifies a tool gap, it returns a tool escalation."""
     store, data_dir = test_env
 
     session = store.create_session(agent_id="autoreiv", title="Hardware Scan")
@@ -157,9 +157,9 @@ async def test_distill_turn_detects_missing_native_tool_and_escalates(test_env):
         "suggested_tool_name": "ipmi_sensor_query",
         "plain_summary": {
             "observed_slip": "Agent lacks raw IPMI-over-LAN protocol tools to query hardware sensors.",
-            "remedy": "Escalate to Factory Studio to synthesize a native ipmi_sensor_query tool.",
+            "remedy": "Ask Developer to build a native ipmi_sensor_query tool.",
         },
-        "factory_escalation": {
+        "tool_escalation": {
             "target_agent_id": "autoreiv",
             "seed_intent": "Query remote IPMI sensor via IPMI-over-LAN protocol",
             "starter_objectives": [
@@ -176,10 +176,10 @@ async def test_distill_turn_detects_missing_native_tool_and_escalates(test_env):
 
     assert result["status"] == "ok"
     assert result["needs_tool"] is True
-    assert result["factory_escalation"] is not None
-    assert result["factory_escalation"]["target_agent_id"] == "autoreiv"
-    assert result["factory_escalation"]["suggested_tool_name"] == "ipmi_sensor_query"
-    assert len(result["factory_escalation"]["starter_objectives"]) >= 2
+    assert result["tool_escalation"] is not None
+    assert result["tool_escalation"]["target_agent_id"] == "autoreiv"
+    assert result["tool_escalation"]["suggested_tool_name"] == "ipmi_sensor_query"
+    assert len(result["tool_escalation"]["starter_objectives"]) >= 2
 
 
 def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):

@@ -179,7 +179,7 @@ describe('CARD-500 proposal card', () => {
     const { renderSkillProposalCard } = await import('../../../src/web/static/modules/studios/chat/render.js');
     const el = renderSkillProposalCard({
       ...PROPOSAL, needs_tool: true, skill_id: null, name: null, runbook_markdown: null,
-      factory_escalation: { suggested_tool_name: 'get_city_weather', seed_intent: 'weather' },
+      tool_escalation: { suggested_tool_name: 'get_city_weather', seed_intent: 'weather' }, // CARD-520
     }, { container: fakeEl() });
     expect(el.innerHTML).not.toContain('btn-adopt-skill');
     expect(el.innerHTML).toContain('btn-escalate-developer'); // CARD-496 D10

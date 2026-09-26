@@ -149,7 +149,7 @@ async def test_distill_turn_persists_proposal_message(test_env):
             "remedy": "Save to resources/templates/",
         },
         "needs_tool": False,
-        "factory_escalation": None,
+        "tool_escalation": None,
     })
     gateway = MockGateway(response_text=mock_llm_json)
 

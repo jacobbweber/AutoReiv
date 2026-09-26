@@ -223,7 +223,7 @@ describe('CARD-472 Teach modal (chat/teach_modal.js)', () => {
   function proposalCard(escalation, target = 'autoreiv') {
     const container = fakeEl('messagesContainer');
     const card = fakeEl('', { classes: ['skill-proposal-card'] });
-    card.setAttribute('data-factory-escalation', JSON.stringify(escalation));
+    card.setAttribute('data-tool-escalation', JSON.stringify(escalation)); // CARD-520
     card.setAttribute('data-target-agent-id', target);
     const btn = fakeEl('', { classes: ['btn-escalate-developer'] }); // CARD-496 D10
     btn._closest['.btn-escalate-developer'] = btn;
