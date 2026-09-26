@@ -286,6 +286,42 @@ def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_train
     assert not offenders, offenders
 
 
+# 12b -----------------------------------------------------------------------
+def _authoring_skill_md():
+    import yaml
+
+    text = (ROOT / "platform-packs/autoreiv/skills/agent-authoring/SKILL.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+    _, front, body = text.split("---\n", 2)
+    return yaml.safe_load(front), body
+
+
+def test_12b_agent_authoring_is_found_for_teach_requests():
+    """Live retest: 'Teach AutoReiv to ...' never opened agent-authoring (the index lists names, skill_view takes ids)."""
+    from tests.unit.agent_packs.catalog import load_platform_manifest
+
+    front, _ = _authoring_skill_md()
+    pack_skill = next(s for s in load_platform_manifest("autoreiv").skills if s.id == "agent-authoring")
+    for desc in (front["description"], pack_skill.description):
+        low = desc.lower()
+        for needle in ("teach", "new capability", "learn to", "skill_view", "agent-authoring"):
+            assert needle in low, (needle, desc)
+
+
+def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flow():
+    """Live retest: the model called handoff_to_agent(agent_id=, task=) and got a TypeError."""
+    from src.application.skills.orchestration_tools import OrchestrationTools
+
+    _, body = _authoring_skill_md()
+    assert 'handoff_to_agent(target_agent_id="developer", task_directive=' in body
+    assert "agent_id=" not in body.replace("target_agent_id=", "")
+    params = inspect.signature(OrchestrationTools.handoff_to_agent).parameters
+    assert "target_agent_id" in params and "task_directive" in params
+    # Flow order: inspect, ask, show the brief, get a yes, then hand off.
+    steps = [body.index(s) for s in ("inspect_agent_pack", "Ask what is missing", "Show the brief", "yes", "handoff_to_agent(")]
+    assert steps == sorted(steps), steps
+    assert "tell the operator" in body.lower() and "fail" in body.lower()
+
+
 # 13 ------------------------------------------------------------------------
 def test_13_unedited_shipped_seed_is_refreshed(tmp_path):
     from src.infrastructure.skills.seed import bundled_skill_md, seed_bundled_skill_packs
