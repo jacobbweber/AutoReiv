@@ -1,7 +1,7 @@
 ---
 id: CARD-526
 title: "Observability sections are nested by two missing </details> tags: the friction recommendations are three collapsed levels deep"
-status: Ready
+status: Done
 created: 2026-09-26
 branch: qa
 related:
@@ -18,7 +18,7 @@ labels:
 
 # [CARD-526] Observability sections nested inside Live System Logs
 
-> **Status**: Ready (found in the CARD-520 reproduction, 2026-09-26 ~1:00 PM ET, qa `0f5cf9da`). CARD-520 decision D10 recommends folding this into CARD-520; if accepted, it closes with CARD-520.
+> **Status**: Done (folded into CARD-520 as decision D10 / REQ-520-013, accepted 2026-09-26 ~1:05 PM ET). Fixed in `b702a304` on `feat/card-520-tool-escalation`: the logs and capability sections now close, so every `details.obs-section` is top level. Test: `REQ-520-013` in `tests/unit/frontend/card_520_tool_escalation.test.js`; smoke TC-45 opens friction with one click. Ships with the CARD-520 merge. Found in the CARD-520 reproduction, 2026-09-26 ~1:00 PM ET, qa `0f5cf9da`.
 > **Related**: CARD-520, CARD-311 (logs, journey, capability sections), CARD-354 (friction section), CARD-428 (journey canvas)
 > **Labels**: `type:bug`, `area:observability`, `area:ui`, `P3`
 

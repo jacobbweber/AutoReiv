@@ -21,6 +21,7 @@ labels:
 > **Created**: 2026-09-25
 > **Series**: CARD-495 → CARD-496 → CARD-497 → **CARD-498**
 > **Labels**: `type:migration`, `area:factory`, `area:data`, `P2`
+> **Note (CARD-520, 2026-09-26)**: also remove the one-release readers of the old remedy name: `LEGACY_TOOL_ESCALATION` and `normalize_remedy_kind` in `domain/observability/models.py`, the fallbacks in `modules/studios/tool_escalation.js` (`data-factory-escalation`, old key), and the distill fallback in `distillation_service.py`. Keep or delete `tool_escalation_migration.py` with them.
 
 ---
 

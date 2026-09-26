@@ -1,7 +1,7 @@
 ---
 id: CARD-520
 title: "Rename the Teach/Observability remedy factory_escalation to tool_escalation, and replace Observability's always-failing Apply with Ask Developer"
-status: Ready
+status: In Review
 created: 2026-09-26
 branch: qa
 related:
@@ -22,7 +22,7 @@ labels:
 
 # [CARD-520] `tool_escalation`: one name for "this needs a tool", and a working Ask Developer in Observability
 
-> **Status**: Ready, refined (`continue`, 2026-09-26 ~12:50 PM ET, from local qa `0f5cf9da`; fresh sweep, scratch reproduction on port 8767, EARS, tests-first plan, runbook, decisions D1-D12). Waiting for `build`. Split from CARD-497 on 2026-09-26 (CARD-497's old decision D3 plus the Apply 500).
+> **Status**: In Review (`build`, 2026-09-26 ~1:50 PM ET, D1-D12 accepted as recommended, D10 folds CARD-526). Branch `feat/card-520-tool-escalation` from local qa `5880e3b7`: failing tests `3de882ee` (+ `f4eb4b96` import fix), implementation `b702a304`. Serve runs the branch on 0.0.0.0:8000 with a live-test seed. Waiting for Jacob's live test, then `merge to qa`. Refined 2026-09-26 ~12:50 PM ET from `0f5cf9da`; split from CARD-497.
 > **Related**: CARD-497 (Done: D3, D14 and the shared real-send path `chat/developer_intent.js`, REQ-497-016), ADR-0060 section 4.1, CARD-472 (Teach Ask Developer), CARD-354 (friction recommendations), CARD-503 (distill timeout, affects the Teach live test), CARD-504 (needs-tool card title reads both names), CARD-525 and CARD-526 (filed from this reproduction)
 > **Labels**: `type:product`, `area:observability`, `area:skills`, `P2`
 
@@ -187,6 +187,15 @@ Scratch first (`powershell -ExecutionPolicy Bypass -File scratch\c505_run.ps1 -D
 - ADR-0060 L60 names CARD-520 (done in this refinement); CARD-504 and CARD-498 get a note (504 reads `tool_escalation` first; 498 removes the reader fallbacks).
 - CARD-526 is closed with this card (if D10); CARD-525 stays Ready.
 - The card is set to In Review with evidence, then Done at `merge to qa`.
+
+## 8. Build evidence (2026-09-26, ET)
+
+- **Tests first:** `3de882ee` committed 15 pytest tests (plus updates to 4 existing files), 11 Vitest tests and smoke TC-45 (desktop and phone); red confirmed (20 pytest, 13 Vitest, TC-45 x2). Ten of the Vitest failures were an import-resolution error (template-literal dynamic imports), so `f4eb4b96` switched to literal paths and a fuller fake DOM; that file was re-run against the `3de882ee` source in a temporary worktree: **9 red for the right reasons**, 2 guards pass on old code (patch keeps Apply; failed Talk does not escalate).
+- **Implementation `b702a304`:** constants and a `remedy_kind` normalizer in `domain/observability/models.py`; resolver writes `tool_escalation`, `tool_name`, `payload_bytes`, `session_id` and the D9 wording, `apply_with_reason`; `update_proposal_payload`; router list normalization, Apply 409/409/404, new `/escalate`; distill prompt and result keys; startup migration `application/observability/tool_escalation_migration.py` (called from `app.py`); `tool_escalation.js`; `askDeveloperWithDraft` shared by gap, Teach and Observability; Observability cards (Needs a tool / Ask Developer / Dismiss / Asked Developer); two `</details>` (CARD-526); app.js `2.0.88`; CHANGELOG.
+- **Preflight** (`scratch\full_suite.ps1 -Tag c520`, smoke last): unit 1984 passed / 11 skipped / 1 failed (CARD-454), was 1969 (+15 new); integration 103 passed; Vitest 913 passed / 3 failed (CARD-456), was 902 (+11 new); ESLint 4 errors + 5 warnings and ruff 7 errors (pre-existing baseline, no new files); smoke 71 passed, was 69 (+TC-45 x2).
+- **Scratch (port 8767):** `scratch\c520_repro.py` replay: `wiki_note_read` and `c520_inventory_dump` are `tool_escalation` with the new wording, Apply 409 "needs a tool change ... Use Ask Developer" for both, the `wiki_note_search` patch applies (200). Startup migration: seeded one old `skill_proposal` message, one proposal and one ledger entry, restarted: all rewritten, and the list shows `tool_name`/`payload_bytes` derived from the old text (`old_tool` 30000); a second start changed nothing.
+- **Serve (Jacob's data):** the migration ran at startup and changed nothing (read-only pre-scan: 0 old-name messages, 0 proposals, no ledger; re-run returns all zeros). Seed `scratch\c520_seed_serve.py` made "C520 live test" (autoreiv, `c520_inventory_dump`) and "C520 live test (dismiss)" (developer, `c520_catalog_dump`), then the audit staged 6 cards (2 seeded; 4 real from the last 24 h: `wiki_note_list` and `wiki_note_search` patches, `get_recent_errors` and `list_available_skills_and_tools` escalations). Read-only browser check (`scratch\c520_verify_serve.cjs`, desktop 127.0.0.1 and phone 192.168.1.99): no nested sections, friction opens with one click, escalations show Needs a tool + Ask Developer + Dismiss, patches show Apply Patch + Dismiss, no page errors. Undo: `scratch\c520_remove_seed.py`.
+- **Filed:** CARD-527 (built-in tools get tool escalations the Developer cannot act on), CARD-528 (app log lines from `src.*` do not reach the serve log, so the migration counts are not visible).
 
 ## What stays out of scope
 
