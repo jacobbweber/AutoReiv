@@ -109,3 +109,13 @@ On the scratch server:
 2. Tools Studio: the catalog loads.
 3. `curl` `/api/agent_training_factory/jobs` returns 404.
 4. Serve logs show no factory polling.
+
+## Audit revisions (CARD-495 audit, 2026-09-25)
+
+- **Depends on CARD-511.** Do not delete `verification_battery.py` / `tool_synthesizer.py` until CARD-511 has taken what it reuses (decision D6).
+- **Keep `application/skills/workshop.py`** (Skill Studio persistence; used by `agents.py` L123/L247, `skill_authoring.py` L11, `skills.py` L172, `user_catalog.py` L406). Fix its docstring only.
+- Move `llm.phase_llm_text` and `phases/promote.check_tool_collisions` with the scaffold routes.
+- **Keep `inspect_agent_pack`**: move it into `orchestration_tools` and keep its grant in `pack.json` (decision D4). Delete only `launch_factory_training`.
+- Also delete: `jit_synthesizer.py` and its construction in `agent_kernel.py` L136-138; `capability_graph.py`; `domain/orchestration/factory_packets.py`; `/train` and gap_link in `gaps.py` L117-176.
+- Stop exposing `allow_autonomous_training` / `max_training_retries` in the API (`agents.py` L166, `registry.py` L157, `guardrails.py` L190, `skill_list.py`, `service.py`); keep the DB columns. Delete `KernelEventType.AUTO_TRAIN_PROGRESS` (`models.py` L185, `chat.py` L412-414) (decision D7).
+- Drop the Factory checker from the busy detector (`busy.py` L122-134, `app.py` L357-358); Studio jobs stay counted.

@@ -82,3 +82,9 @@ Never run against live AppData.
 2. `backups/factory-retire-*.json` appears with the rows.
 3. Restart: no second export.
 4. On Jarvis, startup logs "0 rows, nothing to export".
+
+## Audit revisions (CARD-495 audit, 2026-09-25)
+
+- Also export, then drop, `factory_phase_instructions` (created in `prompt_registry.py` L170).
+- Delete the `factory_jobs` column migrations in `connection.py` L125-130+ in the drop release. Keep fresh installs and upgrades working (migration tests for both).
+- If CARD-512 retires the scaffold spine, export and drop `scaffold_spine` (`schema.py` L474) the same way.

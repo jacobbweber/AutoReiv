@@ -98,3 +98,11 @@ labels:
 2. Agent Studio: create an agent; you stay in Agent Studio with the toast.
 3. The gap backlog (seed a gap through `POST /api/agents/{id}/gaps` on the scratch server) shows Open in Skill Studio and Ask Developer, and both work.
 4. On phone, the same checks.
+
+## Audit revisions (CARD-495 audit, 2026-09-25)
+
+- **Also remove the Agent Studio "Agent Training Optimization" panel** (`index.html` L1615-1642, `forge/scaffold.js` L159-210, `forgeScaffoldOpenFactoryBtn` L366-380). Its queue is always empty (CARD-495 audit F16). Backend goes in CARD-512.
+- **Keep** Skill Studio's `factory*` DOM ids inside `#view-skill-studio` (decision D5). Only `#view-factory` goes.
+- `agent_picker.js` L13: drop only the `factory` key; the picker stays for Agent Studio, Tools Studio and the desktop.
+- Delete the `AUTO_TRAIN_PROGRESS` handler in `chat.js` L851 and the autonomous-training inputs in `forge.js` L493-496 (decision D7).
+- Test: `openSkillStudio(agentId)` from the gap backlog opens Skill Studio for that agent.
