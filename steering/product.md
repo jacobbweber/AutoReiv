@@ -38,7 +38,7 @@ AutoReiv is structured into 7 purpose-built studios accessible via a responsive 
    - Agent-by-agent performance breakdown and tool invocation metrics.
    - In-memory event log buffer with live auto-refresh and severity filtering.
 
-4. **Agent Forge Studio (`forge.js`)**:
+4. **Agent Studio (`forge.js`, formerly Agent Forge)**:
    - Custom agent meta-builder with SQLite persistence.
    - Purpose classification (Fast, Reasoning, Task Execution, Coding, Vision, Auxiliary).
    - Prompt engineering controls, tone selection (Concise, Balanced, Elaborate), and granular skill/tool scoping.
@@ -50,7 +50,7 @@ AutoReiv is structured into 7 purpose-built studios accessible via a responsive 
    - Model Purpose Matrix routing tasks to optimal local or cloud models.
 
 6. **System documentation (no Docs Studio ship)**:
-   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, factory, forge, observability, projects, prompts, routines, settings, skill-studio, tools-studio, wiki).
+   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, education, forge (Agent Studio), observability, projects, prompts, routines, settings, skill-studio, tools-studio, wiki). The Agent Training Factory is retired ([ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md)); its leftover screen is removed in CARD-496.
    - Architecture/ADR truth lives under `docs/adr`, `docs/architecture`, and `steering/*`; operators browse the repo / Projects surfaces rather than a dedicated Docs Studio canvas.
    - Historical CARD-018/019 "documentation browser" intent remains **not** a separate `docs.js` studio — do not treat product copy as claiming one.
 

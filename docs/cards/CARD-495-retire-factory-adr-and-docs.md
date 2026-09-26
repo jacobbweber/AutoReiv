@@ -8,6 +8,7 @@ related:
   - CARD-496
   - CARD-511
   - CARD-512
+  - CARD-513
   - CARD-497
   - CARD-498
   - CARD-472
@@ -25,7 +26,7 @@ labels:
 
 # [CARD-495] Retire the Agent Training Factory (1/4): ADR-0060 and steering docs
 
-> **Status**: Ready (refined 2026-09-25: section 1 gap and dependency audit added. The ADR-0060 draft waits for Jacob to accept the audit, decision D1)
+> **Status**: Ready for `build` (2026-09-25 11:39 PM ET: D1-D8 accepted; ADR-0060 drafted as Accepted; ADR-0048/0049/0056/0057 and steering amended on local qa. `build` = mark Done after Jacob reads the ADR, section 8)
 > **Created**: 2026-09-25 (replaces the earlier CARD-495 "training loop has no front door", written the same day)
 > **Series**: CARD-495 (ADR and docs), then CARD-496 (UI shell), CARD-497 (backend), CARD-498 (data). Revised by the audit (section 1.4): CARD-495, CARD-496, CARD-511, CARD-497, CARD-512, CARD-498. Each lands on its own branch.
 > **Related**: CARD-472 (keep-and-fix chat wiring), CARD-417/418 and ADR-0057 (three Studios), CARD-386 (already deleted the Factory runs and pipeline views), CARD-368 (gaps to the backlog), CARD-306
@@ -102,6 +103,8 @@ CARD-495 (audit, then ADR-0060) â†’ CARD-496 (UI, now including the F16 panel) â
 
 ### 1.5 Decisions for Jacob
 
+**Decided 2026-09-25, 11:39 PM ET: Jacob accepted D1-D8 exactly as recommended (see section 7).**
+
 | # | Decision | Recommendation |
 |---|---|---|
 | D1 | Accept this audit as the basis for ADR-0060 | Yes; then draft the ADR on `continue` |
@@ -132,15 +135,20 @@ CARD-495 (audit, then ADR-0060) â†’ CARD-496 (UI, now including the F16 panel) â
 - Update `steering/product.md` (studio list without "factory"; Agent Forge Studio described as Agent Studio), `roadmap.md` (a retirement entry), and `structure.md`.
 - Mark CARD-159/164/171/182/195/351 as superseded in the ADR's table (the card files stay as history).
 
+**Status of Beat 3 (2026-09-25):** all of it is drafted (ADR-0060, ADR-0056/0057/0049 notes, ADR-0048 Superseded, product.md, roadmap.md). `structure.md` has no Factory line; its stale studio list is CARD-513.
+
 **Beat 4: What dies.** The idea that the Factory owns training, in any doc.
 
 ## 3. Acceptance criteria (EARS)
 
-- **[REQ-495-001]** THE SYSTEM docs SHALL contain `docs/adr/0060-retire-agent-training-factory.md` (Accepted after Jacob's review) that names what dies, the replacement path per need, the data policy (CARD-498) and the order CARD-496..498.
-- **[REQ-495-002]** `steering/product.md`, `roadmap.md` and `structure.md` SHALL NOT list a Factory studio as current.
-- **[REQ-495-003]** ADR-0056 SHALL carry a dated amendment note that Skill Studio (not Factory) writes skill bodies and bindings.
+- **[REQ-495-001]** THE docs SHALL contain `docs/adr/0060-retire-the-agent-training-factory.md`, status Accepted, naming what is replaced by what, the gaps and how each is handled, decisions D1-D8, the keep/move list, the delete list, the order CARD-495, CARD-496, CARD-511, CARD-497, CARD-512, CARD-498, and the data rule.
+- **[REQ-495-002]** `steering/product.md` SHALL NOT list a Factory studio as current. `steering/roadmap.md` SHALL list the retirement cards.
+- **[REQ-495-003]** ADR-0056 SHALL carry a dated amendment saying Skill Studio (not the Factory) writes skill bodies and tool bindings, pointing to ADR-0060.
+- **[REQ-495-004]** ADR-0048 SHALL be marked Superseded by ADR-0060. ADR-0049 and ADR-0057 SHALL carry a dated note pointing to ADR-0060.
+- **[REQ-495-005]** WHEN CARD-495 is Done, THE product code SHALL be unchanged (docs only).
 
-## 4. ADR-0060 draft plan (not the ADR itself)
+## 4. Background for ADR-0060 (planning notes, kept)
+
 
 **Memory note (keep):** On 2026-09-25 at 3:44 PM ET, Jacob confirmed retiring the Factory concept ("We built Agent, Skill and Tool Studios so we no longer need the Factory, but we have other mechanisms for training and improvement") and accepted every recommendation in the CARD-472 revised report:
 - CARD-472 is keep-and-fix only.
@@ -170,8 +178,55 @@ Evidence gathered in that planning pass:
 
 ## 5. Tests
 
-Docs only. Add a Vitest/pytest docs contract that `steering/product.md` has no `factory` in its current-studio list, and that ADR-0060 exists and mentions CARD-496..498.
+**None. This card changes docs only.** Earlier this section planned a Vitest/pytest check on `steering/product.md`. I recommend dropping it (decision D9). It would only test prose, which ADR-0055 counts as theatre. The real checks live where behaviour changes:
+- CARD-496 smoke: no Factory in the dock; the gap backlog opens Skill Studio.
+- CARD-497 integration: Factory job, gap and phase routes return 404; the old Skill Studio paths give 308 redirects.
+- CARD-498 migration tests: fresh install and upgrade.
+
+The runbook's `rg` check below is the gate for this card.
 
 ## 6. Runbook
 
-Read ADR-0060 and the steering diffs. The Factory is not described as a current studio anywhere in `steering/`.
+1. Read `docs/adr/0060-retire-the-agent-training-factory.md`.
+2. Read the diffs: ADR-0056 (header and 4.7), ADR-0048 (status), ADR-0049 and ADR-0057 (notes), `steering/product.md` (L41, L53), `steering/roadmap.md` (Milestone 21).
+3. Run `rg -n -i "factory" steering docs/adr/0056-durable-runtime-registry-hybrid-c-plus.md`. Every hit should be historical (roadmap Done items), the "factory seed" wording for `platform-packs/`, `createStore` factory in tech.md, or a pointer to ADR-0060. Nothing should describe the Factory as current.
+4. `git diff --stat 10f2bc75..HEAD` should show only `docs/` and `steering/` files.
+
+## 7. Decisions (decided 2026-09-25, 11:39 PM ET)
+
+Jacob accepted D1-D8 exactly as recommended in section 1.5. They are recorded in ADR-0060 section 4.2.
+
+| # | Decision | Decided |
+|---|---|---|
+| D1 | The audit is the basis for ADR-0060 | Yes |
+| D2 | Wiki research is chat-only | Yes |
+| D3 | Scenario replay / agent evaluation | Dropped for now, no card |
+| D4 | `inspect_agent_pack` | Keep, move to orchestration tools (CARD-497) |
+| D5 | Skill Studio `factory*` ids | Leave |
+| D6 | CARD-511 before CARD-497, may reuse `verification_battery` parts | Yes |
+| D7 | Delete dead auto-training fields, JIT synthesizer, `AUTO_TRAIN_PROGRESS`; keep DB columns | Yes (CARD-496 UI, CARD-497 backend) |
+| D8 | "Agent Training Optimization" panel: UI in CARD-496, backend retired in CARD-512 | Yes |
+
+**Still open (recommendation in bold):**
+- **D9**: No automated docs test for this card (section 5). **Accept.**
+- **D10**: What "build" means for this card (section 8). **Accept: "build" = mark Done after Jacob has read the ADR.**
+
+## 8. What "build" does (and definition of done)
+
+The ADR and all doc amendments were drafted in the 2026-09-25 "continue" pass and committed on local qa (not pushed). **The ADR plus the amendments are the whole deliverable.** There is no product code, no test code and no feature branch.
+
+So on **`build`**:
+1. Apply any wording changes Jacob asks for after reading ADR-0060.
+2. Run the runbook (section 6) and paste the `rg` result into this card.
+3. Set CARD-495 `status: Done` in a `docs(cards)` commit on qa.
+
+On **`merge to qa`**: there is no branch to merge. It means push qa to origin, carrying the CARD-495 commits. They can also ride along with CARD-496's merge.
+
+**Definition of done:**
+- ADR-0060 is Accepted and committed.
+- ADR-0048 is Superseded; ADR-0049, ADR-0056 and ADR-0057 point to ADR-0060.
+- `steering/product.md` and `roadmap.md` are updated.
+- The runbook `rg` check is clean.
+- The only files changed are in `docs/` and `steering/`.
+- CARD-496..498, CARD-511 and CARD-512 statuses reflect the decisions.
+- The `status: Done` commit is on qa.

@@ -4,6 +4,7 @@
 > **Status**: Accepted  
 > **Deciders**: Jacob Weber, Antigravity Agent  
 > **Consulted**: AutoReiv Core Architecture, Agent Training Factory  
+> **Amended**: 2026-09-25 by [ADR-0060](./0060-retire-the-agent-training-factory.md): the Factory is retired. The native / MCP deliverable taxonomy still applies, now to Developer's native and MCP tool lanes (Tools Studio).  
 
 ---
 

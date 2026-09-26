@@ -6,7 +6,8 @@
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-417 planning; CARD-411 Option A live test  
 > **Related Cards**: [CARD-417](../cards/CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md) (forks locked), [CARD-418](../cards/CARD-418-skill-studio-extract-from-factory.md) (first implementation slice), [CARD-421](../cards/CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) (Tools Studio v1), [CARD-422](../cards/CARD-422-tools-studio-form-and-developer-mediation.md), [CARD-423](../cards/CARD-423-custom-tool-packaging-native-and-mcp.md), [CARD-424](../cards/CARD-424-mcp-disable-must-unmount.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md), [ADR-0056](./0056-durable-runtime-registry-hybrid-c-plus.md)  
-> **Supersedes / Softens**: Long-term “Agent Training Factory does agent + skill + tools on one screen” as the operator authoring model
+> **Supersedes / Softens**: Long-term “Agent Training Factory does agent + skill + tools on one screen” as the operator authoring model  
+> **Completed by**: [ADR-0060](./0060-retire-the-agent-training-factory.md) (2026-09-25): the transitional Factory is retired (order CARD-496, CARD-511, CARD-497, CARD-512, CARD-498)  
 
 ---
 

@@ -96,6 +96,14 @@
   - [x] **CARD-399**: Wiki Studio Monolith Decomposition & Submodule Refactoring — **Done**.
   - [x] **CARD-401**: Fix Chat Studio SSE Stream Event Parsing & Message Load Rendering — **Done**.
 
+- **Milestone 21 (Agent Training Factory retirement, [ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md))**:
+  - [ ] **CARD-495**: ADR-0060, gap and dependency audit, steering docs.
+  - [ ] **CARD-496**: Remove the Factory screen, Lab Monitor, training popup and "Agent Training Optimization" panel; gap backlog opens Skill Studio or Developer.
+  - [ ] **CARD-511**: Check Developer-built native tools before registering them.
+  - [ ] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool.
+  - [ ] **CARD-512**: Retire the scaffold spine backend.
+  - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
+
 
 
 

@@ -3,6 +3,7 @@
 > **Status**: Accepted  
 > **Date**: 2026-09-21  
 > **Accepted**: 2026-09-21 (Jacob: Accept ADR-0056 with Docker hard-fail rule)  
+> **Amended**: 2026-09-25 by [ADR-0060](./0060-retire-the-agent-training-factory.md): the Agent Training Factory is retired; Skill Studio writes skill bodies and tool bindings (4.7)  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-413 ownership audit  
 > **Related Cards**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md) (Option A build unblocked 2026-09-22), [CARD-412](../cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md) / [ADR-0055](./0055-operator-contract-testing-and-suite-hygiene.md)  
@@ -141,7 +142,11 @@ Backups include a manifest enumerating operational DB, per-agent storage/memory 
 
 ### 4.7 CARD-411
 
-**Build unblocked (2026-09-22).** This ADR is Accepted and the CARD-414 cutover is on `qa`. Jacob locked Option A: Forge is agent identity and RBAC plus a read-only runbook inspector; Factory is the sole writer of skill bodies and tool bindings. Bindings persist in operational SQLite (`skill_tool_bindings` / `skill_binding_meta`). AppData `pack.json` is not a second live source of truth for those bindings.
+**Build unblocked (2026-09-22).** This ADR is Accepted and the CARD-414 cutover is on `qa`. Jacob locked Option A: Forge (now Agent Studio) is agent identity and RBAC plus a read-only runbook inspector; at the time, the Factory was the sole writer of skill bodies and tool bindings.
+
+> **Amendment (2026-09-25, [ADR-0060](./0060-retire-the-agent-training-factory.md))**: The Agent Training Factory is retired. **Skill Studio** is the writer of skill bodies and tool bindings (since CARD-418). Its save, skills and capabilities routes move out of `/api/agent_training_factory` to `/api/skill_studio/*` (capabilities to `/api/tools_studio/capabilities`) in CARD-497. The rest of this section (bindings in operational SQLite, AppData `pack.json` not a second source of truth) is unchanged.
+
+Bindings persist in operational SQLite (`skill_tool_bindings` / `skill_binding_meta`). AppData `pack.json` is not a second live source of truth for those bindings.
 
 ### 4.8 Operator contracts before cutover
 

@@ -1,7 +1,7 @@
 # ADR-0048: Autonomous Agent Pack Factory and Self-Testing Capability Loop
 
 > **Date**: 2026-09-05  
-> **Status**: Accepted  
+> **Status**: Superseded by [ADR-0060](./0060-retire-the-agent-training-factory.md) (2026-09-25: the Agent Training Factory is retired)  
 > **Deciders**: Jacob Weber, Antigravity Agent  
 > **Consulted**: AutoReiv Core Architecture  
 
