@@ -400,6 +400,19 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
     return match
 
 
+def _seed_tools_removed(profile: Any, seed: dict[str, Any]) -> bool:
+    """True when the profile lacks a tool the shipped pack grants (operator removed it)."""
+    from src.application.agent_packs.schema import tools_for_platform_skills
+    from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES
+
+    pack_tools = list(seed.get("pack_tool_names") or [])
+    seed_tools = pack_tools + [
+        t for t in tools_for_platform_skills(list(seed.get("allowed_skill") or [])) if t not in pack_tools
+    ]
+    live = set(getattr(profile, "allowed_tool_names", None) or [])
+    return any(t not in live for t in seed_tools if t not in RETIRED_TOOL_NAMES)
+
+
 def migrate_false_content_locks(
     *,
     data_dir: Union[str, Path],
@@ -447,6 +460,10 @@ def migrate_false_content_locks(
                     "reason": "prompt diverged from shipped baseline",
                 }
             )
+            continue
+        if _seed_tools_removed(profile, seed):
+            # CARD-505: an operator tool removal is a real edit; unlocking would re-add the tool
+            results.append({"pack_id": pack_id, "action": "kept_locked", "reason": "tool allowlist edited"})
             continue
         # Unlock: settings-only (or CARD-505 spacing-only) false lock
         stored = getattr(profile, "system_prompt", None) or ""
