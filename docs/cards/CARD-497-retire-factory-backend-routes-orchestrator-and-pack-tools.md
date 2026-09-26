@@ -113,6 +113,7 @@ On the scratch server:
 ## Audit revisions (CARD-495 audit, 2026-09-25)
 
 - **Depends on CARD-511.** Do not delete `verification_battery.py` / `tool_synthesizer.py` until CARD-511 has taken what it reuses (decision D6).
+  - CARD-511 (refined 2026-09-26, its D2) keeps only `detect_path_safety_violation`, moved to `src/application/tools/tool_check.py` and re-exported from `verification_battery.py`. Once CARD-511 is merged, delete `verification_battery.py` **whole** (drop the re-export), plus `tool_synthesizer.py`; nothing else uses them apart from the Factory, `jit_synthesizer.py` (built in `agent_kernel.py`, removed under D7), `hyperv_tool_builders.py` and their tests.
 - **Keep `application/skills/workshop.py`** (Skill Studio persistence; used by `agents.py` L123/L247, `skill_authoring.py` L11, `skills.py` L172, `user_catalog.py` L406). Fix its docstring only.
 - Move `llm.phase_llm_text` and `phases/promote.check_tool_collisions` with the scaffold routes.
 - **Keep `inspect_agent_pack`**: move it into `orchestration_tools` and keep its grant in `pack.json` (decision D4). Delete only `launch_factory_training`.
