@@ -6,7 +6,16 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# CARD-520: the remedy for "this needs a tool" is tool_escalation; the old name is read and migrated.
+TOOL_ESCALATION = "tool_escalation"
+LEGACY_TOOL_ESCALATION = "factory_escalation"
+
+
+def normalize_remedy_kind(value: Any) -> Any:
+    """Map the pre-CARD-520 remedy name to ``tool_escalation``; anything else is returned as is."""
+    return TOOL_ESCALATION if value == LEGACY_TOOL_ESCALATION else value
 
 
 class KPIDashboardSummary(BaseModel):
@@ -92,9 +101,18 @@ class RunbookRecommendation(BaseModel):
     summary: str = Field(description="One-sentence description of the problem and proposed rule")
     proposed_patch: str = Field(description="Markdown addition for ## Common Pitfalls & Forbidden Paths")
     original_snippet: Optional[str] = Field(default=None, description="Original section context")
-    remedy_kind: str = Field(default="runbook_patch", description="'runbook_patch' or 'factory_escalation'")
-    status: str = Field(default="pending", description="'pending', 'applied', 'dismissed'")
+    remedy_kind: str = Field(default="runbook_patch", description="'runbook_patch' or 'tool_escalation' [CARD-520]")
+    status: str = Field(default="pending", description="'pending', 'applied', 'dismissed', 'escalated'")
     created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
+    tool_name: Optional[str] = Field(default=None, description="Tool that caused the friction [CARD-520]")
+    payload_bytes: Optional[int] = Field(default=None, description="Payload size for payload bloat [CARD-520]")
+    session_id: Optional[str] = Field(default=None, description="Session where the friction was seen [CARD-520]")
+    developer_session_id: Optional[str] = Field(default=None, description="Developer chat opened by Ask Developer [CARD-520]")
+
+    @field_validator("remedy_kind", mode="before")
+    @classmethod
+    def _legacy_remedy(cls, value: Any) -> Any:
+        return normalize_remedy_kind(value)
 
 
 class ArchitecturalThresholdType(str, Enum):

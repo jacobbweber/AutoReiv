@@ -14,6 +14,7 @@ from typing import Dict, Optional, Set, Tuple, Union
 import yaml
 
 from src.domain.observability.models import (
+    TOOL_ESCALATION,
     FrictionIncident,
     FrictionSignatureType,
     RunbookRecommendation,
@@ -207,12 +208,13 @@ class ToolSkillResolver:
                 summary = f"Enforce pagination limit on {t_name} to curb payload bloat."
                 remedy = "runbook_patch"
             else:
+                # CARD-520 D9: the tool needs changing; Ask Developer is the action.
                 patch = (
-                    f"Escalate {t_name} to Factory Studio: Tool lacks pagination/filter "
-                    f"parameters to constrain large payloads ({incident.payload_bytes or 0} bytes)."
+                    f"Ask Developer to add pagination or a filter to {t_name}: "
+                    f"it returned {incident.payload_bytes or 0} bytes (limit 8 KB)."
                 )
-                summary = f"Escalate {t_name} to Factory Studio (unbounded payload)."
-                remedy = "factory_escalation"
+                summary = f"{t_name} needs pagination or a filter (unbounded payload)."
+                remedy = TOOL_ESCALATION
 
         elif incident.signature == FrictionSignatureType.SEARCH_THRASHING:
             patch = (
@@ -238,17 +240,27 @@ class ToolSkillResolver:
             remedy_kind=remedy,
             status="pending",
             created_at=_utc_now(),
+            tool_name=t_name,
+            payload_bytes=incident.payload_bytes,
+            session_id=incident.session_id,
         )
 
     def apply_recommendation(self, recommendation: RunbookRecommendation) -> bool:
+        """Bool wrapper kept for the auditor's auto-apply."""
+        return self.apply_with_reason(recommendation)[0]
+
+    def apply_with_reason(self, recommendation: RunbookRecommendation) -> Tuple[bool, str]:
         """
-        Safely patches the targeted SKILL.md under user data.
+        Safely patches the targeted SKILL.md under user data and says why when it cannot [CARD-520 D8].
+        Reasons: applied, already_present, tool_escalation, no_skill, missing_file, not_a_patch.
         Enforces that target file is strictly jailed within self.data_dir.
         """
+        if recommendation.remedy_kind == TOOL_ESCALATION:
+            return False, "tool_escalation"
         if recommendation.remedy_kind != "runbook_patch":
-            return False
+            return False, "not_a_patch"
         if not recommendation.skill_path:
-            return False
+            return False, "no_skill"
 
         target_file = (self.data_dir / recommendation.skill_path).resolve()
 
@@ -259,14 +271,14 @@ class ToolSkillResolver:
             raise ValueError(f"Target path '{target_file}' is outside user data directory.")
 
         if not target_file.is_file():
-            return False
+            return False, "missing_file"
 
         content = target_file.read_text(encoding="utf-8")
         bullet = recommendation.proposed_patch.strip()
 
         # Idempotency check: avoid inserting identical bullet twice
         if bullet in content:
-            return True
+            return True, "already_present"
 
         pitfall_headers = [
             "## Common Pitfalls & Forbidden Paths",
@@ -290,4 +302,4 @@ class ToolSkillResolver:
             updated = content.rstrip() + f"\n\n## Common Pitfalls & Forbidden Paths\n\n{bullet}\n"
 
         target_file.write_text(updated, encoding="utf-8")
-        return True
+        return True, "applied"

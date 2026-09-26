@@ -149,6 +149,24 @@ class ProposalRepositoryMixin:
                 conn.close()
         return self.get_proposal(proposal_id)
 
+    def update_proposal_payload(self, proposal_id: str, payload_json: str) -> Proposal:
+        """Replace a proposal's payload (CARD-520: friction recommendation status and Developer session)."""
+        now = _utc_iso()
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE proposals SET payload_json = ?, updated_at = ? WHERE id = ?",
+                (payload_json, now, proposal_id),
+            )
+            conn.commit()
+            if cur.rowcount == 0:
+                raise ProposalNotFoundError(f"Proposal {proposal_id} not found.")
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+        return self.get_proposal(proposal_id)
+
     def list_proposals(
         self,
         kind: Optional[str] = None,

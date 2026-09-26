@@ -93,9 +93,13 @@ describe('REQ-497-016: every Ask Developer entry point shares the real send', ()
   });
 
   it('gap Ask Developer, Tools Studio Talk and Teach Ask Developer all call openDeveloperSession', () => {
-    expect(read('src/web/static/modules/studios/forge/tools.js')).toContain('chat.openDeveloperSession(plan.sessionId, plan.prompt)');
+    // CARD-520 REQ-520-011: gap and Teach go through the shared askDeveloperWithDraft helper.
+    expect(read('src/web/static/modules/studios/forge/tools.js')).toContain('askDeveloperWithDraft(');
     expect(read('src/web/static/modules/studios/tools_studio.js')).toContain('chat.openDeveloperSession(plan.sessionId, plan.prompt)');
-    expect(read('src/web/static/modules/studios/chat/teach_modal.js')).toContain('openDeveloperSessionFn(plan.sessionId, plan.prompt)');
+    expect(read('src/web/static/modules/studios/chat/teach_modal.js')).toMatch(/askDeveloperWithDraft\(draft, \{[^}]*openDeveloperSessionFn/);
+    const auth = read('src/web/static/modules/studios/tools_studio_authoring.js');
+    expect(auth).toContain('chat.openDeveloperSession(');
+    expect(auth).toContain('await open(plan.sessionId, plan.prompt)');
     expect(chat).toMatch(/openDeveloperSessionFn:\s*openDeveloperSession/);
   });
 });

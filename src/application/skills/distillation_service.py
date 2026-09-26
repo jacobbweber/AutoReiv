@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
+from src.domain.observability.models import LEGACY_TOOL_ESCALATION, TOOL_ESCALATION
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +242,7 @@ class SkillDistillationService:
             '  "needs_tool": true,\n'
             '  "suggested_tool_name": "snake_case_tool_name",\n'
             '  "plain_summary": { "observed_slip": "...", "remedy": "..." },\n'
-            '  "factory_escalation": {\n'
+            '  "tool_escalation": {\n'
             '    "target_agent_id": "<agent>",\n'
             '    "seed_intent": "<short intent>",\n'
             '    "starter_objectives": ["Obj 1", "Obj 2"],\n'
@@ -295,7 +296,8 @@ class SkillDistillationService:
         }
 
         if needs_tool:
-            escalation = llm_data.get("factory_escalation") or {
+            # CARD-520 REQ-520-002: accept the pre-rename key from the model too.
+            escalation = llm_data.get(TOOL_ESCALATION) or llm_data.get(LEGACY_TOOL_ESCALATION) or {
                 "target_agent_id": target_agent_id,
                 "seed_intent": guidance or "Synthesize missing capability tool",
                 "starter_objectives": ["Implement verified tool handler", "Add schema guardrails"],
@@ -311,7 +313,7 @@ class SkillDistillationService:
                 "target_agent_id": target_agent_id,
                 "needs_tool": True,
                 "plain_summary": plain_summary,
-                "factory_escalation": escalation,
+                TOOL_ESCALATION: escalation,
                 "skill_id": None,
                 "name": None,
                 "description": None,
@@ -352,7 +354,7 @@ class SkillDistillationService:
             "description": desc,
             "plain_summary": plain_summary,
             "runbook_markdown": runbook_markdown,
-            "factory_escalation": None,
+            TOOL_ESCALATION: None,
         }
 
     def _build_heuristic_distill_response(
@@ -394,7 +396,7 @@ class SkillDistillationService:
             "description": desc,
             "plain_summary": plain_summary,
             "runbook_markdown": runbook_markdown,
-            "factory_escalation": None,
+            TOOL_ESCALATION: None,
         }
 
     def _slugify(self, text: str) -> str:

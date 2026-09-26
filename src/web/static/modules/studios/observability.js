@@ -8,6 +8,13 @@ import { publishAgentsLoaded } from '../state/store.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from '../ui/toast.js';
 import { initJourneyCanvas } from '../observability/journey_canvas.js';
+import { askDeveloperWithDraft } from './tools_studio_authoring.js';
+import { isToolEscalationRemedy } from './tool_escalation.js';
+
+// CARD-520: callbacks from init (switchTab, getChatCtrl) and the rendered friction records by id.
+let obsCallbacks = {};
+const frictionRecsById = new Map();
+const askDeveloperInFlight = new Set();
 
 /** Standing external verifier outcomes [CARD-216]: verified | skipped_no_checker | failed */
 export const VERIFY_OUTCOME_STATUSES = Object.freeze(['verified', 'skipped_no_checker', 'failed']);
@@ -69,6 +76,7 @@ export const OBSERVE_STUDIO_TAB = 'observability';
 
 
 export function initObservability(state, _callbacks = {}) {
+  obsCallbacks = _callbacks || {};
   const refreshKpiBtn = $('refreshKpiBtn');
   const kpiTotalTurns = $('kpiTotalTurns');
   const kpiTotalTokens = $('kpiTotalTokens');
@@ -531,7 +539,7 @@ export function initObservability(state, _callbacks = {}) {
   }
   const frictionList = $('frictionRecommendationsList');
   if (frictionList) {
-    frictionList.addEventListener('click', handleFrictionAction);
+    frictionList.addEventListener('click', (e) => handleFrictionAction(e));
   }
   loadFrictionRecommendations();
   checkArchitecturalProposalsCount();
@@ -822,30 +830,49 @@ export function renderFrictionRecommendations(recs) {
     return;
   }
 
+  frictionRecsById.clear();
   const items = recs.map((r) => {
+    frictionRecsById.set(String(r.id), r);
     const isApplied = r.status === 'applied';
     const isDismissed = r.status === 'dismissed';
+    const isEscalated = r.status === 'escalated';
+    const isToolFix = isToolEscalationRemedy(r.remedy_kind);
     let badgeColor = 'bg-amber-950/80 text-amber-300 border-amber-800';
-    if (isApplied) {
+    if (isApplied || isEscalated) {
       badgeColor = 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
     } else if (isDismissed) {
       badgeColor = 'bg-slate-800 text-slate-400 border-slate-700';
     }
 
-    const remedyBadge = r.remedy_kind === 'factory_escalation'
-      ? '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-950/80 text-purple-300 border border-purple-800">Factory Escalation</span>'
+    const remedyBadge = isToolFix
+      ? '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-950/80 text-purple-300 border border-purple-800">Needs a tool</span>'
       : '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800">Runbook SOP Patch</span>';
 
-    const actions = (isApplied || isDismissed)
-      ? `<span class="text-xs font-mono text-slate-400 capitalize">${escapeHtml(r.status)}</span>`
-      : `
-        <button type="button" class="apply-friction-btn px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-medium text-white transition flex items-center space-x-1" data-rec-id="${escapeHtml(r.id)}">
-          <span>Apply Patch</span>
-        </button>
+    const dismissBtn = `
         <button type="button" class="dismiss-friction-btn px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-slate-400 transition" data-rec-id="${escapeHtml(r.id)}">
           <span>Dismiss</span>
-        </button>
+        </button>`;
+    let actions;
+    if (isEscalated) {
+      actions = '<span class="text-xs font-mono text-emerald-300">Asked Developer</span>';
+    } else if (isApplied || isDismissed) {
+      actions = `<span class="text-xs font-mono text-slate-400 capitalize">${escapeHtml(r.status)}</span>`;
+    } else if (isToolFix) {
+      actions = `
+        <button type="button" class="ask-developer-friction-btn px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-xs font-medium text-white transition flex items-center space-x-1" data-rec-id="${escapeHtml(r.id)}">
+          <span>Ask Developer</span>
+        </button>${dismissBtn}
       `;
+    } else {
+      actions = `
+        <button type="button" class="apply-friction-btn px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-medium text-white transition flex items-center space-x-1" data-rec-id="${escapeHtml(r.id)}">
+          <span>Apply Patch</span>
+        </button>${dismissBtn}
+      `;
+    }
+    const target = isToolFix
+      ? `Tool: ${escapeHtml(r.tool_name || 'unknown')} (Agent: ${escapeHtml(r.agent_id || 'autoreiv')})`
+      : `Target: ${escapeHtml(r.skill_path || 'unknown')} (Agent: ${escapeHtml(r.agent_id || 'autoreiv')})`;
 
     return `
       <div class="p-3.5 rounded-xl bg-[#12151e]/90 border border-white/[0.08] space-y-2 shadow-sm" data-rec-id="${escapeHtml(r.id)}">
@@ -861,7 +888,7 @@ export function renderFrictionRecommendations(recs) {
         </div>
         <div class="text-xs text-slate-300 font-mono bg-black/40 p-2.5 rounded-lg border border-white/[0.04] whitespace-pre-wrap">${escapeHtml(r.proposed_patch)}</div>
         <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">
-          <span>Target: ${escapeHtml(r.skill_path || 'unknown')} (Agent: ${escapeHtml(r.agent_id || 'autoreiv')})</span>
+          <span>${target}</span>
           <span>${escapeHtml(r.created_at || '')}</span>
         </div>
       </div>
@@ -896,7 +923,58 @@ export async function runFrictionAudit() {
   }
 }
 
-export async function handleFrictionAction(e) {
+/** Developer draft for a tool escalation: the tool, its payload and where it came from [CARD-520 REQ-520-008]. */
+export function buildFrictionDeveloperDraft(rec = {}) {
+  const tool = String(rec.tool_name || '').trim();
+  const size = rec.payload_bytes ? `${rec.payload_bytes} bytes` : 'too many bytes';
+  const where = [rec.session_id ? `in session ${rec.session_id}` : '', rec.agent_id ? `(agent ${rec.agent_id})` : '']
+    .filter(Boolean).join(' ');
+  return {
+    intent: 'modify',
+    tool_name: tool,
+    behavior: `Add pagination or a filter (limit/offset or a query) so ${tool} stays under 8 KB; it returned ${size}${where ? ` ${where}` : ''}.`,
+    target_agent_id: rec.agent_id || 'autoreiv',
+  };
+}
+
+async function askDeveloperAboutFriction(btn, recId, callbacks) {
+  if (askDeveloperInFlight.has(recId)) return;
+  askDeveloperInFlight.add(recId);
+  btn.disabled = true;
+  try {
+    const rec = frictionRecsById.get(String(recId)) || { id: recId };
+    const plan = await askDeveloperWithDraft(buildFrictionDeveloperDraft(rec), {
+      intent: 'modify',
+      fetchFn: (...args) => fetch(...args),
+      switchTab: callbacks.switchTab,
+      getChatCtrl: typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl : () => null,
+    });
+    const res = await fetch(`/api/observability/friction/recommendations/${encodeURIComponent(recId)}/escalate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ developer_session_id: plan.sessionId }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showToast(`Developer chat opened, but the card was not marked: ${body.detail || `HTTP ${res.status}`}`, 'warning');
+    }
+    loadFrictionRecommendations();
+  } catch (err) {
+    showToast(`Could not open a Developer chat: ${err.message || err}`, 'error');
+    btn.disabled = false;
+  } finally {
+    askDeveloperInFlight.delete(recId);
+  }
+}
+
+export async function handleFrictionAction(e, callbacks = obsCallbacks) {
+  const askBtn = e.target.closest('.ask-developer-friction-btn');
+  if (askBtn) {
+    const recId = askBtn.dataset.recId;
+    if (recId) await askDeveloperAboutFriction(askBtn, recId, callbacks || {});
+    return;
+  }
+
   const applyBtn = e.target.closest('.apply-friction-btn');
   if (applyBtn) {
     const recId = applyBtn.dataset.recId;
@@ -906,11 +984,14 @@ export async function handleFrictionAction(e) {
       const res = await fetch(`/api/observability/friction/recommendations/${encodeURIComponent(recId)}/apply`, {
         method: 'POST',
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      showToast('Runbook patch applied to SKILL.md successfully!', 'success');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(typeof body.detail === 'string' && body.detail ? body.detail : `HTTP ${res.status}`);
+      }
+      showToast('Runbook patch applied to SKILL.md.', 'success');
       loadFrictionRecommendations();
     } catch (err) {
-      showToast(`Failed to apply patch: ${err.message || err}`, 'error');
+      showToast(err.message || String(err), 'error');
       applyBtn.disabled = false;
     }
     return;

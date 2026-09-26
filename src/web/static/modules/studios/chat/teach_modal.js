@@ -6,15 +6,8 @@
 import { $, safeCreateIcons } from '../../dom.js';
 import { renderSkillProposalCard } from './render.js';
 import { readableError } from '../../utils/formatters.js';
-import { TOOLS_AUTHORING_TALK_URL, authoringErrorMessage, interpretAuthoringTalk } from '../tools_studio_authoring.js';
-
-function readEscalation(card) {
-  try {
-    return JSON.parse((card && card.getAttribute('data-factory-escalation')) || '{}') || {};
-  } catch {
-    return {};
-  }
-}
+import { askDeveloperWithDraft } from '../tools_studio_authoring.js';
+import { escalationFromCard } from '../tool_escalation.js';
 
 /** Draft for the Developer chat, built from the proposal card [CARD-472 REQ-472-007]. */
 export function buildDeveloperToolDraft(esc = {}, agentId = '') {
@@ -112,20 +105,11 @@ export function setupTeachAgentModal(state, elements = {}, {
 
   // Needs-tool proposal: open a Developer chat with the proposal attached; Tools Studio if that fails.
   async function askDeveloperToBuildTool(card) {
-    const esc = readEscalation(card);
+    const esc = escalationFromCard(card);
     const agent = esc.target_agent_id || card.getAttribute('data-target-agent-id') || state.selectedAgentId || 'autoreiv';
     const draft = buildDeveloperToolDraft(esc, agent);
     try {
-      const res = await doFetch(TOOLS_AUTHORING_TALK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent: 'create', draft }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(authoringErrorMessage(data, res.status));
-      const plan = interpretAuthoringTalk(data, draft);
-      if (typeof openDeveloperSessionFn !== 'function') throw new Error('Developer chat is unavailable here.');
-      await openDeveloperSessionFn(plan.sessionId, plan.prompt);
+      await askDeveloperWithDraft(draft, { intent: 'create', fetchFn: doFetch, openDeveloperSessionFn });
     } catch (err) {
       showToast(`Could not open a Developer chat: ${err.message || err}. Opening Tools Studio.`, 'error');
       if (typeof callbacks.openToolsStudio === 'function') callbacks.openToolsStudio(agent);

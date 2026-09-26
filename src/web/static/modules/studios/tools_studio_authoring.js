@@ -79,6 +79,34 @@ export function interpretAuthoringTalk(data, draft = {}) {
   };
 }
 
+/**
+ * One Ask Developer path for the gap backlog, Teach and Observability [CARD-520 REQ-520-011].
+ * Posts Talk with the draft, then opens the real Developer chat (streams at once, CARD-497).
+ * Throws a readable Error; callers own the toast and any fallback.
+ */
+export async function askDeveloperWithDraft(draft, {
+  intent = 'create', fetchFn = null, openDeveloperSessionFn = null, switchTab = null, getChatCtrl = null,
+} = {}) {
+  const doFetch = typeof fetchFn === 'function' ? fetchFn : (...args) => fetch(...args);
+  const res = await doFetch(TOOLS_AUTHORING_TALK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ intent, draft }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(authoringErrorMessage(data, res.status));
+  const plan = interpretAuthoringTalk(data, draft);
+  let open = typeof openDeveloperSessionFn === 'function' ? openDeveloperSessionFn : null;
+  if (!open && typeof getChatCtrl === 'function') {
+    const chat = getChatCtrl();
+    if (chat && typeof chat.openDeveloperSession === 'function') open = (...a) => chat.openDeveloperSession(...a);
+  }
+  if (!open) throw new Error('Developer chat is unavailable here.');
+  if (typeof switchTab === 'function') switchTab('chat');
+  await open(plan.sessionId, plan.prompt);
+  return plan;
+}
+
 export function interpretAuthoringSubmit(data) {
   const status = String((data && data.status) || '').trim().toLowerCase();
   const jobId = String((data && data.job_id) || '').trim();
