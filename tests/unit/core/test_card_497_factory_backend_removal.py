@@ -303,7 +303,7 @@ def test_12b_agent_authoring_is_found_for_teach_requests():
     pack_skill = next(s for s in load_platform_manifest("autoreiv").skills if s.id == "agent-authoring")
     for desc in (front["description"], pack_skill.description):
         low = desc.lower()
-        for needle in ("teach", "new capability", "learn to", "skill_view", "agent-authoring"):
+        for needle in ("teach", "new capability", "learn to", 'skill_view(pack_id="agent-authoring")'):
             assert needle in low, (needle, desc)
 
 
@@ -323,14 +323,14 @@ def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flo
 
 
 def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_view():
-    """Live retest 2: the model tried activate_skill(['agent-authoring']) (platform domains only) and drifted."""
+    """Live retests 2-3: activate_skill(['agent-authoring']) fails (platform domains only); skill_view needs pack_id=."""
     from tests.unit.agent_packs.catalog import load_platform_manifest
 
     prompt = load_platform_manifest("autoreiv").system_prompt
     lines = [ln for ln in prompt.splitlines() if "agent-authoring" in ln]
     assert len(lines) == 1, lines
     line = lines[0]
-    assert "skill_view('agent-authoring')" in line and "not activate_skill" in line
+    assert 'skill_view(pack_id="agent-authoring")' in line and "not activate_skill" in line
     assert "teach" in line.lower() and "new capability" in line.lower()
 
 
