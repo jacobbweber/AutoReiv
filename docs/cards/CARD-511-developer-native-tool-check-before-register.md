@@ -22,7 +22,7 @@ labels:
 
 # [CARD-511] Check a Developer-built tool once in the sandbox before it is registered
 
-> **Status**: Ready, refined (`continue`, 2026-09-26 ~1:30 AM ET, qa `6f066514`). Planning only: no feature branch and no product code yet. **Next gate: Jacob answers D1-D12 (or says "accept all"), then `build`.**
+> **Status**: In Progress (`build`, 2026-09-26 ~1:52 AM ET: Jacob accepted D1-D13 exactly as recommended, including folding CARD-517 in (D10). Branch `feat/card-511-tool-check` from qa `3e709376`. Refined earlier the same night at qa `6f066514`)
 > **Created**: 2026-09-25 (CARD-495 audit F6)
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted), decision **D6**: this card lands **before CARD-497** and keeps only the parts of `verification_battery.py` it needs, moved out of the Factory. CARD-497 then deletes the rest. This card is step 3 of 6: CARD-495 (Done), CARD-496 (Done), **CARD-511**, CARD-497, CARD-512, CARD-498.
 > **Related**: CARD-497 (deletes `verification_battery.py`, `tool_synthesizer.py`, `factory_packets.py`), CARD-472 (Ask Developer), CARD-423 (native lane), CARD-394 (MCP engineering tools), CARD-516/517/518 (filed from this reproduction)
@@ -33,7 +33,7 @@ labels:
 | Jacob reply | Meaning |
 |-------------|---------|
 | **`continue`** | Refine. No product code (this pass) |
-| **`build`** | Build test-first on `feat/card-511-tool-check-before-register`, with the decisions as accepted |
+| **`build`** | Build test-first on `feat/card-511-tool-check`, with the decisions as accepted |
 | **`merge to qa`** | After In Review, and after the runbook passes on scratch and serve |
 
 ---
@@ -121,7 +121,7 @@ Where the gap is in the code (qa `6f066514`):
 
 ---
 
-## 4. Decisions (to confirm at `build`; recommendations in bold)
+## 4. Decisions (decided 2026-09-26 ~1:52 AM ET: Jacob said `build` and accepted D1-D13 exactly as recommended, shown in bold)
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
