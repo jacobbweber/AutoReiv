@@ -187,3 +187,29 @@ describe('Tools Studio mediation result interpretation [CARD-422]', () => {
     expect(clean.code).toBeUndefined();
   });
 });
+
+describe('CARD-511: Submit carries the tool check result', () => {
+  const AUTHORING = '../../../src/web/static/modules/studios/tools_studio_authoring.js';
+  const base = {
+    job_id: 'job_1', session_id: 's_1', status: 'done', ran: true, mediation: 'developer_turn', reply: 'Not registered.',
+    persisted_tool: false, packaging_applied: false,
+  };
+
+  it('passes tool_checks through and still refuses persisted_tool (REQ-511-010)', async () => {
+    const { interpretAuthoringSubmit: interpret, formatToolCheckLines } = await import(AUTHORING);
+    const checks = [{ tool: 'x_tool', status: 'failed', stage: 'import', message: 'Not registered: x_tool failed the import check. ModuleNotFoundError' }];
+    const plan = interpret({ ...base, tool_checks: checks });
+    expect(plan.toolChecks).toEqual(checks);
+    expect(interpret(base).toolChecks).toEqual([]);
+    expect(() => interpret({ ...base, tool_checks: checks, persisted_tool: true })).toThrow('Tools Studio must not apply tool packaging from this form.');
+    expect(formatToolCheckLines(checks)).toEqual(['Not registered: x_tool failed the import check. ModuleNotFoundError']);
+    expect(formatToolCheckLines([{ tool: 'y', status: 'passed' }])).toEqual(['Checked: y']);
+    expect(formatToolCheckLines(null)).toEqual([]);
+  });
+
+  it('Tools Studio shows the check lines in the Submit result', () => {
+    const view = read('src/web/static/modules/studios/tools_studio.js');
+    expect(view).toContain('formatToolCheckLines(plan.toolChecks)');
+    expect(view).toContain('data-testid="tools-studio-tool-check"');
+  });
+});

@@ -95,3 +95,64 @@ describe('Tools Studio origin labels [CARD-423]', () => {
     expect(authoring).toContain("throw new Error('Tools Studio must not apply tool packaging from this form.')");
   });
 });
+
+describe('CARD-511: native catalog rows show the tool check', () => {
+  const CATALOG = '../../../src/web/static/modules/studios/tools_studio_catalog.js';
+  const namespaces = [{
+    id: 'native_custom',
+    name: 'Native custom',
+    source: 'native_custom',
+    origin_label: 'Native custom',
+    tools: [{ name: 'good_t', description: 'good' }, { name: 'skip_t', description: 'skip' }, { name: 'old_t', description: 'old' }],
+  }];
+  const nativeTools = [
+    { name: 'good_t', check: { status: 'passed' } },
+    { name: 'skip_t', check: { status: 'checked_without_call', skip_reason: 'high risk: sample call skipped' } },
+    { name: 'old_t', check: null },
+  ];
+
+  function rowLabel(markup, name) {
+    const start = markup.indexOf(`data-tool-name="${name}"`);
+    expect(start).toBeGreaterThan(-1);
+    const next = markup.indexOf('data-testid="tools-studio-catalog-row"', start + 1);
+    const slice = markup.slice(start, next === -1 ? undefined : next);
+    const m = slice.match(/data-testid="tools-studio-check-label" data-check-status="([^"]*)"[^>]*>([^<]*)</);
+    return m ? { status: m[1], text: m[2] } : null;
+  }
+
+  it('labels passed, checked_without_call and old rows (REQ-511-011)', async () => {
+    const { buildCatalogGroups: build, renderCatalogMarkup: render, nativeCheckLabel } = await import(CATALOG);
+    expect(nativeCheckLabel({ status: 'passed' })).toBe('Checked');
+    expect(nativeCheckLabel({ status: 'checked_without_call', skip_reason: 'sends email' })).toBe('Checked without a sample call: sends email');
+    expect(nativeCheckLabel(null)).toBe('Not checked');
+    expect(nativeCheckLabel(undefined)).toBe('Not checked');
+    const markup = render(build({ namespaces, nativeTools }));
+    expect(rowLabel(markup, 'good_t')).toEqual({ status: 'passed', text: 'Checked' });
+    expect(rowLabel(markup, 'skip_t')).toEqual({ status: 'checked_without_call', text: 'Checked without a sample call: high risk: sample call skipped' });
+    expect(rowLabel(markup, 'old_t')).toEqual({ status: 'not_checked', text: 'Not checked' });
+  });
+
+  it('shows no check label for platform rows or when the native list was not loaded', async () => {
+    const { buildCatalogGroups: build, renderCatalogMarkup: render } = await import(CATALOG);
+    const platform = [{ id: 'builtin', name: 'Built-in', source: 'builtin', tools: [{ name: 'activate_skill' }] }];
+    expect(render(build({ namespaces: platform, nativeTools }))).not.toContain('tools-studio-check-label');
+    expect(render(build({ namespaces }))).not.toContain('tools-studio-check-label');
+  });
+
+  it('loadCatalogModel reads /api/tools/native for the labels and survives its failure', async () => {
+    const { loadCatalogModel: load, renderCatalogMarkup: render } = await import(CATALOG);
+    const ok = await load(async (url) => {
+      if (url === '/api/agent_training_factory/capabilities') return { ok: true, json: async () => ({ namespaces }) };
+      if (url === '/api/tools/native') return { ok: true, json: async () => ({ tools: nativeTools }) };
+      return { ok: true, json: async () => [] };
+    });
+    expect(render(ok)).toContain('>Checked<');
+    const down = await load(async (url) => {
+      if (url === '/api/agent_training_factory/capabilities') return { ok: true, json: async () => ({ namespaces }) };
+      if (url === '/api/tools/native') throw new Error('offline');
+      return { ok: true, json: async () => [] };
+    });
+    expect(render(down)).toContain('good_t');
+    expect(render(down)).not.toContain('tools-studio-check-label');
+  });
+});

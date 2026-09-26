@@ -91,6 +91,7 @@ async def test_mcp_dev_deploy_lifecycle_end_to_end(tmp_path):
     assert deploy_res["mode"] == "stdio"
 
     # 4. Canonical Single-Lever Registration
+    mcp_tools.tool_checker = _PassingChecker()  # CARD-511: the scaffold needs the mcp SDK, which this venv lacks
     reg_res = await mcp_tools.register_mcp_service(
         name="cluster_service",
         transport="stdio",
@@ -122,3 +123,12 @@ async def test_mcp_dev_deploy_lifecycle_end_to_end(tmp_path):
     assert dev is not None
     # Developer pack has mcp-engineering in allowed_skill
     assert "mcp-engineering" in dev.allowed_skill or "mcp-engineering" in (dev.pack_tool_names or [])
+
+
+class _PassingChecker:
+    """Stands in for the real MCP check; this test covers scaffold -> register wiring [CARD-511]."""
+
+    async def check_mcp(self, **kwargs):
+        from src.application.tools.tool_check import ToolCheckResult
+
+        return ToolCheckResult(tool=str(kwargs.get("name") or ""), lane="mcp", status="passed")

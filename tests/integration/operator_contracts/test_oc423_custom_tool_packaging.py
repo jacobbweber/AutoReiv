@@ -300,3 +300,47 @@ def test_oc423_developer_skills_describe_both_lanes(operator_client):
     assert "register_native_tool" in (developer.pack_tool_names or []) or "register_native_tool" in (
         developer.allowed_tool_names or []
     )
+
+
+def test_oc511_route_refuses_broken_native_tools_and_lists_checks(operator_client):
+    """CARD-511 tests 23-24: 422 with the failed stage; nothing listed; old rows show check null."""
+    client, store, _wiki = operator_client
+    broken = {
+        "c511_syntax_err": ("def run(**kw):\n    return (\n", "static", "SyntaxError"),
+        "c511_import_err": ("import nonexistent_c511_mod\n\ndef run(**kw):\n    return 1\n", "import", "ModuleNotFoundError"),
+        "c511_raises": ("def run(**kw):\n    raise ValueError('c511 deliberate failure')\n", "sample_call", "ValueError"),
+    }
+    for name, (code, stage, needle) in broken.items():
+        res = client.post(
+            "/api/tools/native",
+            json={"name": name, "description": name, "code": code, "requires_hitl": False, "risk_level": "low"},
+        )
+        assert res.status_code == 422, res.text
+        detail = res.json()["detail"]
+        assert detail["message"].startswith(f"Not registered: {name} failed the {stage} check")
+        assert detail["check"]["stage"] == stage
+        assert needle in detail["check"]["error"]
+    assert client.get("/api/tools/native").json()["tools"] == []
+    assert store.get_setting("native_custom_tools") in (None, [])
+
+    good = client.post(
+        "/api/tools/native",
+        json={
+            "name": "c511_good",
+            "description": "echo",
+            "code": ECHO_CODE,
+            "requires_hitl": False,
+            "risk_level": "low",
+            "sample_arguments": {"token": "probe"},
+        },
+    )
+    assert good.status_code == 200, good.text
+    assert good.json()["check"]["status"] == "passed"
+    assert good.json()["check"]["sample_arguments"] == {"token": "probe"}
+
+    rows = store.get_setting("native_custom_tools")
+    rows.append({"name": "c511_old", "description": "old", "code": ECHO_CODE, "parameters": {}, "requires_hitl": False, "risk_level": "low"})
+    store.set_setting("native_custom_tools", rows)
+    listed = {row["name"]: row for row in client.get("/api/tools/native").json()["tools"]}
+    assert listed["c511_good"]["check"]["status"] == "passed"
+    assert listed["c511_old"]["check"] is None

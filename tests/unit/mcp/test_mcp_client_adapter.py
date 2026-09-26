@@ -200,3 +200,35 @@ def test_mcp_client_adapter_selector_event_loop_compatibility():
     finally:
         loop.close()
 
+
+# CARD-511 / CARD-517: a crashed stdio server must not look like success.
+_RAW_SERVER = str(__import__("pathlib").Path(__file__).resolve().parents[2] / "fixtures" / "mcp" / "raw_stdio_server.py")
+
+
+@pytest.mark.asyncio
+async def test_card517_call_tool_on_a_crashing_server_reports_failure():
+    import sys
+
+    adapter = MCPClientAdapter(server_name="c511", command=[sys.executable, "-u", _RAW_SERVER, "crash"], timeout_seconds=10)
+    try:
+        tools = await adapter.list_tools()
+        assert [t.name for t in tools] == ["mcp_c511_lookup", "mcp_c511_ping"]
+        result = await adapter.call_tool("mcp_c511_lookup", {"city": "x"})
+        assert result["success"] is False
+        assert "c511 deliberate failure" in result["error"]
+    finally:
+        await adapter.close()
+
+
+@pytest.mark.asyncio
+async def test_card517_call_tool_on_a_good_raw_server_still_succeeds():
+    import sys
+
+    adapter = MCPClientAdapter(server_name="c511", command=[sys.executable, "-u", _RAW_SERVER, "good"], timeout_seconds=10)
+    try:
+        await adapter.list_tools()
+        result = await adapter.call_tool("mcp_c511_lookup", {"city": "Oslo"})
+        assert result["success"] is True
+        assert "Oslo" in result["output"]
+    finally:
+        await adapter.close()

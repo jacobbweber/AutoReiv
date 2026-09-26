@@ -344,6 +344,7 @@ describe('Tools Studio MCP hydrate [CARD-421]', () => {
       '/api/agent_training_factory/capabilities',
       '/api/settings/mcp',
       '/api/agents/researcher/mcp',
+      '/api/tools/native',
     ]);
     expect(groups.some((group) => group.serverName === 'github')).toBe(true);
     expect(groups.some((group) => group.id === 'builtin')).toBe(true);

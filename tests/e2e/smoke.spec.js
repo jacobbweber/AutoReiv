@@ -1378,6 +1378,37 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.waitForTimeout(1000);
       expect(retired).toEqual([]);
     });
+
+    test(`TC-42 (${vp.name}): a broken native tool is refused; checked tools show their check in Tools Studio [CARD-511]`, async ({ page, request }) => {
+      const sfx = `${vp.name === 'desktop' ? 'd' : 'p'}${Date.now() % 100000}`;
+      const good = `c511_good_${sfx}`;
+      const high = `c511_high_${sfx}`;
+      const bad = `c511_bad_${sfx}`;
+      const post = (name, code, extra = {}) => request.post('/api/tools/native', {
+        data: {
+          name, description: `TC-42 ${name}`, code, requires_hitl: false, risk_level: 'low',
+          parameters: { type: 'object', properties: { text: { type: 'string' } } }, ...extra,
+        },
+      });
+      const refused = await post(bad, 'import nonexistent_c511_mod\n\ndef run(**kw):\n    return 1\n');
+      expect(refused.status()).toBe(422);
+      expect((await refused.json()).detail.message).toContain(`Not registered: ${bad} failed the import check`);
+      expect((await post(good, "def run(text='', **kw):\n    return {'echo': text}\n")).status()).toBe(200);
+      expect((await post(high, 'def run(**kw):\n    return 1\n', { risk_level: 'high' })).status()).toBe(200);
+
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(String(e)));
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-tools-studio').click();
+      await expect(page.locator('#view-tools-studio')).toBeVisible();
+      const row = (name) => page.locator(`[data-testid="tools-studio-catalog-row"][data-tool-name="${name}"]`);
+      await expect(row(good)).toHaveCount(1, { timeout: 20000 });
+      await expect(row(good).locator('[data-testid="tools-studio-check-label"]')).toHaveText('Checked');
+      await expect(row(high).locator('[data-testid="tools-studio-check-label"]')).toHaveText('Checked without a sample call: high risk: sample call skipped');
+      await expect(row(bad)).toHaveCount(0);
+      expect(errors).toEqual([]);
+    });
   }
 
 });
