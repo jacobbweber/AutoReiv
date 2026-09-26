@@ -15,11 +15,22 @@ const OLD = 'factory' + '_escalation';
 function fakeList() {
   return { innerHTML: '', addEventListener() {} };
 }
+function fakeEl() {
+  return {
+    innerHTML: '', className: '', id: '', dataset: {}, children: [],
+    classList: { add() {}, remove() {}, contains: () => false },
+    setAttribute() {}, getAttribute: () => null, addEventListener() {},
+    querySelector: () => null, querySelectorAll: () => [],
+    appendChild(c) { this.children.push(c); return c; },
+  };
+}
 function withDocument(els) {
   vi.stubGlobal('document', {
     getElementById: (id) => els[id] || null,
     querySelector: () => null,
     querySelectorAll: () => [],
+    createElement: () => fakeEl(),
+    body: fakeEl(),
   });
 }
 const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -34,8 +45,11 @@ const ESC = {
 const PATCH = { ...ESC, id: 'rec_patch', remedy_kind: 'runbook_patch', tool_name: 'wiki_note_search', skill_path: 'skills/wiki/SKILL.md', summary: 'Enforce pagination', proposed_patch: '- limit 10' };
 
 describe('REQ-520-006: Teach card uses data-tool-escalation, with a fallback for old cards', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
   it('render.js writes data-tool-escalation from tool_escalation', async () => {
-    const { renderSkillProposalCard } = await import(`../../../${STATIC}/chat/render.js`);
+    withDocument({});
+    const { renderSkillProposalCard } = await import('../../../src/web/static/modules/studios/chat/render.js');
     const container = { appendChild() {}, querySelector: () => null, scrollTop: 0, scrollHeight: 0 };
     const el = renderSkillProposalCard({
       status: 'ok', needs_tool: true, target_agent_id: 'autoreiv', plain_summary: { observed_slip: 'a', remedy: 'b' },
@@ -47,7 +61,7 @@ describe('REQ-520-006: Teach card uses data-tool-escalation, with a fallback for
   });
 
   it('readToolEscalation reads the new key, then the old key', async () => {
-    const { readToolEscalation, escalationFromCard } = await import(`../../../${STATIC}/tool_escalation.js`);
+    const { readToolEscalation, escalationFromCard } = await import('../../../src/web/static/modules/studios/tool_escalation.js');
     expect(readToolEscalation({ tool_escalation: { seed_intent: 'n' } }).seed_intent).toBe('n');
     expect(readToolEscalation({ [OLD]: { seed_intent: 'o' } }).seed_intent).toBe('o');
     expect(readToolEscalation({})).toEqual({});
@@ -65,7 +79,7 @@ describe('REQ-520-007/009: Observability friction cards', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
   it('a tool escalation (new or old name) shows Needs a tool, Ask Developer and Dismiss, never Apply', async () => {
-    const { renderFrictionRecommendations } = await import(`../../../${STATIC}/observability.js`);
+    const { renderFrictionRecommendations } = await import('../../../src/web/static/modules/studios/observability.js');
     for (const kind of ['tool_escalation', OLD]) {
       renderFrictionRecommendations([{ ...ESC, remedy_kind: kind }]);
       expect(list.innerHTML).toContain('Needs a tool');
@@ -77,14 +91,14 @@ describe('REQ-520-007/009: Observability friction cards', () => {
   });
 
   it('a runbook patch keeps Apply Patch and Dismiss', async () => {
-    const { renderFrictionRecommendations } = await import(`../../../${STATIC}/observability.js`);
+    const { renderFrictionRecommendations } = await import('../../../src/web/static/modules/studios/observability.js');
     renderFrictionRecommendations([PATCH]);
     expect(list.innerHTML).toContain('apply-friction-btn');
     expect(list.innerHTML).not.toContain('ask-developer-friction-btn');
   });
 
   it('an escalated card shows Asked Developer and no buttons', async () => {
-    const { renderFrictionRecommendations } = await import(`../../../${STATIC}/observability.js`);
+    const { renderFrictionRecommendations } = await import('../../../src/web/static/modules/studios/observability.js');
     renderFrictionRecommendations([{ ...ESC, status: 'escalated', developer_session_id: 'dev1' }]);
     expect(list.innerHTML).toContain('Asked Developer');
     expect(list.innerHTML).not.toContain('<button');
@@ -102,7 +116,7 @@ describe('REQ-520-008/009/010: Ask Developer and Apply handlers', () => {
   }
 
   it('Ask Developer posts talk (modify + draft), opens the Developer chat once, then marks the card escalated', async () => {
-    const obs = await import(`../../../${STATIC}/observability.js`);
+    const obs = await import('../../../src/web/static/modules/studios/observability.js');
     obs.renderFrictionRecommendations([ESC]);
     const calls = [];
     const fetchFn = vi.fn(async (url, init = {}) => {
@@ -137,7 +151,7 @@ describe('REQ-520-008/009/010: Ask Developer and Apply handlers', () => {
   });
 
   it('if talk fails, it toasts why and the card stays pending (no escalate)', async () => {
-    const obs = await import(`../../../${STATIC}/observability.js`);
+    const obs = await import('../../../src/web/static/modules/studios/observability.js');
     obs.renderFrictionRecommendations([ESC]);
     const fetchFn = vi.fn(async (url) => (url.endsWith('/authoring/talk') ? json(503, { detail: 'Developer agent is unavailable.' }) : json(200, [])));
     vi.stubGlobal('fetch', fetchFn);
@@ -148,7 +162,7 @@ describe('REQ-520-008/009/010: Ask Developer and Apply handlers', () => {
   });
 
   it('Apply shows the route message, not HTTP 409', async () => {
-    const obs = await import(`../../../${STATIC}/observability.js`);
+    const obs = await import('../../../src/web/static/modules/studios/observability.js');
     vi.stubGlobal('fetch', vi.fn(async () => json(409, { detail: 'No skill lists x, so there is nothing to patch.' })));
     const { ev } = clickOn('apply-friction-btn', 'rec_patch');
     await obs.handleFrictionAction(ev, {});
@@ -160,7 +174,7 @@ describe('REQ-520-008/009/010: Ask Developer and Apply handlers', () => {
 
 describe('REQ-520-011: one Ask Developer helper for gap, Teach and Observability', () => {
   it('the helper exists and the three entry points use it', async () => {
-    const auth = await import(`../../../${STATIC}/tools_studio_authoring.js`);
+    const auth = await import('../../../src/web/static/modules/studios/tools_studio_authoring.js');
     expect(typeof auth.askDeveloperWithDraft).toBe('function');
     for (const rel of ['forge/tools.js', 'chat/teach_modal.js', 'observability.js']) {
       expect(read(`${STATIC}/${rel}`), rel).toContain('askDeveloperWithDraft(');
@@ -168,7 +182,7 @@ describe('REQ-520-011: one Ask Developer helper for gap, Teach and Observability
   });
 
   it('askDeveloperWithDraft posts talk and opens the Developer chat through openDeveloperSession', async () => {
-    const { askDeveloperWithDraft } = await import(`../../../${STATIC}/tools_studio_authoring.js`);
+    const { askDeveloperWithDraft } = await import('../../../src/web/static/modules/studios/tools_studio_authoring.js');
     const fetchFn = vi.fn(async (url, init) => {
       const b = JSON.parse(init.body);
       return json(200, { session_id: 'd1', agent_id: 'developer', opened_job: false, job_id: null, prompt: `X ${b.draft.tool_name} ${b.draft.behavior}` });
