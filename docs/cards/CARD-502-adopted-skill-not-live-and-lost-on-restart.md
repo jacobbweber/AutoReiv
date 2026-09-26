@@ -1,7 +1,7 @@
 ---
 id: CARD-502
 title: "Adopted Teach skill is not used on the next message and is dropped on restart"
-status: In Progress
+status: In Review
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -14,6 +14,7 @@ related:
   - CARD-503
   - CARD-505
   - CARD-506
+  - CARD-507
 labels:
   - type:bug
   - area:skills
@@ -23,7 +24,7 @@ labels:
 
 # [CARD-502] Adopted Teach skill is not used on the next message and is dropped on restart
 
-> **Status**: In Progress (Jacob said **build** 2026-09-25 7:50 PM ET, accepting D1-D9; branch `feat/card-502-adopt-skill-persists`)
+> **Status**: In Review (built 2026-09-25 on `feat/card-502-adopt-skill-persists`, D1-D9 as recommended; not merged)
 > **Created**: 2026-09-25 (found while refining CARD-500)
 > **Related**: CARD-500 (Teach request and card, Done), CARD-352 / CARD-358 (Teach, proposal persistence), CARD-443 (platform pack promotion), CARD-449 (keep customizations, `user_modified`), CARD-503 (distill timeout, separate), CARD-505 (AutoReiv prompt looks edited on every restart), CARD-506 (dead duplicate agent-save paths)
 > **Labels**: `type:bug`, `area:skills`, `area:agents`, `P1`
@@ -88,7 +89,7 @@ Scratch app on 127.0.0.1:8767 with data in `scratch/c500_data` (guarded by `scri
 - **[REQ-502-007]** IF the agent id does not exist, THEN THE SYSTEM SHALL return 404 and SHALL NOT create any folder. Ids with path characters stay rejected (`SAFE_ID_RE`).
 - **[REQ-502-008]** Adopting SHALL NOT set `user_modified` on a platform agent (platform prompt and stock-skill updates keep flowing).
 
-## 4. Decisions (recommendations; Jacob to confirm or change)
+## 4. Decisions (accepted 2026-09-25 7:50 PM ET: all as recommended)
 
 | # | Question | Options | Recommendation |
 |---|----------|---------|----------------|
@@ -140,7 +141,7 @@ Desktop (http://127.0.0.1:8000, Ctrl+F5):
 5. Back in Chat, ask a factual question. The reply follows the runbook, or the Thinking drawer shows the agent opening it with `skill_view`. (A real model may not always open it; step 4 is the firm check.)
 6. Restart serve: `powershell -ExecutionPolicy Bypass -File scripts\restart_serve.ps1 -HostAddr 0.0.0.0 -Port 8000`. Ctrl+F5, open Agent Studio > AutoReiv: still ticked.
 7. In Agent Studio, tick one extra runbook on Tutor, click Save, restart serve again: that tick is still there.
-8. Click Adopt again on the same card after reload: the message says "Updated", and the skill list shows it once.
+8. Click Teach on a reply again with the same lesson. If the new card has the same name, Adopt says "Updated <name> for autoreiv. It is used from your next message." and the skill list shows it once. A reloaded card shows "On for autoreiv." with no Adopt button (CARD-507).
 
 Phone (http://192.168.1.99:8000):
 1. Open Chat, send a question, tap Teach on the reply, type a lesson, tap Distill, tap Adopt: the "is on for autoreiv" message appears.
@@ -152,3 +153,42 @@ Phone (http://192.168.1.99:8000):
 - AutoReiv's system prompt looking operator-edited on every restart (trailing newline): **CARD-505**.
 - Dead duplicate agent-save paths (`POST /api/settings/agents/{id}`, `SettingsService.save_agent_customization`): **CARD-506**.
 - Needs-tool card title: **CARD-504**. Factory wording in the AutoReiv skill list: **CARD-497**.
+- Reloaded card text going stale after the skill is removed: **CARD-507**.
+
+## 9. Build note (2026-09-25 8:20 PM ET, `feat/card-502-adopt-skill-persists`)
+
+**Commits:** `c4489a50` card In Progress, `9f725200` failing tests (all red first), `9f5bab68` fix, `12766715` updates to the CARD-358 check and smoke TC-35 for the new text, then docs (CHANGELOG, this note, CARD-507).
+
+**What changed:**
+- `src/application/agent_packs/skill_list.py`: `persist_agent_profile` is the one save used by Agent Studio `PUT /api/agents/{id}` and by Adopt (via `add_skill_to_agent`, skills only, never sets the lock).
+- `platform_pack_promotion.py`:
+  - Settings key `platform_operator_added_skills` records, per agent, the skills beyond the platform seed.
+  - Promotion re-applies them when a `SKILL.md` exists, skips the "unchanged" short-circuit while any are recorded, and projects them into `pack.json`.
+  - It never prunes their folders. This was a second cause: the retired-stock check treated an added skill as retired and deleted its folder on restart.
+  - Keep-customizations off, a locked force-reset, and Reset to platform defaults all back up the list and clear the record.
+- `adopt_skill`: 404 unknown agent (no folder), 409 on a platform skill id, one entry on re-adopt. Returns `active`, `already_adopted`, `resets_on_restart` and `name`. The in-memory registry edit and the separate `pack.json` writer are gone.
+- `render.js` (828 -> 815 lines) uses new `chat/adopt_message.js` (21 lines) for the text. `chat.js` stays at 1,004.
+
+**Tests:**
+
+| Suite | Result | Baseline |
+|---|---|---|
+| New CARD-502 pytest (8 unit + 1 integration) | 9 passed (all red before the fix) | - |
+| New Vitest `adopt_status_502` | 7 passed (6 red before) | - |
+| Vitest full | 914 passed, 5 failed (CARD-456 known) | 907 / 5 |
+| pytest unit | 2059 passed, 11 skipped, 1 failed (CARD-454 linter, known) | 2051 / 11 / 1 |
+| pytest integration | 108 passed | 107 |
+| Smoke (Playwright) | 55 passed, including TC-37 desktop+phone (red before) | 53 |
+| ESLint | 4 errors, 5 warnings (baseline, none new) | 4 / 5 |
+| ruff | 9 (CARD-454 baseline, none new) | 9 |
+
+**Repro after the fix** (scratch 8767, `c502_run.ps1 -Wipe`, then `c502_repro.cjs a`, restart without wipe, then `c502_repro.cjs b`):
+- Adopt: 200 `{"active":true,"already_adopted":false,"resets_on_restart":false,"name":"Cite Sources"}`. The toast said "Cite Sources is on for autoreiv from your next message."
+- `GET /api/agents/autoreiv` then listed 14 skills, including `cite-sources`. `platform_operator_added_skills` = `{"autoreiv": ["cite-sources"], "tutor": ["build-agent-pack"]}`.
+- The next message's system prompt listed "cite-sources: Always cite the source".
+- After restart, autoreiv still listed `cite-sources` (stored profile and `pack.json`), and the `SKILL.md` folder was still there. Tutor still listed the Agent Studio tick `build-agent-pack`. The message after restart listed "cite-sources: Always cite the source" again.
+
+**Scavenger Pass:**
+- The two copies of the 26-field `AgentCustomization` list and the lock code in `update_agent` were merged into `skill_list.py` (`agents.py` -127 lines).
+- Removed: the `adopt_skill` in-memory edit, its separate `pack.json` writer, and the unused `readableError` import in `render.js`.
+- The remaining dead duplicate save paths are CARD-506.
