@@ -12,6 +12,12 @@
 
 ### Fixed
 
+- **CARD-509 An Agent Studio Save no longer turns off skills that have no pill**: Save sent only the skills that had a pill, so skills with no pill (AutoReiv `coding`, Developer `build-agent-pack`) were dropped, and on platform agents they were recorded as switched off. Now:
+  - Save keeps every loaded skill that has no pill (`skillsForSave` in `forge/skill_pills.js`).
+  - Every allowed or shipped skill with a SKILL.md gets a pill: the agent payload adds a `pack_skills` row for it (`studio_extra_skill_pills` in `src/application/agent_packs/skill_list.py`). AutoReiv shows `coding`, and Developer shows `build-agent-pack`.
+  - The server records a removed skill as switched off only if Studio could show it. A skill you switched off stays recorded until you switch it back on; before, your next unrelated Save forgot it and a restart put it back.
+  - One `find_skill_md` serves the pills and the CARD-502 added-skill check. No automatic repair for a locked agent and no migration: switch the skill back on in Studio.
+  - Contracts: `tests/unit/frontend/card_509_unpilled_skills.test.js`, `tests/unit/agent_packs/test_card509_unpilled_skills.py`, smoke TC-38 desktop+phone ([CARD-509]).
 - **CARD-505 AutoReiv's prompt no longer looks edited because of a trailing newline**: Platform prompts are now compared as normalized text (CRLF/CR to LF, outer spaces and newlines trimmed; inner spacing still counts). The shipped AutoReiv prompt ended in a newline that Agent Studio trims on save, so the stored prompt never matched the platform baseline: every start skipped the prompt update (`promoted_partial`), and a Max-Turns-only save locked AutoReiv as "You edited the system prompt". Now:
   - One `normalize_prompt()` in `src/infrastructure/skills/platform_pack_promotion.py` feeds `prompt_content_hash`, the lock check, the divergence check, the short-circuit, the first-boot cutover and the clean path. Promotion and Reset store the normalized platform prompt, so Reset no longer re-arms the lock.
   - A save that leaves the prompt unchanged (after normalizing) never locks, whatever else it changes.

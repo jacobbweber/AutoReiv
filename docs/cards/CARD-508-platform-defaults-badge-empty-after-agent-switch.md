@@ -46,3 +46,7 @@ On a fresh Agent Studio page (AutoReiv selected first), `selectOption` to Develo
 With the CARD-505 fix, AutoReiv's badge on a fresh page is correctly hidden (it is up to date), so the original "empty badge" sighting for AutoReiv is expected now. The open question is the snap-back.
 
 Direction update: first reproduce by hand (open Agent Studio, immediately pick Developer, wait 3 s, check the name field). If confirmed, guard both the Studio agent load and the Platform defaults load with the selected agent id.
+
+## New evidence (CARD-509 build, 2026-09-25 ~10:45 PM ET)
+
+On a fresh scratch install, a script opened Agent Studio, waited until the agent options existed plus 2.5 s, then picked Developer. The picker itself went back to AutoReiv (`#forgeAgentSelect` value `autoreiv`, name field "AutoReiv"). A Save then sent `PUT /api/agents/autoreiv`, so it saved the agent shown on screen, not the one picked. No wrong-agent write was seen. Picking again after 2.5 s stuck. Smoke TC-38 picks with a retry loop for this reason.
