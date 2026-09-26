@@ -322,6 +322,18 @@ def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flo
     assert "tell the operator" in body.lower() and "fail" in body.lower()
 
 
+def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_view():
+    """Live retest 2: the model tried activate_skill(['agent-authoring']) (platform domains only) and drifted."""
+    from tests.unit.agent_packs.catalog import load_platform_manifest
+
+    prompt = load_platform_manifest("autoreiv").system_prompt
+    lines = [ln for ln in prompt.splitlines() if "agent-authoring" in ln]
+    assert len(lines) == 1, lines
+    line = lines[0]
+    assert "skill_view('agent-authoring')" in line and "not activate_skill" in line
+    assert "teach" in line.lower() and "new capability" in line.lower()
+
+
 # 13 ------------------------------------------------------------------------
 def test_13_unedited_shipped_seed_is_refreshed(tmp_path):
     from src.infrastructure.skills.seed import bundled_skill_md, seed_bundled_skill_packs
