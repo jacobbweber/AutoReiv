@@ -1,9 +1,9 @@
 ---
 id: CARD-530
 title: "Approving a HITL card while the Developer turn is still streaming cancels the turn, resumes it from checkpoint, and ends with 'Cannot complete phase ... still queued'"
-status: Ready
+status: In Review
 created: 2026-09-26
-branch: qa
+branch: feat/card-530-approve-mid-stream
 related:
   - CARD-520
   - CARD-470
@@ -14,6 +14,8 @@ related:
   - CARD-213
   - CARD-532
   - CARD-534
+  - CARD-535
+  - CARD-536
 labels:
   - type:bug
   - area:jobs
@@ -23,7 +25,7 @@ labels:
 
 # [CARD-530] Approve during a live reply kills and resumes the turn; the phase is left queued and the job stuck
 
-> **Status**: Ready, refined 2026-09-26 ~4:55 PM ET from qa `51ee3460` (`continue`). Reproduced live on a scratch clone (port 8767, real vLLM) and with a deterministic harness. Waiting for `build` with the decisions below.
+> **Status**: In Review (built 2026-09-26 on `feat/card-530-approve-mid-stream` from qa `7b19ae1d`, D1-D9 accepted as recommended; not merged). Previously: Ready, refined 2026-09-26 ~4:55 PM ET from qa `51ee3460` (`continue`). Reproduced live on a scratch clone (port 8767, real vLLM) and with a deterministic harness. Waiting for `build` with the decisions below.
 > **Found**: CARD-520 live test round 2, step 7, 2026-09-26 ~2:32 PM ET, serve `93a1d4fe`. Not caused by CARD-520: the Ask Developer helper sent once.
 > **Related**: CARD-470 (inline Approve resumes the turn), CARD-259 (kill/resume checkpoint), CARD-219 (resume an open job), CARD-485/488 (session watcher, own stream), CARD-213 (orphan tool messages are dropped before the model call), CARD-532 (journey runner reuses this card's journey), CARD-534 (resume runs on the parent session)
 > **Labels**: `type:bug`, `area:jobs`, `area:chat`, `P1`
@@ -138,3 +140,28 @@ All REQ-530 tests green; preflight at baseline (known CARD-454 unit, CARD-456 Vi
 - Making propose_* park the turn (it stays a non-blocking draft).
 - Injecting operator messages into a live turn (D1).
 - CARD-531 (network-skip registration) and CARD-529 (modify-tool loop).
+
+## Build evidence (2026-09-26, times ET)
+
+**Commits on `feat/card-530-approve-mid-stream`:** `1a1c1801` failing tests (confirmed red: Python 12 of 14 red, the 2 fence tests green; Vitest 8 of 9 red; smoke TC-46 red against qa `hitl.js`: 2 stream posts, expected 1), `c7265cb9` implementation + smoke TC-46 + app.js 2.0.90 + CHANGELOG + roadmap CARD-534, `3c659dbf` 409 handling moved to `chat/turn_running.js` (keeps `chat.js` under the CARD-397 1000-line cap).
+
+**What changed:** `POST /api/chat/stream` answers **409 `turn_running`** while the session has a live turn (no more cancel-and-resume); the worker only removes its own task entry; each `start_phase` mints a run token and a stale worker's `checkpoint_mid_llm_kill_phase` no longer re-queues a phase a newer run owns; a refused `complete_phase` fails the phase and job with a reason (`turn_done` `job_failed`) instead of leaving it running; startup `reconcile_stuck_phases` fails jobs left `running` with a queued-but-DONE phase (journey event `reconciled_stuck_phase`, idempotent); approving a `propose_*` draft saves one "Approved: ..." note and returns `resume_chat: false`; the UI defers any resume until the reply is idle, shows a warning toast on 409, and the strip shows "Job failed: <reason>" and clears Resumed.
+
+**Preflight (`scratch\full_c530_*`, after `c7265cb9`; Vitest/ESLint rerun after `3c659dbf`):**
+
+| Suite | qa baseline (m520) | CARD-530 |
+|---|---|---|
+| Unit (pytest) | 1992 passed / 11 skipped / 1 failed | 2006 passed / 11 skipped / 1 failed (CARD-454 only) |
+| Integration | 103 passed | 103 passed |
+| Vitest | 914 passed / 3 failed | 924 passed / 3 failed (CARD-456 only) |
+| ESLint | 4 errors + 5 warnings | 4 errors + 5 warnings |
+| ruff | 7 errors | 7 errors |
+| Smoke | 71 passed | 73 passed (TC-46 desktop + phone new) |
+
+**Startup repair, Jacob's DB:** before restart `job_3bdef1802655` running, Formulate queued/DONE, Execute queued, 3 journey events, 1 running job. After `restart_serve.ps1` (5:30:49 PM ET): job failed, Formulate failed/FAILED, event `reconciled_stuck_phase` ("Interrupted by a second run while approving (CARD-530): this step finished but could not be recorded. Send the request again to re-run it."), 0 running jobs. Second restart: `updated_at` still `21:30:49Z`, still 4 events: no change.
+
+**Live repro on the fixed code** (`scratch\c530_live_repro.py 120`, scratch 8767, real vLLM, ~5:13 PM ET): the mid-stream resume got **HTTP 409**; stream 1 was not aborted and finished both phases; job `job_ccff2e09672b` done; one `hitl_decision` note, no duplicate TOOL rows.
+
+**Browser check (Playwright, scratch 8767, real vLLM, ~5:20 PM ET):** desktop 1280x800 and phone 390x844, Tools Studio -> Talk to developer -> Approve on the `propose_tool` card while the reply streams: 1 stream POST, 0 resume POSTs, reply kept streaming and finished, strip "Job done ... Phase 2/2 Execute DONE", 0 error banners, 0 console errors, 0 failed responses. Screenshots in `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-530\`.
+
+**Found while building:** CARD-535 (after approving a draft once the turn has ended, the Developer does not continue; Execute can file a second draft), CARD-536 (reopening a failed job's chat shows Failed without the reason and names the last queued phase).

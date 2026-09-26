@@ -109,6 +109,8 @@
   - [ ] **CARD-512**: Retire the scaffold spine backend.
   - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
   - [ ] **CARD-534**: A resumed job phase runs on the parent chat session instead of its phase session.
+  - [ ] **CARD-535**: After approving a propose_* draft once the reply has ended, the Developer does not continue.
+  - [ ] **CARD-536**: Reopening a chat whose job failed shows Failed without the reason.
   - [ ] **Education Studio** (no card yet).
 
 
