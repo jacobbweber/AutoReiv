@@ -1,9 +1,9 @@
 ---
 id: CARD-497
 title: "Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs"
-status: Ready
+status: In Review
 created: 2026-09-25
-branch: qa
+branch: feat/card-497-factory-backend-removal
 related:
   - ADR-0060
   - CARD-495
@@ -25,13 +25,48 @@ labels:
 
 # [CARD-497] Retire the Agent Training Factory (3/4): move Studio routes, delete the training loop backend, update packs
 
-> **Status**: In Progress (`build`, 2026-09-26 ~9:44 AM ET: Jacob accepted D1-D14 exactly as recommended in the plan at `1a9da7ae`. Branch `feat/card-497-factory-backend-removal` from qa `1a9da7ae`). Refined on `continue`, 2026-09-26 ~9:30 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). The remedy rename (old D3) moves to successor card CARD-520.
+> **Status**: In Review (2026-09-26 ~10:35 AM ET; build evidence below; not merged or pushed). Built on `build`, 2026-09-26 ~9:44 AM ET: Jacob accepted D1-D14 exactly as recommended in the plan at `1a9da7ae`. Branch `feat/card-497-factory-backend-removal` from qa `1a9da7ae`). Refined on `continue`, 2026-09-26 ~9:30 AM ET, from local qa `51b6402b`, with a fresh dependency sweep and a scratch reproduction). The remedy rename (old D3) moves to successor card CARD-520.
 > **Created**: 2026-09-25
 > **Governing ADR**: [ADR-0060](../adr/0060-retire-the-agent-training-factory.md) (Accepted). This card is step 4 of 6: CARD-495 (Done), CARD-496 (Done), CARD-511 (Done), **CARD-497**, CARD-512, CARD-498.
 > **Series**: CARD-495, CARD-496, CARD-511, **CARD-497**, CARD-520 (split from this card), CARD-512, CARD-498
 > **Labels**: `type:cleanup`, `area:factory`, `area:backend`, `P1`
 
 ---
+
+## Build evidence (2026-09-26)
+
+**Commits** on `feat/card-497-factory-backend-removal` (from qa `1a9da7ae`): `b19f942c` (decisions accepted), `565bd2ce` (failing tests 1-19), `61b9d617` (implementation, D1-D14), `2506bb41` (TC-43 desktop reopen fix), plus this card update.
+
+**Tests first.** `565bd2ce` was run before any code change: 39 pytest failures (tests 1-17; 5b, 17 and a few 404 rows already held), Vitest card_497 5/5 failing, smoke TC-43 failing on desktop and phone (`GET /api/agent_training_factory/jobs` answered 200).
+
+**Preflight** (pytest first, smoke alone afterwards):
+
+| Suite | Before (qa `1a9da7ae`) | After | Change and reason |
+|---|---|---|---|
+| Unit | 2107 pass / 11 skip / 1 fail | 1965 pass / 11 skip / 1 fail | -189 deleted, +47 new (per file below). The fail is CARD-454 (`test_platform_packs_all_pass_mechanical_linter`, 4 Tutor tool-budget errors; the rewritten `agent-authoring` and `build-agent-pack` lint clean). |
+| Integration | 111 | 103 | -8: `factory/test_dogfood_factory_pipeline.py` (4), `factory/test_scaffolder_lifecycle.py` (1), `capabilities/test_dogfood_capability_gap_loop.py` 5 -> 2 (the train, promote and fail tests). |
+| Vitest | 890 pass / 3 fail | 895 pass / 3 fail | +5 `card_497_skill_studio_routes.test.js`. Fails are CARD-456. |
+| Smoke | 65 | 67 | +2 TC-43 (desktop, phone). |
+| ESLint | 4 errors / 5 warnings | same | CARD-456. |
+| ruff | 9 | 7 | `ruff --fix` also sorted two CARD-454 import blocks (`registry.py`, `chat.py`) in files this card edits. |
+
+**Unit tests deleted (189):** `tests/unit/agent_training_factory/` 17 files, 124 tests (test_author_phase 4, card185 5, card186 6, card270 4, deliverables_taxonomy 7, factory_prompts_and_healing 3, factory_quality_gates 18, factory_standards_and_collision 4, ground_phase 1, hyperv_multi_skill 7, intent_scenario_outer_rinse 26, lab_monitor_controls 2, live_test_fixes 12, mcp_scaffolding 6, registry_and_frontmatter 7, scaffolder_endpoints 3 (ported to tests 1-3), verify_rinse_and_path_safety 9); `web/test_factory_api.py` 2; `web/test_agent_training_factory_router.py` 4; `routers/test_agent_training_factory_prompts.py` 2; `orchestration/` test_factory_runner 4, test_factory_packets 5, test_capability_loop 4, test_phase_prompt_registry 4, test_verification_battery 8, test_tool_synthesizer 13; `kernel/test_in_flight_synthesis.py` 7; `skills/test_factory_dispatch_tools.py` 5 (the two inspect tests are ported as 10b/10c); `skills/test_sandbox_runner.py` 5; `kernel/test_agent_profile_auto_train.py` 8 -> 6 (the auto-train event test and the manifest-fields test; 14b replaces the latter).
+
+**Unit tests added (47):** `web/test_skill_studio_routes.py` 21 (tests 1-6); `core/test_card_497_factory_backend_removal.py` 26 (tests 7-17).
+
+**Changed, same count:** `core/test_dead_code_shims_scavenger_385.py` (two tests flipped to absence and 404), `tools/test_tool_check.py` (verification_battery must not exist), `agent_packs/test_card_126_platform_packs.py` (no `launch_factory_training`), `web/test_gaps_api.py` (train answers 404; gap dismissed instead), `system/test_card451_*` (no Factory checker kwarg), URL-only: test_card_418_skill_studio_save, test_card_411_factory_skill_bindings, test_workshop_skill_resolve, test_mcp_disable_unmount, oc423, oc425, oc426, oc429, oc431, Vitest card_411/418/420/421/423/496.
+
+**Runbook on scratch** (`c497_live`, port 8767, stopped afterwards):
+1. Health 200; the server log has no Factory orchestrator lines (only the probe requests below).
+2. `GET /jobs`, `GET /gaps`, `GET /phases/instructions`, `POST /api/agents/autoreiv/gaps/gap_x/train`: all 404.
+3. `GET /api/agent_training_factory/capabilities` -> 308, `Location: /api/tools_studio/capabilities`; followed: `total_tools` 104 on both. `POST .../scaffold/runbook` through the 308 (httpx) -> 200 with a runbook. (Python's urllib refuses to follow a POST 308; browsers and httpx do.)
+4. Skill Studio generate/save/open: covered by smoke TC-43 (desktop and phone), which also asserts only `/api/skill_studio/*` and `/api/tools_studio/capabilities` requests.
+5. Tools Studio catalog: `launch_factory_training` absent, `inspect_agent_pack` present.
+6. Stranded gap: `gap_009f29df3635` set to `training` in SQLite, server restarted -> `pending` in the API and DB; dismiss -> 200 `dismissed`.
+7. Fallback: `GET /api/agents/autoreiv` has `inspect_agent_pack`, no `launch_factory_training`, no auto-training fields; `GET /api/skill_studio/skills/agent-authoring` shows "Agent Capability Intake" and no "Factory".
+9. Busy: `make_store_busy_detector` on the scratch DB with a queued Studio job -> `(True, "running Studio job")`, idle after removing it. (`/api/system/updates/auto-status` only shows a reason after a deferred scheduled update, so the detector was checked directly.)
+
+**vLLM:** `http://192.168.1.218:8099/v1/models` answered 200 (7 models) at ~10:15 AM ET, so step 7's LLM path can be tried live.
 
 ## Gate language (exact reply phrases)
 
