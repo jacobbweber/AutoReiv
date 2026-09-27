@@ -228,3 +228,57 @@ async def test_formulate_assignment_plans_only_and_leaves_repo_reads_to_execute(
     assignment = bound.await_args.kwargs["user_content"]
     assert "plan only" in assignment.lower() and "developer" in assignment.lower()
     assert "You MUST call catalog tool `repo_file_read`" not in assignment
+
+
+# --- CARD-548 / CARD-554: Approve resumes the phase in its own session -------------------------
+
+
+def test_approve_resume_runs_in_the_phase_session_not_the_parent(tmp_path):
+    """After Approve, the parked phase continues in `<sid>::phase::<id>` where its tool call lives."""
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+    from src.web.routers.chat import resume_session_for_phase
+
+    store = SQLiteStateStore(db_path=str(tmp_path / "s.db"))
+    parent = store.create_session(agent_id="autoreiv", title="t").id
+
+    class _Ph:
+        id = "phase_abc"
+        name = "Execute"
+
+    # No phase session yet (single-phase / legacy jobs): resume where the chat is.
+    assert resume_session_for_phase(store, parent, _Ph()) == parent
+    store.create_session(agent_id="developer", title="Execute", session_id=f"{parent}::phase::phase_abc")
+    assert resume_session_for_phase(store, parent, _Ph()) == f"{parent}::phase::phase_abc"
+
+
+def test_resume_block_uses_phase_session_and_relays_reply_to_parent():
+    """Source guard: the open-job resume path must not stream the phase turn into the parent session."""
+    import inspect
+
+    from src.web.routers import chat
+
+    src = inspect.getsource(chat)
+    block = src[src.index("# Resume an open multi-phase job"):src.index('if req.agent_id == "direct":')]
+    assert "resume_session_for_phase(" in block
+    assert "relay_phase_reply_to_parent(" in block
+    first_turn = block[block.index("_stream_turn_bound("):]
+    first_turn = first_turn[: first_turn.index(")")]
+    assert "session_id=req.session_id" not in first_turn
+
+
+def test_relay_phase_reply_to_parent_copies_last_assistant_text(tmp_path):
+    from src.domain.gateway.models import ChatMessage, Role
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+    from src.web.routers.chat import relay_phase_reply_to_parent
+
+    store = SQLiteStateStore(db_path=str(tmp_path / "s.db"))
+    parent = store.create_session(agent_id="autoreiv", title="t").id
+    ph = f"{parent}::phase::p1"
+    store.create_session(agent_id="developer", title="Execute", session_id=ph)
+    store.save_message(session_id=ph, agent_id="developer", message=ChatMessage(role=Role.ASSISTANT, content="The count is 18."))
+    text = relay_phase_reply_to_parent(store, parent, ph, "autoreiv")
+    assert text == "The count is 18."
+    rows = [m for m in store.get_messages(parent) if m.role == Role.ASSISTANT]
+    assert rows and rows[-1].content == "The count is 18."
+    # Same session: nothing to relay.
+    assert relay_phase_reply_to_parent(store, parent, parent, "autoreiv") == ""
