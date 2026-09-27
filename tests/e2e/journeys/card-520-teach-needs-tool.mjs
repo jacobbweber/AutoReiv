@@ -147,10 +147,13 @@ export default {
     }
 
     await j.step('AutoReiv answers the weather question with the new tool (same chat)', async () => {
-      // On desktop the Agent Studio window sits over the chat; close it so the chat is clickable.
-      const studioWin = page.locator(':has(> .desktop-win-titlebar)').filter({ has: page.locator('#forgeAgentSelect') });
-      const closeBtn = studioWin.locator('.desktop-win-close').first();
-      if (await closeBtn.isVisible().catch(() => false)) await closeBtn.click();
+      // On desktop the Agent Studio window sits over the chat; minimize it (close can ask to confirm) so the chat is clickable.
+      const studio = page.locator('#forgeAgentSelect');
+      if (await studio.isVisible().catch(() => false)) {
+        await page.locator('#dock-agents').click(); // the dock button toggles an open window to minimized
+        const hidden = await waitFor(async () => !(await studio.isVisible().catch(() => false)), { timeoutMs: 5000 });
+        if (!hidden) await page.locator('.desktop-window:has(#forgeAgentSelect) .desktop-win-min').first().click({ timeout: 5000 }).catch(() => {});
+      }
       await openSessionByTitle(page, title, { agentId: 'autoreiv' });
       await askAndCheck(sessionId, 'same chat');
     }, { timeoutMs: 260000, soft: true });
