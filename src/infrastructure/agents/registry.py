@@ -353,7 +353,12 @@ class BuiltinAgentRegistry:
         # 12. Project-scoped file tools (jailed)
         from src.application.skills.project_file_tools import ProjectFileTools
 
-        project_file_tools = ProjectFileTools(root_resolver=projects_service.resolve_root)
+        # CARD-556 D1: no project selected -> <data root>/scratch, never the checkout.
+        project_file_tools = ProjectFileTools(
+            root_resolver=projects_service.resolve_root,
+            project_resolver=projects_service.selected_root,
+            scratch_root=(Path(data_root) / "scratch") if data_root else None,
+        )
         project_file_tools.register_tools(tool_registry)
 
         # 12a. Checkout-jailed read-only repo tools [CARD-262]

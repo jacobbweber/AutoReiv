@@ -37,6 +37,7 @@ Execute structured software engineering across the active project directory sele
 3. **Test-Driven Development (TDD)**:
    - Follow strict Red-Green-Refactor cycles.
    - Write failing unit or integration tests before implementing production changes using `write_project_file`.
+   - `write_project_file` writes into the project selected in Projects Studio. With no project selected it writes to the AutoReiv scratch folder (`<data root>/scratch`), never to the AutoReiv checkout, and its result gives the full path. Change the AutoReiv checkout with `repo_file_write` / `repo_file_patch`.
    - Verify code behavior iteratively.
 
 4. **Multi-Language Verification & Self-Correction**:
