@@ -68,12 +68,13 @@ def test_every_allowed_or_shipped_skill_with_a_runbook_gets_a_pill(boot):
     assert coding["name"] == "Repository Code & Files"
 
 
-def test_scalar_save_with_the_full_list_keeps_coding_and_records_nothing(boot):
-    """REQ-509: Max-Turns-only save (what Studio now sends) keeps coding; nothing recorded as disabled."""
+def test_scalar_save_with_the_full_list_keeps_skills_and_records_nothing(boot):
+    """REQ-509: Max-Turns-only save (what Studio now sends) keeps shipped skills; nothing recorded as disabled.
+    (CARD-544: AutoReiv no longer ticks coding, so build-agent-pack is the example.)"""
     client, store, _app = boot()
     _put(client, "autoreiv", max_turns=51)
-    assert "coding" in _agent(client, "autoreiv")["allowed_skill"]
-    assert "coding" not in _disabled(store, "autoreiv")
+    assert "build-agent-pack" in _agent(client, "autoreiv")["allowed_skill"]
+    assert "build-agent-pack" not in _disabled(store, "autoreiv")
 
 
 def test_skill_studio_could_not_show_is_never_recorded_disabled(boot):
@@ -92,13 +93,13 @@ def test_skill_studio_could_not_show_is_never_recorded_disabled(boot):
 def test_a_skill_switched_off_stays_off_after_a_second_save_and_restart(boot):
     """D2: switching a shown skill off is recorded, and a later unrelated save does not forget it."""
     client, store, _app = boot()
-    skills = [s for s in _agent(client, "autoreiv")["allowed_skill"] if s != "coding"]
+    skills = [s for s in _agent(client, "autoreiv")["allowed_skill"] if s != "build-agent-pack"]
     _put(client, "autoreiv", allowed_skill=skills)
-    assert "coding" in _disabled(store, "autoreiv")
+    assert "build-agent-pack" in _disabled(store, "autoreiv")
     _put(client, "autoreiv", max_turns=53)
-    assert "coding" in _disabled(store, "autoreiv")
+    assert "build-agent-pack" in _disabled(store, "autoreiv")
     client2, _store2, _app2 = boot()
-    assert "coding" not in _agent(client2, "autoreiv")["allowed_skill"]
+    assert "build-agent-pack" not in _agent(client2, "autoreiv")["allowed_skill"]
 
 
 def test_locked_developer_missing_build_agent_pack_is_not_auto_repaired(boot):
