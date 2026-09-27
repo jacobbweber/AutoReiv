@@ -62,6 +62,15 @@ export default {
       const last = replies[replies.length - 1] || '';
       j.note(`handoff rows to developer: ${handoffs.length}; job phases on developer: ${devPhases.map((p) => p.name || p.phase_name || '?').join(', ') || 'none'}; reply: ${last.slice(0, 160).replace(/\s+/g, ' ')}`);
       if (!handoffs.length && !devPhases.length) throw new Error('the code request did not go to Developer (no handoff row, no developer phase)');
+      // The Developer phase must really run as Developer: no tool_policy_blocked on its own session (CARD-544 live QA).
+      for (const ph of devPhases) {
+        const pid = ph.phase_id || ph.id;
+        if (!pid) continue;
+        const prow = await messages(request, base, `${sid}::phase::${pid}`);
+        const blocked = prow.filter((m) => role(m) === 'tool' && /tool_policy_blocked/.test(String(m.content || '')));
+        j.note(`developer phase ${ph.name || '?'}: status ${ph.status || '?'}; tool rows ${prow.filter((m) => role(m) === 'tool').length}; policy-blocked ${blocked.length}`);
+        if (blocked.length) throw new Error(`the Developer phase ran without Developer's tools: ${String(blocked[0].content).slice(0, 120)}`);
+      }
       if (REFUSAL_RE.test(last)) throw new Error(`reply contains refusal wording: ${last.slice(0, 160)}`);
     }, { timeoutMs: 430000 });
 
