@@ -1,7 +1,7 @@
 ---
 id: CARD-550
 title: "Developer ticks coding (the repo_file_* checkout tools)"
-status: In Review
+status: Done
 created: 2026-09-27
 branch: feat/card-550-developer-ticks-coding
 related:
@@ -19,7 +19,7 @@ labels:
 
 # [CARD-550] Developer ticks coding (the checkout repo_file_* tools)
 
-> **Status**: In Review (2026-09-27 ET) on `feat/card-550-developer-ticks-coding`, from qa `44ea9201`. Not merged, not pushed. The card was filed as "Nobody ticks the checkout (repo_file_*) tools now" while checking the CARD-544 migration on Jacob's real data (2026-09-27 ~3:05 AM ET). D1 was decided by Jacob at 9:22 AM ET.
+> **Status**: Done (merged to qa on 2026-09-27 after Jacob's "merge to qa" at 12:07 PM ET, after CARD-537). It was In Review (2026-09-27 ET) on `feat/card-550-developer-ticks-coding`, from qa `44ea9201`. The card was filed as "Nobody ticks the checkout (repo_file_*) tools now" while checking the CARD-544 migration on Jacob's real data (2026-09-27 ~3:05 AM ET). D1 was decided by Jacob at 9:22 AM ET.
 > **Related**: CARD-544, CARD-539; filed from live QA: CARD-552, CARD-553, CARD-554, CARD-555
 > **Labels**: `type:product`, `area:agents`, `P3`
 
