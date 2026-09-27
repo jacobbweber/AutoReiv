@@ -3,6 +3,7 @@
 > **Status**: Accepted
 > **Accepted**: 2026-09-22 (Jacob: Accept ADR-0057)
 > **Date**: 2026-09-22  
+> **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): agent-to-skill pills and skill-to-tool bindings (4.2) are the only way a tool reaches an agent; no per-agent tool grants  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-417 planning; CARD-411 Option A live test  
 > **Related Cards**: [CARD-417](../cards/CARD-417-three-studios-agent-skill-tools-and-developer-mediated-authoring.md) (forks locked), [CARD-418](../cards/CARD-418-skill-studio-extract-from-factory.md) (first implementation slice), [CARD-421](../cards/CARD-421-tools-studio-v1-catalog-and-mcp-attach.md) (Tools Studio v1), [CARD-422](../cards/CARD-422-tools-studio-form-and-developer-mediation.md), [CARD-423](../cards/CARD-423-custom-tool-packaging-native-and-mcp.md), [CARD-424](../cards/CARD-424-mcp-disable-must-unmount.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md), [ADR-0056](./0056-durable-runtime-registry-hybrid-c-plus.md)  

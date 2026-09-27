@@ -4,6 +4,7 @@
 > **Status**: Accepted  
 > **Accepted**: 2026-09-25 (Jacob product lock. At 3:44 PM ET: "We built Agent, Skill and Tool Studios so we no longer need the Factory, but we have other mechanisms for training and improvement". At 11:39 PM ET: accepted the CARD-495 audit and decisions D1-D8 as recommended. That counts as acceptance under the same convention as ADR-0056 and ADR-0059, a dated Jacob lock.)  
 > **Deciders**: Jacob Weber, coding assistant  
+> **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): a Developer-built tool (4.1 "Author tools") reaches an agent only as an accepted skill attachment, not a direct allowlist grant  
 > **Consulted**: CARD-495 gap and dependency audit (qa `10f2bc75`, scratch server checks); CARD-472 revised report  
 > **Related Cards**: [CARD-495](../cards/CARD-495-retire-factory-adr-and-docs.md), [CARD-496](../cards/CARD-496-retire-factory-ui-shell-and-redirects.md), [CARD-511](../cards/CARD-511-developer-native-tool-check-before-register.md), [CARD-497](../cards/CARD-497-retire-factory-backend-routes-orchestrator-and-pack-tools.md), [CARD-512](../cards/CARD-512-retire-agent-training-optimization-scaffold-queue.md), [CARD-498](../cards/CARD-498-retire-factory-data-export-then-drop.md), CARD-472, CARD-418, CARD-386  
 > **Supersedes**: [ADR-0048](./0048-autonomous-agent-pack-factory-and-capability-loop.md) (autonomous agent pack factory and capability loop)  

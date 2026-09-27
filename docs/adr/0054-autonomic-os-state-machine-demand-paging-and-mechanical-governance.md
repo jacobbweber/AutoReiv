@@ -2,6 +2,7 @@
 
 > **Status**: Accepted  
 > **Date**: 2026-09-18  
+> **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): agents are domain specialists (skills by task), not only blast-radius principals; the Rule of 7 is a per-turn selection clamp applied inside the allowed set from `resolve_allowed_tools`  
 > **Deciders**: Jacob (Visionary & Product Owner), Antigravity (Principal SDLC Engineer)  
 > **Consulted**: AutoReiv Core Architecture  
 > **Supersedes / Retires**: [CARD-340](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-340-multi-agent-group-chat-and-peer-to-peer-collaborative-conversation.md) (Multi-Agent Group Chat Roundtable Anti-Pattern)  

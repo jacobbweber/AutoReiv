@@ -4,6 +4,7 @@
 > **Date**: 2026-09-21  
 > **Accepted**: 2026-09-21 (Jacob: Accept ADR-0056 with Docker hard-fail rule)  
 > **Amended**: 2026-09-25 by [ADR-0060](./0060-retire-the-agent-training-factory.md): the Agent Training Factory is retired; Skill Studio writes skill bodies and tool bindings (4.7)  
+> **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): 4.2 item 5 - SQLite skill bindings are the only skill-to-tool source; the CARD-425 additive grant is a skill tick, and its tools come from that skill's bindings  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-413 ownership audit  
 > **Related Cards**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md) (Option A build unblocked 2026-09-22), [CARD-412](../cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md) / [ADR-0055](./0055-operator-contract-testing-and-suite-hygiene.md)  
