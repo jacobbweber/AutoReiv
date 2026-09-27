@@ -948,6 +948,40 @@ def _ensure_phase_session(store, session_id: str, phase, agent_id: str) -> str:
     return phase_session
 
 
+def resume_session_for_phase(store, parent_session_id: str, phase) -> str:
+    """Session an approved/parked phase resumes in [CARD-548, CARD-554].
+
+    Phases run in `<sid>::phase::<phase id>` (that is where the parked tool call and its
+    approved result live). Resuming in the parent chat session made the phase agent answer
+    from the wrong transcript and left the phase's own loop unfinished.
+    """
+    phase_session = f"{parent_session_id}::phase::{phase.id}"
+    try:
+        if store.get_session(phase_session) is not None:
+            return phase_session
+    except Exception:
+        logger.exception("resume_session_for_phase lookup failed for %s", phase_session)
+    return parent_session_id
+
+
+def relay_phase_reply_to_parent(store, parent_session_id: str, phase_session_id: str, agent_id: str) -> str:
+    """Copy the resumed phase's last assistant reply into the chat the operator sees [CARD-548]."""
+    if not phase_session_id or phase_session_id == parent_session_id:
+        return ""
+    text = ""
+    for pm in reversed(store.get_messages(phase_session_id) or []):
+        if getattr(pm, "role", None) == Role.ASSISTANT and pm.content:
+            text = str(pm.content)
+            break
+    if text:
+        store.save_message(
+            session_id=parent_session_id,
+            agent_id=agent_id,
+            message=ChatMessage(role=Role.ASSISTANT, content=text),
+        )
+    return text
+
+
 def is_plan_awaiting_operator_choice(text: str | None) -> bool:
     """Detect if Formulate output explicitly requests operator choice / route selection [CARD-378, REQ-ORCH-045]."""
     if not text:
@@ -2021,6 +2055,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             elif phase.status == PhaseStatus.RUNNING:
                                 # Already running after resume prepare; continue bound turn.
                                 pass
+                            resume_session = resume_session_for_phase(store, req.session_id, phase)
+                            last_phase_session = resume_session
                             outcome = await _stream_turn_bound(
                                 queue=queue,
                                 kernel=kernel,
@@ -2028,7 +2064,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                 store=store,
                                 reflexion_engine=reflexion_engine,
                                 profile=profile_for_phase(profile, phase, registry),
-                                session_id=req.session_id,
+                                session_id=resume_session,
                                 user_content=None,
                                 approval_mode=req.approval_mode or "ask",
                                 resume=True,
@@ -2151,7 +2187,9 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                         emit_step_events=True,
                                     )
                                     if nxt_outcome != "done":
+                                        last_phase_session = ""
                                         break
+                                    last_phase_session = phase_session
                                     refreshed = store.get_phase(started.id)
                                     durable_notes.append(
                                         distill_durable_note(
@@ -2160,6 +2198,13 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                             raw_output=refreshed.output_packet_json or "",
                                         )
                                     )
+                                # CARD-548: the phase ran in its own session; show its reply in the chat.
+                                relayed = relay_phase_reply_to_parent(
+                                    store, req.session_id, last_phase_session, profile.id
+                                )
+                                if relayed:
+                                    await queue.put(_sse("token", {"text": relayed}))
+                                    await queue.put(_sse("turn_done", {"content": relayed}))
                             return
 
             if req.agent_id == "direct":
