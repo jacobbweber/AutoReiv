@@ -300,6 +300,13 @@ def create_app(
         migrate_legacy_grants(store, registry, data_root=data_paths.root)
     except Exception:
         logging.getLogger(__name__).exception("CARD-539 capability migration failed; will retry next start")
+    # AutoReiv no longer ticks coding; code work routes to Developer, once (idempotent) [CARD-544 D1].
+    try:
+        from src.application.agent_packs.capability_migration import untick_autoreiv_coding
+
+        untick_autoreiv_coding(store, registry, data_root=data_paths.root)
+    except Exception:
+        logging.getLogger(__name__).exception("CARD-544 coding migration failed; will retry next start")
     # Stored pre-CARD-520 remedy names become tool_escalation, once (idempotent) [CARD-520 D2].
     try:
         from src.application.observability.tool_escalation_migration import migrate_tool_escalation_names

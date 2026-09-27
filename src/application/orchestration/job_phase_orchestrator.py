@@ -92,6 +92,14 @@ def _default_packet(
     )
 
 
+def _ticks_coding(agent_id: str, store: Optional[Any]) -> bool:
+    if agent_id == "developer":
+        return True
+    getter = getattr(store, "get_agent_profile", None) if store is not None else None
+    profile = getter(agent_id) if callable(getter) else None
+    return "coding" in (getattr(profile, "allowed_skill", None) or [])
+
+
 def resolve_specialist_agent_for_capabilities(
     matched_ids: Sequence[str],
     default_agent_id: str,
@@ -120,8 +128,8 @@ def resolve_specialist_agent_for_capabilities(
         any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "coding"))
         for cid in matched_ids
     )
-    if has_coding_tools:
-        return DEFAULT_PLATFORM_AGENT_ID
+    if has_coding_tools:  # CARD-544 D1: code work goes to Developer unless the default agent ticks coding
+        return canonical_default if _ticks_coding(canonical_default, store) else "developer"
 
     has_tutor_tools = any(
         any(k in cid.lower() for k in ("tutor", "education", "mastery", "quiz", "elaboration", "flashcard"))
