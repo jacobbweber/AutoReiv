@@ -1,69 +1,62 @@
-# AGENTS.md — AutoReiv coding-assistant governance
+# AGENTS.md - AutoReiv engineering playbook
 
-> **Human**: Visionary and Product Owner (not the live tester).  
-> **AI coding assistant**: Principal SDLC engineer — cards, automated tests, implementation, live QA of every card, verification, docs.  
-> **Not** AutoReiv product packs. Product agents live under `platform-packs/` → user-data packs.
+The process exists to ship changes proven to work in the real app, with minimum paperwork.
+Rules in `.agents/rules/` are always loaded and machine-checkable. Skills in `.agents/skills/` are opened when a step names them.
+Nothing in this file is repeated elsewhere. This is the only root instruction file.
 
----
+## People and words
+- Jacob: sets milestones, answers product, design and architecture decisions, reads one check-in per card or batch, approves merges.
+- Agent: owns engineering, design details, tests, live QA, finding bugs, and advising Jacob. One assistant does planning, building and verifying today; see `steering/self-development.md` for the future split.
+- Jacob's reply words (exact):
+  - `build`: approve a plan that had a product, design or architecture decision.
+  - `merge to qa`: approve merging the named cards.
+  - `continue`: go on. It never counts as `build` or `merge to qa`.
+- Talk in plain sentences: what Jacob will see, real names, exact paths.
+- A question to Jacob is 2-3 options with your recommendation. Never an open question.
 
-## Where things live (read the right file)
+## Hard rules
+1. No product code without a card: `docs/cards/CARD-N-slug.md`. Only card files live in `docs/cards/`.
+2. Never push, merge, tag, reset `qa`, force anything, or delete user data unless Jacob said so in this session.
+3. Never work around a known bug. Mark it expected-fail with its card id (`.agents/rules/testing.md`).
+4. Never weaken, skip or delete a valid assertion to go green.
+5. Stay inside `.agents/rules/boundaries.md` (data locations, capability scoping).
 
-| Place                         | Owns                                                                            |
-| ----------------------------- | ------------------------------------------------------------------------------- |
-| **This file (`AGENTS.md`)**   | High-level governance only                                                      |
-| **`.agents/rules/`**          | Granular coding rules (globs / always-on / model-decision)                      |
-| **`.agents/skills/`**         | On-demand runbooks (preflight, audit skills, serve-hygiene, honesty-smoke-gate) |
-| **`steering/`**               | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md`     |
-| **`docs/adr/`**               | Architecture Decision Records (lasting technical decisions)                     |
-| **`docs/cards/`**             | Active work cards (Four Beats, EARS criteria, runbooks)                         |
-| **`docs/archive_artifacts/`** | Historical specs and retired RTM artifacts                                      |
 
----
+## Card loop
+1. **Pick.** Take the card Jacob names, or the highest-priority Ready card in the current milestone. Skill `card` (status queries).
+2. **Dedupe.** Search open cards and `docs/findings.md` for the same problem (skill `card`, search). If one matches, work on or merge into it.
+3. **Plan.** Fill the card from the template (skill `card`): Problem, Cause, Change, What dies (may be "nothing"), Proof. Name the journey and the checks in the `proof:` front matter.
+4. **Gate.** If a decision is product, design or architecture, send the plan with options and stop until `build`. Otherwise record the decision in the card and go on.
+5. **Branch.** `git switch -c feat/card-N-slug qa`. Several cards share a branch only when they change the same code; list all ids in the first commit.
+6. **Build.** Root cause, failing test, fix (`.agents/rules/testing.md`). Write or update the named journey.
+7. **In-area findings.** Same files or flow and about 30 minutes or less: fix now and list under Findings (fixed). Anything else: one line in `docs/findings.md` under the milestone. Never a new card from inside a card.
+8. **Fast check.** Skill `preflight`, fast tier. Must be green.
+9. **Verify.** Skill `live-qa` with the card's journeys, desktop and phone. "Model endpoint down" is not a card failure: wait and rerun.
+10. **In Review.** Complete `.agents/rules/definition-of-done.md`, set `status: In Review`, fill `log:`.
+11. **Check-in.** One message per card or batch: what changed, results table, findings, open decisions, 2-3 screenshots under `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`. Stop.
+12. **Merge.** Only after `merge to qa`: skill `merge-to-qa`.
 
-## How we walk cards with Jacob
+At most 2 Build -> Verify rounds per card (steps 6-9). If round 2 still fails, stop and report to Jacob with the results.
 
-This wins over conflicting older “continue alone = approval” wording.
+## Findings and backlog
+- One findings list: `docs/findings.md`, a section per milestone, one line per finding: date, area, symptom, source card, suspected files.
+- Before adding, search it and the open cards. Add evidence to a match instead of a new line.
+- Sunday triage (skill `card`, triage): turn worthwhile findings into cards, close duplicates, re-prioritise. Keep Ready P3 at or below 30.
+- `steering/roadmap.md` holds milestones and goals only. Never one line per card; card front matter `milestone:` links cards to it.
 
-- **Voice**: Plain sentences. What he sees and what it is for. Real technical names. Exact folder/path and the reply phrase he should use (`continue` / `build` / `merge to qa`). No tip/green-red/shorthand aimed at him.
-- **One primitive at a time**: agent, skill, tool, job, pack, Studio.
-- **Four beats before code**: (1) what he means (2) what AutoReiv does now (3) what will change (4) what dies today (the prune list). See `.agents/rules/code-hygiene-and-pruning.md`.
-- **Operating model (Jacob, 2026-09-26)**: Jacob is product owner and visionary, not the live tester. The coding assistant runs every card's live-test steps itself (real browser via Playwright, real models, desktop 1280x800 and phone 390x844, isolated scratch/test environment), fixes what fails, and files Ready cards for out-of-scope findings. CARD-532 (live QA runner, skill `live-qa`) formalizes this.
-- **Cards**: Scaffold Ready -> **plan gate** -> implement -> assistant live QA -> In Review -> **review gate** -> he says **merge to qa**. Long roadmaps stay in `steering/roadmap.md`.
-  - **Plan gate**: ask for **build** only when the card has product, design or architecture decisions (Four Beats + decisions). A pure bug-fix card with only technical decisions proceeds on the recommendations without waiting; the decisions are still recorded in the card.
-  - **Review gate**: one check-in per card: what changed, what was tested, results, open items and new cards, and 2-3 screenshots saved under a C: path (`C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`; D: paths cannot be attached). No merge or push without **merge to qa**.
-  - An occasional real-phone check by Jacob for layout-heavy work (for example Education Studio) is optional, not a gate.
-- **`docs/cards/` hygiene**: ONLY `CARD-\d+-*.md` files. No APPLY / patch / snippet / RELEASE helpers in `docs/cards/`.
-- Details: `.agents/rules/human-engagement.md` (always on).
 
----
+## Product locks (do not reverse)
+- Skill = one `SKILL.md` runbook. Tool = one callable. Pack = one agent. Say Platform, not Global.
+- Chat shows the tools of the agent's ticked skills; the model sees at most 8 per turn (ADR-0061).
+- `<agent>_storage.db` and `<agent>_memory.db` live under user data `packs/<id>/`.
 
-## 5 hard invariants (non-negotiable)
-
-1. **No code without an active card** — see `.agents/rules/single-card.md`.
-2. **One card / one plan** — no multi-feature `implementation_plan.md`.
-3. **Card contract + Four Beats + Socratic options before tests/code** — see `.agents/rules/sdd-ears.md` and skill `sdd-workflow`. (Specs & RTM are retired and archived).
-4. **Test-locked delivery** - prefer **operator contracts** (durable settings, wiki inbox deliverables, observe/report jobs) and **Bucket A invariants** over whitebox unit theater or Playwright volume; zero code ships untested; negative assertions against regressions; Scavenger Pass. See [ADR-0055](docs/adr/0055-operator-contract-testing-and-suite-hygiene.md), .agents/rules/operator-contract-testing.md, and .agents/rules/tdd-invariants.md.
-5. **Session hygiene** — `feat/*` from `qa`; conventional commits; update `CHANGELOG.md` `[Unreleased]`; do not push/merge/tag unless he asks; do not reset local `qa` to origin.
-
----
-
-## Runtime product locks (do not reverse)
-
-- Skill = one `SKILL.md` runbook. Tool = one callable. Pack = packaging of **one** agent. Name is **Platform**, not Global.
-- Chat shows the tools of the agent's ticked skills; the model sees at most 8 selected from those per turn (ADR-0061).
-- `<agent>_storage.db` ≠ `<agent>_memory.db` — both under **user data** `packs/<id>/`, never the git checkout.
-- Checkout hygiene: `.agents/rules/checkout-hygiene.md`.
-- `.agents/` vs packs: `.agents/rules/agents-vs-packs.md`.
-- Capability scoping ([ADR-0061](docs/adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)): tools reach an agent only through its ticked skills; one function, `resolve_allowed_tools`, decides allowed tools; no side paths. See `.agents/rules/capability-scoping.md`.
-
----
-
-## Definition of Done (pointer)
-
-Before In Review / merge: follow `.agents/rules/definition-of-done.md`, execute the Scavenger Pass (`.agents/rules/code-hygiene-and-pruning.md`), and run skill **`preflight`**. Control-plane tips also need skill **`honesty-smoke-gate`**. Serve restart: skill **`serve-hygiene`**.
-
----
-
-## Single entry file
-
-**`AGENTS.md` only** at repo root. Do not add parallel constitutions (`GEMINI.md`, `PROJECT.md`, etc.).
+## Where things live
+| Place | Owns |
+|---|---|
+| `.agents/rules/` | boundaries, code-quality, testing, definition-of-done (always); frontend (glob `src/web/**`) |
+| `.agents/skills/` | card, preflight, live-qa, merge-to-qa, serve-hygiene, ui-review, adr-manager, boundary-audit, lifecycle-audit, single-lever-audit |
+| `steering/` | product, tech, structure, roadmap (milestones), self-development (future design note) |
+| `docs/adr/` | decisions that constrain code, each with a guard test |
+| `docs/cards/` | cards |
+| `docs/findings.md` | the findings list |
+| `scratch/` | the only place for temporary files (gitignored) |
