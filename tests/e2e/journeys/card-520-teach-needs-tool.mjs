@@ -135,6 +135,15 @@ export default {
       j.note(`accepted; ${a.skill_id} ticked in Agent Studio`);
     }, { timeoutMs: 90000 });
 
+    // On desktop the Agent Studio window sits over the chat (and is restored after a reload); minimize it.
+    async function minimizeStudio() {
+      const studio = page.locator('#forgeAgentSelect');
+      if (!(await studio.isVisible().catch(() => false))) return;
+      await page.locator('#dock-agents').click(); // the dock button toggles an open window to minimized
+      const hidden = await waitFor(async () => !(await studio.isVisible().catch(() => false)), { timeoutMs: 5000 });
+      if (!hidden) await page.locator('.desktop-window:has(#forgeAgentSelect) .desktop-win-min').first().click({ timeout: 5000 }).catch(() => {});
+    }
+
     async function askAndCheck(sid, label) {
       await send(page, QUESTION);
       await page.waitForTimeout(2000);
@@ -147,13 +156,7 @@ export default {
     }
 
     await j.step('AutoReiv answers the weather question with the new tool (same chat)', async () => {
-      // On desktop the Agent Studio window sits over the chat; minimize it (close can ask to confirm) so the chat is clickable.
-      const studio = page.locator('#forgeAgentSelect');
-      if (await studio.isVisible().catch(() => false)) {
-        await page.locator('#dock-agents').click(); // the dock button toggles an open window to minimized
-        const hidden = await waitFor(async () => !(await studio.isVisible().catch(() => false)), { timeoutMs: 5000 });
-        if (!hidden) await page.locator('.desktop-window:has(#forgeAgentSelect) .desktop-win-min').first().click({ timeout: 5000 }).catch(() => {});
-      }
+      await minimizeStudio();
       await openSessionByTitle(page, title, { agentId: 'autoreiv' });
       await askAndCheck(sessionId, 'same chat');
     }, { timeoutMs: 260000, soft: true });
@@ -164,6 +167,7 @@ export default {
       if (!res.ok()) throw new Error(`create session -> ${res.status()}`);
       const sid2 = (await res.json()).id;
       await openApp(page, base); // reload so the drawer lists the chat created through the API
+      await minimizeStudio();
       await openSessionByTitle(page, t2, { agentId: 'autoreiv' });
       await askAndCheck(sid2, 'new chat');
     }, { timeoutMs: 260000, soft: true });
