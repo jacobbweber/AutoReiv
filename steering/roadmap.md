@@ -112,7 +112,7 @@
   - [ ] **CARD-534**: A resumed job phase runs on the parent chat session instead of its phase session.
   - [ ] **CARD-535**: After approving a propose_* draft once the reply has ended, the Developer does not continue.
   - [ ] **CARD-536**: Reopening a chat whose job failed shows Failed without the reason.
-  - [ ] **CARD-537**: AutoReiv uses an accepted skill tool (weather) and routes instead of refusing (depends on CARD-539).
+  - [ ] **CARD-537**: AutoReiv uses an accepted skill tool (weather) and routes instead of refusing (depends on CARD-539). **In Review** on `feat/card-537-accepted-skill-widens-domain`: end-to-end tests, journey `card-537-accepted-skill-widens-domain`, Tutor prompt routes.
   - [ ] **CARD-538**: Developer reply can end with "Reply failed: The model returned an empty reply" right after registering a tool.
   - [ ] **CARD-540**: Drop the inert `allow_wiki_access` agent field (from CARD-539).
   - [ ] **CARD-541**: Drop platform pack.json `allowed_tool_names` / `pack_tool_names` (from CARD-539).
@@ -124,6 +124,8 @@
   - [ ] **CARD-547**: Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (from CARD-539 live QA).
   - [ ] **CARD-548**: Approving a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer (from CARD-544 live QA).
   - [ ] **CARD-549**: Formulate on AutoReiv should name the agent that runs Execute (from CARD-544 live QA).
+  - [ ] **CARD-550**: No agent ticks the repo_file_* checkout tools after CARD-544 (needs a decision: tick `coding` on Developer?).
+  - [ ] **CARD-551**: The repetitive-cycle guard ends the turn with no answer even when the tool already returned it (from CARD-537 live QA).
   - [ ] **Education Studio** (no card yet).
 
 
