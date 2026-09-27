@@ -70,6 +70,14 @@ BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
 )
 
 
+# Filler words never rank a tool (live QA, CARD-539: "What is the weather" lost get_weather to "the"/"what").
+_RANK_FILLER_WORDS: frozenset[str] = frozenset(
+    "the and for you your are was what whats how who why when where which with this that these those from "
+    "into about can could would should please tell show give get got now right today like any all has have "
+    "its it's our out use using some there their them then than just also not".split()
+)
+
+
 def _capability_authoring_requested(text: str) -> bool:
     """True when this turn is asking Developer to scaffold or propose a capability [CARD-429]."""
     raw = (text or "").lower()
@@ -784,7 +792,7 @@ class AgentKernel:
         if len(tools) > MAX_ACTIVE_TOOLS_PER_TURN:
             active_skill_set = {str(s).strip().lower() for s in (active_skills or [])}
             import re
-            user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) if user_content else set()
+            user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) - _RANK_FILLER_WORDS
 
             from src.application.agent_packs.schema import CAPABILITY_AUTHORING_TOOL_NAMES
             from src.application.tools.native_packaging import AUTHORING_TOOL_NAMES, load_native_tool_names
@@ -797,7 +805,7 @@ class AgentKernel:
                 desc = (getattr(t, "description", "") or "").lower()
                 name_words = set(re.findall(r"\b[a-z]{3,}\b", name.lower()))
                 desc_words = set(re.findall(r"\b[a-z]{3,}\b", desc))
-                overlap = len((name_words | desc_words) & user_tokens)
+                overlap = 2 * len(name_words & user_tokens) + len((desc_words - name_words) & user_tokens)
 
                 # Named native custom tools and the authoring tools stay visible [CARD-423].
                 if name and name.lower() in text_l and (name in native_names or name in AUTHORING_TOOL_NAMES):

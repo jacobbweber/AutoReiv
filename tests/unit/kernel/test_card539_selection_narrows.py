@@ -180,3 +180,31 @@ def test_list_available_skills_and_tools_does_not_offer_the_registry_as_callable
     out = asyncio.run(body.list_available_skills_and_tools())
     assert "tools" not in out
     assert out["catalog_tools"] and "not callable" in out["note"].lower()
+
+
+def test_a_ticked_tool_named_by_the_question_survives_the_clamp(bind_skills):
+    """Live QA: "What is the weather in Boston?" lost get_weather to tools whose descriptions merely
+    contain "the" / "what"; ranking ignores filler words and weighs tool-name matches."""
+    reg = ScopedToolRegistry()
+    noise = {
+        "batch_worker_scan": "Scan the batch worker queue and report what is pending.",
+        "repo_file_read": "Read the contents of a file in the repository.",
+        "wiki_template_read": "Read the template that the wiki uses for what you create.",
+        "get_agent_sessions": "List the sessions of an agent and what they did.",
+        "system_info": "Report the host name, the CPU and the memory.",
+        "wiki_note_search": "Search the wiki for notes that match what is asked.",
+        "get_recent_errors": "Return the most recent errors and what caused them.",
+    }
+    noise["get_weather"] = "Returns current weather for a given location using standard library only."
+    for name in sorted(set(noise) | set(REQUIRED_PLATFORM_TOOLS)):
+        reg.register_tool(name, noise.get(name, f"{name} tool"), {"type": "object", "properties": {}}, lambda **kw: "ok")
+    store = MagicMock()
+    store.get_setting.return_value = None
+    kernel = AgentKernel(gateway=MagicMock(), tool_registry=reg, state_store=store, telemetry=MagicMock())
+    ids = bind_skills({"noise": [n for n in noise if n != "get_weather"], "get-weather": ["get_weather"]})
+    agent = _agent("autoreiv", allowed_skill=list(ids))
+    for question in ("What is the weather in Boston?", "what's the weather like in Boston right now"):
+        names = [t.name for t in kernel._resolve_active_tools(agent, user_content=question)]
+        assert len(names) <= MAX_ACTIVE_TOOLS_PER_TURN
+        assert "get_weather" in names, (question, names)
+
