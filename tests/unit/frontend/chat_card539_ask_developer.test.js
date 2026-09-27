@@ -9,6 +9,10 @@ import { buildAskDeveloperDraft } from '../../../src/web/static/modules/studios/
 describe('CARD-539 D6: Ask Developer button on a no-agent-covers reply', () => {
   it('offers the button only on agent replies that suggest Ask Developer', () => {
     expect(offersAskDeveloper('assistant', 'No agent here covers that. You can use Ask Developer to build it.')).toBe(true);
+    // live QA: models paraphrase the suggestion ("ask a developer to integrate one")
+    expect(offersAskDeveloper('assistant', 'For travel booking, use a travel service or ask a developer to integrate one.')).toBe(true);
+    expect(offersAskDeveloper('assistant', 'You could ask the Developer agent to add it.')).toBe(true);
+    expect(offersAskDeveloper('assistant', 'The developer console shows no errors.')).toBe(false);
     expect(offersAskDeveloper('assistant', 'Here is the weather.')).toBe(false);
     expect(offersAskDeveloper('user', 'Ask Developer please')).toBe(false);
   });

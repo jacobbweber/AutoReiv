@@ -404,7 +404,7 @@ export function wireReasoningDrawer(rootEl, reasoning) {
 }
 
 /** CARD-539 D6: a reply that says no agent covers the request and suggests Ask Developer gets the button. */
-const ASK_DEVELOPER_RE = /\bAsk Developer\b/i;
+const ASK_DEVELOPER_RE = /\bask (?:a |the )?developer\b/i; // models paraphrase "Ask Developer"
 
 export function offersAskDeveloper(role, content) {
   return String(role || '').toLowerCase() === 'assistant' && ASK_DEVELOPER_RE.test(String(content || ''));
