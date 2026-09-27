@@ -199,8 +199,32 @@ def allowed_capability_ids(agent: Any) -> set[str]:
     return {f"tool.{t}" for t in allowed.ordered} | {f"skill.{s}" for s in ticked_skills(agent)}
 
 
+def _operator_skill_meta(sid: str) -> dict[str, Any]:
+    """name/description from an operator skill's SKILL.md frontmatter ({data}/skills/<id>/SKILL.md)."""
+    root = _data_root()
+    path = root / "skills" / sid / "SKILL.md" if root else None
+    try:
+        text = path.read_text(encoding="utf-8") if path and path.is_file() else ""
+        if not text.startswith("---"):
+            return {}
+        import yaml
+
+        meta = yaml.safe_load(text.split("---", 2)[1]) or {}
+        return meta if isinstance(meta, dict) else {}
+    except Exception:  # unreadable or malformed frontmatter: no blurb
+        return {}
+
+
+def _skill_meta(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] = None) -> dict[str, Any]:
+    return (
+        PLATFORM_SKILL_METADATA.get(sid)
+        or (pack if pack is not None else pack_skill_entries(agent_id)).get(sid)
+        or _operator_skill_meta(sid)
+    )
+
+
 def skill_label(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] = None) -> str:
-    meta = PLATFORM_SKILL_METADATA.get(sid) or (pack if pack is not None else pack_skill_entries(agent_id)).get(sid) or {}
+    meta = _skill_meta(sid, agent_id, pack)
     return str(meta.get("name") or sid.replace("-", " ").replace("_", " ").title())
 
 
@@ -210,11 +234,25 @@ def _labels(agent: Any) -> list[str]:
     return [skill_label(s, agent_id, pack) for s in ticked_skills(agent)]
 
 
+def _blurbed_labels(agent: Any, limit: int = 90) -> list[str]:
+    """"Name (first sentence of the description)" per ticked skill (D5: ticked skill blurbs)."""
+    agent_id = str(_field(agent, "id") or "")
+    pack = pack_skill_entries(agent_id)
+    out = []
+    for sid in ticked_skills(agent):
+        meta = _skill_meta(sid, agent_id, pack)
+        label = str(meta.get("name") or sid.replace("-", " ").replace("_", " ").title())
+        blurb = " ".join(str(meta.get("description") or "").split()).split(". ")[0].rstrip(".")
+        blurb = blurb if len(blurb) <= limit else blurb[: limit - 3].rstrip() + "..."
+        out.append(f"{label} ({blurb})" if blurb else label)
+    return out
+
+
 def domain_line(agent: Any) -> str:
     """Generated domain boundary for the system prompt: ticked skills, then hand off or Ask Developer."""
     name = str(_field(agent, "name", "id") or "This agent")
-    labels = _labels(agent)
-    covers = ", ".join(labels) if labels else "general conversation only"
+    labels = _blurbed_labels(agent)
+    covers = "; ".join(labels) if labels else "general conversation only"
     return (
         f"{name} covers: {covers}. For anything else, find the right agent with lookup_agents and "
         "hand off with handoff_to_agent; if no agent covers it, say so plainly and suggest Ask Developer."

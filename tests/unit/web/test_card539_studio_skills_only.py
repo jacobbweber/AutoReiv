@@ -81,6 +81,27 @@ def test_domain_and_routing_text_come_from_ticked_skills():
     assert "wiki_note_search" not in summary
 
 
+def test_domain_line_carries_short_skill_blurbs_including_operator_skills(tmp_path, monkeypatch):
+    """D5 as approved: "Your domain: <ticked skill blurbs>". Live QA: names alone ("Get Weather" among 13
+    others) did not stop AutoReiv saying it has no weather access; the blurb says what the skill does."""
+    from src.application.agent_packs import allowed_tools
+    from src.domain.kernel.models import AgentProfile
+
+    skill_dir = tmp_path / "skills" / "get-weather"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: Get Weather\ndescription: Returns current weather for a given location. More text here.\n---\n# body\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(allowed_tools, "_data_root", lambda: tmp_path)
+    agent = AgentProfile(id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
+                         allowed_skill=["wiki-knowledge", "get-weather"])
+    line = allowed_tools.domain_line(agent)
+    assert "Get Weather (Returns current weather for a given location)" in line
+    assert "Search and read verified notes" in line  # platform metadata blurb
+    assert "More text here" not in line  # first sentence only
+
+
 def test_directory_cards_route_by_skills_not_tools():
     from src.application.orchestration.directory_service import AgentDirectoryService
     from src.domain.kernel.models import AgentProfile
