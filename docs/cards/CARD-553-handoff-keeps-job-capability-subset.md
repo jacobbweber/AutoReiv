@@ -34,7 +34,7 @@ The unit test passes. The CARD-550 journey's code ask shows a Developer `cli_exe
 
 ## Combined plan (CARD-554 + CARD-553 + CARD-548)
 
-CARD-554 and CARD-553 were built as one plan on one branch, `feat/card-554-553-phase-handoff-tools`, because both come from the same code ask and share one journey. The branch is stacked on `feat/card-555-live-qa-sandbox-checkout` so live QA runs with the real-checkout guard; **merge it after CARD-555**. The Approve path it exercises is CARD-548, whose resume bug turned out to be what kept Developer's Execute phase from finishing, so the fix for that is on this branch too.
+CARD-554 and CARD-553 were built as one plan on one branch, `feat/card-554-553-phase-handoff-tools`, because both come from the same code ask and share one journey. The branch was built on `feat/card-555-live-qa-sandbox-checkout` so live QA ran with the real-checkout guard. After CARD-555 merged into qa (`b487fea0`), qa was merged into this branch (`9350a086`), so it now sits on qa. The Approve path it exercises is CARD-548, whose resume bug turned out to be what kept Developer's Execute phase from finishing, so the fix for that is on this branch too.
 
 ## Requirements (EARS)
 
