@@ -92,7 +92,7 @@ async def test_run_turn_records_granular_telemetry_breakdown(kernel_fixture):
         name="Assistant",
         description="A helpful assistant",
         system_prompt="You are a helpful assistant with tools.",
-        allowed_tool_names=["dummy_tool"],
+        allowed_skill=["tool:dummy_tool"],
     )
 
     await kernel.run_turn(

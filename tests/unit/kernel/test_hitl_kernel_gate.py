@@ -39,7 +39,7 @@ def _kernel():
         name="AutoReiv",
         description="sre",
         system_prompt="x",
-        allowed_tool_names=["cli_exec"],
+        allowed_skill=["tool:cli_exec"],
     )
     return kernel, store, executed, profile
 

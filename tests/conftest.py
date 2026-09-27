@@ -75,3 +75,39 @@ def isolate_test_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_DATA_DIR", data_dir)
     monkeypatch.setenv("AUTOREIV_DB_PATH", test_db)
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", test_wiki)
+
+
+
+TOOL_SKILL_PREFIX = "tool:"
+
+
+@pytest.fixture(autouse=True)
+def bind_skills(monkeypatch):
+    """CARD-539: tools reach an agent only through ticked skills.
+
+    In tests a skill id ``"tool:<name>"`` binds exactly that tool (like a SQLite binding row), so a
+    fixture agent ticks ``allowed_skill=["tool:calculator"]``. ``bind_skills({"s": ["a", "b"]})`` binds
+    any other skill and returns the ids to tick.
+    """
+    import src.infrastructure.memory.repositories.skill_bindings as bindings
+
+    bound = {}
+    real = bindings.sqlite_tools_for_skills
+
+    def fake(skill_ids, db_path=None):
+        ids = list(skill_ids)
+        out = dict(real(ids, db_path))
+        for sid in ids:
+            if sid in bound:
+                out[sid] = list(bound[sid])
+            elif str(sid).startswith(TOOL_SKILL_PREFIX):
+                out[sid] = [str(sid)[len(TOOL_SKILL_PREFIX):]]
+        return out
+
+    monkeypatch.setattr(bindings, "sqlite_tools_for_skills", fake)
+
+    def bind(mapping):
+        bound.update({str(k): list(v) for k, v in mapping.items()})
+        return list(mapping)
+
+    return bind

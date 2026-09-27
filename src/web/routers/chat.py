@@ -1580,24 +1580,10 @@ async def get_session_context(request: Request, session_id: str):
 
     percent_used = round(min(100.0, (used_tokens / max(1, max_tokens)) * 100.0), 1)
 
-    # Get authorized/active tools for this agent (dynamically scoped for autoreiv)
+    # Chat shows the tools of the agent's ticked skills (ADR-0061); the model sees <=8 of them per turn.
     tool_list = []
     if tool_reg and agent:
-        active_skills = None
-        if sess.agent_id == "autoreiv":
-            last_user_msg = next((m.content for m in reversed(msgs) if m.role == Role.USER and m.content), None)
-            kernel = getattr(request.app.state, "kernel", None)
-            if kernel and hasattr(kernel, "_match_intent_skills") and last_user_msg:
-                extra_domains = (
-                    kernel._get_discovered_mcp_domains()
-                    if hasattr(kernel, "_get_discovered_mcp_domains")
-                    else None
-                )
-                matched = kernel._match_intent_skills(last_user_msg, extra_domains=extra_domains)
-                active_skills = list(matched)
-            else:
-                active_skills = []
-        raw_tools = tool_reg.get_tools_for_agent(agent, active_skills=active_skills)
+        raw_tools = tool_reg.get_tools_for_agent(agent)
         for t in raw_tools:
             tool_list.append({
                 "name": t.name,

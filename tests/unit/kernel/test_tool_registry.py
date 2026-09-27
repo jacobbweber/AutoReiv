@@ -56,13 +56,13 @@ def registry():
 
 
 @pytest.mark.asyncio
-async def test_scoped_tool_listing_for_agent(registry):
+async def test_scoped_tool_listing_for_agent(registry, bind_skills):
     profile = AgentProfile(
         id="calc-agent",
         name="Calculator Agent",
         description="Math agent",
         system_prompt="Math helper",
-        allowed_tool_names=["calculator"],
+        allowed_skill=bind_skills({"skill-calculator": ["calculator"]}),
     )
     tools = registry.get_tools_for_agent(profile)
     assert len(tools) == 1
@@ -70,13 +70,13 @@ async def test_scoped_tool_listing_for_agent(registry):
 
 
 @pytest.mark.asyncio
-async def test_tool_execution_authorized_sync(registry):
+async def test_tool_execution_authorized_sync(registry, bind_skills):
     profile = AgentProfile(
         id="math-bot",
         name="Math Bot",
         description="Math",
         system_prompt="Do math",
-        allowed_tool_names=["calculator"],
+        allowed_skill=bind_skills({"skill-calculator": ["calculator"]}),
     )
     call = ToolCall(id="call_1", name="calculator", arguments={"a": 5, "b": 7})
     result = await registry.execute(call, profile)
@@ -88,13 +88,13 @@ async def test_tool_execution_authorized_sync(registry):
 
 
 @pytest.mark.asyncio
-async def test_tool_execution_authorized_async(registry):
+async def test_tool_execution_authorized_async(registry, bind_skills):
     profile = AgentProfile(
         id="fetch-bot",
         name="Fetch Bot",
         description="Fetch",
         system_prompt="Fetch items",
-        allowed_tool_names=["fetcher"],
+        allowed_skill=bind_skills({"skill-fetcher": ["fetcher"]}),
     )
     call = ToolCall(id="call_2", name="fetcher", arguments={"item_id": "item_99"})
     result = await registry.execute(call, profile)
@@ -121,13 +121,13 @@ async def test_tool_execution_denied_unauthorized(registry):
 
 
 @pytest.mark.asyncio
-async def test_tool_execution_unknown_tool(registry):
+async def test_tool_execution_unknown_tool(registry, bind_skills):
     profile = AgentProfile(
         id="admin",
         name="Admin",
         description="Admin",
         system_prompt="Admin",
-        allowed_tool_names=["non_existent"],
+        allowed_skill=bind_skills({"skill-non_existent": ["non_existent"]}),
     )
     call = ToolCall(id="call_4", name="non_existent", arguments={})
     result = await registry.execute(call, profile)
@@ -137,13 +137,13 @@ async def test_tool_execution_unknown_tool(registry):
 
 
 @pytest.mark.asyncio
-async def test_tool_execution_exception_handled_gracefully(registry):
+async def test_tool_execution_exception_handled_gracefully(registry, bind_skills):
     profile = AgentProfile(
         id="tester",
         name="Tester",
         description="Tester",
         system_prompt="Test",
-        allowed_tool_names=["failing_tool"],
+        allowed_skill=bind_skills({"skill-failing_tool": ["failing_tool"]}),
     )
     call = ToolCall(id="call_5", name="failing_tool", arguments={})
     result = await registry.execute(call, profile)
@@ -153,7 +153,7 @@ async def test_tool_execution_exception_handled_gracefully(registry):
 
 
 @pytest.mark.asyncio
-async def test_read_document_file_auto_authorized_when_registered(registry):
+async def test_read_document_file_auto_authorized_when_registered(registry, bind_skills):
     registry.register_tool(
         name="read_document_file",
         description="Read doc",
@@ -166,7 +166,7 @@ async def test_read_document_file_auto_authorized_when_registered(registry):
         name="Custom Agent",
         description="Custom",
         system_prompt="Custom",
-        allowed_tool_names=["calculator"],
+        allowed_skill=bind_skills({"skill-calculator": ["calculator"]}),
     )
     tools = registry.get_tools_for_agent(profile)
     tool_names = {t.name for t in tools}
@@ -180,43 +180,31 @@ async def test_read_document_file_auto_authorized_when_registered(registry):
 
 
 @pytest.mark.asyncio
-async def test_wiki_tool_gating_by_allow_wiki_access(registry):
+async def test_wiki_tool_reaches_agent_only_through_a_ticked_skill(registry, bind_skills):
+    """CARD-539 D3: allow_wiki_access retired; untick the wiki skill instead."""
     registry.register_tool(
         name="wiki_note_create",
         description="Create note",
         parameters={"type": "object", "properties": {"title": {"type": "string"}}},
         handler=lambda title: f"created {title}",
     )
-    # Agent with wiki access disabled
     profile_blocked = AgentProfile(
-        id="blocked-agent",
-        name="Blocked Agent",
-        description="No wiki",
-        system_prompt="Agent",
-        allowed_tool_names=["wiki_note_create"],
-        allow_wiki_access=False,
+        id="blocked-agent", name="Blocked Agent", description="No wiki", system_prompt="Agent", allowed_skill=[]
     )
-    tools = registry.get_tools_for_agent(profile_blocked)
-    assert "wiki_note_create" not in {t.name for t in tools}
-
+    assert "wiki_note_create" not in {t.name for t in registry.get_tools_for_agent(profile_blocked)}
     call = ToolCall(id="call_wiki", name="wiki_note_create", arguments={"title": "Test"})
     res = await registry.execute(call, profile_blocked)
     assert res.success is False
-    assert "does not have Wiki access enabled" in res.error
+    assert "not authorized" in res.error
 
-    # Agent with wiki access enabled
     profile_allowed = AgentProfile(
         id="allowed-agent",
         name="Allowed Agent",
         description="Wiki allowed",
         system_prompt="Agent",
-        allowed_tool_names=["wiki_note_create"],
-        allow_wiki_access=True,
+        allowed_skill=bind_skills({"wiki-notes": ["wiki_note_create"]}),
     )
-    tools_allowed = registry.get_tools_for_agent(profile_allowed)
-    assert "wiki_note_create" in {t.name for t in tools_allowed}
-
+    assert "wiki_note_create" in {t.name for t in registry.get_tools_for_agent(profile_allowed)}
     res_allowed = await registry.execute(call, profile_allowed)
     assert res_allowed.success is True
     assert res_allowed.output == "created Test"
-

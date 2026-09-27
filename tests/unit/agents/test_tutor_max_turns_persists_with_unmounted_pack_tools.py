@@ -34,11 +34,12 @@ def test_tutor_put_max_turns_persists_when_education_tools_missing_from_catalog(
         assert after.status_code == 200
         assert after.json()["max_turns"] == 100
 
-        # Brand-new unknown tool still rejected.
+        # CARD-539: tool lists in a Save are ignored (tools come from ticked skills), never granted.
         payload["max_turns"] = 50
+        payload.pop("expected_skills_version", None)
         payload["allowed_tool_names"] = list(payload.get("allowed_tool_names") or []) + [
             "definitely_not_a_real_tool_zz"
         ]
-        bad = client.put("/api/agents/tutor", json=payload)
-        assert bad.status_code == 422
-        assert "definitely_not_a_real_tool_zz" in bad.text
+        ignored = client.put("/api/agents/tutor", json=payload)
+        assert ignored.status_code == 200, ignored.text
+        assert "definitely_not_a_real_tool_zz" not in (ignored.json()["agent"].get("allowed_tool_names") or [])

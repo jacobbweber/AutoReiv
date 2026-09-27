@@ -41,7 +41,8 @@ class NativeToolEngineeringTools:
         parameters: Optional[dict] = None,
         requires_hitl: bool = True,
         risk_level: str = "medium",
-        grant_agent_ids: Optional[list] = None,
+        target_agent_id: Optional[str] = None,
+        target_skill_id: Optional[str] = None,
         sample_arguments: Optional[dict] = None,
         sample_call: str = "run",
         skip_reason: Optional[str] = None,
@@ -56,7 +57,8 @@ class NativeToolEngineeringTools:
                     "parameters": parameters or {},
                     "requires_hitl": requires_hitl,
                     "risk_level": risk_level,
-                    "grant_agent_ids": grant_agent_ids or [],
+                    "target_agent_id": target_agent_id or "",
+                    "target_skill_id": target_skill_id or "",
                     "sample_arguments": sample_arguments,
                     "sample_call": sample_call,
                     "skip_reason": skip_reason,
@@ -83,7 +85,9 @@ class NativeToolEngineeringTools:
             description=(
                 "Register a native AutoReiv custom tool that runs in the sandbox without an MCP server. "
                 "Code must define run(**kwargs). requires_hitl defaults to true. "
-                "Pass grant_agent_ids for agents allowed to call it. "
+                "Pass target_agent_id for the agent that needs it: this creates a pending proposal to attach the "
+                "tool to a skill of that agent (target_skill_id, or a new skill); the agent can use it only after "
+                "Jacob accepts. "
                 "Registration runs the tool once in the sandbox first (import plus one sample call); "
                 "a result starting 'Not registered:' means nothing was saved: tell the operator, fix the code, call again."
             ),
@@ -106,10 +110,13 @@ class NativeToolEngineeringTools:
                         "enum": ["low", "medium", "high"],
                         "description": "high always requires HITL.",
                     },
-                    "grant_agent_ids": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Agent ids to add this tool onto, using the existing agent allowlist.",
+                    "target_agent_id": {
+                        "type": "string",
+                        "description": "Agent that needs the tool. Creates a pending attach-tool-to-skill proposal.",
+                    },
+                    "target_skill_id": {
+                        "type": "string",
+                        "description": "Existing skill of that agent to attach to. Omit to propose a new skill.",
                     },
                     "sample_arguments": {
                         "type": "object",

@@ -199,7 +199,7 @@ def test_read_only_project_agent_receives_read_only_guidance():
             name="Code Reviewer",
             description="Read-only reviewer",
             system_prompt="You review code for quality.",
-            allowed_tool_names=["read_project_file", "list_project_dir"],
+            allowed_skill=["tool:read_project_file", "tool:list_project_dir"],
         )
 
         assembled = kernel._build_effective_system_message(reviewer_agent).content

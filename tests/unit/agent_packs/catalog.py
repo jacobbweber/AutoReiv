@@ -19,13 +19,13 @@ def load_platform_manifest(pack_id: str) -> AgentPackManifest:
 
 def platform_pack_profile(pack_id: str):
     """AgentProfile from a platform pack, including ticked Platform skill tools."""
-    from src.application.agent_packs.schema import tools_for_platform_skills
+    from src.application.agent_packs.allowed_tools import platform_seed_tools
     from src.domain.kernel.models import AgentProfile, AgentTone
     from src.domain.settings.models import ModelPurpose
 
     manifest = load_platform_manifest(pack_id)
     tools = list(manifest.pack_tool_names)
-    for name in tools_for_platform_skills(list(manifest.allowed_skill)):
+    for name in platform_seed_tools(manifest.allowed_skill):
         if name not in tools:
             tools.append(name)
     try:

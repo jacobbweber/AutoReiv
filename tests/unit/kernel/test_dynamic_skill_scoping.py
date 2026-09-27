@@ -38,8 +38,7 @@ def test_match_intent_skills():
 @pytest.mark.asyncio
 async def test_autoreiv_lean_baseline_and_dynamic_expansion(tmp_path):
     """
-    Verify autoreiv mounts ONLY 5 lean platform primitives on cold queries,
-    and dynamically mounts specialized tools when activate_skill is called.
+    CARD-539: AutoReiv gets only its ticked skills' tools; activate_skill of an unticked skill mounts nothing.
     """
     store = SQLiteStateStore(db_path=str(tmp_path / "test.db"))
     store.initialize_db()
@@ -92,7 +91,7 @@ async def test_autoreiv_lean_baseline_and_dynamic_expansion(tmp_path):
         name="AutoReiv",
         description="Platform Agent",
         system_prompt="You are AutoReiv.",
-        allowed_skill=["wiki", "diagnostics", "tasks", "coding"],
+        allowed_skill=["diagnostics"],  # CARD-539: no wiki skill ticked
     )
 
     # Initial turn: Step 0 returns tool call to activate_skill("wiki")
@@ -141,19 +140,12 @@ async def test_autoreiv_lean_baseline_and_dynamic_expansion(tmp_path):
     assert "Wiki skill is active" in final_msg.content
     assert len(mock_llm.requests) == 2
 
-    # Verify Step 0: Only 5 lean primitives were mounted (wiki_note_read NOT mounted)
+    # CARD-539: tools come only from ticked skills; activate_skill cannot add an unticked skill.
     req0_tools = {t.name for t in (mock_llm.requests[0].tools or [])}
-    assert "activate_skill" in req0_tools
-    assert "ask_clarification" in req0_tools
-    assert "get_session_info" in req0_tools
-    assert "handoff_to_agent" in req0_tools
-    assert "lookup_agents" in req0_tools
+    assert {"activate_skill", "ask_clarification", "get_session_info", "handoff_to_agent", "lookup_agents"} <= req0_tools
     assert "wiki_note_read" not in req0_tools
-    assert len(req0_tools) == 5
-
-    # Verify Step 1: After activate_skill("wiki"), wiki_note_read IS mounted!
     req1_tools = {t.name for t in (mock_llm.requests[1].tools or [])}
-    assert "wiki_note_read" in req1_tools
+    assert "wiki_note_read" not in req1_tools
     assert "activate_skill" in req1_tools
 
 

@@ -36,12 +36,12 @@ def test_direct_pack_manifest_zero_tools_zero_skills():
 
 def test_direct_agent_resolves_zero_tools():
     """[REQ-TEL-001] Direct agent must resolve zero tools even with platform scoping."""
-    from src.application.agent_packs.schema import resolve_scoped_tools
+    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
     from src.application.kernel.tool_registry import ScopedToolRegistry
     from src.domain.kernel.models import AgentProfile
 
     manifest = load_platform_manifest("direct")
-    assert resolve_scoped_tools(manifest) == []
+    assert resolve_allowed_tools(manifest).names == frozenset()
 
     profile = AgentProfile(
         id="direct",
@@ -49,7 +49,7 @@ def test_direct_agent_resolves_zero_tools():
         description="A direct agent",
         system_prompt="Direct persona",
     )
-    assert resolve_scoped_tools(profile) == []
+    assert resolve_allowed_tools(profile).names == frozenset()
 
     reg = ScopedToolRegistry()
     reg.register_tool(

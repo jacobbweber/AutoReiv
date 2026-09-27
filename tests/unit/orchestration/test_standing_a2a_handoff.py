@@ -178,7 +178,7 @@ def test_child_policy_block_cannot_widen_beyond_parent_subset(store, orch, resol
         description="t",
         system_prompt="t",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["wiki_note_search", "wiki_note_create", "cli_exec"],
+        allowed_skill=["tool:wiki_note_search", "tool:wiki_note_create", "tool:cli_exec"],
     )
     d_parent = gate.evaluate(
         ToolCall(id="1", name="cli_exec", arguments={"command": "echo hi"}),
@@ -232,7 +232,7 @@ def test_dangerous_tool_on_child_still_require_confirm(store, orch, resolver):
         description="t",
         system_prompt="t",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["wiki_note_search", "wiki_note_create"],
+        allowed_skill=["tool:wiki_note_search", "tool:wiki_note_create"],
     )
     d = gate.evaluate(
         ToolCall(id="3", name="wiki_note_create", arguments={"title": "x"}),
@@ -310,7 +310,7 @@ async def test_engine_stamps_parent_child_job_ids_and_binds_child(store, orch, r
         description="d",
         system_prompt="s",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["wiki_note_search"],
+        allowed_skill=["tool:wiki_note_search"],
         max_turns=5,
     )
     registry = BuiltinAgentRegistry(profiles=[specialist], state_store=store)

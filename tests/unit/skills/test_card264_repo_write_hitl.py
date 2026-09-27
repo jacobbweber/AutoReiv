@@ -83,7 +83,7 @@ def test_deny_semantics_tree_unchanged_without_execute(tmp_path: Path):
             return None
 
     class _Agent:
-        allowed_tool_names = ["repo_file_write", "repo_file_patch", "repo_file_rollback"]
+        allowed_skill = ["tool:repo_file_write", "tool:repo_file_patch", "tool:repo_file_rollback"]
         mcp_servers = []
 
     # Simulate gate parking: REQUIRE_CONFIRM decision without execute.

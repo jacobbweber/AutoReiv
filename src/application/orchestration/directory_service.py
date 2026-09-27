@@ -6,6 +6,7 @@ Discovers and ranks agent capabilities dynamically on demand without prompt bloa
 import re
 from typing import Any, Dict, List, Optional
 
+from src.application.agent_packs.allowed_tools import routing_summary
 from src.domain.orchestration.models import CompactAgentCard
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -64,9 +65,9 @@ class AgentDirectoryService:
                     "name": profile.name,
                     "system_prompt": profile.system_prompt,
                     "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
-                    "allowed_tools": profile.allowed_tools
-                    if hasattr(profile, "allowed_tools")
-                    else getattr(profile, "allowed_tool_names", []),
+                    # CARD-539 D5: route by ticked skills, never tool lists.
+                    "skills": list(getattr(profile, "allowed_skill", None) or []),
+                    "routing": routing_summary(profile),
                 }
             )
         return profiles
@@ -77,7 +78,7 @@ class AgentDirectoryService:
         aid = profile.get("id", "").lower()
         name = profile.get("name", "").lower()
         prompt = profile.get("system_prompt", "").lower()
-        tools = " ".join(profile.get("allowed_tools", [])).lower()
+        tools = f"{' '.join(profile.get('skills', []))} {profile.get('routing', '')}".lower()
         tone = profile.get("tone", "").lower()
 
         searchable_corpus = f"{aid} {name} {prompt} {tools} {tone}"
@@ -121,20 +122,12 @@ class AgentDirectoryService:
         return score
 
     def _to_compact_card(self, profile: Dict[str, Any]) -> CompactAgentCard:
-        """Extract a clean, concise summary (<60 tokens)."""
-        prompt = profile.get("system_prompt", "").strip()
-        # Take first sentence of prompt or default
-        first_sentence = prompt.split(".")[0].strip() if "." in prompt else prompt[:120]
-        if not first_sentence:
-            first_sentence = f"Specialist agent operating with {profile.get('tone', 'analytical')} demeanor."
-        if len(first_sentence) > 140:
-            first_sentence = first_sentence[:137] + "..."
-
-        tools = profile.get("allowed_tools", [])
+        """Compact router card from ticked skills (CARD-539 D5): routing summary + skill ids."""
+        summary = (profile.get("routing") or "").strip() or f"{profile.get('name', 'Agent')} (no skills ticked)"
         return CompactAgentCard(
             id=profile.get("id", "agent"),
             name=profile.get("name", profile.get("id", "Agent").title()),
             tone=profile.get("tone", "analytical"),
-            summary=first_sentence + ".",
-            skills=tools[:4],
+            summary=summary,
+            skills=list(profile.get("skills") or [])[:4],
         )

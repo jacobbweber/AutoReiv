@@ -204,18 +204,6 @@ class BuiltinAgentRegistry:
     def list_profiles(self) -> List[AgentProfile]:
         return self.list_agents()
 
-    def get_scoped_registry_for_agent(self, agent: AgentProfile) -> ScopedToolRegistry:
-        """Return a tool registry scoped strictly to the agent's authorized tools."""
-        if not agent.allowed_tool_names:
-            return self.master_tool_registry
-
-        scoped = ScopedToolRegistry()
-        allowed_set = set(agent.allowed_tool_names)
-        for name, tool in self.master_tool_registry._tools.items():
-            if name in allowed_set:
-                scoped._tools[name] = tool
-        return scoped
-
     @classmethod
     def bootstrap(
         cls,

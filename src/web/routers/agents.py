@@ -48,6 +48,7 @@ class AgentProfilePayload(BaseModel):
     allow_wiki_access: Optional[bool] = True
     allowed_credentials: Optional[List[str]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
+    expected_skills_version: Optional[str] = None  # CARD-539 D10 stale-save check
 
 
 def _load_pack_manifest(data_dir, agent_id: str):
@@ -105,11 +106,11 @@ def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = Non
 def _public_agent(
     profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None, data_dir: Optional[Path] = None
 ) -> Dict[str, Any]:
+    from src.application.agent_packs.allowed_tools import resolve_allowed_tools, skills_version
     from src.application.agent_packs.schema import (
         PLATFORM_SKILL_IDS,
         is_platform_pack,
         is_visible_in_chat,
-        resolve_scoped_tools,
     )
     from src.application.agent_packs.skill_list import studio_extra_skill_pills
     from src.domain.kernel.models import AgentOrigin
@@ -124,6 +125,8 @@ def _public_agent(
         shown |= {s["id"] for s in operator_store_skills(data_dir)}
         pack_bits["pack_skills"] += studio_extra_skill_pills(profile, shown, data_dir)
 
+    allowed = resolve_allowed_tools(profile)
+    derived_tools = allowed.ordered + allowed.patterns  # wildcard MCP bindings shown as mcp_<server>_*
     if profile.is_builtin or profile.id == "agent-builder":
         origin_val = AgentOrigin.SYSTEM.value
     else:
@@ -144,10 +147,11 @@ def _public_agent(
         else "general",
         "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
         "avatar_icon": profile.avatar_icon,
-        "allowed_tools": profile.allowed_tool_names,
-        "allowed_tool_names": profile.allowed_tool_names,
-        "scoped_tools": resolve_scoped_tools(profile),
+        # CARD-539: tools are derived from ticked skills (read-only); skills_version guards stale saves.
+        "allowed_tools": list(derived_tools),
+        "allowed_tool_names": list(derived_tools),
         "allowed_skill": profile.allowed_skill or [],
+        "skills_version": skills_version(profile),
         "pack_tool_names": profile.pack_tool_names or [],
         "pack_skills": pack_bits["pack_skills"],
         "ungrouped_pack_tools": pack_bits["ungrouped_pack_tools"],
@@ -161,7 +165,6 @@ def _public_agent(
         "memory_enabled": getattr(profile, "memory_enabled", True),
         "memory_retention_days": getattr(profile, "memory_retention_days", 30),
         "pinned_memory": getattr(profile, "pinned_memory", "") or "",
-        "allow_wiki_access": getattr(profile, "allow_wiki_access", True),
         "model": profile.model,
         "is_builtin": profile.is_builtin,
         "is_platform_pack": is_platform_pack(profile.id),
@@ -233,10 +236,10 @@ def _pack_owned_skill_ids(data_dir: Optional[Path]) -> set:
 
 @router.get("/api/skills/catalog")
 async def get_skills_catalog(request: Request):
+    from src.application.agent_packs.allowed_tools import skill_tools
     from src.application.agent_packs.schema import (
         PLATFORM_SKILL_IDS,
         PLATFORM_SKILL_METADATA,
-        PLATFORM_SKILL_TOOLS,
         REQUIRED_PLATFORM_TOOLS,
     )
     from src.application.skills.manifest import TOOL_GROUP_TIERS, get_hierarchical_tool_groups
@@ -255,7 +258,7 @@ async def get_skills_catalog(request: Request):
     platform_skills = []
 
     def _skill_tools(skill_id: str):
-        names = PLATFORM_SKILL_TOOLS.get(skill_id, ())
+        names = skill_tools([skill_id]).get(skill_id, [])
         return [
             {
                 "name": name,
@@ -353,9 +356,11 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
 
     agent_id = payload.id.strip() if payload.id else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
     available_tools = {t.name for t in tool_reg.list_tools()}
-    data = payload.model_dump()
+    data = payload.model_dump(exclude={"expected_skills_version"})
     data["id"] = agent_id
     data["origin"] = "custom"
+    data["allowed_tool_names"] = []  # CARD-539: tools come from ticked skills only
+    data["pack_tool_names"] = []
 
     try:
         profile = AgentProfileGuardrail.validate(data, available_tools=available_tools)
@@ -398,6 +403,16 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
 
+    from src.application.agent_packs.allowed_tools import skills_version
+
+    expected = (payload.expected_skills_version or "").strip()
+    if expected and expected != skills_version(existing):
+        raise HTTPException(
+            status_code=409,
+            detail="This agent's skills changed since this page loaded (for example an accepted proposal). "
+            "Reload Agent Studio and save again.",
+        )
+
     available_tools = {t.name for t in tool_reg.list_tools()}
     # CARD-438 hotfix: Studio Save re-sends skill-derived pack tools. Grandfather
     # tools already authorized on this agent so scalar edits (max_turns) are not
@@ -405,20 +420,19 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     # catalog (stale worker / mount lag). Brand-new unknown tool names still 422.
     available_tools |= {str(t).strip() for t in (existing.allowed_tool_names or []) if str(t).strip()}
     available_tools |= {str(t).strip() for t in (existing.pack_tool_names or []) if str(t).strip()}
-    data = payload.model_dump()
+    data = payload.model_dump(exclude={"expected_skills_version"})
     data["id"] = agent_id
+    # CARD-539: tool lists are derived from skills; payload tool lists are ignored.
+    data["allowed_tool_names"] = existing.allowed_tool_names
+    data["pack_tool_names"] = existing.pack_tool_names or []
     if not data.get("name"):
         data["name"] = existing.name
     if not data.get("system_prompt"):
         data["system_prompt"] = existing.system_prompt
     if not data.get("purpose"):
         data["purpose"] = existing.purpose.value if hasattr(existing.purpose, "value") else str(existing.purpose)
-    if data.get("allowed_tool_names") is None:
-        data["allowed_tool_names"] = existing.allowed_tool_names
     if data.get("allowed_skill") is None:
         data["allowed_skill"] = existing.allowed_skill or []
-    if data.get("pack_tool_names") is None:
-        data["pack_tool_names"] = existing.pack_tool_names or []
     if data.get("show_in_chat") is None:
         data["show_in_chat"] = existing.show_in_chat is not False
     if data.get("allow_wiki_access") is None:
@@ -448,7 +462,6 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
                 with open(pack_json_file, "r", encoding="utf-8") as pf:
                     p_data = json.load(pf)
                 p_data["name"] = profile.name
-                p_data["allowed_tool_names"] = profile.allowed_tool_names
                 p_data["allowed_skill"] = profile.allowed_skill
                 p_data["storage_enabled"] = profile.storage_enabled
                 p_data["max_turns"] = profile.max_turns
@@ -494,7 +507,9 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             pass
 
     # Dormant auto-training fields are not part of the API [CARD-497 D9].
-    return {"status": "updated", "agent": profile.model_dump(exclude={"allow_autonomous_training", "max_training_retries"})}
+    body = profile.model_dump(exclude={"allow_autonomous_training", "max_training_retries"})
+    body["skills_version"] = skills_version(profile)
+    return {"status": "updated", "agent": body}
 
 
 @router.delete("/api/agents/{agent_id}")

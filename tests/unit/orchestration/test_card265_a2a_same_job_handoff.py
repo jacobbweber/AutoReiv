@@ -181,7 +181,7 @@ def test_bind_specialist_same_job_resumes_same_id(store, orch, resolver):
         description="t",
         system_prompt="t",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["cli_exec", "wiki_note_search"],
+        allowed_skill=["tool:cli_exec", "tool:wiki_note_search"],
     )
     decision = gate.evaluate(
         ToolCall(id="t1", name="cli_exec", arguments={"command": "echo x"}),
@@ -229,7 +229,7 @@ async def test_engine_same_job_bind_stamps_result(store, orch, resolver):
         description="d",
         system_prompt="s",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["wiki_note_search", "cli_exec"],  # wider — must not escalate
+        allowed_skill=["tool:wiki_note_search", "tool:cli_exec"],  # wider — must not escalate
         max_turns=5,
     )
     registry = BuiltinAgentRegistry(profiles=[specialist], state_store=store)
@@ -273,7 +273,7 @@ async def test_engine_linked_child_opt_in_still_works(store, orch, resolver):
         description="d",
         system_prompt="s",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["wiki_note_search"],
+        allowed_skill=["tool:wiki_note_search"],
         max_turns=5,
     )
     kernel = _StreamKernel()

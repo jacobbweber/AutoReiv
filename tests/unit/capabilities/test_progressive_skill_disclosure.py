@@ -232,8 +232,7 @@ def test_req_pskill_004_chat_still_lists_ticked_tool_schemas():
         name="Assistant",
         description="Test assistant",
         system_prompt="test",
-        allowed_tool_names=["wiki_note_search", "skill_view"],
-        allowed_skill=["platform-health"],
+        allowed_skill=["platform-health", "tool:wiki_note_search"],  # skill_view comes with any tick
     )
     tools = reg.get_tools_for_agent(agent)
     names = {t.name for t in tools}

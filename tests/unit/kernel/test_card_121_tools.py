@@ -38,7 +38,7 @@ def test_untick_omits_tool_schema_from_agent_list():
         name="Assistant like",
         description="Has wiki read",
         system_prompt="You help.",
-        allowed_tool_names=["wiki_note_read"],
+        allowed_skill=["tool:wiki_note_read"],
     )
     tools = registry.get_tools_for_agent(ticked)
     names = [t.name for t in tools]
@@ -99,8 +99,7 @@ Playbook body.
         name="Assistant",
         description="Has catalog openers",
         system_prompt="You help.",
-        allowed_tool_names=["list_user_skill_packs", "skill_view", "wiki_note_read"],
-        allowed_skill=["user-runbook"],
+        allowed_skill=["user-runbook", "tool:wiki_note_read"],
     )
     model_tools = {t.name for t in tool_reg.get_tools_for_agent(assistant)}
     assert "skill_view" in model_tools

@@ -57,9 +57,10 @@ describe('CARD-389: Agent Forge Uniform Skill-First Architecture', () => {
     expect(forgeJs).toContain('get_session_info');
   });
 
-  it('forge.js save handler derives tools strictly from checked skills', () => {
+  it('forge.js save handler sends checked skills only; the server derives tools (CARD-539)', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js') + read('src/web/static/modules/studios/forge/runbook.js');
-    expect(forgeJs).toContain('derivedTools');
+    expect(forgeJs).not.toContain('derivedTools');
     expect(forgeJs).toContain('sqlite-storage');
+    expect(forgeJs).toContain('expected_skills_version');
   });
 });

@@ -104,7 +104,7 @@
   - [x] **CARD-520**: Rename `factory_escalation` to `tool_escalation`; Observability tool escalations get Ask Developer instead of Apply (folds CARD-526) - **Done**.
   - [x] **CARD-530**: Approving a HITL card while the Developer reply is still streaming must not cancel and resume the turn ("Cannot complete phase ... still queued") - **Done**.
   - [x] **CARD-532**: Live QA runner and dedicated test environment: the coding assistant runs each card's live-test journeys against a real serve with real models. - **Done**.
-  - [ ] **CARD-539**: Capability scoping ([ADR-0061](../docs/adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)): one allowed-tools function, tools only through ticked skills, selection only narrows, proposals instead of grants, route not refuse (needs **build**; folds CARD-529 items 2 and 4).
+  - [x] **CARD-539**: Capability scoping ([ADR-0061](../docs/adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)): one allowed-tools function, tools only through ticked skills, selection only narrows, proposals instead of grants, route not refuse (folds CARD-529 items 2 and 4) - **Done**.
   - [ ] **CARD-533**: Journey testing inside AutoReiv: Developer skill and tools, Projects Studio journey runs (depends on CARD-532).
   - [ ] **CARD-529**: Developer cannot read an existing custom tool's code, and a stopped phase hides why (partly folded into CARD-539: tools offered outside the allowlist and keyword-family routing moved there).
   - [ ] **CARD-512**: Retire the scaffold spine backend.
@@ -114,6 +114,14 @@
   - [ ] **CARD-536**: Reopening a chat whose job failed shows Failed without the reason.
   - [ ] **CARD-537**: AutoReiv uses an accepted skill tool (weather) and routes instead of refusing (depends on CARD-539).
   - [ ] **CARD-538**: Developer reply can end with "Reply failed: The model returned an empty reply" right after registering a tool.
+  - [ ] **CARD-540**: Drop the inert `allow_wiki_access` agent field (from CARD-539).
+  - [ ] **CARD-541**: Drop platform pack.json `allowed_tool_names` / `pack_tool_names` (from CARD-539).
+  - [ ] **CARD-542**: Own-skill search when an agent ticks more than 20 skills (ADR-0061 D9, from CARD-539).
+  - [ ] **CARD-543**: Developer can register a stub tool that the agent then declines to use (from CARD-539 live QA).
+  - [ ] **CARD-544**: Untick `coding` on AutoReiv so code work routes to Developer (D1 decided by Jacob 2026-09-26; pack, migration, routing journey).
+  - [ ] **CARD-545**: Native tools declare risk at registration (ADR-0061 D11, full; from CARD-539).
+  - [ ] **CARD-546**: Out-of-domain routing and the Ask Developer button still depend on the model following the prompt (from CARD-539 live QA).
+  - [ ] **CARD-547**: Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (from CARD-539 live QA).
   - [ ] **Education Studio** (no card yet).
 
 

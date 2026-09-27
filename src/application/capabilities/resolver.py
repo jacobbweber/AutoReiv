@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Protocol, Sequence
+from typing import Any, Iterable, List, Optional, Protocol, Sequence
 
 from src.domain.capabilities.models import CapabilityIndexEntry, CapabilityKind, TrustTier
 
@@ -221,12 +221,15 @@ class CapabilityCatalogResolver:
         kinds: Optional[Sequence[str]] = None,
         limit: int = DEFAULT_LIMIT,
         trusted_only: bool = False,
+        allowed_ids: Optional[Iterable[str]] = None,
     ) -> ResolveResult:
         """Match intent/role/keywords to a subset. Empty intent -> miss, not dump-all.
 
         CARD-255: standing Job formulate passes trusted_only=True so candidates
         never auto-match into a Job (no auto-trust). Operator/Forge discovery
         keeps trusted_only=False / Forge candidate queue.
+        CARD-539: allowed_ids (the agent's allowed tools and ticked skills) limits matching to
+        that agent; every row is considered (no scan cap), only the returned subset is bounded.
         """
         query = (intent or "").strip()
         total = self._store.count_entries()
@@ -252,10 +255,11 @@ class CapabilityCatalogResolver:
                 except ValueError as exc:
                     raise ValueError(f"unknown capability kind (fail closed): {k!r}") from exc
 
-        # Pull a bounded working set for matching (not unbounded dump into prompt).
-        # Cap scan window well above match limit but far below "dump everything".
-        scan_limit = min(max(lim * 8, 64), 256)
-        candidates = self._store.list_entries(kinds=kind_filter, limit=scan_limit, offset=0)
+        # Score every row (CARD-539: no scan cap); only the matched subset reaches a prompt.
+        candidates = self._store.list_entries(kinds=kind_filter, limit=max(total, 1), offset=0)
+        if allowed_ids is not None:
+            allowed_set = {str(x) for x in allowed_ids}
+            candidates = [e for e in candidates if e.id in allowed_set]
         if trusted_only:
             # Standing Jobs: trusted only - never auto-trust candidates [CARD-255 / REQ-SSQ-003].
             filtered = []

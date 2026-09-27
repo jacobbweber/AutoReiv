@@ -101,11 +101,11 @@ describe('Agent Studio pack UI [CARD-119]', () => {
     expect(html).not.toContain('value="agent-builder"');
   });
 
-  it('forge.js saves show_in_chat and fills pack-owned from pack_tool_names', () => {
+  it('forge.js saves show_in_chat; tool lists are not sent (CARD-539)', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     const pickerJs = read('src/web/static/modules/studios/agent_picker.js');
     expect(forgeJs).toContain('show_in_chat');
-    expect(forgeJs).toContain('pack_tool_names');
+    expect(forgeJs).not.toMatch(/pack_tool_names\s*:/);
     expect(forgeJs).toContain('/api/agents/import-pack');
     expect(forgeJs).toContain('/pack.zip');
     expect(forgeJs).toContain('assignedSkillListHtml');

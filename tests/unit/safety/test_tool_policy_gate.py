@@ -48,7 +48,7 @@ def gate(store):
 def _agent(**kwargs):
     base = dict(
         id="assistant",
-        allowed_tool_names=["wiki_note_search", "cli_exec", "wiki_note_create"],
+        allowed_skill=["tool:wiki_note_search", "tool:cli_exec", "tool:wiki_note_create"],
         storage_enabled=False,
         mcp_servers=[],
     )
@@ -142,7 +142,7 @@ def test_req_toolpol_003_unknown_and_out_of_scope_block(gate):
     # Not in agent allowlist
     d1 = gate.evaluate(
         ToolCall(id="c4", name="secret_exfil", arguments={}),
-        _agent(allowed_tool_names=["wiki_note_search"]),
+        _agent(allowed_skill=["tool:wiki_note_search"]),
         registry_tool_names={"secret_exfil", "wiki_note_search"},
     )
     assert d1.verdict == ToolPolicyVerdict.BLOCK
@@ -150,7 +150,7 @@ def test_req_toolpol_003_unknown_and_out_of_scope_block(gate):
     # Unknown to registry
     d2 = gate.evaluate(
         ToolCall(id="c5", name="totally_unknown", arguments={}),
-        _agent(allowed_tool_names=["totally_unknown"]),
+        _agent(allowed_skill=["tool:totally_unknown"]),
         registry_tool_names={"wiki_note_search"},
     )
     assert d2.verdict == ToolPolicyVerdict.BLOCK
@@ -217,7 +217,7 @@ def test_req_toolpol_005_extends_existing_hitl_no_parallel_engine():
 
 def test_req_407_empty_matched_capability_subset_fallback(gate):
     """CARD-407 / REQ-407-003: Empty matched_capability_ids or tool-free match must not block allowlisted tools."""
-    agent = _agent(allowed_tool_names=["wiki_note_search", "inspect_system_health"])
+    agent = _agent(allowed_skill=["tool:wiki_note_search", "tool:inspect_system_health"])
     registry_names = {"wiki_note_search", "inspect_system_health", "cli_exec"}
 
     # 1. When matched_capability_ids is empty list [] (the bug that broke AutoReiv's job)

@@ -154,22 +154,25 @@ class AgentBuilderTools:
         )
 
     async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
-        """Return catalog of available tools, model purposes, and tone directives."""
+        """Authoring catalog: skills, platform tools, purposes and tones. Not a tool list for the caller."""
+        from src.application.agent_packs.schema import PLATFORM_SKILL_METADATA
+
         tools_list = []
         if self.tool_registry:
             for t in self.tool_registry.list_tools():
-                tools_list.append(
-                    {
-                        "name": t.name,
-                        "description": t.description,
-                    }
-                )
+                tools_list.append({"name": t.name, "description": t.description})
+        skills = [{"id": sid, **meta} for sid, meta in PLATFORM_SKILL_METADATA.items()]
 
         purposes = [p.value for p in ModelPurpose]
         tones = [t.value for t in AgentTone]
 
         return {
-            "tools": tools_list,
+            "note": (
+                "Authoring catalog only: these tools are not callable by you. Agents get tools by ticking "
+                "skills; propose a skill (or attaching a tool to one) for Jacob to accept."
+            ),
+            "skills": skills,
+            "catalog_tools": tools_list,
             "purposes": purposes,
             "tones": tones,
             "avatars": [
@@ -203,22 +206,22 @@ class AgentBuilderTools:
             purpose = ModelPurpose.TASK_EXECUTION.value
             tone = AgentTone.TECHNICAL.value
             avatar = "terminal" if "dev" in domain_lower else "database"
-            suggested_tools = ["system_info", "cli_exec"]
+            suggested_skills = ["coding", "sandbox"]
         elif "audit" in domain_lower or "sec" in domain_lower or "qa" in domain_lower or "critic" in domain_lower:
             purpose = ModelPurpose.REASONING.value
             tone = AgentTone.TECHNICAL.value
             avatar = "shield-alert"
-            suggested_tools = ["verify_telemetry_consistency", "assert_json_schema", "validate_metric_bounds"]
+            suggested_skills = ["platform-health"]
         elif "wiki" in domain_lower or "doc" in domain_lower or "write" in domain_lower:
             purpose = ModelPurpose.AUXILIARY.value
             tone = AgentTone.ACADEMIC.value
             avatar = "book-open"
-            suggested_tools = ["wiki_note_create", "wiki_note_read", "wiki_note_list", "wiki_template_list", "yaml_frontmatter_parse"]
+            suggested_skills = ["wiki-knowledge", "wiki-inbox"]
         else:
             purpose = ModelPurpose.GENERAL.value
             tone = AgentTone.FRIENDLY.value
             avatar = "bot"
-            suggested_tools = ["task_tracker_create", "task_tracker_list", "task_tracker_update"]
+            suggested_skills = ["wiki_tasks"]
 
         system_prompt = (
             f"You are AutoReiv's {clean_role}. "
@@ -235,7 +238,7 @@ class AgentBuilderTools:
             "tone": tone,
             "avatar_icon": avatar,
             "model": "default",
-            "allowed_tool_names": suggested_tools,
+            "allowed_skill": suggested_skills,  # tools come from skills (CARD-539)
             "max_turns": DEFAULT_AGENT_MAX_TURNS,
         }
 

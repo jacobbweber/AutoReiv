@@ -222,7 +222,7 @@ def test_oc425_pack_py_bootstrap_is_not_native_custom(tmp_path, monkeypatch):
             name="Widget",
             description="Widget",
             system_prompt="Widget",
-            allowed_tool_names=["widget_ping"],
+            allowed_skill=["tool:widget_ping"],  # CARD-539: tools come from ticked skills
         )
         result = asyncio.run(
             registry.execute(

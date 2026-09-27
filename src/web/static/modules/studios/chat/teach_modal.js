@@ -23,6 +23,19 @@ export function buildDeveloperToolDraft(esc = {}, agentId = '') {
   };
 }
 
+/** CARD-539 D6: Ask Developer from a reply that says no agent covers the request. */
+export function buildAskDeveloperDraft(request = '', reply = '', agentId = '') {
+  const lines = [
+    `No agent covers this request yet: "${String(request || '').trim()}"`,
+    `${agentId || 'The agent'} replied: ${String(reply || '').trim().slice(0, 600)}`,
+    'Build what is missing (a tool, and a skill that uses it) and propose attaching it to the right agent.',
+  ];
+  return {
+    intent: 'create', tool_name: '', behavior: lines.join('\n\n'),
+    ...(agentId ? { target_agent_id: String(agentId) } : {}),
+  };
+}
+
 export function setupTeachAgentModal(state, elements = {}, {
   showToastFn, callbacks = {}, messagesContainer, fetchFn = null, openDeveloperSessionFn = null,
 } = {}) {
@@ -128,6 +141,17 @@ export function setupTeachAgentModal(state, elements = {}, {
       if (!card || btn.disabled) return;
       btn.disabled = true;
       askDeveloperToBuildTool(card).finally(() => { btn.disabled = false; });
+    });
+    messagesContainer.addEventListener('click', (ev) => {
+      const btn = ev.target && typeof ev.target.closest === 'function' ? ev.target.closest('.msg-ask-developer-btn') : null;
+      if (!btn || btn.disabled) return;
+      btn.disabled = true;
+      const users = (state.messages || []).filter((m) => String((m && m.role) || '').toLowerCase() === 'user');
+      const request = users.length ? String(users[users.length - 1].content || '') : '';
+      const agent = state.selectedAgentId || 'autoreiv';
+      askDeveloperWithDraft(buildAskDeveloperDraft(request, btn.getAttribute('data-reply') || '', agent), { intent: 'create', fetchFn: doFetch, openDeveloperSessionFn })
+        .catch((err) => showToast(`Could not open a Developer chat: ${err.message || err}`, 'error'))
+        .finally(() => { btn.disabled = false; });
     });
   }
 

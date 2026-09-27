@@ -1,9 +1,9 @@
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools as resolve_scoped_tools
 from src.application.agent_packs.schema import (
     REQUIRED_PLATFORM_TOOLS,
     SkillTier,
-    resolve_scoped_tools,
 )
 from src.application.agent_packs.service import (
     PlatformSkillMountError,
@@ -89,9 +89,10 @@ def test_pack_skills_strictly_isolated():
     scoped_a = resolve_scoped_tools(agent_a)
     scoped_b = resolve_scoped_tools(agent_b)
 
-    assert 'special_tool_a' in scoped_a
+    # CARD-539 / ADR-0061: pack_tool_names grant nothing; tools come only from ticked skills.
+    assert 'special_tool_a' not in scoped_a
     assert 'special_tool_a' not in scoped_b
-    assert 'special_tool_b' in scoped_b
+    assert 'special_tool_b' not in scoped_b
     assert 'special_tool_b' not in scoped_a
 
 
@@ -130,8 +131,8 @@ def test_tool_registry_scoping_prevents_prompt_bloat():
     # Must contain ticked optional sandbox tool
     assert 'execute_code' in tool_names
 
-    # Must contain own pack tool
-    assert 'pack_exclusive_tool' in tool_names
+    # CARD-539: a pack tool list without a skill binding grants nothing
+    assert 'pack_exclusive_tool' not in tool_names
 
     # Must NEVER contain foreign unassigned tool
     assert 'unassigned_foreign_tool' not in tool_names

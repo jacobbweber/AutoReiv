@@ -45,7 +45,7 @@ def _raw(name, code, **extra):
         "parameters": SCHEMA,
         "requires_hitl": False,
         "risk_level": "low",
-        "grant_agent_ids": ["autoreiv"],
+        "target_agent_id": "autoreiv",
     }
     body.update(extra)
     return body
@@ -63,6 +63,7 @@ async def test_13_broken_tool_saves_mounts_grants_and_syncs_nothing(env):
     assert store.get_setting("native_custom_tools") in (None, [])
     assert "c511_broken" not in registry
     assert store.get_agent_override("autoreiv") is None
+    assert store.get_pending_approvals(agent_id="autoreiv") == []
     assert store.get_setting("tool_policy") == policy_before
 
 
@@ -72,7 +73,7 @@ async def test_14_good_tool_row_carries_the_check(env):
     assert body["success"] is True
     assert body["persisted"] is True
     assert body["mounted"] is True
-    assert body["granted_agent_ids"] == ["autoreiv"]
+    assert body["proposal"]["status"] == "pending" and body["proposal"]["agent_id"] == "autoreiv"  # CARD-539
     assert body["check"]["status"] == "passed"
     assert body["message"].startswith("Checked: c511_good")
     row = store.get_setting("native_custom_tools")[0]
@@ -84,7 +85,7 @@ async def test_14_good_tool_row_carries_the_check(env):
 
 async def test_14b_high_risk_registers_checked_without_call(env):
     store, _registry, service = env
-    body = await service.register(_raw("c511_high", GOOD, risk_level="high", grant_agent_ids=[]))
+    body = await service.register(_raw("c511_high", GOOD, risk_level="high", target_agent_id=""))
     assert body["requires_hitl"] is True
     assert body["check"]["status"] == "checked_without_call"
     assert body["check"]["skip_reason"] == "high risk: sample call skipped"
@@ -96,7 +97,7 @@ async def test_14c_skip_needs_a_reason(env):
         await service.register(_raw("c511_skip", GOOD, sample_call="skip"))
     assert caught.value.status_code == 400
     assert "skip_reason" in str(caught.value)
-    body = await service.register(_raw("c511_skip", GOOD, sample_call="skip", skip_reason="sends email", grant_agent_ids=[]))
+    body = await service.register(_raw("c511_skip", GOOD, sample_call="skip", skip_reason="sends email", target_agent_id=""))
     assert body["check"]["status"] == "checked_without_call"
     assert body["check"]["skip_reason"] == "sends email"
 

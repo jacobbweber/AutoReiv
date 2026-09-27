@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -66,6 +66,7 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "wiki_note_search",
         "wiki_note_read",
         "wiki_note_list",
+        "wiki_graph",
     ),
     "wiki-inbox": (
         "wiki_note_create",
@@ -137,6 +138,7 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "wiki_note_search",
         "wiki_note_read",
         "wiki_note_list",
+        "wiki_graph",
     ),
     "wiki-inbox": (
         "wiki_note_create",
@@ -227,6 +229,7 @@ REQUIRED_PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_session_info",
         "recall_agent_memory",
         "memorize_fact",
+        "read_document_file",
     ),
 }
 REQUIRED_PLATFORM_SKILLS: tuple[str, ...] = tuple(REQUIRED_PLATFORM_SKILL_TOOLS.keys())
@@ -238,6 +241,7 @@ REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "get_session_info",
     "recall_agent_memory",
     "memorize_fact",
+    "read_document_file",  # CARD-539 D3: document reading is platform-wide
 )
 
 # Tier 2: Platform Optional Skills
@@ -328,119 +332,6 @@ class FleetManifest(BaseModel):
 
 def is_platform_pack(agent_id: str) -> bool:
     return (agent_id or "").strip() in PLATFORM_PACK_IDS
-
-
-def tools_for_platform_skills(skill_ids: list[str] | None) -> list[str]:
-    """Tool ids that belong to ticked Platform skills (not pack-owned)."""
-    names: list[str] = []
-    for sid in skill_ids or []:
-        for tool in PLATFORM_SKILL_TOOLS.get(str(sid).strip(), ()):
-            if tool not in names:
-                names.append(tool)
-    return names
-
-
-def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = None) -> list[str]:
-    """
-    Resolve authorized tool names for an agent based on dynamic scoping [CARD-339, ADR-0052]:
-    1. Tier 1 (Lean Platform Baseline): activate_skill, ask_clarification, handoff_to_agent, lookup_agents, get_session_info.
-    2. Tier 2 (Platform & Pack Skills): Mounted dynamically when skill id in active_skills.
-       When active_skills is omitted (e.g. static catalog / API reflection), all authorized tools are returned.
-    3. Tier 3 (Dedicated Agent Pack): Private tools in pack_tool_names.
-    """
-    agent_id = agent.get("id") if isinstance(agent, dict) else getattr(agent, "id", None)
-    if agent_id == "direct":
-        return []
-
-    scoped: list[str] = list(REQUIRED_PLATFORM_TOOLS)
-
-    if isinstance(agent, dict):
-        allowed_skills = list(agent.get("allowed_skill") or agent.get("skills") or [])
-        pack_tools = list(agent.get("pack_tool_names") or agent.get("pack_tools") or [])
-    else:
-        allowed_skills = list(getattr(agent, "allowed_skill", []) or [])
-        pack_tools = list(getattr(agent, "pack_tool_names", []) or [])
-
-    if active_skills is not None:
-        effective_skills = [str(s).strip() for s in active_skills]
-        # Dynamically mount tools belonging to active skills
-        for sid in effective_skills:
-            for tool in PLATFORM_SKILL_TOOLS.get(sid, ()):
-                if tool not in scoped:
-                    scoped.append(tool)
-            for tool in DYNAMIC_SKILL_TOOLS.get(sid, ()):
-                if tool not in scoped:
-                    scoped.append(tool)
-
-        _append_skill_view(scoped, allowed_skills)
-        # CARD-411: SQLite skill bindings are canonical. pack.json tools apply only
-        # when that skill has never been saved by the Factory workshop.
-        bound = _append_sqlite_skill_tools(scoped, effective_skills)
-        if agent_id:
-            try:
-                from src.infrastructure.data.resolver import DataDirResolver
-                data_root = DataDirResolver().resolve().root
-                pack_json_file = data_root / "packs" / agent_id / "pack.json"
-                if pack_json_file.is_file():
-                    import json
-                    pdata = json.loads(pack_json_file.read_text(encoding="utf-8"))
-                    for sk in pdata.get("skills") or []:
-                        if not isinstance(sk, dict):
-                            continue
-                        sid = sk.get("id")
-                        if sid not in effective_skills or sid in bound:
-                            continue
-                        for t in sk.get("tools") or []:
-                            if t and t not in scoped:
-                                scoped.append(str(t))
-            except Exception:
-                pass
-        return scoped
-
-    # Static / unconstrained resolution: include all authorized skills & pack tools
-    for sid in allowed_skills:
-        clean_sid = str(sid).strip()
-        for tool in PLATFORM_SKILL_TOOLS.get(clean_sid, ()):
-            if tool not in scoped:
-                scoped.append(tool)
-        for tool in DYNAMIC_SKILL_TOOLS.get(clean_sid, ()):
-            if tool not in scoped:
-                scoped.append(tool)
-
-    for tool in pack_tools:
-        clean_tool = str(tool).strip()
-        if clean_tool and clean_tool not in scoped:
-            scoped.append(clean_tool)
-
-    _append_sqlite_skill_tools(scoped, [str(sid).strip() for sid in allowed_skills])
-    _append_skill_view(scoped, allowed_skills)
-    return scoped
-
-
-def _append_skill_view(scoped: list[str], allowed_skills: list[str]) -> None:
-    """Chat can list and open allowlisted runbooks. Do not persist these onto the profile."""
-    if not allowed_skills:
-        return
-    from src.application.skills.user_catalog import LIST_USER_SKILL_PACKS, SKILL_VIEW
-
-    for name in (SKILL_VIEW, LIST_USER_SKILL_PACKS):
-        if name not in scoped:
-            scoped.append(name)
-
-
-def _append_sqlite_skill_tools(scoped: list[str], skill_ids: list[str]) -> dict[str, list[str]]:
-    """Mount tools from operational SQLite. Returns the skills that have a binding row."""
-    try:
-        from src.infrastructure.memory.repositories.skill_bindings import sqlite_tools_for_skills
-
-        bound = sqlite_tools_for_skills(skill_ids)
-    except Exception:
-        return {}
-    for tools in bound.values():
-        for tool in tools:
-            if tool and tool not in scoped:
-                scoped.append(tool)
-    return bound
 
 
 def is_visible_in_chat(agent: Any) -> bool:

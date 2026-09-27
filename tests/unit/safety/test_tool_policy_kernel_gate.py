@@ -54,7 +54,7 @@ def test_kernel_gate_listed_but_blocked_never_runs(store):
     k.tool_policy_gate.reload_policy()
     agent = SimpleNamespace(
         id="assistant",
-        allowed_tool_names=["wiki_note_search", "cli_exec"],
+        allowed_skill=["tool:wiki_note_search", "tool:cli_exec"],
         storage_enabled=False,
         mcp_servers=[],
     )
@@ -73,7 +73,7 @@ def test_kernel_gate_dangerous_parks(store):
     k = _kernel(store)
     agent = SimpleNamespace(
         id="assistant",
-        allowed_tool_names=["cli_exec"],
+        allowed_skill=["tool:cli_exec"],
         storage_enabled=False,
         mcp_servers=[],
     )

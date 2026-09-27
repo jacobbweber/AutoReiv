@@ -106,7 +106,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
             "code": ECHO_CODE,
             "requires_hitl": False,
             "risk_level": "low",
-            "grant_agent_ids": ["developer"],
+            "target_agent_id": "developer",
             "parameters": {
                 "type": "object",
                 "properties": {"token": {"type": "string"}},
@@ -120,7 +120,10 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     assert body["persisted"] is True
     assert body["mounted"] is True
     assert body["origin_label"] == "Native custom"
-    assert body["granted_agent_ids"] == ["developer"]
+    # CARD-539: registering proposes; Developer can call it once the proposal is accepted.
+    assert body["proposal"]["status"] == "pending"
+    accepted = client.post(f"/api/approvals/{body['proposal']['approval_id']}/decision", json={"decision": "APPROVED"})
+    assert accepted.status_code == 200, accepted.text
     assert store.get_setting("mcp_servers") == before_mcp
 
     listed = client.get("/api/tools/native")
@@ -141,7 +144,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     assert denied_body["ran"] is False
     assert denied_body["success"] is False
     assert "RAN" not in json.dumps(denied_body.get("output"))
-    assert "not in agent allowlist" in str(denied_body.get("error") or "")
+    assert "not in a skill ticked" in str(denied_body.get("error") or "")
 
     called = client.post(
         "/api/tools/native/echo_token/invoke",
@@ -183,11 +186,12 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
             "name": "risky_note",
             "description": "A native tool that must park.",
             "code": RISKY_CODE,
-            "grant_agent_ids": ["developer"],
+            "target_agent_id": "developer",
         },
     )
     assert risky.status_code == 200, risky.text
     assert risky.json()["requires_hitl"] is True
+    client.post(f"/api/approvals/{risky.json()['proposal']['approval_id']}/decision", json={"decision": "APPROVED"})
     assert "risky_note" in store.get_setting("tool_policy")["require_confirm_tools"]
 
     parked = client.post(
