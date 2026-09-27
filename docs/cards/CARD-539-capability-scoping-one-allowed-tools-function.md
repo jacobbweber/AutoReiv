@@ -1,7 +1,7 @@
 ---
 id: CARD-539
 title: "Capability scoping: one allowed-tools function, skills-only permission, selection only narrows, route not refuse"
-status: In Review
+status: Done
 created: 2026-09-26
 branch: qa
 adr: ADR-0061
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-539] Capability scoping: one allowed-tools function
 
-> **Status**: In Review on `feat/card-539-capability-scoping` (from qa `2cfae4bb`, not merged or pushed), 2026-09-27 ~12:15 AM ET. **Build approved** by Jacob 2026-09-26 ~9:23 PM ET: D1-D7 as recommended, D8-D11 as recommended, and the AGENTS.md lock rewording.  
+> **Status**: Done. Merged to qa 2026-09-27 ~12:25 AM ET (Jacob: "merge to qa"). **Build approved** by Jacob 2026-09-26 ~9:23 PM ET: D1-D7 as recommended, D8-D11 as recommended, and the AGENTS.md lock rewording.  
 > **ADR**: [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md) (locked decisions A-J, Jacob 2026-09-26)  
 > **Folds in**: CARD-529 items 2 and 4 (tools offered outside the allowlist; keyword-family catalog routing). CARD-529 keeps items 1 and 3.  
 > **Unblocks**: CARD-537.
