@@ -112,7 +112,7 @@
   - [ ] **CARD-534**: A resumed job phase runs on the parent chat session instead of its phase session.
   - [ ] **CARD-535**: After approving a propose_* draft once the reply has ended, the Developer does not continue.
   - [ ] **CARD-536**: Reopening a chat whose job failed shows Failed without the reason.
-  - [ ] **CARD-537**: AutoReiv uses an accepted skill tool (weather) and routes instead of refusing (depends on CARD-539). **In Review** on `feat/card-537-accepted-skill-widens-domain`: end-to-end tests, journey `card-537-accepted-skill-widens-domain`, Tutor prompt routes.
+  - [x] **CARD-537**: AutoReiv uses an accepted skill tool (weather) and routes instead of refusing (depends on CARD-539). **Done** 2026-09-27: end-to-end tests, journey `card-537-accepted-skill-widens-domain`, Tutor prompt routes.
   - [ ] **CARD-538**: Developer reply can end with "Reply failed: The model returned an empty reply" right after registering a tool.
   - [ ] **CARD-540**: Drop the inert `allow_wiki_access` agent field (from CARD-539).
   - [ ] **CARD-541**: Drop platform pack.json `allowed_tool_names` / `pack_tool_names` (from CARD-539).

@@ -1,7 +1,7 @@
 ---
 id: CARD-537
 title: "AutoReiv refuses the weather question after the Developer built get_weather: use an accepted skill tool, route instead of refusing"
-status: In Review
+status: Done
 created: 2026-09-26
 branch: feat/card-537-accepted-skill-widens-domain
 depends_on:
@@ -18,7 +18,7 @@ labels:
 
 # [CARD-537] An accepted skill tool is used; out-of-domain requests are routed, not refused
 
-> **Status**: In Review (2026-09-27 ~4:05 AM ET) on `feat/card-537-accepted-skill-widens-domain`, not merged or pushed. CARD-539 (merged) delivered the behavior; this card verifies it end to end and fixes Tutor's prompt. D1 was decided by Jacob on 2026-09-26 (reworded under [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)).  
+> **Status**: Done (merged to qa on 2026-09-27 after Jacob's "merge to qa" at 12:07 PM ET). It was In Review (2026-09-27 ~4:05 AM ET) on `feat/card-537-accepted-skill-widens-domain`, not merged or pushed. CARD-539 (merged) delivered the behavior; this card verifies it end to end and fixes Tutor's prompt. D1 was decided by Jacob on 2026-09-26 (reworded under [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)).  
 > **Related**: CARD-520 (Teach -> Needs a tool -> Ask Developer), CARD-532 (journey `card-520-teach-needs-tool`)  
 > **Labels**: `type:product`, `area:agents`, `P2`
 
