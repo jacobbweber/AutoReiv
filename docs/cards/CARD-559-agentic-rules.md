@@ -2,7 +2,7 @@
 id: CARD-559
 title: "Agentic rules: slim playbook, fast/full/nightly preflight, known-bug XFAIL, model check"
 type: feature
-status: In Progress
+status: In Review
 priority: P1
 milestone: M22
 needs_decision: none
@@ -14,7 +14,7 @@ proof:
     - tests/unit/skills/test_card559_card_and_preflight_scripts.py
     - preflight.py --fast
 branch: feat/card-559-agentic-rules
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 60, qa_runs: 1, reruns: 0, findings: 7, fast_tier_s: 332, full_tier_s: 1107}
 created: 2026-09-27
 ---
 
@@ -65,6 +65,11 @@ CARD-454/456 fixes (card 2), test speed (card 3).
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-520-teach-needs-tool | desktop | XFAIL | Step 4 XFAIL CARD-535: the Developer stopped without proposing attach_tool_to_skill (no nudge). Steps 1-3 pass. ~13 min, 2026-09-27 19:23 ET. Screenshots: C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-559\ |
+
+- `live_qa.py check-model` against 192.168.1.218:8099 (nemotron-3.5-lightning): ok, exit 0; against a dead URL: "model endpoint down", exit 4.
+- `preflight.py --fast --base qa`: GREEN in 332 s (ruff/eslint changed PASS, guard 190 passed + 1 xfailed in 25 s, changed tests 339 passed + 1 xfailed in 297 s, vitest PASS).
+- `preflight.py --full`: GREEN in 1107 s (ruff KNOWN 7 CARD-454, eslint KNOWN 5 CARD-456, unit 2120 passed / 11 skipped / 1 xfailed, integration 103, honesty PASS, vitest 955, smoke 73).
 
 ## Release note
 Changed: slim agent playbook and rules; preflight fast/full/nightly tiers; live QA model check (exit 4) and known-bug XFAIL.
