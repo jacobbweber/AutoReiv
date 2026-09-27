@@ -127,16 +127,3 @@ def test_autoreiv_pack_prompt_stores_no_static_domain_list():
     section = prompt.split("[DOMAIN BOUNDARIES & REFUSALS]", 1)[1].split("\n\n", 1)[0]
     assert "Focus on" not in section
     assert "Your domain" in section
-
-
-def test_autoreiv_pack_prompt_stores_no_static_domain_list():
-    """D5: the domain comes from ticked skills at runtime; the pack prompt must not pin a fixed list
-    (live QA: AutoReiv quoted the fixed list and ignored an accepted get-weather skill)."""
-    import json
-    from pathlib import Path
-
-    prompt = json.loads(Path("platform-packs/autoreiv/pack.json").read_text(encoding="utf-8"))["system_prompt"]
-    section = prompt.split("[DOMAIN BOUNDARIES & REFUSALS]", 1)[1].split("\n\n", 1)[0]
-    assert "Focus on" not in section
-    assert "Your domain" in section
-
