@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.sdlc.paths import ProjectPathError, detect_autoreiv_root, jail_join
+from src.application.sdlc.paths import ProjectPathError, detect_autoreiv_root, jail_join, protected_write_error
 
 READ_EXCERPT_CHARS = 24000
 
@@ -276,6 +276,9 @@ class RepoCheckoutTools:
         deny_err = self._check_allow(rel)
         if deny_err:
             return {"success": False, "error": deny_err, "path": rel, "tool": "repo_file_write"}
+        blocked = protected_write_error(target)
+        if blocked:
+            return {"success": False, "error": blocked, "path": rel, "tool": "repo_file_write"}
         if target.exists() and target.is_dir():
             return {
                 "success": False,
@@ -315,6 +318,9 @@ class RepoCheckoutTools:
         deny_err = self._check_allow(rel)
         if deny_err:
             return {"success": False, "error": deny_err, "path": rel, "tool": "repo_file_patch"}
+        blocked = protected_write_error(target)
+        if blocked:
+            return {"success": False, "error": blocked, "path": rel, "tool": "repo_file_patch"}
         if not target.is_file():
             return {
                 "success": False,
@@ -351,6 +357,9 @@ class RepoCheckoutTools:
         deny_err = self._check_allow(rel)
         if deny_err:
             return {"success": False, "error": deny_err, "path": rel, "tool": "repo_file_rollback"}
+        blocked = protected_write_error(target)
+        if blocked:
+            return {"success": False, "error": blocked, "path": rel, "tool": "repo_file_rollback"}
         snaps = self._ensure_snapshots()
         key = self._snapshot_key(root, rel)
         if key not in snaps:

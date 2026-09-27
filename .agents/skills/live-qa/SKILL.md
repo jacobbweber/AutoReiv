@@ -17,6 +17,7 @@ python scripts/live_qa.py run --journeys card-520,card-530 --card CARD-532
 ```
 
 - Starts its own serve on `127.0.0.1:8770` (never 8000) with throwaway data in `scratch/live_qa_data` (wiped each start), points it at the real vLLM (`nemotron-3.5-lightning` at `192.168.1.218:8099`; override with `AUTOREIV_QA_VLLM_URL` / `AUTOREIV_QA_MODEL`), runs the journeys at desktop and phone, writes the report, stops the serve.
+- The serve runs from a disposable git worktree outside the repo (`<temp>\autoreiv-qa-checkout`), which holds your tracked changes, committed or not. Untracked new source files are not copied, so commit or `git add` them first. The real checkout is a protected write root, and the run fails (exit 3) if its `git status` changes. Don't edit the repo while a run is going [CARD-555].
 - `--data clone`: copies `%LOCALAPPDATA%\AutoReiv` into `scratch/live_qa_data` first (read-only on the source; `.vault_key` not copied; the copy's `wiki_path` / `data_dir` point at the copy). Use when a card needs Jacob's real agents, jobs or history.
 - `--viewports desktop` or `phone`, `--attempts 2` (retry a journey whose model run did not produce the state under test), `--keep` (leave :8770 up), `--out <dir>`, `--judge` (optional local-model judge, off by default; `AUTOREIV_QA_JUDGE_URL` / `AUTOREIV_QA_JUDGE_MODEL`).
 - Env only: `python scripts/live_qa.py start [--data clone]`, `stop`, `status`, `reset`, `clone`.

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.sdlc.paths import protected_write_error
 from src.application.skills.command_filter import DangerousCommandFilter
 
 
@@ -201,6 +202,10 @@ class SysadminTools:
             base = self._root()
             if base:
                 effective_cwd = str(base.resolve())
+
+        blocked = protected_write_error(effective_cwd or os.getcwd())
+        if blocked:
+            return {"exit_code": -1, "stdout": "", "stderr": blocked, "error": blocked, "duration_ms": 0.0}
 
         if effective_cwd and not os.path.isdir(effective_cwd):
             return {

@@ -4,12 +4,40 @@ Project root detection and path jail for SDLC tools [REQ-SDLC-012, REQ-SDLC-021]
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
-from typing import Optional
+from typing import Mapping, Optional
 
 
 class ProjectPathError(ValueError):
     """Path is outside the project root or otherwise rejected."""
+
+
+# CARD-555: folders no file-writing tool may touch (os.pathsep-separated). The live QA serve sets this to the real
+# checkout, so an approved write in a throwaway env cannot land in Jacob's working tree. Unset means no extra guard.
+PROTECTED_WRITE_ROOTS_ENV = "AUTOREIV_PROTECTED_WRITE_ROOTS"
+
+
+def protected_write_roots(env: Optional[Mapping[str, str]] = None) -> list[Path]:
+    raw = str((os.environ if env is None else env).get(PROTECTED_WRITE_ROOTS_ENV) or "")
+    return [Path(p).expanduser() for p in raw.split(os.pathsep) if p.strip()]
+
+
+def _resolved(path: Path) -> Path:
+    try:
+        return Path(path).resolve()
+    except OSError:
+        return Path(os.path.abspath(path))
+
+
+def protected_write_error(target: Path | str, env: Optional[Mapping[str, str]] = None) -> Optional[str]:
+    """An error message when ``target`` is inside a protected write root, else None."""
+    t = _resolved(Path(target))
+    for root in protected_write_roots(env):
+        r = _resolved(root)
+        if t == r or r in t.parents:
+            return f"Refusing to write under a protected folder ({r}); this environment may not change it."
+    return None
 
 
 def detect_autoreiv_root(start: Optional[Path] = None) -> Path:

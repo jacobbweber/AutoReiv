@@ -26,6 +26,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -47,6 +48,8 @@ CLONE_SKIP_SUFFIXES = (".db-wal", ".db-shm", ".lock")
 DEFAULT_VLLM_URL = "http://192.168.1.218:8099/v1"
 DEFAULT_MODEL = "nemotron-3.5-lightning"
 EXIT_REFUSED = 2
+EXIT_CHECKOUT_CHANGED = 3
+SANDBOX_DIR_NAME = "autoreiv-qa-checkout"
 
 
 def validate_port(port: int) -> int:
@@ -176,6 +179,110 @@ def runner_command(port: int, journeys: list[str], viewports: list[str], out: st
     return cmd
 
 
+# --- CARD-555: the throwaway serve runs from a disposable worktree, never from (or into) the real checkout ---------
+
+
+def sandbox_checkout_dir(env: Mapping[str, str]) -> Path:
+    """Disposable checkout for the serve: AUTOREIV_QA_CHECKOUT_DIR, else <temp>/autoreiv-qa-checkout (outside the repo)."""
+    configured = str(env.get("AUTOREIV_QA_CHECKOUT_DIR") or "").strip()
+    return Path(configured) if configured else Path(tempfile.gettempdir()) / SANDBOX_DIR_NAME
+
+
+def checkout_problems(dest: Path, checkout: Path = CHECKOUT) -> list[str]:
+    if guard.is_within(dest, checkout) or guard.is_within(checkout, dest):
+        return [f"sandbox checkout {dest} overlaps the real checkout {checkout}"]
+    return []
+
+
+def _git(checkout: Path, *args: str, check: bool = True) -> str:
+    res = subprocess.run(["git", "-C", str(checkout), *args], capture_output=True, text=True, check=check)
+    return (res.stdout or "").strip()
+
+
+def snapshot_commit(checkout: Path = CHECKOUT) -> str:
+    """The working tree's tracked state as a commit (``git stash create``; nothing is stashed), else HEAD."""
+    return _git(checkout, "stash", "create") or _git(checkout, "rev-parse", "HEAD")
+
+
+def _rmtree(path: Path) -> None:
+    def onexc(func, p, _exc):
+        os.chmod(p, 0o700)
+        func(p)
+
+    for _ in range(10):
+        if not path.exists():
+            return
+        try:
+            shutil.rmtree(path, onexc=onexc)
+        except OSError:
+            time.sleep(0.5)
+
+
+def remove_sandbox_checkout(checkout: Path, dest: Path) -> None:
+    dest = Path(dest)
+    try:
+        _git(checkout, "worktree", "remove", "--force", str(dest), check=False)
+    except OSError:
+        pass
+    _rmtree(dest)
+    try:
+        _git(checkout, "worktree", "prune", check=False)
+    except OSError:
+        pass
+
+
+def prepare_sandbox_checkout(checkout: Path, dest: Path) -> Path:
+    """A fresh detached worktree at ``dest`` with the checkout's tracked work (committed and uncommitted)."""
+    checkout, dest = Path(checkout), Path(dest)
+    problems = checkout_problems(dest, checkout)
+    if problems:
+        raise ValueError(problems[0])
+    remove_sandbox_checkout(checkout, dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    _git(checkout, "worktree", "add", "--detach", str(dest), snapshot_commit(checkout))
+    return dest
+
+
+def serve_launch(port: int, qa_env: Mapping[str, str], sandbox: Path, checkout: Path = CHECKOUT) -> tuple[list[str], str, dict]:
+    """Command, cwd and env for the throwaway serve: code, cwd and checkout tools in the sandbox; real checkout protected."""
+    env = dict(qa_env)
+    env["AUTOREIV_CHECKOUT_ROOT"] = str(sandbox)
+    env["PYTHONPATH"] = os.pathsep.join([str(sandbox)] + [p for p in str(qa_env.get("PYTHONPATH") or "").split(os.pathsep) if p])
+    env["AUTOREIV_PROTECTED_WRITE_ROOTS"] = str(checkout)
+    cmd = [sys.executable, "-m", "uvicorn", "src.web.app:app", "--host", "127.0.0.1", "--port", str(port)]
+    return cmd, str(sandbox), env
+
+
+def git_status(checkout: Path = CHECKOUT) -> str:
+    return _git(checkout, "status", "--porcelain=v1", "--untracked-files=all", check=False)
+
+
+def checkout_changes(before: str, after: str) -> list[str]:
+    old = {line for line in before.splitlines() if line.strip()}
+    new = {line for line in after.splitlines() if line.strip()}
+    return sorted(new - old) + [f"(no longer) {line}" for line in sorted(old - new)]
+
+
+def report_dir(card: str, out: str, env: Mapping[str, str]) -> Path:
+    if out:
+        return Path(out)
+    root = str(env.get("AUTOREIV_QA_REPORT_DIR") or "").strip() or str(Path(tempfile.gettempdir()) / "autoreiv-qa")
+    return Path(root) / card.lower()
+
+
+def append_checkout_guard(summary_dir: Path, checkout: Path, changed: list[tuple[str, list[str]]]) -> None:
+    lines = ["", "## Real checkout guard (CARD-555)", ""]
+    if changed:
+        lines.append(f"FAIL: the real checkout {checkout} changed during the run (git status):")
+        for label, items in changed:
+            lines += [f"- {label}: {item}" for item in items]
+    else:
+        lines.append(f"PASS: git status of the real checkout {checkout} unchanged during the run.")
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    with open(summary_dir / "summary.md", "a", encoding="utf-8") as fh:
+        fh.write("\n".join(lines) + "\n")
+
+
 def _http(method: str, url: str, body: Optional[dict] = None, timeout: float = 5.0) -> int:
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers={"Content-Type": "application/json"})
@@ -208,6 +315,8 @@ def stop(port: int = DEFAULT_PORT, checkout: Path = CHECKOUT) -> bool:
         if not healthy(port):
             break
         time.sleep(0.5)
+    if stopped:
+        remove_sandbox_checkout(checkout, sandbox_checkout_dir(os.environ))
     return stopped
 
 
@@ -227,12 +336,14 @@ def start(port: int = DEFAULT_PORT, mode: str = "throwaway", checkout: Path = CH
     else:
         guard.wipe_smoke_dir(data_dir, checkout)
     qa_env = guard.build_smoke_env(env, data_dir)
+    # CARD-555: serve the code from a disposable worktree so repo_file_*, write_project_file and cli_exec default to
+    # it; the real checkout is a protected write root for the serve.
+    sandbox = prepare_sandbox_checkout(checkout, sandbox_checkout_dir(env))
+    cmd, cwd, serve_env = serve_launch(port, qa_env, sandbox, checkout)
+    print(f"[live-qa] serving code from sandbox {sandbox} (real checkout protected)")
     log = open(checkout / LOG_FILE_REL, "w", encoding="utf-8")
     flags = (subprocess.CREATE_NEW_PROCESS_GROUP | 0x00000008) if os.name == "nt" else 0  # DETACHED_PROCESS
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "src.web.app:app", "--host", "127.0.0.1", "--port", str(port)],
-        env=qa_env, cwd=str(checkout), stdout=log, stderr=subprocess.STDOUT, creationflags=flags,
-    )
+    proc = subprocess.Popen(cmd, env=serve_env, cwd=cwd, stdout=log, stderr=subprocess.STDOUT, creationflags=flags)
     (checkout / PID_FILE_REL).write_text(str(proc.pid))
     for _ in range(120):
         if healthy(port):
@@ -307,6 +418,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     card = args.card or ("-".join(journeys[0].split("-")[:2]) if len(journeys) == 1 else "journeys")
     runs = [(journeys, viewports, False)] if args.shared_env else [([j], [v], a) for j, v, a in plan_runs(journeys, viewports)]
     worst = 0
+    baseline = git_status(CHECKOUT)  # CARD-555: the run fails if the real checkout changes
+    changed: list[tuple[str, list[str]]] = []
     try:
         for i, (js, vs, append) in enumerate(runs):
             if i == 0 or not args.shared_env:
@@ -315,8 +428,19 @@ def main(argv: Optional[list[str]] = None) -> int:
                     return rc
             cmd = runner_command(args.port, js, vs, args.out, args.attempts, args.judge, card, append=append)
             worst = max(worst, subprocess.call(cmd, cwd=str(CHECKOUT), shell=(os.name == "nt")))
+            now = git_status(CHECKOUT)
+            diff = checkout_changes(baseline, now)
+            if diff:
+                label = f"{','.join(js)} ({','.join(vs)})"
+                print(f"[live-qa] FAIL: the real checkout changed during {label}: {'; '.join(diff)}")
+                changed.append((label, diff))
+                worst = max(worst, EXIT_CHECKOUT_CHANGED)
+                baseline = now
             if not args.shared_env and not (args.keep and i == len(runs) - 1):
                 stop(args.port)
+        if not changed:
+            print(f"[live-qa] real checkout unchanged during the run ({CHECKOUT})")
+        append_checkout_guard(report_dir(card, args.out, os.environ), CHECKOUT, changed)
         return worst
     finally:
         if not args.keep:
