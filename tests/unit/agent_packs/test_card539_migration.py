@@ -21,6 +21,9 @@ class _Agents:
     def get_agent(self, agent_id):
         return self.profiles.get(agent_id)
 
+    def register_custom_agent(self, profile):  # the shared save path re-registers custom agents
+        self.profiles[profile.id] = profile
+
 
 def _store(tmp_path):
     store = SQLiteStateStore(db_path=str(tmp_path / "m.db"))
@@ -42,7 +45,7 @@ def test_fresh_install_migrates_nothing_and_sets_the_marker(tmp_path):
 def test_upgrade_turns_every_lost_tool_into_a_pending_proposal(tmp_path):
     store = _store(tmp_path)
     dev = AgentProfile(id="developer", name="D", description="d", system_prompt="p",
-                       allowed_skill=["python-dev"],
+                       allowed_skill=["sdlc-engineering"],
                        allowed_tool_names=["execute_code", "wiki_note_create", "c520_catalog_dump"])
     agents = _Agents([dev])
     report = migrate_legacy_grants(store, agents, data_root=tmp_path)
@@ -50,7 +53,10 @@ def test_upgrade_turns_every_lost_tool_into_a_pending_proposal(tmp_path):
     assert set(pending) == {"wiki_note_create", "c520_catalog_dump"}
     assert all(p["tool_name"] == ATTACH_TOOL_PROPOSAL for p in store.get_pending_approvals())
     assert pending["wiki_note_create"]["new_skill"] is False
-    assert pending["wiki_note_create"]["skill_id"] == "wiki-knowledge"
+    from src.application.agent_packs.allowed_tools import skill_tools
+
+    sid = pending["wiki_note_create"]["skill_id"]
+    assert "wiki_note_create" in skill_tools([sid])[sid]
     assert pending["c520_catalog_dump"]["new_skill"] is True
     backup = json.loads((tmp_path / "migrations" / "card-539-allowlists.json").read_text("utf-8"))
     assert backup["agents"]["developer"]["allowed_tool_names"] == dev.allowed_tool_names

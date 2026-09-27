@@ -293,6 +293,13 @@ def create_app(
         capability_gap_repo.reset_stranded_training_gaps()
     except Exception as exc:  # a missing table on a brand-new DB is not fatal
         logging.getLogger(__name__).debug("stranded gap reset skipped: %s", exc)
+    # Legacy tool grants become skills or pending proposals, once (idempotent) [CARD-539].
+    try:
+        from src.application.agent_packs.capability_migration import migrate_legacy_grants
+
+        migrate_legacy_grants(store, registry, data_root=data_paths.root)
+    except Exception:
+        logging.getLogger(__name__).exception("CARD-539 capability migration failed; will retry next start")
     # Stored pre-CARD-520 remedy names become tool_escalation, once (idempotent) [CARD-520 D2].
     try:
         from src.application.observability.tool_escalation_migration import migrate_tool_escalation_names
