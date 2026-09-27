@@ -70,6 +70,58 @@ def detect_autoreiv_root(start: Optional[Path] = None) -> Path:
     return Path.cwd().resolve()
 
 
+def _is_checkout_dir(cur: Path) -> bool:
+    has_cards = (
+        (cur / "docs" / "cards").is_dir()
+        or (cur / ".github" / "cards").is_dir()
+        or (cur / ".agents" / "cards").is_dir()
+    )
+    return has_cards and (cur / "AGENTS.md").is_file()
+
+
+def autoreiv_checkout_roots(env: Optional[Mapping[str, str]] = None) -> list[Path]:
+    """Every folder that is the AutoReiv checkout for this process [CARD-556].
+
+    `AUTOREIV_CHECKOUT_ROOT` when set, plus a real checkout found upward from the cwd or this module
+    (`AGENTS.md` + cards). Unlike `detect_autoreiv_root`, there is no cwd fallback: a folder that is not a
+    checkout is never reported, so an installed build does not treat the user's home as the checkout.
+    """
+    found: list[Path] = []
+    raw = str((os.environ if env is None else env).get("AUTOREIV_CHECKOUT_ROOT") or "").strip()
+    if raw:
+        found.append(_resolved(Path(raw).expanduser()))
+    for seed in (Path.cwd(), Path(__file__).resolve().parent):
+        cur = _resolved(seed)
+        for _ in range(12):
+            if _is_checkout_dir(cur):
+                found.append(cur)
+                break
+            if cur.parent == cur:
+                break
+            cur = cur.parent
+    out: list[Path] = []
+    for p in found:
+        if p not in out:
+            out.append(p)
+    return out
+
+
+def inside_checkout(target: Path | str, env: Optional[Mapping[str, str]] = None) -> Optional[Path]:
+    """The checkout root that contains ``target``, else None [CARD-556]."""
+    t = _resolved(Path(target))
+    for root in autoreiv_checkout_roots(env):
+        if t == root or root in t.parents:
+            return root
+    return None
+
+
+def default_scratch_root() -> Path:
+    """`<AutoReiv data root>/scratch` (Windows: %LOCALAPPDATA%\\AutoReiv\\scratch), honoring AUTOREIV_DATA_DIR [CARD-556]."""
+    from src.infrastructure.data.resolver import DataDirResolver
+
+    return _resolved(DataDirResolver().resolve().root / "scratch")
+
+
 def resolve_project_root(project_root: Optional[str] = None, default_root: Optional[Path] = None) -> Path:
     if project_root:
         return Path(project_root).expanduser().resolve()

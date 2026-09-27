@@ -1,4 +1,4 @@
-"""CARD-556 (D1, Jacob 2026-09-27): with no project selected, write_project_file writes to the AutoReiv
+r"""CARD-556 (D1, Jacob 2026-09-27): with no project selected, write_project_file writes to the AutoReiv
 scratch folder under the user data folder (for example %LOCALAPPDATA%\AutoReiv\scratch). It never writes into the
 AutoReiv checkout, and the tool result and description tell the model where the file went.
 """

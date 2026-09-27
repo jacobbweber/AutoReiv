@@ -92,6 +92,17 @@ class ProjectsService:
             return Path(path).expanduser().resolve()
         return Path(self.default_checkout).resolve()
 
+    def selected_root(self, project_root: Optional[str] = None) -> Optional[Path]:
+        """Explicit or Projects Studio-selected project root; None when no project is selected [CARD-556].
+
+        Unlike `resolve_root`, this never falls back to the AutoReiv checkout.
+        """
+        if project_root:
+            return Path(project_root).expanduser().resolve()
+        selected = self.get_selected()
+        path = (selected or {}).get("path") if isinstance(selected, dict) else None
+        return Path(path).expanduser().resolve() if path else None
+
     def get_selected(self) -> Dict[str, Any]:
         raw = self.store.get_setting(SELECTED_PROJECT_KEY)
         return raw if isinstance(raw, dict) else {}
