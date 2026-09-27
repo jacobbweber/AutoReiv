@@ -177,7 +177,7 @@ export class JourneyRun {
    */
   async step(name, fn, { timeoutMs = 60000, soft = false, knownBug = '', card = '' } = {}) {
     if (this.stopped) {
-      this.results.push({ step: name, status: 'skipped', reason: 'an earlier step failed', screenshot: null, ms: 0 });
+      this.results.push({ step: name, status: 'skipped', reason: 'an earlier step failed or hit a known bug', screenshot: null, ms: 0 });
       return null;
     }
     const c0 = this.consoleErrors.length;
