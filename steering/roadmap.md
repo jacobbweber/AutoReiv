@@ -129,7 +129,8 @@
   - [ ] **CARD-552**: `read_document_file` reads any path on disk; add a path guard (from CARD-550 live QA).
   - [ ] **CARD-553**: A handoff from a job phase keeps the job's capability subset, so Developer's `cli_exec` is skipped (from CARD-550 live QA).
   - [ ] **CARD-554**: Formulate does the work itself, ends FAILED after a completed handoff, and Execute stays queued (from CARD-550 live QA).
-  - [ ] **CARD-555**: Live QA's throwaway serve lets Developer write into the real checkout (from CARD-550 live QA).
+  - [ ] **CARD-555**: Live QA's throwaway serve lets Developer write into the real checkout (from CARD-550 live QA). **In Review** on `feat/card-555-live-qa-sandbox-checkout`: sandbox worktree, protected write roots, git status guard.
+  - [ ] **CARD-556**: `write_project_file` with no project selected writes into the AutoReiv checkout (needs a decision; from CARD-555).
   - [ ] **Education Studio** (no card yet).
 
 
