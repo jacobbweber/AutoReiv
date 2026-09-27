@@ -100,6 +100,8 @@ def test_domain_line_carries_short_skill_blurbs_including_operator_skills(tmp_pa
     assert "Get Weather (Returns current weather for a given location)" in line
     assert "Search and read verified notes" in line  # platform metadata blurb
     assert "More text here" not in line  # first sentence only
+    # Live QA: a paraphrase ("use a travel service") left no Ask Developer button; the line gives the exact words.
+    assert 'end your reply with "You can use Ask Developer to add this."' in line
 
 
 def test_directory_cards_route_by_skills_not_tools():

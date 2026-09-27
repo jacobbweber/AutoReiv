@@ -255,7 +255,7 @@ def domain_line(agent: Any) -> str:
     covers = "; ".join(labels) if labels else "general conversation only"
     return (
         f"{name} covers: {covers}. For anything else, find the right agent with lookup_agents and "
-        "hand off with handoff_to_agent; if no agent covers it, say so plainly and suggest Ask Developer."
+        'hand off with handoff_to_agent; if no agent covers it, say so plainly and end your reply with "You can use Ask Developer to add this."'
     )
 
 
