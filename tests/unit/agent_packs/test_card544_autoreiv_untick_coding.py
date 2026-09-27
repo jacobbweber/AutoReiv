@@ -99,3 +99,14 @@ def test_code_execute_phase_stays_on_an_agent_that_ticks_coding(tmp_path):
     store = _store(tmp_path)
     store.save_custom_agent_profile(_autoreiv(["coding"]))
     assert resolve_specialist_agent_for_capabilities(CODING_CAPS, "autoreiv", store=store) == "autoreiv"
+
+
+def test_a_self_match_on_the_chat_agent_does_not_keep_code_work_off_developer():
+    # Live QA (CARD-544): the resolver also matched agent.autoreiv (role bonus) for a code ask in an AutoReiv chat,
+    # and that self-match returned autoreiv before the coding check ran.
+    live_ids = ["tool.commit_skill_pack", "tool.repo_file_write", "tool.execute_code", "agent.autoreiv", "tool.write_project_file"]
+    assert resolve_specialist_agent_for_capabilities(live_ids, "autoreiv") == "developer"
+    # A match naming another agent is still a specialist pick.
+    assert resolve_specialist_agent_for_capabilities(["agent.homelab", "tool.repo_file_write"], "autoreiv") == "homelab"
+    # With nothing else to route on, a self-match stays on the chat agent.
+    assert resolve_specialist_agent_for_capabilities(["agent.autoreiv"], "autoreiv") == "autoreiv"

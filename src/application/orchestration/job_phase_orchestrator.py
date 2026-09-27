@@ -115,14 +115,14 @@ def resolve_specialist_agent_for_capabilities(
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
-        if s.startswith("agent."):
-            candidate = s[len("agent.") :]
-            if candidate:
-                return canonical_agent_id(candidate)
-        elif s.startswith("pack."):
-            candidate = s[len("pack.") :]
-            if candidate:
-                return canonical_agent_id(candidate)
+        prefix = "agent." if s.startswith("agent.") else "pack." if s.startswith("pack.") else ""
+        candidate = s[len(prefix) :] if prefix else ""
+        if not candidate:
+            continue
+        resolved = canonical_agent_id(candidate)
+        # CARD-544: a match on the chat's own agent (role bonus) is not a specialist pick; keep routing by family.
+        if resolved != canonical_default:
+            return resolved
 
     has_coding_tools = any(
         any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "coding"))
