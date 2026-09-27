@@ -109,6 +109,7 @@ def test_developer_owns_builder_tools_not_legacy_save():
     assert "capability-authoring" in dev.allowed_skill
     assert "proposals" in dev.allowed_skill
     assert "build-agent-pack" in dev.allowed_skill
+    assert "coding" in dev.allowed_skill  # CARD-550 D1 (Jacob): Developer reads and patches the checkout
     for name in (
         "list_available_skills_and_tools",
         "propose_agent_specification",

@@ -1253,7 +1253,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
 
   // CARD-509: a Studio Save keeps skills without a pill; coding and build-agent-pack now have pills. CARD-544: coding is unticked on AutoReiv.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
-    test(`TC-38 (${vp.name}): Studio shows coding and build-agent-pack pills; a Max Turns save keeps build-agent-pack, coding stays unticked [CARD-509, CARD-544]`, async ({ page }) => {
+    test(`TC-38 (${vp.name}): Studio shows coding and build-agent-pack pills; a Max Turns save keeps build-agent-pack, coding stays unticked; Developer ticks coding [CARD-509, CARD-544, CARD-550]`, async ({ page }) => {
       const puts = [];
       await page.route('**/api/agents/autoreiv', (route) => {
         if (route.request().method() !== 'PUT') return route.continue();
@@ -1282,6 +1282,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(String(puts[0].max_turns)).toBe('57');
       await pick('developer', 'Developer');
       await expect(page.locator('.forge-skill-pill[data-skill-id="build-agent-pack"]')).toHaveCount(1);
+      // CARD-550 D1: Developer ticks coding (the checkout repo_file_* tools).
+      await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'true');
     });
   }
 
