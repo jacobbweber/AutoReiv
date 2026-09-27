@@ -54,6 +54,7 @@ This wins over conflicting older “continue alone = approval” wording.
 - `<agent>_storage.db` ≠ `<agent>_memory.db` — both under **user data** `packs/<id>/`, never the git checkout.
 - Checkout hygiene: `.agents/rules/checkout-hygiene.md`.
 - `.agents/` vs packs: `.agents/rules/agents-vs-packs.md`.
+- Capability scoping ([ADR-0061](docs/adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)): tools reach an agent only through its ticked skills; one function, `resolve_allowed_tools`, decides allowed tools; no side paths. See `.agents/rules/capability-scoping.md`.
 
 ---
 
