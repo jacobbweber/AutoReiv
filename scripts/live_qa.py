@@ -49,6 +49,8 @@ DEFAULT_VLLM_URL = "http://192.168.1.218:8099/v1"
 DEFAULT_MODEL = "nemotron-3.5-lightning"
 EXIT_REFUSED = 2
 EXIT_CHECKOUT_CHANGED = 3
+EXIT_MODEL_DOWN = 4
+MODEL_RETRY_WAIT_S = 30
 SANDBOX_DIR_NAME = "autoreiv-qa-checkout"
 
 
@@ -137,6 +139,29 @@ def repoint_settings(db_path: Path, data_dir: Path) -> list[str]:
     finally:
         conn.close()
     return changed
+
+
+def model_target(env: Mapping[str, str]) -> tuple[str, str]:
+    url = (env.get("AUTOREIV_QA_VLLM_URL") or DEFAULT_VLLM_URL).strip().rstrip("/")
+    return url, (env.get("AUTOREIV_QA_MODEL") or DEFAULT_MODEL).strip()
+
+
+def check_model(url: str, model: str, timeout: float = 20.0) -> bool:
+    """True when the QA model answers a 5-token chat completion (200 with choices)."""
+    body = json.dumps({"model": model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 5}).encode()
+    req = urllib.request.Request(f"{url}/chat/completions", data=body, method="POST", headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as res:
+            return res.status == 200 and bool(json.loads(res.read() or b"{}").get("choices"))
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+
+
+def model_ok(env: Mapping[str, str]) -> bool:
+    url, model = model_target(env)
+    ok = check_model(url, model)
+    print(f"[live-qa] model {model} at {url}: {'ok' if ok else 'model endpoint down'}")
+    return ok
 
 
 def provider_payload(env: Mapping[str, str]) -> dict:
@@ -376,7 +401,7 @@ def _parse(argv: Optional[list[str]]) -> argparse.Namespace:
             s.add_argument("--viewports", default="desktop,phone")
             s.add_argument("--out", default="")
             s.add_argument("--card", default="")
-            s.add_argument("--attempts", type=int, default=1)
+            s.add_argument("--attempts", type=int, default=1, help="reruns allowed only when the model endpoint is down")
             s.add_argument("--judge", action="store_true")
             s.add_argument("--keep", action="store_true", help="leave the env running afterwards")
             s.add_argument("--shared-env", action="store_true", help="one env for all runs (default: a fresh env per journey and viewport)")
@@ -384,6 +409,7 @@ def _parse(argv: Optional[list[str]]) -> argparse.Namespace:
         sub.add_parser(name).add_argument("--port", type=int, default=DEFAULT_PORT)
     sub.add_parser("reset")
     sub.add_parser("clone")
+    sub.add_parser("check-model", help=f"5-token completion against the QA model; exit {EXIT_MODEL_DOWN} if down")
     return p.parse_args(argv)
 
 
@@ -404,6 +430,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         guard.wipe_smoke_dir(data_dir_for(), CHECKOUT)
         print(f"[live-qa] wiped {data_dir_for()}")
         return 0
+    if args.cmd == "check-model":
+        return 0 if model_ok(os.environ) else EXIT_MODEL_DOWN
     if args.cmd == "clone":
         stop(DEFAULT_PORT)
         print(clone_appdata(live_appdata(os.environ), data_dir_for()))
@@ -415,6 +443,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"[live-qa] no journeys match {wanted}", file=sys.stderr)
         return EXIT_REFUSED
     # One report folder for the whole run: --card, else card-<N> for a single journey, else "journeys".
+    if not model_ok(os.environ):
+        return EXIT_MODEL_DOWN  # a dead model is not a product failure; do not run journeys
     card = args.card or ("-".join(journeys[0].split("-")[:2]) if len(journeys) == 1 else "journeys")
     runs = [(journeys, viewports, False)] if args.shared_env else [([j], [v], a) for j, v, a in plan_runs(journeys, viewports)]
     worst = 0
@@ -426,8 +456,18 @@ def main(argv: Optional[list[str]] = None) -> int:
                 rc = start(args.port, args.data)
                 if rc:
                     return rc
-            cmd = runner_command(args.port, js, vs, args.out, args.attempts, args.judge, card, append=append)
-            worst = max(worst, subprocess.call(cmd, cwd=str(CHECKOUT), shell=(os.name == "nt")))
+            cmd = runner_command(args.port, js, vs, args.out, 1, args.judge, card, append=append)
+            rc = subprocess.call(cmd, cwd=str(CHECKOUT), shell=(os.name == "nt"))
+            # Retry only when the model endpoint failed, never to paper over a product failure.
+            tries = 1
+            while rc and not model_ok(os.environ):
+                if tries >= args.attempts:
+                    return EXIT_MODEL_DOWN
+                tries += 1
+                time.sleep(MODEL_RETRY_WAIT_S)
+                rerun = runner_command(args.port, js, vs, args.out, 1, args.judge, card, append=True)
+                rc = subprocess.call(rerun, cwd=str(CHECKOUT), shell=(os.name == "nt"))
+            worst = max(worst, rc)
             now = git_status(CHECKOUT)
             diff = checkout_changes(baseline, now)
             if diff:
