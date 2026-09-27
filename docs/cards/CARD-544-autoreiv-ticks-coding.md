@@ -1,7 +1,7 @@
 ---
 id: CARD-544
 title: "Untick coding on AutoReiv so code work routes to Developer"
-status: In Review
+status: Done
 created: 2026-09-26
 branch: feat/card-544-autoreiv-untick-coding
 related:
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-544] Untick coding on AutoReiv so code work routes to Developer
 
-> **Status**: In Review (2026-09-27 ~2:30 AM ET) on `feat/card-544-autoreiv-untick-coding`. D1 was decided by Jacob on 2026-09-26: untick `coding` on AutoReiv and route code work to Developer. The branch is not merged or pushed.
+> **Status**: Done (merged to qa on 2026-09-27 after Jacob's "merge to qa" at 2:46 AM ET). It was In Review (2026-09-27 ~2:30 AM ET) on `feat/card-544-autoreiv-untick-coding`. D1 was decided by Jacob on 2026-09-26: untick `coding` on AutoReiv and route code work to Developer.
 > **Related**: CARD-539 (ADR-0061), CARD-546, CARD-548, CARD-549
 > **Labels**: `type:bug`, `area:agents`, `P2`
 
