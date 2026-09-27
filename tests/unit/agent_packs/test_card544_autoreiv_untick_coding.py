@@ -10,7 +10,11 @@ import json
 from pathlib import Path
 
 from src.application.agent_packs.allowed_tools import domain_line, resolve_allowed_tools
-from src.application.agent_packs.capability_migration import CODING_MARKER, untick_autoreiv_coding
+from src.application.agent_packs.capability_migration import (
+    CODING_MARKER,
+    autoreiv_skills_before_seed,
+    untick_autoreiv_coding,
+)
 from src.application.agent_packs.skill_list import add_skill_to_agent
 from src.application.orchestration.job_phase_orchestrator import resolve_specialist_agent_for_capabilities
 from src.domain.kernel.models import AgentProfile
@@ -110,3 +114,25 @@ def test_a_self_match_on_the_chat_agent_does_not_keep_code_work_off_developer():
     assert resolve_specialist_agent_for_capabilities(["agent.homelab", "tool.repo_file_write"], "autoreiv") == "homelab"
     # With nothing else to route on, a self-match stays on the chat agent.
     assert resolve_specialist_agent_for_capabilities(["agent.autoreiv"], "autoreiv") == "autoreiv"
+
+
+def test_a_platform_update_that_already_dropped_coding_still_gets_a_backup(tmp_path):
+    # Live check on a clone of Jacob's data: the platform seed sync (unedited AutoReiv) replaced the skill list with the
+    # new pack before the migration ran, so no backup was written. The list read before bootstrap is backed up instead.
+    store = _store(tmp_path)
+    store.save_custom_agent_profile(_autoreiv(["wiki-knowledge", "coding"]))
+    before = autoreiv_skills_before_seed(store)
+    assert before == ["wiki-knowledge", "coding"]
+    agents = _Agents([_autoreiv(["wiki-knowledge"])])  # after the seed sync
+    report = untick_autoreiv_coding(store, agents, data_root=tmp_path, before_seed=before)
+    assert report["unticked"] is True and report["by"] == "platform update"
+    backup = json.loads((tmp_path / "migrations" / "card-544-autoreiv-skills.json").read_text("utf-8"))
+    assert backup["allowed_skill"] == ["wiki-knowledge", "coding"]
+    assert agents.get_agent("autoreiv").allowed_skill == ["wiki-knowledge"]
+
+
+def test_nothing_is_read_before_seed_once_the_marker_is_set(tmp_path):
+    store = _store(tmp_path)
+    store.save_custom_agent_profile(_autoreiv(["coding"]))
+    store.set_setting(CODING_MARKER, {"unticked": True})
+    assert autoreiv_skills_before_seed(store) is None
