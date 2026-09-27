@@ -141,3 +141,25 @@ def test_bootstrap_scratch_is_under_the_data_folder(tmp_path):
     _, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=TelemetryCollector(store=store), skills_dir=str(skills))
     desc = tool_reg.get_tool_definition("write_project_file").description
     assert str((tmp_path / "data" / "scratch").resolve()) in desc
+
+
+def test_live_qa_scratch_under_a_protected_checkout_is_still_writable(tmp_path, monkeypatch):
+    """Live QA keeps its throwaway data in <real checkout>/scratch/live_qa_data (gitignored) and protects the real
+    checkout (CARD-555). The serve's own data root stays writable, so the no-project scratch works there; every other
+    path under the protected checkout is still refused."""
+    from src.application.sdlc.paths import PROTECTED_WRITE_ROOTS_ENV, protected_write_error
+
+    real = tmp_path / "real"
+    data = real / "scratch" / "live_qa_data"
+    data.mkdir(parents=True)
+    monkeypatch.setenv(PROTECTED_WRITE_ROOTS_ENV, str(real))
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data))
+    monkeypatch.delenv("AUTOREIV_CHECKOUT_ROOT", raising=False)
+    monkeypatch.chdir(tmp_path)
+    assert protected_write_error(data / "scratch" / "a.txt") is None
+    assert protected_write_error(real / "a.txt")
+    assert protected_write_error(real / "scratch" / "other.txt")
+    res = ProjectFileTools().write_project_file("card556-note.txt", "hello 556")
+    assert res["success"] is True, res
+    assert (data / "scratch" / "card556-note.txt").is_file()
+    assert not (real / "card556-note.txt").exists()
