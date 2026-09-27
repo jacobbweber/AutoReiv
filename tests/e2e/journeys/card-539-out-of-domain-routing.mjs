@@ -10,7 +10,8 @@ import { getJson, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle
 
 const STUDY_ASK = 'Start my flashcard due review for today: show me the first card that is due and grade my answer.';
 const NOBODY_ASK = 'Book me a real flight from Boston to Denver next Friday and pay for it with my credit card.';
-const REFUSAL_RE = /outside (of )?my (authorized )?domain|not authorized to|refuse/i;
+// The old refusal sentence ("outside my authorized domain", "not authorized to"); saying plainly that no agent covers it is expected.
+const REFUSAL_RE = /outside (of )?my authorized domain|not authorized to|\brefuse/i;
 
 async function newChat(request, base, title) {
   const res = await request.post(`${base}/api/sessions`, { data: { agent_id: 'autoreiv', title } });
