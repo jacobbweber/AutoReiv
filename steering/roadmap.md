@@ -122,13 +122,13 @@
   - [ ] **CARD-545**: Native tools declare risk at registration (ADR-0061 D11, full; from CARD-539).
   - [ ] **CARD-546**: Out-of-domain routing and the Ask Developer button still depend on the model following the prompt (from CARD-539 live QA).
   - [ ] **CARD-547**: Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (from CARD-539 live QA).
-  - [ ] **CARD-548**: Approving a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer (from CARD-544 live QA). **In Review** on `feat/card-554-553-phase-handoff-tools` (covered by the CARD-554 + CARD-553 plan): resume runs in the phase session.
+  - [x] **CARD-548**: Approving a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer (from CARD-544 live QA). **Done** 2026-09-27: resume runs in the phase session, reply relayed to the chat.
   - [ ] **CARD-549**: Formulate on AutoReiv should name the agent that runs Execute (from CARD-544 live QA).
   - [x] **CARD-550**: Developer ticks `coding` (the checkout repo_file_* tools; D1 decided by Jacob 2026-09-27). **Done** 2026-09-27: pack, one-time migration, guard/smoke tests, live QA journey.
   - [ ] **CARD-551**: The repetitive-cycle guard ends the turn with no answer even when the tool already returned it (from CARD-537 live QA).
   - [ ] **CARD-552**: `read_document_file` reads any path on disk; add a path guard (from CARD-550 live QA).
-  - [ ] **CARD-553**: A handoff from a job phase keeps the job's capability subset, so Developer's `cli_exec` is skipped (from CARD-550 live QA). **In Review** on `feat/card-554-553-phase-handoff-tools` (one plan with CARD-554): the job subset narrows only the job's own agent.
-  - [ ] **CARD-554**: Formulate does the work itself, ends FAILED after a completed handoff, and Execute stays queued (from CARD-550 live QA). **In Review** on `feat/card-554-553-phase-handoff-tools` (one plan with CARD-553): Formulate plans only, handoff no longer parks the phase.
+  - [x] **CARD-553**: A handoff from a job phase keeps the job's capability subset, so Developer's `cli_exec` is skipped (from CARD-550 live QA). **Done** 2026-09-27: the job subset narrows only the job's own agent.
+  - [x] **CARD-554**: Formulate does the work itself, ends FAILED after a completed handoff, and Execute stays queued (from CARD-550 live QA). **Done** 2026-09-27: Formulate plans only, handoff no longer parks the phase.
   - [x] **CARD-555**: Live QA's throwaway serve lets Developer write into the real checkout (from CARD-550 live QA). **Done** 2026-09-27: sandbox worktree, protected write roots, git status guard.
   - [ ] **CARD-556**: `write_project_file` with no project selected writes into the AutoReiv checkout (needs a decision; from CARD-555).
   - [ ] **CARD-557**: Developer's Execute phase asks for 8-12 approvals for a one-file count and writes scratch scripts into the checkout (from CARD-554 live QA).

@@ -1,9 +1,9 @@
 ---
 id: CARD-548
 title: "Approve on a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer"
-status: In Review
+status: Done
 created: 2026-09-27
-branch: feat/card-554-553-phase-handoff-tools
+branch: qa
 related:
   - CARD-544
   - CARD-530
@@ -15,7 +15,7 @@ labels:
 
 # [CARD-548] Approving a Developer Execute phase resumes as Developer
 
-> **Status**: In Review on `feat/card-554-553-phase-handoff-tools` (2026-09-27 ET; covered by the CARD-554 + CARD-553 plan). Filed from CARD-544 live QA.
+> **Status**: Done (2026-09-27 ET). Jacob said "merge to qa" at 4:11 PM ET; merged `--no-ff` into qa from `feat/card-554-553-phase-handoff-tools`. Covered by the CARD-554 + CARD-553 plan.
 > **Related**: CARD-544, CARD-530
 > **Labels**: `type:bug`, `area:chat`, `P2`
 

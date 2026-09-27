@@ -1,9 +1,9 @@
 ---
 id: CARD-553
 title: "A handoff from a job phase keeps the job's capability subset, so Developer cannot run code"
-status: In Review
+status: Done
 created: 2026-09-27
-branch: feat/card-554-553-phase-handoff-tools
+branch: qa
 related:
   - CARD-544
   - CARD-550
@@ -16,7 +16,7 @@ labels:
 
 # [CARD-553] A handoff from a job phase keeps the job's capability subset
 
-> **Status**: In Review on `feat/card-554-553-phase-handoff-tools` (2026-09-27 ET; filed from CARD-550 live QA). Combined with CARD-554 into one plan.
+> **Status**: Done (2026-09-27 ET). Jacob said "merge to qa" at 4:11 PM ET; merged `--no-ff` into qa from `feat/card-554-553-phase-handoff-tools`. Combined with CARD-554 into one plan.
 > **Related**: CARD-544, CARD-548, CARD-550
 > **Labels**: `type:bug`, `area:orchestration`, `P2`
 

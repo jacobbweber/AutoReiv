@@ -1,9 +1,9 @@
 ---
 id: CARD-554
 title: "Formulate does the work itself, then ends FAILED after a completed handoff; Execute stays queued"
-status: In Review
+status: Done
 created: 2026-09-27
-branch: feat/card-554-553-phase-handoff-tools
+branch: qa
 related:
   - CARD-549
   - CARD-551
@@ -16,7 +16,7 @@ labels:
 
 # [CARD-554] Formulate fails after a completed handoff and Execute never starts
 
-> **Status**: In Review on `feat/card-554-553-phase-handoff-tools` (2026-09-27 ET; filed from CARD-550 live QA). Combined with CARD-553 into one plan.
+> **Status**: Done (2026-09-27 ET). Jacob said "merge to qa" at 4:11 PM ET; merged `--no-ff` into qa from `feat/card-554-553-phase-handoff-tools`. Combined with CARD-553 into one plan.
 > **Related**: CARD-549 (Formulate should name the Execute agent), CARD-551, CARD-550
 > **Labels**: `type:bug`, `area:orchestration`, `P3`
 
