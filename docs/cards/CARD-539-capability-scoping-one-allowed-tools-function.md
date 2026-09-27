@@ -1,7 +1,7 @@
 ---
 id: CARD-539
 title: "Capability scoping: one allowed-tools function, skills-only permission, selection only narrows, route not refuse"
-status: In Progress
+status: In Review
 created: 2026-09-26
 branch: qa
 adr: ADR-0061
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-539] Capability scoping: one allowed-tools function
 
-> **Status**: In Progress on `feat/card-539-capability-scoping` (from qa `2cfae4bb`). **Build approved** by Jacob 2026-09-26 ~9:23 PM ET: D1-D7 as recommended, D8-D11 as recommended, and the AGENTS.md lock rewording.  
+> **Status**: In Review on `feat/card-539-capability-scoping` (from qa `2cfae4bb`, not merged or pushed), 2026-09-27 ~12:15 AM ET. **Build approved** by Jacob 2026-09-26 ~9:23 PM ET: D1-D7 as recommended, D8-D11 as recommended, and the AGENTS.md lock rewording.  
 > **ADR**: [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md) (locked decisions A-J, Jacob 2026-09-26)  
 > **Folds in**: CARD-529 items 2 and 4 (tools offered outside the allowlist; keyword-family catalog routing). CARD-529 keeps items 1 and 3.  
 > **Unblocks**: CARD-537.
@@ -100,6 +100,23 @@ Symptoms: CARD-537 (granted `get_weather` callable but never offered to AutoReiv
 **Decision record (2026-09-26 ~9:23 PM ET):** Jacob approved D1-D7 exactly as recommended above and delegated D8-D11 (taken as recommended). Implementation notes:
 - D1: SQLite `skill_tool_bindings` rows win for a skill; the seeds (pack.json `skills[].tools`, `PLATFORM_SKILL_TOOLS`, `DYNAMIC_SKILL_TOOLS`) are read only when a skill has no binding row. This is reconcile-on-read: same result as copying seeds at boot, without marking platform skills as operator-saved (which would freeze seed updates).
 - AGENTS.md runtime lock reworded (Jacob): the chat panel shows the tools of the agent's ticked skills; the model sees at most 8 selected from those per turn.
+- D5: `domain_line` / `routing_summary` in `allowed_tools.py`, built from ticked skill names at runtime; nothing stored.
+- D6: handoff notice = the existing chat "Delegation to X" card; chat handoff depth cap already exists (`envelope.depth > 2`). The Ask Developer button shows on an agent reply that suggests Ask Developer (also paraphrases such as "ask a developer"; found by live QA) and drafts a Developer request with the uncovered message.
+- D8: `resolve_allowed_tools(agent) -> AllowedTools(ordered, provenance, patterns)`; `patterns` carries MCP wildcards (`mcp_<server>_*`), expanded against the registry by `activate_skill` and the registry.
+- D9: no agent is near 20 ticks (AutoReiv 13 + accepted skills), so the full index stays; own-skill search filed as CARD-542.
+- D10: no `updated_at` exists on agent profiles, so the version is a hash of the ticked skills (`skills_version`); a Save with a stale `expected_skills_version` gets 409 "reload".
+- D11: tools with a declared non-read-only risk default to `require_confirm`; tools with no declared risk keep the existing policy (native tools from the Developer still ask per call). Full risk-at-registration filed as CARD-545.
+- `wiki_graph` added to the `wiki-knowledge` seed in both `PLATFORM_SKILL_TOOLS` and `DYNAMIC_SKILL_TOOLS`, so AutoReiv and a custom agent with the same ticks get identical lists.
+- Accepting a proposal ticks through the shared save path (`skill_list.add_skill_to_agent`), so platform promotion at restart keeps the tick (a direct override write was wiped).
+- Pre-build audit (6.6) loss, intentional: AutoReiv no longer reaches unticked `PLATFORM_SKILL_TOOLS` (e.g. `execute_code`, SQLite tools) at execute.
+
+**Deviations (recorded):**
+- Property tests use deterministic loops over agents, ticks, intents and capability ids: `hypothesis` is not installed and the card forbids new dependencies.
+- Job catalog formulate still resolves against the whole catalog; a phase run is narrowed to the ticked skills it matched plus required tools, and the gate intersects with the allowed set, so a foreign skill never mounts. Routing a phase to another agent by skill coverage is not built (follow-up if needed).
+- The migration writes a backup and a settings marker; no per-agent event store exists, so no `capability_migration` event rows.
+- Platform pack.json `allowed_tool_names` / `pack_tool_names` stay as ignored compat (CARD-541); `allow_wiki_access` stays as an inert stored field (CARD-540).
+- `forge_card539_skills_only.test.js` pending-list tests were written with the fix rather than strictly before it.
+- Section 9.2 probe: the seeded AutoReiv ticks `coding`, so a code request is in its domain (live QA: it planned a job and asked approval for `repo_file_write`). The routing journey uses a Tutor due-review request instead; whether AutoReiv should keep `coding` is CARD-544 (product decision).
 
 ## 6. Migration (real, idempotent, runs once at startup)
 
@@ -157,3 +174,40 @@ Symptoms: CARD-537 (granted `get_weather` callable but never offered to AutoReiv
 2. Chat with AutoReiv: "What is the weather in Boston?" -> it offers Ask Developer or hands off; no refusal wording.
 3. After the Developer proposal, accept it; the new skill shows ticked; ask again -> weather answer.
 4. Save AutoReiv in Agent Studio; ask again -> still works.
+
+## 12. Evidence (In Review, 2026-09-27 ~12:15 AM ET)
+
+**Commits** (`2cfae4bb..71fcb548`, 19): `7da1e292` docs (build approved), `cfc812be` failing guards (confirmed red), `3a6241eb` one `resolve_allowed_tools` + side paths pruned, `9c0667cc` proposals not grants + Studio pending list + stale-save 409, `821f12d4` migration, `36833365` Ask Developer button, `61bfb490` journeys, then live-QA fixes `8c13a76d`, `6dff05d5`, `fa19148f`, `03a4bf32`, `ee50d819`, `c40ffdc0`, `d26c93f7` (each test-first, red then green) and journey/test fixes `025ea3dc`, `265c1678`, `f0f5e7ca`, `bf735e57`, `71fcb548`.
+
+**Preflight vs baseline (qa `2cfae4bb`, run `c539c` on `d26c93f7` + `71fcb548`):**
+
+| Suite | qa baseline | CARD-539 | Note |
+|---|---|---|---|
+| Unit | 2015 passed / 11 skipped / 1 failed | 2055 passed / 11 skipped / 1 failed | only CARD-454 `test_platform_packs_all_pass_mechanical_linter` |
+| Integration | 103 passed | 103 passed | |
+| Vitest | 940 passed / 3 failed | 949 passed / 3 failed | only CARD-456 (`per_agent_model_config` 1, `system_updates` 2) |
+| ESLint | 4 errors + 5 warnings | 4 errors + 5 warnings | baseline |
+| Ruff | 7 | 7 | an F811 duplicate test was fixed in `71fcb548` |
+| Smoke | 73 passed | 73 passed | an earlier run hit `ERR_NO_BUFFER_SPACE` in TC-42 phone while live QA ran in parallel; alone it passes |
+
+**Live QA** (`scripts/live_qa.py`, real vLLM, throwaway env on :8770, desktop 1280x800 and phone 390x844):
+
+| Journey | Desktop | Phone | Run |
+|---|---|---|---|
+| card-520 (teach -> Developer -> attach proposal -> accept in Studio -> ticked -> AutoReiv calls `get_weather`, same chat and new chat) | PASS 7/7 | PASS 7/7 | `card-539-final3` |
+| card-539 out-of-domain routing | step 1 handoff to Tutor pass, step 2 fail (no Ask Developer wording) | PASS 2/2 | `card-539-final3`; flaky across runs -> CARD-546 |
+| card-530 regression | PASS 6/6 | PASS 6/6 | `card-539-final5` (after the ranking change) |
+
+Screenshots (C:):
+1. Proposal, no silent grant: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-539-final3\card-520-teach-needs-tool-desktop-04-the-developer-builds-the-tool-and-proposes-attac.png`
+2. Accepted in Agent Studio, Get Weather skill with `get_weather`: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-539-final3\card-520-teach-needs-tool-desktop-05-accept-the-proposal-in-agent-studio-the-skill-sh.png`
+3. No agent covers it -> Ask Developer button (phone): `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-539-final3\card-539-out-of-domain-routing-phone-02-a-request-no-agent-covers-the-reply-says-so-and-.png`
+
+What live QA found and fixed on this branch: the pending list was hidden in a collapsed section; the new skill did not show ticked (stale skill catalog); the 8-tool ranking dropped `get_weather` for "What is the weather in Boston?" (filler words); AutoReiv quoted a fixed domain list from its pack prompt and ignored the accepted skill (D5: now blurbs from ticks); the Ask Developer button missed paraphrases.
+
+**Scavenger Pass:** zero hits in `src` for `resolve_scoped_tools`, `tools_for_platform_skills`, `get_scoped_registry_for_agent`, `derivedTools`, `scan_limit`, `== "autoreiv"`. Remaining hits are acceptable: `grant_agent_ids` only in an explicit rejection message, "Demand-Paged" only in a constant comment, and forge.js `'autoreiv'` only for delete protection.
+
+**Follow-ups filed (Ready):** CARD-540 (drop inert `allow_wiki_access`), CARD-541 (drop pack tool lists; Tutor fixed domain text), CARD-542 (D9 own-skill search above 20 ticks), CARD-543 (Developer can register a stub tool), CARD-544 (decide whether AutoReiv keeps `coding`), CARD-545 (native tool risk at registration), CARD-546 (routing and Ask Developer still depend on the model), CARD-547 (job strip shows Job failed with DONE).
+
+**Known:** the CARD-535 nudge workaround is still needed in the card-520 journey (the Developer stops after the first approval). An accepted native tool asks approval on each call until CARD-545.
+
