@@ -71,7 +71,6 @@ def studio_extra_skill_pills(profile: Any, shown_ids: set[str], data_root: Optio
     """
     from src.application.skills.runbook_frontmatter import frontmatter_view
     from src.infrastructure.skills.platform_pack_promotion import find_skill_md, platform_seed_skills
-
     from src.infrastructure.skills.platform_packs import platform_packs_root
 
     agent_id = str(getattr(profile, "id", "") or "")
