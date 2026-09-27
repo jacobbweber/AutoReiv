@@ -403,6 +403,21 @@ export function wireReasoningDrawer(rootEl, reasoning) {
   }
 }
 
+/** CARD-539 D6: a reply that says no agent covers the request and suggests Ask Developer gets the button. */
+const ASK_DEVELOPER_RE = /\bAsk Developer\b/i;
+
+export function offersAskDeveloper(role, content) {
+  return String(role || '').toLowerCase() === 'assistant' && ASK_DEVELOPER_RE.test(String(content || ''));
+}
+
+export function askDeveloperButtonHtml(reply) {
+  return `
+      <button type="button" class="msg-ask-developer-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 transition shadow-sm" data-reply="${escapeHtml(reply)}" title="Ask the Developer to build this capability">
+        <i data-lucide="hammer" class="w-3 h-3"></i>
+        <span>Ask Developer</span>
+      </button>`;
+}
+
 export function appendMessageBubble(role, content, options = null, extraOptions = {}) {
   const isEl = (el) => Boolean(el && ((typeof HTMLElement !== 'undefined' && el instanceof HTMLElement) || el.nodeType === 1));
   const messagesContainer = isEl(options) ? options : (extraOptions?.messagesContainer || options?.messagesContainer || null);
@@ -422,7 +437,7 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
 
   const copyBtnHtml = !isUser
     ? `
-    <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5 items-center">
+    <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5 items-center">${offersAskDeveloper(role, content) ? askDeveloperButtonHtml(content) : ''}
       <button class="msg-teach-agent-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition shadow-sm" data-message-id="${escapeHtml(actualOptions?.messageId || '')}" data-content="${escapeHtml(content)}" title="Teach agent a runbook skill from this turn [CARD-352]">
         <i data-lucide="lightbulb" class="w-3 h-3 text-amber-400"></i>
         <span>Teach Agent</span>
