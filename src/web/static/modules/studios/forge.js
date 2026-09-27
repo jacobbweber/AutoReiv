@@ -332,6 +332,8 @@ export function initAgentForge(state, callbacks = {}) {
     // CARD-539: accept/reject attach-tool-to-skill proposals; accepting reloads so the tick shows.
     loadPendingProposals(agent.id, typeof document !== 'undefined' ? document.getElementById('forgePendingProposals') : null, {
       onChanged: async () => {
+        cachedSkillsCatalog = null;
+        await loadPlatformSkillsWrapper(); // a new skill from the proposal must be in the list to show ticked
         const res = await fetch(`/api/agents/${encodeURIComponent(agent.id)}`);
         if (res.ok) await renderAgentToForge(await res.json());
       },

@@ -62,4 +62,12 @@ describe('Pending proposals in Agent Studio [CARD-539]', () => {
     expect(host).toBeGreaterThan(-1);
     expect(host).toBeLessThan(html.indexOf('id="forgePlatformDefaultsSection"'));
   });
+
+  it('accepting a proposal reloads the skill catalog so a new skill shows as a ticked pill', () => {
+    const forge = fs.readFileSync(path.join(repoRoot, 'src/web/static/modules/studios/forge.js'), 'utf-8');
+    const block = forge.slice(forge.indexOf('loadPendingProposals(agent.id'));
+    expect(block.slice(0, 600)).toContain('await loadPlatformSkillsWrapper()');
+      // the cached catalog must be dropped, or the wrapper reuses the stale operator list
+      expect(block.slice(0, 600)).toMatch(/cachedSkillsCatalog = null;[\s\S]*await loadPlatformSkillsWrapper\(\)/);
+  });
 });
