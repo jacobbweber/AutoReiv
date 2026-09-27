@@ -103,3 +103,17 @@ async def test_accepting_widens_the_domain_line_and_the_next_turn_in_a_new_chat(
     assert len(names) <= MAX_ACTIVE_TOOLS_PER_TURN
     assert "c537_harbor_tide" in names, names
 
+
+@pytest.mark.parametrize("pack_id", ["autoreiv", "developer", "tutor"])
+def test_no_platform_pack_pins_a_fixed_domain_that_would_hide_an_accepted_skill(pack_id):
+    """Scavenger Pass (CARD-537): D1 holds for every agent. A hand-written "Focus strictly on ..." boundary
+    contradicts an accepted skill tool; the boundary must point at the generated "Your domain" line and route."""
+    import json
+    from pathlib import Path
+
+    prompt = json.loads(Path(f"platform-packs/{pack_id}/pack.json").read_text(encoding="utf-8"))["system_prompt"]
+    if "[DOMAIN BOUNDARIES & REFUSALS]" not in prompt:
+        return
+    section = prompt.split("[DOMAIN BOUNDARIES & REFUSALS]", 1)[1].split("\n\n", 1)[0]
+    assert "Focus strictly" not in section and "Focus on" not in section, section
+    assert "Your domain" in section and "handoff_to_agent" in section, section
