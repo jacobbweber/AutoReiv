@@ -1,7 +1,7 @@
 ---
 id: CARD-532
 title: "Live QA runner and a dedicated test environment: the coding assistant runs each card's live-test steps against a real serve with real models before handing the card to Jacob"
-status: In Review
+status: Done
 created: 2026-09-26
 branch: feat/card-532-live-qa-runner
 related:
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-532] Live QA runner + dedicated test environment
 
-> **Status**: In Review (not merged; waiting for `merge to qa`). Refined and built 2026-09-26 ~6:40 PM ET on `feat/card-532-live-qa-runner` from qa `e28f5143` without waiting for `build`, per the new operating model: D1 was Jacob's, D2-D6 are technical). Approved by Jacob 2026-09-26 ~4:40 PM ET. Coding-assistant tooling, not product: lives in `scripts/`, `tests/e2e/journeys/` and `.agents/`. CARD-533 builds the product feature on top of it.
+> **Status**: Done (Jacob said `merge to qa` 2026-09-26 ~9:23 PM ET; merged to qa). Refined and built 2026-09-26 ~6:40 PM ET on `feat/card-532-live-qa-runner` from qa `e28f5143` without waiting for `build`, per the new operating model: D1 was Jacob's, D2-D6 are technical). Approved by Jacob 2026-09-26 ~4:40 PM ET. Coding-assistant tooling, not product: lives in `scripts/`, `tests/e2e/journeys/` and `.agents/`. CARD-533 builds the product feature on top of it.
 > **Related**: CARD-520 (first journey), CARD-530 (second journey), CARD-533 (AutoReiv-side journey testing)
 > **Labels**: `type:tooling`, `area:qa`, `area:coding-assistant`, `P1`
 

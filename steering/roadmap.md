@@ -103,7 +103,7 @@
   - [x] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool - **Done**.
   - [x] **CARD-520**: Rename `factory_escalation` to `tool_escalation`; Observability tool escalations get Ask Developer instead of Apply (folds CARD-526) - **Done**.
   - [x] **CARD-530**: Approving a HITL card while the Developer reply is still streaming must not cancel and resume the turn ("Cannot complete phase ... still queued") - **Done**.
-  - [ ] **CARD-532**: Live QA runner and dedicated test environment: the coding assistant runs each card's live-test journeys against a real serve with real models.
+  - [x] **CARD-532**: Live QA runner and dedicated test environment: the coding assistant runs each card's live-test journeys against a real serve with real models. - **Done**.
   - [ ] **CARD-539**: Capability scoping ([ADR-0061](../docs/adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)): one allowed-tools function, tools only through ticked skills, selection only narrows, proposals instead of grants, route not refuse (needs **build**; folds CARD-529 items 2 and 4).
   - [ ] **CARD-533**: Journey testing inside AutoReiv: Developer skill and tools, Projects Studio journey runs (depends on CARD-532).
   - [ ] **CARD-529**: Developer cannot read an existing custom tool's code, and a stopped phase hides why (partly folded into CARD-539: tools offered outside the allowlist and keyword-family routing moved there).
