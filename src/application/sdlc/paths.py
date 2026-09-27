@@ -33,6 +33,14 @@ def _resolved(path: Path) -> Path:
 def protected_write_error(target: Path | str, env: Optional[Mapping[str, str]] = None) -> Optional[str]:
     """An error message when ``target`` is inside a protected write root, else None."""
     t = _resolved(Path(target))
+    e = os.environ if env is None else env
+    # CARD-556: the serve's own data root stays writable (live QA keeps its throwaway data, and so the no-project
+    # scratch folder, in the gitignored <real checkout>/scratch/live_qa_data).
+    data_raw = str(e.get("AUTOREIV_DATA_DIR") or "").strip()
+    if data_raw:
+        d = _resolved(Path(data_raw).expanduser())
+        if t == d or d in t.parents:
+            return None
     for root in protected_write_roots(env):
         r = _resolved(root)
         if t == r or r in t.parents:
