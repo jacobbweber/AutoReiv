@@ -4,8 +4,12 @@ title: "Journey testing inside AutoReiv: a Developer skill and tools to run jour
 status: Ready
 created: 2026-09-26
 branch: qa
+depends_on:
+  - CARD-532
+  - CARD-539
 related:
   - CARD-532
+  - CARD-539
 labels:
   - type:product
   - area:developer
@@ -15,7 +19,7 @@ labels:
 
 # [CARD-533] Journey testing built into AutoReiv
 
-> **Status**: Ready (approved by Jacob 2026-09-26 ~4:40 PM ET). **Depends on CARD-532** (the runner). Product feature: lives in `platform-packs/developer` and the app, not `.agents` (agents-vs-packs rule: `.agents` is coding-assistant tooling; product lives in `platform-packs`).
+> **Status**: Ready (approved by Jacob 2026-09-26 ~4:40 PM ET). **Depends on CARD-532** (the runner) **and CARD-539** (capability scoping, [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)). Product feature: lives in `platform-packs/developer` and the app, not `.agents` (agents-vs-packs rule: `.agents` is coding-assistant tooling; product lives in `platform-packs`).
 > **Related**: CARD-532 (runner, environment, journey format)
 > **Labels**: `type:product`, `area:developer`, `area:projects`, `P2`
 
@@ -29,6 +33,7 @@ Long-term intent: AutoReiv and its Developer agent eventually test and build Aut
 - **REQ-533-002 Tools:** The Developer SHALL have tools to run a journey (by id, against the CARD-532 environment), read a run's report and screenshots, and summarize failures in plain words (step, expected, actual, screenshot).
 - **REQ-533-003 Projects Studio view:** Projects Studio SHALL list journey runs per project (time in local zone, journey, pass/fail, failing step) and open a run's screenshots and report.
 - **REQ-533-004 Built on CARD-532:** Uses the CARD-532 journey format, runner and report; no second runner.
+- **REQ-533-005 Self-work respects capability scoping:** WHEN the Developer works on AutoReiv's own code, THE Developer's coding skill runbook in `platform-packs/developer/skills/` SHALL load a product-side summary of ADR-0061 and `.agents/rules/capability-scoping.md` (one allowed-tools function `resolve_allowed_tools`, skills-only permission, selection only narrows, no side paths), AND its self-test SHALL run the CARD-539 guard tests (architecture guard, selection-subset property tests) and pass them before it proposes any change.
 
 ## Decisions (open, safety first)
 
@@ -37,6 +42,7 @@ Long-term intent: AutoReiv and its Developer agent eventually test and build Aut
 - **D3 HITL:** approval before each run, or before runs that clone real data or use real models. **Recommend approval for clone and real-model runs.**
 - **D4 Model use:** journeys that call real models cost GPU time on the same vLLM; limits and scheduling.
 - **D5 Scope of self-building:** reading results only vs letting the Developer change code after a failure (out of scope here; a later card).
+- **D6 Scoping rules in self-work (decided with this requirement, 2026-09-26):** the rules reach the product Developer as a summary inside its platform-pack runbook, not by reading `.agents/` (agents-vs-packs rule); the summary cites ADR-0061 as the source so it does not drift. Needs CARD-539 first (the guard tests must exist).
 
 ## Done when
 
