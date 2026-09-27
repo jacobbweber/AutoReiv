@@ -6,6 +6,8 @@ from httpx import ASGITransport, AsyncClient
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.mark.asyncio
 async def test_agents_api_show_in_chat_default_and_hide(tmp_path, monkeypatch):

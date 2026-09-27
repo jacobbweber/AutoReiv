@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[3] / ".agents" / "skills" / "card-status" / "scripts" / "list_card_status.py"
+SCRIPT = Path(__file__).resolve().parents[3] / ".agents" / "skills" / "card" / "scripts" / "list_card_status.py"
 
 
 def test_list_card_status_parses_yaml_and_blockquotes(tmp_path: Path):

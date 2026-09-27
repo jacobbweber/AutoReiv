@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.application.skills.user_catalog import ARCHIVE_DIRNAME
 from src.infrastructure.skills.seed import seed_bundled_skill_packs
 from src.web.app import create_app
+
+pytestmark = pytest.mark.slow
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 

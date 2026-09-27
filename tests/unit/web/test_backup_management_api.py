@@ -18,6 +18,8 @@ from src.infrastructure.data.resolver import (
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 def _seed_db(db_path):
     conn = sqlite3.connect(str(db_path))

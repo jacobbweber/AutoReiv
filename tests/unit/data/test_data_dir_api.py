@@ -1,8 +1,11 @@
 """App wiring for the resolved data dir [REQ-DATA-001, REQ-DATA-002, REQ-DATA-005]."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.web.app import create_app
+
+pytestmark = pytest.mark.slow
 
 
 def test_create_app_exposes_data_dir_paths_and_api():

@@ -13,7 +13,6 @@ description: >-
 ## When to Run This Audit
 
 - After working on wiki storage, database connections, pack loaders, or attachment managers.
-- Before declaring any card `In Review` or merging into `qa`.
 - Whenever Jacob asks: _"Run boundary audit"_ or _"Check checkout hygiene"_.
 
 ---

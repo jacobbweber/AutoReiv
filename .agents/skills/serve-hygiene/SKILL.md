@@ -1,20 +1,22 @@
 ---
 name: serve-hygiene
 description: >-
-  Use when restarting AutoReiv serve on Jarvis, killing stale :8000 orphans, or verifying tip SHA + app.js?v= before live smoke.
+  Restart Jacob's AutoReiv serve on Jarvis (:8000) and check health on both hosts.
 ---
 
-# Serve / orphan hygiene (Jarvis)
+# Serve hygiene (Jarvis)
 
-Coding-assistant runbook (not an AutoReiv pack skill). Goal: exactly **one** serve on `:8000` from the current branch tip.
+Goal: exactly one serve on `:8000`, from the current `qa` tip, reachable from the phone.
 
 ```powershell
-uv run python scripts/restart_serve.py --status
-uv run python scripts/restart_serve.py --dry-run
-uv run python scripts/restart_serve.py --port 8000 --host 127.0.0.1
-.\scripts\restart_serve.ps1
+pwsh -NoProfile -File scripts\restart_serve.ps1 -Status
+pwsh -NoProfile -File scripts\restart_serve.ps1 -HostAddr 0.0.0.0 -Port 8000
+Invoke-WebRequest http://127.0.0.1:8000/api/health -UseBasicParsing | Select-Object StatusCode
+Invoke-WebRequest http://192.168.1.99:8000/api/health -UseBasicParsing | Select-Object StatusCode
 ```
 
-After restart: **Ctrl+F5**; confirm Network `app.js?v=`; confirm checkout has no new live `*.db` / `packs/` (user data under `%LOCALAPPDATA%\AutoReiv\`).
+- Both health checks return 200.
+- The restart script kills orphans and prints `app.js?v=`; after a restart, Ctrl+F5 in the browser.
+- `git status` shows no new `*.db` or `packs/` in the checkout.
 
-Source: `scripts/restart_serve.py` (CARD-256).
+Source: `scripts/restart_serve.py` (CARD-256), wrapper `scripts/restart_serve.ps1`.

@@ -96,12 +96,34 @@ describe('REQ-532-003: error watchers fail the step', () => {
     const page = fakePage();
     const run = newRun(page);
     await run.step('ok', () => {});
-    await run.step('soft', () => { throw new Error('model did not call the tool'); }, { soft: true });
+    await run.step('soft', () => { throw new Error('model did not call the tool'); }, { soft: true, card: 'CARD-543' });
     await run.step('after', () => {});
     expect(run.results.map((r) => r.status)).toEqual(['pass', 'warn', 'pass']);
     expect(run.outcome()).toBe('warn');
     expect(page.screenshot).toHaveBeenCalledTimes(3);
     expect(run.results[0].screenshot).toMatch(/j-desktop-01-ok\.png$/);
+  });
+  it('CARD-559: soft without a card id fails the step', async () => {
+    const run = newRun(fakePage());
+    await run.step('soft', () => { throw new Error('flaky'); }, { soft: true });
+    expect(run.results[0].status).toBe('fail');
+    expect(run.results[0].reason).toMatch(/soft: true needs card/);
+    expect(run.outcome()).toBe('fail');
+  });
+  it('CARD-559: a failing knownBug step is XFAIL naming the card, stops the journey, and is not red', async () => {
+    const run = newRun(fakePage());
+    await run.step('known', () => { throw new Error('no attach proposal'); }, { knownBug: 'CARD-535' });
+    await run.step('after', () => {});
+    expect(run.results.map((r) => r.status)).toEqual(['xfail', 'skipped']);
+    expect(run.results[0].reason).toMatch(/^XFAIL CARD-535: no attach proposal/);
+    expect(run.outcome()).toBe('xfail');
+  });
+  it('CARD-559: a passing knownBug step is XPASS and fails so the marker is removed', async () => {
+    const run = newRun(fakePage());
+    await run.step('known', () => {}, { knownBug: 'CARD-535' });
+    expect(run.results[0].status).toBe('fail');
+    expect(run.results[0].reason).toMatch(/XPASS: CARD-535 may be fixed; remove knownBug/);
+    expect(run.outcome()).toBe('fail');
   });
   it('isAllowedFailure matches url and status', () => {
     expect(isAllowedFailure('http://h/a/b', 404, [{ url: '/a/' }])).toBe(true);

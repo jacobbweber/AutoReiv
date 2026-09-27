@@ -18,6 +18,8 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.infrastructure.skills.platform_pack_promotion import list_pack_content_backups
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 RUNBOOK = "---\nname: cite-sources\ndescription: Always cite the source C502\n---\n\n# Cite Sources\n\n1. Quote it\n"
 RUNBOOK_V2 = "---\nname: cite-sources\ndescription: Always cite the source C502 v2\n---\n\n# Cite Sources\n\n1. Link it\n"
 

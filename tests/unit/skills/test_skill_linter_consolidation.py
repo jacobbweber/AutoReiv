@@ -4,7 +4,11 @@ Tests for Skill Capability Linter consolidation and new skills validation [CARD-
 
 from pathlib import Path
 
+import pytest
+
 from src.application.skills.linter import CapabilityLinter, SkillContractCompiler
+
+pytestmark = pytest.mark.guard
 
 
 def test_linter_resolves_without_import_error(tmp_path: Path):

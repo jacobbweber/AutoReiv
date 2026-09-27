@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
+
+pytestmark = pytest.mark.slow
 
 
 def _app_with_job(tmp_path: Path):

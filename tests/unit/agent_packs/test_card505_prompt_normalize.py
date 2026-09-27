@@ -27,6 +27,8 @@ from src.infrastructure.skills.platform_pack_promotion import (
 )
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 REPO = Path(__file__).resolve().parents[3]
 UPDATE_LINE = "C505 PLATFORM UPDATE LINE."
 REAL_EDIT = "Always follow SOLID and DRY principles."

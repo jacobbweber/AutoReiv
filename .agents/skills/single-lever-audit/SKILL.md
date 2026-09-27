@@ -70,4 +70,4 @@ When duplicate paths are discovered:
 1. Declare the **Prune List** in plain English.
 2. Re-route any remaining callers to the canonical single lever.
 3. Delete the duplicate code, unused DOM IDs, and dead CSS rules.
-4. Run `npm run lint:frontend` and `ruff check .` to guarantee zero orphaned references.
+4. Run skill `preflight` (fast tier).

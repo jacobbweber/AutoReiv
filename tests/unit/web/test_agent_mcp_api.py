@@ -9,6 +9,8 @@ from httpx import ASGITransport, AsyncClient
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.mark.asyncio
 async def test_agent_mcp_api_crud_lifecycle(tmp_path, monkeypatch):

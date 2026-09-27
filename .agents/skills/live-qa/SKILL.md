@@ -1,41 +1,39 @@
 ---
 name: live-qa
-description: >-
-  Run a card's live-test journeys yourself before In Review: a dedicated AutoReiv serve on :8770
-  (throwaway data by default, clone of the real AppData on demand), real models, real browser clicks
-  at desktop 1280x800 and phone 390x844, screenshots and a summary on a C: path for the review check-in.
+description: Run a card's journeys on real models in a real browser, desktop and phone, in a throwaway env on :8770.
 ---
+# Live QA
 
-# Live QA (CARD-532)
-
-Jacob is product owner, not the live tester (operating model 2026-09-26, `AGENTS.md`). The coding assistant runs every card's live-test steps with this runner, fixes what fails, files Ready cards for out-of-scope findings, and sends the review check-in with 2-3 screenshots.
-
-## One command
-
+## Run
 ```powershell
-python scripts/live_qa.py run --journeys card-520,card-530 --card CARD-532
+.venv\Scripts\python.exe scripts/live_qa.py run --journeys card-556 --card CARD-556     #
+.venv\Scripts\python.exe scripts/live_qa.py run --card NIGHTLY                           # all journeys (exists: empty --journeys selects all)
 ```
+- Serve on `127.0.0.1:8770` from a disposable worktree `<temp>\autoreiv-qa-checkout` with throwaway data in `scratch/live_qa_data`.
+- Commit or `git add` new files first; the worktree copies tracked files only. Don't edit the repo during a run; exit code 3 means the real checkout changed.
+- `--data clone` copies real AppData (read-only source, no `.vault_key`) when the card needs real agents or history.
+- `--viewports desktop|phone`, `--keep`, `--out <dir>`.
+- Model: `AUTOREIV_QA_VLLM_URL` / `AUTOREIV_QA_MODEL` (default nemotron-3.5-lightning at `http://192.168.1.218:8099/v1`).
 
-- Starts its own serve on `127.0.0.1:8770` (never 8000) with throwaway data in `scratch/live_qa_data` (wiped each start), points it at the real vLLM (`nemotron-3.5-lightning` at `192.168.1.218:8099`; override with `AUTOREIV_QA_VLLM_URL` / `AUTOREIV_QA_MODEL`), runs the journeys at desktop and phone, writes the report, stops the serve.
-- The serve runs from a disposable git worktree outside the repo (`<temp>\autoreiv-qa-checkout`), which holds your tracked changes, committed or not. Untracked new source files are not copied, so commit or `git add` them first. The real checkout is a protected write root, and the run fails (exit 3) if its `git status` changes. Don't edit the repo while a run is going [CARD-555].
-- `--data clone`: copies `%LOCALAPPDATA%\AutoReiv` into `scratch/live_qa_data` first (read-only on the source; `.vault_key` not copied; the copy's `wiki_path` / `data_dir` point at the copy). Use when a card needs Jacob's real agents, jobs or history.
-- `--viewports desktop` or `phone`, `--attempts 2` (retry a journey whose model run did not produce the state under test), `--keep` (leave :8770 up), `--out <dir>`, `--judge` (optional local-model judge, off by default; `AUTOREIV_QA_JUDGE_URL` / `AUTOREIV_QA_JUDGE_MODEL`).
-- Env only: `python scripts/live_qa.py start [--data clone]`, `stop`, `status`, `reset`, `clone`.
-- Runner only (env already up): `node tests/e2e/journeys/run.mjs --base http://127.0.0.1:8770 --journeys card-530 --viewports desktop,phone`.
+## Endpoint check
+- `run` first sends one chat completion (`max_tokens` 5, 20 s timeout) to the QA model. By hand:
+  `.venv\Scripts\python.exe scripts/live_qa.py check-model`
+- On failure the run exits 4 with `model endpoint down`. That is not a card failure: report it, wait, rerun.
 
-## Report
-
-Default folder: `AUTOREIV_QA_REPORT_DIR`, else `<temp>\autoreiv-qa\<card>\` (on Jarvis `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`; D: paths cannot be attached). It holds one screenshot per step (`<journey>-<viewport>-NN-<step>.png`), `summary.md` (journey, viewport, step, result, reason, screenshot) and `report.json` (plus console errors, failed requests, notes).
+## Retries
+- Retry only on an endpoint failure (exit 4). Never rerun to get past model behaviour.
+- `--attempts N` (default 1): a failed run is retried only when `check-model` then fails (endpoint down); a behaviour failure is never retried.
 
 ## Writing a journey
+- One file per card: `tests/e2e/journeys/card-N-slug.mjs` exporting `{ id, card, title, allow, allowConsole, run(j, { page, request, base, viewport }) }`.
+- `await j.step('What the operator does', fn, { timeoutMs })`: one screenshot per step. A step fails on a thrown error, a console error, a failed request not in `allow`, or a visible error banner.
+- `clickExpect(locator, () => outcome, { label })` for every click. A click with no outcome is a "Dead button".
+- Helpers: `tests/e2e/journeys/lib/app.mjs` (`openApp`, `openSessionByTitle`, `send`, `waitReplyIdle`, `jobStripText`, `sessionJobStatus`, `HITL_CARD`).
+- Assert structure, never exact model text. Force the path where the model would choose.
+- Known bug: `{ knownBug: 'CARD-N' }` on the step. It reports XFAIL; a pass reports XPASS and fails the run.
+- `soft: true` requires `card: 'CARD-N'`; the runner rejects a soft step without it.
+- No nudges, extra prompts or retries to get past a known bug.
 
-One file per card journey: `tests/e2e/journeys/card-<N>-<name>.mjs` exporting `{ id, card, title, allow, allowConsole, run(j, { page, request, base, viewport }) }`. Journeys stay in the repo as regression tests (not picked up by the smoke suite).
-
-- `await j.step('What the operator does', async () => { ... }, { timeoutMs, soft })`: a screenshot per step. A step fails on a thrown error, a console error, a failed request not in `allow`, or a visible error banner (`.chat-stream-error`, error toast, "Reply failed"). A failure stops the journey; `soft: true` records a warning and continues (use for model behaviour outside the card's scope).
-- `clickExpect(locator, () => outcome, { label, what, timeoutMs })` for every click: a click with no outcome is a "Dead button" failure.
-- Helpers in `tests/e2e/journeys/lib/app.mjs`: `openApp`, `openSessionByTitle`, `send`, `waitReplyIdle`, `trackStreams`, `jobStripText`, `sessionJobStatus`, `HITL_CARD`.
-- Assert model replies structurally (a card appears, a job reaches done, a tool is granted or called), never exact text.
-
-## Check-in to Jacob
-
-Card In Review, then: what changed, what was tested (journeys and preflight), results table from `summary.md`, open items and new cards, 2-3 best screenshot paths. Merge only after **merge to qa**.
+## Report
+- Folder: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\` (D: paths can't be attached): one screenshot per step, `summary.md`, `report.json`.
+- Copy the results table and 2-3 screenshot paths into the card's Results section.

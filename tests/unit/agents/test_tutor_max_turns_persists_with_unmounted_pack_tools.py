@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.web.app import create_app
+
+pytestmark = pytest.mark.slow
 
 
 def test_tutor_put_max_turns_persists_when_education_tools_missing_from_catalog():

@@ -8,6 +8,8 @@ from httpx import ASGITransport, AsyncClient
 
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def mock_app():

@@ -42,7 +42,7 @@ git grep -n "lifespan" src/web/
 Execute a clean restart using the serve-hygiene script:
 
 ```powershell
-uv run python scripts/restart_serve.py --port 8000 --host 127.0.0.1
+pwsh -NoProfile -File scripts\restart_serve.ps1 -HostAddr 0.0.0.0 -Port 8000
 ```
 
 ### Step 4: Verify Post-Boot Survival (The Anti-Clobber Gate)

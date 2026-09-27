@@ -9,6 +9,8 @@ from src.infrastructure.memory.repositories.skill_bindings import SkillToolBindi
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 SKILL_MD = """---
 name: Widget Notes
 description: Read a widget

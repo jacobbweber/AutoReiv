@@ -10,7 +10,6 @@ import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, tra
 
 const QUESTION = 'What is the weather in Boston right now?';
 const LESSON = 'You need a real weather tool to answer this. Do not guess the weather.';
-const CONTINUE = 'Approved. Please continue and register the tool with target_agent_id "autoreiv".';
 const ATTACH = 'attach_tool_to_skill';
 
 async function grantedTools(request, base) {
@@ -66,8 +65,7 @@ export default {
     }, { timeoutMs: 40000 });
 
     await j.step('The Developer builds the tool and proposes attaching it to an autoreiv skill (no silent grant)', async () => {
-      let nudges = 0;
-      let approvedSinceTurn = 0;
+      let stoppedChecks = 0;
       const found = await waitFor(async () => {
         const pending = await attachProposals(request, base);
         const fresh = pending.filter((r) => !beforeProposals.has(String(r.id)));
@@ -81,26 +79,19 @@ export default {
           const approve = card.locator('[data-hitl-decision="APPROVED"]').first();
           if (await approve.isVisible().catch(() => false)) {
             await approve.click();
-            approvedSinceTurn += 1;
+            stoppedChecks = 0;
             j.note('approved a Developer approval card');
             await page.waitForTimeout(1500);
             return null;
           }
         }
-        if (!(await isStreaming(page))) {
-          await page.waitForTimeout(3000);
-          if (await isStreaming(page)) return null;
-          if (nudges < 3) {
-            nudges += 1;
-            j.note(`Developer stopped without an attach proposal (approved ${approvedSinceTurn} card(s) this turn); sent "${CONTINUE}" (CARD-535 workaround, nudge ${nudges})`);
-            approvedSinceTurn = 0;
-            await send(page, CONTINUE);
-            await page.waitForTimeout(3000);
-          }
-        }
+        // No nudging (CARD-535 is a known bug): if the Developer goes idle with nothing to approve, stop here.
+        stoppedChecks = (await isStreaming(page)) ? 0 : stoppedChecks + 1;
+        if (stoppedChecks >= 10) return { stopped: true }; // ~15 s idle
         return null;
       }, { timeoutMs: 900000, intervalMs: 1500 });
       if (!found) throw new Error('no attach-tool-to-skill proposal for autoreiv within 15 minutes');
+      if (found.stopped) throw new Error('the Developer stopped without proposing attach_tool_to_skill');
       proposal = found;
       const a = proposal.arguments || {};
       newTools = [String(a.tool)];
@@ -110,7 +101,7 @@ export default {
       await waitReplyIdle(page, { timeoutMs: 300000 });
       const inTray = page.locator(`${HITL_CARD}[data-approval-id="${proposal.id}"]`);
       j.note(`proposal card visible in the Developer chat tray: ${await inTray.isVisible().catch(() => false)}`);
-    }, { timeoutMs: 1300000 });
+    }, { timeoutMs: 1300000, knownBug: 'CARD-535' });
 
     await j.step('Accept the proposal in Agent Studio; the skill shows ticked', async () => {
       const a = proposal.arguments || {};
@@ -159,7 +150,7 @@ export default {
       await minimizeStudio();
       await openSessionByTitle(page, title, { agentId: 'autoreiv' });
       await askAndCheck(sessionId, 'same chat');
-    }, { timeoutMs: 260000, soft: true });
+    }, { timeoutMs: 260000, soft: true, card: 'CARD-543' });
 
     await j.step('A new AutoReiv chat answers the weather question with the new tool', async () => {
       const t2 = `${title} new`;
@@ -170,6 +161,6 @@ export default {
       await minimizeStudio();
       await openSessionByTitle(page, t2, { agentId: 'autoreiv' });
       await askAndCheck(sid2, 'new chat');
-    }, { timeoutMs: 260000, soft: true });
+    }, { timeoutMs: 260000, soft: true, card: 'CARD-543' });
   },
 };

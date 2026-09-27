@@ -20,6 +20,8 @@ from src.domain.gateway.models import (
 )
 from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.mark.asyncio
 async def test_openai_complete_success():

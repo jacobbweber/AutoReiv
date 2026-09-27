@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 from src.application.wiki.service import WikiService
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def wiki_client():

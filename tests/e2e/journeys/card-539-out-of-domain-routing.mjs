@@ -96,7 +96,7 @@ export default {
       const card = page.locator('text=Delegation to').last();
       j.note(`delegation card visible: ${await card.isVisible().catch(() => false)}`);
       await card.scrollIntoViewIfNeeded().catch(() => {});
-    }, { timeoutMs: 430000, soft: true });
+    }, { timeoutMs: 430000, soft: true, card: 'CARD-546' });
 
     await j.step('A request no agent covers: the reply says so and offers an Ask Developer button', async () => {
       const title = `QA 539 nobody ${stamp}`;

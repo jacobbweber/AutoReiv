@@ -14,6 +14,8 @@ from src.domain.orchestration.errors import InvalidJobStatusError, JobNotFoundEr
 from src.domain.orchestration.models import HandoffPacket, Job, JobStatus, Phase, PhaseStatus, ReactState
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.guard
+
 # Snapshot of INIT_SCHEMA_SQL before CARD-096 jobs/phases tables.
 _OLD_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS sessions (

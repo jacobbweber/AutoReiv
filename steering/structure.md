@@ -8,17 +8,18 @@
 
 ```text
 ├── .agents/                      # Antigravity agent configuration, constitution & rules
-│   ├── rules/                   # Modular operational rules (TDD, SDD, DoD, Git)
+│   ├── rules/                   # Always-on rules: boundaries, code-quality, testing, definition-of-done (+ frontend)
 │   └── skills/                  # Procedural runbooks & deterministic helper scripts
-│       ├── adr-manager/scripts/ # Helper script to scaffold numbered ADRs
-│       ├── preflight/scripts/   # Unified preflight gate runner & DoD verification
-│       ├── sdd-workflow/scripts/# Helper script to scaffold work cards (new_card.py)
-│       ├── serve-hygiene/       # Serve restart & port hygiene runbook
-│       ├── honesty-smoke-gate/  # Control-plane honesty & stress smoke gate
-│       ├── lifecycle-audit/     # State persistence & reboot survival verification
+│       ├── adr-manager/         # Scaffold numbered ADRs
 │       ├── boundary-audit/      # Working-tree hygiene & path resolver scanner
-│       ├── single-lever-audit/  # Architectural anti-duplication & single-lever check
-│       └── regression-sentinel/ # Negative assertion & regression-lock test protocol
+│       ├── card/                # Card loop, bug/feature templates, new_card.py, list_card_status.py
+│       ├── lifecycle-audit/     # State persistence & reboot survival verification
+│       ├── live-qa/             # Live journeys against the real model (scripts/live_qa.py)
+│       ├── merge-to-qa/         # Merge a reviewed card to qa
+│       ├── preflight/           # preflight.py --fast/--full/--nightly (+ honesty smoke script)
+│       ├── serve-hygiene/       # Serve restart & port hygiene runbook
+│       ├── single-lever-audit/  # Architectural anti-duplication check
+│       └── ui-review/           # UI screenshot review
 ├── .github/                     # GitHub templates and labels
 │   └── ISSUE_TEMPLATE/          # Work card, bug, and epic issue templates
 ├── docs/                        # SDLC and Architectural Knowledge Base

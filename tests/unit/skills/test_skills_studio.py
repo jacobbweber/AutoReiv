@@ -2,9 +2,12 @@
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.web.app import create_app
+
+pytestmark = pytest.mark.slow
 
 SAMPLE_SKILL_MD = """---
 name: weekly-review

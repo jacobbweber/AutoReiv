@@ -25,6 +25,8 @@ from src.domain.gateway.models import ToolCall, ToolDefinition
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.fixture
 def temp_db_path():

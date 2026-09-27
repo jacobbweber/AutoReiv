@@ -14,6 +14,8 @@ from src.infrastructure.data.resolver import (
     reconcile_sqlite_databases,
 )
 
+pytestmark = pytest.mark.guard
+
 
 def _clear_path_env(monkeypatch):
     monkeypatch.delenv("AUTOREIV_DATA_DIR", raising=False)

@@ -7,6 +7,8 @@ import pytest
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
 
+pytestmark = pytest.mark.guard
+
 
 def test_dangerous_command_filter_detects_prohibited_patterns():
     prohibited = [

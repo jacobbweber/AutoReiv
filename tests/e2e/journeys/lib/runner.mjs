@@ -168,12 +168,16 @@ export class JourneyRun {
   }
 
   /**
-   * Run one step. `fn` gets { page, run }. Options: timeoutMs, soft (a failure is a warning and the journey continues).
+   * Run one step. `fn` gets { page, run }. Options:
+   * - timeoutMs
+   * - soft + card: a failure is a warning naming the card and the journey continues (soft without card fails).
+   * - knownBug: 'CARD-N': a failure is XFAIL (journey stops, run not red); a pass is XPASS, which fails the step
+   *   so the marker gets removed once the card is fixed.
    * After `fn`, any new console error, disallowed failed request or visible error banner fails the step.
    */
-  async step(name, fn, { timeoutMs = 60000, soft = false } = {}) {
+  async step(name, fn, { timeoutMs = 60000, soft = false, knownBug = '', card = '' } = {}) {
     if (this.stopped) {
-      this.results.push({ step: name, status: 'skipped', reason: 'an earlier step failed', screenshot: null, ms: 0 });
+      this.results.push({ step: name, status: 'skipped', reason: 'an earlier step failed or hit a known bug', screenshot: null, ms: 0 });
       return null;
     }
     const c0 = this.consoleErrors.length;
@@ -201,14 +205,27 @@ export class JourneyRun {
       else if (banner) reason = `error banner: ${banner}`;
     }
     const screenshot = await this.screenshot(name);
-    const status = !reason ? 'pass' : (soft ? 'warn' : 'fail');
+    let status;
+    if (knownBug) {
+      status = reason ? 'xfail' : 'fail';
+      reason = reason ? `XFAIL ${knownBug}: ${reason}` : `XPASS: ${knownBug} may be fixed; remove knownBug`;
+    } else if (!reason) {
+      status = 'pass';
+    } else if (soft && card) {
+      status = 'warn';
+      reason = `${card}: ${reason}`;
+    } else {
+      status = 'fail';
+      if (soft) reason = `soft: true needs card: 'CARD-N' (${reason})`;
+    }
     this.results.push({ step: name, status, reason, screenshot, ms: Date.now() - t0 });
-    if (status === 'fail') this.stopped = true;
+    if (status === 'fail' || status === 'xfail') this.stopped = true;
     return value;
   }
 
   outcome() {
     if (this.results.some((r) => r.status === 'fail')) return 'fail';
+    if (this.results.some((r) => r.status === 'xfail')) return 'xfail';
     if (this.results.some((r) => r.status === 'warn')) return 'warn';
     return 'pass';
   }

@@ -38,6 +38,10 @@ dev = [
 asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+    "guard: architecture/boundary guard tests; run on every preflight --fast",
+    "slow: files over ~3 s wall time; skipped by preflight --fast mapped tests",
+]
 
 [tool.ruff]
 line-length = 120

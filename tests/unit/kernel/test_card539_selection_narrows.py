@@ -25,6 +25,8 @@ from src.domain.capabilities.models import CapabilityIndexEntry
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import AgentProfile
 
+pytestmark = pytest.mark.slow
+
 SKILL_POOL = [
     "wiki-knowledge", "wiki-inbox", "wiki-curation", "wiki_tasks", "platform-health", "session-inspect",
     "coding", "coordination", "proposals", "worker", "sandbox", "sqlite-storage", "build-agent-pack",

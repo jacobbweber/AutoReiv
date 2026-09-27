@@ -6,6 +6,8 @@ import pytest
 
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 
+pytestmark = pytest.mark.guard
+
 
 def test_guardrail_valid_profile_passes():
     valid_data = {

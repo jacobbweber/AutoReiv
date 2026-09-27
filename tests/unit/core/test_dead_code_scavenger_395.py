@@ -17,6 +17,8 @@ from src.application.agent_packs.service import AgentPackService
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.guard
+
 
 def test_skills_studio_file_excised():
     """Verify that standalone skills.js studio is deleted from disk."""

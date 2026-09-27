@@ -20,6 +20,8 @@ from src.application.safety.tool_policy_gate import (
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.fixture
 def temp_db_path():

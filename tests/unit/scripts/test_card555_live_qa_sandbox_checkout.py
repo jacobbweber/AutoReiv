@@ -12,6 +12,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.guard
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 import live_qa  # noqa: E402
 
@@ -88,6 +92,7 @@ def _fake_run(monkeypatch, tmp_path, statuses):
 
     monkeypatch.setattr(live_qa, "list_journeys", lambda *a, **k: ["card-520-teach-needs-tool"])
     monkeypatch.setattr(live_qa, "start", lambda *a, **k: 0)
+    monkeypatch.setattr(live_qa, "check_model", lambda *a, **k: True)
     monkeypatch.setattr(live_qa, "stop", lambda *a, **k: True)
     monkeypatch.setattr(live_qa, "git_status", status)
     monkeypatch.setattr(live_qa.subprocess, "call", lambda *a, **k: 0)

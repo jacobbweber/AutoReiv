@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
+pytestmark = pytest.mark.guard
+
 
 def test_card313_shim_file_does_not_exist():
     """Verify that _card313_import_data_dir_migrate.py is excised and cannot be imported."""

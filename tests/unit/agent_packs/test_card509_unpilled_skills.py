@@ -16,6 +16,8 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.infrastructure.skills.platform_pack_promotion import PLATFORM_OPERATOR_DISABLED_SKILLS_SETTING
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def boot():

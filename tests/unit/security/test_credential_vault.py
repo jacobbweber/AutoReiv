@@ -2,8 +2,12 @@
 Unit tests for Credential Vault AES-256-GCM encryption and repository [CARD-168].
 """
 
+import pytest
+
 from src.domain.security.vault import Credential, CredentialVault
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+pytestmark = pytest.mark.guard
 
 
 def test_credential_vault_encryption_roundtrip(tmp_path):
