@@ -81,14 +81,24 @@ export default {
         && /tool_policy_blocked/.test(String(m.content || ''))).length;
       const last = (rowsBy[sid] || []).filter((m) => role(m) === 'assistant').map((m) => String(m.content || '')).filter(Boolean).pop() || '';
       let listedInDevPhase = false;
+      const devSessionTools = [];
+      for (const ds of devSessions) {
+        const ctx = await getJson(request, `${base}/api/sessions/${encodeURIComponent(ds)}/context`).catch(() => ({}));
+        if (ctx.agent_id === 'developer') devSessionTools.push((ctx.tools || []).map((t) => String(t.name)));
+      }
+      const listedInDevChild = devSessionTools.some((names) => names.includes('repo_file_read'));
+      const devBlocked = devRows.filter((m) => role(m) === 'tool' && /^repo_file_/.test(String(m.name || ''))
+        && /tool_policy_blocked/.test(String(m.content || ''))).length;
+      const devReadTools = [...new Set(devRows.filter((m) => role(m) === 'tool').map((m) => String(m.name || '')))].join(', ') || 'none';
       for (const ph of devPhases) {
         const ctx = await getJson(request, `${base}/api/sessions/${encodeURIComponent(`${sid}::phase::${ph.id}`)}/context`).catch(() => ({}));
         if ((ctx.tools || []).some((t) => String(t.name) === 'repo_file_read') && ctx.agent_id === 'developer') listedInDevPhase = true;
       }
-      j.note(`handoffs to developer ${handoffs}; developer phases: ${devPhases.map((p) => `${p.name}:${p.status}`).join(', ') || 'none'}; developer child sessions ${devSessions.size}; successful Developer repo_file_* rows ${repoOk.length}${repoOk.length ? ` (${String(repoOk[0].content).slice(0, 90).replace(/\s+/g, ' ')})` : ''}; repo_file_read in a Developer phase tool list ${listedInDevPhase}; AutoReiv repo_file_* policy blocks ${blocked} (expected, CARD-544); approval cards: ${await page.locator(HITL_CARD).count()}; reply: ${last.slice(0, 140).replace(/\s+/g, ' ')}`);
+      j.note(`handoffs to developer ${handoffs}; developer phases: ${devPhases.map((p) => `${p.name}:${p.status}`).join(', ') || 'none'}; developer child sessions ${devSessions.size}; successful Developer repo_file_* rows ${repoOk.length}${repoOk.length ? ` (${String(repoOk[0].content).slice(0, 90).replace(/\s+/g, ' ')})` : ''}; repo_file_read in a Developer phase tool list ${listedInDevPhase}; repo_file_read in a Developer handoff-session tool list ${listedInDevChild}; Developer tools used: ${devReadTools}; Developer repo_file_* policy blocks ${devBlocked}; AutoReiv repo_file_* policy blocks ${blocked} (expected, CARD-544); approval cards: ${await page.locator(HITL_CARD).count()}; reply: ${last.slice(0, 140).replace(/\s+/g, ' ')}`);
       if (REFUSAL_RE.test(last)) throw new Error(`reply contains refusal wording: ${last.slice(0, 160)}`);
       if (!handoffs && !devPhases.length) throw new Error('the request did not reach Developer (no handoff row, no developer phase)');
-      if (!repoOk.length && !listedInDevPhase) throw new Error('Developer did not get a working repo_file_* tool (no successful repo_file_* row, not in a Developer phase tool list)');
+      if (devBlocked) throw new Error(`Developer hit tool_policy_blocked on repo_file_* (${devBlocked})`);
+      if (!repoOk.length && !listedInDevPhase && !listedInDevChild) throw new Error('Developer did not get repo_file_read (no successful repo_file_* row; not in a Developer phase or handoff-session tool list)');
     }, { timeoutMs: 430000 });
   },
 };
