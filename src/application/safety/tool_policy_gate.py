@@ -299,6 +299,7 @@ class ToolPolicyGate:
         matched_capability_ids: Optional[Sequence[str]] = None,
         registry_tool_names: Optional[Set[str]] = None,
         tool_risk: Optional[str] = None,
+        planning_phase: bool = False,
     ) -> ToolPolicyDecision:
         name = str(tool_call.name or "").strip()
         if not name:
@@ -343,6 +344,19 @@ class ToolPolicyGate:
                 reason=f"Tool '{name}' is not in a skill ticked for this agent - fail closed",
                 policy_source="agent_allowlist",
             )
+
+        # A planning (Formulate) phase plans only: no handoff, no work tools [CARD-554].
+        if planning_phase:
+            from src.application.orchestration.phase_roles import planning_phase_block_reason
+
+            why = planning_phase_block_reason(name, tool_risk)
+            if why:
+                return ToolPolicyDecision(
+                    verdict=ToolPolicyVerdict.BLOCK,
+                    tool_name=name,
+                    reason=why,
+                    policy_source="planning_phase",
+                )
 
         # Matched capability subset when job-bound [REQ-TOOLPOL-003 / CARD-220 / CARD-225].
         # The subset only narrows; required platform tools always stay (CARD-539).

@@ -8,6 +8,25 @@ from typing import List, Optional, Set
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+# Tools that change something (writes, exec). Also the planning-phase work-tool list [CARD-554].
+DEFAULT_HIGH_RISK_TOOLS: tuple[str, ...] = (
+    "cli_exec",
+    "wiki_note_create",
+    "wiki_note_update",
+    "wiki_note_organize",
+    "execute_code",
+    "write_card",
+    "write_spec",
+    "set_card_status",
+    "write_project_file",
+    "create_project",
+    "git_commit",
+    "sync_card_issue",
+    "repo_file_write",
+    "repo_file_patch",
+    "repo_file_rollback",
+)
+
 
 class HITLApprovalEngine:
     """Evaluates whether tool executions require operator review and parks state."""
@@ -20,23 +39,7 @@ class HITLApprovalEngine:
         self.store = store
         self.high_risk_tools: Set[str] = set(
             high_risk_tools
-            or [
-                "cli_exec",
-                "wiki_note_create",
-                "wiki_note_update",
-                "wiki_note_organize",
-                "execute_code",
-                "write_card",
-                "write_spec",
-                "set_card_status",
-                "write_project_file",
-                "create_project",
-                "git_commit",
-                "sync_card_issue",
-                "repo_file_write",
-                "repo_file_patch",
-                "repo_file_rollback",
-            ]
+            or DEFAULT_HIGH_RISK_TOOLS
         )
 
     def register_high_risk_tool(self, tool_name: str) -> None:

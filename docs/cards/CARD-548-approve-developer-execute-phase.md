@@ -1,7 +1,7 @@
 ---
 id: CARD-548
 title: "Approve on a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer"
-status: Ready
+status: Done
 created: 2026-09-27
 branch: qa
 related:
@@ -15,7 +15,7 @@ labels:
 
 # [CARD-548] Approving a Developer Execute phase resumes as Developer
 
-> **Status**: Ready (filed from CARD-544 live QA, 2026-09-27 ~1:45 AM ET).
+> **Status**: Done (2026-09-27 ET). Jacob said "merge to qa" at 4:11 PM ET; merged `--no-ff` into qa from `feat/card-554-553-phase-handoff-tools`. Covered by the CARD-554 + CARD-553 plan.
 > **Related**: CARD-544, CARD-530
 > **Labels**: `type:bug`, `area:chat`, `P2`
 
@@ -30,3 +30,9 @@ Add a journey step that presses Approve on the `execute_code` card and checks th
 ## Done when
 
 The approve step passes on desktop and phone, and a unit test covers resume of a phase assigned to another agent.
+
+## Covered by CARD-554 + CARD-553 (2026-09-27)
+
+The CARD-550 journey now covers this card. Its step 2 presses Approve on every approval card in an AutoReiv chat and asserts that the job ends DONE with Developer's Execute phase DONE, a successful `repo_file_read` and a successful `execute_code` or `cli_exec`. It uses the checkout count ask instead of the reversed-string ask.
+
+The resume bug named here was real. The open-job resume path in `chat_stream` streamed the resumed turn on the parent session. After Approve, Developer answered from the parent transcript (in two desktop runs the reply claimed an AST count it never ran), and its phase loop stopped after one tool. Fix: `resume_session_for_phase` resumes in `<sid>::phase::<id>`, and `relay_phase_reply_to_parent` copies the phase's final reply into the chat (`src/web/routers/chat.py`, commit `9712fe7a`). Unit tests are in `tests/unit/orchestration/test_card554_553_phase_handoff_tools.py` (tests `d297ac8a`, red first). Live QA run card-554c passed on desktop and phone. See CARD-554 for the evidence table.
