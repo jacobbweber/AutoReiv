@@ -119,7 +119,8 @@ export default {
       await page.selectOption('#forgeAgentSelect', 'autoreiv');
       const accept = page.locator(`#forgePendingProposals [data-attach-decision="APPROVED"][data-id="${proposal.id}"]`);
       await accept.waitFor({ state: 'visible', timeout: 20000 });
-      await accept.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(800); // the pending list can re-render once after the agent loads
+      await accept.scrollIntoViewIfNeeded().catch(() => {});
       await clickExpect(accept, async () => (await grantedTools(request, base)).has(String(a.tool)),
         { label: 'Accept', what: `${a.tool} usable by autoreiv`, timeoutMs: 20000 });
       const agent = await getJson(request, `${base}/api/agents/autoreiv`);
@@ -129,7 +130,8 @@ export default {
       const pill = page.locator(`.forge-skill-pill[data-skill-id="${a.skill_id}"]`).first();
       const ok = await waitFor(async () => (await pill.getAttribute('aria-pressed').catch(() => null)) === 'true', { timeoutMs: 15000 });
       if (!ok) throw new Error(`Agent Studio does not show ${a.skill_id} ticked`);
-      await pill.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(800); // the Studio re-renders after accepting
+      await pill.scrollIntoViewIfNeeded().catch(() => {});
       j.note(`accepted; ${a.skill_id} ticked in Agent Studio`);
     }, { timeoutMs: 90000 });
 
