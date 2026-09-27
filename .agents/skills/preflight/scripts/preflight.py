@@ -113,6 +113,9 @@ def judge(name: str, rc: int, out: str, lint: str | None) -> tuple[str, str]:
     return "FAIL", _tail(out)
 
 
+SUMMARY_RE = re.compile(r"Tests\s+\d|\d+ (passed|failed)|Found \d+ error|All checks passed|\d+ problems? \(")
+
+
 def _tail(out: str) -> str:
     lines = [ln for ln in out.splitlines() if ln.strip()]
     return (lines[-1] if lines else "no output")[:160]
@@ -161,7 +164,8 @@ def run_tier(tier: str, stages) -> int:
         log = OUT / (re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") + ".log")
         log.write_text(out, encoding="utf-8")
         result, note = judge(name, rc, out, lint)
-        summary = next((ln.strip() for ln in reversed(out.splitlines()) if re.search(r"passed|failed|error|Tests ", ln)), "")
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", out)
+        summary = next((ln.strip() for ln in reversed(plain.splitlines()) if SUMMARY_RE.search(ln)), "")
         rows.append((name, result, secs, note or summary[:160]))
         print(f"[preflight] {name}: {result} ({secs:.0f} s) {note}")
     total = time.time() - t_all
