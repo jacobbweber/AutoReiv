@@ -2,7 +2,7 @@
 id: CARD-559
 title: "Agentic rules: slim playbook, fast/full/nightly preflight, known-bug XFAIL, model check"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M22
 needs_decision: none
@@ -16,6 +16,7 @@ proof:
 branch: feat/card-559-agentic-rules
 log: {minutes: 60, qa_runs: 1, reruns: 0, findings: 7, fast_tier_s: 332, full_tier_s: 1107}
 created: 2026-09-27
+completed: 2026-09-27
 ---
 
 # CARD-559 Agentic rules: slim playbook, fast/full/nightly preflight, known-bug XFAIL, model check
