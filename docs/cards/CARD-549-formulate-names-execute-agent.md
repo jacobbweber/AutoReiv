@@ -30,3 +30,7 @@ Put the Execute phase's assigned agent in the phase working set (`build_phase_wo
 ## Done when
 
 The unit test passes, and three runs of the routing journey show no "cannot execute" wording in Formulate.
+
+## Note (2026-09-27, from CARD-554)
+
+This is largely covered by the CARD-554 planning block. A planning phase's assignment now says "plan only" and names the agent that runs each later phase (`format_planning_phase_block` in `src/application/orchestration/phase_roles.py`), and the tool gate blocks work tools and handoff in Formulate. In the four card-550 runs and two card-539 runs on `feat/card-554-553-phase-handoff-tools`, Formulate replied with a plan and no "cannot execute" wording. The card stays Ready until the three routing-journey runs in "Done when" are recorded after merge.
