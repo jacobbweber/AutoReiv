@@ -124,7 +124,9 @@ export default {
         { label: 'Accept', what: `${a.tool} usable by autoreiv`, timeoutMs: 20000 });
       const agent = await getJson(request, `${base}/api/agents/autoreiv`);
       if (!(agent.allowed_skill || []).includes(a.skill_id)) throw new Error(`skill ${a.skill_id} not ticked on autoreiv`);
-      const pill = page.locator(`#forgeSkillsGrid [data-skill-id="${a.skill_id}"]`).first();
+      const caps = page.locator('details[data-section="capabilities"]');
+      if (!(await caps.evaluate((el) => el.open).catch(() => true))) await caps.locator('summary').first().click();
+      const pill = page.locator(`.forge-skill-pill[data-skill-id="${a.skill_id}"]`).first();
       const ok = await waitFor(async () => (await pill.getAttribute('aria-pressed').catch(() => null)) === 'true', { timeoutMs: 15000 });
       if (!ok) throw new Error(`Agent Studio does not show ${a.skill_id} ticked`);
       await pill.scrollIntoViewIfNeeded();

@@ -55,4 +55,11 @@ describe('Pending proposals in Agent Studio [CARD-539]', () => {
     expect(host.innerHTML).toContain('get-weather');
     expect(host.classList.toggle).toHaveBeenCalledWith('hidden', false);
   });
+
+  it('pending proposals sit at the top of Agent Studio, outside any collapsed section', () => {
+    const html = fs.readFileSync(path.join(repoRoot, 'src/web/templates/index.html'), 'utf-8');
+    const host = html.indexOf('id="forgePendingProposals"');
+    expect(host).toBeGreaterThan(-1);
+    expect(host).toBeLessThan(html.indexOf('id="forgePlatformDefaultsSection"'));
+  });
 });
