@@ -2,15 +2,17 @@
  * CARD-550 journey (D1, Jacob 2026-09-27): Developer ticks coding, so a code request that must read an AutoReiv
  * source file reaches Developer with the checkout repo_file_* tools allowed.
  * 1) Developer's allowed tools include repo_file_read / repo_file_list / repo_file_write / repo_file_patch.
- * 2) Asked in an AutoReiv chat, the request goes to Developer (a Developer job phase or a handoff row); the
- *    Developer phase's own chat lists repo_file_read and has no tool_policy_blocked row; no refusal wording.
+ * 2) Asked in an AutoReiv chat, the request goes to Developer (a handoff row in the chat or a phase chat, or a Developer
+ *    job phase), and Developer gets a working repo_file_* tool (a successful repo_file_* row, or repo_file_read in
+ *    the Developer phase's tool list). No refusal wording.
  * Checks are structural (agent tool lists, phase assignment, tool rows), never exact model wording.
  */
 import { waitFor } from './lib/runner.mjs';
 import { HITL_CARD, getJson, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
 
 const REPO_TOOLS = ['repo_file_read', 'repo_file_list', 'repo_file_write', 'repo_file_patch'];
-const ASK = 'Read the AutoReiv source file src/application/agent_packs/allowed_tools.py and tell me in two sentences what resolve_allowed_tools returns.';
+// Reading alone is platform-wide (read_document_file, CARD-539 D3), so the ask also needs code run: that is code work.
+const ASK = 'In the AutoReiv checkout, read src/application/agent_packs/allowed_tools.py with the repository tools, then write and run a small Python snippet that counts the top-level def statements in it, and show me the count.';
 const REFUSAL_RE = /outside (of )?my (authorized )?domain|not authorized to|\brefuse/i;
 
 const role = (m) => String((m && m.role) || '').toLowerCase();
@@ -21,11 +23,10 @@ async function messages(request, base, sid) {
   return Array.isArray(rows) ? rows : [];
 }
 
-async function developerPhases(request, base, sid) {
+async function jobPhases(request, base, sid) {
   const jn = await getJson(request, `${base}/api/chat/sessions/${encodeURIComponent(sid)}/journey`).catch(() => ({}));
   const jobs = Array.isArray(jn.jobs) ? jn.jobs : [];
-  return jobs.flatMap((job) => (Array.isArray(job.phases) ? job.phases : []))
-    .filter((ph) => /developer/i.test(String(ph.assigned_agent_id || '')));
+  return jobs.flatMap((job) => (Array.isArray(job.phases) ? job.phases : []));
 }
 
 export default {
@@ -58,26 +59,31 @@ export default {
       await send(page, ASK);
       await waitFor(() => streams.count > n, { timeoutMs: 15000 });
       await waitReplyIdle(page, { timeoutMs: 400000 });
-      const rows = await messages(request, base, sid);
-      const handoffs = rows.filter((m) => role(m) === 'tool' && String(m.name || '') === 'handoff_to_agent'
+      // The request can reach Developer three ways: a handoff from the chat, a handoff from inside a job phase, or a
+      // job whose Execute phase is Developer's. Look in the chat and in every phase chat of its jobs.
+      const phasesAll = await jobPhases(request, base, sid);
+      const sessions = [sid, ...phasesAll.map((ph) => `${sid}::phase::${ph.id}`)];
+      const rowsBy = {};
+      for (const s2 of sessions) rowsBy[s2] = await messages(request, base, s2).catch(() => []);
+      const allRows = Object.values(rowsBy).flat();
+      const handoffs = allRows.filter((m) => role(m) === 'tool' && String(m.name || '') === 'handoff_to_agent'
         && /developer/i.test(String(m.content || ''))).length;
-      const phases = await developerPhases(request, base, sid);
-      const last = rows.filter((m) => role(m) === 'assistant').map((m) => String(m.content || '')).filter(Boolean).pop() || '';
-      j.note(`handoffs to developer ${handoffs}; developer phases: ${phases.map((p) => `${p.name}:${p.status}`).join(', ') || 'none'}; approval cards: ${await page.locator(HITL_CARD).count()}; reply: ${last.slice(0, 160).replace(/\s+/g, ' ')}`);
-      if (REFUSAL_RE.test(last)) throw new Error(`reply contains refusal wording: ${last.slice(0, 160)}`);
-      if (!handoffs && !phases.length) throw new Error('the request did not reach Developer (no handoff row, no developer phase)');
-      for (const ph of phases) {
-        const psid = `${sid}::phase::${ph.id}`;
-        const ctx = await getJson(request, `${base}/api/sessions/${encodeURIComponent(psid)}/context`).catch(() => ({}));
-        const listed = new Set((ctx.tools || []).map((t) => String(t.name)));
-        const prow = await messages(request, base, psid);
-        const blocked = prow.filter((m) => role(m) === 'tool' && /tool_policy_blocked/.test(String(m.content || '')));
-        const reads = prow.filter((m) => role(m) === 'tool' && /^repo_file_/.test(String(m.name || '')));
-        j.note(`phase ${ph.name}: session agent ${ctx.agent_id || '?'}; repo_file_read listed ${listed.has('repo_file_read')}; repo_file_* rows ${reads.length}${reads.length ? ` (first: ${String(reads[0].content || '').slice(0, 80).replace(/\s+/g, ' ')})` : ''}; policy-blocked ${blocked.length}`);
-        if (ctx.agent_id && ctx.agent_id !== 'developer') throw new Error(`the Developer phase ran as ${ctx.agent_id}`);
-        if (!listed.has('repo_file_read')) throw new Error('repo_file_read is not in the Developer phase tool list');
-        if (blocked.length) throw new Error(`policy-blocked in the Developer phase: ${String(blocked[0].content).slice(0, 120)}`);
+      const devPhases = phasesAll.filter((ph) => /developer/i.test(String(ph.assigned_agent_id || '')));
+      // AutoReiv no longer ticks coding (CARD-544), so only Developer can get a successful repo_file_* result.
+      const repoOk = allRows.filter((m) => role(m) === 'tool' && /^repo_file_/.test(String(m.name || ''))
+        && /"success":\s*true/.test(String(m.content || '')));
+      const blocked = allRows.filter((m) => role(m) === 'tool' && /^repo_file_/.test(String(m.name || ''))
+        && /tool_policy_blocked/.test(String(m.content || ''))).length;
+      const last = (rowsBy[sid] || []).filter((m) => role(m) === 'assistant').map((m) => String(m.content || '')).filter(Boolean).pop() || '';
+      let listedInDevPhase = false;
+      for (const ph of devPhases) {
+        const ctx = await getJson(request, `${base}/api/sessions/${encodeURIComponent(`${sid}::phase::${ph.id}`)}/context`).catch(() => ({}));
+        if ((ctx.tools || []).some((t) => String(t.name) === 'repo_file_read') && ctx.agent_id === 'developer') listedInDevPhase = true;
       }
+      j.note(`handoffs to developer ${handoffs}; developer phases: ${devPhases.map((p) => `${p.name}:${p.status}`).join(', ') || 'none'}; successful repo_file_* rows ${repoOk.length}${repoOk.length ? ` (${String(repoOk[0].content).slice(0, 90).replace(/\s+/g, ' ')})` : ''}; repo_file_read in a Developer phase tool list ${listedInDevPhase}; AutoReiv repo_file_* policy blocks ${blocked} (expected, CARD-544); approval cards: ${await page.locator(HITL_CARD).count()}; reply: ${last.slice(0, 140).replace(/\s+/g, ' ')}`);
+      if (REFUSAL_RE.test(last)) throw new Error(`reply contains refusal wording: ${last.slice(0, 160)}`);
+      if (!handoffs && !devPhases.length) throw new Error('the request did not reach Developer (no handoff row, no developer phase)');
+      if (!repoOk.length && !listedInDevPhase) throw new Error('Developer did not get a working repo_file_* tool (no successful repo_file_* row, not in a Developer phase tool list)');
     }, { timeoutMs: 430000 });
   },
 };
