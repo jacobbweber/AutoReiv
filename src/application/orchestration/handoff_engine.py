@@ -281,7 +281,9 @@ class HandoffIsolationEngine:
                         job_id=parent_job_id,
                         specialist_agent_id=recipient_id,
                         specialty=packet.goal or envelope.task_intent,
-                        park=bool(payload.get("park_on_handoff", True)),
+                        # CARD-554: the handoff runs inside the parent's turn, which then completes its phase; parking
+                        # the running phase made that completion fail ("another run of this job changed this step").
+                        park=bool(payload.get("park_on_handoff", False)),
                     )
                     same_job_id = str(bound.get("same_job_id") or parent_job_id)
                     child_job_id = same_job_id  # bind turn to same tree

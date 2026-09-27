@@ -21,6 +21,11 @@ from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
+from src.application.orchestration.phase_roles import (
+    format_planning_phase_block,
+    format_planning_repo_note,
+    is_planning_phase,
+)
 from src.application.orchestration.repo_code_grounding import (
     ACTION_REQUIRE_READ as REPO_ACTION_REQUIRE_READ,
 )
@@ -1170,12 +1175,17 @@ async def execute_goal_job_phases(
             )
         if repo_decision is None:
             repo_decision = repo_grounding_for_job(orch, job.id)
+        planning = is_planning_phase(current)
         if repo_decision is not None and repo_decision.action == REPO_ACTION_REQUIRE_READ:
-            assignment = (
-                assignment.rstrip()
-                + "\n\n"
-                + format_repo_grounding_constraint_block(repo_decision)
+            # CARD-554: Formulate plans; the Execute phase reads the checkout (the MUST-read made Formulate do the work).
+            block = (
+                format_planning_repo_note(getattr(repo_decision, "suggested_paths", ()) or ())
+                if planning
+                else format_repo_grounding_constraint_block(repo_decision)
             )
+            assignment = assignment.rstrip() + "\n\n" + block
+        if planning and len(phases) > 1:
+            assignment = assignment.rstrip() + "\n\n" + format_planning_phase_block(phases, current)
         run_profile = profile_for_phase(profile, current, registry)
         phase_session = _ensure_phase_session(store, session_id, current, run_profile.id)
         outcome = await _stream_turn_bound(

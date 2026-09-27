@@ -311,8 +311,15 @@ class AgentKernel:
             },
         )
 
-    def _matched_capability_ids_for_job(self, job_id: Optional[str], phase_id: Optional[str] = None) -> Optional[list]:
-        """Resolve locked matched IDs from durable checkpoint when job/phase-bound [CARD-221/224, CARD-362]."""
+    def _matched_capability_ids_for_job(
+        self, job_id: Optional[str], phase_id: Optional[str] = None, agent: Any = None
+    ) -> Optional[list]:
+        """Resolve locked matched IDs from durable checkpoint when job/phase-bound [CARD-221/224, CARD-362].
+
+        CARD-553: the subset was matched for the agent the job was minted for, so it narrows only that agent. Another
+        agent in the job (an Execute phase assigned to Developer, or a handoff target) gets None here: its own
+        allowed set (resolve_allowed_tools), narrowed only by per-turn selection; the gate still enforces that set.
+        """
         jid = (job_id or "").strip()
         pid = (phase_id or "").strip()
         if not jid and not pid:
@@ -328,6 +335,16 @@ class AgentKernel:
                     pass
         if not jid:
             return None
+        agent_id = str(getattr(agent, "id", "") or "").strip() if agent is not None else ""
+        if agent_id:
+            job_getter = getattr(self.state_store, "get_job", None)
+            try:
+                job = job_getter(jid) if callable(job_getter) else None
+            except Exception:
+                job = None
+            owner = str(getattr(job, "agent_id", "") or "").strip() if job is not None else ""
+            if owner and owner != agent_id:
+                return None
         getter = getattr(self.state_store, "get_latest_job_phase_checkpoint", None)
         if not callable(getter):
             return None
@@ -340,6 +357,19 @@ class AgentKernel:
         ids = getattr(cp, "matched_capability_ids", None) or []
         return [str(x) for x in ids]
 
+    def _is_planning_phase(self, phase_id: Optional[str]) -> bool:
+        """True when ``phase_id`` is a Formulate (planning) phase [CARD-554]."""
+        pid = str(phase_id or "").strip()
+        getter = getattr(self.state_store, "get_phase", None)
+        if not pid or not callable(getter):
+            return False
+        try:
+            from src.application.orchestration.phase_roles import is_planning_phase
+
+            return is_planning_phase(getter(pid))
+        except Exception:
+            return False
+
     def _gate_tool_call(
         self,
         tc: ToolCall,
@@ -349,6 +379,7 @@ class AgentKernel:
         routine_id: Optional[str] = None,
         matched_capability_ids: Optional[list] = None,
         job_id: Optional[str] = None,
+        planning_phase: bool = False,
     ) -> Optional[ToolResult]:
         """
         Tool policy gate [CARD-221]: ALLOW / REQUIRE_CONFIRM / BLOCK before executor.
@@ -376,6 +407,7 @@ class AgentKernel:
             matched_capability_ids=matched_capability_ids,
             registry_tool_names=registry_names or None,
             tool_risk=risk_of(tc.name) if callable(risk_of) else None,
+            planning_phase=planning_phase,
         )
         return gate.apply_to_tool_result(
             decision,
@@ -745,6 +777,7 @@ class AgentKernel:
         user_content: Optional[str] = None,
         matched_capability_ids: Optional[list] = None,
         active_skills: Optional[Sequence[str]] = None,
+        planning_phase: Optional[bool] = None,
     ) -> List[Any]:
         """
         Pick this turn's tools from the agent's allowed set (ADR-0061). Every step only narrows:
@@ -768,6 +801,16 @@ class AgentKernel:
         active_skills = [s for s in dict.fromkeys(list(active_skills or []) + derived) if s in ticks]
 
         tools = list(self.tool_registry.get_tools_for_agent(agent))
+        if planning_phase is None:
+            planning_phase = bool(getattr(self, "_turn_planning_phase", False))
+        if planning_phase:  # Formulate plans only: handoff and work tools are not mounted [CARD-554]
+            from src.application.orchestration.phase_roles import planning_phase_block_reason
+
+            risk_of = getattr(self.tool_registry, "get_tool_risk", None)
+            tools = [
+                t for t in tools
+                if not planning_phase_block_reason(t.name, risk_of(t.name) if callable(risk_of) else None)
+            ]
         if phase_skills:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
             tools = [
                 t for t in tools if phase_skills & set(allowed.skills_for(t.name)) or t.name in REQUIRED_PLATFORM_TOOLS
@@ -875,7 +918,8 @@ class AgentKernel:
         When resume=True, continue from persisted history without appending a USER message.
         """
         self._ace_tool_errors = []
-        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id)
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id, agent=agent)
+        self._turn_planning_phase = self._is_planning_phase(phase_id)
         if resume:
             user_content = None
         if user_content and save_to_history:
@@ -1138,8 +1182,9 @@ class AgentKernel:
                     agent,
                     approval_mode=approval_mode,
                     routine_id=routine_id,
-                    matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")),
+                    matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id"), agent=agent),
                     job_id=react_ctx.get("job_id"),
+                    planning_phase=self._is_planning_phase(react_ctx.get("phase_id")),
                 )
                 if gated is not None:
                     tool_res = gated
@@ -1253,7 +1298,8 @@ class AgentKernel:
         without appending a USER message [REQ-HITL-034].
         """
         self._ace_tool_errors = []
-        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id)
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id, agent=agent)
+        self._turn_planning_phase = self._is_planning_phase(phase_id)
         if resume:
             user_content = None
         if user_content:
@@ -1594,8 +1640,9 @@ class AgentKernel:
                     session_id,
                     agent,
                     approval_mode=approval_mode,
-                    matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")),
+                    matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id"), agent=agent),
                     job_id=react_ctx.get("job_id"),
+                    planning_phase=self._is_planning_phase(react_ctx.get("phase_id")),
                 )
                 if gated is not None:
                     tool_res = gated
