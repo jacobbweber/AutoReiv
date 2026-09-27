@@ -1,9 +1,9 @@
 ---
 id: CARD-556
 title: "write_project_file with no project selected writes into the AutoReiv checkout"
-status: In Review
+status: Done
 created: 2026-09-27
-branch: feat/card-556-write-project-file-scratch
+branch: qa
 related:
   - CARD-555
   - CARD-550
@@ -15,7 +15,7 @@ labels:
 
 # [CARD-556] write_project_file defaults to the AutoReiv checkout
 
-> **Status**: In Review on `feat/card-556-write-project-file-scratch` (2026-09-27 ET), not merged. D1 decided by Jacob, 2026-09-27 1:22 PM ET (filed from CARD-555).
+> **Status**: Done (2026-09-27 ET). Jacob said "merge to qa" at 4:11 PM ET; merged `--no-ff` into qa from `feat/card-556-write-project-file-scratch`. D1 decided by Jacob, 2026-09-27 1:22 PM ET (filed from CARD-555).
 > **Related**: CARD-555, CARD-550
 > **Labels**: `type:product`, `area:tools`, `P3`
 

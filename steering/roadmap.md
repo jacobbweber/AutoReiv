@@ -130,7 +130,7 @@
   - [ ] **CARD-553**: A handoff from a job phase keeps the job's capability subset, so Developer's `cli_exec` is skipped (from CARD-550 live QA).
   - [ ] **CARD-554**: Formulate does the work itself, ends FAILED after a completed handoff, and Execute stays queued (from CARD-550 live QA).
   - [x] **CARD-555**: Live QA's throwaway serve lets Developer write into the real checkout (from CARD-550 live QA). **Done** 2026-09-27: sandbox worktree, protected write roots, git status guard.
-  - [ ] **CARD-556**: `write_project_file` with no project selected writes into the AutoReiv checkout (from CARD-555; D1 decided by Jacob 2026-09-27: scratch under the data folder). **In Review** on `feat/card-556-write-project-file-scratch`: `<data root>/scratch`, never the checkout, the result says where.
+  - [x] **CARD-556**: `write_project_file` with no project selected writes into the AutoReiv checkout (from CARD-555; D1 decided by Jacob 2026-09-27: scratch under the data folder). **Done** 2026-09-27: `<data root>/scratch`, never the checkout, the result says where.
   - [ ] **CARD-558**: `cli_exec`, git and card tools default to the AutoReiv checkout when no project is selected (needs a decision; from CARD-556).
   - [ ] **Education Studio** (no card yet).
 
