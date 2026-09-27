@@ -95,7 +95,9 @@ export default {
       if (w.location !== 'scratch') throw new Error(`write went to location ${w.location}, not scratch`);
       if (!under(w.full_path, scratch)) throw new Error(`full_path ${w.full_path} is not under ${scratch}`);
       if (!/scratch/i.test(String(w.note || ''))) throw new Error('the tool result does not tell the model where the file went');
-      if (/autoreiv-qa-checkout|projects[\\/]active[\\/]autoreiv/i.test(String(w.full_path))) throw new Error(`full_path ${w.full_path} is inside a checkout`);
+      // Live QA keeps its throwaway data root in the real checkout's gitignored scratch/ folder, so only the serve's
+      // own checkout (the sandbox worktree) is checked here; the runner's real-checkout guard covers the rest.
+      if (/autoreiv-qa-checkout/i.test(String(w.full_path))) throw new Error(`full_path ${w.full_path} is inside the serve's checkout`);
       if (!norm(w.full_path).endsWith(`/${file}`)) throw new Error(`full_path ${w.full_path} is not the requested file ${file}`);
       if (!/scratch/i.test(last)) throw new Error('the reply does not say the file went to the scratch folder');
     }, { timeoutMs: 430000 });
