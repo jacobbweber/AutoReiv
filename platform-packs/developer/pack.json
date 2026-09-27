@@ -24,6 +24,17 @@
       ]
     },
     {
+      "id": "coding",
+      "name": "Repository Code & Files",
+      "description": "Repository file reading, directory listing, guarded writes, and patching in the AutoReiv checkout.",
+      "tools": [
+        "repo_file_read",
+        "repo_file_list",
+        "repo_file_write",
+        "repo_file_patch"
+      ]
+    },
+    {
       "id": "mcp-engineering",
       "name": "Enterprise MCP Server Engineering & Deployment",
       "description": "Scaffold FastMCP servers, run JSON-RPC protocol tests, deploy Docker containers with health checks, and register MCP endpoints into AutoReiv.",
@@ -63,6 +74,7 @@
   ],
   "allowed_skill": [
     "sdlc-engineering",
+    "coding",
     "mcp-engineering",
     "native-tool-engineering",
     "capability-authoring",

@@ -172,6 +172,7 @@ def create_app(
 
     # 2. Agent & Tool Registries
     autoreiv_skills_pre_seed = None
+    developer_skills_pre_seed = None
     if agent_registry and tool_registry:
         registry = agent_registry
         tool_reg = tool_registry
@@ -179,6 +180,9 @@ def create_app(
         from src.application.agent_packs.capability_migration import autoreiv_skills_before_seed
 
         autoreiv_skills_pre_seed = autoreiv_skills_before_seed(store)  # CARD-544: before the seed sync rewrites it
+        from src.application.agent_packs.capability_migration import developer_skills_before_seed
+
+        developer_skills_pre_seed = developer_skills_before_seed(store)  # CARD-550: same ordering
         registry, tool_reg = BuiltinAgentRegistry.bootstrap(
             store=store,
             telemetry=telemetry,
@@ -313,6 +317,13 @@ def create_app(
         )
     except Exception:
         logging.getLogger(__name__).exception("CARD-544 coding migration failed; will retry next start")
+    # Developer ticks coding (the checkout repo_file_* tools), once (idempotent) [CARD-550 D1].
+    try:
+        from src.application.agent_packs.capability_migration import tick_developer_coding
+
+        tick_developer_coding(store, registry, data_root=data_paths.root, before_seed=developer_skills_pre_seed)
+    except Exception:
+        logging.getLogger(__name__).exception("CARD-550 coding migration failed; will retry next start")
     # Stored pre-CARD-520 remedy names become tool_escalation, once (idempotent) [CARD-520 D2].
     try:
         from src.application.observability.tool_escalation_migration import migrate_tool_escalation_names
