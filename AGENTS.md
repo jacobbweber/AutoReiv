@@ -50,7 +50,7 @@ This wins over conflicting older “continue alone = approval” wording.
 ## Runtime product locks (do not reverse)
 
 - Skill = one `SKILL.md` runbook. Tool = one callable. Pack = packaging of **one** agent. Name is **Platform**, not Global.
-- Chat still lists that agent’s ticked tools every turn.
+- Chat shows the tools of the agent's ticked skills; the model sees at most 8 selected from those per turn (ADR-0061).
 - `<agent>_storage.db` ≠ `<agent>_memory.db` — both under **user data** `packs/<id>/`, never the git checkout.
 - Checkout hygiene: `.agents/rules/checkout-hygiene.md`.
 - `.agents/` vs packs: `.agents/rules/agents-vs-packs.md`.

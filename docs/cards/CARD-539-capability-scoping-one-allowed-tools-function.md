@@ -1,7 +1,7 @@
 ---
 id: CARD-539
 title: "Capability scoping: one allowed-tools function, skills-only permission, selection only narrows, route not refuse"
-status: Ready
+status: In Progress
 created: 2026-09-26
 branch: qa
 adr: ADR-0061
@@ -20,7 +20,7 @@ labels:
 
 # [CARD-539] Capability scoping: one allowed-tools function
 
-> **Status**: Ready. Has product and architecture decisions: needs Jacob's **build** (decisions D1-D7).  
+> **Status**: In Progress on `feat/card-539-capability-scoping` (from qa `2cfae4bb`). **Build approved** by Jacob 2026-09-26 ~9:23 PM ET: D1-D7 as recommended, D8-D11 as recommended, and the AGENTS.md lock rewording.  
 > **ADR**: [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md) (locked decisions A-J, Jacob 2026-09-26)  
 > **Folds in**: CARD-529 items 2 and 4 (tools offered outside the allowlist; keyword-family catalog routing). CARD-529 keeps items 1 and 3.  
 > **Unblocks**: CARD-537.
@@ -96,6 +96,10 @@ Symptoms: CARD-537 (granted `get_weather` callable but never offered to AutoReiv
 | D9 | technical | Skill index threshold | Switch to own-skill search above 20 ticked skills or ~1.5K index tokens | no |
 | D10 | technical | Stale Studio save | `updated_at` version check, 409 with reload message | no |
 | D11 | technical | Risk tier source | Tool registration carries `risk` (read_only / write / network / destructive); non-read-only defaults to `require_confirm`; operator `tool_policy` still overrides | no |
+
+**Decision record (2026-09-26 ~9:23 PM ET):** Jacob approved D1-D7 exactly as recommended above and delegated D8-D11 (taken as recommended). Implementation notes:
+- D1: SQLite `skill_tool_bindings` rows win for a skill; the seeds (pack.json `skills[].tools`, `PLATFORM_SKILL_TOOLS`, `DYNAMIC_SKILL_TOOLS`) are read only when a skill has no binding row. This is reconcile-on-read: same result as copying seeds at boot, without marking platform skills as operator-saved (which would freeze seed updates).
+- AGENTS.md runtime lock reworded (Jacob): the chat panel shows the tools of the agent's ticked skills; the model sees at most 8 selected from those per turn.
 
 ## 6. Migration (real, idempotent, runs once at startup)
 
