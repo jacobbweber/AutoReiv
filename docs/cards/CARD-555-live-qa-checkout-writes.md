@@ -1,9 +1,9 @@
 ---
 id: CARD-555
 title: "Live QA's throwaway serve lets Developer write into the real checkout"
-status: In Review
+status: Done
 created: 2026-09-27
-branch: feat/card-555-live-qa-sandbox-checkout
+branch: qa
 related:
   - CARD-532
   - CARD-550
@@ -16,7 +16,7 @@ labels:
 
 # [CARD-555] Live QA can write files into the real checkout
 
-> **Status**: In Review (2026-09-27 ET) on `feat/card-555-live-qa-sandbox-checkout`, from qa `52eddb0c`. Not merged or pushed. It is a bug fix with no product decisions. Filed from CARD-550 live QA.
+> **Status**: Done (2026-09-27 ET). Jacob said "merge to qa" at 2:41 PM ET; merged `--no-ff` into qa from `feat/card-555-live-qa-sandbox-checkout`. It was a bug fix with no product decisions. Filed from CARD-550 live QA.
 > **Related**: CARD-532 (live QA runner), CARD-550, CARD-556
 > **Labels**: `type:bug`, `area:tooling`, `P2`
 
