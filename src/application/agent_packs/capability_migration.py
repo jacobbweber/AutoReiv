@@ -14,7 +14,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from src.application.agent_packs.allowed_tools import (
     NO_TOOL_AGENTS,
@@ -95,3 +95,60 @@ def migrate_legacy_grants(store: Any, agent_registry: Any, *, data_root: Path) -
     store.set_setting(MIGRATION_MARKER, {"at": backup["created_at"], "proposals": len(proposals), "converted": converted})
     logger.info("CARD-539 migration: %d proposals, %d conversions", len(proposals), len(converted))
     return {"skipped": False, "proposals": proposals, "converted": converted}
+
+
+CODING_MARKER = "autoreiv_coding_unticked_card544"
+CODING_BACKUP_NAME = "card-544-autoreiv-skills.json"
+
+
+def autoreiv_skills_before_seed(store: Any) -> Optional[list[str]]:
+    """Read AutoReiv's stored skill list before the platform seed sync runs (CARD-544).
+
+    An unedited AutoReiv gets the new pack (no coding) during registry bootstrap, before the migration runs, so the
+    migration backs up this list instead. Returns None once the migration marker is set or nothing is stored.
+    """
+    try:
+        if store.get_setting(CODING_MARKER):
+            return None
+        profile = store.get_agent_profile("autoreiv")
+    except Exception:
+        return None
+    if profile is None:
+        return None
+    return list(getattr(profile, "allowed_skill", None) or [])
+
+
+def untick_autoreiv_coding(
+    store: Any, agent_registry: Any, *, data_root: Path, before_seed: Optional[list[str]] = None
+) -> dict[str, Any]:
+    """CARD-544 D1 (Jacob): AutoReiv no longer ticks coding; code work routes to Developer.
+
+    Once per install: back up the stored skill list, untick coding through the shared save path, set a
+    marker. A later operator re-tick is left alone (the marker stops a second run). When the platform seed sync
+    already dropped coding at bootstrap, ``before_seed`` (read before bootstrap) is what gets backed up.
+    """
+    from src.application.agent_packs.skill_list import remove_skill_from_agent
+
+    if store.get_setting(CODING_MARKER):
+        return {"skipped": True, "unticked": False}
+    profile = agent_registry.get_agent("autoreiv")
+    current = list(getattr(profile, "allowed_skill", None) or []) if profile is not None else []
+    by = ""
+    if "coding" in current:
+        old, by = current, "migration"
+    elif before_seed and "coding" in before_seed:
+        old, by = list(before_seed), "platform update"
+    else:
+        old = current
+    unticked = bool(by)
+    if unticked:
+        folder = Path(data_root) / "migrations"
+        folder.mkdir(parents=True, exist_ok=True)
+        backup = {"created_at": datetime.now(timezone.utc).isoformat(), "agent_id": "autoreiv", "allowed_skill": old, "by": by}
+        (folder / CODING_BACKUP_NAME).write_text(json.dumps(backup, indent=2), encoding="utf-8")
+    if by == "migration":
+        remove_skill_from_agent(store, agent_registry, agent_id="autoreiv", skill_id="coding", data_dir=Path(data_root))
+    store.set_setting(CODING_MARKER, {"at": datetime.now(timezone.utc).isoformat(), "unticked": unticked, "by": by})
+    logger.info("CARD-544 migration: coding %s on autoreiv", f"unticked ({by})" if unticked else "was not ticked")
+    return {"skipped": False, "unticked": unticked, "by": by}
+

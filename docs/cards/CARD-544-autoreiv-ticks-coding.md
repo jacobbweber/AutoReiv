@@ -1,9 +1,9 @@
 ---
 id: CARD-544
 title: "Untick coding on AutoReiv so code work routes to Developer"
-status: Ready
+status: Done
 created: 2026-09-26
-branch: qa
+branch: feat/card-544-autoreiv-untick-coding
 related:
   - CARD-539
 labels:
@@ -14,8 +14,8 @@ labels:
 
 # [CARD-544] Untick coding on AutoReiv so code work routes to Developer
 
-> **Status**: Ready. D1 decided by Jacob on 2026-09-26: untick `coding` on AutoReiv, and route code work to Developer. Implementation not started.
-> **Related**: CARD-539 (ADR-0061), CARD-546
+> **Status**: Done (merged to qa on 2026-09-27 after Jacob's "merge to qa" at 2:46 AM ET). It was In Review (2026-09-27 ~2:30 AM ET) on `feat/card-544-autoreiv-untick-coding`. D1 was decided by Jacob on 2026-09-26: untick `coding` on AutoReiv and route code work to Developer.
+> **Related**: CARD-539 (ADR-0061), CARD-546, CARD-548, CARD-549
 > **Labels**: `type:bug`, `area:agents`, `P2`
 
 ## Why
@@ -54,3 +54,49 @@ CARD-539 section 9.2 expects a code request to AutoReiv to be handed off to Deve
 - The migration is tested.
 - The restored routing journey hands the code request to Developer on desktop and phone. Model flakiness is tracked in CARD-546.
 - CHANGELOG `[Unreleased]` is updated.
+
+## Implementation (2026-09-27)
+
+| Commit | What |
+|---|---|
+| `9f005ac4` | Tests first, confirmed red: the pack drops coding, migration, routing; the journey expects code to go to Developer. |
+| `fe28e104` | Pack drops `coding`. `untick_autoreiv_coding` migration (backup, marker, shared save path, pack.json sync), wired in `src/web/app.py`. Studio still shows shipped runbooks as pills. The code family goes to Developer unless the agent ticks coding. |
+| `64b1ea42` | Ruff back to baseline. |
+| `424e53a8` | Smoke TC-38: `coding` is unticked on AutoReiv and the pill is still shown. |
+| `3136927d` | Live QA fix: the catalog also matched `agent.autoreiv` (role bonus), and that self-match kept Execute on AutoReiv. |
+| `052e7a29` | Live QA fix: **a job phase runs as its assigned agent** (`profile_for_phase` in `src/web/routers/chat.py`). Before this, every phase ran as the chat agent, so the Developer Execute phase hit `tool_policy_blocked` on `execute_code` and the job failed. |
+| `98b51960` | Journey: checks that the Developer phase session has no `tool_policy_blocked` row. |
+| `7031dd7c` | Checked on a clone of the real data: for an unedited AutoReiv, the platform seed sync drops `coding` at bootstrap, before the migration runs. The skill list read before bootstrap is now what gets backed up (`"by": "platform update"`). |
+
+Deviation from REQ-544-004: a code request mints a standing job, not a `handoff_to_agent` call. Its Execute phase is assigned to Developer and runs as Developer, with Developer's tools. AutoReiv never calls a `repo_file_*` or `execute_code` tool. The journey accepts either path.
+
+## Evidence
+
+**Tests vs baseline** (full suite, final code `7031dd7c`, smoke run on its own):
+
+| Suite | Result | Baseline |
+|---|---|---|
+| Unit | 2067 passed, 11 skipped, 1 failed (CARD-454 linter) | same failure |
+| Integration | 103 passed | 103 |
+| Vitest | 949 passed, 3 failed (CARD-456) | same 3 |
+| ESLint | 4 errors, 5 warnings | 4 + 5 |
+| Ruff | 7 | 7 |
+| Smoke | 73 passed | 73 |
+
+**Live QA** (real vLLM, throwaway env on :8770, run on `98b51960`; `7031dd7c` only changes the startup backup):
+
+| Journey | Desktop | Phone |
+|---|---|---|
+| card-539-out-of-domain-routing | WARN: step 1 pass (Execute on Developer, waiting for approval of `execute_code`, 0 policy blocks); step 2 Tutor soft warn (CARD-546); step 3 pass | PASS: all 3 steps (Tutor handoff, delegation card) |
+| card-520-teach-needs-tool (regression) | PASS, 7/7 | PASS, 7/7 |
+
+Screenshots:
+- `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-544\card-539-out-of-domain-routing-phone-01-a-code-request-to-autoreiv-goes-to-developer-no-.png`
+- `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-544\card-539-out-of-domain-routing-desktop-01-a-code-request-to-autoreiv-goes-to-developer-no-.png`
+- `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-544\card-539-out-of-domain-routing-phone-02-a-due-review-request-to-autoreiv-is-handed-off-t.png`
+
+**Real data**: Jacob's live AutoReiv still ticks `coding` (serve on 8000 runs qa). On a clone of the live AppData started from this branch, `coding` was unticked and `{data}/migrations/card-544-autoreiv-skills.json` held the old 13-skill list (`"by": "platform update"`). The real data migrates on the first serve start after merge.
+
+**Scavenger Pass**: no remaining code or pack text assumes AutoReiv codes. AutoReiv's prompt and the platform-health runbook already send shell and software work to Developer. The `coding` runbook still ships so the skill can be ticked again.
+
+**Follow-ups**: CARD-548 (Approve on the Developer Execute phase resumes and finishes as Developer; not yet live-verified) and CARD-549 (Formulate should name the Execute agent).

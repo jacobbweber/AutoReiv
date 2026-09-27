@@ -1251,9 +1251,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
-  // CARD-509: a Studio Save keeps skills without a pill; coding and build-agent-pack now have pills.
+  // CARD-509: a Studio Save keeps skills without a pill; coding and build-agent-pack now have pills. CARD-544: coding is unticked on AutoReiv.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
-    test(`TC-38 (${vp.name}): Studio shows coding and build-agent-pack pills; a Max Turns save keeps coding [CARD-509]`, async ({ page }) => {
+    test(`TC-38 (${vp.name}): Studio shows coding and build-agent-pack pills; a Max Turns save keeps build-agent-pack, coding stays unticked [CARD-509, CARD-544]`, async ({ page }) => {
       const puts = [];
       await page.route('**/api/agents/autoreiv', (route) => {
         if (route.request().method() !== 'PUT') return route.continue();
@@ -1271,11 +1271,14 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         }, { timeout: 20000 }).toBe(name);
       };
       await pick('autoreiv', 'AutoReiv');
-      await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'true');
+      // CARD-544 D1: AutoReiv no longer ticks coding, but the shipped runbook keeps a pill so it can be re-ticked.
+      await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'false');
+      await expect(page.locator('.forge-skill-pill[data-skill-id="build-agent-pack"]')).toHaveAttribute('aria-pressed', 'true');
       await page.evaluate(() => { const el = document.getElementById('forgeMaxTurnsInput'); el.value = '57'; el.dispatchEvent(new Event('input', { bubbles: true })); });
       await page.locator('#saveAgentBtn').evaluate((b) => b.click());
       await expect.poll(() => puts.length).toBe(1);
-      expect(puts[0].allowed_skill).toContain('coding');
+      expect(puts[0].allowed_skill).toContain('build-agent-pack');
+      expect(puts[0].allowed_skill).not.toContain('coding');
       expect(String(puts[0].max_turns)).toBe('57');
       await pick('developer', 'Developer');
       await expect(page.locator('.forge-skill-pill[data-skill-id="build-agent-pack"]')).toHaveCount(1);

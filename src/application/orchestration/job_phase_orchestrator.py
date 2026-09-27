@@ -92,6 +92,14 @@ def _default_packet(
     )
 
 
+def _ticks_coding(agent_id: str, store: Optional[Any]) -> bool:
+    if agent_id == "developer":
+        return True
+    getter = getattr(store, "get_agent_profile", None) if store is not None else None
+    profile = getter(agent_id) if callable(getter) else None
+    return "coding" in (getattr(profile, "allowed_skill", None) or [])
+
+
 def resolve_specialist_agent_for_capabilities(
     matched_ids: Sequence[str],
     default_agent_id: str,
@@ -107,21 +115,21 @@ def resolve_specialist_agent_for_capabilities(
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
-        if s.startswith("agent."):
-            candidate = s[len("agent.") :]
-            if candidate:
-                return canonical_agent_id(candidate)
-        elif s.startswith("pack."):
-            candidate = s[len("pack.") :]
-            if candidate:
-                return canonical_agent_id(candidate)
+        prefix = "agent." if s.startswith("agent.") else "pack." if s.startswith("pack.") else ""
+        candidate = s[len(prefix) :] if prefix else ""
+        if not candidate:
+            continue
+        resolved = canonical_agent_id(candidate)
+        # CARD-544: a match on the chat's own agent (role bonus) is not a specialist pick; keep routing by family.
+        if resolved != canonical_default:
+            return resolved
 
     has_coding_tools = any(
         any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "coding"))
         for cid in matched_ids
     )
-    if has_coding_tools:
-        return DEFAULT_PLATFORM_AGENT_ID
+    if has_coding_tools:  # CARD-544 D1: code work goes to Developer unless the default agent ticks coding
+        return canonical_default if _ticks_coding(canonical_default, store) else "developer"
 
     has_tutor_tools = any(
         any(k in cid.lower() for k in ("tutor", "education", "mastery", "quiz", "elaboration", "flashcard"))

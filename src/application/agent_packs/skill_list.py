@@ -71,10 +71,14 @@ def studio_extra_skill_pills(profile: Any, shown_ids: set[str], data_root: Optio
     """
     from src.application.skills.runbook_frontmatter import frontmatter_view
     from src.infrastructure.skills.platform_pack_promotion import find_skill_md, platform_seed_skills
+    from src.infrastructure.skills.platform_packs import platform_packs_root
 
     agent_id = str(getattr(profile, "id", "") or "")
     extras: list[dict[str, Any]] = []
-    for sid in list(getattr(profile, "allowed_skill", None) or []) + platform_seed_skills(agent_id):
+    # Shipped runbooks stay tickable after the seed drops them (CARD-544: AutoReiv coding).
+    shipped_dir = platform_packs_root() / agent_id / "skills" if agent_id else None
+    shipped = sorted(d.name for d in shipped_dir.iterdir() if (d / "SKILL.md").is_file()) if shipped_dir and shipped_dir.is_dir() else []
+    for sid in list(getattr(profile, "allowed_skill", None) or []) + platform_seed_skills(agent_id) + shipped:
         if sid in shown_ids or any(e["id"] == sid for e in extras):
             continue
         path = find_skill_md(data_root, sid, agent_id)
@@ -200,3 +204,26 @@ def add_skill_to_agent(
     persist_agent_profile(store, registry, existing, profile, agent_id=agent_id, skills_only=True)
     sync_pack_json_skills(data_dir, agent_id, new_skills, skill_entry)
     return registry.get_agent(agent_id), already
+
+
+def remove_skill_from_agent(
+    store: Any,
+    registry: Any,
+    *,
+    agent_id: str,
+    skill_id: str,
+    data_dir: Optional[Path] = None,
+) -> tuple[Any, bool]:
+    """Switch one skill off through the same shared save path. Returns ``(fresh_profile, was_on)``."""
+    existing = registry.get_agent(agent_id)
+    if existing is None:
+        raise LookupError(agent_id)
+    current = list(getattr(existing, "allowed_skill", None) or [])
+    if skill_id not in current:
+        return existing, False
+    new_skills = [s for s in current if s != skill_id]
+    profile = existing.model_copy(update={"allowed_skill": new_skills})
+    persist_agent_profile(store, registry, existing, profile, agent_id=agent_id, skills_only=True)
+    sync_pack_json_skills(data_dir, agent_id, new_skills)
+    return registry.get_agent(agent_id), True
+

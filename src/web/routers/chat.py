@@ -920,6 +920,22 @@ async def _stream_turn_bound(
     return "done"
 
 
+def profile_for_phase(profile, phase, registry):
+    """CARD-544: run a phase as its assigned agent (e.g. a code Execute phase on Developer).
+
+    Falls back to the chat's profile when the phase has no assignment, the agent is unknown, or no registry is given.
+    """
+    assigned = str(getattr(phase, "assigned_agent_id", "") or "").strip()
+    if not assigned or registry is None or assigned == getattr(profile, "id", None):
+        return profile
+    getter = getattr(registry, "get_profile", None)
+    try:
+        other = getter(assigned) if callable(getter) else None
+    except Exception:
+        other = None
+    return other or profile
+
+
 def _ensure_phase_session(store, session_id: str, phase, agent_id: str) -> str:
     phase_session = f"{session_id}::phase::{phase.id}"
     if store.get_session(phase_session) is None:
@@ -963,6 +979,7 @@ async def execute_goal_job_phases(
     approval_mode: str,
     data_dir=None,
     wiki_root=None,
+    registry=None,
 ) -> None:
     """Run each persisted phase via its own stream_turn after plan review [REQ-ORCH-039]."""
     phases = store.list_phases_for_job(job.id)
@@ -1159,14 +1176,15 @@ async def execute_goal_job_phases(
                 + "\n\n"
                 + format_repo_grounding_constraint_block(repo_decision)
             )
-        phase_session = _ensure_phase_session(store, session_id, current, profile.id)
+        run_profile = profile_for_phase(profile, current, registry)
+        phase_session = _ensure_phase_session(store, session_id, current, run_profile.id)
         outcome = await _stream_turn_bound(
             queue=queue,
             kernel=kernel,
             orch=orch,
             store=store,
             reflexion_engine=reflexion_engine,
-            profile=profile,
+            profile=run_profile,
             session_id=phase_session,
             user_content=assignment,
             approval_mode=approval_mode or "ask",
@@ -1999,7 +2017,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                 orch=orch,
                                 store=store,
                                 reflexion_engine=reflexion_engine,
-                                profile=profile,
+                                profile=profile_for_phase(profile, phase, registry),
                                 session_id=req.session_id,
                                 user_content=None,
                                 approval_mode=req.approval_mode or "ask",
@@ -2101,8 +2119,9 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                             all_memory_facts=memory_facts,
                                         )
                                     assignment = format_phase_working_set_prompt(ws)
+                                    run_profile = profile_for_phase(profile, started, registry)
                                     phase_session = _ensure_phase_session(
-                                        store, req.session_id, started, profile.id
+                                        store, req.session_id, started, run_profile.id
                                     )
                                     nxt_outcome = await _stream_turn_bound(
                                         queue=queue,
@@ -2110,7 +2129,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                         orch=orch,
                                         store=store,
                                         reflexion_engine=reflexion_engine,
-                                        profile=profile,
+                                        profile=run_profile,
                                         session_id=phase_session,
                                         user_content=assignment,
                                         approval_mode=req.approval_mode or "ask",
@@ -2332,6 +2351,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     self_verify=self_verify,
                     approval_mode=req.approval_mode or "ask",
                                     wiki_root=getattr(request.app.state, "wiki_path", None),
+                    registry=registry,
 )
                 return
 

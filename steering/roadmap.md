@@ -118,10 +118,12 @@
   - [ ] **CARD-541**: Drop platform pack.json `allowed_tool_names` / `pack_tool_names` (from CARD-539).
   - [ ] **CARD-542**: Own-skill search when an agent ticks more than 20 skills (ADR-0061 D9, from CARD-539).
   - [ ] **CARD-543**: Developer can register a stub tool that the agent then declines to use (from CARD-539 live QA).
-  - [ ] **CARD-544**: Untick `coding` on AutoReiv so code work routes to Developer (D1 decided by Jacob 2026-09-26; pack, migration, routing journey).
+  - [x] **CARD-544**: Untick `coding` on AutoReiv so code work routes to Developer (D1 decided by Jacob 2026-09-26). **Done** 2026-09-27: pack, migration, job phases run as their assigned agent, routing journey.
   - [ ] **CARD-545**: Native tools declare risk at registration (ADR-0061 D11, full; from CARD-539).
   - [ ] **CARD-546**: Out-of-domain routing and the Ask Developer button still depend on the model following the prompt (from CARD-539 live QA).
   - [ ] **CARD-547**: Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (from CARD-539 live QA).
+  - [ ] **CARD-548**: Approving a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer (from CARD-544 live QA).
+  - [ ] **CARD-549**: Formulate on AutoReiv should name the agent that runs Execute (from CARD-544 live QA).
   - [ ] **Education Studio** (no card yet).
 
 

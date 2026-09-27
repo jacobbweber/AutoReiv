@@ -171,10 +171,14 @@ def create_app(
     log_buffer = setup_system_logging()
 
     # 2. Agent & Tool Registries
+    autoreiv_skills_pre_seed = None
     if agent_registry and tool_registry:
         registry = agent_registry
         tool_reg = tool_registry
     else:
+        from src.application.agent_packs.capability_migration import autoreiv_skills_before_seed
+
+        autoreiv_skills_pre_seed = autoreiv_skills_before_seed(store)  # CARD-544: before the seed sync rewrites it
         registry, tool_reg = BuiltinAgentRegistry.bootstrap(
             store=store,
             telemetry=telemetry,
@@ -300,6 +304,15 @@ def create_app(
         migrate_legacy_grants(store, registry, data_root=data_paths.root)
     except Exception:
         logging.getLogger(__name__).exception("CARD-539 capability migration failed; will retry next start")
+    # AutoReiv no longer ticks coding; code work routes to Developer, once (idempotent) [CARD-544 D1].
+    try:
+        from src.application.agent_packs.capability_migration import untick_autoreiv_coding
+
+        untick_autoreiv_coding(
+            store, registry, data_root=data_paths.root, before_seed=autoreiv_skills_pre_seed
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("CARD-544 coding migration failed; will retry next start")
     # Stored pre-CARD-520 remedy names become tool_escalation, once (idempotent) [CARD-520 D2].
     try:
         from src.application.observability.tool_escalation_migration import migrate_tool_escalation_names

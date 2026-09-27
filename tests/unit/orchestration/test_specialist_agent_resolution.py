@@ -1,7 +1,7 @@
 """CARD-378 Specialist agent resolution unit tests [REQ-ORCH-044].
 
-Ensures coding tools and execution phases resolve cleanly to active platform
-agents ('autoreiv') and never return retired / vestigial agents like 'developer'.
+Ensures execution phases resolve to active platform agents; code work goes to
+Developer unless the default agent ticks coding (CARD-544 D1).
 """
 
 from src.application.orchestration.job_phase_orchestrator import (
@@ -9,8 +9,8 @@ from src.application.orchestration.job_phase_orchestrator import (
 )
 
 
-def test_coding_tools_resolve_to_autoreiv_not_developer():
-    """[REQ-ORCH-044]: Coding tools must resolve to autoreiv, never developer."""
+def test_coding_tools_resolve_to_developer_when_autoreiv_does_not_tick_coding():
+    """[REQ-ORCH-044, CARD-544 D1]: AutoReiv no longer ticks coding, so code execute phases go to Developer."""
     coding_capabilities = [
         "tool.repo_file_read",
         "tool.repo_file_write",
@@ -21,8 +21,7 @@ def test_coding_tools_resolve_to_autoreiv_not_developer():
         matched_ids=coding_capabilities,
         default_agent_id="autoreiv",
     )
-    assert resolved == "autoreiv"
-    assert resolved != "developer"
+    assert resolved == "developer"
 
 
 def test_blender_and_mcp_tools_resolve_to_active_agent():
