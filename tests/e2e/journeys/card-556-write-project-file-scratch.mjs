@@ -8,10 +8,9 @@
  * Checks are structural (tool rows, data dir), never exact model wording.
  */
 import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
+import { HITL_CARD, getJson, isStreaming, openApp, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
 
-const FILE = 'card556-note.txt';
-const ASK = `Use the write_project_file tool to save a file named ${FILE} containing the text "hello 556". Then tell me the full path where it was saved.`;
+const askFor = (file) => `Use the write_project_file tool to save a file named ${file} containing the text "hello 556". Then tell me the full path where it was saved.`;
 const REFUSAL_RE = /outside (of )?my (authorized )?domain|not authorized to|\brefuse/i;
 const role = (m) => String((m && m.role) || '').toLowerCase();
 const norm = (p) => String(p || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
@@ -40,14 +39,16 @@ export default {
     }, { timeoutMs: 30000 });
 
     await j.step('Developer saves a file with write_project_file: it lands in <data root>/scratch and the reply says where', async () => {
-      const title = `QA 556 scratch ${viewport.name} ${Date.now() % 100000}`;
-      const res = await request.post(`${base}/api/sessions`, { data: { agent_id: 'developer', title } });
-      if (!res.ok()) throw new Error(`create session -> ${res.status()}`);
-      const sid = (await res.json()).id;
+      // A session created through the API does not show in the Developer drawer list, so use the chat the Developer
+      // picker opens and find it afterwards by the unique file name.
+      const file = `card556-note-${viewport.name}-${Date.now() % 100000}.txt`;
       await openApp(page, base);
-      await openSessionByTitle(page, title, { agentId: 'developer' });
+      if (!(await page.locator('#promptInput').isVisible().catch(() => false))) await page.locator('#dock-chat').click();
+      await page.locator('#promptInput').waitFor({ state: 'visible', timeout: 15000 });
+      await page.selectOption('#agentSelect', 'developer');
+      await page.waitForTimeout(1500);
       const n = streams.count;
-      await send(page, ASK);
+      await send(page, askFor(file));
       await waitFor(() => streams.count > n, { timeoutMs: 15000 });
       let approvals = 0;
       let quiet = 0;
@@ -70,6 +71,12 @@ export default {
       await waitReplyIdle(page, { timeoutMs: 60000 }).catch(() => {});
 
       const listed = await getJson(request, `${base}/api/sessions`).catch(() => []);
+      let sid = '';
+      for (const x of (Array.isArray(listed) ? listed : []).filter((y) => y.agent_id === 'developer' && !String(y.id).includes('::'))) {
+        const r = await getJson(request, `${base}/api/sessions/${encodeURIComponent(x.id)}/messages`).catch(() => []);
+        if (Array.isArray(r) && r.some((m) => role(m) === 'user' && String(m.content || '').includes(file))) { sid = String(x.id); break; }
+      }
+      if (!sid) throw new Error(`no Developer session holds the request for ${file}`);
       const related = [sid, ...(Array.isArray(listed) ? listed : []).map((x) => String(x.id)).filter((id) => id.startsWith(`${sid}::`) || id.startsWith(`${sid}_child_`))];
       const rows = [];
       for (const s2 of new Set(related)) {
@@ -89,6 +96,7 @@ export default {
       if (!under(w.full_path, scratch)) throw new Error(`full_path ${w.full_path} is not under ${scratch}`);
       if (!/scratch/i.test(String(w.note || ''))) throw new Error('the tool result does not tell the model where the file went');
       if (/autoreiv-qa-checkout|projects[\\/]active[\\/]autoreiv/i.test(String(w.full_path))) throw new Error(`full_path ${w.full_path} is inside a checkout`);
+      if (!norm(w.full_path).endsWith(`/${file}`)) throw new Error(`full_path ${w.full_path} is not the requested file ${file}`);
       if (!/scratch/i.test(last)) throw new Error('the reply does not say the file went to the scratch folder');
     }, { timeoutMs: 430000 });
   },
