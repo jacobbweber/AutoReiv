@@ -1,9 +1,9 @@
 ---
 id: CARD-556
 title: "write_project_file with no project selected writes into the AutoReiv checkout"
-status: Ready
+status: In Progress
 created: 2026-09-27
-branch: qa
+branch: feat/card-556-write-project-file-scratch
 related:
   - CARD-555
   - CARD-550
@@ -15,7 +15,7 @@ labels:
 
 # [CARD-556] write_project_file defaults to the AutoReiv checkout
 
-> **Status**: Ready, **needs a decision** (filed from CARD-555, 2026-09-27 ET).
+> **Status**: In Progress on `feat/card-556-write-project-file-scratch`. D1 decided by Jacob, 2026-09-27 1:22 PM ET (filed from CARD-555).
 > **Related**: CARD-555, CARD-550
 > **Labels**: `type:product`, `area:tools`, `P3`
 
@@ -28,6 +28,10 @@ Developer's pack prompt says to implement changes with `write_project_file` in "
 | # | Question | Options | Recommendation |
 |---|---|---|---|
 | D1 | Where should `write_project_file` write when no project is selected? | A: refuse and ask for a project. B: a scratch folder under the data dir. C: keep the checkout (today). | A: the checkout has its own tools (`repo_file_*`), and a silent default into the repo is surprising. |
+
+## Decision
+
+**D1 (Jacob, 2026-09-27, 1:22 PM ET): option B.** When `write_project_file` runs with no project selected, it writes to a scratch folder under the AutoReiv user data folder, for example `%LOCALAPPDATA%\AutoReiv\scratch` (the exact path follows the data-dir conventions: `<data root>\scratch`). It must never write to the checkout. The tool result and tool description tell the model where the file went. This overrides the card's recommendation (A).
 
 ## Done when
 
