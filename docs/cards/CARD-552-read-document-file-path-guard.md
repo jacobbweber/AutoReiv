@@ -1,0 +1,32 @@
+---
+id: CARD-552
+title: "read_document_file reads any path on disk (no path guard)"
+status: Ready
+created: 2026-09-27
+branch: qa
+related:
+  - CARD-539
+  - CARD-550
+labels:
+  - type:bug
+  - area:tools
+  - P2
+---
+
+# [CARD-552] read_document_file has no path guard
+
+> **Status**: Ready (filed from CARD-550 live QA, 2026-09-27 ET).
+> **Related**: CARD-539 (D3 made it a required platform tool), CARD-550
+> **Labels**: `type:bug`, `area:tools`, `P2`
+
+## Evidence
+
+In the first CARD-550 live QA run (desktop and phone), the ask was "read src/application/agent_packs/allowed_tools.py from the AutoReiv checkout". AutoReiv did not hand off to Developer. It answered by itself with `read_document_file`, which is a required platform tool on every agent (CARD-539 D3). `extract_document` opens any `.py`, `.json`, `.log` or other text path on disk. It has no root check like `repo_file_read` (checkout root) or `read_project_file` (project root). So any agent can read any file the serve process can read, including files outside the checkout and outside the AutoReiv data folder, without asking for approval.
+
+## Change
+
+Limit `read_document_file` to allowed roots: uploads, the wiki vault, the active project and the data folder. For any other path, return a clear error that names the right tool (`repo_file_read` on Developer for the checkout). A unit test checks that a path outside the roots is refused and that an upload is still read.
+
+## Done when
+
+The unit test passes. A live QA ask to read a checkout `.py` file through AutoReiv no longer gets the file contents from `read_document_file`.
