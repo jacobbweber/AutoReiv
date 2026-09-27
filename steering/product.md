@@ -41,7 +41,7 @@ AutoReiv is structured into 7 purpose-built studios accessible via a responsive 
 4. **Agent Studio (`forge.js`, formerly Agent Forge)**:
    - Custom agent meta-builder with SQLite persistence.
    - Purpose classification (Fast, Reasoning, Task Execution, Coding, Vision, Auxiliary).
-   - Prompt engineering controls, tone selection (Concise, Balanced, Elaborate), and granular skill/tool scoping.
+   - Prompt engineering controls, tone selection (Concise, Balanced, Elaborate), and skill on/off ticks (an agent's tools come only from its ticked skills, ADR-0061).
 
 5. **Settings Studio (`settings.js`)**:
    - Multi-provider gateway configuration (Ollama, OpenAI, Anthropic, OpenRouter, Groq, DeepSeek, Together, vLLM).
