@@ -124,8 +124,12 @@
   - [ ] **CARD-547**: Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (from CARD-539 live QA).
   - [ ] **CARD-548**: Approving a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer (from CARD-544 live QA).
   - [ ] **CARD-549**: Formulate on AutoReiv should name the agent that runs Execute (from CARD-544 live QA).
-  - [ ] **CARD-550**: No agent ticks the repo_file_* checkout tools after CARD-544 (needs a decision: tick `coding` on Developer?).
+  - [x] **CARD-550**: Developer ticks `coding` (the checkout repo_file_* tools; D1 decided by Jacob 2026-09-27). **Done** 2026-09-27: pack, one-time migration, guard/smoke tests, live QA journey.
   - [ ] **CARD-551**: The repetitive-cycle guard ends the turn with no answer even when the tool already returned it (from CARD-537 live QA).
+  - [ ] **CARD-552**: `read_document_file` reads any path on disk; add a path guard (from CARD-550 live QA).
+  - [ ] **CARD-553**: A handoff from a job phase keeps the job's capability subset, so Developer's `cli_exec` is skipped (from CARD-550 live QA).
+  - [ ] **CARD-554**: Formulate does the work itself, ends FAILED after a completed handoff, and Execute stays queued (from CARD-550 live QA).
+  - [ ] **CARD-555**: Live QA's throwaway serve lets Developer write into the real checkout (from CARD-550 live QA).
   - [ ] **Education Studio** (no card yet).
 
 
