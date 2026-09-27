@@ -209,5 +209,7 @@ What live QA found and fixed on this branch: the pending list was hidden in a co
 
 **Follow-ups filed (Ready):** CARD-540 (drop inert `allow_wiki_access`), CARD-541 (drop pack tool lists; Tutor fixed domain text), CARD-542 (D9 own-skill search above 20 ticks), CARD-543 (Developer can register a stub tool), CARD-544 (decide whether AutoReiv keeps `coding`), CARD-545 (native tool risk at registration), CARD-546 (routing and Ask Developer still depend on the model), CARD-547 (job strip shows Job failed with DONE).
 
+**Real-data migration** (serve on 0.0.0.0:8000 restarted on this branch, 2026-09-27 12:10 AM ET): backup `C:\Users\jacob\AppData\Local\AutoReiv\migrations\card-539-allowlists.json` (autoreiv 38 / developer 23 / tutor 23 old tool names). Effective tools unchanged for AutoReiv and Tutor. Developer lost one grant, `c520_catalog_dump` (a CARD-520 test tool), which is now pending proposal `appr_703e53564b39` (attach to new skill `c520-catalog-dump`; Accept or Reject in Agent Studio). Health 200 on 127.0.0.1 and 192.168.1.99.
+
 **Known:** the CARD-535 nudge workaround is still needed in the card-520 journey (the Developer stops after the first approval). An accepted native tool asks approval on each call until CARD-545.
 
