@@ -14,6 +14,8 @@ from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.repositories.skill_bindings import SkillToolBindingRepository
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.fixture
 def env(tmp_path, monkeypatch):

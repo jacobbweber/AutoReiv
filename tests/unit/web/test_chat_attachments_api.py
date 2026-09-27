@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def chat_client():

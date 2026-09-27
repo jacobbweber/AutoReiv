@@ -10,6 +10,8 @@ from src.infrastructure.data.resolver import (
     resolve_agent_memory_path,
 )
 
+pytestmark = pytest.mark.guard
+
 
 def test_checkout_root_is_forbidden_live_tree():
     root = repo_root()

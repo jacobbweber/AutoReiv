@@ -25,6 +25,8 @@ from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from tests.unit.kernel.test_agent_kernel import MockScriptedLLM
 
+pytestmark = pytest.mark.guard
+
 
 def test_match_intent_skills():
     """Verify Layer 1 0ms intent heuristics."""

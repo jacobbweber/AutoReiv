@@ -10,6 +10,8 @@ from httpx import ASGITransport, AsyncClient
 from src.domain.gateway.models import ChatMessage, Role
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def mock_app():

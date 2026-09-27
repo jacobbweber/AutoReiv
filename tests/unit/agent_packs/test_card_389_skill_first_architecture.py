@@ -10,6 +10,7 @@ Verifies:
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
@@ -26,6 +27,8 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.infrastructure.skills.seed import BUNDLED_PACK_IDS
 from src.web.app import app
+
+pytestmark = pytest.mark.guard
 
 
 def test_req_389_001_sqlite_storage_seed_and_registration():

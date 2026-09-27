@@ -17,6 +17,8 @@ from src.domain.system.models import (
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 class MockProvider:
     provider_id = "mock-system"

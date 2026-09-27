@@ -4,6 +4,7 @@ Unit tests for Architectural Proposals REST API [CARD-365 / REQ-ARCH-012].
 
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.domain.observability.models import (
@@ -12,6 +13,8 @@ from src.domain.observability.models import (
     ArchitecturalProposalType,
 )
 from src.web.app import create_app
+
+pytestmark = pytest.mark.slow
 
 
 def test_rest_api_proposals_listing():

@@ -19,6 +19,8 @@ from src.application.system.update_service import UpdateService
 from src.domain.system.models import UpdateConfig
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.slow
+
 
 def _git(cwd: Path, *args: str) -> str:
     res = subprocess.run(

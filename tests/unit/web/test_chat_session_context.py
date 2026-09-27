@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 from src.domain.gateway.models import ChatMessage, Role
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def client():

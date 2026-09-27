@@ -16,6 +16,8 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ToolCall, ToolDefinition
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.fixture
 def store():

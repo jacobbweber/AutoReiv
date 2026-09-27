@@ -13,6 +13,8 @@ from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import AgentProfile
 from src.web.routers import chat as chat_router
 
+pytestmark = pytest.mark.guard
+
 
 class _LiveTask:
     def __init__(self):

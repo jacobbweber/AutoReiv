@@ -16,6 +16,8 @@ from src.infrastructure.data.resolver import (
     repo_root,
 )
 
+pytestmark = pytest.mark.guard
+
 
 def test_wikistore_default_resolves_to_user_data_path_card_382():
     """

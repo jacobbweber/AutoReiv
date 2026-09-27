@@ -14,6 +14,8 @@ from src.application.system.serve_restarter import NoOpRestarter
 from src.application.system.update_service import UpdateService
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.slow
+
 
 def _git(cwd: Path, *args: str) -> str:
     res = subprocess.run(

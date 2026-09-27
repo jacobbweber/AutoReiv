@@ -14,6 +14,8 @@ from src.domain.kernel.models import AgentProfile
 from src.domain.security.vault import Credential
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.mark.asyncio
 async def test_tool_context_jit_credential_injection(tmp_path):

@@ -8,6 +8,8 @@ from src.application.safety.command_guardrail import CommandGuardrail
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
 from src.domain.safety.models import RiskLevel
 
+pytestmark = pytest.mark.guard
+
 
 def test_guardrail_destructive_filesystem_wipes():
     dangerous_cmds = [

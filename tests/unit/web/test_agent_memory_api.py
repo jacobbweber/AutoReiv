@@ -2,10 +2,13 @@
 Integration tests for CARD-116: Agent Cognitive Memory REST Endpoints.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.web.app import create_app
+
+pytestmark = pytest.mark.slow
 
 
 def test_agent_memory_api_endpoints(tmp_path, monkeypatch):

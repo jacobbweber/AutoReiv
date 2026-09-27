@@ -1,5 +1,7 @@
 """CARD-119: Agent Pack schema roundtrip and Show in Chat default."""
 
+import pytest
+
 from src.application.agent_packs.schema import (
     PACK_SCHEMA_VERSION,
     AgentPackManifest,
@@ -8,6 +10,8 @@ from src.application.agent_packs.schema import (
 from src.domain.agents.profiles import BUILTIN_PROFILES
 from src.domain.kernel.models import AgentProfile
 from tests.unit.agent_packs.catalog import platform_pack_profile
+
+pytestmark = pytest.mark.guard
 
 
 def test_pack_manifest_roundtrip():

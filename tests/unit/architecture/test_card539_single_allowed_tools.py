@@ -13,6 +13,10 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.guard
+
 SRC = Path(__file__).resolve().parents[3] / "src"
 DECIDER = "application/agent_packs/allowed_tools.py"
 

@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def client(tmp_path):

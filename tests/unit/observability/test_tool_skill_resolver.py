@@ -13,6 +13,8 @@ from src.domain.observability.models import (
 )
 from src.domain.observability.tool_skill_resolver import ToolSkillResolver
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.fixture
 def temp_data_dir(tmp_path: Path):

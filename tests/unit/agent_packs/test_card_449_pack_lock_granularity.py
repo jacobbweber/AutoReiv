@@ -27,6 +27,8 @@ from src.infrastructure.skills.platform_packs import (
     apply_user_modified_developer_authoring_prompt,
 )
 
+pytestmark = pytest.mark.guard
+
 
 def _sha(text: str) -> str:
     return hashlib.sha256((text or '').encode('utf-8')).hexdigest()

@@ -19,6 +19,8 @@ from src.domain.gateway.models import ToolCall
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.infrastructure.skills.seed import bundled_skill_md
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.fixture
 def store():

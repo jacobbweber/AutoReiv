@@ -2,7 +2,11 @@
 Unit tests for Transcript Secret Scrubber [CARD-168].
 """
 
+import pytest
+
 from src.domain.security.scrubber import TranscriptScrubber
+
+pytestmark = pytest.mark.guard
 
 
 def test_transcript_scrubber_masks_single_and_multiple_secrets():

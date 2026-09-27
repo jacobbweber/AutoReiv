@@ -23,6 +23,8 @@ from src.domain.kernel.models import AgentProfile
 from src.domain.orchestration.models import HandoffPacket
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.guard
+
 
 @pytest.fixture
 def temp_db_path():

@@ -10,6 +10,8 @@ from httpx import ASGITransport, AsyncClient
 from src.domain.settings.models import FitStatus, ModelDescriptor
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def mock_app_with_models():

@@ -13,6 +13,8 @@ from src.domain.orchestration.errors import InvalidProposalStatusError, Proposal
 from src.domain.orchestration.models import Proposal, ProposalKind, ProposalStatus
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
+pytestmark = pytest.mark.guard
+
 _OLD_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,

@@ -10,6 +10,8 @@ from src.infrastructure.data.resolver import DataDirPaths
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 # The exact body chat/teach_modal.js builds (asserted on the page side by teach_distill_contract_500.test.js).
 PAGE_BODY_KEYS = ("session_id", "message_id", "guidance")
 

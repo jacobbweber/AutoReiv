@@ -7,6 +7,8 @@ from httpx import ASGITransport, AsyncClient
 
 from src.web.app import create_app
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.mark.asyncio
 async def test_mobile_responsive_html_classes():
