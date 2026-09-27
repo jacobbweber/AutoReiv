@@ -23,7 +23,9 @@ class NativeToolRegisterRequest(BaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
     requires_hitl: bool = True
     risk_level: str = "medium"
-    grant_agent_ids: list[str] = Field(default_factory=list)
+    # CARD-539: propose attaching the tool to a skill of this agent (accepted by Jacob), never a grant.
+    target_agent_id: str = ""
+    target_skill_id: str = ""
     # CARD-511 tool check: sample input, or skip the sample call with a reason.
     sample_arguments: Optional[dict[str, Any]] = None
     sample_call: str = "run"

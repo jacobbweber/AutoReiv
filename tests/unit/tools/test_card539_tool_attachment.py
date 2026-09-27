@@ -31,7 +31,7 @@ class _Agents:
         self.store = store
         self.base = AgentProfile(
             id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
-            allowed_skill=["wiki-knowledge"], allowed_tool_names=["recall_agent_memory"],
+            allowed_skill=["wiki-knowledge"], allowed_tool_names=["recall_agent_memory"], is_builtin=True,
         )
 
     def get_agent(self, agent_id):

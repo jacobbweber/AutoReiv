@@ -40,7 +40,7 @@ async def test_agents_api_show_in_chat_default_and_hide(tmp_path, monkeypatch):
         assert got.status_code == 200
         body = got.json()
         assert body["show_in_chat"] is False
-        assert body["pack_tool_names"] == ["system_info"]
+        assert body["pack_tool_names"] == []  # CARD-539: tool lists in payloads are ignored
 
         listed2 = {row["id"]: row for row in (await ac.get("/api/agents")).json()}
         assert listed2["hidden-bot"]["show_in_chat"] is False

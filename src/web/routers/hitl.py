@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from src.application.agent_packs.tool_attachment import ATTACH_TOOL_PROPOSAL, apply_tool_attachment
 from src.application.orchestration.followup import PROPOSE_FOLLOWUP_TOOL, apply_followup_decision
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.orchestration.skill_proposals import (
@@ -44,6 +45,33 @@ async def get_pending_approvals(request: Request, agent_id: Optional[str] = None
     return rows
 
 
+def _decide_tool_attachment(request: Request, record: Dict[str, Any], decision: str) -> Dict[str, Any]:
+    """CARD-539: accept = bind the tool to the skill and tick it on the agent; reject changes nothing."""
+    args = dict(record.get("arguments") or {})
+    tool, agent, skill = args.get("tool"), args.get("agent_id"), args.get("skill_id")
+    base = {"ran": False, "tool_name": ATTACH_TOOL_PROPOSAL}
+    if decision not in {"approved", "approve"}:
+        return {**base, "output": f"Rejected. Nothing changed; {agent} still cannot use {tool}."}
+    from src.web.routers.agents import _data_dir_root
+
+    try:
+        result = apply_tool_attachment(
+            request.app.state.store,
+            request.app.state.registry,
+            getattr(request.app.state, "tool_reg", None),
+            args,
+            data_root=_data_dir_root(request),
+        )
+    except Exception as exc:  # noqa: BLE001 - reported to the operator as a plain fact
+        logger.exception("Tool attachment failed for %s", record.get("id"))
+        return {**base, "error": f"Accepted, but attaching {tool} failed: {exc}"}
+    return {
+        **base,
+        "output": f"Accepted. {tool} is in skill '{skill}', now ticked for {agent}; {agent} can use it from its next message.",
+        "attachment": result,
+    }
+
+
 @router.post("/api/approvals/{approval_id}/decision")
 async def resolve_approval_endpoint(request: Request, approval_id: str, req: DecisionRequest):
     store = request.app.state.store
@@ -59,8 +87,10 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     execution = None
     decision_norm = (req.decision or "").strip().lower()
     # CARD-530 REQ-530-006: propose_* drafts never park the turn; their tool call already has its result.
-    draft_proposal = bool(record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS)
-    if record and record.get("tool_name") == PROPOSE_FOLLOWUP_TOOL:
+    draft_proposal = bool(record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS | {ATTACH_TOOL_PROPOSAL})
+    if record and record.get("tool_name") == ATTACH_TOOL_PROPOSAL:
+        execution = _decide_tool_attachment(request, record, decision_norm)
+    elif record and record.get("tool_name") == PROPOSE_FOLLOWUP_TOOL:
         args = record.get("arguments") or {}
         orch = JobPhaseOrchestrator(store)
         try:

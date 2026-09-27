@@ -37,6 +37,7 @@ import {
   setupArchitecturalProposals,
   loadArchitecturalProposals,
 } from './forge/proposals.js';
+import { loadPendingProposals } from './forge/pending_proposals.js';
 
 import {
   setupScaffold,
@@ -328,6 +329,13 @@ export function initAgentForge(state, callbacks = {}) {
     loadAgentCredentialGrants(agent);
     loadArchitecturalProposals(agent.id);
     platformDefaults.render(agent);
+    // CARD-539: accept/reject attach-tool-to-skill proposals; accepting reloads so the tick shows.
+    loadPendingProposals(agent.id, typeof document !== 'undefined' ? document.getElementById('forgePendingProposals') : null, {
+      onChanged: async () => {
+        const res = await fetch(`/api/agents/${encodeURIComponent(agent.id)}`);
+        if (res.ok) await renderAgentToForge(await res.json());
+      },
+    });
   }
 
   function openDeleteModal() {
@@ -407,41 +415,7 @@ export function initAgentForge(state, callbacks = {}) {
       const fromPills = skillsForSave([...lastAllowedSkills], pillNodes); // CARD-509: keep pill-less skills
       const checkedSkills = allowlistForSave(fromPills, { storageEnabled: isStorage });
 
-      // Skill-first tool derivation: capabilities are declared strictly by skills
-      const allSkills = [
-        ...(cachedPlatformSkills || []),
-        ...((activeForgeAgent && activeForgeAgent.pack_skills) || []),
-      ];
-      const derivedTools = new Set();
-      const packTools = [];
-
-      checkedSkills.forEach((sid) => {
-        const skill = allSkills.find((s) => s.id === sid);
-        if (skill && Array.isArray(skill.tools)) {
-          skill.tools.forEach((t) => {
-            const toolName = typeof t === 'string' ? t : (t.name || '');
-            if (toolName) {
-              derivedTools.add(toolName);
-              if (skill.home === 'pack' || (activeForgeAgent && activeForgeAgent.pack_skills && activeForgeAgent.pack_skills.some((ps) => ps.id === sid))) {
-                packTools.push(toolName);
-              }
-            }
-          });
-        }
-      });
-
-      if (isStorage) {
-        derivedTools.add('query_agent_database');
-        derivedTools.add('execute_agent_database');
-      }
-
-      const isMemory = Boolean(forgeMemoryEnabled && forgeMemoryEnabled.checked);
-      if (isMemory) {
-        derivedTools.add('recall_agent_memory');
-        derivedTools.add('memorize_fact');
-      }
-
-      const allowedToolNames = Array.from(derivedTools);
+      // CARD-539: Save sends skill ticks only; the server derives tools from skills (ADR-0061).
 
       const payload = {
         id: id,
@@ -466,9 +440,9 @@ export function initAgentForge(state, callbacks = {}) {
           return Number.isFinite(val) && val > 0 ? val : null;
         })(),
         model: forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default',
-        allowed_tool_names: allowedToolNames,
         allowed_skill: checkedSkills,
-        pack_tool_names: packTools,
+        // D10: a stale tab gets 409 instead of dropping a tick accepted elsewhere
+        expected_skills_version: (activeForgeAgent && activeForgeAgent.skills_version) || null,
         show_in_chat: forgeShowInChat ? forgeShowInChat.checked : true,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : DEFAULT_AGENT_MAX_TURNS, 10) || DEFAULT_AGENT_MAX_TURNS,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
@@ -480,7 +454,6 @@ export function initAgentForge(state, callbacks = {}) {
           return Number.isFinite(n) && n >= 1 && n <= 365 ? n : 30;
         })(),
         pinned_memory: forgePinnedMemory ? forgePinnedMemory.value.trim() : '',
-        allow_wiki_access: Boolean(checkedSkills.includes('wiki')),
         mcp_servers: currentAgentMcpServers.length > 0
           ? currentAgentMcpServers
           : (activeForgeAgent && activeForgeAgent.mcp_servers ? activeForgeAgent.mcp_servers : []),

@@ -44,7 +44,7 @@ def test_put_ignores_legacy_tool_lists_and_get_shows_derived_tools(boot):
     res = client.put("/api/agents/autoreiv", json=payload)
     assert res.status_code == 200, res.text
     after = _agent(client, "autoreiv")
-    profile = app.state.agent_registry.get_agent("autoreiv")
+    profile = app.state.registry.get_agent("autoreiv")
     assert "get_weather" not in after["allowed_tool_names"]
     assert set(after["allowed_tool_names"]) == set(resolve_allowed_tools(profile).names)
 

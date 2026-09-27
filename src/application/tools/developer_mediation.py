@@ -74,7 +74,7 @@ def normalize_tool_draft(raw: Optional[Mapping[str, Any]], intent: str) -> dict[
         "path_context": str(source.get("path_context") or "").strip(),
         "packaging_preference": packaging,
     }
-    # REQ-520-016: keep the agent that needs the tool so Developer grants it (safe ids only).
+    # REQ-520-016: keep the agent that needs the tool so Developer proposes attaching it (safe ids only).
     target = str(source.get("target_agent_id") or "").strip()
     if target and re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", target) and target not in {".", ".."}:
         draft["target_agent_id"] = target
@@ -108,7 +108,8 @@ def format_developer_prompt(packet: Mapping[str, Any]) -> str:
     tool_name = str(draft.get("tool_name") or "").strip() or "(new tool)"
     target = str(draft.get("target_agent_id") or "").strip()
     target_line = (
-        f"Target agent: {target}. Register with grant_agent_ids [\"{target}\"] so {target} can call it.\n"
+        f"Target agent: {target}. Register with target_agent_id \"{target}\": that creates a pending proposal to "
+        f"attach the tool to a skill of {target}; {target} can call it after Jacob accepts.\n"
         if target else ""
     )
     return (

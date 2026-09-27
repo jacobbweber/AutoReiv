@@ -8,7 +8,7 @@ The Tools Studio form does not call this module. The developer agent does,
 via register_native_tool, or the operator does via /api/tools/native.
 
 CARD-511: register runs the tool check (tool_check.py) first. A tool that fails
-is not saved, mounted, granted or added to tool policy. Rows registered before
+is not saved, mounted, proposed or added to tool policy. Rows registered before
 CARD-511 have no ``check`` block, still mount at startup, and read "Not checked".
 """
 
@@ -25,7 +25,6 @@ from typing import Any, Mapping, Optional
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
 from src.application.tools.tool_check import NATIVE_RUNNER, ToolCheckService, record_check_on_job
 from src.domain.gateway.models import ToolCall
-from src.domain.settings.models import AgentCustomization
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +135,7 @@ class NativeCustomToolService:
         self.store.set_setting(NATIVE_CUSTOM_TOOLS_SETTING, rows)
         self._mount(record)
         self._sync_policy(name, bool(record["requires_hitl"]))
-        granted = self._grant(name, list(record.get("grant_agent_ids") or []))
+        proposal = self._propose(record)
         logger.info("Registered native custom tool %s (hitl=%s)", name, record["requires_hitl"])
         body = _public_record(record)
         body.update(
@@ -146,10 +145,15 @@ class NativeCustomToolService:
                 "mounted": name in self.tool_registry,
                 "packaging": "native",
                 "mcp_required": False,
-                "granted_agent_ids": granted,
                 "message": check.operator_message(),
             }
         )
+        if proposal:
+            body["proposal"] = proposal
+            body["message"] = (
+                f"{body['message']} Proposed attaching {name} to skill '{proposal['skill_id']}' of "
+                f"{proposal['agent_id']}; it can use the tool once Jacob accepts the proposal."
+            )
         return body
 
     def delete(self, name: str) -> dict[str, Any]:
@@ -284,11 +288,14 @@ class NativeCustomToolService:
         requires_hitl = bool(raw.get("requires_hitl", True))
         if risk == "high":
             requires_hitl = True
-        grant = raw.get("grant_agent_ids") or []
-        if isinstance(grant, str):
-            grant = [part.strip() for part in grant.split(",") if part.strip()]
-        if not isinstance(grant, list) or not all(isinstance(item, str) for item in grant):
-            raise NativeToolError("grant_agent_ids must be a list of agent ids")
+        if raw.get("grant_agent_ids"):
+            raise NativeToolError(
+                "grant_agent_ids is gone (CARD-539): pass target_agent_id (and optionally target_skill_id) "
+                "to propose attaching the tool to a skill; Jacob accepts the proposal."
+            )
+        target = str(raw.get("target_agent_id") or "").strip()
+        if target:
+            self._require_agent(target)
         return {
             "name": name,
             "description": description,
@@ -299,7 +306,8 @@ class NativeCustomToolService:
             "source": "native_custom",
             "packaging": "native",
             "mcp_required": False,
-            "grant_agent_ids": [item.strip() for item in grant if item.strip()],
+            "target_agent_id": target,
+            "target_skill_id": str(raw.get("target_skill_id") or "").strip(),
         }
 
     def _reject_foreign_collision(self, name: str) -> None:
@@ -345,29 +353,25 @@ class NativeCustomToolService:
             if callable(register):
                 register(name)
 
-    def _grant(self, name: str, agent_ids: list[str]) -> list[str]:
-        if not agent_ids:
-            return []
-        if self.agent_registry is None or not hasattr(self.store, "save_agent_override"):
-            raise NativeToolError("Agent allowlist is unavailable.", 503)
-        granted: list[str] = []
-        for agent_id in agent_ids:
-            profile = self.agent_registry.get_agent(agent_id)
-            if profile is None:
-                raise NativeToolError(f"Agent '{agent_id}' was not found.", 404)
-            names = list(getattr(profile, "allowed_tool_names", None) or [])
-            if name not in names:
-                names.append(name)
-            existing = self.store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
-            existing.allowed_tool_names = names
-            # CARD-449: automated native tool grant must not set content lock
-            # existing.user_modified = True
-            self.store.save_agent_override(existing)
-            # marker = getattr(self.store, "mark_agent_user_modified", None)
-            # if callable(marker):
-            #     marker(agent_id, modified=True)
-            granted.append(agent_id)
-        return granted
+    def _propose(self, record: Mapping[str, Any]) -> Optional[dict[str, Any]]:
+        """Pending attach-tool-to-skill proposal for the target agent; no permission change (CARD-539)."""
+        target = str(record.get("target_agent_id") or "").strip()
+        if not target:
+            return None
+        from src.application.agent_packs.tool_attachment import propose_tool_attachment
+        from src.application.kernel.tool_registry import get_tool_context
+
+        approval_id = propose_tool_attachment(
+            self.store,
+            tool=str(record["name"]),
+            agent_id=target,
+            session_id=str(get_tool_context().get("session_id") or "") or None,
+            skill_id=str(record.get("target_skill_id") or "") or None,
+            description=str(record.get("description") or ""),
+            evidence=dict(record.get("check") or {}),
+        )
+        args = (self.store.get_approval(approval_id) or {}).get("arguments") or {}
+        return {"approval_id": approval_id, "agent_id": target, "skill_id": args.get("skill_id"), "status": "pending"}
 
     def _require_agent(self, agent_id: str) -> Any:
         key = str(agent_id or "").strip()
