@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.sdlc.paths import ProjectPathError, jail_join, resolve_project_root
+from src.application.sdlc.paths import ProjectPathError, jail_join, protected_write_error, resolve_project_root
 
 READ_EXCERPT_CHARS = 20000
 
@@ -103,6 +103,9 @@ class ProjectFileTools:
             target = self._safe(root, path)
         except ProjectPathError as exc:
             return {"success": False, "error": str(exc)}
+        blocked = protected_write_error(target)
+        if blocked:
+            return {"success": False, "error": blocked}
         if target.exists() and target.is_dir():
             return {"success": False, "error": f"Refusing to overwrite a directory: {path}"}
         target.parent.mkdir(parents=True, exist_ok=True)
