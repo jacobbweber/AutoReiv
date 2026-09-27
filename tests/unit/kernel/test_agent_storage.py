@@ -135,31 +135,31 @@ def test_agent_storage_isolation_between_agents(tmp_path):
     assert "no such table: secrets" in b_res["error"]
 
 
-def test_tool_registry_auto_authorizes_storage_tools_when_enabled():
+def test_storage_tools_reach_an_agent_only_through_the_sqlite_storage_skill():
+    """CARD-539 D3: the Storage checkbox is a tick of sqlite-storage; the flag alone grants nothing."""
     registry = ScopedToolRegistry()
     tools = AgentStorageTools()
     tools.register_tools(registry)
 
-    profile_no_storage = AgentProfile(
+    flag_only = AgentProfile(
         id="basic-agent",
         name="Basic Agent",
         description="Basic agent description",
         system_prompt="You are basic.",
-        storage_enabled=False,
+        storage_enabled=True,
     )
-    tool_defs_no_storage = registry.get_tools_for_agent(profile_no_storage)
-    tool_names_no = [t.name for t in tool_defs_no_storage]
-    assert "query_agent_database" not in tool_names_no
-    assert "execute_agent_database" not in tool_names_no
+    names_flag = [t.name for t in registry.get_tools_for_agent(flag_only)]
+    assert "query_agent_database" not in names_flag
+    assert "execute_agent_database" not in names_flag
 
-    profile_with_storage = AgentProfile(
+    ticked = AgentProfile(
         id="storage-agent",
         name="Storage Agent",
         description="Storage agent description",
         system_prompt="You have storage.",
         storage_enabled=True,
+        allowed_skill=["sqlite-storage"],
     )
-    tool_defs_with_storage = registry.get_tools_for_agent(profile_with_storage)
-    tool_names_with = [t.name for t in tool_defs_with_storage]
-    assert "query_agent_database" in tool_names_with
-    assert "execute_agent_database" in tool_names_with
+    names_ticked = [t.name for t in registry.get_tools_for_agent(ticked)]
+    assert "query_agent_database" in names_ticked
+    assert "execute_agent_database" in names_ticked

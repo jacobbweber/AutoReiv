@@ -135,11 +135,12 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(skillPillPressed(allowed, 'sqlite-storage')).toBe(true);
     expect(skillPillPressed(allowed, 'coordination')).toBe(false);
 
+    // CARD-539 D3: allow_wiki_access retired; the tick alone decides.
     const wikiOff = pillsFromPersistedAgent({
       allowed_skill: ['wiki', 'sandbox'],
       allow_wiki_access: false,
     });
-    expect(skillPillPressed(wikiOff, 'wiki')).toBe(false);
+    expect(skillPillPressed(wikiOff, 'wiki')).toBe(true);
     expect(skillPillPressed(wikiOff, 'sandbox')).toBe(true);
 
     const wiki = fakePill('wiki', false);

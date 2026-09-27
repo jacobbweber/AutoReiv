@@ -262,12 +262,12 @@ async def test_skill_view_empty_allowlist_refuses_all(tmp_path):
         name="Coding like",
         description="No skills",
         system_prompt="You are coding.",
-        allowed_tool_names=[SKILL_VIEW],
         allowed_skill=[],
     )
     refused = await tool_reg.execute(
         ToolCall(id="c1", name=SKILL_VIEW, arguments={"pack_id": "user-provisioning"}),
         agent,
     )
-    assert refused.output["success"] is False
-    assert "not allowed" in (refused.output.get("error") or "").lower()
+    # CARD-539: with no ticked skills skill_view is not even allowed.
+    assert refused.success is False
+    assert "not authorized" in (refused.error or "").lower()

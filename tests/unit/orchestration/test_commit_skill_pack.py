@@ -205,7 +205,7 @@ def test_commit_surfaces_soft_sprawl_warning(setup):
             name="Coding",
             description="Coding agent",
             system_prompt="Coding agent",
-            allowed_tool_names=[f"tool_{i}" for i in range(12)],
+            allowed_skill=[f"tool:tool_{i}" for i in range(12)],
         )
     )
     created = propose_tool(

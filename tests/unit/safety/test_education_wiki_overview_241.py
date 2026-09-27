@@ -43,14 +43,7 @@ def gate(store):
 def _agent(**kwargs):
     base = dict(
         id="assistant",
-        allowed_tool_names=[
-            "wiki_note_search",
-            "wiki_note_read",
-            "wiki_note_list",
-            "wiki_note_create",
-            "wiki_overview",
-            "wiki_graph",
-        ],
+        allowed_skill=["tool:wiki_note_search", "tool:wiki_note_read", "tool:wiki_note_list", "tool:wiki_note_create", "tool:wiki_overview", "tool:wiki_graph"],
         storage_enabled=False,
         mcp_servers=[],
     )
@@ -126,7 +119,7 @@ def test_wiki_overview_out_of_subset_fail_soft(gate):
 def test_unknown_registry_tool_fail_soft(gate):
     d = gate.evaluate(
         ToolCall(id="c2", name="totally_ghost_tool", arguments={}),
-        _agent(allowed_tool_names=["totally_ghost_tool", "wiki_note_create"]),
+        _agent(allowed_skill=["tool:totally_ghost_tool", "tool:wiki_note_create"]),
         registry_tool_names={"wiki_note_create"},
     )
     assert d.verdict == ToolPolicyVerdict.BLOCK
@@ -135,7 +128,7 @@ def test_unknown_registry_tool_fail_soft(gate):
         d,
         ToolCall(id="c2", name="totally_ghost_tool", arguments={}),
         session_id="sess_unk",
-        agent=_agent(allowed_tool_names=["totally_ghost_tool", "wiki_note_create"]),
+        agent=_agent(allowed_skill=["tool:totally_ghost_tool", "tool:wiki_note_create"]),
         hitl_engine=None,
         log=False,
     )

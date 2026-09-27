@@ -22,7 +22,6 @@ from src.application.agent_packs.schema import (
     PackMemoryConfig,
     PackSkill,
     PackStorageConfig,
-    tools_for_platform_skills,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
@@ -491,7 +490,9 @@ class AgentPackService:
             raise ValueError("Agent registry is required to import a pack.")
         existing = self.agent_registry.get_agent(manifest.id)
         pack_tools = list(manifest.pack_tool_names or [])
-        platform_tools = tools_for_platform_skills(list(manifest.allowed_skill or []))
+        from src.application.agent_packs.allowed_tools import platform_seed_tools
+
+        platform_tools = platform_seed_tools(manifest.allowed_skill or [])
         storage_enabled = (
             manifest.storage.enabled
             if manifest.storage is not None

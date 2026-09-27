@@ -63,7 +63,9 @@ class DummyProfile:
         description: str,
         pack_tool_names: list[str],
         skills: list[DummySkill],
+        allowed_skill: list[str] | None = None,
     ):
+        self.allowed_skill = list(allowed_skill or [])  # CARD-539: tools come from ticked skills
         self.id = id
         self.name = name
         self.description = description
@@ -96,6 +98,7 @@ def test_seed_builtin_capabilities_populates_trusted_entries(repo):
         description="Autonomous platform assistant",
         pack_tool_names=["inspect_system_health", "wiki_note_create"],
         skills=[skill_health],
+        allowed_skill=["platform-health"],
     )
     agent_reg.list_agents.return_value = [autoreiv_profile]
 

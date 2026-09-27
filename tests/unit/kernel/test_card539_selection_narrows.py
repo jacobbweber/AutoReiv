@@ -20,7 +20,7 @@ from src.application.capabilities.resolver import CapabilityCatalogResolver
 from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry, _tool_context
 from src.application.safety.tool_policy_gate import ToolPolicyGate, ToolPolicyVerdict
-from src.application.skills.platform_primitives import PlatformPrimitives
+from src.application.skills.platform_primitives import PlatformPrimitiveTools
 from src.domain.capabilities.models import CapabilityIndexEntry
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import AgentProfile
@@ -126,8 +126,8 @@ def test_autoreiv_and_custom_agent_get_the_same_tool_list(env):
 
 def test_activate_skill_refuses_an_unticked_skill(env):
     reg, _, _ = env
-    prim = PlatformPrimitives(state_store=None, tool_registry=reg)
-    token = _tool_context.set({"agent_id": "autoreiv", "allowed_skill": ["wiki-knowledge"]})
+    prim = PlatformPrimitiveTools(state_store=None, tool_registry=reg)
+    token = _tool_context.set({"agent_id": "a539", "allowed_skill": ["wiki-knowledge"]})
     try:
         refused = prim.activate_skill(["sandbox", "wiki"])
         ok = prim.activate_skill(["wiki-knowledge"])
@@ -137,7 +137,7 @@ def test_activate_skill_refuses_an_unticked_skill(env):
     assert refused["activated_tools"] == [] and refused["activated_skills"] == []
     assert "not ticked" in refused["message"]
     assert ok["activated_skills"] == ["wiki-knowledge"]
-    assert set(ok["activated_tools"]) == {"wiki_note_search", "wiki_note_read", "wiki_note_list"}
+    assert set(ok["activated_tools"]) == {"wiki_note_search", "wiki_note_read", "wiki_note_list", "wiki_graph"}
 
 
 def test_intent_matcher_only_returns_ticked_skills(env):

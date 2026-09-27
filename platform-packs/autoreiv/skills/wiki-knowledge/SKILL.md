@@ -7,6 +7,7 @@ requires_tools:
   - wiki_note_search
   - wiki_note_read
   - wiki_note_list
+  - wiki_graph
 safety:
   read_only: true
   requires_hitl: false
@@ -24,6 +25,7 @@ Search, inspect, and read verified facts, architecture decisions, and notes from
 - `wiki_note_search`: Full-text and keyword search across notes in the vault.
 - `wiki_note_read`: Retrieve the frontmatter, backlinks, and content of a specific note by relative path.
 - `wiki_note_list`: Enumerate notes filtered by domain, topic, tag, or status.
+- `wiki_graph`: Show how notes link to each other (backlinks and neighbours) around a note or topic.
 
 ## Workflow Order
 1. Always call `wiki_note_search` or `wiki_note_list` first before claiming whether information exists.

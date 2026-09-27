@@ -112,7 +112,7 @@ async def test_agent_kernel_single_turn(store, collector, registry):
         description="Daily assistant",
         system_prompt="You are helpful.",
         tone=AgentTone.FRIENDLY,
-        allowed_tool_names=["task_tracker"],
+        allowed_skill=["tool:task_tracker"],
     )
 
     session = store.create_session(agent_id=profile.id, title="Test Single Turn")
@@ -173,7 +173,7 @@ async def test_agent_kernel_multi_turn_react_tool_execution(store, collector, re
         name="General Assistant",
         description="Assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=["task_tracker"],
+        allowed_skill=["tool:task_tracker"],
     )
 
     session = store.create_session(agent_id=profile.id, title="Test Tool Execution")
@@ -229,7 +229,7 @@ async def test_agent_kernel_unauthorized_tool_call_denial(store, collector, regi
         name="General Assistant",
         description="Assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=["task_tracker"],  # NOT cli_exec
+        allowed_skill=["tool:task_tracker"],  # NOT cli_exec
     )
 
     session = store.create_session(agent_id=profile.id, title="Test Unauth Tool")
@@ -245,7 +245,7 @@ async def test_agent_kernel_unauthorized_tool_call_denial(store, collector, regi
     assert len(messages) == 4
     # The tool result message in history should reflect the permission denial
     content_lower = messages[2].content.lower()
-    assert "not authorized" in content_lower or "not in agent allowlist" in content_lower
+    assert "not authorized" in content_lower or "not in a skill ticked" in content_lower
 
 
 @pytest.mark.asyncio
@@ -281,7 +281,7 @@ async def test_agent_kernel_cycle_detection(store, collector, registry):
         name="General Assistant",
         description="Assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=["task_tracker"],
+        allowed_skill=["tool:task_tracker"],
         max_turns=5,
     )
 
@@ -324,7 +324,7 @@ async def test_agent_kernel_streaming_events(store, collector, registry):
         name="General Assistant",
         description="Assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=["task_tracker"],
+        allowed_skill=["tool:task_tracker"],
     )
 
     session = store.create_session(agent_id=profile.id, title="Test Stream Events")
@@ -384,7 +384,7 @@ async def test_agent_kernel_streaming_handoff_events(store, collector, registry)
         name="General Assistant",
         description="Assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=["handoff_to_agent"],
+        allowed_skill=["tool:handoff_to_agent"],
     )
 
     session = store.create_session(agent_id=profile.id, title="Test Handoff Stream Events")
@@ -466,7 +466,7 @@ async def test_stream_turn_emits_nested_handoff_approval(store, collector, regis
         name="Assistant",
         description="Coordinator",
         system_prompt="You are helpful.",
-        allowed_tool_names=["handoff_to_agent"],
+        allowed_skill=["tool:handoff_to_agent"],
     )
     session = store.create_session(agent_id=profile.id, title="Nested HITL")
     events = []
@@ -528,7 +528,7 @@ async def test_run_turn_stops_on_parked_tool(store, collector, registry):
         name="AutoReiv",
         description="sre",
         system_prompt="x",
-        allowed_tool_names=["cli_exec"],
+        allowed_skill=["tool:cli_exec"],
     )
     session = store.create_session(agent_id=profile.id, title="Park run_turn")
     msg = await kernel.run_turn(
@@ -576,7 +576,7 @@ async def test_stream_turn_stops_after_park_no_second_llm_turn(store, collector,
         name="AutoReiv",
         description="sre",
         system_prompt="x",
-        allowed_tool_names=["cli_exec"],
+        allowed_skill=["tool:cli_exec"],
     )
     session = store.create_session(agent_id=profile.id, title="Park stream_turn")
     events = []
@@ -640,7 +640,7 @@ async def test_stream_turn_resume_without_new_user_message(store, collector, reg
         name="AutoReiv",
         description="sre",
         system_prompt="x",
-        allowed_tool_names=["cli_exec"],
+        allowed_skill=["tool:cli_exec"],
     )
     session = store.create_session(agent_id=profile.id, title="Resume after approve")
     _seed_parked_history(store, session.id, profile.id, "Output of dir: OK")
@@ -683,7 +683,7 @@ async def test_stream_turn_resume_after_reject_emits_token(store, collector, reg
         name="AutoReiv",
         description="sre",
         system_prompt="x",
-        allowed_tool_names=["cli_exec"],
+        allowed_skill=["tool:cli_exec"],
     )
     session = store.create_session(agent_id=profile.id, title="Resume after reject")
     _seed_parked_history(store, session.id, profile.id, "Rejected. Tool did not run.")
@@ -720,7 +720,7 @@ async def test_run_turn_resume_without_new_user_message(store, collector, regist
         name="AutoReiv",
         description="sre",
         system_prompt="x",
-        allowed_tool_names=["cli_exec"],
+        allowed_skill=["tool:cli_exec"],
     )
     session = store.create_session(agent_id=profile.id, title="Resume run_turn")
     _seed_parked_history(store, session.id, profile.id, "Output of dir: OK")
@@ -755,7 +755,7 @@ async def test_stream_turn_resume_replays_nested_park(store, collector, registry
         name="Assistant",
         description="Coordinator",
         system_prompt="You are helpful.",
-        allowed_tool_names=["handoff_to_agent"],
+        allowed_skill=["tool:handoff_to_agent"],
     )
     session = store.create_session(agent_id=profile.id, title="Replay nested park")
     store.save_message(session_id=session.id, agent_id=profile.id, message=ChatMessage(role=Role.USER, content="Ask AutoReiv"))
@@ -879,7 +879,7 @@ async def test_stream_turn_aclose_before_nested_complete(store, collector, regis
         name="Conductor",
         description="Conductor",
         system_prompt="You orchestrate.",
-        allowed_tool_names=["nested_complete_probe"],
+        allowed_skill=["tool:nested_complete_probe"],
     )
     session = store.create_session(agent_id=profile.id, title="aclose before tools")
     events = []
@@ -916,7 +916,7 @@ async def test_run_turn_caps_nested_context_window(store, collector, registry):
         description="coder",
         system_prompt="You write code.",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["task_tracker"],
+        allowed_skill=["tool:task_tracker"],
     )
     session = store.create_session(agent_id=profile.id, title="Nested ctx cap")
     await kernel.run_turn(agent=profile, session_id=session.id, user_content="pong")
@@ -943,7 +943,7 @@ async def test_stream_turn_uses_full_context_window(store, collector, registry):
         description="coder",
         system_prompt="You write code.",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["task_tracker"],
+        allowed_skill=["tool:task_tracker"],
     )
     session = store.create_session(agent_id=profile.id, title="Full ctx stream")
     events = []

@@ -47,7 +47,7 @@ def render_good_agent_instructions(
     identity_lines.extend(mission)
 
     domain_lines = [
-        f"Focus strictly on {clean_domain}. Refuse requests outside your authorized domain or refer them to other specialists.",
+        f"Focus on {clean_domain}. For requests outside your skills, find the right agent with lookup_agents and hand off with handoff_to_agent; if no agent covers it, say so plainly and suggest Ask Developer.",
     ]
 
     execution_lines = [

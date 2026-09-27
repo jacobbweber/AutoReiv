@@ -29,6 +29,7 @@ class ToolRegistration:
     definition: ToolDefinition
     handler: Callable[..., Any]
     origin: str = "platform"
+    risk: str = ""  # read_only / write / network / destructive (CARD-539 D11); empty = policy defaults
 
 
 class ScopedToolRegistry:
@@ -48,6 +49,7 @@ class ScopedToolRegistry:
         handler: Callable[..., Any],
         *,
         origin: str = "platform",
+        risk: str = "",
     ) -> None:
         """Register a tool handler function.
 
@@ -60,7 +62,14 @@ class ScopedToolRegistry:
             description=description,
             parameters=parameters,
         )
-        self._tools[name] = ToolRegistration(definition=definition, handler=handler, origin=origin or "platform")
+        self._tools[name] = ToolRegistration(
+            definition=definition, handler=handler, origin=origin or "platform", risk=str(risk or "")
+        )
+
+    def get_tool_risk(self, name: str) -> str:
+        """Declared risk tier of a registered tool; empty when undeclared or absent."""
+        reg = self._tools.get(name)
+        return reg.risk if reg else ""
 
     def get_tool_origin(self, name: str) -> str:
         """Catalog origin for a registered tool. Empty when the name is absent."""
@@ -107,58 +116,14 @@ class ScopedToolRegistry:
         """Check whether a tool name is registered."""
         return name in self._tools
 
-    def get_tools_for_agent(
-        self,
-        agent: AgentProfile,
-        active_skills: Optional[Sequence[str]] = None,
-    ) -> List[ToolDefinition]:
+    def get_tools_for_agent(self, agent: AgentProfile, active_skills: Optional[Sequence[str]] = None) -> List[ToolDefinition]:
+        """Registered tools the agent may call: exactly resolve_allowed_tools (ADR-0061).
+
+        ``active_skills`` is accepted for old callers and ignored; selection narrows later.
         """
-        Return only the tool definitions that the given agent is authorized to use.
-        Enforces CARD-339 dynamic scoping to prevent prompt bloat.
-        """
-        if getattr(agent, "id", None) == "direct":
-            return []
-        from src.application.agent_packs.schema import resolve_scoped_tools
+        from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 
-        scoped = set(resolve_scoped_tools(agent, active_skills=active_skills))
-        if getattr(agent, "id", None) == "autoreiv":
-            allowed = scoped
-        else:
-            allowed = set(agent.allowed_tool_names or []).union(scoped)
-
-        # CARD-377: Mount tools for active MCP skills
-        if active_skills:
-            for sk in active_skills:
-                clean_sk = str(sk).strip().lower()
-                clean_sk = clean_sk[len("mcp:"):] if clean_sk.startswith("mcp:") else clean_sk
-                clean_sk = clean_sk.replace("-", "_")
-                for reg_name in self._tools:
-                    if reg_name == f"mcp_{clean_sk}" or reg_name.startswith(f"mcp_{clean_sk}_"):
-                        allowed.add(reg_name)
-
-        # Allow explicitly configured agent MCP servers
-        for srv in getattr(agent, "mcp_servers", []) or []:
-            srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
-            if srv_name:
-                for reg_name in self._tools:
-                    if reg_name.startswith(f"mcp_{srv_name}_"):
-                        allowed.add(reg_name)
-
-        # Static catalog reflection (active_skills is None) for autoreiv: include MCP tools if present
-        if active_skills is None and getattr(agent, "id", None) == "autoreiv":
-            for tool_name in (agent.allowed_tool_names or []):
-                if tool_name.startswith("mcp_") and tool_name in self._tools:
-                    allowed.add(tool_name)
-        if getattr(agent, "storage_enabled", False):
-            allowed.add("query_agent_database")
-            allowed.add("execute_agent_database")
-        if getattr(agent, "memory_enabled", True):
-            allowed.add("recall_agent_memory")
-            allowed.add("memorize_fact")
-        if getattr(agent, "id", None) != "autoreiv" and "read_document_file" in self._tools:
-            allowed.add("read_document_file")
-        if getattr(agent, "allow_wiki_access", True) is False:
-            allowed = {t for t in allowed if not (t.startswith("wiki_") or "wiki" in t.lower())}
+        allowed = resolve_allowed_tools(agent)
         return [reg.definition for name, reg in self._tools.items() if name in allowed]
 
     async def execute(
@@ -174,17 +139,6 @@ class ScopedToolRegistry:
         """
         Execute a tool call after verifying RBAC permissions against the agent profile.
         """
-        if getattr(agent, "allow_wiki_access", True) is False:
-            if tool_call.name.startswith("wiki_") or "wiki" in tool_call.name.lower():
-                return ToolResult(
-                    call_id=tool_call.id,
-                    tool_name=tool_call.name,
-                    output=None,
-                    success=False,
-                    error=f"Permission denied: Agent '{agent.id}' does not have Wiki access enabled [CARD-173].",
-                    duration_ms=0.0,
-                )
-
         mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
         store = state_store or self.state_store
         resolved_creds: Dict[str, str] = {}
@@ -220,53 +174,28 @@ class ScopedToolRegistry:
                 os.environ.pop(k, None)
             _tool_context.reset(token)
 
-    async def _execute_inner(self, tool_call: ToolCall, agent: AgentProfile) -> ToolResult:
+    async def run_platform_verifier(self, tool_call: ToolCall, agent: AgentProfile) -> ToolResult:
+        """Run a platform checker (PLATFORM_VERIFIER_TOOLS) for reflexion; not a model tool call."""
+        from src.application.agent_packs.allowed_tools import PLATFORM_VERIFIER_TOOLS, AllowedTools
+
+        name = tool_call.name if tool_call.name in PLATFORM_VERIFIER_TOOLS else ""
+        only = AllowedTools(ordered=(name,), provenance={name: ("platform",)}) if name else AllowedTools()
+        return await self._execute_inner(tool_call, agent, allowed=only)
+
+    async def _execute_inner(self, tool_call: ToolCall, agent: AgentProfile, allowed: Any = None) -> ToolResult:
         start_time = time.perf_counter()
 
-        # 1. Verify RBAC authorization
-        from src.application.agent_packs.schema import (
-            PLATFORM_SKILL_TOOLS,
-            REQUIRED_PLATFORM_TOOLS,
-            resolve_scoped_tools,
-        )
+        # 1. Verify RBAC authorization: the one allowed-tools function (ADR-0061)
+        from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 
-        ctx = get_tool_context() or {}
-        active_skills = ctx.get("active_skills") or []
-        scoped = set(resolve_scoped_tools(agent, active_skills=active_skills))
-        allowed = set(agent.allowed_tool_names or []).union(scoped)
-        allowed.update(REQUIRED_PLATFORM_TOOLS)
-        if getattr(agent, "id", None) == "autoreiv":
-            for skill_tools in PLATFORM_SKILL_TOOLS.values():
-                allowed.update(skill_tools)
-        for srv in getattr(agent, "mcp_servers", []) or []:
-            srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
-            if srv_name:
-                for reg_name in self._tools:
-                    if reg_name.startswith(f"mcp_{srv_name}_"):
-                        allowed.add(reg_name)
-        # CARD-377: Allow MCP tools for active skills
-        if active_skills:
-            for sk in active_skills:
-                clean_sk = str(sk).strip().lower()
-                clean_sk = clean_sk[len("mcp:"):] if clean_sk.startswith("mcp:") else clean_sk
-                clean_sk = clean_sk.replace("-", "_")
-                for reg_name in self._tools:
-                    if reg_name.startswith(f"mcp_{clean_sk}_"):
-                        allowed.add(reg_name)
-        if getattr(agent, "storage_enabled", False):
-            allowed.add("query_agent_database")
-            allowed.add("execute_agent_database")
-        if getattr(agent, "memory_enabled", True) and getattr(agent, "id", None) != "direct":
-            allowed.add("recall_agent_memory")
-            allowed.add("memorize_fact")
-        if "read_document_file" in self._tools:
-            allowed.add("read_document_file")
+        if allowed is None:
+            allowed = resolve_allowed_tools(agent)
 
         # Flexible matching for MCP tools (bare name vs scoped name)
         target_name = tool_call.name
         if target_name not in allowed:
             matched = False
-            for a in allowed:
+            for a in allowed.ordered:
                 if (a.startswith("mcp_") and a.endswith(f"_{target_name}")) or (target_name.startswith("mcp_") and target_name.endswith(f"_{a}")):
                     matched = True
                     break

@@ -25,68 +25,44 @@ class PlatformPrimitiveTools:
 
     def activate_skill(self, skills: List[str]) -> Dict[str, Any]:
         """
-        Dynamically activate one or more platform skills (e.g. 'wiki', 'diagnostics', 'tasks', 'coding', or MCP server domains)
-        to mount their specialized tools and procedural runbooks for the current turn.
+        Load the tools of one or more skills ticked for this agent for the current turn.
+        Skills that are not ticked are refused and mount nothing (CARD-539, ADR-0061).
         """
-        from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
-
-        normalized = [str(s).strip().lower() for s in skills if str(s).strip()]
-        valid_skills: List[str] = []
-        unknown_skills: List[str] = []
-        activated_tools: List[str] = []
+        from src.application.agent_packs.allowed_tools import skill_tools
 
         ctx = get_tool_context() or {}
-        registry = getattr(self, "tool_registry", None) or ctx.get("tool_registry")
-
-        for s in normalized:
-            if s in PLATFORM_SKILL_TOOLS:
-                valid_skills.append(s)
-                activated_tools.extend(PLATFORM_SKILL_TOOLS[s])
-            elif s in DYNAMIC_SKILL_TOOLS:
-                valid_skills.append(s)
-                activated_tools.extend(DYNAMIC_SKILL_TOOLS[s])
-            else:
-                # Check for dynamic MCP tool families (e.g. 'blender' or 'mcp:blender')
-                clean_name = s[len("mcp:"):] if s.startswith("mcp:") else s
-                clean_name = clean_name.replace("-", "_")
-                mcp_tools = []
-                if registry and hasattr(registry, "_tools"):
-                    prefix = f"mcp_{clean_name}_"
-                    for t_name in registry._tools:
-                        if t_name.startswith(prefix):
-                            mcp_tools.append(t_name)
-                if not mcp_tools and self.state_store:
-                    try:
-                        mcp_servers = self.state_store.get_setting("mcp_servers") or []
-                        srv = next((x for x in mcp_servers if (x.get("name") or "").lower() == clean_name), None)
-                        if srv:
-                            mcp_tools.append(f"mcp_{clean_name}_*")
-                    except Exception:
-                        pass
-
-                if mcp_tools:
-                    valid_skills.append(s)
-                    activated_tools.extend(mcp_tools)
-                else:
-                    unknown_skills.append(s)
-
-        ctx = get_tool_context() or {}
-        session_id = ctx.get("session_id")
         agent_id = ctx.get("agent_id")
+        ticks = {str(s).strip().lower(): str(s).strip() for s in ctx.get("allowed_skill") or [] if str(s).strip()}
+        requested = [str(s).strip() for s in skills or [] if str(s).strip()]
+        valid = [ticks[s.lower()] for s in requested if s.lower() in ticks]
+        refused = [s for s in requested if s.lower() not in ticks]
+        bound = skill_tools(valid, agent_id)
+        names = [t.name for t in self.tool_registry.list_tools()] if self.tool_registry is not None else []
+        activated_tools = list(
+            dict.fromkeys(
+                n
+                for sid in valid
+                for t in bound.get(sid) or []
+                for n in ([x for x in names if x.startswith(t[:-1])] if t.endswith("*") else [t])
+            )
+        )
 
+        parts = []
+        if valid:
+            parts.append(f"Activated skills: {', '.join(valid)}. Tools available for subsequent steps: {', '.join(activated_tools)}.")
+        if refused:
+            parts.append(
+                f"These skills are not ticked for this agent: {', '.join(refused)}. Nothing was loaded for them; "
+                "hand off to an agent that has the skill, or suggest Ask Developer."
+            )
         return {
-            "status": "activated" if valid_skills else "failed",
-            "activated_skills": valid_skills,
+            "status": "activated" if valid else "refused",
+            "activated_skills": valid,
             "activated_tools": activated_tools,
-            "unknown_skills": unknown_skills,
-            "session_id": session_id,
+            "refused_skills": refused,
+            "session_id": ctx.get("session_id"),
             "agent_id": agent_id,
-            "message": (
-                f"Activated skills: {', '.join(valid_skills)}. "
-                f"Tools available for subsequent steps: {', '.join(activated_tools)}."
-                if valid_skills
-                else f"No valid platform skills found matching: {unknown_skills}"
-            ),
+            "message": " ".join(parts) or "No skills named.",
         }
 
     def ask_clarification(self, question: str) -> Dict[str, Any]:
@@ -142,7 +118,7 @@ class PlatformPrimitiveTools:
         self.tool_registry = registry
         registry.register_tool(
             name="activate_skill",
-            description="Dynamically activate platform skills (e.g. 'wiki', 'diagnostics', 'tasks', 'coding') to unlock their specialized tool sets and SOP runbooks for the current turn.",
+            description="Load the tools of skills ticked for you (listed under Your domain) for the current turn. Unticked skills are refused.",
             parameters={
                 "type": "object",
                 "properties": {

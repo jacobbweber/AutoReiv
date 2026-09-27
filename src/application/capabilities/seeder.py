@@ -11,6 +11,7 @@ import logging
 import re
 from typing import Any, Optional
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.capabilities.resolver import ENGLISH_STOPWORDS
 from src.domain.capabilities.models import (
     CapabilityIndexEntry,
@@ -54,15 +55,13 @@ def seed_builtin_capabilities(
 
     # 1. Seed Tools from tool_registry
     if tool_registry is not None and hasattr(tool_registry, "list_tools"):
+        allowed_by_agent = {p.id: resolve_allowed_tools(p) for p in profiles}
         for defn in tool_registry.list_tools():
             tool_name = defn.name
-            # Determine which agents explicitly allow this tool in their skills or pack_tool_names
+            # Agents whose ticked skills allow this tool (CARD-539)
             roles = []
             for p in profiles:
-                allowed_tools = set(getattr(p, "allowed_tool_names", None) or getattr(p, "pack_tool_names", None) or getattr(p, "allowed_tools", None) or [])
-                for s in (getattr(p, "skills", None) or []):
-                    allowed_tools.update(getattr(s, "tools", []) or [])
-                if tool_name in allowed_tools:
+                if tool_name in allowed_by_agent[p.id]:
                     roles.append(p.id)
 
             keywords = {tool_name.lower()}

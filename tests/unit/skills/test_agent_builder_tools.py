@@ -47,7 +47,9 @@ async def test_list_available_skills_and_tools(builder_setup):
     skill.register_tools(tool_reg)
 
     result = await skill.list_available_skills_and_tools()
-    assert "tools" in result
+    # CARD-539 item 9: an authoring catalog, marked not callable, never a tool list.
+    assert "catalog_tools" in result and "skills" in result and "tools" not in result
+    assert "not callable" in result["note"]
     assert "purposes" in result
     assert "tones" in result
 

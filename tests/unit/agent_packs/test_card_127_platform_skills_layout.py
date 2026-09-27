@@ -1,10 +1,10 @@
 """CARD-127: Platform skills and agent pack studio layout."""
 
+from src.application.agent_packs.allowed_tools import platform_seed_tools as tools_for_platform_skills
 from src.application.agent_packs.schema import (
     PLATFORM_SKILL_IDS,
     PLATFORM_SKILL_METADATA,
     PLATFORM_SKILL_TOOLS,
-    tools_for_platform_skills,
 )
 from src.application.telemetry.collector import TelemetryCollector
 from src.infrastructure.agents.registry import BuiltinAgentRegistry

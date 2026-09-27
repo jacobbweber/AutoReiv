@@ -23,7 +23,7 @@ async def test_reflexion_loop_succeeds_on_first_pass():
 
     mock_tool_registry = MagicMock()
     # Tool verify passes
-    mock_tool_registry.execute = AsyncMock(
+    mock_tool_registry.run_platform_verifier = AsyncMock(  # CARD-539: verifier runs outside agent tools
         return_value=MagicMock(
             success=True,
             output={"is_valid": True, "discrepancies": []},
@@ -41,7 +41,6 @@ async def test_reflexion_loop_succeeds_on_first_pass():
         name="System Agent",
         description="SRE",
         system_prompt="SRE",
-        allowed_tool_names=["assert_json_schema"],
     )
 
     result = await engine.run_reflexion_turn(
@@ -72,7 +71,7 @@ async def test_reflexion_loop_refines_after_discrepancy_and_succeeds():
 
     mock_tool_registry = MagicMock()
     # 1st verify fails, 2nd verify passes
-    mock_tool_registry.execute = AsyncMock(
+    mock_tool_registry.run_platform_verifier = AsyncMock(  # CARD-539: verifier runs outside agent tools
         side_effect=[
             MagicMock(
                 success=True,
@@ -97,7 +96,6 @@ async def test_reflexion_loop_refines_after_discrepancy_and_succeeds():
         name="System Agent",
         description="SRE",
         system_prompt="SRE",
-        allowed_tool_names=["assert_json_schema"],
     )
 
     result = await engine.run_reflexion_turn(

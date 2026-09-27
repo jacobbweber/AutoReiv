@@ -360,12 +360,14 @@ class AgentKernel:
         try:
             registry_names = {d.name for d in self.tool_registry.list_tools()}
         except Exception:
-            registry_names = set(getattr(agent, "allowed_tool_names", []) or [])
+            registry_names = set()
+        risk_of = getattr(self.tool_registry, "get_tool_risk", None)
         decision = gate.evaluate(
             tc,
             agent,
             matched_capability_ids=matched_capability_ids,
             registry_tool_names=registry_names or None,
+            tool_risk=risk_of(tc.name) if callable(risk_of) else None,
         )
         return gate.apply_to_tool_result(
             decision,
@@ -589,13 +591,9 @@ class AgentKernel:
                 from src.application.sdlc.projects_service import ProjectsService
 
                 is_developer = getattr(agent, "id", None) == "developer"
-                allowed_tools: set[str] = set(getattr(agent, "allowed_tool_names", None) or [])
-                if not is_developer and hasattr(self, "tool_registry") and hasattr(self.tool_registry, "get_tools_for_agent"):
-                    try:
-                        agent_tools = self.tool_registry.get_tools_for_agent(agent)
-                        allowed_tools.update(t.name for t in agent_tools)
-                    except Exception:
-                        pass
+                from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+
+                allowed_tools: set[str] = set(resolve_allowed_tools(agent).names)
                 has_project_tools = bool(
                     allowed_tools.intersection(
                         {"read_project_file", "write_project_file", "list_project_dir", "cli_exec", "git_status", "git_diff"}
@@ -640,39 +638,11 @@ class AgentKernel:
             except Exception as e:
                 logger.debug(f"Active project context injection skipped: {e}")
 
-        # ADR-0054 / CARD-362 / CARD-377: Compact 1-line capability index when direct mode is not active
+        # CARD-539 D5: the domain line is generated from ticked skills; no hand-written capability block.
         if getattr(agent, "id", None) != "direct":
-            cap_lines = [
-                "## Available Capabilities & Skills (Demand-Paged)",
-                "Use `activate_skill` to load full tool schemas for any domain:",
-                "- `wiki`: Local-first knowledge base notes, markdown documents, and PARA vault search.",
-                "- `coding`: File reading, writing, editing, and terminal script execution in the active project.",
-                "- `diagnostics`: System health checks, hardware metrics, and background service diagnostics.",
-                "- `tasks`: Routine automation, cron schedule management, and standing background jobs.",
-                "- `mcp-engineering`: FastMCP server development, JSON-RPC protocol testing, Docker container deployment, and AutoReiv mounting.",
-            ]
-            discovered_mcp: dict[str, int] = {}
-            if hasattr(self, "tool_registry") and hasattr(self.tool_registry, "_tools"):
-                for t_name in self.tool_registry._tools:
-                    if t_name.startswith("mcp_"):
-                        parts = t_name.split("_")
-                        if len(parts) >= 3:
-                            srv_name = parts[1]
-                            discovered_mcp[srv_name] = discovered_mcp.get(srv_name, 0) + 1
-            for srv in getattr(agent, "mcp_servers", []) or []:
-                s_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
-                if s_name and s_name not in discovered_mcp:
-                    discovered_mcp[s_name] = 0
+            from src.application.agent_packs.allowed_tools import domain_line
 
-            for srv_name, count in sorted(discovered_mcp.items()):
-                tools_str = f" ({count} tools)" if count > 0 else ""
-                cap_lines.append(
-                    f"- `{srv_name}`: External integration tools via {srv_name.capitalize()} MCP server{tools_str}. "
-                    f"Use `activate_skill(['{srv_name}'])` or ask directly."
-                )
-
-            capability_index = "\n".join(cap_lines)
-            base_prompt = f"{base_prompt}\n\n{capability_index}"
+            base_prompt = f"{base_prompt}\n\n## Your domain\n{domain_line(agent)}"
 
         self._last_progressive_skills = [skill_block] if skill_block else []
         self._last_episodic_memory = [
@@ -701,11 +671,13 @@ class AgentKernel:
     def _match_intent_skills(
         cls,
         user_content: Optional[str],
+        agent: Optional[AgentProfile] = None,
         extra_domains: Optional[Sequence[str]] = None,
     ) -> List[str]:
         """
         Layer 1 Fast-Path Intent Matcher [CARD-339, ADR-0052, CARD-377].
-        0ms regex/keyword triggers to pre-mount specialized platform skills based on user prompt.
+        0ms keyword triggers name intent domains; with an agent they map onto its ticked skills only
+        (CARD-539). The result only ranks tools inside the allowed set.
         """
         if not user_content:
             return []
@@ -753,7 +725,11 @@ class AgentKernel:
                 if clean_dom not in matched:
                     matched.append(clean_dom)
 
-        return matched
+        if agent is None:
+            return matched
+        from src.application.agent_packs.allowed_tools import ticked_skills_for_domains
+
+        return ticked_skills_for_domains(agent, matched)
 
     def _resolve_active_tools(
         self,
@@ -763,28 +739,31 @@ class AgentKernel:
         active_skills: Optional[Sequence[str]] = None,
     ) -> List[Any]:
         """
-        RBAC allowlist and dynamic demand-paged capability scoping [CARD-339, CARD-362, ADR-0054].
-        - For 'direct': returns [] (zero tools pass-through).
-        - For 'autoreiv': by default mounts ONLY 5 lean platform primitives (<800 tokens),
-          plus any dynamically activated skills from Layer 1 intent or Layer 2 activate_skill.
-        - For specialist agents: mounts their declared allowed_skills and pack_tools.
-        - Enforces Rule of 7: clamps visible tools to MAX_ACTIVE_TOOLS_PER_TURN (8).
+        Pick this turn's tools from the agent's allowed set (ADR-0061). Every step only narrows:
+        the matched capability subset (required platform tools stay), then the 8-tool clamp where
+        active ticked skills rank first. An empty intersection mounts required tools only.
         """
         if getattr(agent, "id", None) == "direct":
             return []
 
-        _ = user_content  # query ranking is not used at turn time
+        from src.application.agent_packs.allowed_tools import resolve_allowed_tools, ticked_skills
+        from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+
+        allowed = resolve_allowed_tools(agent)
+        ticks = set(ticked_skills(agent))
         ids = matched_capability_ids
         if ids is None:
             ids = getattr(self, "_turn_matched_capability_ids", None)
 
-        # CARD-362 / ADR-0054: extract skill capabilities into active_skills for dynamic demand paging
-        if ids:
-            derived_skills = [str(cid).strip()[len("skill.") :] for cid in ids if str(cid).strip().startswith("skill.")]
-            if derived_skills:
-                active_skills = list(dict.fromkeys(list(active_skills or []) + derived_skills))
+        derived = [str(cid).strip()[len("skill.") :] for cid in ids or [] if str(cid).strip().startswith("skill.")]
+        phase_skills = {s for s in derived if s in ticks}
+        active_skills = [s for s in dict.fromkeys(list(active_skills or []) + derived) if s in ticks]
 
-        tools = list(self.tool_registry.get_tools_for_agent(agent, active_skills=active_skills))
+        tools = list(self.tool_registry.get_tools_for_agent(agent))
+        if phase_skills:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
+            tools = [
+                t for t in tools if phase_skills & set(allowed.skills_for(t.name)) or t.name in REQUIRED_PLATFORM_TOOLS
+            ]
         try:
             from src.application.safety.tool_policy_gate import (
                 EDUCATION_FORBIDDEN_WIKI_TOOLS,
@@ -793,9 +772,8 @@ class AgentKernel:
 
             subset = _capability_tool_names(ids)
             if subset is not None:
-                tools = [t for t in tools if getattr(t, "name", "") in subset] or tools
+                tools = [t for t in tools if t.name in subset or t.name in REQUIRED_PLATFORM_TOOLS]
             else:
-                # Still strip Education-forbidden ghosts when Education skills matched.
                 id_list = [str(x) for x in (ids or [])]
                 if any(s.endswith("education-priming") or s.endswith("education-dual-coding") for s in id_list):
                     tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
@@ -808,11 +786,7 @@ class AgentKernel:
             import re
             user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) if user_content else set()
 
-            from src.application.agent_packs.schema import (
-                CAPABILITY_AUTHORING_TOOL_NAMES,
-                DYNAMIC_SKILL_TOOLS,
-                PLATFORM_SKILL_TOOLS,
-            )
+            from src.application.agent_packs.schema import CAPABILITY_AUTHORING_TOOL_NAMES
             from src.application.tools.native_packaging import AUTHORING_TOOL_NAMES, load_native_tool_names
 
             native_names = load_native_tool_names(self.state_store)
@@ -858,14 +832,7 @@ class AgentKernel:
                     return (3, 0, name)
 
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
-                is_active = any(
-                    name in DYNAMIC_SKILL_TOOLS.get(sk, ())
-                    or name in PLATFORM_SKILL_TOOLS.get(sk, ())
-                    or name.startswith(f"{sk}_")
-                    or name.startswith(f"mcp_{sk}_")
-                    or f"_{sk}_" in name.lower()
-                    for sk in active_skill_set
-                )
+                is_active = bool(active_skill_set & {s.lower() for s in allowed.skills_for(name)})
                 if is_active:
                     boost = 1 if any(k in name for k in ("execute", "info", "list", "get", "status")) else 0
                     score = -(overlap * 2 + boost)
@@ -913,14 +880,14 @@ class AgentKernel:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
         turn_active_skills: Set[str] = set(
-            self._match_intent_skills(user_content, extra_domains=self._get_discovered_mcp_domains())
+            self._match_intent_skills(user_content, agent=agent, extra_domains=self._get_discovered_mcp_domains())
         )
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(
             agent,
             user_content,
             matched_capability_ids=self._turn_matched_capability_ids,
-            active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+            active_skills=list(turn_active_skills),
         )
         tool_schema_chars = (
             sum(
@@ -1179,8 +1146,8 @@ class AgentKernel:
                     )
 
                 if tc.name == "activate_skill" and tool_res.success:
-                    args = tc.arguments if isinstance(tc.arguments, dict) else {}
-                    new_skills = args.get("skills", [])
+                    out = tool_res.output if isinstance(tool_res.output, dict) else {}
+                    new_skills = out.get("activated_skills", [])  # ticked skills only (CARD-539)
                     if isinstance(new_skills, list):
                         for s in new_skills:
                             s_clean = str(s).strip().lower()
@@ -1245,7 +1212,7 @@ class AgentKernel:
                     agent,
                     user_content,
                     matched_capability_ids=self._turn_matched_capability_ids,
-                    active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+                    active_skills=list(turn_active_skills),
                 )
             last_turn_end = time.perf_counter()
 
@@ -1303,14 +1270,14 @@ class AgentKernel:
                     yield ev
                 return
         turn_active_skills: Set[str] = set(
-            self._match_intent_skills(user_content, extra_domains=self._get_discovered_mcp_domains())
+            self._match_intent_skills(user_content, agent=agent, extra_domains=self._get_discovered_mcp_domains())
         )
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(
             agent,
             user_content,
             matched_capability_ids=self._turn_matched_capability_ids,
-            active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+            active_skills=list(turn_active_skills),
         )
         tool_schema_chars = (
             sum(
@@ -1661,8 +1628,8 @@ class AgentKernel:
                         )
 
                 if tc.name == "activate_skill" and tool_res.success:
-                    args = tc.arguments if isinstance(tc.arguments, dict) else {}
-                    new_skills = args.get("skills", [])
+                    out = tool_res.output if isinstance(tool_res.output, dict) else {}
+                    new_skills = out.get("activated_skills", [])  # ticked skills only (CARD-539)
                     if isinstance(new_skills, list):
                         for s in new_skills:
                             s_clean = str(s).strip().lower()
@@ -1765,7 +1732,7 @@ class AgentKernel:
                     agent,
                     user_content,
                     matched_capability_ids=self._turn_matched_capability_ids,
-                    active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+                    active_skills=list(turn_active_skills),
                 )
             last_turn_end = time.perf_counter()
 

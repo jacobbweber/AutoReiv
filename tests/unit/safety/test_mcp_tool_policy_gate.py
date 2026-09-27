@@ -53,7 +53,8 @@ def gate(store):
 def _mcp_agent(**kwargs):
     base = dict(
         id="assistant",
-        allowed_tool_names=["wiki_note_search"],
+        # CARD-539 D2: the attached MCP server reaches the agent through a skill binding its tools.
+        allowed_skill=["tool:wiki_note_search", "tool:mcp_demo_*"],
         storage_enabled=False,
         mcp_servers=[SimpleNamespace(name="demo")],
     )
@@ -98,7 +99,7 @@ def test_req_mcpgate_003_listed_mcp_outside_matched_ids_never_runs(gate, store):
 
 def test_req_mcpgate_001_tools_list_mount_is_not_authorization(gate):
     """Mount/list alone does not authorize — missing mcp_servers + allowlist → BLOCK [REQ-MCPGATE-001]."""
-    agent = _mcp_agent(mcp_servers=[], allowed_tool_names=["wiki_note_search"])
+    agent = _mcp_agent(mcp_servers=[], allowed_skill=["tool:wiki_note_search"])
     d = gate.evaluate(
         ToolCall(id="m1", name="mcp_demo_echo", arguments={}),
         agent,
@@ -152,7 +153,7 @@ def test_req_mcpgate_003_unknown_mcp_blocks(gate):
     """Unknown MCP tool (not in registry) → BLOCK [REQ-MCPGATE-003]."""
     d = gate.evaluate(
         ToolCall(id="m4", name="mcp_demo_ghost", arguments={}),
-        _mcp_agent(allowed_tool_names=["mcp_demo_ghost"]),
+        _mcp_agent(allowed_skill=["tool:mcp_demo_ghost"]),
         matched_capability_ids=["tool.mcp_demo_ghost"],
         registry_tool_names={"mcp_demo_echo"},
     )
@@ -193,7 +194,7 @@ async def test_req_mcpgate_003_executor_never_invoked_when_kernel_blocks(store):
         name="Assistant",
         description="t",
         system_prompt="t",
-        allowed_tool_names=["wiki_note_search"],
+        allowed_skill=["tool:wiki_note_search"],
         mcp_servers=[{"name": "demo"}],
     )
     # Job-bound matched subset excludes the listed MCP write tool

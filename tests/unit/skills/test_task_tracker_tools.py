@@ -15,7 +15,7 @@ TEST_AGENT_PROFILE = AgentProfile(
     name="Test Agent",
     description="Test agent description",
     system_prompt="Test agent system prompt",
-    allowed_tool_names=["task_tracker_create", "task_tracker_list", "task_tracker_update", "task_tracker_delete"],
+    allowed_skill=["tool:task_tracker_create", "tool:task_tracker_list", "tool:task_tracker_update", "tool:task_tracker_delete"],
 )
 
 

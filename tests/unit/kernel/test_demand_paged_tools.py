@@ -18,7 +18,7 @@ def test_max_active_tools_per_turn_constant():
     assert MAX_ACTIVE_TOOLS_PER_TURN == 8
 
 
-def test_resolve_active_tools_enforces_entropy_cap():
+def test_resolve_active_tools_enforces_entropy_cap(bind_skills):
     """Verify _resolve_active_tools clamps visible tools to at most 8 [REQ-CAP-PAGE-001]."""
     tools = [
         ToolDefinition(name=f"tool_{i}", description=f"Tool {i}", parameters={"type": "object", "properties": {}})
@@ -38,7 +38,7 @@ def test_resolve_active_tools_enforces_entropy_cap():
         name="Developer",
         description="Test",
         system_prompt="Test",
-        allowed_tool_names=[t.name for t in tools],
+        allowed_skill=bind_skills({"many": [t.name for t in tools]}),
     )
 
     resolved = kernel._resolve_active_tools(agent, user_content="test")
@@ -46,7 +46,7 @@ def test_resolve_active_tools_enforces_entropy_cap():
     assert len(resolved) == 8
 
 
-def test_priority_ordering_preserves_active_skill_tools_first():
+def test_priority_ordering_preserves_active_skill_tools_first(bind_skills):
     """Verify active skill tools are prioritized ahead of generic tools when clamping [REQ-CAP-PAGE-001, REQ-CAP-PAGE-003]."""
     skill_tools = [
         ToolDefinition(name=f"wiki_{i}", description=f"Wiki Tool {i}", parameters={"type": "object", "properties": {}})
@@ -78,6 +78,7 @@ def test_priority_ordering_preserves_active_skill_tools_first():
         name="AutoReiv",
         description="Platform Agent",
         system_prompt="Test",
+        allowed_skill=bind_skills({"wiki": [t.name for t in skill_tools], "extras": [t.name for t in extra_tools]}),
     )
 
     resolved = kernel._resolve_active_tools(
@@ -124,8 +125,8 @@ def test_direct_mode_returns_zero_tools():
     assert resolved == []
 
 
-def test_compact_capability_index_in_system_prompt():
-    """Verify system message includes 1-line capability index when skills inactive [REQ-CAP-PAGE-002]."""
+def test_domain_line_from_ticked_skills_replaces_the_capability_block():
+    """CARD-539 D5: the hard-coded capability block is gone; the domain line comes from ticked skills."""
     kernel = AgentKernel(
         gateway=MagicMock(),
         tool_registry=MagicMock(),
@@ -137,16 +138,14 @@ def test_compact_capability_index_in_system_prompt():
         name="AutoReiv",
         description="Platform Agent",
         system_prompt="You are AutoReiv Core.",
-        allowed_skill=["wiki", "coding", "diagnostics", "tasks"],
+        allowed_skill=["wiki-knowledge", "diagnostics"],
     )
 
-    sys_msg = kernel._build_effective_system_message(agent, user_content="hello")
-    content = sys_msg.content
+    content = kernel._build_effective_system_message(agent, user_content="hello").content
 
-    assert "## Available Capabilities & Skills" in content or "Demand-Paged" in content
-    assert "activate_skill" in content
-    assert "wiki" in content
-    assert "coding" in content
+    assert "## Available Capabilities & Skills" not in content and "Demand-Paged" not in content
+    assert "## Your domain" in content
+    assert "handoff_to_agent" in content and "Ask Developer" in content
 
 
 @pytest.mark.asyncio
@@ -195,7 +194,7 @@ async def test_telemetry_records_tool_entropy_and_schema_chars(tmp_path):
     assert telemetry.record_turn_span.called or telemetry.record_llm_span.called or hasattr(kernel, "_last_turn_tool_stats")
 
 
-def test_phase_bound_tool_scoping_from_checkpoint(tmp_path):
+def test_phase_bound_tool_scoping_from_checkpoint(tmp_path, bind_skills):
     """Verify kernel resolves and pages tools matching active phase checkpoint capabilities [REQ-CAP-PAGE-004]."""
     from src.domain.orchestration.models import Job, JobStatus, Phase, PhaseStatus
     store = SQLiteStateStore(db_path=str(tmp_path / "test_phase_scope.db"))
@@ -230,16 +229,8 @@ def test_phase_bound_tool_scoping_from_checkpoint(tmp_path):
     ]
 
     registry = MagicMock()
-    # Tool registry will return tools based on active_skills
-    def mock_get_tools(agent, active_skills=None):
-        res = list(baseline_tools)
-        if active_skills and "wiki" in active_skills:
-            res.extend(wiki_tools)
-        if active_skills and "coding" in active_skills:
-            res.extend(coding_tools)
-        return res
-
-    registry.get_tools_for_agent.side_effect = mock_get_tools
+    registry.get_tools_for_agent.return_value = baseline_tools + wiki_tools + coding_tools  # the allowed set
+    ticks = bind_skills({"wiki": [t.name for t in wiki_tools], "coding": [t.name for t in coding_tools]})
 
     kernel = AgentKernel(
         gateway=MagicMock(),
@@ -252,6 +243,7 @@ def test_phase_bound_tool_scoping_from_checkpoint(tmp_path):
         name="AutoReiv",
         description="Platform Agent",
         system_prompt="Test",
+        allowed_skill=ticks,
     )
 
     # Resolve active tools for Phase 1
@@ -271,7 +263,7 @@ def test_phase_bound_tool_scoping_from_checkpoint(tmp_path):
     assert "repo_file_read" not in resolved_names
 
 
-def test_phase_transition_evicts_old_and_pages_new_tools(tmp_path):
+def test_phase_transition_evicts_old_and_pages_new_tools(tmp_path, bind_skills):
     """Verify transitioning between phase boundaries evicts old tools and mounts new tools [REQ-CAP-PAGE-004]."""
     from src.domain.orchestration.models import Job, JobStatus, Phase, PhaseStatus
     store = SQLiteStateStore(db_path=str(tmp_path / "test_phase_evict.db"))
@@ -293,15 +285,8 @@ def test_phase_transition_evicts_old_and_pages_new_tools(tmp_path):
     ]
 
     registry = MagicMock()
-    def mock_get_tools(agent, active_skills=None):
-        res = list(baseline_tools)
-        if active_skills and "wiki" in active_skills:
-            res.extend(wiki_tools)
-        if active_skills and "coding" in active_skills:
-            res.extend(coding_tools)
-        return res
-
-    registry.get_tools_for_agent.side_effect = mock_get_tools
+    registry.get_tools_for_agent.return_value = baseline_tools + wiki_tools + coding_tools  # the allowed set
+    ticks = bind_skills({"wiki": [t.name for t in wiki_tools], "coding": [t.name for t in coding_tools]})
 
     kernel = AgentKernel(
         gateway=MagicMock(),
@@ -309,7 +294,7 @@ def test_phase_transition_evicts_old_and_pages_new_tools(tmp_path):
         state_store=store,
         telemetry=MagicMock(),
     )
-    agent = AgentProfile(id="autoreiv", name="AutoReiv", description="Test", system_prompt="Test")
+    agent = AgentProfile(id="autoreiv", name="AutoReiv", description="Test", system_prompt="Test", allowed_skill=ticks)
 
     # Step 1: Phase 1 active with wiki
     store.save_job_phase_checkpoint(

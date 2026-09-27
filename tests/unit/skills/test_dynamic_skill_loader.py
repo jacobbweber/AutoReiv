@@ -68,7 +68,7 @@ async def test_scoped_tool_registry_mounts_mcp_tools():
         name="General Assistant",
         description="General",
         system_prompt="Helpful",
-        allowed_tool_names=["mcp_git_status"],
+        allowed_skill=["tool:mcp_git_status"],
     )
 
     allowed = registry.get_tools_for_agent(agent)

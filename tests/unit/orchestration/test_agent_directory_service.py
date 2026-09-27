@@ -58,7 +58,8 @@ def test_discover_custom_agent(directory_service, tmp_path):
     # Check compact card representation
     dba_card = next(a for a in results if a.id == "postgres-dba")
     assert dba_card.name == "Postgres DBA Specialist"
-    assert "postgresql" in dba_card.summary.lower() or "database" in dba_card.summary.lower()
+    # CARD-539 D5: summary = ticked skill names; with none ticked it falls back to the description.
+    assert "postgres" in dba_card.summary.lower()
 
 
 def test_compact_agent_card_token_efficiency(directory_service):

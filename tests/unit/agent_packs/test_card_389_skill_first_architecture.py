@@ -12,12 +12,12 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.schema import (
     OPTIONAL_PLATFORM_SKILLS,
     PLATFORM_SKILL_METADATA,
     PLATFORM_SKILL_TOOLS,
     REQUIRED_PLATFORM_TOOLS,
-    resolve_scoped_tools,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail
 from src.domain.kernel.models import AgentProfile
@@ -148,18 +148,16 @@ def test_req_389_004_conversational_agent_zero_skills_mounts_only_baseline():
         "pack_tool_names": [],
     }
 
-    # When active_skills is empty, only required baseline tools are scoped
-    scoped = resolve_scoped_tools(conversational_agent, active_skills=[])
+    # CARD-539: no ticked skills -> only required baseline tools are allowed
+    scoped = resolve_allowed_tools(conversational_agent).names
     assert set(scoped) == set(REQUIRED_PLATFORM_TOOLS)
     assert "query_agent_database" not in scoped
     assert "execute_agent_database" not in scoped
     assert "wiki_read" not in scoped
     assert "read_project_file" not in scoped
 
-    # When sqlite-storage skill becomes active, its declared tools are mounted
-    scoped_with_storage = resolve_scoped_tools(
-        conversational_agent, active_skills=["sqlite-storage"]
-    )
+    # Ticking sqlite-storage allows its declared tools
+    scoped_with_storage = resolve_allowed_tools({**conversational_agent, "allowed_skill": ["sqlite-storage"]}).names
     assert "query_agent_database" in scoped_with_storage
     assert "execute_agent_database" in scoped_with_storage
     for req in REQUIRED_PLATFORM_TOOLS:
@@ -176,11 +174,11 @@ def test_req_389_005_negative_assertion_naked_tools_cannot_be_bound():
     }
 
     # sqlite-storage tools are NOT present when only wiki is active
-    scoped = resolve_scoped_tools(test_agent, active_skills=["wiki"])
+    scoped = resolve_allowed_tools(test_agent).names
     assert "query_agent_database" not in scoped
     assert "execute_agent_database" not in scoped
 
-    # Even if an agent payload tries to sneak naked tools, resolve_scoped_tools filters by active skill
+    # Even if an agent payload tries to sneak naked tools, only ticked skills grant tools (CARD-539)
     test_agent_with_naked = {
         "id": "isolated-analyst",
         "name": "Isolated Analyst",
@@ -188,7 +186,7 @@ def test_req_389_005_negative_assertion_naked_tools_cannot_be_bound():
         "pack_tool_names": [],
         "allowed_tool_names": ["query_agent_database", "bash", "execute_sql"],
     }
-    scoped_naked = resolve_scoped_tools(test_agent_with_naked, active_skills=[])
+    scoped_naked = resolve_allowed_tools(test_agent_with_naked).names
     assert "bash" not in scoped_naked
     assert "execute_sql" not in scoped_naked
     assert "query_agent_database" not in scoped_naked

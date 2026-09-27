@@ -52,7 +52,7 @@ async def test_tool_context_jit_credential_injection(tmp_path):
         name="Authed Agent",
         description="Has credentials",
         system_prompt="Helpful agent",
-        allowed_tool_names=["dummy_tool"],
+        allowed_skill=["tool:dummy_tool"],
         allowed_credentials=["github-pat"],
     )
 
@@ -75,7 +75,7 @@ async def test_tool_context_jit_credential_injection(tmp_path):
         name="Unauthed Agent",
         description="No credentials",
         system_prompt="Helpful agent",
-        allowed_tool_names=["dummy_tool"],
+        allowed_skill=["tool:dummy_tool"],
         allowed_credentials=[],
     )
 
@@ -119,7 +119,7 @@ async def test_agent_kernel_scrubs_secret_from_tool_output(tmp_path):
         name="Worker",
         description="Worker",
         system_prompt="Worker",
-        allowed_tool_names=["leaky_tool"],
+        allowed_skill=["tool:leaky_tool"],
         allowed_credentials=["cloud-key"],
     )
 

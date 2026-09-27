@@ -118,7 +118,7 @@ async def test_mcp_client_manager_mount_and_unmount():
             name="SRE",
             description="Site Reliability Engineer",
             system_prompt="You diagnose systems.",
-            allowed_tool_names=["mcp_sqlite_query"],
+            allowed_skill=["tool:mcp_sqlite_query"],
         )
         from src.domain.gateway.models import ToolCall
 

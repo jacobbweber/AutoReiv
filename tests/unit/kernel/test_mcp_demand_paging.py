@@ -1,18 +1,19 @@
 """
 Unit tests for CARD-377 Phase 2: Dynamic MCP Capability Discovery & Demand Paging.
 [REQ-MCP-HANDSHAKE-004..006]
+CARD-539 D2: an MCP server reaches an agent only through a ticked skill that binds its tools.
 """
 
 from unittest.mock import MagicMock
 
 from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, AgentKernel
-from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.kernel.tool_registry import ScopedToolRegistry, _tool_context
 from src.application.skills.platform_primitives import PlatformPrimitiveTools
 from src.domain.gateway.models import ToolDefinition
 from src.domain.kernel.models import AgentProfile
 
 
-def test_dynamic_capability_index_lists_mounted_mcp_servers():
+def test_domain_line_lists_the_ticked_mcp_skill(bind_skills):
     """Verify system message capability index dynamically includes mounted MCP server [REQ-MCP-HANDSHAKE-004]."""
     registry = ScopedToolRegistry()
     registry.mount_mcp_tool(
@@ -37,20 +38,14 @@ def test_dynamic_capability_index_lists_mounted_mcp_servers():
         name="AutoReiv",
         description="Platform Agent",
         system_prompt="You are AutoReiv Core.",
-        allowed_skill=["wiki", "coding", "diagnostics", "tasks"],
+        allowed_skill=["diagnostics"] + bind_skills({"mcp-blender": ["mcp_blender_*"]}),
     )
 
-    sys_msg = kernel._build_effective_system_message(agent, user_content="hello")
-    content = sys_msg.content
-
-    # Baseline platform skills must be present
-    assert "wiki" in content
-    assert "coding" in content
-    assert "diagnostics" in content
-    assert "tasks" in content
-    # Dynamic MCP server must be in the index
-    assert "blender" in content
-    assert "2 tools" in content or "Blender MCP server" in content
+    content = kernel._build_effective_system_message(agent, user_content="hello").content
+    assert "## Your domain" in content
+    assert "Mcp Blender" in content  # label generated from the ticked skill id
+    tools = {t.name for t in registry.get_tools_for_agent(agent)}
+    assert {"mcp_blender_execute_script", "mcp_blender_get_scene_info"} <= tools
 
 
 def test_match_intent_skills_matches_mcp_server_names():
@@ -63,7 +58,7 @@ def test_match_intent_skills_matches_mcp_server_names():
     assert "blender" in matched
 
 
-def test_activate_skill_activates_mcp_tool_family():
+def test_activate_skill_activates_a_ticked_mcp_skill_only(bind_skills):
     """Verify activate_skill activates MCP tool family when present in registry [REQ-MCP-HANDSHAKE-005]."""
     registry = ScopedToolRegistry()
     registry.mount_mcp_tool(
@@ -80,14 +75,21 @@ def test_activate_skill_activates_mcp_tool_family():
     primitives = PlatformPrimitiveTools(state_store=MagicMock())
     primitives.register_tools(registry)
 
-    result = primitives.activate_skill(["blender"])
+    ticks = bind_skills({"mcp-blender": ["mcp_blender_*"]})
+    token = _tool_context.set({"agent_id": "a539", "allowed_skill": ticks})
+    try:
+        raw = primitives.activate_skill(["blender"])  # a raw MCP family is not a skill
+        result = primitives.activate_skill(["mcp-blender"])
+    finally:
+        _tool_context.reset(token)
+    assert raw["status"] == "refused" and raw["activated_tools"] == []
     assert result["status"] == "activated"
-    assert "blender" in result["activated_skills"]
+    assert "mcp-blender" in result["activated_skills"]
     assert "mcp_blender_execute_script" in result["activated_tools"]
     assert "mcp_blender_get_scene_info" in result["activated_tools"]
 
 
-def test_get_tools_for_agent_resolves_active_mcp_skills():
+def test_get_tools_for_agent_includes_mcp_tools_only_when_their_skill_is_ticked(bind_skills):
     """Verify ScopedToolRegistry returns MCP tools for autoreiv when active_skills includes the server [REQ-MCP-HANDSHAKE-006]."""
     registry = ScopedToolRegistry()
     registry.mount_mcp_tool(
@@ -96,25 +98,20 @@ def test_get_tools_for_agent_resolves_active_mcp_skills():
         handler=MagicMock(),
     )
 
-    agent = AgentProfile(
+    unticked = AgentProfile(id="autoreiv", name="AutoReiv", description="Platform Agent", system_prompt="Test")
+    assert "mcp_blender_execute_script" not in [t.name for t in registry.get_tools_for_agent(unticked, active_skills=["blender"])]
+
+    ticked = AgentProfile(
         id="autoreiv",
         name="AutoReiv",
         description="Platform Agent",
         system_prompt="Test",
+        allowed_skill=bind_skills({"mcp-blender": ["mcp_blender_*"]}),
     )
-
-    # Inactive turn -> no blender tools
-    inactive_tools = registry.get_tools_for_agent(agent, active_skills=[])
-    inactive_names = [t.name for t in inactive_tools]
-    assert "mcp_blender_execute_script" not in inactive_names
-
-    # Active turn with blender -> blender tools mounted
-    active_tools = registry.get_tools_for_agent(agent, active_skills=["blender"])
-    active_names = [t.name for t in active_tools]
-    assert "mcp_blender_execute_script" in active_names
+    assert "mcp_blender_execute_script" in [t.name for t in registry.get_tools_for_agent(ticked)]
 
 
-def test_resolve_active_tools_prioritizes_mcp_tools_and_respects_cap():
+def test_resolve_active_tools_prioritizes_mcp_tools_and_respects_cap(bind_skills):
     """Verify _resolve_active_tools gives Priority 0 to active MCP tools and respects MAX_ACTIVE_TOOLS_PER_TURN [REQ-MCP-HANDSHAKE-005]."""
     registry = ScopedToolRegistry()
     mcp_tools = [
@@ -139,12 +136,13 @@ def test_resolve_active_tools_prioritizes_mcp_tools_and_respects_cap():
         name="AutoReiv",
         description="Platform Agent",
         system_prompt="Test",
+        allowed_skill=bind_skills({"mcp-blender": ["mcp_blender_*"]}),
     )
 
     resolved = kernel._resolve_active_tools(
         agent,
         user_content="execute script in blender",
-        active_skills=["blender"],
+        active_skills=["mcp-blender"],
     )
 
     assert len(resolved) == MAX_ACTIVE_TOOLS_PER_TURN

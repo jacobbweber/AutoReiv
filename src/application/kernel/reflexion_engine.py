@@ -106,15 +106,13 @@ class ReflexionLoopEngine:
         call_args = dict(verifier_args or {})
         if "payload" not in call_args and verifier_tool_name == "assert_json_schema":
             call_args["payload"] = last_output
-        agent_exec = agent.model_copy(
-            update={"allowed_tool_names": list(set(agent.allowed_tool_names + [verifier_tool_name]))}
-        )
         tool_call = ToolCall(
             id=f"verify_{uuid.uuid4().hex[:8]}",
             name=verifier_tool_name,
             arguments=call_args,
         )
-        verify_res = await self.tool_registry.execute(tool_call, agent_exec)
+        # Platform checkers run outside the agent's tools (CARD-539); nothing is added to the profile.
+        verify_res = await self.tool_registry.run_platform_verifier(tool_call, agent)
         if verify_res.success and isinstance(verify_res.output, dict):
             discrepancies = verify_res.output.get("discrepancies") or []
             if not isinstance(discrepancies, list):

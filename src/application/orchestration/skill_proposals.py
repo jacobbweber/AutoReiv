@@ -131,8 +131,9 @@ def _allowlist_len(agent_registry: Any, agent_id: str) -> Optional[int]:
         profile = get_builtin_profile(aid)
     if profile is None:
         return None
-    names = getattr(profile, "allowed_tool_names", None) or []
-    return len(list(names))
+    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+
+    return len(resolve_allowed_tools(profile))
 
 
 def sprawl_warning_text(

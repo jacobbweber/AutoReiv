@@ -219,7 +219,7 @@ class OrchestrationTools:
             skills_str = ", ".join(card.skills) if card.skills else "general"
             lines.append(f"- ID: `{card.id}` | Name: {card.name} | Tone: {card.tone}")
             lines.append(f"  Summary: {card.summary}")
-            lines.append(f"  Tools/Skills: {skills_str}")
+            lines.append(f"  Skills: {skills_str}")
 
         return "\n".join(lines)
 

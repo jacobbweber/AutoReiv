@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Sequence, Set
 
+from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import ToolResult
@@ -101,38 +102,8 @@ def _normalize_policy(raw: Any) -> dict[str, set[str]]:
     }
 
 
-def _mcp_server_names(agent: Any) -> set[str]:
-    """Server names configured on the agent (authorization input — not tools/list)."""
-    names: set[str] = set()
-    for srv in getattr(agent, "mcp_servers", None) or []:
-        if hasattr(srv, "name"):
-            srv_name = getattr(srv, "name", None)
-        elif isinstance(srv, dict):
-            srv_name = srv.get("name")
-        else:
-            srv_name = None
-        if srv_name:
-            names.add(str(srv_name).strip())
-    return {n for n in names if n}
-
-
 def _is_mcp_tool_name(name: str) -> bool:
     return str(name or "").startswith("mcp_")
-
-
-def _mcp_tool_authorized_by_servers(name: str, server_names: set[str]) -> bool:
-    """Authorize scoped mcp_<server>_<tool> when agent has that MCP server configured.
-
-    tools/list / mount remain transport-only [CARD-225]: server config is the
-    allowlist input; matched subset + durable policy still apply afterward.
-    """
-    if not name.startswith("mcp_") or not server_names:
-        return False
-    for srv in server_names:
-        prefix = f"mcp_{srv}_"
-        if name.startswith(prefix) and len(name) > len(prefix):
-            return True
-    return False
 
 
 def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
@@ -149,32 +120,14 @@ def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
     return False
 
 
-def _agent_allowed_names(agent: Any) -> set[str]:
-    if getattr(agent, "id", None) == "direct":
-        return set()
+def _agent_allowed_names(agent: Any):
+    """The agent's allowed tools, from the one decider (ADR-0061). No flags, no agent ids."""
+    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 
-    from src.application.agent_packs.schema import (
-        PLATFORM_SKILL_TOOLS,
-        REQUIRED_PLATFORM_TOOLS,
-        resolve_scoped_tools,
-    )
+    return resolve_allowed_tools(agent)
 
-    allowed = set(getattr(agent, "allowed_tool_names", None) or [])
-    allowed.update(REQUIRED_PLATFORM_TOOLS)
-    if getattr(agent, "id", None) == "autoreiv":
-        for skill_tools in PLATFORM_SKILL_TOOLS.values():
-            allowed.update(skill_tools)
-    else:
-        allowed.update(resolve_scoped_tools(agent))
-    # Record server names as markers; evaluate() also uses prefix match.
-    allowed |= _mcp_server_names(agent)
-    if getattr(agent, "storage_enabled", False):
-        allowed.add("query_agent_database")
-        allowed.add("execute_agent_database")
-    if getattr(agent, "memory_enabled", True) and getattr(agent, "id", None) != "direct":
-        allowed.add("recall_agent_memory")
-        allowed.add("memorize_fact")
-    return allowed
+
+RISKS_NEEDING_CONFIRM = frozenset({"write", "network", "destructive"})
 
 
 # Education Priming / Dual Coding / Construction / Application: catalog-matched wiki_note_* only [CARD-241/245/246].
@@ -345,6 +298,7 @@ class ToolPolicyGate:
         *,
         matched_capability_ids: Optional[Sequence[str]] = None,
         registry_tool_names: Optional[Set[str]] = None,
+        tool_risk: Optional[str] = None,
     ) -> ToolPolicyDecision:
         name = str(tool_call.name or "").strip()
         if not name:
@@ -380,23 +334,20 @@ class ToolPolicyGate:
                     policy_source="registry",
                 )
 
-        # Agent allowlist (Forge-managed) + MCP server prefix — listing != authorization
-        # [REQ-TOOLPOL-002/003] [REQ-MCPGATE-001/002].
+        # Allowed tools = required + ticked-skill tools (ADR-0061). Listing != authorization.
         allowed = _agent_allowed_names(agent)
-        server_names = _mcp_server_names(agent)
-        if name not in allowed and not _mcp_tool_authorized_by_servers(name, server_names):
-            matched_allow = _flexible_mcp_name_match(name, allowed)
-            if not matched_allow:
-                return ToolPolicyDecision(
-                    verdict=ToolPolicyVerdict.BLOCK,
-                    tool_name=name,
-                    reason=f"Tool '{name}' is not in agent allowlist - fail closed",
-                    policy_source="agent_allowlist",
-                )
+        if name not in allowed and not _flexible_mcp_name_match(name, set(allowed.ordered)):
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.BLOCK,
+                tool_name=name,
+                reason=f"Tool '{name}' is not in a skill ticked for this agent - fail closed",
+                policy_source="agent_allowlist",
+            )
 
         # Matched capability subset when job-bound [REQ-TOOLPOL-003 / CARD-220 / CARD-225].
+        # The subset only narrows; required platform tools always stay (CARD-539).
         subset = _capability_tool_names(matched_capability_ids)
-        if subset is not None and not _name_in_matched_subset(name, subset):
+        if subset is not None and not _name_in_matched_subset(name, subset) and name not in REQUIRED_PLATFORM_TOOLS:
             return ToolPolicyDecision(
                 verdict=ToolPolicyVerdict.BLOCK,
                 tool_name=name,
@@ -446,6 +397,15 @@ class ToolPolicyGate:
                 policy_source="settings.require_confirm_tools"
                 if name in self._policy["require_confirm_tools"]
                 else "default_high_risk",
+            )
+
+        # Declared risk from the tool registration (CARD-539 D11); operator safe_tools overrides.
+        if str(tool_risk or "").strip().lower() in RISKS_NEEDING_CONFIRM and name not in self._policy["safe_tools"]:
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.REQUIRE_CONFIRM,
+                tool_name=name,
+                reason=f"Tool '{name}' is declared {tool_risk}; confirm each call",
+                policy_source="declared_risk",
             )
 
         if name in safe or name not in require:

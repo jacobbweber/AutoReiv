@@ -101,7 +101,7 @@ def _profile(**kwargs) -> AgentProfile:
         name="General Assistant",
         description="Daily assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=["task_tracker", "cli_exec"],
+        allowed_skill=["tool:task_tracker", "tool:cli_exec"],
     )
     defaults.update(kwargs)
     return AgentProfile(**defaults)

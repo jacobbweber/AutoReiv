@@ -426,12 +426,12 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
 
 def _seed_tools_removed(profile: Any, seed: dict[str, Any]) -> bool:
     """True when the profile lacks a tool the shipped pack grants (operator removed it)."""
-    from src.application.agent_packs.schema import tools_for_platform_skills
+    from src.application.agent_packs.allowed_tools import platform_seed_tools
     from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES
 
     pack_tools = list(seed.get("pack_tool_names") or [])
     seed_tools = pack_tools + [
-        t for t in tools_for_platform_skills(list(seed.get("allowed_skill") or [])) if t not in pack_tools
+        t for t in platform_seed_tools(seed.get("allowed_skill") or []) if t not in pack_tools
     ]
     live = set(getattr(profile, "allowed_tool_names", None) or [])
     return any(t not in live for t in seed_tools if t not in RETIRED_TOOL_NAMES)
@@ -625,7 +625,7 @@ def promote_one_platform_pack(
     ``force_reset=None`` follows the global keep-customizations setting (CARD-449).
     ``True`` forces the platform version for this pack (Reset to platform defaults, CARD-450).
     """
-    from src.application.agent_packs.schema import tools_for_platform_skills
+    from src.application.agent_packs.allowed_tools import platform_seed_tools
     from src.application.agent_packs.service import AgentPackService
     from src.domain.kernel.models import AgentOrigin
     from src.infrastructure.skills.platform_packs import (
@@ -670,7 +670,7 @@ def promote_one_platform_pack(
     new_prompt = pack_data.get("system_prompt") or ""
     new_allowed_skill = list(pack_data.get("allowed_skill") or [])
     new_pack_tools = list(pack_data.get("pack_tool_names") or [])
-    platform_tools = tools_for_platform_skills(new_allowed_skill)
+    platform_tools = platform_seed_tools(new_allowed_skill)
     merged_tools = list(new_pack_tools) + [t for t in platform_tools if t not in new_pack_tools]
     seed_hash = compute_platform_seed_hash(pack_data, src)
     seed_version = str(pack_data.get("version") or pack_data.get("seed_version") or "1")

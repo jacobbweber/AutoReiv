@@ -68,17 +68,13 @@ export function allowlistForSave(allowed, { storageEnabled = false } = {}) {
 
 /**
  * Pill on/off after a reload. Same adjustments Agent Studio already applied
- * when painting checkboxes: storage_enabled implies sqlite-storage;
- * allow_wiki_access false removes wiki.
+ * when painting checkboxes: storage_enabled implies sqlite-storage.
  */
 export function pillsFromPersistedAgent(agent) {
   const profile = agent || {};
   let allowed = normalizeAllowedSkills(profile.allowed_skill);
   if (profile.storage_enabled && !allowed.includes('sqlite-storage')) {
     allowed = [...allowed, 'sqlite-storage'];
-  }
-  if (profile.allow_wiki_access === false) {
-    allowed = allowed.filter((id) => id !== 'wiki');
   }
   return allowed;
 }
