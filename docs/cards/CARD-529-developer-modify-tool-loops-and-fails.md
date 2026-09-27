@@ -1,10 +1,11 @@
 ---
 id: CARD-529
-title: "A Developer 'modify this tool' request loops and fails: it cannot read the tool's code, is offered tools it may not call, and the reply hides why"
+title: "Developer cannot read an existing custom tool's code, and a stopped phase hides why (partly superseded by CARD-539)"
 status: Ready
 created: 2026-09-26
 branch: qa
 related:
+  - CARD-539
   - CARD-520
   - CARD-422
   - CARD-523
@@ -17,6 +18,8 @@ labels:
 ---
 
 # [CARD-529] Developer modify-tool requests fail in Formulate
+
+> **Partly superseded (2026-09-26)** by [CARD-539](CARD-539-capability-scoping-one-allowed-tools-function.md) / [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md): change items 2 (tools offered outside the allowlist) and 4 (keyword-family catalog routing) moved there. This card keeps items 1 and 3, which are separate concerns (Developer tooling and honest stop reasons). Build after CARD-539.
 
 > **Status**: Ready (found in CARD-520 live test round 1, step 4, 2026-09-26 ~1:52 PM ET, serve `83b93ef5`). Does not block CARD-520: Ask Developer opened the chat, sent at once and marked the card, which is CARD-520's contract. P2 because every Observability tool escalation and Tools Studio "modify" uses this path.
 > **Related**: CARD-520 (Ask Developer from Observability), CARD-422 (Tools Studio Talk), CARD-523 (tool-argument robustness and honest failures), CARD-527 (built-in tools)
@@ -31,11 +34,11 @@ labels:
 
 ## Change (decide at refinement)
 
-1. Give the Developer a read-only `read_native_tool(name)` (code, parameters, grants), or have Talk put the current code in the modify prompt; for a tool that does not exist, Talk answers "no custom tool called X" at once.
-2. Research or Formulate must only offer capabilities the phase agent may call (drop `repo_file_read` for `developer`, or grant it read-only).
+1. Give the Developer a read-only `read_native_tool(name)` (code, parameters, which skills bind it), or have Talk put the current code in the modify prompt; for a tool that does not exist, Talk answers "no custom tool called X" at once. Per ADR-0061 the tool is bound to Developer's `native-tool-engineering` skill with a runbook line, not granted on its own.
+2. *(Moved to CARD-539: no phase is offered a tool outside the agent's allowed set.)*
 3. When a phase stops for a repetitive tool cycle or a policy block, the chat reply says that in plain words (for example "Stopped: the Developer kept calling plan_native_folder with the same folder").
-4. Consider not routing a Tools Studio intent through catalog research on keyword families ("inventory" → wiki).
+4. *(Moved to CARD-539: catalog matching is scoped to the agent's own ticked skills.)*
 
 ## Done when
 
-A modify request for an existing custom tool reads its code and proposes a change; a modify request for a missing tool says it does not exist; no phase is offered a tool outside its allowlist; a cycle stop shows its reason in the chat. Replay: seed `scratch\c520_seed_serve.py`, Ask Developer on the card.
+A modify request for an existing custom tool reads its code and proposes a change; a modify request for a missing tool says it does not exist; a cycle or policy stop shows its reason in the chat. Replay: seed `scratch\c520_seed_serve.py`, Ask Developer on the card, or a `scripts/live_qa.py` journey.
