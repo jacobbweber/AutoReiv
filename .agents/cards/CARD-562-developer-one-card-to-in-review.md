@@ -11,7 +11,7 @@ proof:
   checks: [tests/unit/skills/test_card_tools.py, tests/unit/skills/test_git_tools.py, tests/unit/agent_packs, cards-folder guard, ADR-0061 binding guard]
 branch: feat/card-562-developer-one-card-to-in-review
 absorbs: [CARD-558, CARD-540, CARD-541, CARD-557 (scratch-file half)]
-log: {minutes: 230, qa_runs: 5, findings: 7}
+log: {minutes: 300, qa_runs: 6, findings: 9}
 created: 2026-09-27
 ---
 
@@ -89,6 +89,8 @@ to In Review. Push and merge are never done by Developer.
 - Commit 1 = folder move only (single `git mv`, 549 cards) + references + `paths.py` detection + guard test. Old `docs/cards` / `.github/cards` folders are still read when a project already uses them (no migration code).
 - D5 deferred (Jacob, 2026-09-28): the self-extension skills (mcp-engineering, native-tool-engineering, capability-authoring, proposals, build-agent-pack) stay ticked on Developer until slice 2, because "Ask Developer" and Tools Studio hand-offs rely on them.
 - Tool cap raised 8 -> 15 (Jacob, 2026-09-28): linter `MAX_TOOLS_PER_SKILL` and kernel `MAX_ACTIVE_TOOLS_PER_TURN` move together (guard test keeps them equal); ADR-0054 amended as a judgment cap, not a measured one. capability-authoring (10 tools) now fits.
+- Round 4 (Jacob, 2026-09-28): tool-building skills (mcp-engineering, native-tool-engineering, capability-authoring, proposals, build-agent-pack) unticked from Developer in the repo pack and live (migration `developer_tool_building_parked_card562`, backup `migrations/card-562-developer-tool-building.json`); debug no longer binds execute_code/cli_exec. Ask Developer / Tools Studio Talk and Submit now return 409 "Building tools with Developer is paused until M25 slice 2..." (no crash; the UI shows it as a toast). **Slice 2:** restore tool building (a separate builder agent or re-tick), and un-skip the parked tests marked "CARD-562: tool building parked".
+- git_commit refuses main/master/qa and refuses when nothing is staged. Guard test: Developer's tools never include a shell or code runner.
 - Round 3: CARD-540 done here (allow_wiki_access removed; old data still loads). The rest of CARD-541 (~170 `pack_tool_names` references in 61 files) stays a finding.
 - Chat drawer: a stale session load for the previous agent (AutoReiv, no chats) finished after the switch to Developer and created "Developer Chat", hiding the API-made chat. `loadSessions` now ignores a load whose agent is no longer selected (vitest `chat_stale_session_load_562`).
 - Model: Developer's override was `qwen3-coder-next` on Ollama/Nimo, which Nimo does not have (404). Set to `qwen3.6:35b-a3b-65k` (loaded on Nimo, structured tool calls OK). `qwen2.5-coder:7b` returns tool calls as text, so it cannot drive tools. Spark vLLM `qwen3-coder-next` crash-loops (quantization flag mismatch), reported, not changed.
@@ -105,6 +107,7 @@ to In Review. Push and merge are never done by Developer.
 |---|---|---|---|
 | card-562-developer-one-card-to-in-review | desktop | FAIL (harness) | Round 1-2: step 1 pass (Developer has the 11 SDLC skills, no repo_file_* tools); fixture selected as active project via API (the calc chip shows). Step 2 fails in the harness: the chat drawer does not list the API-created Developer chat (same as the CARD-454 finding), so the Developer work and audit steps never ran. Stopped after 2 rounds. |
 | card-562-developer-one-card-to-in-review (round 3, Nimo qwen3.6:35b-a3b-65k) | desktop | FAIL (agent behaviour) | Steps 1-2 pass (drawer fix works). Step 3: in about 2 min Developer fixed calc.js, node --test passes, card In Review with notes, one commit (cebe239) - but on `main` with no card branch, and it used `cli_exec`/`execute_code` instead of git_create_branch / run_project_checks / patch_project_file (15 approvals). Steps 4-5 not reached. Cause: the self-extension skills kept on Developer grant cli_exec/execute_code, which bypass the guarded SDLC tools. |
+| card-562 round 4 (Nimo qwen3.6:35b-a3b-65k, tool building parked) | desktop | FAIL (deadlock), stopped at time-box | Steps 1-2 pass. Step 3: Developer used only guarded tools (no cli_exec/execute_code), and the new git_commit guard refused `main` as designed. It then deadlocked: card-intake edited the card on `main`, `git_create_branch` refuses a dirty tree, and `git_commit` refuses `main`. It also could not read calc.js (tried the unregistered `read_file`, called `read_card` with "calc.js") although read_project_file is allowed - the 15-per-turn clamp over 26 allowed tools may drop it. Latency: model resident (keep_alive), first call about 5 s, warm calls 2-11 s, one 4m39s outlier; the live first turn earlier took 147 s. |
 | preflight --fast --base qa | - | GREEN | ruff, eslint, pytest guard/changed/mapped, vitest 955 |
 
 ## Release note
