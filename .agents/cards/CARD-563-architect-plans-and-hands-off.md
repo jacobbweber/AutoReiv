@@ -5,7 +5,7 @@ type: feature
 status: Ready
 priority: P1
 milestone: M25
-needs_decision: "D1 approve each hand-off; D2 Architect waits in its chat or Developer runs in its own chat; D3 Toolsmith separate (see Plan and decisions)"
+needs_decision: none
 proof:
   journeys: [card-563-architect-plans-and-hands-off]
   checks: [tests/unit/skills/test_card563_hand_off_card.py, tests/unit/skills/test_card563_architect_card_powers.py, tests/unit/agent_packs/test_card563_architect_pack.py]
@@ -86,6 +86,10 @@ Architect never edits code, runs checks or commits, and never sets Done or Retur
 | D1 | Does every hand-off need Jacob's approval? | A: yes, `hand_off_card` is an approval prompt each time. B: no, Jacob's "hand it to Developer" is enough. | A for now: one click, and Developer's own edits already ask. Slice 4 (approval level) can relax it per project. |
 | D2 | Where does Developer's work run and show? | A: Architect waits; Developer runs as a nested hand-off and Architect's chat shows the outcome, with the Developer conversation openable. B: Developer runs in its own background job; Architect's chat gets a notice when done. | A: reuses the existing handoff and approval path, smallest to build; B can follow if long cards block the chat. |
 | D3 | Tool building (Ask Developer, Tools Studio): here, or a separate Toolsmith agent? | A: restore on Developer in this card. B: separate follow-up card with a Toolsmith agent after slice 3. C: leave parked. | B: keeps this card small and Developer's toolset clean (design D5: revisit after slice 3). Not in this card. |
+
+**Decided by Jacob 2026-09-28 ("build"): D1 A, D2 A, D3 B.** Every `hand_off_card` is one approval click; Architect's
+chat waits while Developer runs inside the hand-off and the Developer conversation can be opened; tool building is a
+separate card after slice 3 (logged in `docs/findings.md`).
 
 Build notes: reuse `HandoffEngine` (child max turns via `bound_child_max_turns`), `selected_or_refuse`, the CARD-562
 green-check record and evidence reader; the argument-mismatch error from CARD-562 covers new tools automatically.
