@@ -2,7 +2,7 @@
 id: CARD-563
 title: "Architect plans cards with Jacob and hands a Ready card to Developer"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-563-architect-plans-and-hands-off]
   checks: [tests/unit/skills/test_card563_hand_off_card.py, tests/unit/skills/test_card563_architect_card_powers.py, tests/unit/agent_packs/test_card563_architect_pack.py]
 branch: feat/card-563-architect-plans-and-hands-off
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 0, qa_runs: 5, findings: 10}
 created: 2026-09-28
+completed: 2026-09-28
 ---
 
 # CARD-563 Architect plans cards with Jacob and hands a Ready card to Developer
