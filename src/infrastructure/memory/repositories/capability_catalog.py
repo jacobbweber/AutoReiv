@@ -59,15 +59,7 @@ class CapabilityCatalogRepository:
             updated_at=str(row["updated_at"]),
         )
 
-    def upsert_entry(self, entry: CapabilityIndexEntry) -> CapabilityIndexEntry:
-        now = _now()
-        payload = entry.model_copy(update={"updated_at": now})
-        if not payload.created_at:
-            payload = payload.model_copy(update={"created_at": now})
-        conn = self._get_connection()
-        try:
-            conn.execute(
-                """
+    _UPSERT_SQL = """
                 INSERT INTO capability_index (
                     id, kind, name, summary, keywords_json, roles_json,
                     trust_tier, risk_level, requires_hitl, source, metadata_json,
@@ -85,25 +77,47 @@ class CapabilityCatalogRepository:
                     source=excluded.source,
                     metadata_json=excluded.metadata_json,
                     updated_at=excluded.updated_at
-                """,
-                (
-                    payload.id,
-                    payload.kind.value if hasattr(payload.kind, "value") else str(payload.kind),
-                    payload.name,
-                    payload.summary,
-                    json.dumps(list(payload.keywords)),
-                    json.dumps(list(payload.roles)),
-                    payload.trust_tier.value if hasattr(payload.trust_tier, "value") else str(payload.trust_tier),
-                    payload.risk_level.value if hasattr(payload.risk_level, "value") else str(payload.risk_level),
-                    1 if payload.requires_hitl else 0,
-                    payload.source,
-                    json.dumps(dict(payload.metadata or {})),
-                    payload.created_at or now,
-                    payload.updated_at,
-                ),
-            )
+                """
+
+    @staticmethod
+    def _stamped(entry: CapabilityIndexEntry, now: str) -> CapabilityIndexEntry:
+        payload = entry.model_copy(update={"updated_at": now})
+        if not payload.created_at:
+            payload = payload.model_copy(update={"created_at": now})
+        return payload
+
+    @staticmethod
+    def _params(payload: CapabilityIndexEntry, now: str) -> tuple:
+        return (
+            payload.id,
+            payload.kind.value if hasattr(payload.kind, "value") else str(payload.kind),
+            payload.name,
+            payload.summary,
+            json.dumps(list(payload.keywords)),
+            json.dumps(list(payload.roles)),
+            payload.trust_tier.value if hasattr(payload.trust_tier, "value") else str(payload.trust_tier),
+            payload.risk_level.value if hasattr(payload.risk_level, "value") else str(payload.risk_level),
+            1 if payload.requires_hitl else 0,
+            payload.source,
+            json.dumps(dict(payload.metadata or {})),
+            payload.created_at or now,
+            payload.updated_at,
+        )
+
+    def upsert_entry(self, entry: CapabilityIndexEntry) -> CapabilityIndexEntry:
+        return self.upsert_entries([entry])[0]
+
+    def upsert_entries(self, entries: Sequence[CapabilityIndexEntry]) -> List[CapabilityIndexEntry]:
+        """Upsert many entries on one connection with one commit (startup seeding) [CARD-560]."""
+        now = _now()
+        payloads = [self._stamped(e, now) for e in entries]
+        if not payloads:
+            return []
+        conn = self._get_connection()
+        try:
+            conn.executemany(self._UPSERT_SQL, [self._params(p, now) for p in payloads])
             conn.commit()
-            return payload
+            return payloads
         finally:
             self._close_if_needed(conn)
 
