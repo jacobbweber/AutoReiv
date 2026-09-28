@@ -9,6 +9,7 @@ proof:
     - tests/unit/agent_packs/test_card541_no_pack_tool_lists.py
 log:
   - 2026-09-28 remainder done on fix/card-541-drop-pack-tool-lists; set In Review
+  - 2026-09-28 fixed oc_s6 test isolation under xdist (AUTOREIV_DB_PATH leak)
 related:
   - CARD-539
 labels:
@@ -53,7 +54,7 @@ CARD-562 (merged to qa 2026-09-28) removed `pack_tool_names` from the Developer 
 ## Findings
 - Deliberately left, since it is bigger than this card: the runtime `AgentProfile.allowed_tool_names` / `pack_tool_names`, the DB columns, the Agent Studio API/PUT fields, the settings customization fields, capability_migration (it uses old allowed_tool_names to propose skill ticks), the frontend platform_defaults.js labels and the e2e PUT bodies. Removing those is a DB/API migration; logged in docs/findings.md.
 - The live AppData `packs/direct/pack.json` still has `"pack_tool_names": []`, because its seed hash already matched and no refresh ran. It is harmless: empty, and import ignores it.
-- Pre-existing: `test_oc_s6_local_gate_and_docker_hard_fail` fails under `-n auto` on qa too (it passes serially). It showed up in preflight only because the file was touched for oc_s2.
+- Fixed (was failing on qa too): `test_oc_s6_local_gate_and_docker_hard_fail` failed under `-n auto` and when run alone. Cause: the first `import src.web.app` runs a module-level create_app() that persists a local wiki_path into the DB named by AUTOREIV_DB_PATH; the test's docker phase moved AUTOREIV_DATA_DIR but left AUTOREIV_DB_PATH on that DB, so the resolver peeked the local wiki and create_app did not hard-fail. Serially an earlier test did the import first, which hid it. Fix: the docker phase now points AUTOREIV_DB_PATH at its own DB (test isolation only, no product change).
 
 ## Test steps (Jacob)
 1. Open Agent Studio for AutoReiv and Tutor: the skills and tools show as before.

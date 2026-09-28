@@ -342,6 +342,10 @@ def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
     monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "docker")
     db2 = docker_ud / "database" / "docker_fail.db"
+    # AUTOREIV_DB_PATH must follow the docker root too: the resolver peeks wiki_path from it, and the
+    # first `import src.web.app` (module-level create_app) persists a local wiki_path into the DB it
+    # names. Under xdist that import can happen in this test, so the peek found the local wiki.
+    monkeypatch.setenv("AUTOREIV_DB_PATH", str(db2))
     db2.parent.mkdir(parents=True, exist_ok=True)
     store2 = SQLiteStateStore(db_path=str(db2))
     store2.initialize_db()
