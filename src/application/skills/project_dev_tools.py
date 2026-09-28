@@ -32,10 +32,14 @@ class ProjectDevTools:
         root_resolver: Callable[[Optional[str]], Path],
         card_tools: Any = None,
         selected_info: Optional[Callable[[], Dict[str, Any]]] = None,
+        check_record: Any = None,
     ):
+        from src.application.sdlc.check_record import default_record
+
         self._root_resolver = root_resolver
         self._cards = card_tools
         self._selected_info = selected_info
+        self._check_record = check_record or default_record()
 
     def _root(self, project_root: Optional[str] = None) -> Path:
         return Path(self._root_resolver(project_root)).resolve()
@@ -92,12 +96,30 @@ class ProjectDevTools:
             except subprocess.TimeoutExpired:
                 results.append({"check": name, "command": cmd, "exit_code": None, "passed": False,
                                 "output_tail": f"Timed out after {timeout}s."})
-        return {
-            "success": True,
-            "project_root": str(root),
-            "passed": all(r["passed"] for r in results),
-            "results": results,
-        }
+        passed = all(r["passed"] for r in results)
+        out: Dict[str, Any] = {"success": True, "project_root": str(root), "passed": passed, "results": results}
+        if passed:
+            out.update(self._record_green(root, names))
+        return out
+
+    def _record_green(self, root: Path, names: List[str]) -> Dict[str, Any]:
+        """CARD-562: remember a green run for HEAD, only when the code it ran on is committed."""
+        from src.application.sdlc.check_record import NO_GIT_HEAD, git_dirty_paths, git_head
+        from src.application.skills.card_tools import CARD_DIRS
+
+        head = git_head(root)
+        dirty = [] if head == NO_GIT_HEAD else [
+            p for p in git_dirty_paths(root) if not any(p.startswith(d + "/") for d in CARD_DIRS)
+        ]
+        if dirty:
+            return {
+                "green_recorded": False,
+                "note": "Green, but not recorded for In Review: uncommitted changes outside the card folder ("
+                + ", ".join(dirty[:5])
+                + "). Commit them with git_commit, then run run_project_checks again.",
+            }
+        self._check_record.record(root, head, names)
+        return {"green_recorded": True, "head": head[:12]}
 
     # --- search_project -----------------------------------------------------
     def search_project(

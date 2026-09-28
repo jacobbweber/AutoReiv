@@ -34,7 +34,7 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 
 ## Finish (clean tree at In Review)
 1. `run_project_checks` green before In Review.
-2. After the card's evidence and `In Review` status are written, commit the card file too (a small `docs(card): CARD-<n> evidence, In Review` commit, or include it in the final commit).
+2. `set_card_status` In Review commits the card file itself (`docs(card): CARD-<n> In Review`); it refuses while other changes are uncommitted.
 3. `git_status` shows a clean tree before you stop.
 
 ## Rules

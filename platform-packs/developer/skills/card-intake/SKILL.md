@@ -35,9 +35,8 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 1. Every acceptance criterion is met and the code change is committed on the card branch (skill git-workflow).
 2. `run_project_checks` (full, or fast if AGENTS.md has no full) returns `passed: true`. Never set In Review without a green run in this chat.
 3. Fill the card's `## Evidence` (or `## Results`) section with `write_card`: the check commands and their pass/fail, the commit id(s), the branch, and anything you could not do. Keep the status line unchanged when you rewrite the card.
-4. `set_card_status` to `In Review`.
-5. `git_commit` the card file (e.g. `docs(card): CARD-<n> evidence, In Review`) so the tree is clean at In Review. `git_status` must show nothing uncommitted.
-6. Stop there. Done, Returned and merging belong to Jacob or Architect.
+4. `set_card_status` to `In Review`. The tool enforces this: it refuses on the base branch, with uncommitted changes other than the card, or without a green run_project_checks for the current HEAD, and says what to do next. When it succeeds it commits the card file itself and returns the commit id.
+5. Stop there. Done, Returned and merging belong to Jacob or Architect.
 
 ## Rules
 - Never change or edit a card on the base branch: the card branch comes first.

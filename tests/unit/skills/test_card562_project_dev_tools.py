@@ -192,7 +192,9 @@ CARD = "---\nid: CARD-{n}\ntitle: t\nstatus: {s}\n---\n# CARD-{n} t\n"
 
 
 def test_developer_files_proposed_cards_and_moves_only_its_own_statuses(project: Path):
-    cards = CardTools(default_project_root=str(project))
+    from src.application.sdlc.check_record import GreenCheckRecord
+
+    cards = CardTools(default_project_root=str(project), check_record=GreenCheckRecord(project.parent / "rec.json"))
     token = _as("developer")
     try:
         assert "Proposed" in cards.write_card(CARD.format(n=5, s="Ready"), filename="CARD-5-t.md")["error"]
@@ -207,6 +209,8 @@ def test_developer_files_proposed_cards_and_moves_only_its_own_statuses(project:
     try:
         assert cards.set_card_status("CARD-5", "In Progress")["success"]
         assert "Keep status" in cards.write_card(CARD.format(n=5, s="Done"), filename="CARD-5-t.md")["error"]
+        assert "no green run_project_checks" in cards.set_card_status("CARD-5", "In Review")["error"]  # enforced
+        ProjectDevTools(root_resolver=lambda _=None: project, card_tools=cards, check_record=cards._check_record).run_project_checks("fast")
         assert cards.set_card_status("CARD-5", "In Review")["success"]
         assert cards.set_card_status("CARD-5", "Done")["success"] is False
     finally:

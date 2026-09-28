@@ -35,10 +35,14 @@ class CardTools:
         self,
         default_project_root: Optional[str] = None,
         root_resolver: Optional[Callable[[Optional[str]], Path]] = None,
+        check_record: Any = None,
     ):
+        from src.application.sdlc.check_record import default_record
+
         self._default_root = Path(default_project_root).resolve() if default_project_root else None
         self._root_resolver = root_resolver
         self._machine = CardStatusMachine()
+        self._check_record = check_record or default_record()
 
     def _root(self, project_root: Optional[str] = None) -> Path:
         if self._root_resolver is not None:
@@ -269,15 +273,73 @@ class CardTools:
                 "review_rounds": fm.review_rounds,
                 "max_review_rounds": fm.max_review_rounds,
             }
+        gated = actor == "developer" and target_n == "In Review"
+        if gated:
+            refusal = self._in_review_refusal(root, path)
+            if refusal:
+                return {"success": False, "error": refusal, "id": extract_card_id(path.name, content), "status": fm.status}
         if fm.status == "In Review" and target_n == "Returned":
             fm.return_reason = return_reason.strip()
             fm.review_rounds = fm.review_rounds + 1
         fm.status = target_n
         rendered = serialize_card_frontmatter(fm)
         path.write_text(rendered, encoding="utf-8")
+        committed: Dict[str, Any] = {}
+        if gated:
+            committed = self._commit_card(root, path, extract_card_id(path.name, content))
+            if not committed.get("success", True):
+                path.write_text(content, encoding="utf-8")  # leave the card as it was
+                return {"success": False, "error": committed["error"], "id": extract_card_id(path.name, content), "status": fm.status}
         summary = self._summarize_card(path)
         summary.update({"success": True, "project_root": str(root)})
+        summary.update({k: v for k, v in committed.items() if k != "success"})
         return summary
+
+    def _in_review_refusal(self, root: Path, path: Path) -> str:
+        """CARD-562: Developer's In Review is enforced here: card branch, clean tree, green checks for HEAD."""
+        from src.application.sdlc.check_record import NO_GIT_HEAD, git_branch, git_dirty_paths, git_head
+        from src.application.skills.git_tools import PROTECTED_COMMIT_BRANCHES
+
+        head = git_head(root)
+        if head != NO_GIT_HEAD:
+            branch = git_branch(root)
+            if branch in PROTECTED_COMMIT_BRANCHES or branch in ("", "HEAD"):
+                return (
+                    f"Not In Review from '{branch or 'a detached HEAD'}'. Create the card branch with git_create_branch, "
+                    "commit the work there with git_commit, run run_project_checks, then set In Review again."
+                )
+            card_rel = path.resolve().relative_to(root.resolve()).as_posix()
+            others = [p for p in git_dirty_paths(root) if p != card_rel]
+            if others:
+                return (
+                    "Not In Review: uncommitted changes besides this card: " + ", ".join(others[:8])
+                    + ". Commit them with git_commit (paths=[...]), run run_project_checks until passed, "
+                    "then set In Review again. The card file itself is committed for you."
+                )
+        rec = self._check_record.get(root)
+        if not rec or rec.get("head") != head:
+            where = f"HEAD {head[:12]}" if head != NO_GIT_HEAD else "this project"
+            return (
+                f"Not In Review: no green run_project_checks recorded for {where}. Run run_project_checks now "
+                "(with all code committed); when it returns passed=true, set In Review again."
+            )
+        return ""
+
+    def _commit_card(self, root: Path, path: Path, card_id: str) -> Dict[str, Any]:
+        """Commit only the card file with a conventional message; return the commit id for the evidence."""
+        from src.application.sdlc.check_record import NO_GIT_HEAD, git_head, run_git
+
+        if git_head(root) == NO_GIT_HEAD:
+            return {"success": True, "commit": None, "note": "Not a git repository: nothing committed."}
+        rel = path.resolve().relative_to(root.resolve()).as_posix()
+        message = f"docs(card): {card_id or path.stem} In Review"
+        added = run_git(root, ["add", "--", rel])
+        if added.returncode != 0:
+            return {"success": False, "error": f"git add failed for {rel}: {added.stderr.strip()}"}
+        done = run_git(root, ["commit", "-m", message, "--", rel])
+        if done.returncode != 0:
+            return {"success": False, "error": f"Committing the card failed: {(done.stderr or done.stdout).strip()}"}
+        return {"success": True, "commit": git_head(root)[:12], "commit_message": message}
 
     def read_spec(
         self,
@@ -453,7 +515,9 @@ class CardTools:
             name="set_card_status",
             description=(
                 "Set card status. Enforces Discuss|Ready|In Progress|In Review|Returned|Done. "
-                "Returned requires return_reason and increments review_rounds. HITL in ask mode."
+                "Returned requires return_reason and increments review_rounds. HITL in ask mode. "
+                "Developer In Review needs the card branch, all code committed and a green run_project_checks for "
+                "HEAD; the tool then commits the card file and returns the commit id."
             ),
             parameters={
                 "type": "object",

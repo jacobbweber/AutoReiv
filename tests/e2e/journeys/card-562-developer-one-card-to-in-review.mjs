@@ -82,6 +82,13 @@ async function allRows(request, base, sid) {
   return out;
 }
 
+// Tool calls in order; a trailing ! marks a refused/failed call (CARD-562 summary).
+function toolOrder(rows, from = 0) {
+  return rows.slice(from).filter((m) => role(m) === 'tool')
+    .map((m) => `${m.name || '?'}${/"success":\s*false|"error":\s*"/.test(String(m.content || '')) ? '!' : ''}`)
+    .join(' > ') || 'none';
+}
+
 async function askAndApprove(page, request, base, streams, text, done, timeoutMs) {
   const n = streams.count;
   await send(page, text);
@@ -167,6 +174,7 @@ export default {
       const dirty = git(root, 'status', '--porcelain', '--untracked-files=no');
       j.note(`approvals ${approvals}; branch ${branch}; commits on branch ${commits}; card ${status}; tests pass ${testsPass}; green check runs ${checksGreen}; remotes '${remotes}'; dirty '${dirty}'; tools used: ${[...new Set(tools)].join(', ')}`);
       j.note(`commit log: ${git(root, 'log', '--oneline', 'main..HEAD').replace(/\n/g, ' | ')}`);
+      j.note(`tool order: ${toolOrder(rows)}`);
       if (tools.some((n) => /cli_exec|execute_code/.test(n))) throw new Error('Developer used a shell/code runner');
       if (branch === 'main' || !branch) throw new Error(`work is not on a card branch (${branch})`);
       if (!/return a \+ b/.test(calc) || !testsPass) throw new Error('add() is not fixed / node --test fails');
@@ -182,11 +190,13 @@ export default {
       const before = new Set(cardFiles(root));
       const head = git(root, 'rev-parse', 'HEAD');
       const calcBefore = fs.readFileSync(path.join(root, 'calc.js'), 'utf8');
+      const rowsBefore = (await allRows(request, base, sid)).length;
       const approvals = await askAndApprove(page, request, base, streams,
         'Now do a quick audit of the active project (skill codebase-audit): file one card for the most important problem you find outside CARD-1. Do not change code.',
         async () => cardFiles(root).some((f) => !before.has(f)), 900000);
       const added = cardFiles(root).filter((f) => !before.has(f));
       const statuses = added.map((f) => statusOf(path.join(root, '.agents', 'cards', f)));
+      j.note(`tool order: ${toolOrder(await allRows(request, base, sid), rowsBefore)}`);
       j.note(`approvals ${approvals}; new cards ${added.join(', ') || 'none'}; statuses ${statuses.join(', ')}`);
       if (!added.length) throw new Error('no new card filed');
       if (statuses.some((s) => s !== 'Proposed')) throw new Error(`new card status ${statuses.join(', ')}, not Proposed`);
@@ -200,6 +210,7 @@ export default {
       const sel = await getJson(request, `${base}/api/projects/selected`);
       if (sel.selected && sel.selected.path) throw new Error('project still selected');
       const head = git(root, 'rev-parse', 'HEAD');
+      const rowsBefore = (await allRows(request, base, sid)).length;
       const refused = async () => {
         const rows = await allRows(request, base, sid);
         const tail = rows.slice(-12);
@@ -209,7 +220,7 @@ export default {
         'List the cards in the active project.', refused, 300000);
       const rows = await allRows(request, base, sid);
       const toolRefusal = rows.slice(-12).some((m) => role(m) === 'tool' && /No project is selected/.test(String(m.content || '')));
-      j.note(`tool refusal row ${toolRefusal}`);
+      j.note(`tool refusal row ${toolRefusal}; tool order: ${toolOrder(rows, rowsBefore)}`);
       if (!(await refused())) throw new Error('no refusal naming Projects Studio');
       if (git(root, 'rev-parse', 'HEAD') !== head) throw new Error('fixture changed with no project selected');
     }, { timeoutMs: 360000 });
