@@ -4,6 +4,7 @@ Jailed git tools with conventional commit gate [REQ-SDLC-060, REQ-SDLC-061].
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import subprocess
@@ -18,6 +19,20 @@ CONVENTIONAL = re.compile(
 )
 FORBIDDEN_TOKENS = ("--no-verify", "--amend", "--force", "git config", "-c user.", "--config")
 BRANCH_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+
+
+def _path_list(paths: Any) -> List[str]:
+    """CARD-566: models sometimes send paths as a JSON string ('["a.js"]') or "a.js, b.js"; never iterate a string."""
+    if isinstance(paths, str):
+        text = paths.strip()
+        if text.startswith("["):
+            try:
+                paths = json.loads(text)
+            except ValueError:
+                paths = text.strip("[]").split(",")
+        else:
+            paths = text.split(",")
+    return [str(p).strip().strip("\"'") for p in (paths or []) if str(p).strip().strip("\"'")]
 
 
 # CARD-562: git_commit never writes to the shared branches; card work lives on a card branch.
@@ -236,6 +251,7 @@ class GitTools:
                 "error": f"Refusing to commit on '{branch}'. Create the card branch first (git_create_branch), then commit there.",
                 "branch": branch,
             }
+        paths = _path_list(paths)
         if paths:
             for rel in paths:
                 try:
