@@ -87,7 +87,10 @@ const role = (m) => String((m && m.role) || '').toLowerCase();
 const toolNames = (a) => new Set((a.allowed_tools || []).map((t) => String(typeof t === 'string' ? t : (t && t.name) || '')));
 const statusOf = (file) => ((fs.readFileSync(file, 'utf8').match(/^status:\s*(.+)$/m) || [])[1] || '').trim();
 const cardsDir = (root) => path.join(root, '.agents', 'cards');
-const readmeDocumentsZero = (root) => /zero/i.test(fs.readFileSync(path.join(root, 'README.md'), 'utf8'));
+const readmeDocumentsZero = (root) => {
+  const text = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  return text !== README && /throw|error/i.test(text) && /zero|\b0\b/i.test(text);
+};
 
 function makeFixture(tag) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `autoreiv-card564-${tag}-`));
