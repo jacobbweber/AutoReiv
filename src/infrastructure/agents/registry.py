@@ -383,6 +383,14 @@ class BuiltinAgentRegistry:
             selected_info=projects_service.get_selected,
         ).register_tools(tool_registry)
         agent_registry.projects_service = projects_service
+        from src.application.skills.card_handoff_tools import CardHandoffTools
+
+        CardHandoffTools(  # CARD-563: Architect hands a Ready card to Developer
+            root_resolver=projects_service.selected_or_refuse,
+            card_tools=card_tools,
+            handoff_engine=handoff_engine,
+            agent_registry=agent_registry,
+        ).register_tools(tool_registry)
 
         # 12b. Agent Private Storage Tools [CARD-148, REQ-STORAGE-003]
         from src.application.skills.agent_storage_tools import AgentStorageTools

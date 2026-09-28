@@ -33,7 +33,7 @@ def _bootstrap(tmp_path):
 
 
 def test_platform_packs_parse_as_schema_1_1():
-    for pack_id in ("autoreiv", "direct", "developer", "tutor"):
+    for pack_id in ("autoreiv", "direct", "developer", "tutor", "architect"):
         manifest = load_platform_manifest(pack_id)
         assert manifest.schema_version == "1.1"
         assert manifest.id == pack_id
@@ -106,13 +106,13 @@ def test_builtins_are_only_hidden_agent_builder():
     assert is_platform_pack("direct")
     assert not is_platform_pack("forge")
     assert not is_platform_pack("conductor")
-    assert PLATFORM_PACK_IDS == {"autoreiv", "direct", "developer", "tutor"}
+    assert PLATFORM_PACK_IDS == {"autoreiv", "direct", "developer", "tutor", "architect"}
 
 
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     data_dir, registry, _tool_reg = _bootstrap(tmp_path)
     ids = {a.id for a in registry.list_agents()}
-    assert {"autoreiv", "direct", "developer", "tutor"} <= ids
+    assert {"autoreiv", "direct", "developer", "tutor", "architect"} <= ids
     assert "agent-builder" not in ids
     assert "assistant" not in ids
     assert "wiki" not in ids
@@ -167,8 +167,8 @@ def test_seed_platform_ids():
     """Platform seed ids are autoreiv and direct."""
     from src.infrastructure.skills import platform_packs as pp
 
-    assert pp.PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor")
-    assert pp.ALL_PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor")
+    assert pp.PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor", "architect")
+    assert pp.ALL_PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor", "architect")
 
     assert not hasattr(pp, "HOMELAB_PACK_IDS") or getattr(pp, "HOMELAB_PACK_IDS", ()) == ()
     # Repo platform-packs/ must not ship user-class homelab seeds

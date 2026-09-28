@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 CHILD_SESSION_MARKER = "_child_"
 _MIN_CHILD_TURNS = 10
 _MAX_CHILD_TURNS = 15
+# CARD-563: a card hand-off (hand_off_card) runs a whole card; slice-1 runs needed about 15 tool calls.
+_MAX_CARD_HANDOFF_TURNS = 40
+# Parent tools whose TOOL row a resumed child writes back to [REQ-HITL-036]; hand_off_card is CARD-563.
+PARENT_HANDOFF_TOOLS = ("handoff_to_agent", "hand_off_card")
 _PROVIDER_FAILURE_MARKERS = (
     "failed to connect",
     "candidate providers failed",
@@ -36,12 +40,17 @@ def looks_like_provider_failure(text: str) -> bool:
     return any(marker in blob for marker in _PROVIDER_FAILURE_MARKERS)
 
 
-def bound_child_max_turns(envelope_max_turns: int, profile_max_turns: int) -> int:
-    """Child turn budget: at least 10 (or the profile), never above 15."""
+def bound_child_max_turns(envelope_max_turns: int, profile_max_turns: int, cap: int = _MAX_CHILD_TURNS) -> int:
+    """Child turn budget: at least 10 (or the profile), never above the cap (15; 40 for a card hand-off)."""
     return min(
         max(int(envelope_max_turns or 0), int(profile_max_turns or 0), _MIN_CHILD_TURNS),
-        _MAX_CHILD_TURNS,
+        cap,
     )
+
+
+def child_session_id_for(envelope: Any) -> str:
+    """The child session id a handoff creates (so a caller can link to the child conversation) [CARD-563]."""
+    return f"{envelope.session_id}{CHILD_SESSION_MARKER}{envelope.correlation_id[:8]}"
 
 
 def infer_handoff_depth(session_id: str) -> int:
@@ -141,6 +150,8 @@ class HandoffIsolationEngine:
         self.kernel_factory = kernel_factory
         self.telemetry = telemetry
         self.job_orchestrator = job_orchestrator
+        # CARD-563: parent tool name -> fn(tool arguments, child_session_id) -> extra outcome text on completion.
+        self.parent_tool_outcomes: dict[str, Callable[[dict, str], str]] = {}
 
     async def execute_handoff(
         self,
@@ -302,13 +313,13 @@ class HandoffIsolationEngine:
         child_prompt = packet.render_user_message()
 
         # 4. Create Isolated Child Session ID from the live parent session
-        child_session_id = f"{envelope.session_id}{CHILD_SESSION_MARKER}{envelope.correlation_id[:8]}"
+        child_session_id = child_session_id_for(envelope)
         if self.state_store and hasattr(self.state_store, "create_session"):
             try:
                 self.state_store.create_session(
                     session_id=child_session_id,
                     agent_id=recipient_id,
-                    title=f"Handoff: {packet.goal[:30]}",
+                    title=str(payload.get("child_session_title") or f"Handoff: {packet.goal[:30]}"),
                 )
             except Exception:
                 pass
@@ -329,7 +340,9 @@ class HandoffIsolationEngine:
         # 6. Bound Turns - at least 10 (or the specialist profile), cap 15.
         bounded_profile = target_profile.model_copy()
         bounded_profile.max_turns = bound_child_max_turns(
-            envelope.max_turns, getattr(target_profile, "max_turns", DEFAULT_AGENT_MAX_TURNS) or DEFAULT_AGENT_MAX_TURNS
+            envelope.max_turns,
+            getattr(target_profile, "max_turns", DEFAULT_AGENT_MAX_TURNS) or DEFAULT_AGENT_MAX_TURNS,
+            cap=_MAX_CARD_HANDOFF_TURNS if payload.get("card_handoff") else _MAX_CHILD_TURNS,
         )
 
         if on_event:
@@ -593,8 +606,29 @@ class HandoffIsolationEngine:
             f"Status: completed\n"
             f"Conclusion:\n{summary}"
         )
+        _tcid, parent_tool, parent_args = self._parent_handoff_call(parent_id)
+        hook = self.parent_tool_outcomes.get(parent_tool or "")
+        if hook is not None:
+            try:  # CARD-563: the outcome is read from git and the card, not the child's claim
+                content = hook(parent_args, child_session_id) + "\n\nDeveloper's own summary:\n" + summary
+            except Exception:
+                logger.exception("Parent outcome hook failed for %s", parent_tool)
         self._write_parent_handoff_tool(parent_id=parent_id, agent_id=profile.id, content=content)
         return {"status": "completed", "summary": summary}
+
+    def _parent_handoff_call(self, parent_id: Optional[str]) -> tuple[Optional[str], Optional[str], dict]:
+        """(tool_call_id, tool name, arguments) of the parent's latest handoff tool call."""
+        if not parent_id or not self.state_store or not hasattr(self.state_store, "get_messages"):
+            return None, None, {}
+        try:
+            for pm in reversed(self.state_store.get_messages(parent_id)):
+                if pm.role == Role.ASSISTANT and pm.tool_calls:
+                    for tc in pm.tool_calls:
+                        if tc.name in PARENT_HANDOFF_TOOLS:
+                            return tc.id, tc.name, tc.arguments if isinstance(tc.arguments, dict) else {}
+        except Exception:
+            return None, None, {}
+        return None, None, {}
 
     def _write_parent_handoff_tool(
         self,
@@ -605,20 +639,8 @@ class HandoffIsolationEngine:
     ) -> None:
         if not parent_id or not self.state_store:
             return
-        resolved_tcid = tool_call_id
-        if not resolved_tcid and hasattr(self.state_store, "get_messages"):
-            try:
-                parent_msgs = self.state_store.get_messages(parent_id)
-                for pm in reversed(parent_msgs):
-                    if pm.role == Role.ASSISTANT and pm.tool_calls:
-                        for tc in pm.tool_calls:
-                            if tc.name == "handoff_to_agent":
-                                resolved_tcid = tc.id
-                                break
-                    if resolved_tcid:
-                        break
-            except Exception:
-                resolved_tcid = None
+        found_id, found_name, _args = self._parent_handoff_call(parent_id)
+        resolved_tcid = tool_call_id or found_id
 
         try:
             self.state_store.save_message(
@@ -627,7 +649,7 @@ class HandoffIsolationEngine:
                 message=ChatMessage(
                     role=Role.TOOL,
                     content=content,
-                    name="handoff_to_agent",
+                    name=found_name or "handoff_to_agent",
                     tool_call_id=resolved_tcid,
                 ),
             )

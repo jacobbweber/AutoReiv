@@ -5,7 +5,7 @@ from pathlib import Path
 from src.application.agent_packs.schema import AgentPackManifest
 from src.infrastructure.data.resolver import repo_root
 
-PLATFORM_PACK_IDS = ("autoreiv", "developer", "tutor", "direct")
+PLATFORM_PACK_IDS = ("autoreiv", "developer", "tutor", "direct", "architect")
 
 
 def platform_dir() -> Path:

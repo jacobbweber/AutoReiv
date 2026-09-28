@@ -22,7 +22,7 @@ CARD_STATUSES = (
 LEGAL_TRANSITIONS = {
     "Discuss": frozenset({"Discuss", "Ready"}),
     "Proposed": frozenset({"Ready"}),
-    "Ready": frozenset({"In Progress"}),
+    "Ready": frozenset({"In Progress", "Proposed"}),  # Ready -> Proposed: CARD-563 (not ready after all)
     "In Progress": frozenset({"In Review"}),
     "In Review": frozenset({"Done", "Returned"}),
     "Returned": frozenset({"In Progress"}),

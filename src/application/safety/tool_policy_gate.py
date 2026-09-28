@@ -44,6 +44,7 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "repo_file_rollback",
         "repo_create_worktree",
         "repo_remove_worktree",
+        "hand_off_card",  # CARD-563
     }
 )
 
@@ -70,6 +71,9 @@ _DEFAULT_SAFE: frozenset[str] = frozenset(
         "read_project_file",
     }
 )
+
+# CARD-563 D1: these ask Jacob every time, even when the chat is in run-through mode.
+ALWAYS_CONFIRM_TOOLS: frozenset[str] = frozenset({"hand_off_card"})
 
 
 class ToolPolicyVerdict(str, Enum):
@@ -403,7 +407,7 @@ class ToolPolicyGate:
         require = set(_DEFAULT_REQUIRE_CONFIRM) | self._policy["require_confirm_tools"]
         safe = set(_DEFAULT_SAFE) | self._policy["safe_tools"]
 
-        if name in require and name not in self._policy["safe_tools"]:
+        if name in require and (name not in self._policy["safe_tools"] or name in ALWAYS_CONFIRM_TOOLS):
             return ToolPolicyDecision(
                 verdict=ToolPolicyVerdict.REQUIRE_CONFIRM,
                 tool_name=name,
@@ -531,7 +535,7 @@ class ToolPolicyGate:
 
         # REQUIRE_CONFIRM → existing HITL park/resume [REQ-TOOLPOL-003/005].
         mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
-        if mode == "run":
+        if mode == "run" and tool_call.name not in ALWAYS_CONFIRM_TOOLS:
             # Operator chose run-through; still log REQUIRE_CONFIRM but allow execute.
             return None
         if hitl_engine is None:

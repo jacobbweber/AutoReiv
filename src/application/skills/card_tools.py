@@ -25,6 +25,10 @@ SPEC_FILENAMES = ("requirements.md", "design.md", "tasks.md")
 DEVELOPER_TRANSITIONS = frozenset(
     {("Ready", "In Progress"), ("In Progress", "In Review"), ("Returned", "In Progress")}
 )
+# CARD-563: Architect plans cards; review (Done / Returned) is slice 3.
+ARCHITECT_TRANSITIONS = frozenset({("Discuss", "Ready"), ("Proposed", "Ready"), ("Ready", "Proposed")})
+ARCHITECT_NEW_STATUSES = ("Proposed", "Ready")
+ARCHITECT_LOCKED_STATUSES = ("In Progress", "In Review")
 # CARD-562: preferred card folder first; the other two are fallbacks for older projects.
 CARD_DIRS = (".agents/cards", "docs/cards", ".github/cards")
 _CARD_NUM = re.compile(r"^CARD-(\d+)", re.IGNORECASE)
@@ -46,7 +50,7 @@ def cards_folder_refusal(root: Path, target: Path) -> str:
 
 
 def _slug(title: str) -> str:
-    title = re.sub(r"^\s*\[?[A-Z]+(?:-[A-Z]+)*-\d+\]?\s*", "", title or "", flags=re.IGNORECASE)
+    title = re.sub(r"^\s*\[?[A-Z]+(?:-[A-Z]+)*-(?:\d+|<n>|n)\]?:?\s*", "", title or "", flags=re.IGNORECASE)
     slug = "".join(ch if ch.isalnum() else "-" for ch in title.lower())
     return re.sub(r"-+", "-", slug).strip("-")[:60].strip("-") or "card"
 
@@ -112,7 +116,12 @@ def stamp_new_card(content: str, card_id: str, status: Optional[str] = None) -> 
                 head + f"\nstatus: {status}"
             )
         text = head + rest
-    return re.sub(r"(?m)^(#\s+)(?:\[?[A-Z]+(?:-[A-Z]+)*-\d+\]?\s*)?", lambda m: f"{m.group(1)}{card_id} ", text, count=1)
+    return re.sub(
+        r"(?m)^(#\s+)(?:\[?[A-Z]+(?:-[A-Z]+)*-(?:\d+|<n>|N)\]?:?\s*)?",  # CARD-563: also the CARD-<n> placeholder
+        lambda m: f"{m.group(1)}{card_id} ",
+        text,
+        count=1,
+    )
 
 
 class CardTools:
@@ -298,12 +307,13 @@ class CardTools:
             developer = self._actor() == "developer"
             wanted = (card_id or extract_card_id(Path(filename).name if filename else "", content) or "").upper()
             assigned = wanted if (wanted and not developer) else self._next_card_id(root)
-            if developer or extract_card_id("", content) != assigned:
-                content = stamp_new_card(content, assigned, "Proposed" if developer else None)
+            forced = "Proposed" if developer else self._architect_new_status(content)
+            if forced or extract_card_id("", content) != assigned:
+                content = stamp_new_card(content, assigned, forced or None)
             keep_name = filename and not developer and extract_card_id(Path(filename).name) == assigned
             name = Path(filename).name if keep_name else f"{assigned}-{_slug(extract_card_title(content, assigned))}.md"
             path = jail_join(cards_dir, name)
-        refused = self._developer_write_refusal(path, content)
+        refused = self._developer_write_refusal(path, content) or self._architect_write_refusal(path, content)
         if refused:
             return {"success": False, "error": refused}
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -319,6 +329,37 @@ class CardTools:
         from src.application.kernel.tool_registry import get_tool_context
 
         return str(get_tool_context().get("agent_id") or "").lower()
+
+    def _architect_new_status(self, content: str) -> str:
+        """CARD-563: a new Architect card is Proposed or Ready; no status means Proposed."""
+        if self._actor() != "architect":
+            return ""
+        from src.domain.sdlc.models import normalize_status
+
+        explicit = re.search(r"(?im)^\s*(?:status\s*:|>\s*\*\*status\*\*)", content)
+        status = normalize_status(parse_card_frontmatter(content).status or "") if explicit else ""
+        return status if status in ARCHITECT_NEW_STATUSES else ("Proposed" if not status else "")
+
+    def _architect_write_refusal(self, path: Path, content: str) -> str:
+        """CARD-563: Architect writes Proposed/Ready cards and leaves cards Developer is working or that wait for review."""
+        if self._actor() != "architect":
+            return ""
+        from src.domain.sdlc.models import normalize_status
+
+        new_status = normalize_status(parse_card_frontmatter(content).status or "")
+        if not path.is_file():
+            if new_status not in ARCHITECT_NEW_STATUSES:
+                return "Architect files new cards with status: Proposed or Ready."
+            return ""
+        old_status = normalize_status(parse_card_frontmatter(path.read_text(encoding="utf-8")).status or "")
+        if old_status in ARCHITECT_LOCKED_STATUSES:
+            return (
+                f"This card is {old_status}: Developer is working it or it waits for review, so Architect does not edit it. "
+                "File a new card for further changes."
+            )
+        if new_status != old_status:
+            return f"Keep status: {old_status} when editing a card; change status with set_card_status."
+        return ""
 
     def _developer_write_refusal(self, path: Path, content: str) -> str:
         """CARD-562 D2: Developer files new cards as Proposed and never changes a status by rewriting a card."""
@@ -363,6 +404,19 @@ class CardTools:
                 "success": False,
                 "error": "Developer may move a card Ready -> In Progress, In Progress -> In Review, or Returned -> "
                 "In Progress. Ready, Done and Returned are set by Jacob or Architect.",
+                "id": extract_card_id(path.name, content),
+                "status": fm.status,
+            }
+        if actor == "architect" and (normalize_status(fm.status) or "Discuss", target_n) not in ARCHITECT_TRANSITIONS:
+            review = target_n in ("Done", "Returned")
+            return {
+                "success": False,
+                "error": (
+                    f"Architect does not set {target_n}: review is slice 3 (CARD-564). Jacob reviews In Review cards."
+                    if review
+                    else "Architect may move a card Discuss/Proposed -> Ready or Ready -> Proposed only; "
+                    "Developer moves it on from Ready (use hand_off_card)."
+                ),
                 "id": extract_card_id(path.name, content),
                 "status": fm.status,
             }
