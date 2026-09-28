@@ -19,9 +19,12 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-09-27 | cards | list_card_status.py has no --milestone filter or priority column, and prints Complete/Completed/Done (Absorbed) as separate statuses | from CARD-559 | .agents/skills/card/scripts/list_card_status.py
 - 2026-09-27 | live-qa | card-520 step 4 now shows CARD-535 as XFAIL instead of nudging; the step is nondeterministic (it passes when the approval lands before the reply ends), so an XPASS can happen before CARD-535 is fixed | from CARD-559 | tests/e2e/journeys/card-520-teach-needs-tool.mjs
 - 2026-09-27 | live-qa | openSessionByTitle cannot open an API-created Tutor chat: after switching #agentSelect to tutor the drawer shows only the auto 'Tutor Chat' and the click times out; card-454 journey uses New Conversation instead | from CARD-454 (likely fixed by CARD-562: a stale session load for the previous agent created the auto chat; recheck the Tutor journey) | tests/e2e/journeys/lib/app.mjs, src/web/static/modules/studios/chat.js
+- 2026-09-28 | tests | 3 tests in test_card354_developer_simulations.py (2, 4, 5) fail on qa: they read the external D:/Projects/Exprimentation/agentic-test/sentinel.db and expect severity high, it says medium; make them self-contained or mark them external | from CARD-563 | tests/unit/observability/test_card354_developer_simulations.py
+- 2026-09-28 | tests | 2 slow tests in test_card509_unpilled_skills.py fail on qa: they expect a build-agent-pack pill on Developer, but capability_migration DEV_PARKED_SKILLS parks it (CARD-562); update the tests to the parked state | from CARD-563 | tests/unit/agent_packs/test_card509_unpilled_skills.py, src/application/agent_packs/capability_migration.py
 
 ## M24 Chat, jobs and tool reliability
 - 2026-09-27 | jobs | reopening a chat whose job failed shows Failed without the reason and names the last queued phase (folded from CARD-536) | CARD-561 triage | src/web/static/modules/studios/chat*
+- 2026-09-28 | models | no generation cap on a runaway reasoning reply: a model can stream reasoning without end and the chat hangs (Architect on Nimo, CARD-563 round 1); add a max-tokens / reasoning-time cap per turn | from CARD-563 | src/infrastructure/llm/*, src/application/kernel/agent_kernel.py
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
