@@ -2,15 +2,15 @@
 id: CARD-566
 title: "hand_off_card follows autorun like every other tool"
 type: bug
-status: Ready
+status: In Review
 priority: P1
 milestone: M25
 needs_decision: none
 proof:
   journeys: [card-566-hand-off-follows-autorun]
-  checks: [tests/unit/agent_packs/test_card566_hand_off_follows_autorun.py]
+  checks: [tests/unit/agent_packs/test_card566_hand_off_follows_autorun.py, tests/unit/skills/test_card566_git_commit_paths_string.py, tests/unit/kernel/test_card562_project_core_tools.py]
 branch: fix/card-566-hand-off-follows-autorun
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 55, qa_runs: 3, findings: 2}
 created: 2026-09-28
 ---
 
@@ -45,10 +45,29 @@ autorun on (chat or routine) = no prompt; autorun off = it still asks once (it s
 - Developer inside the hand-off already inherits the approval mode (run passes through), so autorun covers its edits too.
 
 ## Findings
+- (fixed) F1 live run 1: Developer sent git_commit paths as a JSON string ('["calc.js", "calc.test.js"]'); the tool iterated
+  the string and git failed with "pathspec '['". git_commit now accepts a JSON string, a comma list or one path
+  (git_tools.py `_path_list`, test_card566_git_commit_paths_string.py).
+- (fixed) F2 live run 2: the hand-off brief ("Work card CARD-3 to In Review ...") did not mount git_commit or git_create_branch
+  within the 15-tool cap (word-overlap ranking), so Developer said it had no git_commit and stopped uncommitted.
+  New CARD_WORK_TOOLS (read_card, git_create_branch, patch_project_file, run_project_checks, git_commit, set_card_status)
+  stay mounted like PROJECT_CORE_TOOLS (agent_kernel.py; test in test_card562_project_core_tools.py).
+- Autorun itself held in all 3 runs: 0 approval prompts, 0 parked rows.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-566-hand-off-follows-autorun | desktop | FAIL (run 1) | 0 prompts; Developer stopped at git_commit (F1) |
+| card-566-hand-off-follows-autorun | desktop | FAIL (run 2) | 0 prompts; Developer said it had no git_commit (F2) |
+| card-566-hand-off-follows-autorun | desktop | PASS (run 3) | 1.8 min, 0 prompts, 0 parked rows; fix + docs(card) In Review commits on card/3-divide-refuses-zero, tests pass, clean tree |
+
+Checks: test_card566 gate (3, 2 failing first), git_commit paths (4, 3 failing first), card-work mount (2 new); full not-slow suite
+2162 passed, 3 pre-existing card354 failures; fast preflight GREEN.
+
+## Test it (Jacob)
+1. Open an Architect chat on a project with a Ready card; open Options and tick Auto-run.
+2. Say "Hand CARD-N to Developer." Expect no approval card: Developer works it to In Review and the outcome card shows.
+3. Untick Auto-run and hand another Ready card: expect exactly one approval card for the hand-off.
 
 Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-566\...`
 
