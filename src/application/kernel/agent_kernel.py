@@ -2,6 +2,7 @@
 Agent Kernel ReAct Loop & Event Streamer [REQ-KERNEL-003, REQ-KERNEL-006].
 """
 
+import asyncio
 import json
 import logging
 import time
@@ -22,6 +23,13 @@ from src.application.kernel.empty_reply import (
 )
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
+from src.application.kernel.reply_limits import (
+    ReplyLimitStop,
+    reply_token_limit,
+    resolve_reply_limits,
+    time_limit_message,
+    token_limit_message,
+)
 from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
     calculate_token_attribution,
@@ -1403,11 +1411,15 @@ class AgentKernel:
                 max_tool_chars=scaled_tool_chars,
                 preserve_root_intent=True,
             )
+            # CARD-567: every streaming call is bounded (tokens and wall-clock seconds).
+            reply_max_tokens, reply_max_seconds = resolve_reply_limits(self.state_store)
+            reply_max_tokens = reply_token_limit(reply_max_tokens, context_limit)
             req = CompletionRequest(
                 model=model_name,
                 messages=compacted_messages,
                 tools=active_tools or None,
                 num_ctx=context_limit,
+                max_tokens=reply_max_tokens,
                 stream=True,
             )
             prep_end = time.perf_counter()
@@ -1416,12 +1428,20 @@ class AgentKernel:
             accumulated_content = []
             accumulated_reasoning = []
             collected_tool_calls: List[ToolCall] = []
+            finish_reason: Optional[str] = None
 
             # Close the parent LLM HTTP stream BEFORE tools (child handoff complete()).
             stream_gen = None
             try:
                 stream_gen = self.gateway.stream(req, demux_reasoning=True)
-                async for chunk in stream_gen:
+                deadline = time.monotonic() + reply_max_seconds
+                while True:
+                    try:
+                        chunk = await asyncio.wait_for(stream_gen.__anext__(), timeout=max(0.0, deadline - time.monotonic()))
+                    except StopAsyncIteration:
+                        break
+                    except asyncio.TimeoutError:
+                        raise ReplyLimitStop(time_limit_message(reply_max_seconds)) from None
                     if chunk.notice:
                         # CARD-475: e.g. an image dropped for a text-only model; once per turn.
                         note_text = str(chunk.notice.get("message") or "")
@@ -1448,8 +1468,17 @@ class AgentKernel:
 
                     if chunk.tool_calls:
                         collected_tool_calls.extend(chunk.tool_calls)
+                    if chunk.finish_reason:
+                        finish_reason = chunk.finish_reason
                     if chunk.is_finished:
                         break
+                if finish_reason == "length" and not collected_tool_calls:
+                    answered = bool("".join(accumulated_content).strip())
+                    note = token_limit_message(reply_max_tokens, answered)
+                    if not answered:
+                        raise ReplyLimitStop(note)
+                    accumulated_content.append("\n\n" + note)
+                    yield KernelEvent(event_type=KernelEventType.TOKEN, content="\n\n" + note)
             except Exception as e:
                 turn_dur_ms = (time.perf_counter() - turn_start) * 1000
                 timing_breakdown = calculate_timing_attribution(
@@ -1474,6 +1503,15 @@ class AgentKernel:
                 if failed_ev:
                     yield failed_ev
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e))
+                if isinstance(e, ReplyLimitStop):
+                    self.state_store.save_message(
+                        session_id=session_id,
+                        agent_id=agent.id,
+                        message=ChatMessage(role=Role.ASSISTANT, content=e.message),
+                    )
+                    yield KernelEvent(event_type=KernelEventType.TOKEN, content="\n\n" + e.message)
+                    yield KernelEvent(event_type=KernelEventType.ERROR, content=e.message, is_finished=True)
+                    return
                 if isinstance(e, RateLimitError):
                     rate_limit_text = (
                         f"⚠️ Rate limit reached on {provider_name} ({model_name}): {e.message}. "

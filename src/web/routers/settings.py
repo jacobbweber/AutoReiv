@@ -905,6 +905,42 @@ async def put_platform_pack_keep_customizations(request: Request):
     }
 
 
+@router.get("/api/settings/reply-limits")
+async def get_reply_limits(request: Request):
+    """CARD-567: per-reply limits for every streaming model call (tokens and wall-clock seconds)."""
+    from src.application.kernel.reply_limits import SETTING_KEY, resolve_reply_limits
+
+    max_tokens, max_seconds = resolve_reply_limits(request.app.state.store)
+    return {"key": SETTING_KEY, "max_tokens": max_tokens, "max_seconds": max_seconds}
+
+
+@router.put("/api/settings/reply-limits")
+async def put_reply_limits(request: Request):
+    """CARD-567: save max_tokens / max_seconds (positive integers; null or 0 clears back to env/default)."""
+    from src.application.kernel.reply_limits import SETTING_KEY, resolve_reply_limits
+
+    body = await request.json()
+    store = request.app.state.store
+    saved = dict(store.get_setting(SETTING_KEY) or {})
+    for field in ("max_tokens", "max_seconds"):
+        if field not in body:
+            continue
+        value = body.get(field)
+        try:
+            n = int(value) if value is not None else 0
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail=f"{field} must be a positive integer") from None
+        if n < 0:
+            raise HTTPException(status_code=400, detail=f"{field} must be a positive integer")
+        if n:
+            saved[field] = n
+        else:
+            saved.pop(field, None)
+    store.set_setting(SETTING_KEY, saved)
+    max_tokens, max_seconds = resolve_reply_limits(store)
+    return {"key": SETTING_KEY, "max_tokens": max_tokens, "max_seconds": max_seconds}
+
+
 @router.get("/api/settings/mcp")
 @router.get("/api/mcp/servers")
 async def list_mcp_servers(request: Request):
