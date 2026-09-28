@@ -2,7 +2,7 @@
 id: CARD-456
 title: "qa baseline: 3 stale Vitest tests and ESLint errors"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M22
 needs_decision: none
@@ -16,6 +16,7 @@ proof:
 branch: fix/card-454-456-clean-baseline
 log: {minutes: 10, qa_runs: 0, findings: 0}
 created: 2026-09-24
+completed: 2026-09-27
 ---
 
 # CARD-456 qa baseline: 3 stale Vitest tests and ESLint errors

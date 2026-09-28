@@ -2,7 +2,7 @@
 id: CARD-454
 title: "qa baseline: ruff errors and Tutor skills over the CAP-001 tool cap"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M22
 needs_decision: none
@@ -16,6 +16,7 @@ proof:
 branch: fix/card-454-456-clean-baseline
 log: {minutes: 35, qa_runs: 2, reruns: 1, findings: 2, fast_tier_s: 41, full_tier_s: 1004}
 created: 2026-09-24
+completed: 2026-09-27
 ---
 
 # CARD-454 qa baseline: ruff errors and Tutor skills over the CAP-001 tool cap
