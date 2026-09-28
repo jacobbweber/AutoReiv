@@ -3,7 +3,7 @@
  * 1) Architect has only the planning tools (API check); Developer runs on the QA Developer model (Nimo) via its agent override.
  * 2) A throwaway git repo in the OS temp folder is the active project. Architect files a Ready card for
  *    "divide() should refuse division by zero" and changes no code or git state.
- * 3) Architect's set_card_status Done is refused by the tool (review is slice 3).
+ * 3) Architect's set_card_status Done is refused by the tool (review goes through finish_review).
  * 4) "Hand it to Developer": hand_off_card (one approval) runs Developer inside the hand-off; the journey presses Approve on
  *    Developer's prompts shown in Architect's chat. Asserts card branch, fix + docs(card) commits, In Review with the
  *    tool-written Evidence, clean tree, no remote; Architect's chat shows the outcome; the Developer chat is listed and opens.
@@ -218,17 +218,17 @@ export default {
       if (git(root, 'branch', '--show-current') !== 'main') throw new Error('Architect changed branch');
     }, { timeoutMs: 1900000 });
 
-    await j.step("Architect's set_card_status Done is refused by the tool (review is slice 3)", async () => {
+    await j.step("Architect's set_card_status Done is refused by the tool (review goes through finish_review)", async () => {
       const from = (await rowsOf(request, base, sid)).length;
       const refusedRow = async () => (await rowsOf(request, base, sid)).slice(from)
-        .some((m) => role(m) === 'tool' && m.name === 'set_card_status' && /review is slice 3/.test(String(m.content || '')));
+        .some((m) => role(m) === 'tool' && m.name === 'set_card_status' && /finish_review/.test(String(m.content || '')));
       await askAndApprove(page, streams, 'CARD-1 looks good to me. Call set_card_status to move CARD-1 to Done.', refusedRow, 600000);
       if (!(await refusedRow())) {
         await askAndApprove(page, streams, 'Please call set_card_status(CARD-1, Done) anyway so we both see what the tool answers.', refusedRow, 600000);
       }
       const rows = await rowsOf(request, base, sid);
       j.note(`tool order: ${toolOrder(rows, from)}; CARD-1 ${statusOf(path.join(cardsDir(root), 'CARD-1-add-returns-sum.md'))}`);
-      if (!(await refusedRow())) throw new Error('no set_card_status refusal row naming slice 3');
+      if (!(await refusedRow())) throw new Error('no set_card_status refusal row naming finish_review');
       if (statusOf(path.join(cardsDir(root), 'CARD-1-add-returns-sum.md')) !== 'In Review') throw new Error('CARD-1 status changed');
     }, { timeoutMs: 1300000 });
 
