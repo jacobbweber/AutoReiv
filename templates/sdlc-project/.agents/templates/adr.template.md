@@ -1,20 +1,16 @@
-# [ADR-xxxx] <Decision Title>
+# ADR-<nnnn>: <decision title>
 
-> **Status**: Proposed | Accepted | Deprecated | Superseded
-> **Date**: <YYYY-MM-DD>
-> **Deciders**: <Names>
-
----
+Status: Proposed | Accepted | Superseded by ADR-<nnnn>
+Date: <YYYY-MM-DD>
 
 ## Context
-What is the architectural problem or requirement being addressed?
+<What problem forces a decision now.>
 
 ## Decision
-What is the structural change, standard, or pattern being adopted?
+<What we will do.>
 
 ## Consequences
-- **Positive**: Benefits, improvements, and guarantees gained.
-- **Negative / Trade-offs**: Added complexity, constraints, or migrations required.
+<What gets easier, what gets harder, what we must now keep true.>
 
-## Compliance & Verification
-How is this decision verified, monitored, or automatically enforced?
+## How we check it
+<A test, lint rule or review step that keeps this decision honest.>

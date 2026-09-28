@@ -20,6 +20,10 @@ from src.domain.sdlc.models import (
 
 STEERING_EXCERPT_CHARS = 4000
 SPEC_FILENAMES = ("requirements.md", "design.md", "tasks.md")
+# CARD-562 D2: the status moves Developer may make itself.
+DEVELOPER_TRANSITIONS = frozenset(
+    {("Ready", "In Progress"), ("In Progress", "In Review"), ("Returned", "In Progress")}
+)
 # CARD-562: preferred card folder first; the other two are fallbacks for older projects.
 CARD_DIRS = (".agents/cards", "docs/cards", ".github/cards")
 
@@ -182,11 +186,36 @@ class CardTools:
             if not cid:
                 return {"success": False, "error": "filename or card_id is required"}
             return self.write_card(content=content, card_id=cid, project_root=str(root))
+        refused = self._developer_write_refusal(path, content)
+        if refused:
+            return {"success": False, "error": refused}
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
         summary = self._summarize_card(path)
         summary.update({"success": True, "project_root": str(root)})
         return summary
+
+    @staticmethod
+    def _actor() -> str:
+        from src.application.kernel.tool_registry import get_tool_context
+
+        return str(get_tool_context().get("agent_id") or "").lower()
+
+    def _developer_write_refusal(self, path: Path, content: str) -> str:
+        """CARD-562 D2: Developer files new cards as Proposed and never changes a status by rewriting a card."""
+        if self._actor() != "developer":
+            return ""
+        from src.domain.sdlc.models import normalize_status
+
+        new_status = normalize_status(parse_card_frontmatter(content).status or "")
+        if not path.is_file():
+            if new_status != "Proposed":
+                return "Developer files new cards with status: Proposed. Jacob or Architect makes them Ready."
+            return ""
+        old_status = normalize_status(parse_card_frontmatter(path.read_text(encoding="utf-8")).status or "")
+        if new_status != old_status:
+            return f"Keep status: {old_status} when editing a card; change status with set_card_status."
+        return ""
 
     def set_card_status(
         self,
@@ -206,6 +235,14 @@ class CardTools:
 
         target_n = normalize_status(status)
         actor = str(get_tool_context().get("agent_id") or "").lower()
+        if actor == "developer" and (normalize_status(fm.status), target_n) not in DEVELOPER_TRANSITIONS:
+            return {
+                "success": False,
+                "error": "Developer may move a card Ready -> In Progress, In Progress -> In Review, or Returned -> "
+                "In Progress. Ready, Done and Returned are set by Jacob or Architect.",
+                "id": extract_card_id(path.name, content),
+                "status": fm.status,
+            }
         if actor == "coding":
             if not (fm.status == "In Progress" and target_n == "In Review"):
                 return {

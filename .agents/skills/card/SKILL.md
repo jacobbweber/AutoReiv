@@ -27,7 +27,7 @@ description: Create, find, dedupe and triage cards. Use at Pick, Dedupe and Plan
 - `needs_decision:` is `none`, or one line per product, design or architecture decision with your recommendation.
 
 ## Status values (only these)
-`Ready`, `In Progress`, `In Review`, `Done`, `Parked`, `Superseded`.
+`Proposed` (filed by an agent, waits for Jacob), `Ready`, `In Progress`, `In Review`, `Done`, `Parked`, `Superseded`.
 
 ## Card log (fill at In Review)
 `log: {minutes: <wall minutes>, qa_runs: <live-qa runs>, findings: <count>}`

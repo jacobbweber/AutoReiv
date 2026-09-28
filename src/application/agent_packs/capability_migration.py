@@ -153,61 +153,54 @@ def untick_autoreiv_coding(
     return {"skipped": False, "unticked": unticked, "by": by}
 
 
-DEV_CODING_MARKER = "developer_coding_ticked_card550"
-DEV_CODING_BACKUP_NAME = "card-550-developer-skills.json"
+DEV_SKILLS_MARKER = "developer_skills_card562"
+DEV_SKILLS_BACKUP_NAME = "card-562-developer-skills.json"
+# CARD-562 supersedes CARD-550 D1: Developer works on the active project, not the AutoReiv checkout.
+DEV_RETIRED_SKILLS = ("coding", "sdlc-engineering")
+DEV_SDLC_SKILLS = (
+    "project-orientation",
+    "card-intake",
+    "card-writing",
+    "plan-change",
+    "implement-change",
+    "write-tests",
+    "debug",
+    "run-checks",
+    "git-workflow",
+    "code-review",
+    "codebase-audit",
+)
 
 
-def developer_skills_before_seed(store: Any) -> Optional[list[str]]:
-    """Developer's stored skill list before the platform seed sync runs (CARD-550; same ordering as CARD-544).
+def move_developer_to_sdlc_skills(store: Any, agent_registry: Any, *, data_root: Path) -> dict[str, Any]:
+    """CARD-562: once per install, swap Developer's coding + sdlc-engineering for the SDLC skill set.
 
-    An unedited Developer gets the new pack (with coding) during registry bootstrap, before the migration runs, so
-    the migration backs up this list instead. None once the marker is set or nothing is stored.
+    Goes through the shared save path, backs up the stored list first and sets a marker so a later operator edit
+    (for example unticking a skill) survives restarts. Other ticks (tool building, proposals) are left alone.
     """
-    try:
-        if store.get_setting(DEV_CODING_MARKER):
-            return None
-        profile = store.get_agent_profile("developer")
-    except Exception:
-        return None
-    if profile is None:
-        return None
-    return list(getattr(profile, "allowed_skill", None) or [])
+    from src.application.agent_packs.skill_list import add_skill_to_agent, remove_skill_from_agent
 
-
-def tick_developer_coding(
-    store: Any, agent_registry: Any, *, data_root: Path, before_seed: Optional[list[str]] = None
-) -> dict[str, Any]:
-    """CARD-550 D1 (Jacob, 2026-09-27): Developer ticks coding (the checkout repo_file_* tools).
-
-    Once per install, through the shared save path: back up the stored skill list, tick coding, set a marker.
-    If the platform update already ticked it at bootstrap, back up the list read before bootstrap. An operator who
-    had switched coding off is respected, and a later untick survives (the marker stops a second run).
-    """
-    from src.application.agent_packs.skill_list import add_skill_to_agent
-    from src.infrastructure.skills.platform_pack_promotion import get_operator_disabled_skills
-
-    if store.get_setting(DEV_CODING_MARKER):
-        return {"skipped": True, "ticked": False}
+    if store.get_setting(DEV_SKILLS_MARKER):
+        return {"skipped": True, "changed": False}
     profile = agent_registry.get_agent("developer")
-    current = list(getattr(profile, "allowed_skill", None) or []) if profile is not None else []
-    by, old = "", current
     if profile is None:
-        by = "no developer"
-    elif "coding" in current:
-        if before_seed is not None and "coding" not in before_seed:
-            by, old = "platform update", list(before_seed)
-    elif "coding" in get_operator_disabled_skills(store, "developer"):
-        by = "operator disabled"
-    else:
-        by = "migration"
-    ticked = by in ("migration", "platform update")
-    if ticked:
+        store.set_setting(DEV_SKILLS_MARKER, {"at": datetime.now(timezone.utc).isoformat(), "changed": False})
+        return {"skipped": False, "changed": False, "removed": [], "added": []}
+    current = list(getattr(profile, "allowed_skill", None) or [])
+    removed = [s for s in DEV_RETIRED_SKILLS if s in current]
+    added = [s for s in DEV_SDLC_SKILLS if s not in current]
+    if removed or added:
         folder = Path(data_root) / "migrations"
         folder.mkdir(parents=True, exist_ok=True)
-        backup = {"created_at": datetime.now(timezone.utc).isoformat(), "agent_id": "developer", "allowed_skill": old, "by": by}
-        (folder / DEV_CODING_BACKUP_NAME).write_text(json.dumps(backup, indent=2), encoding="utf-8")
-    if by == "migration":
-        add_skill_to_agent(store, agent_registry, agent_id="developer", skill_id="coding", data_dir=Path(data_root))
-    store.set_setting(DEV_CODING_MARKER, {"at": datetime.now(timezone.utc).isoformat(), "ticked": ticked, "by": by})
-    logger.info("CARD-550 migration: coding on developer: %s", by or "already ticked")
-    return {"skipped": False, "ticked": ticked, "by": by}
+        backup = {"created_at": datetime.now(timezone.utc).isoformat(), "agent_id": "developer", "allowed_skill": current}
+        (folder / DEV_SKILLS_BACKUP_NAME).write_text(json.dumps(backup, indent=2), encoding="utf-8")
+        for sid in removed:
+            remove_skill_from_agent(store, agent_registry, agent_id="developer", skill_id=sid, data_dir=Path(data_root))
+        for sid in added:
+            add_skill_to_agent(store, agent_registry, agent_id="developer", skill_id=sid, data_dir=Path(data_root))
+    changed = bool(removed or added)
+    store.set_setting(
+        DEV_SKILLS_MARKER, {"at": datetime.now(timezone.utc).isoformat(), "changed": changed, "removed": removed}
+    )
+    logger.info("CARD-562 migration: developer skills removed=%s added=%s", removed, added)
+    return {"skipped": False, "changed": changed, "removed": removed, "added": added}

@@ -55,10 +55,10 @@ def test_tools_for_platform_skills_resolution():
 
 def test_developer_is_separate_platform_pack():
     dev_manifest = load_platform_manifest("developer")
-    assert "sdlc-engineering" in {s.id for s in dev_manifest.skills}
-    assert "sdlc-engineering" in dev_manifest.allowed_skill
-    assert "read_project_file" in dev_manifest.pack_tool_names
-    assert "write_project_file" in dev_manifest.pack_tool_names
+    assert "implement-change" in {s.id for s in dev_manifest.skills}  # CARD-562
+    assert "implement-change" in dev_manifest.allowed_skill
+    dev_tools = {t for s in dev_manifest.skills for t in s.tools}
+    assert {"read_project_file", "write_project_file"} <= dev_tools
 
     autoreiv_manifest = load_platform_manifest("autoreiv")
     assert "sdlc-engineering" not in {s.id for s in autoreiv_manifest.skills}

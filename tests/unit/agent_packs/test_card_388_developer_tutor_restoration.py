@@ -76,10 +76,10 @@ def test_req_388_004_skills_and_purposes():
     """[REQ-388-004] developer and tutor have designated skills and purpose."""
     dev = load_platform_manifest("developer")
     assert dev.purpose == "task_execution"
-    assert "sdlc-engineering" in {s.id for s in dev.skills}
+    assert "implement-change" in {s.id for s in dev.skills}  # CARD-562
 
     dev_profile = platform_pack_profile("developer")
-    assert "sdlc-engineering" in dev_profile.allowed_skill
+    assert "implement-change" in dev_profile.allowed_skill
     assert "cli_exec" in dev_profile.allowed_tool_names
 
     tutor = load_platform_manifest("tutor")

@@ -104,13 +104,13 @@ def test_guard_the_real_checkout_is_never_a_write_root(svc, tmp_path, monkeypatc
     assert not (REPO / "card556_probe.txt").exists()
 
 
-def test_default_scratch_follows_the_data_dir(monkeypatch, tmp_path):
+def test_default_scratch_is_in_the_os_temp_folder(monkeypatch, tmp_path):
+    """CARD-562: scratch lives in <OS temp>/autoreiv-scratch, outside every project and the data folder."""
+    import tempfile
+
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path / "d"))
-    assert default_scratch_root() == (tmp_path / "d" / "scratch").resolve()
-    monkeypatch.delenv("AUTOREIV_DATA_DIR", raising=False)
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
-    root = default_scratch_root()
-    assert root.name == "scratch" and root.parent.name in {"AutoReiv", ".autoreiv"}
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "tmp"))
+    assert default_scratch_root() == (tmp_path / "tmp" / "autoreiv-scratch").resolve()
 
 
 def test_selected_root_is_none_without_a_project(svc, tmp_path):
@@ -130,7 +130,7 @@ def test_description_names_scratch_and_checkout_tools(tmp_path):
     assert "no project" in desc.lower() and "checkout" in desc.lower() and "repo_file_write" in desc
 
 
-def test_bootstrap_scratch_is_under_the_data_folder(tmp_path):
+def test_bootstrap_scratch_is_the_os_temp_folder(tmp_path):
     from src.application.telemetry.collector import TelemetryCollector
     from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
@@ -140,7 +140,7 @@ def test_bootstrap_scratch_is_under_the_data_folder(tmp_path):
     skills.mkdir(parents=True)
     _, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=TelemetryCollector(store=store), skills_dir=str(skills))
     desc = tool_reg.get_tool_definition("write_project_file").description
-    assert str((tmp_path / "data" / "scratch").resolve()) in desc
+    assert str(default_scratch_root()) in desc  # CARD-562: OS temp, not the data folder
 
 
 def test_live_qa_scratch_under_a_protected_checkout_is_still_writable(tmp_path, monkeypatch):
@@ -161,5 +161,5 @@ def test_live_qa_scratch_under_a_protected_checkout_is_still_writable(tmp_path, 
     assert protected_write_error(real / "scratch" / "other.txt")
     res = ProjectFileTools().write_project_file("card556-note.txt", "hello 556")
     assert res["success"] is True, res
-    assert (data / "scratch" / "card556-note.txt").is_file()
+    assert Path(res["full_path"]) == default_scratch_root() / "card556-note.txt"  # CARD-562: OS temp
     assert not (real / "card556-note.txt").exists()

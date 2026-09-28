@@ -31,7 +31,7 @@ TURN_EVENT_KIND = "tools_studio_developer_turn"
 PACKET_FACT_PREFIX = "tools_studio_authoring_packet_json="
 INTENTS = frozenset({"create", "modify", "delete"})
 PACKAGING_PREFERENCES = frozenset({"", "native", "mcp"})
-MATCHED_CAPABILITY_ID = "skill.sdlc-engineering"
+MATCHED_CAPABILITY_ID = "skill.native-tool-engineering"  # CARD-562: sdlc-engineering retired
 SUCCESS_RULE = "done when: the developer has replied in this chat to the Tools Studio tool intent."
 _CODE_KEYS = ("code", "implementation", "source_code", "script")
 _OPEN_FAILURE = frozenset({JobStatus.QUEUED.value, PhaseStatus.QUEUED.value})

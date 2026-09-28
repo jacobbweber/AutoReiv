@@ -17,28 +17,23 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 SLUG_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$")
 PROJECTS_ROOT_KEY = "projects_root"
 SELECTED_PROJECT_KEY = "selected_project"
+NO_PROJECT_MESSAGE = (
+    "No project is selected. Select a project in Projects Studio (or pass project_root) and try again."
+)
 
+# CARD-562: AGENTS.md fact sheet + one card folder + ADRs; process lives in agent skills.
 REQUIRED_SCAFFOLD = (
     ".gitignore",
     "AGENTS.md",
     "CHANGELOG.md",
     "VERSION",
-    "CONTRIBUTING.md",
     "README.md",
     ".agents/cards/.gitkeep",
-    ".agents/specs/.gitkeep",
-    ".agents/steering/product.md",
-    ".agents/steering/tech.md",
-    ".agents/steering/structure.md",
-    ".agents/steering/roadmap.md",
-    ".agents/adr/.gitkeep",
     ".agents/templates/card.template.md",
-    ".agents/templates/requirements.template.md",
-    ".agents/templates/design.template.md",
-    ".agents/templates/tasks.template.md",
     ".agents/templates/adr.template.md",
-    "tests/.gitkeep",
+    "docs/adr/.gitkeep",
 )
+NAME_PLACEHOLDER = "{{project_name}}"
 
 
 def default_template_dir() -> Path:
@@ -102,6 +97,26 @@ class ProjectsService:
         selected = self.get_selected()
         path = (selected or {}).get("path") if isinstance(selected, dict) else None
         return Path(path).expanduser().resolve() if path else None
+
+    def selected_or_refuse(self, project_root: Optional[str] = None) -> Path:
+        """Explicit or selected project root; a clear error when none is selected [CARD-562, CARD-558 D1]."""
+        root = self.selected_root(project_root)
+        if root is None:
+            raise ProjectPathError(NO_PROJECT_MESSAGE)
+        if not root.is_dir():
+            raise ProjectPathError(f"Project folder not found: {root}. Select another project in Projects Studio.")
+        return root
+
+    def selected_or_scratch(self, project_root: Optional[str] = None) -> Path:
+        """Working folder for cli_exec: the project, else the OS-temp scratch folder, never the checkout [CARD-558]."""
+        root = self.selected_root(project_root)
+        if root is not None:
+            return root
+        from src.application.sdlc.paths import default_scratch_root
+
+        scratch = default_scratch_root()
+        scratch.mkdir(parents=True, exist_ok=True)
+        return scratch
 
     def get_selected(self) -> Dict[str, Any]:
         raw = self.store.get_setting(SELECTED_PROJECT_KEY)
@@ -286,10 +301,17 @@ class ProjectsService:
                 present.append(rel)
             else:
                 missing.append(rel)
+        agents_md = root / "AGENTS.md"
+        missing_sections: List[str] = []
+        if agents_md.is_file():
+            from src.domain.sdlc.agents_contract import parse_agents_md
+
+            missing_sections = parse_agents_md(agents_md.read_text(encoding="utf-8", errors="replace")).missing_sections
         return {
             "success": True,
             "project_root": str(root),
             "selected": selected,
+            "agents_md_missing_sections": missing_sections,  # CARD-562: reported, never overwritten
             "template_id": manifest.get("template_id", "sdlc-project"),
             "template_version": manifest.get("template_version", "1.0.0"),
             "missing": missing,
@@ -309,7 +331,10 @@ class ProjectsService:
             dest = root / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             src = template / rel
-            if src.is_file():
+            if src.is_file() and rel in ("AGENTS.md", "README.md"):
+                text = src.read_text(encoding="utf-8").replace(NAME_PLACEHOLDER, root.name)
+                dest.write_text(text, encoding="utf-8")
+            elif src.is_file():
                 shutil.copy2(src, dest)
             elif rel.endswith("/.gitkeep") or rel.endswith(".gitkeep"):
                 dest.write_text("", encoding="utf-8")
@@ -325,6 +350,7 @@ class ProjectsService:
             "scaffolded": created,
             "template_version": refreshed.get("template_version"),
             "missing": refreshed.get("missing") or [],
+            "agents_md_missing_sections": refreshed.get("agents_md_missing_sections") or [],
             "aligned": refreshed.get("aligned"),
         }
 
@@ -342,6 +368,12 @@ class ProjectsService:
         template = default_template_dir()
         if template.is_dir():
             shutil.copytree(template, target)
+            for rel in ("AGENTS.md", "README.md"):
+                doc = target / rel
+                if doc.is_file():
+                    doc.write_text(
+                        doc.read_text(encoding="utf-8").replace(NAME_PLACEHOLDER, name or clean), encoding="utf-8"
+                    )
         else:
             target.mkdir(parents=True, exist_ok=False)
         git_bin = shutil.which("git")

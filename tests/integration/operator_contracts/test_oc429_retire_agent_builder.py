@@ -95,7 +95,9 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
     )
     coding_names = {tool.name for tool in coding}
     assert "propose_skill" not in coding_names
-    assert coding_names & {"execute_code", "write_project_file", "cli_exec", "read_project_file"}
+    code_tools = {"execute_code", "write_project_file", "cli_exec", "read_project_file"}
+    code_tools |= {"patch_project_file", "run_project_checks", "search_project"}  # CARD-562
+    assert coding_names & code_tools
 
 
 def test_oc429_boot_purges_leftover_agent_builder_row(tmp_path, monkeypatch):

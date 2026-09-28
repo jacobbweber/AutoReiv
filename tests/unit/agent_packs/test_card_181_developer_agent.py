@@ -22,31 +22,29 @@ def test_developer_pack_is_restored_as_platform_pack():
     assert manifest.name == "Developer"
     assert manifest.purpose == "task_execution"
     assert manifest.show_in_chat is True
-    assert "sdlc-engineering" in {s.id for s in manifest.skills}
+    assert "implement-change" in {s.id for s in manifest.skills}  # CARD-562
 
     profile = platform_pack_profile("developer")
     assert profile.id == "developer"
     assert profile.show_in_chat is True
     assert "cli_exec" in profile.allowed_tool_names
     assert "write_project_file" in profile.allowed_tool_names
-    assert "sdlc-engineering" in profile.allowed_skill
+    assert "implement-change" in profile.allowed_skill
 
 
-def test_developer_carries_sdlc_engineering_skill():
-    """CARD-407 / CARD-388: developer carries sdlc-engineering; autoreiv delegates via handoff."""
+def test_developer_carries_the_sdlc_skills():
+    """CARD-562 (was sdlc-engineering): developer carries the SDLC skills; autoreiv delegates via handoff."""
     manifest = load_platform_manifest("developer")
     assert manifest.id == "developer"
-    assert "sdlc-engineering" in {s.id for s in manifest.skills}
+    assert {"implement-change", "run-checks", "debug"} <= {s.id for s in manifest.skills}
 
-    # Runbook exists under developer skills
     dev_root = platform_packs_root() / "developer"
-    runbook = dev_root / "skills" / "sdlc-engineering" / "SKILL.md"
-    assert runbook.is_file(), "Missing runbook for sdlc-engineering under developer"
-    content = runbook.read_text(encoding="utf-8")
-    assert len(content) > 50
+    runbook = dev_root / "skills" / "implement-change" / "SKILL.md"
+    assert runbook.is_file(), "Missing runbook for implement-change under developer"
+    assert len(runbook.read_text(encoding="utf-8")) > 50
 
-    # Required developer tools in developer pack
-    tools = set(manifest.pack_tool_names)
+    # Required developer tools come from the ticked skills
+    tools = {t for s in manifest.skills for t in s.tools}
     required_tools = {
         "read_project_file",
         "write_project_file",

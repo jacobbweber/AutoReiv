@@ -45,7 +45,7 @@ def test_fresh_install_migrates_nothing_and_sets_the_marker(tmp_path):
 def test_upgrade_turns_every_lost_tool_into_a_pending_proposal(tmp_path):
     store = _store(tmp_path)
     dev = AgentProfile(id="developer", name="D", description="d", system_prompt="p",
-                       allowed_skill=["sdlc-engineering"],
+                       allowed_skill=["debug"],  # CARD-562: debug binds execute_code
                        allowed_tool_names=["execute_code", "wiki_note_create", "c520_catalog_dump"])
     agents = _Agents([dev])
     report = migrate_legacy_grants(store, agents, data_root=tmp_path)

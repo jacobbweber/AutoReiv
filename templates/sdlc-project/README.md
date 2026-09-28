@@ -1,7 +1,9 @@
-# Project
+# {{project_name}}
 
-Local coding project scaffolded by AutoReiv.
+<One line: what this project does.>
 
-**Status:** Educational and a work in progress. Treat it as real software that is still being hardened, not a finished release.
+## Getting started
+<How to install and run it. See the `## Run` and `## Checks` sections of AGENTS.md.>
 
-Start with a Discuss card in `.github/cards`, write a spec under `docs/specs/`, then mark Ready.
+## Working with agents
+Work is tracked as cards in `.agents/cards/`. AGENTS.md tells agents how to run and check this project.

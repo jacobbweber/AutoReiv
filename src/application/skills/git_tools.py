@@ -17,6 +17,7 @@ CONVENTIONAL = re.compile(
     r"^(feat|fix|docs|chore|test|refactor)(\([A-Za-z0-9._/-]+\))?: .+\S",
 )
 FORBIDDEN_TOKENS = ("--no-verify", "--amend", "--force", "git config", "-c user.", "--config")
+BRANCH_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
 
 
 class GitTools:
@@ -118,6 +119,56 @@ class GitTools:
             "branches": listed.get("stdout") or "",
         }
 
+    def git_create_branch(
+        self,
+        name: str,
+        base: Optional[str] = None,
+        project_root: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create and switch to a new branch from base [CARD-562]. Refuses a dirty tree; never forces."""
+        clean = (name or "").strip()
+        if not BRANCH_NAME.match(clean) or ".." in clean or clean.endswith((".lock", "/", ".")):
+            return {"success": False, "error": f"Invalid branch name '{name}'. Use e.g. card/12-short-slug."}
+        try:
+            root = self._root(project_root)
+        except ProjectPathError as exc:
+            return {"success": False, "error": str(exc)}
+        status = self._run(root, ["status", "--porcelain=v1"])
+        if status["exit_code"] != 0:
+            return {"success": False, "error": status.get("stderr") or "git status failed", "project_root": str(root)}
+        tracked = [ln for ln in (status.get("stdout") or "").splitlines() if ln and not ln.startswith("??")]
+        if tracked:
+            return {
+                "success": False,
+                "error": "Working tree has uncommitted changes. Commit or ask the operator before switching branch.",
+                "changes": tracked[:20],
+                "project_root": str(root),
+            }
+        current = (self._run(root, ["branch", "--show-current"]).get("stdout") or "").strip()
+        exists = self._run(root, ["rev-parse", "--verify", "--quiet", f"refs/heads/{clean}"])["exit_code"] == 0
+        if exists:
+            if current == clean:
+                return {"success": True, "project_root": str(root), "branch": clean, "created": False}
+            return {"success": False, "error": f"Branch '{clean}' already exists.", "project_root": str(root)}
+        start = (base or "").strip() or self._contract_base(root) or current or "HEAD"
+        if not BRANCH_NAME.match(start) and start != "HEAD":
+            return {"success": False, "error": f"Invalid base '{start}'."}
+        made = self._run(root, ["switch", "-c", clean, start])
+        if not made["success"]:
+            return {"success": False, "error": made.get("stderr") or "git switch failed", "project_root": str(root)}
+        return {"success": True, "project_root": str(root), "branch": clean, "base": start, "created": True}
+
+    def _contract_base(self, root: Path) -> Optional[str]:
+        agents = root / "AGENTS.md"
+        if not agents.is_file():
+            return None
+        from src.domain.sdlc.agents_contract import parse_agents_md
+
+        base = parse_agents_md(agents.read_text(encoding="utf-8", errors="replace")).base_branch
+        if base and self._run(root, ["rev-parse", "--verify", "--quiet", f"refs/heads/{base}"])["exit_code"] == 0:
+            return base
+        return None
+
     def git_commit(
         self,
         subject: Optional[str] = None,
@@ -196,6 +247,23 @@ class GitTools:
             description="Show current branch and local branches in project_root.",
             parameters={"type": "object", "properties": {"project_root": {"type": "string"}}},
             handler=self.git_branch,
+        )
+        registry.register_tool(
+            name="git_create_branch",
+            description=(
+                "Create and switch to a new branch in the active project, from base (default: the AGENTS.md "
+                "base branch, else the current branch). Refuses uncommitted changes; never forces."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "e.g. card/12-short-slug"},
+                    "base": {"type": "string"},
+                    "project_root": {"type": "string"},
+                },
+                "required": ["name"],
+            },
+            handler=self.git_create_branch,
         )
         registry.register_tool(
             name="git_commit",

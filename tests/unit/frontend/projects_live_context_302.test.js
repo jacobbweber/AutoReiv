@@ -14,7 +14,8 @@ describe('CARD-302 Projects live context + drift overlay', () => {
     const data = JSON.parse(manifest);
     expect(data.template_version).toBeTruthy();
     expect(data.required_paths).toContain('AGENTS.md');
-    expect(data.required_paths).toContain('.agents/steering/product.md');
+    expect(data.required_paths).toContain('.agents/cards/.gitkeep'); // CARD-562: one card folder, no steering placeholders
+    expect(data.required_paths).not.toContain('.agents/steering/product.md');
   });
 
   it('renders drift banner + align control inside Artifact Explorer', () => {

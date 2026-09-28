@@ -1,15 +1,34 @@
-# Project Constitution
+# AGENTS.md - {{project_name}}
 
-Language-agnostic rules for this repo. Humans own the idea. Agents implement one card at a time.
+Agents read this file first. Keep it short and true. How to plan, build, test and review lives in the
+agents' skills; this file holds only facts about this repo. Fill every `<...>` line.
 
-## Invariants
+## Project
+<One paragraph: what it does, who uses it, main language and framework.>
 
-1. **SDD first.** No implementation until a card is Ready and `docs/specs/<slug>/` exists (requirements, design, tasks). Action -> route/event -> function must be in the design.
-2. **TDD.** Red, green, refactor. Do not change a test just to make it pass.
-3. **SOLID.** Smallest patch. No invented APIs or second engines when one already exists.
-4. **Cards and specs.** Work lives in `.github/cards/CARD-NNN-*.md` and `docs/specs/<slug>/`. Statuses: Discuss, Ready, In Progress, In Review, Returned, Done.
-5. **Conventional commits + semver.** Subjects look like `feat(scope): ...` / `fix` / `docs` / `chore` / `test` / `refactor`. VERSION and CHANGELOG move together.
+## Run
+<How to start it locally. Ports and secrets come from `.env` (never committed).>
 
-## Loop
+## Checks
+Exact commands, run from the repo root. Agents run only these to check their work.
+- fast: <quick tests, e.g. python -m pytest -q -x>
+- full: <all tests, e.g. python -m pytest -q>
+- lint: <linter, e.g. ruff check .>
 
-Jacob talks to Conductor. Conductor hands one Ready card to Coding. Coding implements and marks In Review. Review passes to Done or returns with a concrete gap.
+## Branches
+- Base branch: main
+- One branch per card: `card/<n>-<short-slug>`
+- Agents never push or merge. A person does.
+
+## Cards
+- Folder: `.agents/cards/`, one file per card: `CARD-<n>-<slug>.md` (template: `.agents/templates/card.template.md`)
+- Status: Proposed -> Ready -> In Progress -> In Review -> Done (or Returned -> In Progress)
+- Decisions that are hard to undo: `docs/adr/` (template: `.agents/templates/adr.template.md`)
+
+## Rules
+- Don't add a dependency without asking.
+- Never commit secrets or `.env`.
+- <Project-specific rule, e.g. "money values are integers in cents". Keep this list under 10.>
+
+## Don't touch
+- <Paths agents must not edit, e.g. migrations/ once released. Remove this line if none.>

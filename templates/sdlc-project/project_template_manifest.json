@@ -1,26 +1,25 @@
 {
   "template_id": "sdlc-project",
-  "template_version": "1.0.0",
-  "description": "AutoReiv Project path manifest (structure only; contents not graded)",
+  "template_version": "2.0.0",
+  "description": "Project scaffold: an AGENTS.md fact sheet, one card folder, ADRs. Process lives in agent skills [CARD-562].",
   "required_paths": [
     ".gitignore",
     "AGENTS.md",
     "CHANGELOG.md",
     "VERSION",
-    "CONTRIBUTING.md",
     "README.md",
     ".agents/cards/.gitkeep",
-    ".agents/specs/.gitkeep",
-    ".agents/steering/product.md",
-    ".agents/steering/tech.md",
-    ".agents/steering/structure.md",
-    ".agents/steering/roadmap.md",
-    ".agents/adr/.gitkeep",
     ".agents/templates/card.template.md",
-    ".agents/templates/requirements.template.md",
-    ".agents/templates/design.template.md",
-    ".agents/templates/tasks.template.md",
     ".agents/templates/adr.template.md",
-    "tests/.gitkeep"
+    "docs/adr/.gitkeep"
+  ],
+  "agents_md_sections": [
+    "Project",
+    "Run",
+    "Checks",
+    "Branches",
+    "Cards",
+    "Rules",
+    "Don't touch"
   ]
 }

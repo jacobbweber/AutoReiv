@@ -124,10 +124,10 @@ def inside_checkout(target: Path | str, env: Optional[Mapping[str, str]] = None)
 
 
 def default_scratch_root() -> Path:
-    """`<AutoReiv data root>/scratch` (Windows: %LOCALAPPDATA%\\AutoReiv\\scratch), honoring AUTOREIV_DATA_DIR [CARD-556]."""
-    from src.infrastructure.data.resolver import DataDirResolver
+    """`<OS temp>/autoreiv-scratch`: throwaway files never land in a project or the checkout [CARD-556, CARD-562]."""
+    import tempfile
 
-    return _resolved(DataDirResolver().resolve().root / "scratch")
+    return _resolved(Path(tempfile.gettempdir()) / "autoreiv-scratch")
 
 
 def resolve_project_root(project_root: Optional[str] = None, default_root: Optional[Path] = None) -> Path:

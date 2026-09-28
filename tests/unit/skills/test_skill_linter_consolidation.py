@@ -28,7 +28,7 @@ def test_consolidated_skills_exist_and_pass_lint():
     platform_packs_dir = repo_root / "platform-packs"
 
     expected_skills = [
-        ("developer", "sdlc-engineering"),
+        ("developer", "implement-change"),
         ("autoreiv", "agent-authoring"),
         ("autoreiv", "socratic-tutoring"),
     ]

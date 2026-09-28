@@ -22,7 +22,7 @@ def test_developer_is_separate_pack_and_not_in_autoreiv():
 
     dev = platform_pack_profile("developer")
     assert dev.id == "developer"
-    assert "sdlc-engineering" in dev.allowed_skill
+    assert "implement-change" in dev.allowed_skill  # CARD-562
     assert "write_project_file" in dev.allowed_tool_names
     assert "read_project_file" in dev.allowed_tool_names
     assert "cli_exec" in dev.allowed_tool_names
@@ -109,7 +109,7 @@ def test_developer_owns_builder_tools_not_legacy_save():
     assert "capability-authoring" in dev.allowed_skill
     assert "proposals" in dev.allowed_skill
     assert "build-agent-pack" in dev.allowed_skill
-    assert "coding" in dev.allowed_skill  # CARD-550 D1 (Jacob): Developer reads and patches the checkout
+    assert "coding" not in dev.allowed_skill  # CARD-562 supersedes CARD-550 D1: active project, not the checkout
     for name in (
         "list_available_skills_and_tools",
         "propose_agent_specification",

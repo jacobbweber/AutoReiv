@@ -19,6 +19,8 @@ DEFAULT_HIGH_RISK_TOOLS: tuple[str, ...] = (
     "write_spec",
     "set_card_status",
     "write_project_file",
+    "patch_project_file",  # CARD-562
+    "run_project_checks",  # CARD-562: runs AGENTS.md commands; the unattended level (slice 4) relaxes it
     "create_project",
     "git_commit",
     "sync_card_issue",
