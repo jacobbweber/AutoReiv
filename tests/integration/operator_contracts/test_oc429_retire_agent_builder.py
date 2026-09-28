@@ -13,6 +13,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import pytest
+
 from src.domain.kernel.models import AgentProfile
 from src.domain.routines.manifests import SKILL_EVAL_SLEEP_ROUTINE
 from src.domain.settings.models import AgentCustomization
@@ -30,6 +32,7 @@ def _refuse_live(user_data: Path) -> None:
     assert ud != live and not ud.startswith(live + "/"), f"operator contracts must not use live user-data: {user_data}"
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator_client):
     client, store, wiki = operator_client
     _refuse_live(wiki.parent)
@@ -154,6 +157,7 @@ def test_oc429_boot_purges_leftover_agent_builder_row(tmp_path, monkeypatch):
     assert store.get_agent_profile("agent-builder") is None
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc429_user_modified_developer_gains_authoring_without_prompt_rewrite(operator_client):
     client, store, wiki = operator_client
     registry = client.app.state.registry

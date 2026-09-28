@@ -31,7 +31,7 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
 
         assert "agent-builder" not in agent_map
         dev = agent_map["developer"]
-        assert "propose_skill" in (dev.get("allowed_tool_names") or dev.get("allowed_tools") or [])
+        assert "run_project_checks" in (dev.get("allowed_tool_names") or dev.get("allowed_tools") or [])  # CARD-562
 
         # 2. Create agent pack and verify origin is "pack"
         custom_payload = {

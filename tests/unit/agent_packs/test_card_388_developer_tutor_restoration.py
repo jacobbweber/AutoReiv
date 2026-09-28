@@ -80,7 +80,7 @@ def test_req_388_004_skills_and_purposes():
 
     dev_profile = platform_pack_profile("developer")
     assert "implement-change" in dev_profile.allowed_skill
-    assert "cli_exec" in dev_profile.allowed_tool_names
+    assert "cli_exec" not in dev_profile.allowed_tool_names  # CARD-562: no shell/code runner on Developer
 
     tutor = load_platform_manifest("tutor")
     assert tutor.purpose == "reasoning"

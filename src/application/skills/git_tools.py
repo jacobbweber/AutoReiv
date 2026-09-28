@@ -20,6 +20,10 @@ FORBIDDEN_TOKENS = ("--no-verify", "--amend", "--force", "git config", "-c user.
 BRANCH_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
 
 
+# CARD-562: git_commit never writes to the shared branches; card work lives on a card branch.
+PROTECTED_COMMIT_BRANCHES = frozenset({"main", "master", "qa"})
+
+
 class GitTools:
     """Read git status/diff/branch and commit inside project_root only."""
 
@@ -189,6 +193,14 @@ class GitTools:
             root = self._root(project_root)
         except ProjectPathError as exc:
             return {"success": False, "error": str(exc)}
+        head = self._run(root, ["rev-parse", "--abbrev-ref", "HEAD"])
+        branch = (head.get("stdout") or "").strip() if head.get("success") else ""
+        if branch in PROTECTED_COMMIT_BRANCHES:
+            return {
+                "success": False,
+                "error": f"Refusing to commit on '{branch}'. Create the card branch first (git_create_branch), then commit there.",
+                "branch": branch,
+            }
         if paths:
             for rel in paths:
                 try:
@@ -198,6 +210,13 @@ class GitTools:
                 added = self._run(root, ["add", "--", rel])
                 if not added["success"]:
                     return {"success": False, "error": added.get("stderr") or f"git add failed for {rel}"}
+        staged = self._run(root, ["diff", "--cached", "--quiet"])
+        if staged.get("success"):  # exit 0 = nothing staged
+            return {
+                "success": False,
+                "error": "Nothing to commit: no staged changes. Pass the changed files in paths.",
+                "branch": branch,
+            }
         args = ["commit", "-m", subject]
         if (body or "").strip():
             args.extend(["-m", body.strip()])

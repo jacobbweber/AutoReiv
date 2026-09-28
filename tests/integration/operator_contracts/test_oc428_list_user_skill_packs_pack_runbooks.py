@@ -14,6 +14,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import pytest
+
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.skills.user_catalog import LIST_USER_SKILL_PACKS, render_skill_index
 from src.domain.gateway.models import ToolCall
@@ -64,6 +66,7 @@ def _listed(tools, agent):
     )
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc428_list_user_skill_packs_includes_allowlisted_pack_runbook_only(operator_client):
     """REQ-428-001 and REQ-428-002. Pack runbook is listed by name. No operator-store copy."""
     client, _store, wiki = operator_client

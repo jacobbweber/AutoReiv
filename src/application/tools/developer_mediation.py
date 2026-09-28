@@ -25,6 +25,12 @@ logger = logging.getLogger(__name__)
 PACKET_SCHEMA = "tools_studio_authoring_packet"
 PACKET_VERSION = 1
 TEMPLATE_ID = "tools_studio_developer_mediation"
+# CARD-562: tool building is parked off Developer until M25 slice 2; refuse with a clear message.
+TOOL_BUILDING_SKILL = "native-tool-engineering"
+TOOL_BUILDING_PARKED_MESSAGE = (
+    "Building tools with Developer is paused until M25 slice 2 (Developer now works project cards only). "
+    "Nothing was sent. Tick native-tool-engineering on Developer in Agent Studio to turn it back on."
+)
 DEVELOPER_AGENT_ID = "developer"
 PACKET_EVENT_KIND = "tools_studio_authoring_packet"
 TURN_EVENT_KIND = "tools_studio_developer_turn"
@@ -375,6 +381,8 @@ class ToolsDeveloperMediationService:
         profile = getter(DEVELOPER_AGENT_ID)
         if profile is None:
             raise ToolsAuthoringError("Developer agent is unavailable.", 503, ran=False)
+        if TOOL_BUILDING_SKILL not in (getattr(profile, "allowed_skill", None) or []):
+            raise ToolsAuthoringError(TOOL_BUILDING_PARKED_MESSAGE, 409, ran=False, parked=True)
         return profile
 
     def _create_job(self, packet: Mapping[str, Any], session_id: str) -> Any:

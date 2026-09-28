@@ -204,3 +204,31 @@ def move_developer_to_sdlc_skills(store: Any, agent_registry: Any, *, data_root:
     )
     logger.info("CARD-562 migration: developer skills removed=%s added=%s", removed, added)
     return {"skipped": False, "changed": changed, "removed": removed, "added": added}
+
+
+DEV_PARKED_MARKER = "developer_tool_building_parked_card562"
+DEV_PARKED_BACKUP_NAME = "card-562-developer-tool-building.json"
+# CARD-562 (Jacob, 2026-09-28): tool building moves off Developer until M25 slice 2; these skills
+# brought cli_exec/execute_code-style power that bypassed the guarded SDLC tools.
+DEV_PARKED_SKILLS = ("mcp-engineering", "native-tool-engineering", "capability-authoring", "proposals", "build-agent-pack")
+
+
+def park_developer_tool_building(store: Any, agent_registry: Any, *, data_root: Path) -> dict[str, Any]:
+    """CARD-562: once per install, untick the tool-building skills from Developer (backup + marker)."""
+    from src.application.agent_packs.skill_list import remove_skill_from_agent
+
+    if store.get_setting(DEV_PARKED_MARKER):
+        return {"skipped": True, "changed": False}
+    profile = agent_registry.get_agent("developer")
+    current = list(getattr(profile, "allowed_skill", None) or []) if profile is not None else []
+    removed = [s for s in DEV_PARKED_SKILLS if s in current]
+    if removed:
+        folder = Path(data_root) / "migrations"
+        folder.mkdir(parents=True, exist_ok=True)
+        backup = {"created_at": datetime.now(timezone.utc).isoformat(), "agent_id": "developer", "allowed_skill": current}
+        (folder / DEV_PARKED_BACKUP_NAME).write_text(json.dumps(backup, indent=2), encoding="utf-8")
+        for sid in removed:
+            remove_skill_from_agent(store, agent_registry, agent_id="developer", skill_id=sid, data_dir=Path(data_root))
+    store.set_setting(DEV_PARKED_MARKER, {"at": datetime.now(timezone.utc).isoformat(), "removed": removed})
+    logger.info("CARD-562 migration: developer tool-building skills unticked=%s", removed)
+    return {"skipped": False, "changed": bool(removed), "removed": removed}

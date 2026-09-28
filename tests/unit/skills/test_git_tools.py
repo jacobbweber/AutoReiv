@@ -27,6 +27,7 @@ def repo(tmp_path: Path) -> Path:
     (tmp_path / "hello.txt").write_text("hi\n", encoding="utf-8")
     subprocess.run(["git", "add", "hello.txt"], cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(["git", "commit", "-m", "chore: seed"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "switch", "-c", "feat/card-1-x"], cwd=tmp_path, check=True, capture_output=True)
     return tmp_path
 
 
@@ -92,3 +93,20 @@ def test_status_skip_commit_when_not_a_repo(tmp_path: Path):
     committed = skill.git_commit(subject="feat: no repo")
     assert committed["success"] is False
     assert committed.get("skip_commit") is True
+
+
+@pytest.mark.parametrize("branch", ["main", "master", "qa"])
+def test_commit_refuses_shared_branches(skill: GitTools, repo: Path, branch: str):
+    """CARD-562: git_commit never commits on main, master or qa."""
+    subprocess.run(["git", "switch", "-C", branch], cwd=repo, check=True, capture_output=True)
+    (repo / "hello.txt").write_text("changed\n", encoding="utf-8")
+    out = skill.git_commit(subject="fix(core): tweak hello", paths=["hello.txt"])
+    assert out["success"] is False and branch in out["error"] and "git_create_branch" in out["error"]
+    log = subprocess.run(["git", "log", "--oneline"], cwd=repo, capture_output=True, text=True).stdout
+    assert len(log.strip().splitlines()) == 1
+
+
+def test_commit_refuses_when_nothing_changed(skill: GitTools, repo: Path):
+    """CARD-562: no staged changes means no commit (and no empty commit)."""
+    out = skill.git_commit(subject="fix(core): nothing", paths=["hello.txt"])
+    assert out["success"] is False and "Nothing to commit" in out["error"]

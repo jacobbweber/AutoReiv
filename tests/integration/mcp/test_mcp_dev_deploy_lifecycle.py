@@ -14,6 +14,7 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 @pytest.mark.asyncio
 async def test_mcp_dev_deploy_lifecycle_end_to_end(tmp_path):
     data_dir = tmp_path / "user_data"

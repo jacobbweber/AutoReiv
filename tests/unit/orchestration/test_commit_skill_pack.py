@@ -259,6 +259,7 @@ async def test_agent_builder_tool_commits_after_approve(setup):
     assert (setup["skills_dir"] / "studio-pack" / "SKILL.md").is_file()
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 @pytest.mark.asyncio
 async def test_coding_cannot_execute_propose_skill(setup):
     registry = ScopedToolRegistry()

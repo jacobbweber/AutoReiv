@@ -167,6 +167,7 @@ export default {
       const dirty = git(root, 'status', '--porcelain', '--untracked-files=no');
       j.note(`approvals ${approvals}; branch ${branch}; commits on branch ${commits}; card ${status}; tests pass ${testsPass}; green check runs ${checksGreen}; remotes '${remotes}'; dirty '${dirty}'; tools used: ${[...new Set(tools)].join(', ')}`);
       j.note(`commit log: ${git(root, 'log', '--oneline', 'main..HEAD').replace(/\n/g, ' | ')}`);
+      if (tools.some((n) => /cli_exec|execute_code/.test(n))) throw new Error('Developer used a shell/code runner');
       if (branch === 'main' || !branch) throw new Error(`work is not on a card branch (${branch})`);
       if (!/return a \+ b/.test(calc) || !testsPass) throw new Error('add() is not fixed / node --test fails');
       if (!checksGreen) throw new Error('no green run_project_checks row');

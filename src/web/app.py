@@ -320,6 +320,13 @@ def create_app(
         move_developer_to_sdlc_skills(store, registry, data_root=data_paths.root)
     except Exception:
         logging.getLogger(__name__).exception("CARD-562 developer skills migration failed; will retry next start")
+    # Tool building is parked off Developer until M25 slice 2, once (idempotent) [CARD-562].
+    try:
+        from src.application.agent_packs.capability_migration import park_developer_tool_building
+
+        park_developer_tool_building(store, registry, data_root=data_paths.root)
+    except Exception:
+        logging.getLogger(__name__).exception("CARD-562 tool-building park migration failed; will retry next start")
     # Stored pre-CARD-520 remedy names become tool_escalation, once (idempotent) [CARD-520 D2].
     try:
         from src.application.observability.tool_escalation_migration import migrate_tool_escalation_names

@@ -17,6 +17,8 @@ import asyncio
 import os
 from pathlib import Path
 
+import pytest
+
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.safety.tool_policy_gate import _DEFAULT_REQUIRE_CONFIRM
 from src.domain.gateway.models import ToolCall
@@ -42,6 +44,7 @@ def _catalog_names(payload: dict) -> set[str]:
     return names
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc431_catalog_omits_save_and_developer_can_scaffold(operator_client):
     client, store, wiki = operator_client
     user_data = wiki.parent

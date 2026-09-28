@@ -115,10 +115,89 @@ def test_an_already_current_developer_is_untouched(tmp_path):
     assert not (tmp_path / BACKUP).exists()
 
 
-def test_cap_is_15_and_capability_authoring_fits():
-    """CARD-562: per-skill cap raised 8 -> 15 (judgment cap); capability-authoring (10 tools) no longer breaches it."""
+def test_cap_is_15_and_every_developer_skill_fits():
+    """CARD-562: per-skill cap raised 8 -> 15 (judgment cap); it equals the per-turn clamp."""
     from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN
 
     assert MAX_TOOLS_PER_SKILL == MAX_ACTIVE_TOOLS_PER_TURN == 15
-    entry = next(s for s in PACK["skills"] if s.get("id") == "capability-authoring")
-    assert 8 < len(entry["tools"]) <= MAX_TOOLS_PER_SKILL
+    assert all(len(s["tools"]) <= MAX_TOOLS_PER_SKILL for s in PACK["skills"])
+
+
+UNRESTRICTED_RUNNERS = {
+    "cli_exec", "execute_code", "shell_exec", "run_shell", "run_command", "python_exec",
+    "exec_command", "bash", "powershell", "terminal_exec",
+}
+
+
+def test_developer_never_gets_an_unrestricted_shell_or_code_runner():
+    """CARD-562 guard: Developer's resolved tools never include a shell/code runner (only AGENTS.md checks)."""
+    from tests.unit.agent_packs.catalog import platform_pack_profile
+
+    dev = platform_pack_profile("developer")
+    names = set(dev.allowed_tool_names or [])
+    assert not names & UNRESTRICTED_RUNNERS, names & UNRESTRICTED_RUNNERS
+    assert not {n for n in names if n.endswith("_exec") or "shell" in n}
+    assert {"run_project_checks", "patch_project_file", "git_create_branch", "git_commit"} <= names
+    for s in PACK["skills"]:
+        if s["id"] in PACK["allowed_skill"]:
+            assert not set(s["tools"]) & UNRESTRICTED_RUNNERS, s["id"]
+
+
+def test_tool_building_is_parked_off_developer():
+    parked = {"mcp-engineering", "native-tool-engineering", "capability-authoring", "proposals", "build-agent-pack"}
+    assert not parked & set(PACK["allowed_skill"])
+    assert "slice 2" in PACK["system_prompt"]
+
+
+def test_tools_studio_talk_refuses_clearly_when_tool_building_is_parked():
+    from types import SimpleNamespace
+
+    import pytest
+
+    from src.application.tools.developer_mediation import (
+        TOOL_BUILDING_PARKED_MESSAGE,
+        ToolsAuthoringError,
+        ToolsDeveloperMediationService,
+    )
+
+    dev = SimpleNamespace(id="developer", allowed_skill=list(PACK["allowed_skill"]))
+    registry = SimpleNamespace(get_profile=lambda aid: dev if aid == "developer" else None)
+    store = SimpleNamespace(create_session=lambda **k: pytest.fail("must not open a chat"))
+    svc = ToolsDeveloperMediationService(store=store, orchestrator=None, registry=registry)
+    with pytest.raises(ToolsAuthoringError) as exc:
+        svc.open_chat("create", {"tool_name": "x_tool", "behavior": "does x"})
+    assert exc.value.status_code == 409 and str(exc.value) == TOOL_BUILDING_PARKED_MESSAGE
+    assert "slice 2" in TOOL_BUILDING_PARKED_MESSAGE
+
+
+def test_park_migration_unticks_once_with_backup(tmp_path):
+    from src.application.agent_packs import capability_migration as cm
+
+    class Store:
+        def __init__(self):
+            self.s = {}
+
+        def get_setting(self, k):
+            return self.s.get(k)
+
+        def set_setting(self, k, v):
+            self.s[k] = v
+
+    removed = []
+    from types import SimpleNamespace
+
+    dev = SimpleNamespace(allowed_skill=["debug", "proposals", "native-tool-engineering"])
+    agents = SimpleNamespace(get_agent=lambda aid: dev)
+    import src.application.agent_packs.skill_list as sl
+
+    orig = sl.remove_skill_from_agent
+    sl.remove_skill_from_agent = lambda store, reg, *, agent_id, skill_id, data_dir: removed.append(skill_id)
+    try:
+        store = Store()
+        out = cm.park_developer_tool_building(store, agents, data_root=tmp_path)
+        again = cm.park_developer_tool_building(store, agents, data_root=tmp_path)
+    finally:
+        sl.remove_skill_from_agent = orig
+    assert set(removed) == {"proposals", "native-tool-engineering"} and out["changed"] is True
+    assert again["skipped"] is True
+    assert (tmp_path / "migrations" / cm.DEV_PARKED_BACKUP_NAME).is_file()

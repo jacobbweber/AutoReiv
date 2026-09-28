@@ -27,7 +27,7 @@ def test_developer_pack_is_restored_as_platform_pack():
     profile = platform_pack_profile("developer")
     assert profile.id == "developer"
     assert profile.show_in_chat is True
-    assert "cli_exec" in profile.allowed_tool_names
+    assert "cli_exec" not in profile.allowed_tool_names  # CARD-562: no shell/code runner on Developer
     assert "write_project_file" in profile.allowed_tool_names
     assert "implement-change" in profile.allowed_skill
 
@@ -49,8 +49,8 @@ def test_developer_carries_the_sdlc_skills():
         "read_project_file",
         "write_project_file",
         "list_project_dir",
-        "cli_exec",
-        "execute_code",
+        "run_project_checks",
+        "patch_project_file",
     }
     assert required_tools <= tools
 

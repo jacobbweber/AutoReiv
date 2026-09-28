@@ -32,7 +32,7 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 
 ## Rules
 - Edit only inside the active project, and never paths listed under AGENTS.md `## Don't touch`.
-- Throwaway scripts: run them with `execute_code`, or keep them in the OS temp folder. Never leave scratch files in the project.
+- No throwaway scripts in the project; verification runs through the AGENTS.md checks (`run_project_checks`).
 - New dependency, migration, or deleting data: ask first.
 - Keep secrets out of code and commits.
 
