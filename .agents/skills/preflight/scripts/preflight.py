@@ -40,10 +40,7 @@ JS_LINT_ROOTS = ("src/web/static/", "tests/unit/frontend/", "tests/e2e/")
 
 # Named known lint failures: (card, error count). A stage at or below the count reports KNOWN, above it fails.
 # Remove an entry when its card lands; a count of 0 then passes normally.
-KNOWN_LINT = {
-    "ruff": ("CARD-454", 7),
-    "eslint": ("CARD-456", 5),
-}
+KNOWN_LINT: dict[str, tuple[str, int]] = {}  # e.g. {"ruff": ("CARD-N", 3)}; empty since CARD-454/456
 
 
 def _run(cmd: list[str]) -> tuple[int, str, float]:
