@@ -209,6 +209,34 @@ def test_resumed_developer_run_writes_the_git_outcome_onto_the_hand_off_row(setu
     assert "Card status: In Review" in row.content and "Developer conversation: sess-arch_child_abcd1234" in row.content
 
 
+class _FlakyKernel:
+    """First call: an empty model reply (as Nimo did live); the nudged retry does the work."""
+
+    def __init__(self, work):
+        self.work, self.calls = work, []
+
+    async def stream_turn(self, agent, session_id, user_content=None, approval_mode="ask", resume=False):
+        self.calls.append((user_content, resume))
+        if len(self.calls) == 1:
+            yield SimpleNamespace(event_type="error", content="The model returned an empty reply.", is_finished=True)
+            return
+        self.work()
+        yield SimpleNamespace(event_type="turn_end", content="In Review now.", is_finished=True)
+
+
+def test_an_empty_developer_reply_is_nudged_once_then_the_run_finishes(setup):
+    call = ToolCall(id="tc-9", name="hand_off_card", arguments={"card_id": "CARD-2"})
+    store = _Store([ChatMessage(role=Role.ASSISTANT, content="", tool_calls=[call])])
+    registry = SimpleNamespace(get_agent=lambda aid: SimpleNamespace(id=aid), get_profile=lambda aid: None)
+    kernel = _FlakyKernel(lambda: _run_sync_fake(setup))
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
+    CardHandoffTools(root_resolver=lambda _=None: setup.repo, card_tools=setup.cards, handoff_engine=engine)
+    res = _run(engine.resume_nested_child("sess-arch_child_abcd1234", parent_session_id="sess-arch", agent_id="developer"))
+    assert res["status"] == "completed" and len(kernel.calls) == 2
+    assert kernel.calls[1][0].startswith("Your last reply was empty") and kernel.calls[1][1] is False
+    assert "Card status: In Review" in store.saved[-1][1].content
+
+
 def _run_sync_fake(setup):
     asyncio.get_event_loop  # noqa: B018 - keep the fake synchronous
     token = tr._tool_context.set({"agent_id": "developer"})

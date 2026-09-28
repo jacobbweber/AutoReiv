@@ -129,6 +129,33 @@ async def _iter_kernel_stream(fn, kwargs) -> AsyncIterator[Any]:
         yield ev
 
 
+CHILD_CONTINUE_NUDGE = "Your last reply was empty. Continue the task from where you stopped."
+
+
+def _is_empty_reply_error(ev: Any) -> bool:
+    from src.application.kernel.empty_reply import EMPTY_REPLY_MESSAGE
+
+    ev_type = getattr(ev, "event_type", None)
+    return getattr(ev_type, "value", ev_type) == "error" and str(getattr(ev, "content", "") or "") == EMPTY_REPLY_MESSAGE
+
+
+async def _stream_with_empty_retry(fn, kwargs) -> AsyncIterator[Any]:
+    """A child turn that ends in an empty model reply is nudged once to continue [CARD-563]; one flake no longer
+    ends a whole card run. A second empty reply is passed on as the error it is."""
+    kw = dict(kwargs)
+    for attempt in range(2):
+        empty = False
+        async for ev in _iter_kernel_stream(fn, kw):
+            if attempt == 0 and _is_empty_reply_error(ev):
+                empty = True
+                continue
+            yield ev
+        if not empty:
+            return
+        logger.info("Child %s returned an empty reply; nudging it to continue once", kw.get("session_id"))
+        kw = {**kw, "user_content": CHILD_CONTINUE_NUDGE, "resume": False}
+
+
 class HandoffIsolationEngine:
     """
     Executes subagent handoffs within isolated conversation contexts,
@@ -378,7 +405,7 @@ class HandoffIsolationEngine:
             error_text = None
             turns_taken = 1
 
-            async for ev in _iter_kernel_stream(stream_fn, turn_kwargs):
+            async for ev in _stream_with_empty_retry(stream_fn, turn_kwargs):
                 ev_type = getattr(ev, "event_type", None)
                 ev_val = getattr(ev_type, "value", ev_type)
                 if on_event and ev_val not in ("handoff_start", "handoff_complete"):
@@ -537,16 +564,20 @@ class HandoffIsolationEngine:
 
         parked = None
         summary = ""
+        child_error = ""
         try:
             if hasattr(exec_kernel, "stream_turn"):
-                async for ev in exec_kernel.stream_turn(
-                    agent=profile,
-                    session_id=child_session_id,
-                    user_content=None,
-                    approval_mode=approval_mode or "ask",
-                    resume=True,
-                ):
+                resume_kwargs = {
+                    "agent": profile,
+                    "session_id": child_session_id,
+                    "user_content": None,
+                    "approval_mode": approval_mode or "ask",
+                    "resume": True,
+                }
+                async for ev in _stream_with_empty_retry(exec_kernel.stream_turn, resume_kwargs):
                     ev_type = getattr(ev, "event_type", None)
+                    if getattr(ev_type, "value", ev_type) == "error":
+                        child_error = str(getattr(ev, "content", "") or "error")
                     if ev_type == KernelEventType.APPROVAL_REQUIRED or getattr(ev_type, "value", ev_type) == "approval_required":
                         tool_call = getattr(ev, "tool_call", None) or {}
                         parked = {
@@ -601,20 +632,22 @@ class HandoffIsolationEngine:
             )
             return {"status": "approval_required", "parked": payload, "summary": payload["message"]}
 
+        status = "failed" if child_error else "completed"
         content = (
-            f"=== Subagent Handoff Completed ({profile.id}) ===\n"
-            f"Status: completed\n"
-            f"Conclusion:\n{summary}"
+            f"=== Subagent Handoff {'Failed' if child_error else 'Completed'} ({profile.id}) ===\n"
+            f"Status: {status}\n"
+            f"Conclusion:\n{child_error or summary}"
         )
         _tcid, parent_tool, parent_args = self._parent_handoff_call(parent_id)
         hook = self.parent_tool_outcomes.get(parent_tool or "")
         if hook is not None:
             try:  # CARD-563: the outcome is read from git and the card, not the child's claim
-                content = hook(parent_args, child_session_id) + "\n\nDeveloper's own summary:\n" + summary
+                tail = f"Developer stopped with an error: {child_error}" if child_error else f"Developer's own summary:\n{summary}"
+                content = hook(parent_args, child_session_id) + "\n\n" + tail
             except Exception:
                 logger.exception("Parent outcome hook failed for %s", parent_tool)
         self._write_parent_handoff_tool(parent_id=parent_id, agent_id=profile.id, content=content)
-        return {"status": "completed", "summary": summary}
+        return {"status": status, "summary": child_error or summary}
 
     def _parent_handoff_call(self, parent_id: Optional[str]) -> tuple[Optional[str], Optional[str], dict]:
         """(tool_call_id, tool name, arguments) of the parent's latest handoff tool call."""
