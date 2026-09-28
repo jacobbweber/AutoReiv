@@ -129,7 +129,8 @@ class GitTools:
         base: Optional[str] = None,
         project_root: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Create and switch to a new branch from base [CARD-562]; never forces.
+        """Create and switch to a new branch from base [CARD-562]; never forces. An existing branch is switched to
+        when the tree has no uncommitted tracked changes (CARD-564: rework a Returned card on its branch).
 
         Uncommitted changes are carried onto the new branch when it starts at the current HEAD
         (``git switch -c`` keeps the working tree). A dirty tree only refuses when the base is a
@@ -151,11 +152,26 @@ class GitTools:
         if exists:
             if current == clean:
                 return {"success": True, "project_root": str(root), "branch": clean, "created": False}
-            return {
-                "success": False,
-                "error": f"Branch '{clean}' already exists. Switching to it is not done by this tool.",
-                "project_root": str(root),
-            }
+            if clean in PROTECTED_COMMIT_BRANCHES or clean == self._contract_base(root):
+                return {
+                    "success": False,
+                    "error": f"Branch '{clean}' already exists and is the base branch, not a card branch. "
+                    "Switching to it is not done by this tool.",
+                    "project_root": str(root),
+                }
+            if tracked:
+                return {
+                    "success": False,
+                    "error": f"Branch '{clean}' already exists and there are uncommitted changes; switching could mix "
+                    "them. Commit or ask the operator first.",
+                    "changes": tracked[:20],
+                    "project_root": str(root),
+                }
+            # CARD-564: a Returned card is reworked on its existing branch; switch to it (never create, force or reset).
+            switched = self._run(root, ["switch", clean])
+            if not switched["success"]:
+                return {"success": False, "error": switched.get("stderr") or "git switch failed", "project_root": str(root)}
+            return {"success": True, "project_root": str(root), "branch": clean, "created": False, "switched": True}
         start = (base or "").strip() or self._contract_base(root) or current or "HEAD"
         if not BRANCH_NAME.match(start) and start != "HEAD":
             return {"success": False, "error": f"Invalid base '{start}'."}

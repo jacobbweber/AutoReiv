@@ -7,6 +7,7 @@ Child path uses stream_turn with a HandoffPacket user message [REQ-ORCH-036, REQ
 import inspect
 import json
 import logging
+import re
 from typing import Any, AsyncIterator, Callable, Optional
 
 from src.domain.agents.profiles import canonical_agent_id
@@ -130,6 +131,13 @@ async def _iter_kernel_stream(fn, kwargs) -> AsyncIterator[Any]:
 
 
 CHILD_CONTINUE_NUDGE = "Your last reply was empty. Continue the task from where you stopped."
+CHILD_MALFORMED_NUDGE = (
+    "Your last reply could not be read (the provider could not parse the tool call). Continue the task from where you "
+    "stopped, one tool call at a time."
+)
+# CARD-564: the model's tool call was malformed and the provider failed to parse it (seen on Nimo/Ollama:
+# "XML syntax error ... element <function> closed by </parameter>"). One sampling flake, like an empty reply.
+_MALFORMED_TOOL_CALL = re.compile(r"stream error:.*(xml syntax error|failed to parse|error parsing tool call)", re.I)
 
 
 def _is_empty_reply_error(ev: Any) -> bool:
@@ -139,21 +147,34 @@ def _is_empty_reply_error(ev: Any) -> bool:
     return getattr(ev_type, "value", ev_type) == "error" and str(getattr(ev, "content", "") or "") == EMPTY_REPLY_MESSAGE
 
 
+def _retry_nudge(ev: Any) -> str:
+    """The nudge for a child error worth one retry (empty reply, malformed tool call), or ''."""
+    if _is_empty_reply_error(ev):
+        return CHILD_CONTINUE_NUDGE
+    ev_type = getattr(ev, "event_type", None)
+    if getattr(ev_type, "value", ev_type) == "error" and _MALFORMED_TOOL_CALL.search(str(getattr(ev, "content", "") or "")):
+        return CHILD_MALFORMED_NUDGE
+    return ""
+
+
 async def _stream_with_empty_retry(fn, kwargs) -> AsyncIterator[Any]:
-    """A child turn that ends in an empty model reply is nudged once to continue [CARD-563]; one flake no longer
-    ends a whole card run. A second empty reply is passed on as the error it is."""
+    """A child turn that ends in an empty model reply (CARD-563) or a tool call the provider could not parse
+    (CARD-564) is nudged once to continue; one flake no longer ends a whole card run. A second one is passed on."""
     kw = dict(kwargs)
     for attempt in range(2):
-        empty = False
+        nudge = ""
         async for ev in _iter_kernel_stream(fn, kw):
-            if attempt == 0 and _is_empty_reply_error(ev):
-                empty = True
-                continue
+            if attempt == 0 and not nudge:
+                nudge = _retry_nudge(ev)
+                if nudge:
+                    continue
+            if nudge and attempt == 0:
+                continue  # nothing useful follows the error in this attempt
             yield ev
-        if not empty:
+        if not nudge:
             return
-        logger.info("Child %s returned an empty reply; nudging it to continue once", kw.get("session_id"))
-        kw = {**kw, "user_content": CHILD_CONTINUE_NUDGE, "resume": False}
+        logger.info("Child %s hit a retryable model flake; nudging it to continue once", kw.get("session_id"))
+        kw = {**kw, "user_content": nudge, "resume": False}
 
 
 class HandoffIsolationEngine:

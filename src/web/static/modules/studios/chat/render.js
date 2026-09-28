@@ -9,6 +9,7 @@ import { copyToClipboard } from '../../utils/clipboard.js';
 import { renderAgentHandoffCardHtml } from './stream.js';
 import { adoptResultMessage, adoptedBannerHtml } from './adopt_message.js';
 import { readToolEscalation } from '../tool_escalation.js';
+import { renderCardToolRow } from './card_rows.js';
 
 export * from './journey.js';
 
@@ -622,21 +623,8 @@ export function renderMessageItem(msg, _idx, _allMessages, {
       return;
     }
 
-    // Card hand-off outcome [CARD-563]: shown in full, read from git and the card by hand_off_card.
-    if (msg.name === 'hand_off_card' && typeof msg.content === 'string' && msg.content.startsWith('=== Hand-off')) {
-      const refused = msg.content.startsWith('=== Hand-off refused');
-      const el = document.createElement('div');
-      el.className = 'flex justify-start w-full my-1.5';
-      el.setAttribute('data-hand-off-outcome', refused ? 'refused' : 'outcome');
-      el.innerHTML = `
-        <div class="max-w-2xl w-full rounded-xl bg-indigo-950/40 border ${refused ? 'border-rose-500/40' : 'border-indigo-500/30'} p-3 text-xs text-indigo-100 shadow-sm">
-          <div class="font-semibold mb-1 ${refused ? 'text-rose-300' : 'text-indigo-300'}">${refused ? 'Hand-off to Developer refused' : 'Hand-off to Developer'}</div>
-          <pre class="whitespace-pre-wrap font-mono text-[11px] text-slate-200">${escapeHtml(msg.content)}</pre>
-        </div>
-      `;
-      messagesContainer.appendChild(el);
-      return;
-    }
+    // Card hand-off outcome [CARD-563] and card review rows [CARD-564]: tool-read results shown as cards.
+    if (renderCardToolRow(msg, messagesContainer)) return;
 
     // Agent Pack Creation Result [CARD-197, REQ-FACT-048]
     if (msg.name === 'scaffold_agent_pack') {

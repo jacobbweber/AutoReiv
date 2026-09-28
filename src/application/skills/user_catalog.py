@@ -328,10 +328,20 @@ class UserSkillCatalog:
         """Tool handler: load SKILL.md body for one allowed runbook."""
         allowed = self._allowed_skill_ids_for_current_agent()
         if allowed is not None and pack_id not in allowed:
-            return {
-                "success": False,
-                "error": f"Skill '{pack_id}' is not allowed for this agent.",
+            # CARD-564: models often pass the skill's display name ("Review Developer's Work"); map it to its id.
+            agent_id = self._chat_agent_id()
+            by_name = {
+                str((self.pack_skill_index_entry(sid, agent_id=agent_id) or ("",))[0]).strip().lower(): sid
+                for sid in allowed
             }
+            match = by_name.get(str(pack_id or "").strip().lower())
+            if not match:
+                return {
+                    "success": False,
+                    "error": f"Skill '{pack_id}' is not allowed for this agent. Use one of these ids: "
+                    + ", ".join(sorted(allowed)) + ".",
+                }
+            pack_id = match
         loaded = self.load_body(pack_id)
         if loaded.get("success"):
             self.record_pack_use(pack_id)

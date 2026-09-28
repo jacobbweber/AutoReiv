@@ -60,9 +60,9 @@ def test_architect_does_not_edit_cards_developer_is_working_or_waiting_review(ca
     [
         ("CARD-3", "Ready", True, ""),
         ("CARD-2", "Proposed", True, ""),
-        ("CARD-1", "Done", False, "review is slice 3"),
-        ("CARD-5", "Done", False, "review is slice 3"),
-        ("CARD-5", "Returned", False, "review is slice 3"),
+        ("CARD-1", "Done", False, "finish_review"),
+        ("CARD-5", "Done", False, "finish_review"),
+        ("CARD-5", "Returned", False, "finish_review"),
         ("CARD-2", "In Progress", False, "use hand_off_card"),
     ],
 )

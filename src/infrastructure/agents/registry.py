@@ -377,11 +377,12 @@ class BuiltinAgentRegistry:
         github_tools.register_tools(tool_registry)
         from src.application.skills.project_dev_tools import ProjectDevTools
 
-        ProjectDevTools(
+        project_dev_tools = ProjectDevTools(
             root_resolver=projects_service.selected_or_refuse,
             card_tools=card_tools,
             selected_info=projects_service.get_selected,
-        ).register_tools(tool_registry)
+        )
+        project_dev_tools.register_tools(tool_registry)
         agent_registry.projects_service = projects_service
         from src.application.skills.card_handoff_tools import CardHandoffTools
 
@@ -390,6 +391,13 @@ class BuiltinAgentRegistry:
             card_tools=card_tools,
             handoff_engine=handoff_engine,
             agent_registry=agent_registry,
+        ).register_tools(tool_registry)
+        from src.application.skills.card_review_tools import CardReviewTools
+
+        CardReviewTools(  # CARD-564: Architect reviews In Review cards (Done / Returned)
+            root_resolver=projects_service.selected_or_refuse,
+            card_tools=card_tools,
+            dev_tools=project_dev_tools,
         ).register_tools(tool_registry)
 
         # 12b. Agent Private Storage Tools [CARD-148, REQ-STORAGE-003]
