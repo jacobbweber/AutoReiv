@@ -25,7 +25,8 @@ from src.domain.skills.contract import (
 
 logger = logging.getLogger(__name__)
 
-MAX_TOOLS_PER_SKILL = 6
+# Matches the runtime per-turn clamp (agent_kernel.MAX_ACTIVE_TOOLS_PER_TURN, ADR-0061 rule 4) [CARD-454].
+MAX_TOOLS_PER_SKILL = 8
 MAX_RUNBOOK_BODY_CHARS = 8000
 
 HIGH_RISK_TOOLS: frozenset[str] = frozenset(
@@ -92,7 +93,7 @@ class SkillContractCompiler:
             path=path_str or None,
         )
 
-        # Rule CAP-001: Tool Entropy Budget Cap (len(requires_tools) <= 6) [REQ-CAP-LINT-001]
+        # Rule CAP-001: Tool Entropy Budget Cap (len(requires_tools) <= MAX_TOOLS_PER_SKILL) [REQ-CAP-LINT-001]
         if len(contract.requires_tools) > MAX_TOOLS_PER_SKILL:
             violations.append(
                 LintViolation(

@@ -51,8 +51,8 @@ Procedural guidelines for inspecting code safely.
     assert len(errors) == 0
 
 
-def test_compiler_rejects_more_than_6_tools_cap_001():
-    """Rule CAP-001: len(requires_tools) <= 6 to preserve Rule of 7 headroom [REQ-CAP-LINT-001]."""
+def test_compiler_rejects_more_than_8_tools_cap_001():
+    """Rule CAP-001: len(requires_tools) <= 8, the runtime per-turn clamp [REQ-CAP-LINT-001, CARD-454]."""
     raw = """---
 name: Bloated Skill
 description: Too many tools declared.
@@ -64,6 +64,8 @@ requires_tools:
   - tool_5
   - tool_6
   - tool_7
+  - tool_8
+  - tool_9
 verification:
   kind: command
   rule: pytest
@@ -76,8 +78,16 @@ verification:
     cap_001 = [v for v in violations if v.rule_id == "CAP-001"]
     assert len(cap_001) == 1
     assert cap_001[0].severity == LintSeverity.ERROR
-    assert "7 tools declared" in cap_001[0].message
-    assert "maximum allowed is 6" in cap_001[0].message
+    assert "9 tools declared" in cap_001[0].message
+    assert "maximum allowed is 8" in cap_001[0].message
+
+
+def test_skill_tool_cap_matches_the_runtime_per_turn_clamp():
+    """CARD-454: a skill may declare exactly as many tools as the kernel mounts per turn."""
+    from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN
+    from src.application.skills.linter import MAX_TOOLS_PER_SKILL
+
+    assert MAX_TOOLS_PER_SKILL == MAX_ACTIVE_TOOLS_PER_TURN == 8
 
 
 def test_compiler_rejects_missing_verification_cap_002():
@@ -225,7 +235,7 @@ verification:
     (bad_dir / "SKILL.md").write_text(
         """---
 name: Bad Skill
-description: Missing verification and 7 tools.
+description: Missing verification and 9 tools.
 requires_tools:
   - t1
   - t2
@@ -234,6 +244,8 @@ requires_tools:
   - t5
   - t6
   - t7
+  - t8
+  - t9
 ---
 # Bad
 """,
@@ -249,7 +261,6 @@ requires_tools:
     assert report.passed is False
 
 
-@pytest.mark.xfail(strict=True, reason="CARD-454: platform pack fails mechanical linter")
 def test_platform_packs_all_pass_mechanical_linter():
     """Verify all shipped platform seed skills pass the mechanical linter cleanly [REQ-CAP-LINT-001..004]."""
     from pathlib import Path
@@ -338,6 +349,8 @@ requires_tools:
   - t5
   - t6
   - t7
+  - t8
+  - t9
 ---
 # Bad
 """,
@@ -435,6 +448,8 @@ requires_tools:
   - t5
   - t6
   - t7
+  - t8
+  - t9
 ---
 # Bad Contract
 """,

@@ -1,7 +1,7 @@
 ---
 name: Due Review (SRS + Retention Routine)
 description: Surface and complete due mastery / SRS reviews and optionally run the retention routine from Tutor education mode.
-version: 1.1.0
+version: 1.2.0
 tier: platform
 requires_tools:
   - education_due_review_list
@@ -11,9 +11,6 @@ requires_tools:
   - education_quiz_grade
   - education_flashcard_grade
   - wiki_note_read
-  - wiki_note_search
-  - wiki_note_list
-  - wiki_template_list
 safety:
   read_only: false
   requires_hitl: false
@@ -45,7 +42,7 @@ Surface due reviews and complete them with durable Learning OS grading from Tuto
 | `education_quiz_grade` / `education_flashcard_grade` | Shared grade path (CARD-438) | `POST /api/education/quiz/grade` |
 | `education_retention_run` | Retention routine (due -> standing Jobs) | `POST /api/education/retention/run` |
 
-Supporting Wiki tools: `wiki_note_read`, `wiki_note_search`, `wiki_note_list`, `wiki_template_list`.
+Supporting Wiki tool: `wiki_note_read` (show a due item's source note). Search/list/template tools come from sibling Tutor skills (CARD-454: 7-tool budget).
 
 ## Durable contracts
 
