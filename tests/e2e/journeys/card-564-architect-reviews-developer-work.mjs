@@ -232,7 +232,7 @@ export default {
       const returned = toolRow('finish_review', /^=== Review Returned: CARD-3/, from);
       const anyVerdict = toolRow('finish_review', /^=== Review (Returned|Done)/, from);
       const r = await ask(page, streams,
-        'Review CARD-3 against its acceptance criteria and record your verdict. Do not hand it back to Developer yet.',
+        'Please review CARD-3 and record your verdict. Do not hand it back to Developer yet.',
         async () => (await anyVerdict()), 1500000, { approve: false });
       const rows = await rowsOf(request, base, sid);
       const text = cardText();
