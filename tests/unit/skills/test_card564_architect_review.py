@@ -176,3 +176,24 @@ def test_hand_off_card_takes_a_returned_card_back_with_the_review_directive(s):
         (s.root / ".agents/cards/CARD-2-c2.md").write_text(_card("Returned", "review_rounds: 3\n"))
         refused, _, _ = tool.refusal("CARD-2", "architect")
         assert "Bring it to Jacob" in refused
+
+
+def test_a_malformed_tool_call_from_the_provider_is_nudged_once():
+    """CARD-564 r4: Nimo/Ollama failed to parse a tool call mid hand-off; one retry instead of ending the card run."""
+    from src.application.orchestration.handoff_engine import CHILD_MALFORMED_NUDGE, _stream_with_empty_retry
+
+    calls = []
+
+    async def stream(user_content=None, resume=False, **_):
+        calls.append(user_content)
+        if len(calls) == 1:
+            yield SimpleNamespace(event_type="error", is_finished=True, content="[ollama] Ollama stream error: XML syntax "
+                                  "error on line 5: element <function> closed by </parameter>")
+            return
+        yield SimpleNamespace(event_type="turn_end", content="In Review now.", is_finished=True)
+
+    async def collect():
+        return [ev async for ev in _stream_with_empty_retry(stream, {"user_content": "go", "resume": False})]
+
+    events = asyncio.run(collect())
+    assert calls == ["go", CHILD_MALFORMED_NUDGE] and [e.event_type for e in events] == ["turn_end"]
