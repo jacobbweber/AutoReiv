@@ -10,7 +10,7 @@ from tests.unit.agent_packs.catalog import load_platform_manifest, platform_pack
 
 PLANNING = {
     "active_project_info", "read_project_file", "search_project", "list_project_dir", "read_steering",
-    "list_cards", "read_card", "write_card", "set_card_status", "hand_off_card",
+    "list_cards", "read_card", "write_card", "set_card_status", "hand_off_card", "review_card", "finish_review",
 }
 FORBIDDEN = {
     "write_project_file", "patch_project_file", "run_project_checks", "git_commit", "git_create_branch",
@@ -22,7 +22,7 @@ def test_architect_is_seeded_shown_and_on_the_default_model():
     m = load_platform_manifest("architect")
     assert "architect" in ALL_PLATFORM_PACK_IDS
     assert m.model == "default" and m.provider == "default" and m.show_in_chat
-    assert list(m.allowed_skill) == ["project-orientation", "brainstorm", "card-writing", "hand-off"]
+    assert list(m.allowed_skill) == ["project-orientation", "brainstorm", "card-writing", "hand-off", "review"]
 
 
 def test_architect_tools_are_the_planning_set():
@@ -56,3 +56,13 @@ def test_hand_off_card_asks_every_time_even_in_run_mode():
         approval_mode="run", log=False,
     )
     assert res is not None and res.error == "approval_required:ap-1"
+
+
+def test_review_verdict_needs_no_click_but_hand_off_still_asks():
+    """CARD-564 D1: review_card and finish_review run without approval; hand_off_card still asks once."""
+    gate = ToolPolicyGate(_Store())
+    arch = platform_pack_profile("architect")
+    for name in ("review_card", "finish_review"):
+        call = ToolCall(id="1", name=name, arguments={"card_id": "CARD-2"})
+        assert gate.evaluate(call, arch).verdict == ToolPolicyVerdict.ALLOW, name
+    assert "review_card" not in set(resolve_allowed_tools(platform_pack_profile("developer")).ordered)

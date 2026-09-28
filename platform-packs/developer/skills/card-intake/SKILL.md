@@ -31,6 +31,11 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 3. Create the card branch FIRST, before any card status change or edit: `git_create_branch` (name from AGENTS.md `## Branches`, e.g. `feat/card-<n>-<slug>`; omit base to branch from the current HEAD).
 4. Only then `set_card_status` to `In Progress`.
 
+## Returned card (review notes)
+1. Read the latest `### Round N - Returned` under `## Review`: every note is a required change.
+2. Stay on the existing card branch: `git_create_branch` with the branch named in the card's Evidence switches to it (it never creates a second branch for the card).
+3. `set_card_status` Returned -> In Progress, address each note (commit on the card branch), then hand in as below. The Evidence is rewritten for the new HEAD; the review rounds stay on the card.
+
 ## Hand in (definition of done, in this order)
 1. Every acceptance criterion is met and the code change is committed on the card branch (skill git-workflow).
 2. `run_project_checks` (full, or fast if AGENTS.md has no full) returns `passed: true`. Never set In Review without a green run in this chat.

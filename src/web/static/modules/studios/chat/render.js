@@ -638,6 +638,34 @@ export function renderMessageItem(msg, _idx, _allMessages, {
       return;
     }
 
+    // Card review [CARD-564]: the review packet (collapsed; it holds the diff) and the verdict, both read by the tools.
+    if ((msg.name === 'review_card' || msg.name === 'finish_review') && typeof msg.content === 'string' && msg.content.startsWith('=== ')) {
+      const text = msg.content;
+      const kind = /^=== (Review|Verdict) refused/.test(text) ? 'refused'
+        : text.startsWith('=== Review packet') ? 'packet'
+          : text.startsWith('=== Review Done') ? 'done'
+            : text.startsWith('=== Review Returned') ? 'returned' : 'other';
+      const title = { refused: 'Review refused', packet: 'Review packet (diff, commits, checks)', done: 'Review: Done',
+        returned: 'Review: Returned to Developer', other: 'Review' }[kind];
+      const tone = { refused: 'border-rose-500/40 text-rose-300', done: 'border-emerald-500/40 text-emerald-300',
+        returned: 'border-amber-500/40 text-amber-300', packet: 'border-indigo-500/30 text-indigo-300',
+        other: 'border-indigo-500/30 text-indigo-300' }[kind];
+      const [border, color] = tone.split(' ');
+      const head = escapeHtml(text.split('\n')[0]);
+      const body = `<pre class="whitespace-pre-wrap font-mono text-[11px] text-slate-200">${escapeHtml(text)}</pre>`;
+      const el = document.createElement('div');
+      el.className = 'flex justify-start w-full my-1.5';
+      el.setAttribute('data-card-review', kind);
+      el.innerHTML = `
+        <div class="max-w-2xl w-full rounded-xl bg-indigo-950/40 border ${border} p-3 text-xs text-indigo-100 shadow-sm">
+          <div class="font-semibold mb-1 ${color}">${title}</div>
+          ${kind === 'packet' ? `<details><summary class="cursor-pointer text-slate-300">${head}</summary>${body}</details>` : body}
+        </div>
+      `;
+      messagesContainer.appendChild(el);
+      return;
+    }
+
     // Agent Pack Creation Result [CARD-197, REQ-FACT-048]
     if (msg.name === 'scaffold_agent_pack') {
       let data;

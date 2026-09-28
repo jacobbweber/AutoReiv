@@ -25,7 +25,7 @@ SPEC_FILENAMES = ("requirements.md", "design.md", "tasks.md")
 DEVELOPER_TRANSITIONS = frozenset(
     {("Ready", "In Progress"), ("In Progress", "In Review"), ("Returned", "In Progress")}
 )
-# CARD-563: Architect plans cards; review (Done / Returned) is slice 3.
+# CARD-563: Architect plans cards. Its review verdict (Done / Returned) goes through finish_review (CARD-564).
 ARCHITECT_TRANSITIONS = frozenset({("Discuss", "Ready"), ("Proposed", "Ready"), ("Ready", "Proposed")})
 ARCHITECT_NEW_STATUSES = ("Proposed", "Ready")
 ARCHITECT_LOCKED_STATUSES = ("In Progress", "In Review")
@@ -58,6 +58,21 @@ def _slug(title: str) -> str:
 EVIDENCE_AUTO_HEADER = "Recorded by set_card_status (In Review):"
 
 
+def _drop_auto_evidence(section: str) -> str:
+    """Remove an earlier tool-written evidence block (header plus its '- ' lines) from an Evidence section."""
+    out: List[str] = []
+    skipping = False
+    for line in section.split("\n"):
+        if line.strip() == EVIDENCE_AUTO_HEADER:
+            skipping = True
+            continue
+        if skipping and line.strip().startswith("- "):
+            continue
+        skipping = False
+        out.append(line)
+    return "\n".join(out)
+
+
 def insert_evidence(card: str, lines: List[str]) -> str:
     """Put the tool's evidence first in ## Evidence (or ## Results), keeping what the model already wrote below it."""
     block = EVIDENCE_AUTO_HEADER + "\n" + "\n".join(lines) + "\n"
@@ -67,7 +82,7 @@ def insert_evidence(card: str, lines: List[str]) -> str:
         return text + "\n## Evidence\n\n" + block
     nxt = re.search(r"(?m)^##\s+", text[m.end():])
     end = m.end() + nxt.start() if nxt else len(text)
-    existing = text[m.end():end].strip("\n")
+    existing = _drop_auto_evidence(text[m.end():end]).strip("\n")  # CARD-564: a new round replaces the old block
     body = "\n\n" + block + (("\n" + existing + "\n") if existing.strip() else "")
     return text[: m.end()] + body + ("\n" if nxt else "") + text[end:]
 
@@ -396,9 +411,17 @@ class CardTools:
         target_n = normalize_status(status)
         actor = str(get_tool_context().get("agent_id") or "").lower()
         passed_through = ""
-        if actor == "developer" and target_n == "In Review" and normalize_status(fm.status) == "Ready":
-            fm.status = "In Progress"  # CARD-562: Ready -> In Review goes through In Progress in one call
-            passed_through = "Ready -> In Progress -> In Review"
+        if actor == "developer" and target_n == "In Review" and normalize_status(fm.status) in ("Ready", "Returned"):
+            # CARD-562: Ready -> In Review goes through In Progress in one call (CARD-564: also Returned, same round rule)
+            start = normalize_status(fm.status)
+            ok, err = self._machine.validate(
+                start, "In Progress", spec_exists=spec_exists, review_rounds=fm.review_rounds,
+                max_review_rounds=fm.max_review_rounds,
+            )
+            if not ok:
+                return {"success": False, "error": err, "id": extract_card_id(path.name, content), "status": fm.status}
+            fm.status = "In Progress"
+            passed_through = f"{start} -> In Progress -> In Review"
         if actor == "developer" and (normalize_status(fm.status), target_n) not in DEVELOPER_TRANSITIONS:
             return {
                 "success": False,
@@ -412,7 +435,8 @@ class CardTools:
             return {
                 "success": False,
                 "error": (
-                    f"Architect does not set {target_n}: review is slice 3 (CARD-564). Jacob reviews In Review cards."
+                    f"Architect does not set {target_n} with set_card_status: review the card with review_card, "
+                    "then record the verdict with finish_review (Done or Returned, with the written review)."
                     if review
                     else "Architect may move a card Discuss/Proposed -> Ready or Ready -> Proposed only; "
                     "Developer moves it on from Ready (use hand_off_card)."
@@ -527,14 +551,14 @@ class CardTools:
             )
         return ""
 
-    def _commit_card(self, root: Path, path: Path, card_id: str) -> Dict[str, Any]:
+    def _commit_card(self, root: Path, path: Path, card_id: str, message: str = "") -> Dict[str, Any]:
         """Commit only the card file with a conventional message; return the commit id for the evidence."""
         from src.application.sdlc.check_record import NO_GIT_HEAD, git_head, run_git
 
         if git_head(root) == NO_GIT_HEAD:
             return {"success": True, "commit": None, "note": "Not a git repository: nothing committed."}
         rel = path.resolve().relative_to(root.resolve()).as_posix()
-        message = f"docs(card): {card_id or path.stem} In Review"
+        message = message or f"docs(card): {card_id or path.stem} In Review"
         added = run_git(root, ["add", "--", rel])
         if added.returncode != 0:
             return {"success": False, "error": f"git add failed for {rel}: {added.stderr.strip()}"}

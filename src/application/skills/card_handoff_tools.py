@@ -1,4 +1,4 @@
-"""hand_off_card: the one way Architect starts Developer on a Ready card [CARD-563].
+"""hand_off_card: the one way Architect starts Developer on a Ready (or Returned, CARD-564) card [CARD-563].
 
 Every rule lives here, not in skill text: a selected project, a Ready card in it, Architect as the caller, no other
 card In Progress, and a Developer to hand to. Developer gets a fixed directive and the card id only (the card is the
@@ -20,7 +20,12 @@ ARCHITECT_ID = "architect"
 CARD_HANDOFF_PAYLOAD_KEY = "card_handoff"
 
 
-def card_directive(card_id: str) -> str:
+def card_directive(card_id: str, returned: bool = False) -> str:
+    if returned:  # CARD-564: a Returned card goes back to Developer with the review notes on the card
+        return (
+            f"Card {card_id} was Returned by review. Address every note in its latest ## Review round on the existing "
+            "card branch and bring it back to In Review in the active project."
+        )
     return f"Work card {card_id} to In Review in the active project."
 
 
@@ -101,12 +106,13 @@ class CardHandoffTools:
         registry.register_tool(
             name=HAND_OFF_TOOL,
             description=(
-                "Hand a Ready card in the active project to Developer, who works it to In Review on a card branch. "
+                "Hand a Ready card (or a Returned card, to address the review notes) in the active project to "
+                "Developer, who works it to In Review on the card branch. "
                 "Asks Jacob to approve, then waits for Developer and returns the outcome read from git and the card."
             ),
             parameters={
                 "type": "object",
-                "properties": {"card_id": {"type": "string", "description": "The Ready card, e.g. CARD-2."}},
+                "properties": {"card_id": {"type": "string", "description": "The Ready or Returned card, e.g. CARD-2."}},
                 "required": ["card_id"],
             },
             handler=self.hand_off_card,
@@ -139,11 +145,19 @@ class CardHandoffTools:
             path = self._card_tools._find_card_path(root, card_id=cid)
         except (FileNotFoundError, ProjectPathError):
             return f"{cid} is not a card in the active project ({root.name}). list_cards shows the cards here.", root, cid
-        status = normalize_status(parse_card_frontmatter(path.read_text(encoding="utf-8")).status or "")
-        if status != "Ready":
+        fm = parse_card_frontmatter(path.read_text(encoding="utf-8"))
+        status = normalize_status(fm.status or "")
+        if status not in ("Ready", "Returned"):
             return (
-                f"{cid} is {status or 'without a status'}, not Ready. Make it Ready first "
+                f"{cid} is {status or 'without a status'}, not Ready (or Returned). Make it Ready first "
                 "(set_card_status Ready, once Jacob agrees the card is clear), then hand it off.",
+                root,
+                cid,
+            )
+        if status == "Returned" and fm.review_rounds >= fm.max_review_rounds:
+            return (
+                f"{cid} has used {fm.review_rounds} of {fm.max_review_rounds} review rounds. Bring it to Jacob: he decides "
+                "whether it goes back once more (raise max_review_rounds on the card) or stops here.",
                 root,
                 cid,
             )
@@ -175,10 +189,18 @@ class CardHandoffTools:
         if refused:
             return _failed(refused)
         session_id = str(ctx.get("session_id") or "default_session")
+        from src.domain.sdlc.models import normalize_status, parse_card_frontmatter
+
+        card_path = self._card_tools._find_card_path(root, card_id=cid)
+        returned = normalize_status(parse_card_frontmatter(card_path.read_text(encoding="utf-8")).status or "") == "Returned"
+        constraints = ["The card is the brief: read it with read_card before working."]
+        if returned:
+            constraints.append("Stay on the existing card branch (git_create_branch with that name switches to it); "
+                               "set_card_status Returned -> In Progress first.")
         packet = HandoffPacket(
-            goal=card_directive(cid),
-            facts=[f"card_id: {cid}"],
-            constraints=["The card is the brief: read it with read_card before working."],
+            goal=card_directive(cid, returned),
+            facts=[f"card_id: {cid}"] + (["status: Returned (read the latest ## Review round)"] if returned else []),
+            constraints=constraints,
             done_when=f"{cid} is In Review (set_card_status), or you stop and say why.",
             budget={"max_turns": 40},
         )
@@ -187,7 +209,7 @@ class CardHandoffTools:
             recipient_agent_id=DEVELOPER_ID,
             session_id=session_id,
             task_intent=packet.goal,
-            context_payload={CARD_HANDOFF_PAYLOAD_KEY: cid, "child_session_title": f"{cid}: handed off by Architect"},
+            context_payload={CARD_HANDOFF_PAYLOAD_KEY: cid, "child_session_title": f"{cid}: " + ("rework after review" if returned else "handed off by Architect")},
             approval_mode="run" if str(ctx.get("approval_mode") or "").lower() == "run" else "ask",
             depth=infer_handoff_depth(session_id),
             max_turns=40,
