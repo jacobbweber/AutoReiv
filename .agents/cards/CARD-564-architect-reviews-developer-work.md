@@ -2,7 +2,7 @@
 id: CARD-564
 title: "Architect reviews Developer's work and marks the card Done or Returned"
 type: feature
-status: Ready
+status: In Review
 priority: P1
 milestone: M25
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-564-architect-reviews-developer-work]
   checks: [tests/unit/skills/test_card564_architect_review.py, tests/unit/skills/test_card564_returned_handoff.py]
 branch: feat/card-564-architect-reviews-developer-work
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 70, qa_runs: 6, findings: 6}
 created: 2026-09-28
 ---
 
@@ -115,10 +115,26 @@ Open question for build (technical, not for Jacob): whether `review_card` checks
 current branch (recommended, simplest and safe) or uses a temporary worktree.
 
 ## Findings
+- Built as decided: the verdict is `finish_review` (no approval); `set_card_status` refuses Done/Returned for Architect and names review_card/finish_review. `review_card` runs the AGENTS.md checks without an approval click (read-only; Developer's `run_project_checks` still asks).
+- Fixed in area: Developer can rework on the existing card branch (`git_create_branch` switches to an existing non-base branch when the tree is clean); Returned -> In Review passes through In Progress in one call (same round rule); a new In Review replaces the old tool-written Evidence block instead of stacking it.
+- Fixed in area: a tool call the provider cannot parse (Nimo/Ollama "XML syntax error ... <function> closed by </parameter>", round 4) is nudged once in a hand-off child, like an empty reply.
+- Fixed in area: `skill_view` accepts a skill's display name (Architect passed "Review Developer's Work") and a refusal lists the allowed ids.
+- Fixed in area: chat card rows (hand-off, review) moved to `chat/card_rows.js` so render.js stays under the 800-line guard.
+- Open: a chat message containing "acceptance criteria" (or other goal words) is routed into the two-phase job graph (Formulate/Execute) instead of a plain turn; "review CARD-3 against its acceptance criteria" did that in round 1. Logged in docs/findings.md.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-564-architect-reviews-developer-work | desktop | PASS | 2026-09-28 round 6: Architect on Spark qwen3.8-27b-fp8, Developer on Nimo qwen3.6:35b-a3b-65k (throwaway env). Round 1 seeded without the README line; review_card + finish_review Returned (round 1, notes name the README, card-only commit, no click); hand_off_card back (one click), Developer added the README line on the same branch, In Review again (4.7 min); review_card round 2 + finish_review Done (card-only commit), main unchanged, no remote, clean tree. Screenshots C:\Temp\card-564\. |
+
+## Live test (Jacob)
+1. Restart serve on :8000 (done). Open Agents > Architect: skills include Review Developer's Work; tools include review_card and finish_review.
+2. In Projects, select a throwaway git repo with a fast check (e.g. `node --test`) and a card In Review on its card branch (hand one off with Architect as in CARD-563, and leave out one acceptance item on purpose, or add a card with two acceptance items and let Developer do one).
+3. Make sure the repo has the card branch checked out. In Architect chat say "Please review CARD-N and record your verdict." (Avoid the words "acceptance criteria" in the message for now; see Findings.) No approval click appears.
+4. Architect shows a collapsed Review packet (diff, commits, fresh checks), then "Review: Returned to Developer". The card has `## Review` / `### Round 1 - Returned` with the notes, `review_rounds: 1`, and one `docs(card): CARD-N Returned (round 1)` commit touching only the card.
+5. Say "Hand CARD-N back to Developer." Approve the one hand-off card (and Developer's own steps). Developer stays on the same branch, fixes the notes and sets In Review again; open the Developer chat "CARD-N: rework after review" to see the steps.
+6. Say "Review CARD-N again and record your verdict." Architect shows "Review: Done" (round 2); the card is Done with `completed:` and the round 2 review; `git log main` is unchanged: nothing merged or pushed.
+7. Optional: ask Architect to set a card Done with set_card_status (refused, points to finish_review), or return a card on its last round (refused: bring it to Jacob).
 
 ## Release note
 CARD-564: Architect reviews an In Review card (diff, Evidence, fresh checks) and marks it Done or Returned with notes written on the card; a Returned card goes back to Developer and returns to In Review. Nothing is merged; Jacob merges.
