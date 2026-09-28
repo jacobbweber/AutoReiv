@@ -2,7 +2,7 @@
 id: CARD-566
 title: "hand_off_card follows autorun like every other tool"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: fix/card-566-hand-off-follows-autorun
 log: {minutes: 55, qa_runs: 3, findings: 2}
 created: 2026-09-28
+completed: 2026-09-28
 ---
 
 # CARD-566 hand_off_card follows autorun like every other tool
