@@ -2,7 +2,7 @@
 id: CARD-454
 title: "qa baseline: ruff errors and Tutor skills over the CAP-001 tool cap"
 type: bug
-status: In Progress
+status: In Review
 priority: P1
 milestone: M22
 needs_decision: none
@@ -14,7 +14,7 @@ proof:
     - tests/unit/skills/test_capability_linter.py::test_skill_tool_cap_matches_the_runtime_per_turn_clamp
     - preflight.py --fast and --full with no KNOWN
 branch: fix/card-454-456-clean-baseline
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 35, qa_runs: 2, reruns: 1, findings: 2, fast_tier_s: 41, full_tier_s: 1004}
 created: 2026-09-24
 ---
 
@@ -49,10 +49,17 @@ The ruff `KNOWN_LINT` entry, the CARD-454 xfail, the 6-tool CAP-001 limit.
 Cap 8 instead of trimming everything to 6: the kernel mounts 8 tools per turn, so 6 only forced cuts without a runtime reason (Jacob's direction).
 
 ## Findings
+- (to findings list) openSessionByTitle cannot open API-created Tutor chats.
+- (to findings list) scratch/ holds hundreds of stale files from older cards.
+- (fixed) merge-to-qa skill: post-merge fast tier base, roadmap tick, scratch keep rule.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-454-tutor-trimmed-skills | desktop | PASS | due review called education_due_review_list; curation called education_wiki_curate_from_curriculum; no blocked tools. Run 1 failed in the journey harness (drawer), fixed; 2026-09-27 20:31 ET. Screenshots: C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-454\ |
+
+- `preflight.py --fast --base qa`: GREEN in 41 s, no KNOWN, no XFAIL (guard 192, changed 63, mapped 10, vitest 955).
+- `preflight.py --full`: GREEN in 1004 s, no KNOWN (ruff 0, eslint 0, unit 2122 passed / 11 skipped, integration 103, honesty, vitest 955, smoke 73).
 
 ## Release note
 Fixed: qa baseline is clean (ruff 0, platform packs pass the linter); CAP-001 skill tool cap is 8, equal to the per-turn clamp; Tutor due-review and wiki-curation trimmed to 7 and 8 tools.

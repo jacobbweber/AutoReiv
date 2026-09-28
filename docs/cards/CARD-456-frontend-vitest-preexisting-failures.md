@@ -2,7 +2,7 @@
 id: CARD-456
 title: "qa baseline: 3 stale Vitest tests and ESLint errors"
 type: bug
-status: In Progress
+status: In Review
 priority: P1
 milestone: M22
 needs_decision: none
@@ -14,7 +14,7 @@ proof:
     - tests/unit/frontend/system_updates.test.js
     - npm run lint:frontend (0 errors, 0 warnings)
 branch: fix/card-454-456-clean-baseline
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 10, qa_runs: 0, findings: 0}
 created: 2026-09-24
 ---
 
@@ -45,10 +45,15 @@ All three tests were stale, not app regressions:
 Per test: stale (contract changed on purpose by CARD-412 / CARD-451), so the test side was fixed; no valid assertion was dropped.
 
 ## Findings
+- none
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| (none) | - | - | Frontend-only test and lint fixes; covered by Vitest, ESLint and smoke. |
+
+- `preflight.py --fast --base qa`: GREEN in 41 s, no KNOWN, no XFAIL (guard 192, changed 63, mapped 10, vitest 955).
+- `preflight.py --full`: GREEN in 1004 s, no KNOWN (ruff 0, eslint 0, unit 2122 passed / 11 skipped, integration 103, honesty, vitest 955, smoke 73).
 
 ## Release note
 Fixed: Vitest and ESLint are clean on qa (stale CARD-196/153 tests moved to the CARD-451/412 contracts).
