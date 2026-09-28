@@ -47,3 +47,16 @@ def test_preflight_maps_changed_src_modules_to_tests():
     found = pf.mapped_tests(["src/application/orchestration/honesty_smoke_pack.py", "README.md"], tests)
     assert "tests/unit/orchestration/test_card261_honesty_smoke_pack.py" in found
     assert pf.mapped_tests(["docs/x.md"], tests) == []
+
+
+def test_fast_tier_changed_tests_skip_slow_and_nightly_writes_outside_repo(monkeypatch, tmp_path):
+    """CARD-560: slow-marked tests leave the fast tier; nightly summaries go to user data, not the repo."""
+    pf = _load(PREFLIGHT, "preflight_560")
+    monkeypatch.setattr(pf, "changed_files", lambda base: ["tests/unit/skills/test_card559_card_and_preflight_scripts.py"])
+    stages = {name: cmd for name, cmd, _ in pf.fast_stages("qa")}
+    cmd = stages["pytest changed tests (not slow)"]
+    assert ["-m", "not slow"] == cmd[len(pf.PYTEST):len(pf.PYTEST) + 2]
+    assert pf.judge("pytest", 5, "3 deselected in 0.4s", None)[0] == "PASS"
+    assert pf.nightly_dir({"LOCALAPPDATA": str(tmp_path)}) == tmp_path / "AutoReiv" / "nightly"
+    assert pf.nightly_dir({"AUTOREIV_NIGHTLY_DIR": str(tmp_path / "n")}) == tmp_path / "n"
+    assert pf.ROOT not in pf.nightly_dir({"LOCALAPPDATA": str(tmp_path)}).parents

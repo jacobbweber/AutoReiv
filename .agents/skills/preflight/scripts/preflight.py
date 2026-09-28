@@ -3,7 +3,8 @@
 
     python .agents/skills/preflight/scripts/preflight.py --fast [--base qa]   # before In Review, after each merge (~3 min)
     python .agents/skills/preflight/scripts/preflight.py --full               # once per merge batch (~22 min); the default
-    python .agents/skills/preflight/scripts/preflight.py --nightly            # full + every live journey
+    python .agents/skills/preflight/scripts/preflight.py --nightly            # full + every live journey; summary in %LOCALAPPDATA%/AutoReiv/nightly
+    Scheduling: .agents/skills/preflight/scripts/nightly_task.ps1 (prints/registers a Windows task; opt-in)
 
 Every stage runs (no stop on the first failure). A table is printed at the end and written to
 scratch/preflight/last.md; each stage's output is in scratch/preflight/<stage>.log. Exit 0 only when every
@@ -18,6 +19,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -98,7 +100,7 @@ def lint_count(tool: str, output: str) -> int:
 def judge(name: str, rc: int, out: str, lint: str | None) -> tuple[str, str]:
     if rc == 0:
         return "PASS", ""
-    if rc == 5 and "no tests ran" in out:
+    if rc == 5 and ("no tests ran" in out or "deselected" in out):
         return "PASS", "no tests selected"
     if lint and lint in KNOWN_LINT:
         card, allowed = KNOWN_LINT[lint]
@@ -129,7 +131,8 @@ def fast_stages(base: str) -> list[tuple[str, list[str] | None, str | None]]:
         ("ruff (changed .py)", RUFF + py if py else None, "ruff"),
         ("eslint (changed .js/.mjs)", ["npx", "eslint", *js] if js else None, "eslint"),
         ("pytest guard", PYTEST + ["-m", "guard", "tests/unit", "tests/integration"], None),
-        ("pytest changed tests", PYTEST + tests_changed if tests_changed else None, None),
+        # slow-marked tests run in the full and nightly tiers, not here [CARD-560]
+        ("pytest changed tests (not slow)", PYTEST + ["-m", "not slow", *tests_changed] if tests_changed else None, None),
         ("pytest mapped tests (not slow)", PYTEST + ["-m", "not slow", *mapped] if mapped else None, None),
         ("vitest", ["npx", "vitest", "run"], None),
     ]
@@ -175,6 +178,15 @@ def run_tier(tier: str, stages) -> int:
     return 0 if ok else 1
 
 
+def nightly_dir(environ: dict | None = None) -> Path:
+    """Nightly summaries live in user data, never the repo [CARD-560]: %LOCALAPPDATA%/AutoReiv/nightly."""
+    env = os.environ if environ is None else environ
+    if env.get("AUTOREIV_NIGHTLY_DIR"):
+        return Path(env["AUTOREIV_NIGHTLY_DIR"])
+    base = env.get("LOCALAPPDATA") or env.get("TEMP") or tempfile.gettempdir()
+    return Path(base) / "AutoReiv" / "nightly"
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     g = p.add_mutually_exclusive_group()
@@ -189,7 +201,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.nightly:
         print("[preflight] nightly: python scripts/live_qa.py run --card NIGHTLY (all journeys)")
         rc_qa, out, secs = _run([PY, "scripts/live_qa.py", "run", "--card", "NIGHTLY"])
-        night = ROOT / "scratch" / "nightly"
+        night = nightly_dir()
         night.mkdir(parents=True, exist_ok=True)
         (night / f"{_dt.date.today():%Y-%m-%d}.md").write_text(
             (OUT / "last.md").read_text(encoding="utf-8") + f"\n## Live journeys\n\nExit {rc_qa} in {secs:.0f} s.\n\n```\n{out[-4000:]}\n```\n",
