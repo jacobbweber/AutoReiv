@@ -11,14 +11,13 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.education.progress_summary import (
     build_progress_summary,
     summarize_mastery_rows,
 )
+from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-
 
 PROGRESS_TOOL_NAMES = (
     "education_progress_summary",

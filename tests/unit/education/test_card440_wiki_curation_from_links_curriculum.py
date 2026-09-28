@@ -22,7 +22,6 @@ from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.application.skills.wiki_tools import WikiTools
 
-
 CURATION_TOOL_NAMES = (
     "education_wiki_template_catalog",
     "education_wiki_curate_from_link",
@@ -126,8 +125,6 @@ def test_raw_source_link_omits_education_tags(tmp_path: Path):
     assert path
     note = wiki.store.read_note(path)
     content = str(note.get("content") or "")
-    fm = str(note.get("frontmatter") or note.get("meta") or "")
-    blob = content + "\n" + fm + "\n" + str(note)
     # Must not force education tag on raw sources
     tags = note.get("frontmatter", {}).get("tags") if isinstance(note.get("frontmatter"), dict) else None
     if tags is None:

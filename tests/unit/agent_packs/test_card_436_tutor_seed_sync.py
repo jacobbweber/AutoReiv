@@ -12,7 +12,6 @@ from src.infrastructure.skills.platform_packs import (
     refresh_live_pack_json_skill_projection,
 )
 
-
 LEARNING_OS = (
     "start-resume-topic",
     "quiz-turn",
