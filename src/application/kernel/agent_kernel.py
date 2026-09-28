@@ -60,6 +60,29 @@ NESTED_COMPLETE_MAX_TOKENS = 8192
 MAX_ACTIVE_TOOLS_PER_TURN: int = 15  # judgment cap, not measured (ADR-0054 amended by CARD-562)
 # CARD-562: always mounted (within the cap) for agents allowed them; they refuse cleanly when no project is selected.
 PROJECT_CORE_TOOLS: frozenset[str] = frozenset({"active_project_info", "read_project_file", "search_project", "list_project_dir"})
+# CARD-562: the Active Selected Project prompt names only tools this agent may call (it once told Developer to use cli_exec).
+_PROJECT_GUIDANCE_TOOLS: tuple[str, ...] = (
+    "read_project_file",
+    "search_project",
+    "list_project_dir",
+    "write_project_file",
+    "patch_project_file",
+)
+
+
+def project_tool_guidance(allowed_tools: "set[str] | frozenset[str]") -> str:
+    """Project tool guidance built only from the agent's resolved allowed tools [CARD-562]."""
+    names = [t for t in _PROJECT_GUIDANCE_TOOLS if t in allowed_tools]
+    parts: list[str] = []
+    if names:
+        parts.append(f"Use {', '.join(names)} to work with files inside this project.")
+    if "run_project_checks" in allowed_tools:
+        parts.append("Run the project's checks (AGENTS.md ## Checks) with run_project_checks.")
+    elif "cli_exec" in allowed_tools:
+        parts.append("Use cli_exec to run tests and scripts within this directory.")
+    return " ".join(parts)
+
+
 BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
     {
         "activate_skill",
@@ -648,14 +671,7 @@ class AgentKernel:
                     if selected_proj and selected_proj.get("path"):
                         proj_name = selected_proj.get("name") or selected_proj.get("slug") or "Active Project"
                         proj_path = selected_proj.get("path")
-                        has_write = is_developer or bool(
-                            allowed_tools.intersection({"write_project_file", "cli_exec"})
-                        )
-                        tool_guidance = (
-                            "Use write_project_file, read_project_file, and list_project_dir to manage files inside this project, and cli_exec to run tests and scripts directly within this directory."
-                            if has_write
-                            else "Use read_project_file and list_project_dir to inspect and review files inside this project."
-                        )
+                        tool_guidance = project_tool_guidance(allowed_tools)
                         project_context = (
                             "## Active Selected Project\n"
                             f"- Name: {proj_name}\n"

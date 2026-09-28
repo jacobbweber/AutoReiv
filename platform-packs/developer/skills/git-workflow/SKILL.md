@@ -32,6 +32,11 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 2. `git_commit` with a conventional subject: `feat|fix|docs|test|refactor|chore(<scope>): <what>`, and list the paths you mean to commit. Put `CARD-<n>` in the body.
 3. Small, whole commits: each one leaves the checks green.
 
+## Finish (clean tree at In Review)
+1. `run_project_checks` green before In Review.
+2. After the card's evidence and `In Review` status are written, commit the card file too (a small `docs(card): CARD-<n> evidence, In Review` commit, or include it in the final commit).
+3. `git_status` shows a clean tree before you stop.
+
 ## Rules
 - Never push, merge, rebase shared branches, amend pushed work, or use force. Jacob merges.
 - Never commit secrets, `.env`, build output or scratch files.

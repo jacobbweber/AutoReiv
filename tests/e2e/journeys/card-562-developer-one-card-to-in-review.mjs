@@ -175,6 +175,7 @@ export default {
       if (status !== 'In Review') throw new Error(`card is ${status}, not In Review`);
       if (!/node --test|run_project_checks|fast/i.test(card.split('## Evidence')[1] || card)) throw new Error('card has no evidence of the checks');
       if (remotes) throw new Error('fixture gained a remote');
+      if (dirty) throw new Error(`tree not clean at In Review: ${dirty}`);
     }, { timeoutMs: 1600000 });
 
     await j.step('Asked for a quick audit, Developer files a Proposed card and changes no code', async () => {

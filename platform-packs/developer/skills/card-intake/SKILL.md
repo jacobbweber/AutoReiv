@@ -9,6 +9,8 @@ requires_tools:
   - git_create_branch
   - write_card
   - set_card_status
+  - run_project_checks
+  - git_commit
 safety:
   read_only: false
   requires_hitl: true
@@ -29,10 +31,13 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 3. Create the card branch FIRST, before any card status change or edit: `git_create_branch` (name from AGENTS.md `## Branches`, e.g. `feat/card-<n>-<slug>`; omit base to branch from the current HEAD).
 4. Only then `set_card_status` to `In Progress`.
 
-## Hand in
-1. Only after every acceptance criterion is met and the project checks pass (skill run-checks).
-2. Fill the card's `## Evidence` (or `## Results`) section with `write_card`: the commands you ran and their pass/fail, the commit id(s), the branch, and anything you could not do. Keep the status line unchanged when you rewrite the card.
-3. `set_card_status` to `In Review`. Stop there. Done, Returned and merging belong to Jacob or Architect.
+## Hand in (definition of done, in this order)
+1. Every acceptance criterion is met and the code change is committed on the card branch (skill git-workflow).
+2. `run_project_checks` (full, or fast if AGENTS.md has no full) returns `passed: true`. Never set In Review without a green run in this chat.
+3. Fill the card's `## Evidence` (or `## Results`) section with `write_card`: the check commands and their pass/fail, the commit id(s), the branch, and anything you could not do. Keep the status line unchanged when you rewrite the card.
+4. `set_card_status` to `In Review`.
+5. `git_commit` the card file (e.g. `docs(card): CARD-<n> evidence, In Review`) so the tree is clean at In Review. `git_status` must show nothing uncommitted.
+6. Stop there. Done, Returned and merging belong to Jacob or Architect.
 
 ## Rules
 - Never change or edit a card on the base branch: the card branch comes first.

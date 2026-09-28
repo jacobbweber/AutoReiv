@@ -128,13 +128,17 @@ def test_developer_agent_kernel_prompt_grounding_with_active_project():
             system_prompt="You are the Lead Software Engineer.",
         )
 
+        from tests.unit.agent_packs.catalog import platform_pack_profile
+
+        dev_agent = platform_pack_profile("developer")  # CARD-562: the real pack, so the guidance reflects its allowed tools
         assembled = kernel._build_effective_system_message(dev_agent).content
         assert "## Active Selected Project" in assembled
         assert "grounded_project" in assembled
         assert str(proj_root) in assembled
         assert "Governance: AGENTS.md present at project root." in assembled
         assert "Active Work Cards (1 total): Recent: CARD-101-sample-task.md" in assembled
-        assert "Use write_project_file, read_project_file, and list_project_dir" in assembled
+        assert "run_project_checks" in assembled
+        assert "cli_exec" not in assembled and "execute_code" not in assembled  # CARD-562: only allowed tools named
 
 
 def test_non_project_agent_excludes_active_project_from_prompt():
@@ -205,5 +209,5 @@ def test_read_only_project_agent_receives_read_only_guidance():
         assembled = kernel._build_effective_system_message(reviewer_agent).content
         assert "## Active Selected Project" in assembled
         assert "review_project" in assembled
-        assert "Use read_project_file and list_project_dir to inspect and review files inside this project." in assembled
+        assert "Use read_project_file, list_project_dir to work with files inside this project." in assembled
         assert "write_project_file" not in assembled
