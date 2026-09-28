@@ -11,7 +11,7 @@ proof:
   checks: [tests/unit/skills/test_card_tools.py, tests/unit/skills/test_git_tools.py, tests/unit/agent_packs, cards-folder guard, ADR-0061 binding guard]
 branch: feat/card-562-developer-one-card-to-in-review
 absorbs: [CARD-558, CARD-540, CARD-541, CARD-557 (scratch-file half)]
-log: {minutes: 150, qa_runs: 3, findings: 7}
+log: {minutes: 230, qa_runs: 5, findings: 7}
 created: 2026-09-27
 ---
 
@@ -104,6 +104,7 @@ to In Review. Push and merge are never done by Developer.
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
 | card-562-developer-one-card-to-in-review | desktop | FAIL (harness) | Round 1-2: step 1 pass (Developer has the 11 SDLC skills, no repo_file_* tools); fixture selected as active project via API (the calc chip shows). Step 2 fails in the harness: the chat drawer does not list the API-created Developer chat (same as the CARD-454 finding), so the Developer work and audit steps never ran. Stopped after 2 rounds. |
+| card-562-developer-one-card-to-in-review (round 3, Nimo qwen3.6:35b-a3b-65k) | desktop | FAIL (agent behaviour) | Steps 1-2 pass (drawer fix works). Step 3: in about 2 min Developer fixed calc.js, node --test passes, card In Review with notes, one commit (cebe239) - but on `main` with no card branch, and it used `cli_exec`/`execute_code` instead of git_create_branch / run_project_checks / patch_project_file (15 approvals). Steps 4-5 not reached. Cause: the self-extension skills kept on Developer grant cli_exec/execute_code, which bypass the guarded SDLC tools. |
 | preflight --fast --base qa | - | GREEN | ruff, eslint, pytest guard/changed/mapped, vitest 955 |
 
 ## Release note
