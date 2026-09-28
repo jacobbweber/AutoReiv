@@ -27,7 +27,7 @@ DEFAULT_HIGH_RISK_TOOLS: tuple[str, ...] = (
     "repo_file_write",
     "repo_file_patch",
     "repo_file_rollback",
-    "hand_off_card",  # CARD-563 D1: one approval per hand-off (ALWAYS_CONFIRM_TOOLS keeps it in run mode too)
+    "hand_off_card",  # CARD-563: asks once per hand-off; CARD-566: autorun (run mode) skips it like any other tool
 )
 
 

@@ -2,7 +2,7 @@
 
 Every rule lives here, not in skill text: a selected project, a Ready card in it, Architect as the caller, no other
 card In Progress, and a Developer to hand to. Developer gets a fixed directive and the card id only (the card is the
-brief). The tool is always an approval prompt (DEFAULT_HIGH_RISK_TOOLS), so each hand-off is one click for Jacob.
+brief). The tool is a high-risk tool (DEFAULT_HIGH_RISK_TOOLS): one click for Jacob, or none with autorun on (CARD-566).
 When Developer stops, the outcome is read from git and the card file, never taken from the model's summary.
 """
 
@@ -108,7 +108,7 @@ class CardHandoffTools:
             description=(
                 "Hand a Ready card (or a Returned card, to address the review notes) in the active project to "
                 "Developer, who works it to In Review on the card branch. "
-                "Asks Jacob to approve, then waits for Developer and returns the outcome read from git and the card."
+                "Asks Jacob to approve (unless autorun is on), then waits for Developer and returns the outcome read from git and the card."
             ),
             parameters={
                 "type": "object",
