@@ -1,7 +1,8 @@
 ---
 id: CARD-541
 title: "Drop platform pack.json allowed_tool_names / pack_tool_names; no fixed domain text in packs"
-status: In Review
+status: Done
+completed: 2026-09-28
 created: 2026-09-26
 branch: fix/card-541-drop-pack-tool-lists
 proof:
@@ -22,7 +23,7 @@ milestone: M25
 
 # [CARD-541] Drop platform pack.json allowed_tool_names / pack_tool_names
 
-> **Status**: In Review (Developer pack done in CARD-562; the rest on fix/card-541-drop-pack-tool-lists, 2026-09-28).
+> **Status**: Done (Developer pack done in CARD-562; the rest on fix/card-541-drop-pack-tool-lists, 2026-09-28).
 > **Related**: CARD-539 (ADR-0061)
 > **Labels**: `type:chore`, `area:agents`, `P3`
 
