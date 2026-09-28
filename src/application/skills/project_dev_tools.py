@@ -278,7 +278,7 @@ class ProjectDevTools:
         }
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
-        root_prop = {"project_root": {"type": "string"}}
+        root_prop: dict = {}  # CARD-562: project_root is not model-facing; the selected project is used
         registry.register_tool(
             name="run_project_checks",
             description=(

@@ -115,7 +115,7 @@ def test_default_scratch_is_in_the_os_temp_folder(monkeypatch, tmp_path):
 
 def test_selected_root_is_none_without_a_project(svc, tmp_path):
     assert svc.selected_root() is None
-    assert svc.selected_root(str(tmp_path)) == tmp_path.resolve()
+    assert svc.selected_root(str(tmp_path)) is None  # CARD-562: a passed root never replaces a selection
     svc.set_selected(slug="p", path=str(tmp_path))
     assert svc.selected_root() == tmp_path.resolve()
 

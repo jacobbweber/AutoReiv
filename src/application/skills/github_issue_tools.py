@@ -124,7 +124,6 @@ class GitHubIssueTools:
                 "type": "object",
                 "properties": {
                     "card_id": {"type": "string"},
-                    "project_root": {"type": "string"},
                     "dry_run": {"type": "boolean", "default": False},
                 },
                 "required": ["card_id"],

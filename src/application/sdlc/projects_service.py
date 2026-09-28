@@ -88,18 +88,26 @@ class ProjectsService:
         return Path(self.default_checkout).resolve()
 
     def selected_root(self, project_root: Optional[str] = None) -> Optional[Path]:
-        """Explicit or Projects Studio-selected project root; None when no project is selected [CARD-556].
+        """The Projects Studio-selected project root; None when no project is selected [CARD-556, CARD-562].
 
-        Unlike `resolve_root`, this never falls back to the AutoReiv checkout.
+        A passed project_root must be the selected project (else ProjectPathError naming the active project); it is
+        never used when nothing is selected. Unlike `resolve_root`, this never falls back to the AutoReiv checkout.
         """
-        if project_root:
-            return Path(project_root).expanduser().resolve()
         selected = self.get_selected()
         path = (selected or {}).get("path") if isinstance(selected, dict) else None
-        return Path(path).expanduser().resolve() if path else None
+        if not path:
+            return None  # CARD-562: a passed project_root never stands in for a selection
+        active = Path(path).expanduser().resolve()
+        if project_root and Path(project_root).expanduser().resolve() != active:
+            name = (selected or {}).get("name") or (selected or {}).get("slug") or active.name
+            raise ProjectPathError(
+                f"project_root '{project_root}' is not the active project '{name}' ({active}). Tools work only in the "
+                "project selected in Projects Studio; omit project_root, or ask the operator to select that project."
+            )
+        return active
 
     def selected_or_refuse(self, project_root: Optional[str] = None) -> Path:
-        """Explicit or selected project root; a clear error when none is selected [CARD-562, CARD-558 D1]."""
+        """The selected project root; a clear error when none is selected, whatever project_root says [CARD-562]."""
         root = self.selected_root(project_root)
         if root is None:
             raise ProjectPathError(NO_PROJECT_MESSAGE)

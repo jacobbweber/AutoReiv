@@ -264,7 +264,7 @@ class GitTools:
         registry.register_tool(
             name="git_status",
             description="git status --porcelain in project_root.",
-            parameters={"type": "object", "properties": {"project_root": {"type": "string"}}},
+            parameters={"type": "object", "properties": {}},
             handler=self.git_status,
         )
         registry.register_tool(
@@ -275,7 +275,6 @@ class GitTools:
                 "properties": {
                     "path": {"type": "string"},
                     "staged": {"type": "boolean", "default": False},
-                    "project_root": {"type": "string"},
                 },
             },
             handler=self.git_diff,
@@ -283,7 +282,7 @@ class GitTools:
         registry.register_tool(
             name="git_branch",
             description="Show current branch and local branches in project_root.",
-            parameters={"type": "object", "properties": {"project_root": {"type": "string"}}},
+            parameters={"type": "object", "properties": {}},
             handler=self.git_branch,
         )
         registry.register_tool(
@@ -297,7 +296,6 @@ class GitTools:
                 "properties": {
                     "name": {"type": "string", "description": "e.g. card/12-short-slug"},
                     "base": {"type": "string"},
-                    "project_root": {"type": "string"},
                 },
                 "required": ["name"],
             },
@@ -313,7 +311,6 @@ class GitTools:
                     "message": {"type": "string", "description": "Conventional commit subject (alias for subject)"},
                     "body": {"type": "string"},
                     "paths": {"type": "array", "items": {"type": "string"}},
-                    "project_root": {"type": "string"},
                 },
             },
             handler=self.git_commit,

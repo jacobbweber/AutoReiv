@@ -183,7 +183,6 @@ class ProjectFileTools:
                 "type": "object",
                 "properties": {
                     "path": {"type": "string", "description": "Relative directory (default .)"},
-                    "project_root": {"type": "string"},
                 },
             },
             handler=self.list_project_dir,
@@ -195,7 +194,6 @@ class ProjectFileTools:
                 "type": "object",
                 "properties": {
                     "path": {"type": "string", "description": "Relative file path"},
-                    "project_root": {"type": "string"},
                 },
                 "required": ["path"],
             },
@@ -214,7 +212,6 @@ class ProjectFileTools:
                 "properties": {
                     "path": {"type": "string"},
                     "content": {"type": "string"},
-                    "project_root": {"type": "string"},
                 },
                 "required": ["path"],
             },

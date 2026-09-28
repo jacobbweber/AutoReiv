@@ -625,7 +625,6 @@ class CardTools:
             parameters={
                 "type": "object",
                 "properties": {
-                    "project_root": {"type": "string", "description": "Project root. Defaults to AutoReiv checkout."},
                     "status": {"type": "string", "description": "Optional status filter (Discuss, Ready, ...)"},
                 },
             },
@@ -639,7 +638,6 @@ class CardTools:
                 "properties": {
                     "card_id": {"type": "string", "description": "Card id such as CARD-080"},
                     "filename": {"type": "string", "description": "Filename under .agents/cards"},
-                    "project_root": {"type": "string"},
                 },
             },
             handler=self.read_card,
@@ -658,7 +656,6 @@ class CardTools:
                     "filename": {"type": "string", "description": "Target filename such as CARD-080-slug.md"},
                     "card_id": {"type": "string"},
                     "title": {"type": "string", "description": "Card title; sets the heading and the new card's filename slug"},
-                    "project_root": {"type": "string"},
                 },
                 "required": ["content"],
             },
@@ -679,7 +676,6 @@ class CardTools:
                     "status": {"type": "string"},
                     "return_reason": {"type": "string", "description": "Required when status is Returned"},
                     "filename": {"type": "string"},
-                    "project_root": {"type": "string"},
                 },
                 "required": ["card_id", "status"],
             },
@@ -693,7 +689,6 @@ class CardTools:
                 "properties": {
                     "slug": {"type": "string"},
                     "filename": {"type": "string"},
-                    "project_root": {"type": "string"},
                 },
                 "required": ["slug"],
             },
@@ -708,7 +703,6 @@ class CardTools:
                     "slug": {"type": "string"},
                     "filename": {"type": "string"},
                     "content": {"type": "string"},
-                    "project_root": {"type": "string"},
                 },
                 "required": ["slug", "filename"],
             },
@@ -721,7 +715,6 @@ class CardTools:
                 "type": "object",
                 "properties": {
                     "name": {"type": "string", "description": "Optional relative path to one steering file"},
-                    "project_root": {"type": "string"},
                 },
             },
             handler=self.read_steering,
