@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-- CARD-562: cards now live in `.agents/cards/`; the Developer agent gets 11 SDLC skills, five project tools (create branch, run the AGENTS.md checks, search, patch a file, active project info), refuses project work with no active project, keeps scratch files in the OS temp folder, and files Proposed cards; the new-project template is a short AGENTS.md contract.
+- **CARD-562 M25 slice 1: Developer works one card to In Review on the active project**: cards live in `.agents/cards/`; Developer has 11 SDLC skills and the project tools (create branch, run the AGENTS.md checks, search, patch, active project info), no shell or code runner, and works only in the project selected in Projects Studio (a passed project_root can neither bypass nor redirect that). Rules are enforced in the tools: git_commit refuses main/master/qa; git_create_branch carries card edits from HEAD; set_card_status to In Review needs the card branch, a clean tree and a green run_project_checks for HEAD, then writes the Evidence (branch, commits, files, checks) and commits the card; cards are written only with write_card (next CARD-N id, Proposed for Developer), file tools refuse card folders; tool argument mismatches return a clear error listing the accepted parameters. Tool building (Tools Studio, Ask Developer) is parked until slice 2. Per-turn tool cap 15 with the project core tools always mounted. Live proof on Nimo (qwen3.6:35b-a3b-65k) passes all steps ([CARD-562]).
 
 ### Added
 
