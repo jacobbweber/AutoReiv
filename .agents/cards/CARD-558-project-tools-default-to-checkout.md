@@ -1,7 +1,7 @@
 ---
 id: CARD-558
 title: "cli_exec, git and card tools default to the AutoReiv checkout when no project is selected"
-status: Ready
+status: Superseded
 created: 2026-09-27
 branch: qa
 related:
@@ -11,13 +11,14 @@ labels:
   - type:product
   - area:tools
   - P3
-needs_decision: "D1: where cli_exec, git, card and read tools point when no project is selected"
+needs_decision: none
 milestone: M25
+superseded_by: CARD-562
 ---
 
 # [CARD-558] Other project tools default to the checkout with no project selected
 
-> **Status**: Ready, **needs a decision** (filed from the CARD-556 Scavenger Pass, 2026-09-27 ET).
+> **Status**: Superseded by CARD-562 (merged to qa 2026-09-28).
 > **Related**: CARD-556, CARD-555
 > **Labels**: `type:product`, `area:tools`, `P3`
 
@@ -34,3 +35,6 @@ CARD-556 moved `write_project_file` with no project selected to `<data root>/scr
 ## Done when
 
 D1 is decided and a unit test pins each tool's no-project root.
+
+## Results
+Superseded by CARD-562: D1 settled as "refuse". With no project selected, the card, git, file, check and GitHub-issue tools refuse with "select a project in Projects Studio" (a passed project_root cannot bypass it), Developer has no cli_exec, and `write_project_file` scratch goes to the OS temp folder. Guard: tests/unit/sdlc/test_card562_selected_project_only.py. The MCP engineering tools still use resolve_root (tracked in docs/findings.md).

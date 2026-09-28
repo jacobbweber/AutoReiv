@@ -1,7 +1,7 @@
 ---
 id: CARD-540
 title: "Drop the inert allow_wiki_access agent field"
-status: In Review
+status: Done
 created: 2026-09-26
 branch: feat/card-562-developer-one-card-to-in-review
 related:
@@ -12,11 +12,12 @@ labels:
   - P3
 needs_decision: none
 milestone: M25
+completed: 2026-09-28
 ---
 
 # [CARD-540] Drop the inert allow_wiki_access agent field
 
-> **Status**: Ready (filed from CARD-539, 2026-09-26 ~11:10 PM ET).
+> **Status**: Done (absorbed by CARD-562, merged to qa 2026-09-28).
 > **Related**: CARD-539 (ADR-0061)
 > **Labels**: `type:chore`, `area:agents`, `P3`
 

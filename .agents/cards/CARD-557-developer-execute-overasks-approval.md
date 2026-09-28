@@ -19,7 +19,7 @@ milestone: M25
 
 # [CARD-557] Developer's Execute phase over-asks for approval and writes scratch scripts into the checkout
 
-> **Status**: Ready (filed from CARD-554 live QA, 2026-09-27 ET).
+> **Status**: Ready; the scratch-file half is done in CARD-562 (2026-09-28), the approval-count half remains.
 > **Related**: CARD-554, CARD-553, CARD-548, CARD-556
 > **Labels**: `type:bug`, `area:orchestration`, `P3`
 
@@ -34,3 +34,6 @@ Steer Developer to run a throwaway snippet with `execute_code` (no file) rather 
 ## Done when
 
 The CARD-550 code ask finishes DONE with at most 3 approvals on desktop and phone, and without a new file in the checkout.
+
+## Results (partial)
+Scratch half done in CARD-562 (merged to qa 2026-09-28): Developer no longer has `cli_exec`/`execute_code` or checkout `repo_file_*` tools, file tools refuse the AutoReiv checkout, and no-project scratch goes to `<OS temp>/autoreiv-scratch`. Still open: the approval count for a code ask on AutoReiv's Execute phase, and the duplicated approved-tool row in the parent session.
