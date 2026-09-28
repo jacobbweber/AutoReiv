@@ -2,7 +2,7 @@
 id: CARD-567
 title: "A runaway model reply stops at a reply limit instead of hanging"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: fix/card-567-reply-limits
 log: {minutes: 50, qa_runs: 1, findings: 1}
 created: 2026-09-28
+completed: 2026-09-28
 ---
 
 # CARD-567 A runaway model reply stops at a reply limit instead of hanging
