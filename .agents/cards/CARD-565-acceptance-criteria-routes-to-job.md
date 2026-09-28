@@ -2,7 +2,7 @@
 id: CARD-565
 title: "A chat message that mentions acceptance criteria stays a normal turn"
 type: bug
-status: Ready
+status: In Review
 priority: P1
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-565-acceptance-criteria-routes-to-job]
   checks: [tests/unit/orchestration/test_card565_criteria_reference_stays_react.py]
 branch: fix/card-565-acceptance-criteria-routes-to-job
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 25, qa_runs: 1, findings: 1}
 created: 2026-09-28
 ---
 
@@ -52,10 +52,23 @@ Narrow fix inside the existing design (runtime decides, CARD-230/271): only the 
 keyword routing with an explicit Jobs trigger would change how standing Jobs start (product decision) and is not in this card.
 
 ## Findings
+- F1 (closed by this card): a review ask that names "acceptance criteria" became a Formulate/Execute Job. Unit test failed first
+  on 4 reference phrasings; live run 1 after the fix passed.
+- Still broad by design (not changed): deliverable verbs with a target ("write ... that", "create a note"), wiki writes, and
+  first/then/finally or numbered steps still route to a Job. An explicit Jobs trigger in Chat would be a product decision.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-565-acceptance-criteria-routes-to-job | desktop | PASS (run 1) | 6.0 min, 0 approvals; Architect session tools: skill_view > review_card > read_project_file > finish_review; card Returned; 0 phase rows, 0 child sessions |
+
+Checks: test_card565 (6, 4 failing first), tests/unit/orchestration 307 passed; full not-slow suite 2154 passed, 3 pre-existing card354 failures; fast preflight GREEN.
+
+## Test it (Jacob)
+1. Open an Architect chat on a project with a card In Review.
+2. Send "Please review CARD-N against its acceptance criteria and record your verdict."
+3. Expect one normal turn in that chat: Review packet, then a Returned/Done verdict row. No "phase 1/2" or Formulate text, no extra sessions.
+4. Optional: "Build a small health page. Acceptance criteria: GET /health returns 200." still starts the standing Job.
 
 Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-565\...`
 

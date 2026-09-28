@@ -13,11 +13,6 @@ import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
 import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
 
-const REVIEW_TOOLS = ['review_card', 'finish_review', 'hand_off_card', 'read_card', 'list_cards'];
-const FORBIDDEN = ['write_project_file', 'patch_project_file', 'run_project_checks', 'git_commit', 'git_create_branch',
-  'cli_exec', 'execute_code', 'handoff_to_agent', 'lookup_agents'];
-const DEV_MODEL = process.env.AUTOREIV_QA_DEVELOPER_MODEL || 'qwen3.6:35b-a3b-65k';
-const DEV_URL = process.env.AUTOREIV_QA_DEVELOPER_URL || 'http://192.168.1.29:11434';
 const BRANCH = 'card/3-divide-refuses-zero';
 const CARD_FILE = 'CARD-3-divide-refuses-zero.md';
 
@@ -78,13 +73,8 @@ ${evidence}
 
 const git = (cwd, ...args) => execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8' }).trim();
 const role = (m) => String((m && m.role) || '').toLowerCase();
-const toolNames = (a) => new Set((a.allowed_tools || []).map((t) => String(typeof t === 'string' ? t : (t && t.name) || '')));
 const statusOf = (file) => ((fs.readFileSync(file, 'utf8').match(/^status:\s*(.+)$/m) || [])[1] || '').trim();
 const cardsDir = (root) => path.join(root, '.agents', 'cards');
-const readmeDocumentsZero = (root) => {
-  const text = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  return text !== README && /throw|error/i.test(text) && /zero|\b0\b/i.test(text);
-};
 
 function makeFixture(tag) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `autoreiv-card565-${tag}-`));
