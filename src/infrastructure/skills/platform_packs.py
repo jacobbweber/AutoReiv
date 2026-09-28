@@ -49,7 +49,7 @@ prompt_content_hash = _pack_promo.prompt_content_hash
 
 # Initial Factory Seed Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
 # All seeded packs are simply agent packs once installed.
-DEFAULT_SEEDED_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct", "developer", "tutor")
+DEFAULT_SEEDED_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct", "developer", "tutor", "architect")  # CARD-563
 PLATFORM_PACK_IDS: tuple[str, ...] = DEFAULT_SEEDED_PACK_IDS
 ALL_PLATFORM_PACK_IDS: tuple[str, ...] = DEFAULT_SEEDED_PACK_IDS
 RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (

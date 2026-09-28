@@ -22,6 +22,8 @@ from src.application.agent_packs.schema import (
 
 REPO_PACKS = Path(__file__).resolve().parents[3] / "platform-packs"
 NO_TOOL_AGENTS = frozenset({"direct"})
+# CARD-563: platform tools an agent must not get. Architect starts Developer only through hand_off_card.
+WITHHELD_PLATFORM_TOOLS: dict[str, frozenset[str]] = {"architect": frozenset({"handoff_to_agent", "lookup_agents"})}
 # Checkers the platform itself runs after a turn (reflexion / phase verification). Never offered to a model.
 PLATFORM_VERIFIER_TOOLS = frozenset({"verify_telemetry_consistency", "assert_json_schema", "validate_metric_bounds"})
 PLATFORM = "platform"
@@ -136,10 +138,13 @@ def resolve_allowed_tools(agent: Any) -> AllowedTools:
     """REQUIRED_PLATFORM_TOOLS + ticked-skill tools. The only permission decider (ADR-0061)."""
     if agent is None or str(_field(agent, "id") or "") in NO_TOOL_AGENTS:
         return AllowedTools()
-    provenance: dict[str, tuple[str, ...]] = {t: (PLATFORM,) for t in REQUIRED_PLATFORM_TOOLS}
+    withheld = WITHHELD_PLATFORM_TOOLS.get(str(_field(agent, "id") or ""), frozenset())
+    provenance: dict[str, tuple[str, ...]] = {t: (PLATFORM,) for t in REQUIRED_PLATFORM_TOOLS if t not in withheld}
     ticks = ticked_skills(agent)
     for sid, tools in skill_tools(ticks, str(_field(agent, "id") or "")).items():
         for tool in tools:
+            if tool in withheld:
+                continue
             if provenance.get(tool) != (PLATFORM,):
                 provenance[tool] = provenance.get(tool, ()) + (sid,)
     if ticks:
@@ -260,6 +265,8 @@ def domain_line(agent: Any) -> str:
     name = str(_field(agent, "name", "id") or "This agent")
     labels = _blurbed_labels(agent)
     covers = "; ".join(labels) if labels else "general conversation only"
+    if "handoff_to_agent" in WITHHELD_PLATFORM_TOOLS.get(str(_field(agent, "id") or ""), frozenset()):
+        return f"{name} covers: {covers}. For anything else, say so plainly; do not try to reach other agents."
     return (
         f"{name} covers: {covers}. For anything else, find the right agent with lookup_agents and "
         'hand off with handoff_to_agent; if no agent covers it, say so plainly and end your reply with "You can use Ask Developer to add this."'

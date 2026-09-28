@@ -42,11 +42,11 @@ CHAT_HIDDEN_BY_ID = frozenset(
     }
 )
 # Stale hide overrides must not win for these human-facing companions.
-CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "developer", "tutor"})
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "developer", "tutor", "architect"})
 
 # Initial Factory Seed Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
 # All seeded packs are simply agent packs once installed.
-DEFAULT_SEEDED_PACK_IDS = frozenset({"autoreiv", "direct", "developer", "tutor"})
+DEFAULT_SEEDED_PACK_IDS = frozenset({"autoreiv", "direct", "developer", "tutor", "architect"})  # architect: CARD-563
 PLATFORM_PACK_IDS = DEFAULT_SEEDED_PACK_IDS  # Backward compatibility alias
 
 

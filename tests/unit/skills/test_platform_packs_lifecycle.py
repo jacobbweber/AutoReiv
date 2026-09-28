@@ -14,7 +14,7 @@ from src.infrastructure.skills.platform_packs import (
 
 def test_platform_pack_ids_include_developer_and_tutor():
     """Active platform pack IDs must include autoreiv, direct, developer, and tutor [CARD-388, REQ-388-001]."""
-    assert PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor")
+    assert PLATFORM_PACK_IDS == ("autoreiv", "direct", "developer", "tutor", "architect")
 
 
 def test_retired_platform_packs_exclude_developer_and_tutor():

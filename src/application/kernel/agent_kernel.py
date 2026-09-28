@@ -1639,11 +1639,18 @@ class AgentKernel:
             # Execute tool calls
             skills_changed = False
             for tc in collected_tool_calls:
-                is_handoff_tool = tc.name == "handoff_to_agent"
+                is_handoff_tool = tc.name in ("handoff_to_agent", "hand_off_card")
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
-                    target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
-                    directive = args.get("task_intent") or args.get("task_directive") or ""
+                    card_handoff = tc.name == "hand_off_card"  # CARD-563
+                    target_id = "developer" if card_handoff else (
+                        args.get("target_agent") or args.get("target_agent_id") or "specialist"
+                    )
+                    directive = (
+                        f"Work card {args.get('card_id', '')} to In Review in the active project."
+                        if card_handoff
+                        else args.get("task_intent") or args.get("task_directive") or ""
+                    )
                     yield KernelEvent(
                         event_type=KernelEventType.HANDOFF_START,
                         handoff={
