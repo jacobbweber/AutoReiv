@@ -2,7 +2,7 @@
 id: CARD-560
 title: "Test suite runs faster: cheap app startup, slow tests out of the fast tier, dead tests removed"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M22
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-560-test-speed
 log: {minutes: 105, qa_runs: 1, findings: 4}
 created: 2026-09-27
+completed: 2026-09-27
 ---
 
 # CARD-560 Test suite runs faster: cheap app startup, slow tests out of the fast tier, dead tests removed
@@ -78,4 +79,4 @@ Unit suite and full preflight are measurably faster with every guard and contrac
 | card-454-tutor-trimmed-skills | desktop | PASS | 52 s; summary in %TEMP%\autoreiv-qa\card-560\summary.md |
 
 ## Release note
-Faster startup: the capability catalog is seeded in one database transaction, and the test suite and preflight run about 25% faster.
+Faster startup (capability catalog seeded in one transaction); tests run in parallel (pytest-xdist); cards are proven by the fast tier plus their journey, and the full suite (`preflight --release`, ~7.5 min) gates only qa -> main.
