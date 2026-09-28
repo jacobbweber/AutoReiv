@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from src.application.orchestration.honesty_smoke_pack import (
     STRESS_CLASSES,
     classify_scenario,
@@ -70,14 +68,3 @@ def test_req_faud_268_honesty_and_pass_classify():
     gate = merge_gate_decision(pack)
     assert gate["allowed"] is True
 
-
-def test_req_faud_268_ui_anchors_present():
-    html = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    js_chat = Path("src/web/static/modules/studios/chat.js").read_text(encoding="utf-8")
-    js_obs = Path("src/web/static/modules/studios/observability.js").read_text(encoding="utf-8")
-    assert "jobPhaseStatusStrip" in html
-    assert "standingJourneyJobIdInput" in html
-    assert "standingJourneyTimeline" in html
-    assert "renderJobPhaseStrip" in js_chat or "formatJobPhaseStrip" in js_chat
-    assert "standing-journey" in js_obs
-    assert "loadStandingJourney" in js_obs

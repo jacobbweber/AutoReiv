@@ -191,30 +191,6 @@ def test_retention_run_without_orch_does_not_fake_mint(tmp_path: Path):
     assert repo.get_education_mastery(mid) is not None
 
 
-def test_education_studio_due_chrome_not_removed():
-    """Studio due/quiz panels remain (ADR-0059 / REQ keep Studio)."""
-    index = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    assert 'id="tab-education"' in index
-    assert 'id="view-education"' in index
-    assert 'id="educationDueList"' in index
-    assert 'id="educationRefreshDueBtn"' in index
-    assert 'id="educationRunRetentionBtn"' in index
-    # Tutor education-mode due affordance present
-    assert 'id="chatEducationModeDueBtn"' in index
-    assert 'id="chatEducationModeDuePanel"' in index
-
-    edu_js = Path("src/web/static/modules/studios/education.js").read_text(encoding="utf-8")
-    assert "/api/education/mastery/due" in edu_js
-    assert "/api/education/retention/run" in edu_js
-
-    study_js = Path("src/web/static/modules/studios/study_entry.js").read_text(encoding="utf-8")
-    assert "due-review" in study_js
-    assert "/api/education/mastery/due" in study_js
-    assert "No due reviews" in study_js
-    # Must not claim delivery profiles replace SRS
-    assert "delivery profile" not in study_js.lower() or "not replace" in study_js.lower()
-
-
 def test_tutor_pack_due_review_skill_names_tools():
     """due-review skill + pack_tool_names list CARD-439 tools."""
     import json

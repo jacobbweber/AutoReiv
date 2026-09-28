@@ -11,7 +11,7 @@ def test_system_log_buffer_add_and_filter():
     buf = SystemLogBuffer(capacity=10)
     buf.add_entry(level="INFO", message="Server started", logger_name="web")
     buf.add_entry(level="WARN", message="High memory usage", logger_name="system")
-    buf.add_entry(level="ERROR", message="Gateway timeout: 192.168.1.29", logger_name="gateway")
+    buf.add_entry(level="ERROR", message="Gateway timeout: 127.0.0.1", logger_name="gateway")
 
     # Get all logs
     logs = buf.get_logs(limit=10)
@@ -22,7 +22,7 @@ def test_system_log_buffer_add_and_filter():
     # Filter by level
     err_logs = buf.get_logs(level="ERROR")
     assert len(err_logs) == 1
-    assert err_logs[0]["message"] == "Gateway timeout: 192.168.1.29"
+    assert err_logs[0]["message"] == "Gateway timeout: 127.0.0.1"
 
     # Filter by query
     gw_logs = buf.get_logs(query="timeout")

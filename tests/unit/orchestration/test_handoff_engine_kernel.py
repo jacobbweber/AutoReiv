@@ -475,7 +475,7 @@ async def test_handoff_provider_failure_text_maps_to_failed(isolated_engine_setu
     kernel = StreamTurnKernel(
         content=(
             "All 1 candidate providers failed execution. "
-            "(ollama: Failed to connect to Ollama at http://192.168.1.29:11434)"
+            "(ollama: Failed to connect to Ollama at http://127.0.0.1:11434)"
         )
     )
     engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
@@ -496,7 +496,7 @@ async def test_handoff_provider_failure_text_maps_to_failed(isolated_engine_setu
 async def test_handoff_timeout_text_maps_to_failed(isolated_engine_setup):
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
-    kernel = StreamTurnKernel(content="Ollama timed out at http://192.168.1.29:11434: PoolTimeout")
+    kernel = StreamTurnKernel(content="Ollama timed out at http://127.0.0.1:11434: PoolTimeout")
     engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
     envelope = HandoffEnvelope(
         sender_agent_id="general-assistant",

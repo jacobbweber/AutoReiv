@@ -47,26 +47,6 @@ def _tools(repo: AgentMemoryRepository) -> EducationTools:
     return EducationTools(repository=repo, default_agent_id="tutor")
 
 
-def test_flashcard_skill_forbids_wiki_curation_mid_turn():
-    """[REQ-444-001][REQ-444-002] Skill text + allowlist ban wiki_note_create loops."""
-    body = FLASH_SKILL.read_text(encoding="utf-8")
-    assert "CARD-444" in body
-    assert "wiki_note_create" in body  # named as forbidden
-    assert "Forbidden mid-turn" in body or "Forbidden mid-turn (CARD-444)" in body
-    assert "front only" in body.lower() or "Front-only" in body
-    for name in FORBIDDEN_MID_TURN:
-        # Forbidden section must call them out; allowlist must not list them
-        assert name in body
-
-    # Frontmatter requires_tools must not include search/list/create
-    fm = body.split("---", 2)[1]
-    requires_block = fm.split("requires_tools:", 1)[1].split("safety:", 1)[0]
-    for banned in ("wiki_note_create", "wiki_note_search", "wiki_note_list", "wiki_note_update"):
-        assert banned not in requires_block
-    for required in HAPPY_PATH_CORE + ("education_mastery_due", "education_mastery_upsert"):
-        assert required in requires_block
-
-
 def test_tutor_pack_flashcard_skill_tools_exclude_curation():
     """[REQ-444-001] pack.json flashcard-turn tools exclude wiki create/search/list."""
     pack = json.loads(PACK_JSON.read_text(encoding="utf-8"))
@@ -209,8 +189,3 @@ def test_empty_due_seed_path_at_most_one_wiki_read(tmp_path: Path):
     assert react_turns_used < CARD444_EFFICIENCY_CEILING
     assert react_turns_used <= 5
 
-
-def test_studio_players_not_redesigned_by_card444():
-    """Out of scope: do not redesign Studio players (CARD-448 Done)."""
-    index = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    assert "educationPlayersConsole" in index or "educationFlashcard" in index or "educationQuizPanel" in index

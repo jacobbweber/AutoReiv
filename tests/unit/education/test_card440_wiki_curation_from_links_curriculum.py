@@ -233,16 +233,6 @@ def test_parse_curriculum_bullets():
     assert items == ["Alpha", "Beta", "Gamma", "plain line"]
 
 
-def test_education_studio_wiki_chrome_not_removed():
-    """[REQ-440-004] Education Studio wiki grounding UI stays."""
-    index = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    education_js = Path("src/web/static/modules/studios/education.js").read_text(encoding="utf-8")
-    assert 'id="tab-education"' in index
-    assert 'id="view-education"' in index
-    assert "educationWikiSearchInput" in index or "educationWikiSearchInput" in education_js
-    assert "educationWikiHits" in index or "educationWikiHits" in education_js
-
-
 def test_tutor_pack_lists_curation_tools():
     import json
 

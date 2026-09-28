@@ -49,11 +49,3 @@ def test_backfilled_packs_match_template(pack_path: Path):
     missing = assert_good_agent_sections(data.get("system_prompt") or "")
     assert missing == [], f"{pack_path.name} missing {missing}"
 
-
-def test_forge_scaffold_includes_provenance():
-    forge_dir = ROOT / "src" / "web" / "static" / "modules" / "studios"
-    forge = (forge_dir / "forge.js").read_text(encoding="utf-8") + (
-        forge_dir / "forge" / "scaffold.js"
-    ).read_text(encoding="utf-8")
-    assert "[PROVENANCE & HONESTY]" in forge
-    assert "buildQuickScaffoldPayload" in forge

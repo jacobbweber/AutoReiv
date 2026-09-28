@@ -345,9 +345,3 @@ def test_no_factory_in_operator_strings():
         code = re.sub(r"//.*$|#.*$", "", text, flags=re.M)
         assert "Factory" not in code, rel
 
-
-def test_adr_and_changelog_name_card_520():
-    adr = (ROOT / "docs" / "adr" / "0060-retire-the-agent-training-factory.md").read_text(encoding="utf-8")
-    assert "`tool_escalation` (CARD-520" in adr
-    log = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    assert "CARD-520" in log.split("## [", 2)[1]

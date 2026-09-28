@@ -207,7 +207,7 @@ async def test_ollama_complete_relative_path_no_double_join():
             },
         )
 
-    base = "http://192.168.1.29:11434"
+    base = "http://127.0.0.1:11434"
     mock_client = httpx.AsyncClient(base_url=base, transport=httpx.MockTransport(handler))
     adapter = OllamaProviderAdapter(base_url=base, client=mock_client)
     req = CompletionRequest(
@@ -216,7 +216,7 @@ async def test_ollama_complete_relative_path_no_double_join():
     )
     await adapter.complete(req)
     assert seen["path"] == "/api/chat"
-    assert seen["url"] == "http://192.168.1.29:11434/api/chat"
+    assert seen["url"] == "http://127.0.0.1:11434/api/chat"
     assert seen["url"].count("http://") == 1
 
 
@@ -226,7 +226,7 @@ async def test_ollama_timeout_is_not_labeled_connect():
         raise httpx.ReadTimeout("Read timed out")
 
     mock_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    adapter = OllamaProviderAdapter(base_url="http://192.168.1.29:11434", client=mock_client)
+    adapter = OllamaProviderAdapter(base_url="http://127.0.0.1:11434", client=mock_client)
     req = CompletionRequest(
         model="qwen3.8:latest",
         messages=[ChatMessage(role=Role.USER, content="Hi")],
@@ -260,7 +260,7 @@ async def test_ollama_complete_consumes_stream_true():
         return httpx.Response(200, content="".join(lines).encode("utf-8"))
 
     mock_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    adapter = OllamaProviderAdapter(base_url="http://192.168.1.29:11434", client=mock_client)
+    adapter = OllamaProviderAdapter(base_url="http://127.0.0.1:11434", client=mock_client)
     req = CompletionRequest(
         model="qwen3.8:latest",
         messages=[ChatMessage(role=Role.USER, content="Hi")],

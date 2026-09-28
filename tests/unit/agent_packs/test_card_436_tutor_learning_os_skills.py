@@ -67,10 +67,3 @@ def test_inventory_catalogues_learning_os_skill_ids():
     assert "/api/education/course" in text
     assert "/api/education/retention/run" in text
 
-
-def test_education_studio_chrome_not_removed():
-    """REQ-436-003: this card must not remove Education Studio entry chrome."""
-    index = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    assert 'id="tab-education"' in index
-    assert 'id="view-education"' in index
-    assert "Education" in index

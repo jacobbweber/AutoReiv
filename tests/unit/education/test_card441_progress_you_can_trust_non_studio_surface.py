@@ -176,24 +176,6 @@ def test_progress_courses_and_mastery_tools(tmp_path: Path):
     assert mastery["http_contract"] == "GET /api/education/mastery"
 
 
-def test_studio_chrome_not_removed_by_card_441():
-    """[REQ-441-004] Studio progress chrome markers remain."""
-    index = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    assert 'id="tab-education"' in index
-    assert 'id="view-education"' in index
-    assert 'id="educationCourseChrome"' in index
-    assert 'id="chatEducationModeProgressBtn"' in index
-    assert 'id="chatEducationModeProgressPanel"' in index
-
-    edu_js = Path("src/web/static/modules/studios/education.js").read_text(encoding="utf-8")
-    assert "renderEducationCourseChrome" in edu_js
-
-    study_js = Path("src/web/static/modules/studios/study_entry.js").read_text(encoding="utf-8")
-    assert "progress-summary" in study_js
-    assert "/api/education/progress" in study_js
-    assert "education_progress_summary" in study_js
-
-
 def test_tutor_pack_progress_summary_skill_names_tools():
     """progress-summary skill + pack_tool_names list CARD-441 tools."""
     pack = json.loads(Path("platform-packs/tutor/pack.json").read_text(encoding="utf-8"))

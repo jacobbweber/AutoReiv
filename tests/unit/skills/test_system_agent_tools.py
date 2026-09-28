@@ -131,7 +131,7 @@ def test_system_agent_diagnostic_tools(store, collector, skill):
         model="ollama/qwen2.5:7b",
         duration_ms=120.0,
         success=False,
-        error_message="Gateway network timeout 192.168.1.29",
+        error_message="Gateway network timeout 127.0.0.1",
     )
 
     # 2. Test get_recent_errors
