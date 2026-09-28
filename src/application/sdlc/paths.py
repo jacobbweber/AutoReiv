@@ -49,7 +49,7 @@ def protected_write_error(target: Path | str, env: Optional[Mapping[str, str]] =
 
 
 def detect_autoreiv_root(start: Optional[Path] = None) -> Path:
-    """Walk upward for an AutoReiv checkout (`docs/cards` or legacy cards + `AGENTS.md`)."""
+    """Walk upward for an AutoReiv checkout (`.agents/cards` or a legacy cards folder + `AGENTS.md`)."""
     seeds = []
     if start is not None:
         seeds.append(Path(start))
@@ -66,9 +66,9 @@ def detect_autoreiv_root(start: Optional[Path] = None) -> Path:
                 break
             seen.add(key)
             has_cards = (
-                (cur / "docs" / "cards").is_dir()
+                (cur / ".agents" / "cards").is_dir()
+                or (cur / "docs" / "cards").is_dir()
                 or (cur / ".github" / "cards").is_dir()
-                or (cur / ".agents" / "cards").is_dir()
             )
             if has_cards and (cur / "AGENTS.md").is_file():
                 return cur
@@ -80,9 +80,9 @@ def detect_autoreiv_root(start: Optional[Path] = None) -> Path:
 
 def _is_checkout_dir(cur: Path) -> bool:
     has_cards = (
-        (cur / "docs" / "cards").is_dir()
+        (cur / ".agents" / "cards").is_dir()
+        or (cur / "docs" / "cards").is_dir()
         or (cur / ".github" / "cards").is_dir()
-        or (cur / ".agents" / "cards").is_dir()
     )
     return has_cards and (cur / "AGENTS.md").is_file()
 

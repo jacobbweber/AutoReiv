@@ -7,14 +7,14 @@
 
 ## 2. Linked Card & ADR References
 
-- **Work Card**: `docs/cards/CARD-xxx.md` (or #issue)
+- **Work Card**: `.agents/cards/CARD-xxx.md` (or #issue)
 - **ADR Reference**: `docs/adr/0001-baseline-sdlc.md` (or "N/A")
 
 ---
 
 ## 3. Definition of Done Checklist
 
-- [ ] **Card Sync**: Four Beats, acceptance criteria, and prune list in `docs/cards/CARD-xxx.md` match implementation.
+- [ ] **Card Sync**: Four Beats, acceptance criteria, and prune list in `.agents/cards/CARD-xxx.md` match implementation.
 - [ ] **Test-Locked Delivery**: Unit, integration, and smoke tests passing locally (`npm run preflight`).
 - [ ] **Scavenger Pass**: Callers audited via ripgrep; zero orphaned functions, dead variables, or zombie DOM elements left behind.
 - [ ] **Single Lever**: Exactly one canonical code path exists for every modified capability (zero duplicate functions or shadow listeners).

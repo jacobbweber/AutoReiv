@@ -15,7 +15,7 @@ Nothing in this file is repeated elsewhere. This is the only root instruction fi
 - A question to Jacob is 2-3 options with your recommendation. Never an open question.
 
 ## Hard rules
-1. No product code without a card: `docs/cards/CARD-N-slug.md`. Only card files live in `docs/cards/`.
+1. No product code without a card: `.agents/cards/CARD-N-slug.md`. Only card files live in `.agents/cards/`.
 2. Never push, merge, tag, reset `qa`, force anything, or delete user data unless Jacob said so in this session.
 3. Never work around a known bug. Mark it expected-fail with its card id (`.agents/rules/testing.md`).
 4. Never weaken, skip or delete a valid assertion to go green.
@@ -57,6 +57,6 @@ At most 2 Build -> Verify rounds per card (steps 6-9). If round 2 still fails, s
 | `.agents/skills/` | card, preflight, live-qa, merge-to-qa, serve-hygiene, ui-review, adr-manager, boundary-audit, lifecycle-audit, single-lever-audit |
 | `steering/` | product, tech, structure, roadmap (milestones), self-development (future design note) |
 | `docs/adr/` | decisions that constrain code, each with a guard test |
-| `docs/cards/` | cards |
+| `.agents/cards/` | cards (one file per card) |
 | `docs/findings.md` | the findings list |
 | `scratch/` | the only place for temporary files (gitignored) |

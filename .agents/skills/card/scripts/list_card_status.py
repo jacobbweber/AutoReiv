@@ -2,7 +2,7 @@
 """
 AutoReiv / SDLC Skill: list_card_status.py
 Granular, token-efficient work card query and inspection tool.
-Parses docs/cards/CARD-*.md supporting both YAML frontmatter and Markdown blockquotes.
+Parses .agents/cards/CARD-*.md supporting both YAML frontmatter and Markdown blockquotes.
 """
 
 from __future__ import annotations
@@ -212,7 +212,7 @@ def print_card_detail(card: dict) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="AutoReiv Work Card Status & Search Board (docs/cards/CARD-*.md)"
+        description="AutoReiv Work Card Status & Search Board (.agents/cards/CARD-*.md)"
     )
     # Scope filters
     scope_group = parser.add_argument_group("Scope Filters")
@@ -287,12 +287,12 @@ def main() -> int:
         "--cards-dir",
         type=Path,
         default=None,
-        help="Override cards directory (default: <repo>/docs/cards)",
+        help="Override cards directory (default: <repo>/.agents/cards)",
     )
 
     args = parser.parse_args()
 
-    cards_dir = (args.cards_dir or (repo_root() / "docs" / "cards")).resolve()
+    cards_dir = (args.cards_dir or (repo_root() / ".agents" / "cards")).resolve()
     if not cards_dir.is_dir():
         print(f"❌ Error: Cards directory not found: {cards_dir}")
         return 1

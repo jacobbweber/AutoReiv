@@ -41,4 +41,4 @@ _Example_: `python .agents/skills/adr-manager/scripts/new_adr.py "One decider fo
    - **Decision Outcome**: Selected option, rationale, and positive/negative trade-offs.
 3. If superseding an older ADR, update the status of the older ADR to `Superseded by ADR-XXXX`.
 4. Every ADR that constrains code names its guard test (a `pytest.mark.guard` test that fails if the decision is broken).
-5. Reference the new ADR in active work cards (`docs/cards/CARD-xxx.md`) and update `steering/tech.md` or `steering/structure.md` if structural boundaries shifted.
+5. Reference the new ADR in active work cards (`.agents/cards/CARD-xxx.md`) and update `steering/tech.md` or `steering/structure.md` if structural boundaries shifted.

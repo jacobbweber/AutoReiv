@@ -15,7 +15,7 @@ description: Create, find, dedupe and triage cards. Use at Pick, Dedupe and Plan
 ## Dedupe before any new card or finding
 1. Pick 2-3 keywords (symptom word, file or function name).
 2. `list_card_status.py --open --search "<keyword>"` for each keyword.
-3. `rg -n -i "<keyword>" docs/findings.md docs/cards`.
+3. `rg -n -i "<keyword>" docs/findings.md .agents/cards`.
 4. If a match exists, add your evidence to it. Do not create a new item.
 
 ## New card

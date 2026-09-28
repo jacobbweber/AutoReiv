@@ -3,7 +3,7 @@
 
     python .agents/skills/card/scripts/new_card.py "<title>" --type bug --priority P2 --milestone M22 [--slug short-name]
 
-Writes docs/cards/CARD-<next>-<slug>.md from .agents/skills/card/templates/<type>.md.
+Writes .agents/cards/CARD-<next>-<slug>.md from .agents/skills/card/templates/<type>.md.
 Dedupe first: list_card_status.py --open --search "<keyword>" and rg docs/findings.md.
 """
 
@@ -46,7 +46,7 @@ def main(argv=None) -> int:
     p.add_argument("--priority", choices=("P0", "P1", "P2", "P3"), default="P2")
     p.add_argument("--milestone", default="M22")
     p.add_argument("--slug", default="")
-    p.add_argument("--cards-dir", default=str(ROOT / "docs" / "cards"))
+    p.add_argument("--cards-dir", default=str(ROOT / ".agents" / "cards"))
     a = p.parse_args(argv)
     cards_dir = Path(a.cards_dir)
     cards_dir.mkdir(parents=True, exist_ok=True)
