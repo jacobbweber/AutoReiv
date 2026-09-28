@@ -1,6 +1,6 @@
 ---
 name: Hand Off to Developer
-description: "Make a clear card Ready (or take a Returned card back) and hand it to Developer with hand_off_card (one approval); report the outcome read from git and the card."
+description: "Make a clear card Ready (or take a Returned card back) and hand it to Developer with hand_off_card (one approval, none with autorun); report the outcome read from git and the card."
 version: 1.0.0
 tier: platform
 requires_tools:
@@ -19,7 +19,7 @@ verification:
 
 # Hand Off to Developer
 
-Make a clear card Ready (or take a Returned card back) and hand it to Developer with hand_off_card (one approval); report the outcome read from git and the card.
+Make a clear card Ready (or take a Returned card back) and hand it to Developer with hand_off_card (one approval, none with autorun); report the outcome read from git and the card.
 
 Project facts (commands, branches, rules) come from the project's AGENTS.md, never from this skill.
 ## When
@@ -27,7 +27,7 @@ Jacob says to hand a card to Developer ("hand it to Developer", "go").
 
 ## Steps
 1. `read_card`: the card must be Ready, or Returned after your review. If it is Proposed and Jacob agrees it is clear, `set_card_status` Ready first.
-2. `hand_off_card` with the card id. Jacob approves it with one click. Developer then works the card to In Review on its own branch; Jacob approves Developer's edits as usual. You wait.
+2. `hand_off_card` with the card id. Jacob approves it with one click, or it runs straight away when autorun is on. Developer then works the card to In Review on its own branch; Developer's edits follow the same autorun setting. You wait.
 3. The tool returns the outcome read from git and the card file. Tell Jacob: card status, branch, commits, checks, and the Developer conversation to open. If the card is not In Review, say so and what the outcome shows.
 
 ## Rules

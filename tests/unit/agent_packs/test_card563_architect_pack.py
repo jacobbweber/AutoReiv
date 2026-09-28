@@ -41,25 +41,8 @@ class _Store:
         return None
 
 
-def test_hand_off_card_asks_every_time_even_in_run_mode():
-    gate = ToolPolicyGate(_Store())
-    call = ToolCall(id="1", name="hand_off_card", arguments={"card_id": "CARD-2"})
-    decision = gate.evaluate(call, platform_pack_profile("architect"))
-    assert decision.verdict == ToolPolicyVerdict.REQUIRE_CONFIRM
-
-    class _Hitl:
-        def park_tool_call(self, **kw):
-            return "ap-1"
-
-    res = gate.apply_to_tool_result(
-        decision, call, session_id="s", agent=platform_pack_profile("architect"), hitl_engine=_Hitl(),
-        approval_mode="run", log=False,
-    )
-    assert res is not None and res.error == "approval_required:ap-1"
-
-
-def test_review_verdict_needs_no_click_but_hand_off_still_asks():
-    """CARD-564 D1: review_card and finish_review run without approval; hand_off_card still asks once."""
+def test_review_verdict_needs_no_click():
+    """CARD-564 D1: review_card and finish_review run without approval (hand_off_card asks unless autorun, CARD-566)."""
     gate = ToolPolicyGate(_Store())
     arch = platform_pack_profile("architect")
     for name in ("review_card", "finish_review"):

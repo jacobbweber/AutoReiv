@@ -60,6 +60,11 @@ NESTED_COMPLETE_MAX_TOKENS = 8192
 MAX_ACTIVE_TOOLS_PER_TURN: int = 15  # judgment cap, not measured (ADR-0054 amended by CARD-562)
 # CARD-562: always mounted (within the cap) for agents allowed them; they refuse cleanly when no project is selected.
 PROJECT_CORE_TOOLS: frozenset[str] = frozenset({"active_project_info", "read_project_file", "search_project", "list_project_dir"})
+# CARD-566 (found live): the card-work tools stay mounted too, so a hand-off brief ("Work card CARD-3 to In Review")
+# never loses git_commit / git_create_branch to word-overlap ranking (Developer then said it had no git_commit).
+CARD_WORK_TOOLS: frozenset[str] = frozenset(
+    {"read_card", "git_create_branch", "patch_project_file", "run_project_checks", "git_commit", "set_card_status"}
+)
 # CARD-562: the Active Selected Project prompt names only tools this agent may call (it once told Developer to use cli_exec).
 _PROJECT_GUIDANCE_TOOLS: tuple[str, ...] = (
     "read_project_file",
@@ -904,6 +909,8 @@ class AgentKernel:
                 # ahead of word-overlap ranking (round 4: Developer lost read_project_file).
                 if name in PROJECT_CORE_TOOLS:
                     return (0, -1000, name)
+                if name in CARD_WORK_TOOLS:
+                    return (0, -900, name)
 
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = bool(active_skill_set & {s.lower() for s in allowed.skills_for(name)})

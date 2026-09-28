@@ -7,7 +7,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, PROJECT_CORE_TOOLS, AgentKernel
+from src.application.kernel.agent_kernel import (
+    CARD_WORK_TOOLS,
+    MAX_ACTIVE_TOOLS_PER_TURN,
+    PROJECT_CORE_TOOLS,
+    AgentKernel,
+)
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from tests.unit.agent_packs.catalog import platform_pack_profile
 
@@ -48,3 +53,19 @@ def test_selected_skill_tools_come_with_the_core(kernel_and_dev):
     assert {"git_create_branch", "git_commit", "git_status", "git_diff"} <= names
     assert PROJECT_CORE_TOOLS <= names
     assert len(names) <= MAX_ACTIVE_TOOLS_PER_TURN
+
+
+HAND_OFF_BRIEF = (
+    "Handoff Packet\nGoal: Work card CARD-3 to In Review in the active project.\nFacts:\n- card_id: CARD-3\n"
+    "Constraints:\n- The card is the brief: read it with read_card before working.\n"
+    "Done when: CARD-3 is In Review (set_card_status), or you stop and say why.\nBudget:\n- max_turns: 40"
+)
+
+
+@pytest.mark.parametrize("text", [HAND_OFF_BRIEF, "hello"])
+def test_card566_card_work_tools_mounted_for_the_hand_off_brief(kernel_and_dev, text):
+    """CARD-566 live: the hand-off brief lost git_commit and git_create_branch, and Developer stopped uncommitted."""
+    kernel, dev = kernel_and_dev
+    names = set(t.name for t in kernel._resolve_active_tools(dev, user_content=text))
+    assert CARD_WORK_TOOLS <= names, CARD_WORK_TOOLS - names
+    assert PROJECT_CORE_TOOLS <= names and len(names) <= MAX_ACTIVE_TOOLS_PER_TURN
