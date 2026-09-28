@@ -51,6 +51,23 @@ def _slug(title: str) -> str:
     return re.sub(r"-+", "-", slug).strip("-")[:60].strip("-") or "card"
 
 
+EVIDENCE_AUTO_HEADER = "Recorded by set_card_status (In Review):"
+
+
+def insert_evidence(card: str, lines: List[str]) -> str:
+    """Put the tool's evidence first in ## Evidence (or ## Results), keeping what the model already wrote below it."""
+    block = EVIDENCE_AUTO_HEADER + "\n" + "\n".join(lines) + "\n"
+    text = card if card.endswith("\n") else card + "\n"
+    m = re.search(r"(?m)^##\s+(Evidence|Results)\s*$", text)
+    if not m:
+        return text + "\n## Evidence\n\n" + block
+    nxt = re.search(r"(?m)^##\s+", text[m.end():])
+    end = m.end() + nxt.start() if nxt else len(text)
+    existing = text[m.end():end].strip("\n")
+    body = "\n\n" + block + (("\n" + existing + "\n") if existing.strip() else "")
+    return text[: m.end()] + body + ("\n" if nxt else "") + text[end:]
+
+
 def stamp_new_card(content: str, card_id: str, status: Optional[str] = None) -> str:
     """Set the frontmatter id (and optionally status) and the heading id of a new card."""
     text = content.replace("\r\n", "\n")
@@ -310,6 +327,10 @@ class CardTools:
 
         target_n = normalize_status(status)
         actor = str(get_tool_context().get("agent_id") or "").lower()
+        passed_through = ""
+        if actor == "developer" and target_n == "In Review" and normalize_status(fm.status) == "Ready":
+            fm.status = "In Progress"  # CARD-562: Ready -> In Review goes through In Progress in one call
+            passed_through = "Ready -> In Progress -> In Review"
         if actor == "developer" and (normalize_status(fm.status), target_n) not in DEVELOPER_TRANSITIONS:
             return {
                 "success": False,
@@ -354,6 +375,8 @@ class CardTools:
             fm.review_rounds = fm.review_rounds + 1
         fm.status = target_n
         rendered = serialize_card_frontmatter(fm)
+        if gated:
+            rendered = insert_evidence(rendered, self._evidence_lines(root))
         path.write_text(rendered, encoding="utf-8")
         committed: Dict[str, Any] = {}
         if gated:
@@ -364,7 +387,34 @@ class CardTools:
         summary = self._summarize_card(path)
         summary.update({"success": True, "project_root": str(root)})
         summary.update({k: v for k, v in committed.items() if k != "success"})
+        if passed_through:
+            summary["transition"] = passed_through
         return summary
+
+    def _evidence_lines(self, root: Path) -> List[str]:
+        """Tool-written evidence: branch, commits since base, files changed, recorded green checks [CARD-562]."""
+        from src.application.sdlc.check_record import NO_GIT_HEAD, git_branch, git_head, run_git
+        from src.domain.sdlc.agents_contract import parse_agents_md
+
+        agents = root / "AGENTS.md"
+        contract = parse_agents_md(agents.read_text(encoding="utf-8", errors="replace") if agents.is_file() else "")
+        head = git_head(root)
+        lines: List[str] = []
+        if head != NO_GIT_HEAD:
+            base = contract.base_branch or "main"
+            lines.append(f"- Branch: `{git_branch(root)}` (base `{base}`)")
+            log = run_git(root, ["log", "--format=%h %s", f"{base}..HEAD"])
+            commits = [c for c in log.stdout.splitlines() if c.strip()] if log.returncode == 0 else []
+            lines.append("- Commits since base: " + ("; ".join(f"`{c}`" for c in commits) if commits else "none"))
+            diff = run_git(root, ["diff", "--name-only", f"{base}...HEAD"])
+            changed = [f for f in diff.stdout.splitlines() if f.strip()] if diff.returncode == 0 else []
+            lines.append("- Files changed: " + (", ".join(f"`{f}`" for f in changed) if changed else "none"))
+        rec = self._check_record.get(root) or {}
+        cmds = rec.get("commands") or {}
+        checks = ", ".join(f"{n} (`{cmds.get(n) or contract.checks.get(n, '?')}`)" for n in rec.get("checks") or [])
+        where = f"HEAD `{str(rec.get('head', ''))[:12]}`" if head != NO_GIT_HEAD else "this project"
+        lines.append(f"- Green run_project_checks for {where} at {rec.get('at', '?')}: {checks or 'none'} - passed")
+        return lines
 
     def _in_review_refusal(self, root: Path, path: Path) -> str:
         """CARD-562: Developer's In Review is enforced here: card branch, clean tree, green checks for HEAD."""

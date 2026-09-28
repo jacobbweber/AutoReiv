@@ -122,3 +122,47 @@ def test_gate_is_developer_only(repo, tmp_path):
     cards = CardTools(default_project_root=str(repo), check_record=GreenCheckRecord(tmp_path / "r.json"))
     assert cards.set_card_status("CARD-1", "In Review")["success"] is True  # Jacob / Architect path unchanged
     assert _git(repo, "log", "-1", "--format=%s") == "chore: fixture"
+
+
+def test_success_writes_tool_evidence_and_keeps_model_evidence(repo, tools):
+    cards, dev = tools
+    _fix_on_branch(repo)
+    assert dev.run_project_checks("fast")["green_recorded"]
+    card = repo / ".agents/cards/CARD-1-t.md"
+    card.write_text(CARD + "- model note: add(2, 3) == 5\n\n## Notes\nkeep me\n", encoding="utf-8")
+    fix = _git(repo, "rev-parse", "--short", "HEAD")
+    head = _git(repo, "rev-parse", "HEAD")[:12]
+    assert cards.set_card_status("CARD-1", "In Review")["success"]
+    text = _git(repo, "show", "HEAD:.agents/cards/CARD-1-t.md")
+    ev = text.split("## Evidence", 1)[1].split("## Notes", 1)[0]
+    assert "Recorded by set_card_status (In Review):" in ev
+    assert "`card/1-t` (base `main`)" in ev
+    assert f"`{fix} fix: add sums`" in ev
+    assert "`calc.py`" in ev
+    assert f"HEAD `{head}`" in ev and "fast (`" in ev and "print('ok')" in ev and "passed" in ev
+    assert ev.index("Recorded by") < ev.index("model note: add(2, 3) == 5")  # model evidence kept, below
+    assert "## Notes\nkeep me" in text
+
+
+def test_card_without_evidence_section_gets_one(repo, tools):
+    cards, dev = tools
+    card = repo / ".agents/cards/CARD-1-t.md"
+    card.write_text(CARD.replace("\n## Evidence\n", "\n"), encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "docs: card")
+    _fix_on_branch(repo)
+    assert dev.run_project_checks("fast")["green_recorded"]
+    assert cards.set_card_status("CARD-1", "In Review")["success"]
+    assert "## Evidence\n\nRecorded by set_card_status" in card.read_text(encoding="utf-8")
+
+
+def test_ready_goes_through_in_progress_in_one_call(repo, tools):
+    cards, dev = tools
+    card = repo / ".agents/cards/CARD-1-t.md"
+    card.write_text(CARD.replace("In Progress", "Ready"), encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "docs: ready")
+    _fix_on_branch(repo)
+    assert dev.run_project_checks("fast")["green_recorded"]
+    res = cards.set_card_status("CARD-1", "In Review")
+    assert res["success"], res
+    assert res["status"] == "In Review" and res["transition"] == "Ready -> In Progress -> In Review"
+    assert cards.set_card_status("CARD-1", "Done")["success"] is False  # still no Done for Developer

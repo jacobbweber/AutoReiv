@@ -118,7 +118,8 @@ class ProjectDevTools:
                 + ", ".join(dirty[:5])
                 + "). Commit them with git_commit, then run run_project_checks again.",
             }
-        self._check_record.record(root, head, names)
+        _, contract = self._contract(root)
+        self._check_record.record(root, head, names, {n: contract.checks.get(n, "") for n in names})
         return {"green_recorded": True, "head": head[:12]}
 
     # --- search_project -----------------------------------------------------

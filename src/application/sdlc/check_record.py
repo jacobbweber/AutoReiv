@@ -89,12 +89,13 @@ class GreenCheckRecord:
         except (OSError, ValueError):
             return {}
 
-    def record(self, root: Path, head: str, checks: Sequence[str]) -> None:
+    def record(self, root: Path, head: str, checks: Sequence[str], commands: Optional[Dict[str, str]] = None) -> None:
         with self._lock:
             data = self._load()
             data[_key(root)] = {
                 "head": head,
                 "checks": list(checks),
+                "commands": dict(commands or {}),
                 "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             }
             self.path.parent.mkdir(parents=True, exist_ok=True)

@@ -34,8 +34,8 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 ## Hand in (definition of done, in this order)
 1. Every acceptance criterion is met and the code change is committed on the card branch (skill git-workflow).
 2. `run_project_checks` (full, or fast if AGENTS.md has no full) returns `passed: true`. Never set In Review without a green run in this chat.
-3. Fill the card's `## Evidence` (or `## Results`) section with `write_card`: the check commands and their pass/fail, the commit id(s), the branch, and anything you could not do. Keep the status line unchanged when you rewrite the card.
-4. `set_card_status` to `In Review`. The tool enforces this: it refuses on the base branch, with uncommitted changes other than the card, or without a green run_project_checks for the current HEAD, and says what to do next. When it succeeds it commits the card file itself and returns the commit id.
+3. Optional: add notes to `## Evidence` with `write_card` (what you verified by hand, anything you could not do). Keep the status line unchanged. The branch, commits, files changed and green checks are written by set_card_status.
+4. `set_card_status` to `In Review` (from Ready it passes through In Progress itself). The tool enforces this: it refuses on the base branch, with uncommitted changes other than the card, or without a green run_project_checks for the current HEAD, and says what to do next. When it succeeds it commits the card file itself and returns the commit id.
 5. Stop there. Done, Returned and merging belong to Jacob or Architect.
 
 ## Rules
