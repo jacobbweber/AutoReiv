@@ -47,11 +47,15 @@ describe('Agent Studio Per-Agent LLM Configuration [CARD-153]', () => {
     expect(forgeJs).not.toContain('forgeModelSelect');
   });
 
-  // CARD-456: known failure; it.fails flips red when fixed
-  it.fails('removes purpose matrix handlers from settings.js [REQ-MODEL-005]', () => {
+  it('removes purpose matrix handlers from settings.js [REQ-MODEL-005]', () => {
     expect(settingsJs).not.toContain('saveMatrixBtn');
     expect(settingsJs).not.toContain('.matrix-select');
-    expect(settingsJs).not.toContain('/api/settings/matrix');
+    // CARD-456: the one remaining /api/settings/matrix call is the CARD-412 / OC-1 default context window save
+    // inside Save Provider; no purpose-matrix editor is left.
+    const calls = settingsJs.split("fetch('/api/settings/matrix'").length - 1;
+    expect(calls).toBe(1);
+    const at = settingsJs.indexOf("fetch('/api/settings/matrix'");
+    expect(settingsJs.slice(Math.max(0, at - 1500), at)).toContain('defaultContextInput');
   });
 
   it('renders per-agent endpoint inputs and discovery button in index.html [CARD-156]', () => {

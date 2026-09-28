@@ -47,7 +47,7 @@ export function renderEducationActiveContextChrome(selected) {
 }
 
 export async function hydrateEducationStudioActiveContext() {
-  let selected = {};
+  let selected;
   try {
     const data = await fetchSelectedEducationContext();
     selected = (data && data.selected) || {};
@@ -78,7 +78,7 @@ export async function setEducationStudioActiveContext(opts = {}) {
     return { ok: false, error: 'TOPIC_REQUIRED' };
   }
 
-  let coursePayload = null;
+  let coursePayload;
   try {
     coursePayload = await startOrResumeStudyCourse(topic, agentId);
     const course = (coursePayload && coursePayload.course) || {};

@@ -8,7 +8,7 @@ import path from 'path';
  */
 
 async function need(name) {
-  let m = {};
+  let m;
   try {
     m = await import('../../../src/web/static/modules/studios/chat/stop.js');
   } catch {

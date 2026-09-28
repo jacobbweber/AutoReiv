@@ -70,7 +70,7 @@ AutoReiv enforces hard mechanical thresholds to prevent God-Agent degradation:
 
 ### 5. The Mechanical Governance Engine & Architectural Telemetry
 * **Skill Contract Linter (`autoreiv lint-skills`)**:
-  * Enforces `len(requires_tools) <= 6`.
+  * Enforces `len(requires_tools) <= 8` (amended 2026-09-27, CARD-454: was 6; now equal to the runtime per-turn clamp `MAX_ACTIVE_TOOLS_PER_TURN = 8`, ADR-0061 rule 4, so a skill never declares more tools than one turn can mount).
   * Enforces mandatory `verification` clause (command, exit code, assertion).
 * **Tool Verification Battery**:
   * Pydantic v2 schemas.

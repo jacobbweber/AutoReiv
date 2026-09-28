@@ -1,12 +1,10 @@
 ---
 name: Education Wiki Curation (Library)
 description: Curate education notes into the Wiki library from links / curriculum using education-* templates (raw sources MAY omit education tags).
-version: 1.1.0
+version: 1.2.0
 tier: platform
 requires_tools:
   - wiki_note_read
-  - wiki_note_search
-  - wiki_note_list
   - wiki_note_create
   - wiki_note_update
   - wiki_template_list
@@ -40,7 +38,7 @@ Treat Wiki as the education library. Curate from **links** and **curriculum outl
 - `education_wiki_template_catalog`
 - `education_wiki_curate_from_link`
 - `education_wiki_curate_from_curriculum`
-- Plus catalog wiki tools: `wiki_note_*`, `wiki_template_*`
+- Plus wiki tools: `wiki_note_read`, `wiki_note_create`, `wiki_note_update`, `wiki_template_list`, `wiki_template_read` (search/list come from sibling Tutor skills; CARD-454: 8-tool budget)
 
 ## Tag / template policy
 

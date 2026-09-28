@@ -29,8 +29,10 @@ def test_new_card_renders_the_template_for_its_type(tmp_path):
     assert sorted(p.name for p in tmp_path.iterdir()) == ["CARD-1-bug.md", "CARD-2-feature.md"]
 
 
-def test_preflight_names_known_lint_and_treats_no_tests_as_pass():
+def test_preflight_names_known_lint_and_treats_no_tests_as_pass(monkeypatch):
     pf = _load(PREFLIGHT, "preflight_559")
+    assert pf.KNOWN_LINT == {}  # CARD-454/456 fixed the baseline: no named lint debt
+    monkeypatch.setitem(pf.KNOWN_LINT, "ruff", ("CARD-454", 7))
     assert pf.judge("pytest", 0, "", None)[0] == "PASS"
     assert pf.judge("pytest", 5, "no tests ran in 0.1s", None)[0] == "PASS"
     status, note = pf.judge("ruff", 1, "Found 3 errors.", "ruff")

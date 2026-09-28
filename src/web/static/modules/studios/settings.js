@@ -1529,8 +1529,6 @@ export function initSettingsStudio(state, callbacks = {}) {
   const applyUpdateDisabledReason = $('applyUpdateDisabledReason');
   const updateBranchListHint = $('updateBranchListHint');
 
-  let currentSystemVersion = null;
-
   function formatLocalTimestamp(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -1543,7 +1541,7 @@ export function initSettingsStudio(state, callbacks = {}) {
         hour: 'numeric',
         minute: '2-digit',
       });
-    } catch (_e) {
+    } catch {
       return d.toString();
     }
   }
@@ -1579,7 +1577,6 @@ export function initSettingsStudio(state, callbacks = {}) {
   }
 
   function renderVersion(data) {
-    currentSystemVersion = data;
     if (systemVersionPill) {
       systemVersionPill.textContent = data.current_version ? `v${data.current_version}` : '-';
     }

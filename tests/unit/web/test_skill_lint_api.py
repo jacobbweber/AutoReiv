@@ -3,7 +3,7 @@ Unit tests for CARD-390: Mechanical Skill Linting API.
 Tests POST /api/skills/lint against ADR-0054 capability invariants:
 - [REQ-390-001]: Endpoint lint evaluation without disk writes.
 - [REQ-390-002]: Structured diagnostic reporting (pass/fail, violations, tool counts).
-- [REQ-390-003]: God-Agent threshold enforcement (> 6 tools per skill).
+- [REQ-390-003]: God-Agent threshold enforcement (> 8 tools per skill, CARD-454).
 - [REQ-390-004]: Verification contract enforcement (mandatory Done-When criteria).
 """
 
@@ -15,7 +15,7 @@ client = TestClient(app)
 
 
 def test_lint_endpoint_valid_runbook_passes():
-    """Valid runbook with tools <= 6 and Done-When criteria passes cleanly."""
+    """Valid runbook with tools <= 8 and Done-When criteria passes cleanly."""
     valid_markdown = """---
 name: System Health Auditor
 description: Inspect and verify node health metrics and service status.
@@ -74,7 +74,7 @@ requires_tools:
 
 
 def test_lint_endpoint_excessive_tools_fails_cap_001():
-    """Runbook declaring more than 6 tools triggers CAP-001 (God-Agent tool budget)."""
+    """Runbook declaring more than 8 tools triggers CAP-001 (God-Agent tool budget)."""
     bloated_markdown = """---
 name: Overloaded Specialist
 description: Tries to do everything under a single skill.
@@ -86,12 +86,14 @@ requires_tools:
   - tool_five
   - tool_six
   - tool_seven
+  - tool_eight
+  - tool_nine
 ---
 
 # Overloaded Specialist
 
 ## Done-When
-- All seven tools have finished running.
+- All nine tools have finished running.
 """
     res = client.post("/api/skills/lint", json={"text": bloated_markdown})
     assert res.status_code == 200
@@ -99,7 +101,7 @@ requires_tools:
     assert data["valid"] is False
     rule_ids = [v["rule_id"] for v in data["violations"]]
     assert "CAP-001" in rule_ids
-    assert data["contract"]["tools_count"] == 7
+    assert data["contract"]["tools_count"] == 9
 
 
 def test_lint_endpoint_separate_form_fields():

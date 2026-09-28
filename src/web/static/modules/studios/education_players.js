@@ -88,7 +88,7 @@ export async function gradePlayerItem({ agentId, item, answer }) {
     });
     if (!res.ok) {
       let detail = '';
-      try { detail = await res.text(); } catch (_) { /* ignore */ }
+      try { detail = await res.text(); } catch { /* ignore */ }
       return {
         success: false,
         durable: false,
@@ -695,7 +695,7 @@ export function initEducationStudioPlayers(callbacks) {
 
   try {
     safeCreateIcons();
-  } catch (_) {
+  } catch {
     /* ignore */
   }
 

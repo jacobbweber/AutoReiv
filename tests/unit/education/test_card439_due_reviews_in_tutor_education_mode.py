@@ -14,7 +14,6 @@ from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 
-
 DUE_REVIEW_TOOL_NAMES = (
     "education_mastery_due",
     "education_due_review_list",

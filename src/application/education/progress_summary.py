@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-
 PROGRESS_SKILL_HINT = "progress-summary"
 PROGRESS_HTTP_CONTRACT = "GET /api/education/progress"
 
