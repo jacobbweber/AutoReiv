@@ -2,7 +2,7 @@
 id: CARD-562
 title: "Developer works one card to In Review on the active project"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -13,6 +13,7 @@ branch: feat/card-562-developer-one-card-to-in-review
 absorbs: [CARD-558, CARD-540, CARD-541, CARD-557 (scratch-file half)]
 log: {minutes: 400, qa_runs: 11, findings: 9}
 created: 2026-09-27
+completed: 2026-09-28
 ---
 
 # CARD-562 Developer works one card to In Review on the active project
