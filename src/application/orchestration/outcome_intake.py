@@ -47,10 +47,12 @@ _GOAL_DELIVERABLE = re.compile(
     r"\b(?:create|write|author|save|draft|add)\b.+\b(?:wiki|note)s?\b|"
     r"\b(?:wiki|note)s?\b.+\b(?:create|write|author|save|draft)\b|"
     r"\bdone[\s-]+when\b|"
-    r"\bsuccess\s+(?:when|criteria|rule|condition)\b|"
+    r"\bsuccess\s+when\b|"
+    # CARD-565: stated criteria ("acceptance criteria: ...") are a stop rule; a reference to a card's criteria is not.
+    r"\bsuccess\s+(?:criteria|rule|condition)\s*[:\-]|"
     r"\bprove(?:s|n)?\b.+\b(?:exists|passes|returns|200)\b|"
     r"\bhealth\b.+\b200\b|"
-    r"\bacceptance\s+criteria\b"
+    r"\bacceptance\s+criteria\s*[:\-]"
     r")",
     re.IGNORECASE,
 )
