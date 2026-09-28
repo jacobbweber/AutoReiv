@@ -58,6 +58,8 @@ NESTED_COMPLETE_MAX_TOKENS = 8192
 
 # ADR-0054 / CARD-362: Demand-Paged Capability Engine constants
 MAX_ACTIVE_TOOLS_PER_TURN: int = 15  # judgment cap, not measured (ADR-0054 amended by CARD-562)
+# CARD-562: always mounted (within the cap) for agents allowed them; they refuse cleanly when no project is selected.
+PROJECT_CORE_TOOLS: frozenset[str] = frozenset({"active_project_info", "read_project_file", "search_project", "list_project_dir"})
 BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
     {
         "activate_skill",
@@ -781,8 +783,8 @@ class AgentKernel:
     ) -> List[Any]:
         """
         Pick this turn's tools from the agent's allowed set (ADR-0061). Every step only narrows:
-        the matched capability subset (required platform tools stay), then the 8-tool clamp where
-        active ticked skills rank first. An empty intersection mounts required tools only.
+        the matched capability subset (required platform tools stay), then the per-turn clamp
+        (MAX_ACTIVE_TOOLS_PER_TURN) where the project core tools, then active ticked skills, rank first. An empty intersection mounts required tools only.
         """
         if getattr(agent, "id", None) == "direct":
             return []
@@ -881,6 +883,11 @@ class AgentKernel:
                             named = True
                         return (0, 0 if named else 1, name)
                     return (3, 0, name)
+
+                # CARD-562: an agent that works a project always sees its read/search/info tools,
+                # ahead of word-overlap ranking (round 4: Developer lost read_project_file).
+                if name in PROJECT_CORE_TOOLS:
+                    return (0, -1000, name)
 
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = bool(active_skill_set & {s.lower() for s in allowed.skills_for(name)})

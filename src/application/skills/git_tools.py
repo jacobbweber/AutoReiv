@@ -129,7 +129,12 @@ class GitTools:
         base: Optional[str] = None,
         project_root: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Create and switch to a new branch from base [CARD-562]. Refuses a dirty tree; never forces."""
+        """Create and switch to a new branch from base [CARD-562]; never forces.
+
+        Uncommitted changes are carried onto the new branch when it starts at the current HEAD
+        (``git switch -c`` keeps the working tree). A dirty tree only refuses when the base is a
+        different commit, where switching could lose or mix changes.
+        """
         clean = (name or "").strip()
         if not BRANCH_NAME.match(clean) or ".." in clean or clean.endswith((".lock", "/", ".")):
             return {"success": False, "error": f"Invalid branch name '{name}'. Use e.g. card/12-short-slug."}
@@ -141,26 +146,40 @@ class GitTools:
         if status["exit_code"] != 0:
             return {"success": False, "error": status.get("stderr") or "git status failed", "project_root": str(root)}
         tracked = [ln for ln in (status.get("stdout") or "").splitlines() if ln and not ln.startswith("??")]
-        if tracked:
-            return {
-                "success": False,
-                "error": "Working tree has uncommitted changes. Commit or ask the operator before switching branch.",
-                "changes": tracked[:20],
-                "project_root": str(root),
-            }
         current = (self._run(root, ["branch", "--show-current"]).get("stdout") or "").strip()
         exists = self._run(root, ["rev-parse", "--verify", "--quiet", f"refs/heads/{clean}"])["exit_code"] == 0
         if exists:
             if current == clean:
                 return {"success": True, "project_root": str(root), "branch": clean, "created": False}
-            return {"success": False, "error": f"Branch '{clean}' already exists.", "project_root": str(root)}
+            return {
+                "success": False,
+                "error": f"Branch '{clean}' already exists. Switching to it is not done by this tool.",
+                "project_root": str(root),
+            }
         start = (base or "").strip() or self._contract_base(root) or current or "HEAD"
         if not BRANCH_NAME.match(start) and start != "HEAD":
             return {"success": False, "error": f"Invalid base '{start}'."}
+        if tracked:
+            head_sha = (self._run(root, ["rev-parse", "HEAD"]).get("stdout") or "").strip()
+            base_sha = (self._run(root, ["rev-parse", "--verify", "--quiet", f"{start}^{{commit}}"]).get("stdout") or "").strip()
+            if not head_sha or head_sha != base_sha:
+                return {
+                    "success": False,
+                    "error": (
+                        f"Uncommitted changes and base '{start}' is not the current HEAD; switching could lose them. "
+                        "Branch from the current HEAD (omit base) or ask the operator."
+                    ),
+                    "changes": tracked[:20],
+                    "project_root": str(root),
+                }
+            start = "HEAD"
         made = self._run(root, ["switch", "-c", clean, start])
         if not made["success"]:
             return {"success": False, "error": made.get("stderr") or "git switch failed", "project_root": str(root)}
-        return {"success": True, "project_root": str(root), "branch": clean, "base": start, "created": True}
+        out = {"success": True, "project_root": str(root), "branch": clean, "base": start, "created": True}
+        if tracked:
+            out["carried_changes"] = tracked[:20]
+        return out
 
     def _contract_base(self, root: Path) -> Optional[str]:
         agents = root / "AGENTS.md"

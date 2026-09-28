@@ -136,9 +136,27 @@ def test_git_create_branch_from_base_refuses_dirty_and_bad_names(project: Path):
     assert made["success"] and made["base"] == "main" and made["created"]
     assert _git(project, "branch", "--show-current").strip() == "card/1-fix-add"
     assert git.git_create_branch("card/1-fix-add")["created"] is False
+    # a dirty tree on a branch that has moved past the base: switching to base could lose changes -> refuse
+    (project / "src" / "app.py").write_text("committed\n", encoding="utf-8")
+    _git(project, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-am", "wip")
     (project / "src" / "app.py").write_text("changed\n", encoding="utf-8")
     dirty = git.git_create_branch("card/2-other")
-    assert dirty["success"] is False and "uncommitted" in dirty["error"]
+    assert dirty["success"] is False and "Uncommitted changes" in dirty["error"]
+    assert "already exists" in git.git_create_branch("main")["error"]
+
+
+@needs_git
+def test_git_create_branch_carries_card_edits_made_on_the_base_branch(project: Path):
+    """CARD-562 round 4 deadlock: the card was set In Progress on main, then branching refused. Now it carries."""
+    _git(project, "init", "-b", "main")
+    _git(project, "-c", "user.email=t@t", "-c", "user.name=t", "add", ".")
+    _git(project, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "init")
+    (project / "src" / "app.py").write_text("edited on main\n", encoding="utf-8")
+    made = GitTools(default_project_root=str(project)).git_create_branch("feat/card-1-fix-add")
+    assert made["success"] and made["created"] and made["carried_changes"]
+    assert _git(project, "branch", "--show-current").strip() == "feat/card-1-fix-add"
+    assert (project / "src" / "app.py").read_text(encoding="utf-8") == "edited on main\n"
+    assert "app.py" in _git(project, "status", "--porcelain")
 
 
 @pytest.fixture

@@ -24,7 +24,7 @@ One branch per card from the base branch, small commits with clear messages, and
 
 Project facts (commands, branches, rules) come from the project's AGENTS.md, never from this skill.
 ## Start a card
-1. `git_status`: the tree must be clean. If not, stop and tell the operator what is uncommitted.
+1. Branch before any edit, card status change included. `git_status`: uncommitted changes are carried onto a new branch made from the current HEAD; if they are not yours, stop and tell the operator.
 2. `git_create_branch` named `card/<n>-<short-slug>` (or the pattern in AGENTS.md `## Branches`). The base defaults to the AGENTS.md base branch.
 
 ## Commit

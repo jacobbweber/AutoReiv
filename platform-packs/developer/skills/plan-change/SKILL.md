@@ -23,6 +23,7 @@ Before editing: find the files, list the steps, the risks and the test plan, and
 
 Project facts (commands, branches, rules) come from the project's AGENTS.md, never from this skill.
 ## Steps
+0. The card branch must already exist (skill card-intake / git-workflow); never write the plan on the base branch.
 1. Read the card's acceptance criteria. Each one needs a place in the plan.
 2. Find the code: `search_project` for names from the card, then read the files that matter. Read callers and existing tests too.
 3. Write a short plan into the card's `## Plan` section (`write_card`, status line unchanged):
