@@ -1,12 +1,13 @@
 /**
  * CARD-556 journey (D1, Jacob 2026-09-27): with no project selected, write_project_file writes to the AutoReiv
- * scratch folder under the user data folder (<data root>/scratch), never into the checkout, and says where.
+ * scratch folder (<OS temp>/autoreiv-scratch since CARD-562), never into the checkout, and says where.
  * 1) No project is selected, and the write_project_file description names the scratch folder.
  * 2) Asked in a Developer chat to save a file with write_project_file, after Approve the tool row is a success with
- *    location "scratch", its full path is under <data root>/scratch (not the serve's checkout), and the reply gives
+ *    location "scratch", its full path is under <OS temp>/autoreiv-scratch (not the serve's checkout), and the reply gives
  *    the scratch path. The live QA runner's real-checkout guard (CARD-555) must stay PASS.
  * Checks are structural (tool rows, data dir), never exact model wording.
  */
+import os from 'node:os';
 import { waitFor } from './lib/runner.mjs';
 import { HITL_CARD, getJson, isStreaming, openApp, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
 
@@ -19,7 +20,7 @@ const under = (child, parent) => { const c = norm(child); const p = norm(parent)
 export default {
   id: 'card-556-write-project-file-scratch',
   card: 'CARD-556',
-  title: 'write_project_file with no project selected writes to the data-folder scratch, never the checkout',
+  title: 'write_project_file with no project selected writes to the OS-temp scratch, never the checkout',
   allow: [],
   async run(j, { page, request, base, viewport }) {
     const streams = trackStreams(page);
@@ -38,7 +39,7 @@ export default {
       if (!tool) throw new Error('Developer lacks write_project_file');
     }, { timeoutMs: 30000 });
 
-    await j.step('Developer saves a file with write_project_file: it lands in <data root>/scratch and the reply says where', async () => {
+    await j.step('Developer saves a file with write_project_file: it lands in <OS temp>/autoreiv-scratch and the reply says where', async () => {
       // A session created through the API does not show in the Developer drawer list, so use the chat the Developer
       // picker opens and find it afterwards by the unique file name.
       const file = `card556-note-${viewport.name}-${Date.now() % 100000}.txt`;
@@ -86,7 +87,7 @@ export default {
       const writes = rows.filter((m) => role(m) === 'tool' && String(m.name || '') === 'write_project_file');
       const parsed = writes.map((m) => { try { return JSON.parse(String(m.content || '')); } catch { return { raw: String(m.content || '') }; } });
       const ok = parsed.filter((p) => p && p.success === true);
-      const scratch = `${norm(dataRoot)}/scratch`;
+      const scratch = `${norm(os.tmpdir())}/autoreiv-scratch`; // CARD-562: OS temp, not the data folder
       const last = rows.filter((m) => role(m) === 'assistant').map((m) => String(m.content || '')).filter(Boolean).pop() || '';
       j.note(`approvals pressed ${approvals}; write_project_file rows ${writes.length}; ok ${ok.length}${ok.length ? ` (location ${ok[0].location}, full_path ${ok[0].full_path})` : ''}; other rows: ${parsed.filter((p) => !(p && p.success === true)).map((p) => String(p.error || p.raw || '').slice(0, 80)).join(' | ') || 'none'}; reply: ${last.slice(0, 200).replace(/\s+/g, ' ')}`);
       if (REFUSAL_RE.test(last)) throw new Error(`reply contains refusal wording: ${last.slice(0, 160)}`);

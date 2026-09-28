@@ -151,7 +151,7 @@ def test_card_tools_dotagents_structure(tmp_path: Path):
 
 
 def test_card_tools_legacy_fallback(tmp_path: Path):
-    """[REQ-SDLC-061] CardTools uses docs/cards (and docs/specs) when .agents/cards is absent."""
+    """[REQ-SDLC-061] CardTools keeps an older project's docs/cards (and docs/specs) when .agents/cards is absent."""
     (tmp_path / "docs" / "cards").mkdir(parents=True)
     (tmp_path / "docs" / "specs" / "legacy-slug").mkdir(parents=True)
     (tmp_path / "steering").mkdir(parents=True)

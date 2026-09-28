@@ -14,6 +14,7 @@ import asyncio
 import os
 from pathlib import Path
 
+import pytest
 from starlette.testclient import TestClient
 
 from src.domain.gateway.models import ToolCall
@@ -48,6 +49,7 @@ def _names(servers) -> list[str]:
     return found
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc425_user_modified_developer_gains_native_skill_without_clobber(operator_client):
     """REQ-425-001. Additive grant only. Prompt, other tools, and MCP servers stay."""
     client, store, wiki = operator_client

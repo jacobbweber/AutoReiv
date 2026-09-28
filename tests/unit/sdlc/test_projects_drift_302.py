@@ -24,10 +24,12 @@ def test_manifest_loaded_and_drift_detects_missing(tmp_path: Path):
     aligned = svc.align_project()
     assert aligned["success"] is True
     assert (proj / "AGENTS.md").exists()
-    assert (proj / ".agents" / "steering" / "product.md").exists()
+    assert (proj / ".agents" / "cards").is_dir()  # CARD-562: one card folder, no steering placeholders
+    assert "{{project_name}}" not in (proj / "AGENTS.md").read_text(encoding="utf-8")
     again = svc.detect_drift()
     assert again["aligned"] is True
     assert again["missing"] == []
+    assert again["agents_md_missing_sections"] == []  # all contract headings present, placeholders or not
 
 
 def test_require_selected_root_no_silent_autoreiv_fallback(tmp_path: Path):

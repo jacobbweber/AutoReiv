@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 CARD_STATUSES = (
     "Discuss",
+    "Proposed",  # CARD-562 D2: filed by an agent, waits for Jacob or Architect to make it Ready
     "Ready",
     "In Progress",
     "In Review",
@@ -20,6 +21,7 @@ CARD_STATUSES = (
 
 LEGAL_TRANSITIONS = {
     "Discuss": frozenset({"Discuss", "Ready"}),
+    "Proposed": frozenset({"Ready"}),
     "Ready": frozenset({"In Progress"}),
     "In Progress": frozenset({"In Review"}),
     "In Review": frozenset({"Done", "Returned"}),
@@ -42,6 +44,7 @@ def normalize_status(value: str) -> str:
     lowered = raw.lower().replace("_", " ").replace("-", " ")
     aliases = {
         "discuss": "Discuss",
+        "proposed": "Proposed",
         "ready": "Ready",
         "in progress": "In Progress",
         "inprogress": "In Progress",

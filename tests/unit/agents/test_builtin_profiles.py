@@ -22,10 +22,10 @@ def test_developer_is_separate_pack_and_not_in_autoreiv():
 
     dev = platform_pack_profile("developer")
     assert dev.id == "developer"
-    assert "sdlc-engineering" in dev.allowed_skill
+    assert "implement-change" in dev.allowed_skill  # CARD-562
     assert "write_project_file" in dev.allowed_tool_names
     assert "read_project_file" in dev.allowed_tool_names
-    assert "cli_exec" in dev.allowed_tool_names
+    assert "cli_exec" not in dev.allowed_tool_names  # CARD-562: no shell/code runner on Developer
 
 
 def test_tutor_absorbed_into_autoreiv_profile():
@@ -106,10 +106,10 @@ def test_get_builtin_profile_lookup_and_aliases():
 
 def test_developer_owns_builder_tools_not_legacy_save():
     dev = platform_pack_profile("developer")
-    assert "capability-authoring" in dev.allowed_skill
-    assert "proposals" in dev.allowed_skill
-    assert "build-agent-pack" in dev.allowed_skill
-    assert "coding" in dev.allowed_skill  # CARD-550 D1 (Jacob): Developer reads and patches the checkout
+    # CARD-562 (Jacob 2026-09-28): tool building is parked off Developer until M25 slice 2.
+    for sid in ("capability-authoring", "proposals", "build-agent-pack", "native-tool-engineering", "mcp-engineering"):
+        assert sid not in dev.allowed_skill
+    assert "coding" not in dev.allowed_skill  # CARD-562 supersedes CARD-550 D1: active project, not the checkout
     for name in (
         "list_available_skills_and_tools",
         "propose_agent_specification",
@@ -118,7 +118,7 @@ def test_developer_owns_builder_tools_not_legacy_save():
         "commit_skill_pack",
         "scaffold_agent_pack",
     ):
-        assert name in dev.allowed_tool_names
+        assert name not in dev.allowed_tool_names  # CARD-562: parked until slice 2
     assert "save_agent_specification" not in dev.allowed_tool_names
     assert "propose_workflow" not in dev.allowed_tool_names
 

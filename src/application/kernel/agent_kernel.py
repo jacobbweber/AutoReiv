@@ -57,7 +57,32 @@ NESTED_COMPLETE_MAX_CTX = 32768
 NESTED_COMPLETE_MAX_TOKENS = 8192
 
 # ADR-0054 / CARD-362: Demand-Paged Capability Engine constants
-MAX_ACTIVE_TOOLS_PER_TURN: int = 8
+MAX_ACTIVE_TOOLS_PER_TURN: int = 15  # judgment cap, not measured (ADR-0054 amended by CARD-562)
+# CARD-562: always mounted (within the cap) for agents allowed them; they refuse cleanly when no project is selected.
+PROJECT_CORE_TOOLS: frozenset[str] = frozenset({"active_project_info", "read_project_file", "search_project", "list_project_dir"})
+# CARD-562: the Active Selected Project prompt names only tools this agent may call (it once told Developer to use cli_exec).
+_PROJECT_GUIDANCE_TOOLS: tuple[str, ...] = (
+    "read_project_file",
+    "search_project",
+    "list_project_dir",
+    "write_project_file",
+    "patch_project_file",
+)
+
+
+def project_tool_guidance(allowed_tools: "set[str] | frozenset[str]") -> str:
+    """Project tool guidance built only from the agent's resolved allowed tools [CARD-562]."""
+    names = [t for t in _PROJECT_GUIDANCE_TOOLS if t in allowed_tools]
+    parts: list[str] = []
+    if names:
+        parts.append(f"Use {', '.join(names)} to work with files inside this project.")
+    if "run_project_checks" in allowed_tools:
+        parts.append("Run the project's checks (AGENTS.md ## Checks) with run_project_checks.")
+    elif "cli_exec" in allowed_tools:
+        parts.append("Use cli_exec to run tests and scripts within this directory.")
+    return " ".join(parts)
+
+
 BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
     {
         "activate_skill",
@@ -646,14 +671,7 @@ class AgentKernel:
                     if selected_proj and selected_proj.get("path"):
                         proj_name = selected_proj.get("name") or selected_proj.get("slug") or "Active Project"
                         proj_path = selected_proj.get("path")
-                        has_write = is_developer or bool(
-                            allowed_tools.intersection({"write_project_file", "cli_exec"})
-                        )
-                        tool_guidance = (
-                            "Use write_project_file, read_project_file, and list_project_dir to manage files inside this project, and cli_exec to run tests and scripts directly within this directory."
-                            if has_write
-                            else "Use read_project_file and list_project_dir to inspect and review files inside this project."
-                        )
+                        tool_guidance = project_tool_guidance(allowed_tools)
                         project_context = (
                             "## Active Selected Project\n"
                             f"- Name: {proj_name}\n"
@@ -781,8 +799,8 @@ class AgentKernel:
     ) -> List[Any]:
         """
         Pick this turn's tools from the agent's allowed set (ADR-0061). Every step only narrows:
-        the matched capability subset (required platform tools stay), then the 8-tool clamp where
-        active ticked skills rank first. An empty intersection mounts required tools only.
+        the matched capability subset (required platform tools stay), then the per-turn clamp
+        (MAX_ACTIVE_TOOLS_PER_TURN) where the project core tools, then active ticked skills, rank first. An empty intersection mounts required tools only.
         """
         if getattr(agent, "id", None) == "direct":
             return []
@@ -831,7 +849,7 @@ class AgentKernel:
         except Exception:
             pass
 
-        # CARD-362 / ADR-0054 / CARD-377: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 8)
+        # CARD-362 / ADR-0054 / CARD-377: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 15, CARD-562)
         if len(tools) > MAX_ACTIVE_TOOLS_PER_TURN:
             active_skill_set = {str(s).strip().lower() for s in (active_skills or [])}
             import re
@@ -881,6 +899,11 @@ class AgentKernel:
                             named = True
                         return (0, 0 if named else 1, name)
                     return (3, 0, name)
+
+                # CARD-562: an agent that works a project always sees its read/search/info tools,
+                # ahead of word-overlap ranking (round 4: Developer lost read_project_file).
+                if name in PROJECT_CORE_TOOLS:
+                    return (0, -1000, name)
 
                 # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
                 is_active = bool(active_skill_set & {s.lower() for s in allowed.skills_for(name)})

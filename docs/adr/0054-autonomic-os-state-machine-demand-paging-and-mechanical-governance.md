@@ -3,6 +3,7 @@
 > **Status**: Accepted  
 > **Date**: 2026-09-18  
 > **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): agents are domain specialists (skills by task), not only blast-radius principals; the Rule of 7 is a per-turn selection clamp applied inside the allowed set from `resolve_allowed_tools`  
+> **Amended**: 2026-09-28 by CARD-562: the per-skill tool cap (linter CAP-001 `MAX_TOOLS_PER_SKILL`) and the runtime per-turn clamp (`MAX_ACTIVE_TOOLS_PER_TURN`) rise from 8 to 15 together (a guard test keeps them equal). 15 is a judgment cap chosen by Jacob, not a measured limit; revisit it if tool-selection quality drops on the local models.  
 > **Deciders**: Jacob (Visionary & Product Owner), Antigravity (Principal SDLC Engineer)  
 > **Consulted**: AutoReiv Core Architecture  
 > **Supersedes / Retires**: [CARD-340](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-340-multi-agent-group-chat-and-peer-to-peer-collaborative-conversation.md) (Multi-Agent Group Chat Roundtable Anti-Pattern)  
@@ -70,7 +71,7 @@ AutoReiv enforces hard mechanical thresholds to prevent God-Agent degradation:
 
 ### 5. The Mechanical Governance Engine & Architectural Telemetry
 * **Skill Contract Linter (`autoreiv lint-skills`)**:
-  * Enforces `len(requires_tools) <= 8` (amended 2026-09-27, CARD-454: was 6; now equal to the runtime per-turn clamp `MAX_ACTIVE_TOOLS_PER_TURN = 8`, ADR-0061 rule 4, so a skill never declares more tools than one turn can mount).
+  * Enforces `len(requires_tools) <= 15` (amended 2026-09-28, CARD-562: was 8, a judgment cap, not measured; amended 2026-09-27, CARD-454: was 6; now equal to the runtime per-turn clamp `MAX_ACTIVE_TOOLS_PER_TURN`, now 15, ADR-0061 rule 4, so a skill never declares more tools than one turn can mount).
   * Enforces mandatory `verification` clause (command, exit code, assertion).
 * **Tool Verification Battery**:
   * Pydantic v2 schemas.

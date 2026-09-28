@@ -14,6 +14,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import pytest
+
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.skills.user_catalog import SKILL_VIEW, render_skill_index
 from src.domain.gateway.models import ToolCall
@@ -83,6 +85,7 @@ def _skill_bodies(skills_root: Path) -> dict[str, str]:
     return bodies
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc427_developer_chat_opens_pack_skill_with_warning_and_does_not_copy(operator_client):
     """REQ-427-001 and REQ-427-002. Chat skill_view reads the pack file. No operator-store copy."""
     client, store, wiki = operator_client

@@ -116,8 +116,8 @@ def test_builtin_allowlists_unchanged_for_core():
     assert "wiki_note_create" in autoreiv.allowed_tool_names
     assert "execute_code" not in autoreiv.allowed_tool_names
     developer = platform_pack_profile("developer")
-    assert "execute_code" in developer.allowed_tool_names
-    assert "propose_skill" in developer.allowed_tool_names
-    assert "skill_view" in developer.allowed_tool_names
+    assert "execute_code" not in developer.allowed_tool_names  # CARD-562: no shell/code runner on Developer
+    assert "run_project_checks" in developer.allowed_tool_names
+    assert "skill_view" not in developer.allowed_tool_names  # CARD-562: tool building parked until slice 2
     assert "save_agent_specification" not in developer.allowed_tool_names
     assert not any("execute_code" in p.allowed_tool_names for p in BUILTIN_PROFILES)

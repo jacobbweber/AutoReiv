@@ -26,7 +26,8 @@ from src.domain.skills.contract import (
 logger = logging.getLogger(__name__)
 
 # Matches the runtime per-turn clamp (agent_kernel.MAX_ACTIVE_TOOLS_PER_TURN, ADR-0061 rule 4) [CARD-454].
-MAX_TOOLS_PER_SKILL = 8
+# 15 since CARD-562: a judgment cap, not a measured one (ADR-0054 amendment).
+MAX_TOOLS_PER_SKILL = 15
 MAX_RUNBOOK_BODY_CHARS = 8000
 
 HIGH_RISK_TOOLS: frozenset[str] = frozenset(

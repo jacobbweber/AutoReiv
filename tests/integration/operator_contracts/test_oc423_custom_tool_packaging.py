@@ -12,6 +12,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from src.domain.gateway.models import ToolDefinition
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter
 
@@ -26,6 +28,7 @@ def _namespaces(client):
     return response.json()["namespaces"]
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     """REQ-423-001, REQ-423-003, REQ-423-005."""
     client, store, wiki = operator_client
@@ -281,6 +284,7 @@ def test_oc423_mcp_lane_groups_under_the_attached_server(operator_client):
     assert store.get_setting("native_custom_tools") in (None, [])
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc423_developer_skills_describe_both_lanes(operator_client):
     """REQ-423-004. Skills live on the developer pack, not under .agents/."""
     client, _store, _wiki = operator_client

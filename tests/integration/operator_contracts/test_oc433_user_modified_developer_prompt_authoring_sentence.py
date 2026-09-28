@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from src.domain.settings.models import AgentCustomization
 from src.infrastructure.skills.platform_packs import (
     USER_MODIFIED_ADDITIVE_SKILL_GRANTS,
@@ -64,6 +66,7 @@ def _assert_save_agent_specification_absent(agent, tools) -> None:
         assert "save_agent_specification" not in names
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc433_appends_authoring_paragraph_once_and_deletion_sticks(operator_client):
     """REQ-433-001 and REQ-433-002. Existing text stays. A deleted paragraph stays deleted."""
     client, store, wiki = operator_client

@@ -11,6 +11,8 @@ import asyncio
 import inspect
 from unittest.mock import patch
 
+import pytest
+
 from src.domain.gateway.models import ChatMessage, Role
 
 BEHAVIOR = "Look up a wiki note by title and return the first paragraph."
@@ -73,6 +75,7 @@ class _SlowKernel:
         return ChatMessage(role=Role.ASSISTANT, content="too late")
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_client):
     """REQ-422-001, REQ-422-002, REQ-422-003, REQ-422-004."""
     client, store, _wiki = operator_client
@@ -263,6 +266,7 @@ class _RegisteringKernel:
         return ChatMessage(role=Role.ASSISTANT, content=str(output.get("message") or result.error or "no output"))
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc511_job_records_the_tool_check_and_the_tool_is_not_registered(operator_client):
     """CARD-511 REQ-511-010: the Tools Studio job keeps the check result; persisted_tool stays false."""
     client, store, _wiki = operator_client

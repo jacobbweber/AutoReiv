@@ -3,6 +3,8 @@ CARD-429: agent-builder is not a live agent. Developer owns capability authoring
 The planner no longer switches prompts by agent id.
 """
 
+import pytest
+
 from src.application.kernel.plan_engine import PlanAndExecuteEngine
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.domain.agents.profiles import get_builtin_profile
@@ -46,6 +48,7 @@ def test_planner_uses_one_prompt_for_every_agent():
     assert "Do not emit a graph" in pe._PLANNER_SYSTEM
 
 
+@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_developer_pack_holds_builder_tools():
     dev = platform_pack_profile("developer")
     assert "propose_skill" in dev.allowed_tool_names

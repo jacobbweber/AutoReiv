@@ -130,8 +130,9 @@ async def get_project_files_list(request: Request, path: str = ".", category: Op
         cat = category.strip().lower()
         if cat == "cards":
             target = root / ".agents" / "cards"
-            if not target.exists():
-                target = root / ".github" / "cards"
+            for legacy in (root / "docs" / "cards", root / ".github" / "cards"):
+                if not target.exists():
+                    target = legacy
         elif cat == "specs":
             target = root / ".agents" / "specs"
             if not target.exists():

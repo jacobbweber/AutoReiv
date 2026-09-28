@@ -115,10 +115,10 @@ def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
 
     developer_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("developer"))
     developer_names = {t.name for t in developer_tools}
-    assert "execute_code" in developer_names
-    assert "propose_skill" in developer_names
-    assert "commit_skill_pack" in developer_names
-    assert "scaffold_agent_pack" in developer_names
+    assert "execute_code" not in developer_names  # CARD-562: no shell/code runner on Developer
+    assert "run_project_checks" in developer_names
+    assert "commit_skill_pack" not in developer_names  # CARD-562: tool building parked until slice 2
+    assert "scaffold_agent_pack" not in developer_names
     assert "save_agent_specification" not in developer_names
 
 

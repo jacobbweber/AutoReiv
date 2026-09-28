@@ -60,7 +60,7 @@ class ArchitecturalThresholdDetector:
 
     def __init__(
         self,
-        max_active_tools: int = 8,
+        max_active_tools: int = 15,  # = kernel MAX_ACTIVE_TOOLS_PER_TURN (CARD-562)
         max_schema_chars: int = 4000,
         max_autonomous_turns: int = 5,
         untrusted_tools: Optional[Set[str]] = None,

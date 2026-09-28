@@ -51,8 +51,8 @@ Procedural guidelines for inspecting code safely.
     assert len(errors) == 0
 
 
-def test_compiler_rejects_more_than_8_tools_cap_001():
-    """Rule CAP-001: len(requires_tools) <= 8, the runtime per-turn clamp [REQ-CAP-LINT-001, CARD-454]."""
+def test_compiler_rejects_more_than_15_tools_cap_001():
+    """Rule CAP-001: len(requires_tools) <= 15, the runtime per-turn clamp [REQ-CAP-LINT-001, CARD-454, CARD-562]."""
     raw = """---
 name: Bloated Skill
 description: Too many tools declared.
@@ -66,6 +66,13 @@ requires_tools:
   - tool_7
   - tool_8
   - tool_9
+  - tool_10
+  - tool_11
+  - tool_12
+  - tool_13
+  - tool_14
+  - tool_15
+  - tool_16
 verification:
   kind: command
   rule: pytest
@@ -78,8 +85,8 @@ verification:
     cap_001 = [v for v in violations if v.rule_id == "CAP-001"]
     assert len(cap_001) == 1
     assert cap_001[0].severity == LintSeverity.ERROR
-    assert "9 tools declared" in cap_001[0].message
-    assert "maximum allowed is 8" in cap_001[0].message
+    assert "16 tools declared" in cap_001[0].message
+    assert "maximum allowed is 15" in cap_001[0].message
 
 
 def test_skill_tool_cap_matches_the_runtime_per_turn_clamp():
@@ -87,7 +94,7 @@ def test_skill_tool_cap_matches_the_runtime_per_turn_clamp():
     from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN
     from src.application.skills.linter import MAX_TOOLS_PER_SKILL
 
-    assert MAX_TOOLS_PER_SKILL == MAX_ACTIVE_TOOLS_PER_TURN == 8
+    assert MAX_TOOLS_PER_SKILL == MAX_ACTIVE_TOOLS_PER_TURN == 15
 
 
 def test_compiler_rejects_missing_verification_cap_002():
@@ -246,6 +253,13 @@ requires_tools:
   - t7
   - t8
   - t9
+  - t10
+  - t11
+  - t12
+  - t13
+  - t14
+  - t15
+  - t16
 ---
 # Bad
 """,
@@ -351,6 +365,13 @@ requires_tools:
   - t7
   - t8
   - t9
+  - t10
+  - t11
+  - t12
+  - t13
+  - t14
+  - t15
+  - t16
 ---
 # Bad
 """,
@@ -442,6 +463,13 @@ requires_tools:
   - t7
   - t8
   - t9
+  - t10
+  - t11
+  - t12
+  - t13
+  - t14
+  - t15
+  - t16
 ---
 # Bad Contract
 """,

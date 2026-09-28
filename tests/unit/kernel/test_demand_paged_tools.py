@@ -15,7 +15,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 def test_max_active_tools_per_turn_constant():
     """Verify Rule of 7 entropy budget constant [REQ-CAP-PAGE-001]."""
-    assert MAX_ACTIVE_TOOLS_PER_TURN == 8
+    assert MAX_ACTIVE_TOOLS_PER_TURN == 15
 
 
 def test_resolve_active_tools_enforces_entropy_cap(bind_skills):
@@ -43,7 +43,7 @@ def test_resolve_active_tools_enforces_entropy_cap(bind_skills):
 
     resolved = kernel._resolve_active_tools(agent, user_content="test")
     assert len(resolved) <= MAX_ACTIVE_TOOLS_PER_TURN
-    assert len(resolved) == 8
+    assert len(resolved) == 15
 
 
 def test_priority_ordering_preserves_active_skill_tools_first(bind_skills):
@@ -60,7 +60,7 @@ def test_priority_ordering_preserves_active_skill_tools_first(bind_skills):
     ]
     extra_tools = [
         ToolDefinition(name=f"extra_{i}", description=f"Extra Tool {i}", parameters={"type": "object", "properties": {}})
-        for i in range(10)
+        for i in range(20)
     ]
 
     all_tools = skill_tools + baseline_tools + extra_tools

@@ -52,3 +52,6 @@ node_modules/
 .env
 .env.local
 *.local
+
+# Agent scratch space
+scratch/

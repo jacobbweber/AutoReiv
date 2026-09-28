@@ -40,7 +40,7 @@ def test_autoreiv_profile_pins_telemetry_and_developer_has_cli_exec():
     assert "cli_exec" not in autoreiv.allowed_tool_names
 
     developer = platform_pack_profile("developer")
-    assert "cli_exec" in developer.allowed_tool_names
+    assert "cli_exec" not in developer.allowed_tool_names  # CARD-562: no shell/code runner on Developer
 
     # Verify ToolRanker unconditionally includes pinned tools even for an unrelated query
     tools = [

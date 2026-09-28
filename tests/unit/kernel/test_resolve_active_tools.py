@@ -10,7 +10,7 @@ from src.domain.kernel.models import AgentProfile
 def test_resolve_active_tools_enforces_rule_of_7_ceiling():
     tools = [
         ToolDefinition(name=f"tool_{i}", description=f"Tool {i}", parameters={"type": "object", "properties": {}})
-        for i in range(12)
+        for i in range(20)
     ]
     registry = MagicMock()
     registry.get_tools_for_agent.return_value = tools
@@ -30,5 +30,5 @@ def test_resolve_active_tools_enforces_rule_of_7_ceiling():
     )
     resolved = kernel._resolve_active_tools(agent, user_content="unrelated query")
     assert len(resolved) == MAX_ACTIVE_TOOLS_PER_TURN
-    assert len(resolved) == 8
+    assert len(resolved) == 15
     assert {t.name for t in resolved}.issubset({t.name for t in tools})

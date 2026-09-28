@@ -25,6 +25,12 @@ NO_TOOL_AGENTS = frozenset({"direct"})
 # Checkers the platform itself runs after a turn (reflexion / phase verification). Never offered to a model.
 PLATFORM_VERIFIER_TOOLS = frozenset({"verify_telemetry_consistency", "assert_json_schema", "validate_metric_bounds"})
 PLATFORM = "platform"
+# CARD-562: code work in the active project matches the coding intent as well as the checkout repo_file_* tools.
+DOMAIN_EXTRA_TOOLS = {
+    "coding": frozenset(
+        {"read_project_file", "write_project_file", "patch_project_file", "search_project", "run_project_checks"}
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -162,6 +168,7 @@ def ticked_skills_for_domains(agent: Any, domains: Iterable[str]) -> list[str]:
         tools = set(bound.get(sid) or [])
         for dom in wanted:
             seed = set(PLATFORM_SKILL_TOOLS.get(dom, ())) | set(DYNAMIC_SKILL_TOOLS.get(dom, ()))
+            seed |= DOMAIN_EXTRA_TOOLS.get(dom, frozenset())
             mcp = f"mcp_{dom.replace('-', '_')}_"
             if sid.lower() == dom or tools & seed or any(t.startswith(mcp) for t in tools):
                 out.append(sid)

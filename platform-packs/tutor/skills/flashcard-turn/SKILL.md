@@ -89,7 +89,7 @@ Never invent a successful durable grade when `education_flashcard_grade` fails. 
 
 ## AppData note
 
-Prefer the platform pack body under `platform-packs/tutor/skills/flashcard-turn/`. If live AppData `packs/tutor/` lags, that is [CARD-443](../../../../docs/cards/CARD-443-platform-tutor-pack-appdata-sync.md) — do not manually redesign Learning OS here.
+Prefer the platform pack body under `platform-packs/tutor/skills/flashcard-turn/`. If live AppData `packs/tutor/` lags, that is [CARD-443](../../../../.agents/cards/CARD-443-platform-tutor-pack-appdata-sync.md) — do not manually redesign Learning OS here.
 
 ## Successor
 

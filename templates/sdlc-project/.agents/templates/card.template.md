@@ -1,37 +1,31 @@
-# [CARD-xxx] <Title>
-
-> **Status**: Ready
-> **Created**: <YYYY-MM-DD>
-> **Spec Reference**: none
-> **Labels**: `type:feature`, `needs-triage`
-
+---
+id: CARD-<n>
+title: "<what changes, in plain words>"
+status: Proposed
+priority: P2
 ---
 
-## 1. Why / Intent
-Describe the core motivation and value. What is the human visionary trying to achieve, and why?
+# CARD-<n> <title>
 
----
+## Why
+<The problem in plain words: who it hurts and how. Evidence: file:line, command output, steps.>
 
-## 2. Three Beats (Operating Alignment)
-1. **What you mean**: Plain-language description of operator intent.
-2. **What AutoReiv does now**: Current state, screen, file, or control.
-3. **What will change**: Target implementation and behavior.
+## Scope
+- <What changes.>
 
----
+Out of scope: <what does not>
 
-## 3. What to Build
-Concrete description of the change. List endpoints, files, and UI elements involved.
+## Acceptance criteria
+- [ ] <Observable, checkable statement.>
 
----
+## Proof
+<Which check or test shows it works.>
 
-## 4. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Automated tests green via test runner.
-- [ ] Zero lint errors via linter.
+## Plan
+<Filled in by the developer before building.>
 
----
+## Evidence
+<Filled in at In Review: commands run and results, commit ids, branch.>
 
-## 5. Constraints & Honor Flags
-- Standard honor constraints apply.
-- Zero breaking changes to existing passing tests.
-- Single isolated feature branch cut from `qa`.
+## Review
+<Filled in by the reviewer: Done, or Returned with numbered findings.>

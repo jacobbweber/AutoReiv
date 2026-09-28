@@ -158,8 +158,6 @@ class BuiltinAgentRegistry:
                     profile.allow_autonomous_training = override.allow_autonomous_training
                 if getattr(override, "max_training_retries", None) is not None:
                     profile.max_training_retries = override.max_training_retries
-                if getattr(override, "allow_wiki_access", None) is not None:
-                    profile.allow_wiki_access = override.allow_wiki_access
                 if getattr(override, "mcp_servers", None) is not None:
                     profile.mcp_servers = override.mcp_servers
                 if getattr(override, "allowed_credentials", None) is not None:
@@ -267,7 +265,8 @@ class BuiltinAgentRegistry:
         projects_service.register_tools(tool_registry)
 
         # 3. Linux Sysadmin Tools -> AutoReiv
-        sysadmin_tools = SysadminTools(root_resolver=projects_service.resolve_root)
+        # CARD-558 D1 / CARD-562: no project selected -> OS-temp scratch folder, never the checkout.
+        sysadmin_tools = SysadminTools(root_resolver=projects_service.selected_or_scratch)
         sysadmin_tools.register_tools(tool_registry)
 
         # 3b. Remote SSH Platform Tools -> AutoReiv
@@ -347,7 +346,7 @@ class BuiltinAgentRegistry:
         # 11. Spec-driven SDLC cards / specs / steering
         from src.application.skills.card_tools import CardTools
 
-        card_tools = CardTools(root_resolver=projects_service.resolve_root)
+        card_tools = CardTools(root_resolver=projects_service.selected_or_refuse)  # CARD-562: no silent checkout
         card_tools.register_tools(tool_registry)
 
         # 12. Project-scoped file tools (jailed)
@@ -355,10 +354,9 @@ class BuiltinAgentRegistry:
 
         # CARD-556 D1: no project selected -> <data root>/scratch, never the checkout.
         project_file_tools = ProjectFileTools(
-            root_resolver=projects_service.resolve_root,
+            root_resolver=projects_service.selected_or_refuse,
             project_resolver=projects_service.selected_root,
-            scratch_root=(Path(data_root) / "scratch") if data_root else None,
-        )
+        )  # CARD-562: scratch is <OS temp>/autoreiv-scratch
         project_file_tools.register_tools(tool_registry)
 
         # 12a. Checkout-jailed read-only repo tools [CARD-262]
@@ -368,15 +366,22 @@ class BuiltinAgentRegistry:
         repo_tools.register_tools(tool_registry)
         from src.application.skills.git_tools import GitTools
 
-        git_tools = GitTools(root_resolver=projects_service.resolve_root)
+        git_tools = GitTools(root_resolver=projects_service.selected_or_refuse)
         git_tools.register_tools(tool_registry)
         from src.application.skills.github_issue_tools import GitHubIssueTools
 
         github_tools = GitHubIssueTools(
-            root_resolver=projects_service.resolve_root,
+            root_resolver=projects_service.selected_or_refuse,
             card_tools=card_tools,
         )
         github_tools.register_tools(tool_registry)
+        from src.application.skills.project_dev_tools import ProjectDevTools
+
+        ProjectDevTools(
+            root_resolver=projects_service.selected_or_refuse,
+            card_tools=card_tools,
+            selected_info=projects_service.get_selected,
+        ).register_tools(tool_registry)
         agent_registry.projects_service = projects_service
 
         # 12b. Agent Private Storage Tools [CARD-148, REQ-STORAGE-003]

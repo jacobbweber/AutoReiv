@@ -448,7 +448,6 @@ class AgentPackManifest(BaseModel):
     pinned_memory: str = ""
     mcp_server: Optional[PackMCPServerConfig] = None
     mcp_servers: List[PackMCPServerConfig] = Field(default_factory=list)
-    allow_wiki_access: bool = True
     allowed_credentials: List[str] = Field(default_factory=list)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

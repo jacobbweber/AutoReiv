@@ -17,6 +17,11 @@ CONVENTIONAL = re.compile(
     r"^(feat|fix|docs|chore|test|refactor)(\([A-Za-z0-9._/-]+\))?: .+\S",
 )
 FORBIDDEN_TOKENS = ("--no-verify", "--amend", "--force", "git config", "-c user.", "--config")
+BRANCH_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+
+
+# CARD-562: git_commit never writes to the shared branches; card work lives on a card branch.
+PROTECTED_COMMIT_BRANCHES = frozenset({"main", "master", "qa"})
 
 
 class GitTools:
@@ -118,6 +123,75 @@ class GitTools:
             "branches": listed.get("stdout") or "",
         }
 
+    def git_create_branch(
+        self,
+        name: str,
+        base: Optional[str] = None,
+        project_root: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create and switch to a new branch from base [CARD-562]; never forces.
+
+        Uncommitted changes are carried onto the new branch when it starts at the current HEAD
+        (``git switch -c`` keeps the working tree). A dirty tree only refuses when the base is a
+        different commit, where switching could lose or mix changes.
+        """
+        clean = (name or "").strip()
+        if not BRANCH_NAME.match(clean) or ".." in clean or clean.endswith((".lock", "/", ".")):
+            return {"success": False, "error": f"Invalid branch name '{name}'. Use e.g. card/12-short-slug."}
+        try:
+            root = self._root(project_root)
+        except ProjectPathError as exc:
+            return {"success": False, "error": str(exc)}
+        status = self._run(root, ["status", "--porcelain=v1"])
+        if status["exit_code"] != 0:
+            return {"success": False, "error": status.get("stderr") or "git status failed", "project_root": str(root)}
+        tracked = [ln for ln in (status.get("stdout") or "").splitlines() if ln and not ln.startswith("??")]
+        current = (self._run(root, ["branch", "--show-current"]).get("stdout") or "").strip()
+        exists = self._run(root, ["rev-parse", "--verify", "--quiet", f"refs/heads/{clean}"])["exit_code"] == 0
+        if exists:
+            if current == clean:
+                return {"success": True, "project_root": str(root), "branch": clean, "created": False}
+            return {
+                "success": False,
+                "error": f"Branch '{clean}' already exists. Switching to it is not done by this tool.",
+                "project_root": str(root),
+            }
+        start = (base or "").strip() or self._contract_base(root) or current or "HEAD"
+        if not BRANCH_NAME.match(start) and start != "HEAD":
+            return {"success": False, "error": f"Invalid base '{start}'."}
+        if tracked:
+            head_sha = (self._run(root, ["rev-parse", "HEAD"]).get("stdout") or "").strip()
+            base_sha = (self._run(root, ["rev-parse", "--verify", "--quiet", f"{start}^{{commit}}"]).get("stdout") or "").strip()
+            if not head_sha or head_sha != base_sha:
+                return {
+                    "success": False,
+                    "error": (
+                        f"Uncommitted changes and base '{start}' is not the current HEAD; switching could lose them. "
+                        "Branch from the current HEAD (omit base) or ask the operator."
+                    ),
+                    "changes": tracked[:20],
+                    "project_root": str(root),
+                }
+            start = "HEAD"
+        made = self._run(root, ["switch", "-c", clean, start])
+        if not made["success"]:
+            return {"success": False, "error": made.get("stderr") or "git switch failed", "project_root": str(root)}
+        out = {"success": True, "project_root": str(root), "branch": clean, "base": start, "created": True}
+        if tracked:
+            out["carried_changes"] = tracked[:20]
+        return out
+
+    def _contract_base(self, root: Path) -> Optional[str]:
+        agents = root / "AGENTS.md"
+        if not agents.is_file():
+            return None
+        from src.domain.sdlc.agents_contract import parse_agents_md
+
+        base = parse_agents_md(agents.read_text(encoding="utf-8", errors="replace")).base_branch
+        if base and self._run(root, ["rev-parse", "--verify", "--quiet", f"refs/heads/{base}"])["exit_code"] == 0:
+            return base
+        return None
+
     def git_commit(
         self,
         subject: Optional[str] = None,
@@ -138,6 +212,14 @@ class GitTools:
             root = self._root(project_root)
         except ProjectPathError as exc:
             return {"success": False, "error": str(exc)}
+        head = self._run(root, ["rev-parse", "--abbrev-ref", "HEAD"])
+        branch = (head.get("stdout") or "").strip() if head.get("success") else ""
+        if branch in PROTECTED_COMMIT_BRANCHES:
+            return {
+                "success": False,
+                "error": f"Refusing to commit on '{branch}'. Create the card branch first (git_create_branch), then commit there.",
+                "branch": branch,
+            }
         if paths:
             for rel in paths:
                 try:
@@ -147,6 +229,13 @@ class GitTools:
                 added = self._run(root, ["add", "--", rel])
                 if not added["success"]:
                     return {"success": False, "error": added.get("stderr") or f"git add failed for {rel}"}
+        staged = self._run(root, ["diff", "--cached", "--quiet"])
+        if staged.get("success"):  # exit 0 = nothing staged
+            return {
+                "success": False,
+                "error": "Nothing to commit: no staged changes. Pass the changed files in paths.",
+                "branch": branch,
+            }
         args = ["commit", "-m", subject]
         if (body or "").strip():
             args.extend(["-m", body.strip()])
@@ -175,7 +264,7 @@ class GitTools:
         registry.register_tool(
             name="git_status",
             description="git status --porcelain in project_root.",
-            parameters={"type": "object", "properties": {"project_root": {"type": "string"}}},
+            parameters={"type": "object", "properties": {}},
             handler=self.git_status,
         )
         registry.register_tool(
@@ -186,7 +275,6 @@ class GitTools:
                 "properties": {
                     "path": {"type": "string"},
                     "staged": {"type": "boolean", "default": False},
-                    "project_root": {"type": "string"},
                 },
             },
             handler=self.git_diff,
@@ -194,8 +282,24 @@ class GitTools:
         registry.register_tool(
             name="git_branch",
             description="Show current branch and local branches in project_root.",
-            parameters={"type": "object", "properties": {"project_root": {"type": "string"}}},
+            parameters={"type": "object", "properties": {}},
             handler=self.git_branch,
+        )
+        registry.register_tool(
+            name="git_create_branch",
+            description=(
+                "Create and switch to a new branch in the active project, from base (default: the AGENTS.md "
+                "base branch, else the current branch). Refuses uncommitted changes; never forces."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "e.g. card/12-short-slug"},
+                    "base": {"type": "string"},
+                },
+                "required": ["name"],
+            },
+            handler=self.git_create_branch,
         )
         registry.register_tool(
             name="git_commit",
@@ -207,7 +311,6 @@ class GitTools:
                     "message": {"type": "string", "description": "Conventional commit subject (alias for subject)"},
                     "body": {"type": "string"},
                     "paths": {"type": "array", "items": {"type": "string"}},
-                    "project_root": {"type": "string"},
                 },
             },
             handler=self.git_commit,

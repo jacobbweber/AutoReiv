@@ -16,7 +16,7 @@
 │       ├── lifecycle-audit/     # State persistence & reboot survival verification
 │       ├── live-qa/             # Live journeys against the real model (scripts/live_qa.py)
 │       ├── merge-to-qa/         # Merge a reviewed card to qa
-│       ├── preflight/           # preflight.py --fast/--full/--nightly (+ honesty smoke script)
+│       ├── preflight/           # preflight.py --fast/--release (+ honesty smoke script)
 │       ├── serve-hygiene/       # Serve restart & port hygiene runbook
 │       ├── single-lever-audit/  # Architectural anti-duplication check
 │       └── ui-review/           # UI screenshot review

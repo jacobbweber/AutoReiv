@@ -49,7 +49,6 @@ def customization_from_profile(profile: Any, agent_id: str) -> AgentCustomizatio
         pinned_memory=profile.pinned_memory,
         allow_autonomous_training=profile.allow_autonomous_training,
         max_training_retries=profile.max_training_retries,
-        allow_wiki_access=profile.allow_wiki_access,
         allowed_credentials=profile.allowed_credentials,
         mcp_servers=profile.mcp_servers,
     )

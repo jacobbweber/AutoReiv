@@ -62,37 +62,32 @@ def test_create_project_tool_registered_and_hitl():
     assert engine.requires_approval(ToolCall(id="1", name="create_project", arguments={"slug": "x"}))
 
 
-def test_create_project_scaffolds_dotagents_and_kiro_artifacts(tmp_path: Path):
-    """[REQ-SDLC-060, REQ-SDLC-062] create_project scaffolds .agents/ with Kiro steering and templates."""
+def test_create_project_scaffolds_the_agents_md_contract(tmp_path: Path):
+    """[REQ-SDLC-060, CARD-562] create_project writes an AGENTS.md fact sheet, one card folder and ADRs."""
+    from src.domain.sdlc.agents_contract import parse_agents_md
+
     svc = _svc(tmp_path)
-    res = svc.create_project(slug="kiro-app")
+    res = svc.create_project(slug="kiro-app", name="Kiro App")
     assert res["success"] is True
 
     proj_dir = tmp_path / "lab" / "kiro-app"
     assert (proj_dir / ".gitignore").is_file()
     assert (proj_dir / ".git").is_dir()
     assert (proj_dir / ".agents" / "cards").is_dir()
-    assert (proj_dir / ".agents" / "specs").is_dir()
-    assert (proj_dir / ".agents" / "adr").is_dir()
+    assert (proj_dir / "docs" / "adr").is_dir()
+    for gone in (".agents/steering", ".agents/specs", ".github/cards", "docs/specs", "CONTRIBUTING.md"):
+        assert not (proj_dir / gone).exists(), gone
 
-    # Kiro steering
-    assert (proj_dir / ".agents" / "steering" / "product.md").is_file()
-    assert (proj_dir / ".agents" / "steering" / "tech.md").is_file()
-    assert (proj_dir / ".agents" / "steering" / "structure.md").is_file()
-    assert (proj_dir / ".agents" / "steering" / "roadmap.md").is_file()
+    agents = (proj_dir / "AGENTS.md").read_text(encoding="utf-8")
+    assert agents.startswith("# AGENTS.md - Kiro App")
+    contract = parse_agents_md(agents)
+    assert contract.missing_sections == []
+    assert contract.base_branch == "main"
+    assert contract.checks == {}  # placeholders are not commands
+    for word in ("AutoReiv", "Jacob", "Conductor", "Discuss"):
+        assert word not in agents, word
 
-    # Standard templates with Three Beats
-    card_tmpl = proj_dir / ".agents" / "templates" / "card.template.md"
-    assert card_tmpl.is_file()
-    content = card_tmpl.read_text(encoding="utf-8")
-    assert "Three Beats" in content
-    assert "What you mean" in content
-    assert "What AutoReiv does now" in content
-    assert "What will change" in content
-
-    # Check other templates
-    assert (proj_dir / ".agents" / "templates" / "requirements.template.md").is_file()
-    assert (proj_dir / ".agents" / "templates" / "design.template.md").is_file()
-    assert (proj_dir / ".agents" / "templates" / "tasks.template.md").is_file()
+    card = (proj_dir / ".agents" / "templates" / "card.template.md").read_text(encoding="utf-8")
+    assert "status: Proposed" in card and "## Acceptance criteria" in card
+    assert "AutoReiv" not in card and "qa" not in card.split()
     assert (proj_dir / ".agents" / "templates" / "adr.template.md").is_file()
-
