@@ -30,6 +30,7 @@ server = [
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=1.0.0",
+    "pytest-xdist>=3.5",
     "ruff>=0.4.0",
     "mypy>=1.9.0",
 ]
@@ -40,7 +41,8 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "guard: architecture/boundary guard tests; run on every preflight --fast",
-    "slow: files over ~3 s wall time; skipped by preflight --fast mapped tests",
+    "slow: files over ~3 s wall time; skipped by preflight --fast (changed and mapped tests)",
+    "serial: cannot run under pytest-xdist; preflight runs these in a separate serial pass",
 ]
 
 [tool.ruff]

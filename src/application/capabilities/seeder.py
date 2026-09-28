@@ -52,6 +52,7 @@ def seed_builtin_capabilities(
             profiles = list(agent_registry.list_profiles() or [])
 
     seeded_ids: set[str] = set()
+    pending: list[CapabilityIndexEntry] = []  # written in one transaction below [CARD-560]
 
     # 1. Seed Tools from tool_registry
     if tool_registry is not None and hasattr(tool_registry, "list_tools"):
@@ -85,7 +86,7 @@ def seed_builtin_capabilities(
                 requires_hitl=False,
                 source="builtin",
             )
-            repo.upsert_entry(entry)
+            pending.append(entry)
             seeded_ids.add(entry.id)
             seeded_count += 1
 
@@ -108,7 +109,7 @@ def seed_builtin_capabilities(
             requires_hitl=False,
             source="builtin",
         )
-        repo.upsert_entry(entry)
+        pending.append(entry)
         seeded_ids.add(entry.id)
         seeded_count += 1
 
@@ -133,7 +134,7 @@ def seed_builtin_capabilities(
                 source=meta.get("origin", "platform"),
                 metadata={"pack_id": meta.get("pack_id", ""), "origin": meta.get("origin", "user")},
             )
-            repo.upsert_entry(entry)
+            pending.append(entry)
             seeded_ids.add(entry.id)
             seeded_count += 1
 
@@ -160,9 +161,15 @@ def seed_builtin_capabilities(
                 source="builtin",
                 metadata={"pack_id": p.id, "tools": getattr(skill, "tools", [])},
             )
-            repo.upsert_entry(entry)
+            pending.append(entry)
             seeded_ids.add(entry.id)
             seeded_count += 1
+
+    if hasattr(repo, "upsert_entries"):
+        repo.upsert_entries(pending)
+    else:
+        for entry in pending:
+            repo.upsert_entry(entry)
 
     # 5. Prune retired tools and obsolete builtin/platform capabilities
     if hasattr(repo, "delete_entry"):

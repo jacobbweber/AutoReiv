@@ -47,3 +47,18 @@ def test_preflight_maps_changed_src_modules_to_tests():
     found = pf.mapped_tests(["src/application/orchestration/honesty_smoke_pack.py", "README.md"], tests)
     assert "tests/unit/orchestration/test_card261_honesty_smoke_pack.py" in found
     assert pf.mapped_tests(["docs/x.md"], tests) == []
+
+
+def test_fast_tier_skips_slow_and_release_tier_is_parallel_with_a_serial_pass(monkeypatch):
+    """CARD-560: slow tests leave the fast tier; the release tier runs pytest in parallel plus a serial pass."""
+    pf = _load(PREFLIGHT, "preflight_560")
+    monkeypatch.setattr(pf, "changed_files", lambda base: ["tests/unit/skills/test_card559_card_and_preflight_scripts.py"])
+    stages = {name: cmd for name, cmd, _ in pf.fast_stages("qa")}
+    cmd = stages["pytest changed tests (not slow)"]
+    assert ["-m", "not slow"] == cmd[len(pf.PYTEST_PAR):len(pf.PYTEST_PAR) + 2]
+    assert pf.judge("pytest", 5, "3 deselected in 0.4s", None)[0] == "PASS"
+    release = {name: cmd for name, cmd, _ in pf.release_stages()}
+    assert "not serial" in release["pytest unit + integration (parallel)"]
+    serial = release["pytest serial"]
+    assert "serial" in serial and "-n" not in serial
+    assert not hasattr(pf, "nightly_dir")

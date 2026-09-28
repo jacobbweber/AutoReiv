@@ -394,14 +394,10 @@ verification:
     assert exit_code_strict == 1
 
 
-def test_rest_api_lint_skill_valid():
+def test_rest_api_lint_skill_valid(shared_client):
     """Test POST /api/skills/lint with valid content [REQ-CAP-LINT-005]."""
-    from fastapi.testclient import TestClient
 
-    from src.web.app import create_app
-
-    app = create_app()
-    client = TestClient(app)
+    client = shared_client  # stateless lint endpoint [CARD-560]
 
     payload = {
         "content": """---
@@ -428,14 +424,10 @@ safety:
     assert data["contract"]["verification"]["kind"] == "command"
 
 
-def test_rest_api_lint_skill_invalid():
+def test_rest_api_lint_skill_invalid(shared_client):
     """Test POST /api/skills/lint with invalid content returning violations [REQ-CAP-LINT-005]."""
-    from fastapi.testclient import TestClient
 
-    from src.web.app import create_app
-
-    app = create_app()
-    client = TestClient(app)
+    client = shared_client  # stateless lint endpoint [CARD-560]
 
     payload = {
         "content": """---
@@ -464,14 +456,10 @@ requires_tools:
     assert "CAP-002" in rule_ids
 
 
-def test_rest_api_lint_skill_empty_request():
+def test_rest_api_lint_skill_empty_request(shared_client):
     """Test POST /api/skills/lint with neither content nor path returns 400 [REQ-CAP-LINT-005]."""
-    from fastapi.testclient import TestClient
 
-    from src.web.app import create_app
-
-    app = create_app()
-    client = TestClient(app)
+    client = shared_client  # stateless lint endpoint [CARD-560]
 
     response = client.post("/api/skills/lint", json={})
     assert response.status_code == 400

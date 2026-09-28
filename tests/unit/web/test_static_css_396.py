@@ -3,22 +3,12 @@ Unit tests for modular CSS serving and index template hygiene [CARD-396].
 """
 
 import pytest
-from fastapi.testclient import TestClient
-
-from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.web.app import create_app
-
-pytestmark = pytest.mark.slow
 
 
 @pytest.fixture
-def client(tmp_path):
-    store = SQLiteStateStore(db_path=str(tmp_path / "test.db"))
-    app = create_app(
-        state_store=store,
-        wiki_path=str(tmp_path / "wiki"),
-    )
-    return TestClient(app)
+def client(shared_client):
+    """Read-only GETs share one app per module [CARD-560]."""
+    return shared_client
 
 
 def test_index_serves_modular_css_links(client):

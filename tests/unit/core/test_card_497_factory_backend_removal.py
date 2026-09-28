@@ -54,9 +54,8 @@ def _app(db_path):
 
 
 # 7 -------------------------------------------------------------------------
-def test_7_app_state_has_no_factory_and_lifespan_starts_no_factory_task(tmp_path, monkeypatch):
-    _, db = _env(tmp_path, monkeypatch)
-    app = _app(db)
+def test_7_app_state_has_no_factory_and_lifespan_starts_no_factory_task(shared_app):
+    app = shared_app  # read-only app.state check [CARD-560]
     assert not hasattr(app.state, "factory_orchestrator")
     assert not hasattr(app.state, "factory_repo")
     src = (ROOT / "src/web/app.py").read_text(encoding="utf-8")
@@ -125,9 +124,8 @@ def test_9_stranded_training_gaps_reset_to_pending_on_startup(tmp_path, monkeypa
 
 
 # 10 ------------------------------------------------------------------------
-def test_10_registry_has_inspect_agent_pack_not_launch_factory_training(tmp_path, monkeypatch):
-    _, db = _env(tmp_path, monkeypatch)
-    app = _app(db)
+def test_10_registry_has_inspect_agent_pack_not_launch_factory_training(shared_app):
+    app = shared_app  # read-only registry check [CARD-560]
     names = {t.name for t in app.state.tool_registry.list_tools()}
     assert "inspect_agent_pack" in names
     assert "launch_factory_training" not in names

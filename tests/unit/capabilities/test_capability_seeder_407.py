@@ -204,3 +204,17 @@ def test_delete_entry_and_pruning(repo):
     # Active tool must exist
     assert repo.get_entry("tool.wiki_note_create") is not None
 
+
+def test_seeder_writes_all_entries_in_one_batch(repo, monkeypatch):
+    """CARD-560: seeding is one upsert_entries() transaction, not one commit per entry."""
+    calls = []
+    real = repo.upsert_entries
+    monkeypatch.setattr(repo, "upsert_entries", lambda entries: calls.append(len(entries)) or real(entries))
+    monkeypatch.setattr(repo, "upsert_entry", lambda entry: pytest.fail("seeder must batch"))
+    tool_reg = MagicMock()
+    tool_reg.list_tools.return_value = [DummyToolDef("t_one", "one"), DummyToolDef("t_two", "two")]
+    seeded = seed_builtin_capabilities(repo, tool_reg, None, None)
+    assert len(calls) == 1 and calls[0] == seeded >= 2
+    ids = {e.id for e in repo.list_entries(limit=500)}
+    assert {"tool.t_one", "tool.t_two"} <= ids
+    assert repo.upsert_entries([]) == []

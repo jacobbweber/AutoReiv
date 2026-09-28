@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Preflight tiers (CARD-559). Run from the repo root.
+"""Preflight tiers (CARD-559, CARD-560). Run from the repo root.
 
-    python .agents/skills/preflight/scripts/preflight.py --fast [--base qa]   # before In Review, after each merge (~3 min)
-    python .agents/skills/preflight/scripts/preflight.py --full               # once per merge batch (~22 min); the default
-    python .agents/skills/preflight/scripts/preflight.py --nightly            # full + every live journey
+    python .agents/skills/preflight/scripts/preflight.py --fast [--base qa]   # card proof, and after each merge to qa (~1 min)
+    python .agents/skills/preflight/scripts/preflight.py --release            # gate before merging qa into main; the default
 
-Every stage runs (no stop on the first failure). A table is printed at the end and written to
-scratch/preflight/last.md; each stage's output is in scratch/preflight/<stage>.log. Exit 0 only when every
+pytest stages run with `-n auto` when pytest-xdist is installed (serially otherwise); tests marked `serial` run in
+a separate serial pass. Every stage runs (no stop on the first failure). A table is printed at the end and written
+to scratch/preflight/last.md; each stage's output is in scratch/preflight/<stage>.log. Exit 0 only when every
 stage passed or matched a named known failure (KNOWN_LINT).
 """
 
@@ -34,6 +34,18 @@ PY = str(ROOT / ".venv" / "Scripts" / "python.exe") if os.name == "nt" else sys.
 if not Path(PY).exists():
     PY = sys.executable
 PYTEST = [PY, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
+
+
+def _has_xdist() -> bool:
+    try:
+        return subprocess.run([PY, "-c", "import xdist"], capture_output=True).returncode == 0
+    except OSError:
+        return False
+
+
+# Parallel pytest (CARD-560): `-n auto` when pytest-xdist is installed; `serial` tests get their own pass.
+PAR = ["-n", "auto"] if _has_xdist() else []
+PYTEST_PAR = PYTEST + PAR
 RUFF = [PY, "-m", "ruff", "check"]
 HONESTY = [PY, ".agents/skills/preflight/scripts/honesty_smoke_pack_261.py", "--validate"]
 JS_LINT_ROOTS = ("src/web/static/", "tests/unit/frontend/", "tests/e2e/")
@@ -98,7 +110,7 @@ def lint_count(tool: str, output: str) -> int:
 def judge(name: str, rc: int, out: str, lint: str | None) -> tuple[str, str]:
     if rc == 0:
         return "PASS", ""
-    if rc == 5 and "no tests ran" in out:
+    if rc == 5 and ("no tests ran" in out or "deselected" in out):
         return "PASS", "no tests selected"
     if lint and lint in KNOWN_LINT:
         card, allowed = KNOWN_LINT[lint]
@@ -128,19 +140,20 @@ def fast_stages(base: str) -> list[tuple[str, list[str] | None, str | None]]:
     return [
         ("ruff (changed .py)", RUFF + py if py else None, "ruff"),
         ("eslint (changed .js/.mjs)", ["npx", "eslint", *js] if js else None, "eslint"),
-        ("pytest guard", PYTEST + ["-m", "guard", "tests/unit", "tests/integration"], None),
-        ("pytest changed tests", PYTEST + tests_changed if tests_changed else None, None),
-        ("pytest mapped tests (not slow)", PYTEST + ["-m", "not slow", *mapped] if mapped else None, None),
+        ("pytest guard", PYTEST_PAR + ["-m", "guard", "tests/unit", "tests/integration"], None),
+        # slow-marked tests run in the release tier, not here [CARD-560]
+        ("pytest changed tests (not slow)", PYTEST_PAR + ["-m", "not slow", *tests_changed] if tests_changed else None, None),
+        ("pytest mapped tests (not slow)", PYTEST_PAR + ["-m", "not slow", *mapped] if mapped else None, None),
         ("vitest", ["npx", "vitest", "run"], None),
     ]
 
 
-def full_stages() -> list[tuple[str, list[str] | None, str | None]]:
+def release_stages() -> list[tuple[str, list[str] | None, str | None]]:
     return [
         ("ruff", RUFF + ["."], "ruff"),
         ("eslint", ["npm", "run", "lint:frontend"], "eslint"),
-        ("pytest unit", PYTEST + ["tests/unit"], None),
-        ("pytest integration", PYTEST + ["tests/integration"], None),
+        ("pytest unit + integration (parallel)", PYTEST_PAR + ["-m", "not serial", "tests/unit", "tests/integration"], None),
+        ("pytest serial", PYTEST + ["-m", "serial", "tests/unit", "tests/integration"], None),
         ("honesty validate", HONESTY, None),
         ("vitest", ["npx", "vitest", "run"], None),
         ("smoke", ["npx", "playwright", "test", "tests/e2e/smoke.spec.js", "--reporter=line"], None),
@@ -179,23 +192,12 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     g = p.add_mutually_exclusive_group()
     g.add_argument("--fast", action="store_true")
-    g.add_argument("--full", action="store_true")
-    g.add_argument("--nightly", action="store_true")
+    g.add_argument("--release", action="store_true")
     p.add_argument("--base", default="qa")
     a = p.parse_args(argv)
     if a.fast:
         return run_tier("fast", fast_stages(a.base))
-    rc = run_tier("full", full_stages())
-    if a.nightly:
-        print("[preflight] nightly: python scripts/live_qa.py run --card NIGHTLY (all journeys)")
-        rc_qa, out, secs = _run([PY, "scripts/live_qa.py", "run", "--card", "NIGHTLY"])
-        night = ROOT / "scratch" / "nightly"
-        night.mkdir(parents=True, exist_ok=True)
-        (night / f"{_dt.date.today():%Y-%m-%d}.md").write_text(
-            (OUT / "last.md").read_text(encoding="utf-8") + f"\n## Live journeys\n\nExit {rc_qa} in {secs:.0f} s.\n\n```\n{out[-4000:]}\n```\n",
-            encoding="utf-8")
-        rc = rc or (1 if rc_qa else 0)
-    return rc
+    return run_tier("release", release_stages())
 
 
 if __name__ == "__main__":

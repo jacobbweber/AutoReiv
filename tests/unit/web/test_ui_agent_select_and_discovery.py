@@ -65,18 +65,18 @@ def test_provider_settings_update_and_persistence(client):
     assert cfg["providers"]["ollama_host"] == "http://192.168.1.29:11434"
 
 
-def test_model_discovery_endpoint(client):
+def test_model_discovery_endpoint(shared_client):
     """Verify GET /api/models/discover handles provider_id and host_url gracefully [REQ-UI-002]."""
-    resp = client.get("/api/models/discover?provider_id=ollama&available_ram_gib=16")
+    resp = shared_client.get("/api/models/discover?provider_id=ollama&available_ram_gib=16")
     assert resp.status_code == 200
     data = resp.json()
     assert "models" in data
     assert isinstance(data["models"], list)
 
 
-def test_chat_studio_topbar_agent_select_present(client):
+def test_chat_studio_topbar_agent_select_present(shared_client):
     """Verify index.html Chat selects exist and have no static roster [REQ-UI-001]."""
-    resp = client.get("/")
+    resp = shared_client.get("/")
     assert resp.status_code == 200
     html = resp.text
     assert 'id="chatTopBarAgentSelect"' not in html
