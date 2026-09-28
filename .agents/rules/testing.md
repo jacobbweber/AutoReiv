@@ -12,7 +12,7 @@ description: How every change is proven. Each line is checkable.
 ## What to write (first that fits)
 1. Operator contract: real FastAPI + SQLite, temp data dir, assert a durable outcome plus one negative assertion. Folder `tests/integration/`.
 2. Guard test: an invariant or architecture rule (boundaries, capability scoping, single lever, schema). Mark the file `pytestmark = pytest.mark.guard`.
-- A test file slower than about 1.5 s per test gets `pytestmark = pytest.mark.slow` (skipped by the fast tier unless changed).
+- A test file slower than about 1.5 s per test gets `pytestmark = pytest.mark.slow` (the release tier runs it; the fast tier skips it).
 3. Small unit test for pure logic. Do not assert private helpers or copy internal string lists.
 - Every bug fix leaves a negative assertion that the bug is gone.
 - Every ADR that constrains code has a guard test that names the ADR.
@@ -35,6 +35,8 @@ description: How every change is proven. Each line is checkable.
 ## Tiers
 | Tier | When | Command (skill `preflight`) | Budget |
 |---|---|---|---|
-| Fast | every branch before In Review, after each merge | `preflight.py --fast` | ~3 min |
+| Fast | every branch before In Review, after each merge to qa | `preflight.py --fast` | ~1 min |
 | Proof | every card | `scripts/live_qa.py run --journeys <ids>` | 10-15 min |
-| Full | once per merge batch; nightly adds all journeys | `preflight.py --full` / `--nightly` | ~22 min |
+| Release | only before merging qa into main | `preflight.py --release` (full suite, `-n auto`) | ~8 min |
+
+No full unit/integration suite before merge to qa: card proof is the fast tier plus the card's journey.

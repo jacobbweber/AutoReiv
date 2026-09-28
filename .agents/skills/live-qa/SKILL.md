@@ -7,7 +7,7 @@ description: Run a card's journeys on real models in a real browser, desktop and
 ## Run
 ```powershell
 .venv\Scripts\python.exe scripts/live_qa.py run --journeys card-556 --card CARD-556     #
-.venv\Scripts\python.exe scripts/live_qa.py run --card NIGHTLY                           # all journeys (exists: empty --journeys selects all)
+.venv\Scripts\python.exe scripts/live_qa.py run --card ALL                               # all journeys (empty --journeys selects all)
 ```
 - Serve on `127.0.0.1:8770` from a disposable worktree `<temp>\autoreiv-qa-checkout` with throwaway data in `scratch/live_qa_data`.
 - Commit or `git add` new files first; the worktree copies tracked files only. Don't edit the repo during a run; exit code 3 means the real checkout changed.
