@@ -2,7 +2,7 @@
 id: CARD-567
 title: "A runaway model reply stops at a reply limit instead of hanging"
 type: bug
-status: Ready
+status: In Review
 priority: P1
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-567-reply-limits]
   checks: [tests/unit/kernel/test_card567_reply_limits.py]
 branch: fix/card-567-reply-limits
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 50, qa_runs: 1, findings: 1}
 created: 2026-09-28
 ---
 
@@ -53,12 +53,23 @@ Unbounded model replies in chat turns.
 Technical defaults, configurable; not a product decision. No Spark/Nimo server config changes. A Settings UI field is left out.
 
 ## Findings
+- (to findings list, not done here) The limits have an API (`/api/settings/reply-limits`) but no Settings UI field yet.
+- The stop is shown through the existing failed-reply path: a "Reply failed: Stopped: ..." alert and toast, plus the saved chat row.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-567-reply-limits | desktop | PASS (run 1) | 200 tokens: stopped with the reply-limit message (52 s, Spark); limits cleared: "pong" in 25 s; 5 s: stopped with the time-limit message in 8.6 s; chat idle after each |
 
-Screenshots: `C:\\Users\\jacob\\AppData\\Local\\Temp\\autoreiv-qa\\card-567\\...`
+Checks: test_card567_reply_limits.py (7; 6 failing first, the endless-stream one hung until the test's own timeout); full not-slow
+suite 2169 passed, 3 pre-existing card354 failures; fast preflight GREEN.
+
+## Test it (Jacob)
+1. In PowerShell: `irm -Method Put http://127.0.0.1:8000/api/settings/reply-limits -ContentType application/json -Body '{"max_tokens":200}'`.
+2. Ask Architect a long "think step by step" question: the reply stops within about a minute with "Stopped: the model reached the reply limit of 200 tokens ..." and the chat is usable.
+3. Clear it: same command with `'{"max_tokens":null,"max_seconds":null}'` (back to 16384 tokens / 600 s); a normal question answers as before.
+
+Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-567\...`
 
 ## Release note
 CARD-567: a model reply that never ends now stops at a reply limit (default 16384 tokens or 600 s per model call, setting `reply_limits`) with a clear message instead of hanging the chat.
