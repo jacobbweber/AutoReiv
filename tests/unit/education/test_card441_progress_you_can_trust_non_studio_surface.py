@@ -181,7 +181,7 @@ def test_tutor_pack_progress_summary_skill_names_tools():
     pack = json.loads(Path("platform-packs/tutor/pack.json").read_text(encoding="utf-8"))
     by_id = {s["id"]: s for s in pack["skills"]}
     progress_tools = set(by_id["progress-summary"]["tools"])
-    pack_tools = set(pack.get("pack_tool_names") or [])
+    pack_tools = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
 
     for name in (
         "education_progress_summary",

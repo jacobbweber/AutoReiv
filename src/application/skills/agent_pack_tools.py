@@ -130,8 +130,8 @@ class AgentPackTools:
                         "description": (
                             "Pack spec: id, name, description, system_prompt, tone, purpose, "
                             "avatar_icon, model, show_in_chat, skills (id, tools, optional "
-                            "name/description/body), optional pack_tool_names/allowed_skill "
-                            "compat fields."
+                            "name/description/body), optional allowed_skill. "
+                            "No flat tool list: tools go in each skill."
                         ),
                     },
                 },

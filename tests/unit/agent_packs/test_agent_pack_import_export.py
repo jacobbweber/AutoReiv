@@ -66,7 +66,8 @@ def test_export_import_roundtrip_strips_instance_facts(tmp_path):
     pack = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
     assert pack["id"] == "eu-c-specialist"
     assert pack["show_in_chat"] is False
-    assert pack["pack_tool_names"] == ["system_info"]
+    assert "pack_tool_names" not in pack and "allowed_tool_names" not in pack  # CARD-541
+    assert pack["skills"][0]["tools"] == ["system_info"]
     assert pack["allowed_skill"] == ["user-provisioning"]
     assert "input_packet_json" not in pack
     assert (folder / "skills" / "user-provisioning" / "SKILL.md").is_file()
@@ -145,7 +146,7 @@ def test_nested_skills_import_unions_tools(tmp_path):
     by_id = {row["id"]: row for row in dumped["skills"]}
     assert by_id["user-provisioning"]["tools"] == ["system_info"]
     assert by_id["endpoint-audit"]["tools"] == []
-    assert dumped["pack_tool_names"] == ["system_info"]
+    assert "pack_tool_names" not in dumped
 
 
 def test_legacy_1_0_pack_still_imports(tmp_path):
@@ -179,7 +180,8 @@ def test_legacy_1_0_pack_still_imports(tmp_path):
     )
     imported = service.import_path(folder)
     assert imported.allowed_skill == ["user-provisioning"]
-    assert imported.pack_tool_names == ["system_info"]
+    assert imported.pack_tool_names == []  # CARD-541: the flat list is ignored with a note
+    assert service.last_import_notes and "pack_tool_names" in service.last_import_notes[0]
     assert imported.show_in_chat is False
 
 
@@ -213,7 +215,7 @@ def test_scaffold_writes_nested_skills(tmp_path):
     pack = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
     assert pack["schema_version"] == "1.1"
     assert pack["allowed_skill"] == ["user-provisioning", "endpoint-audit"]
-    assert pack["pack_tool_names"] == ["system_info"]
+    assert "pack_tool_names" not in pack
     by_id = {row["id"]: row for row in pack["skills"]}
     assert by_id["user-provisioning"]["tools"] == ["system_info"]
     assert by_id["endpoint-audit"]["tools"] == []
@@ -225,7 +227,8 @@ def test_scaffold_writes_nested_skills(tmp_path):
     assert "user-provisioning" in profile.allowed_skill
 
 
-def test_export_without_skill_map_keeps_tools_at_agent_level(tmp_path):
+def test_export_without_skill_map_puts_tools_on_the_primary_skill(tmp_path):
+    """CARD-541: no flat list; the profile's pack tools go on the primary skill."""
     data_dir, registry, tool_reg = _bootstrap(tmp_path)
     skills = data_dir / "skills" / "user-provisioning"
     skills.mkdir(parents=True)
@@ -250,8 +253,8 @@ def test_export_without_skill_map_keeps_tools_at_agent_level(tmp_path):
     folder = service.export_folder("flat-bot")
     pack = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
     assert pack["skills"][0]["id"] == "user-provisioning"
-    assert pack["skills"][0]["tools"] == []
-    assert pack["pack_tool_names"] == ["system_info"]
+    assert pack["skills"][0]["tools"] == ["system_info"]
+    assert "pack_tool_names" not in pack
     assert pack["allowed_skill"] == ["user-provisioning"]
 
 

@@ -135,9 +135,8 @@ def test_oc_s2_export_import_fidelity(hybrid_env, tmp_path):
     store.save_custom_agent_profile(profile)
     out = service.export_folder(pack_id, dest_dir=tmp_path / "export2")
     pack_data = json.loads((out / "pack.json").read_text(encoding="utf-8"))
-    exported_tools = list(pack_data.get("allowed_tool_names") or pack_data.get("pack_tool_names") or [])
     exported_skills = list(pack_data.get("allowed_skill") or [])
-    assert "wiki_note_create" in exported_tools
+    assert "pack_tool_names" not in pack_data and "allowed_tool_names" not in pack_data  # CARD-541
     assert "wiki" in exported_skills or "proposals" in exported_skills
 
     import_src = tmp_path / "import-src2" / pack_id

@@ -218,7 +218,7 @@ def test_tutor_pack_names_education_tools_on_quiz_and_flashcard_skills():
     by_id = {s["id"]: s for s in pack["skills"]}
     quiz_tools = set(by_id["quiz-turn"]["tools"])
     flash_tools = set(by_id["flashcard-turn"]["tools"])
-    pack_tools = set(pack.get("pack_tool_names") or [])
+    pack_tools = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
 
     for name in ("education_quiz_next", "education_quiz_grade", "education_quiz_extract"):
         assert name in quiz_tools

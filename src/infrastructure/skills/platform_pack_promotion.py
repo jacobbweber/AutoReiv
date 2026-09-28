@@ -427,9 +427,9 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
 def _seed_tools_removed(profile: Any, seed: dict[str, Any]) -> bool:
     """True when the profile lacks a tool the shipped pack grants (operator removed it)."""
     from src.application.agent_packs.allowed_tools import platform_seed_tools
-    from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES
+    from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES, seed_pack_tools
 
-    pack_tools = list(seed.get("pack_tool_names") or [])
+    pack_tools = seed_pack_tools(seed)
     seed_tools = pack_tools + [
         t for t in platform_seed_tools(seed.get("allowed_skill") or []) if t not in pack_tools
     ]
@@ -637,6 +637,7 @@ def promote_one_platform_pack(
         platform_packs_root,
         refresh_live_pack_json_skill_projection,
         refresh_user_modified_native_tool_engineering_warning,
+        seed_pack_tools,
     )
 
     root = Path(data_dir)
@@ -669,7 +670,7 @@ def promote_one_platform_pack(
     pack_data = _read_json(src / "pack.json") or {}
     new_prompt = pack_data.get("system_prompt") or ""
     new_allowed_skill = list(pack_data.get("allowed_skill") or [])
-    new_pack_tools = list(pack_data.get("pack_tool_names") or [])
+    new_pack_tools = seed_pack_tools(pack_data)  # CARD-541: from the nested skills
     platform_tools = platform_seed_tools(new_allowed_skill)
     merged_tools = list(new_pack_tools) + [t for t in platform_tools if t not in new_pack_tools]
     seed_hash = compute_platform_seed_hash(pack_data, src)

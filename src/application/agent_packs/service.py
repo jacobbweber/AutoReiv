@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import shutil
 import tempfile
@@ -22,12 +23,15 @@ from src.application.agent_packs.schema import (
     PackMemoryConfig,
     PackSkill,
     PackStorageConfig,
+    _normalize_str_list,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization
 
 _SAFE_ID = re.compile(r"^[a-zA-Z0-9._-]+$")
+
+logger = logging.getLogger(__name__)
 
 
 class PlatformSkillMountError(RuntimeError):
@@ -141,6 +145,7 @@ class AgentPackService:
         self.skills_dir = self.data_dir / "skills"
         self.agents_dir = self.data_dir / "agents"
         self.packs_dir = self.data_dir / "packs"
+        self.last_import_notes: List[str] = []
 
     def pack_dir(self, pack_id: str) -> Path:
         safe = _safe_id(pack_id)
@@ -158,13 +163,17 @@ class AgentPackService:
         tone = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
         purpose = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
         skill_ids = list(profile.allowed_skill or [])
-        pack_tools = list(profile.pack_tool_names or [])
         mapping = skill_tools if isinstance(skill_tools, dict) else {}
         skills = [
             PackSkill(id=sid, tools=list(mapping.get(sid) or []))
             for sid in skill_ids
             if sid not in PLATFORM_SKILL_IDS
         ]
+        # CARD-541: no flat tool list in pack.json; with no stored skill map, the profile's pack tools go on the
+        # primary skill so they survive the round trip (same rule as scaffold).
+        legacy_tools = [str(t).strip() for t in (profile.pack_tool_names or []) if str(t).strip()]
+        if legacy_tools and skills and all(not s.tools for s in skills):
+            skills[0].tools = list(dict.fromkeys(legacy_tools))
         storage_enabled = getattr(profile, "storage_enabled", False)
         storage_type = getattr(profile, "storage_type", "sqlite") or "sqlite"
         storage = PackStorageConfig(enabled=storage_enabled, type=storage_type)
@@ -195,7 +204,6 @@ class AgentPackService:
             model=profile.model or "default",
             skills=skills,
             allowed_skill=skill_ids,
-            pack_tool_names=pack_tools,
             show_in_chat=profile.show_in_chat is not False,
             visibility=getattr(profile, "visibility", "public") or "public",
             fleet=getattr(profile, "fleet", None),
@@ -351,6 +359,8 @@ class AgentPackService:
         if not raw_model or raw_model == "default" or raw_model in KNOWN_PROVIDERS:
             data["model"] = "default"
 
+        # CARD-541: a flat tool list in an authoring spec binds to the primary skill below; pack.json never stores it.
+        flat_tools = _normalize_str_list(data.get("pack_tool_names"))
         inline_skills, pack_skills = _split_inline_skills(data.get("skills"))
         if pack_skills is not None:
             data["skills"] = pack_skills
@@ -405,11 +415,11 @@ class AgentPackService:
         if extra_skills:
             manifest.skills = list(manifest.skills) + extra_skills
 
-        # Auto-bind pack_tool_names to primary skill if no skill has tools defined
-        if manifest.pack_tool_names and manifest.skills:
+        # Auto-bind a flat spec tool list to the primary skill if no skill has tools defined
+        if flat_tools and manifest.skills:
             all_skills_empty = all(not skill.tools for skill in manifest.skills)
             if all_skills_empty:
-                manifest.skills[0].tools = list(manifest.pack_tool_names)
+                manifest.skills[0].tools = list(flat_tools)
 
         manifest.allowed_skill = skill_ids
         manifest.schema_version = PACK_SCHEMA_VERSION
@@ -430,6 +440,12 @@ class AgentPackService:
         raw = _strip_forbidden(raw)
         manifest = AgentPackManifest.model_validate(raw)
         manifest.schema_version = PACK_SCHEMA_VERSION
+        self.last_import_notes = [
+            f"Ignored {key} in {manifest.id}/pack.json: tools come from the pack's skills (CARD-541)."
+            for key in manifest.ignored_tool_lists
+        ]
+        for note in self.last_import_notes:
+            logger.warning(note)
 
         # Pack skills remain strictly isolated under packs/<agent_id>/skills/ [CARD-203].
         # Never copy agent-specific skills into the platform skills_dir ($DATA_DIR/skills/).

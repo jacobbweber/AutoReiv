@@ -44,7 +44,7 @@ def test_wiki_pack_retains_wiki_curation_ownership():
     assert "wiki_tasks" in skill_ids
     assert "wiki" not in skill_ids
 
-    pack_tools = set(data.get("pack_tool_names", []))
+    pack_tools = {t for s in data.get("skills", []) for t in s.get("tools") or []}  # CARD-541
     assert "wiki_note_create" in pack_tools
     assert "wiki_note_organize" in pack_tools
 
