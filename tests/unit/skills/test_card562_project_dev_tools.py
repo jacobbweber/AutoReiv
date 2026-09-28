@@ -197,8 +197,9 @@ def test_developer_files_proposed_cards_and_moves_only_its_own_statuses(project:
     cards = CardTools(default_project_root=str(project), check_record=GreenCheckRecord(project.parent / "rec.json"))
     token = _as("developer")
     try:
-        assert "Proposed" in cards.write_card(CARD.format(n=5, s="Ready"), filename="CARD-5-t.md")["error"]
-        assert cards.write_card(CARD.format(n=5, s="Proposed"), filename="CARD-5-t.md")["success"]
+        (project / ".agents" / "cards" / "CARD-4-old.md").write_text(CARD.format(n=4, s="Done"), encoding="utf-8")
+        filed = cards.write_card(CARD.format(n=99, s="Ready"), filename="whatever.md")  # id, name, status forced
+        assert filed["success"] and filed["assigned_id"] == "CARD-5" and filed["status"] == "Proposed"
         assert (project / ".agents" / "cards" / "CARD-5-t.md").is_file()
         refused = cards.set_card_status("CARD-5", "Ready")
         assert refused["success"] is False and "Jacob or Architect" in refused["error"]

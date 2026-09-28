@@ -4,6 +4,7 @@ Card, spec, and steering tools for the spec-driven SDLC loop [REQ-SDLC-010..014]
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -26,6 +27,51 @@ DEVELOPER_TRANSITIONS = frozenset(
 )
 # CARD-562: preferred card folder first; the other two are fallbacks for older projects.
 CARD_DIRS = (".agents/cards", "docs/cards", ".github/cards")
+_CARD_NUM = re.compile(r"^CARD-(\d+)", re.IGNORECASE)
+
+
+def cards_folder_refusal(root: Path, target: Path) -> str:
+    """CARD-562: generic file tools never write cards; write_card owns ids, filenames and status rules."""
+    try:
+        rel = Path(target).resolve().relative_to(Path(root).resolve()).as_posix()
+    except (OSError, ValueError):
+        return ""
+    for d in CARD_DIRS:
+        if rel == d or rel.startswith(d + "/"):
+            return (
+                f"Refusing to write '{rel}' with a file tool: cards are written with write_card (new cards get the "
+                "next CARD-N id and filename automatically) and moved with set_card_status. Reading cards is fine."
+            )
+    return ""
+
+
+def _slug(title: str) -> str:
+    title = re.sub(r"^\s*\[?CARD-\d+\]?\s*", "", title or "", flags=re.IGNORECASE)
+    slug = "".join(ch if ch.isalnum() else "-" for ch in title.lower())
+    return re.sub(r"-+", "-", slug).strip("-")[:60].strip("-") or "card"
+
+
+def stamp_new_card(content: str, card_id: str, status: Optional[str] = None) -> str:
+    """Set the frontmatter id (and optionally status) and the heading id of a new card."""
+    text = content.replace("\r\n", "\n")
+    if not text.lstrip().startswith("---"):
+        if status:  # a status is forced (Developer): give the card YAML frontmatter
+            text = f"---\nid: {card_id}\nstatus: {status}\n---\n" + text
+    else:
+        start = text.index("---")
+        end = text.find("\n---", start + 3)
+        if end == -1:
+            end = len(text)
+        head, rest = text[:end], text[end:]
+        head = re.sub(r"(?m)^id:.*$", f"id: {card_id}", head, count=1) if re.search(r"(?m)^id:", head) else (
+            head[: start + 3] + f"\nid: {card_id}" + head[start + 3 :]
+        )
+        if status:
+            head = re.sub(r"(?m)^status:.*$", f"status: {status}", head, count=1) if re.search(r"(?m)^status:", head) else (
+                head + f"\nstatus: {status}"
+            )
+        text = head + rest
+    return re.sub(r"(?m)^(#\s+)(?:\[?[A-Z]+-\d+\]?\s*)?", lambda m: f"{m.group(1)}{card_id} ", text, count=1)
 
 
 class CardTools:
@@ -165,6 +211,31 @@ class CardTools:
         summary.update({"success": True, "content": content, "project_root": str(root)})
         return summary
 
+    def _next_card_id(self, root: Path) -> str:
+        top = 0
+        for cdir in self._all_cards_dirs(root):
+            if cdir.is_dir():
+                for p in cdir.glob("CARD-*.md"):
+                    m = _CARD_NUM.match(p.name)
+                    if m:
+                        top = max(top, int(m.group(1)))
+        return f"CARD-{top + 1}"
+
+    def _existing_card(self, root: Path, filename: Optional[str], card_id: Optional[str], content: str) -> Optional[Path]:
+        if filename:
+            for cdir in self._all_cards_dirs(root):
+                cand = jail_join(cdir, Path(filename).name)
+                if cand.is_file():
+                    return cand
+        for cid in (card_id, extract_card_id(Path(filename).name if filename else "", "") if filename else "",
+                    extract_card_id("", content)):
+            if cid:
+                try:
+                    return self._find_card_path(root, card_id=cid)
+                except FileNotFoundError:
+                    continue
+        return None
+
     def write_card(
         self,
         content: str,
@@ -176,20 +247,18 @@ class CardTools:
             return {"success": False, "error": "content is required"}
         root = self._root(project_root)
         cards_dir = self._cards_dir(root)
-        if filename:
-            path = jail_join(cards_dir, Path(filename).name)
-        elif card_id:
-            try:
-                path = self._find_card_path(root, card_id=card_id)
-            except FileNotFoundError:
-                slug = extract_card_title(content, card_id).lower().replace(" ", "-")
-                slug = "".join(ch if ch.isalnum() or ch == "-" else "-" for ch in slug).strip("-")
-                path = jail_join(cards_dir, f"{card_id}-{slug or 'card'}.md")
-        else:
-            cid = extract_card_id("", content)
-            if not cid:
-                return {"success": False, "error": "filename or card_id is required"}
-            return self.write_card(content=content, card_id=cid, project_root=str(root))
+        path = self._existing_card(root, filename, card_id, content)
+        assigned = ""
+        if path is None:
+            # CARD-562: new cards get the next CARD-N id and a CARD-N-slug.md filename; Developer's are Proposed.
+            developer = self._actor() == "developer"
+            wanted = (card_id or extract_card_id(Path(filename).name if filename else "", content) or "").upper()
+            assigned = wanted if (wanted and not developer) else self._next_card_id(root)
+            if developer or extract_card_id("", content) != assigned:
+                content = stamp_new_card(content, assigned, "Proposed" if developer else None)
+            keep_name = filename and not developer and extract_card_id(Path(filename).name) == assigned
+            name = Path(filename).name if keep_name else f"{assigned}-{_slug(extract_card_title(content, assigned))}.md"
+            path = jail_join(cards_dir, name)
         refused = self._developer_write_refusal(path, content)
         if refused:
             return {"success": False, "error": refused}
@@ -197,6 +266,8 @@ class CardTools:
         path.write_text(content, encoding="utf-8")
         summary = self._summarize_card(path)
         summary.update({"success": True, "project_root": str(root)})
+        if assigned:
+            summary["assigned_id"] = assigned
         return summary
 
     @staticmethod
@@ -498,7 +569,11 @@ class CardTools:
         )
         registry.register_tool(
             name="write_card",
-            description="Write a full markdown SDLC card under .agents/cards. HITL in ask mode.",
+            description=(
+                "Write a full markdown SDLC card under .agents/cards (the only way to create or edit a card). "
+                "A new card gets the next CARD-N id and filename automatically; Developer's new cards are Proposed. "
+                "HITL in ask mode."
+            ),
             parameters={
                 "type": "object",
                 "properties": {

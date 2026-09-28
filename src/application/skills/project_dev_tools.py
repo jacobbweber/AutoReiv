@@ -202,6 +202,11 @@ class ProjectDevTools:
         blocked = protected_write_error(target)
         if blocked:
             return {"success": False, "error": blocked}
+        from src.application.skills.card_tools import cards_folder_refusal
+
+        cards_refused = cards_folder_refusal(root, target)
+        if cards_refused:
+            return {"success": False, "error": cards_refused}
         if not target.is_file():
             return {"success": False, "error": f"File not found: {path}"}
         raw = target.read_bytes().decode("utf-8", errors="replace")

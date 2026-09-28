@@ -29,7 +29,7 @@ Project facts (commands, branches, rules) come from the project's AGENTS.md, nev
 2. Sweep area by area: error handling, input checks, duplicated code, unused code, TODO/FIXME, missing tests for public functions, outdated or unpinned dependencies.
 3. For each finding collect evidence: file:line, what goes wrong, how to see it.
 4. Dedupe against `list_cards`.
-5. File one Proposed card per finding (skill card-writing). Group tiny related nits into one card.
+5. File one Proposed card per finding with `write_card` (skill card-writing); it assigns the CARD-N id and filename. File tools refuse the cards folder. Group tiny related nits into one card.
 
 ## Rules
 - Report only what you can show. No speculative "might be slow" items without evidence.

@@ -149,6 +149,11 @@ class ProjectFileTools:
         blocked = protected_write_error(target)
         if blocked:
             return {"success": False, "error": blocked}
+        from src.application.skills.card_tools import cards_folder_refusal
+
+        cards_refused = cards_folder_refusal(root, target)
+        if cards_refused:
+            return {"success": False, "error": cards_refused}
         if target.exists() and target.is_dir():
             return {"success": False, "error": f"Refusing to overwrite a directory: {path}"}
         target.parent.mkdir(parents=True, exist_ok=True)

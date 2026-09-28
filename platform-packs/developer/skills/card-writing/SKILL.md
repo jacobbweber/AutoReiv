@@ -23,7 +23,7 @@ Write a card that stands alone: why, scope, out of scope, checkable acceptance c
 Project facts (commands, branches, rules) come from the project's AGENTS.md, never from this skill.
 ## Before writing
 1. `list_cards` and read any card on the same area. If one matches, add your evidence to it instead of a new card.
-2. Use the next free number in the project's card folder (`active_project_info` shows it; default `.agents/cards/`).
+2. Write the card with `write_card` only (file tools refuse the cards folder). For a new card leave the id as `CARD-<n>`: write_card assigns the next number, the `CARD-<n>-<slug>.md` filename and, for Developer, status Proposed. It returns the assigned id.
 
 ## Card shape
 ```markdown

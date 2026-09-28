@@ -94,6 +94,7 @@ async function askAndApprove(page, request, base, streams, text, done, timeoutMs
   await send(page, text);
   await waitFor(() => streams.count > n, { timeoutMs: 15000 });
   let approvals = 0;
+  let idlePolls = 0; // CARD-562: stop as soon as the turn has ended (idle ~16 s, no approval pending), not at timeoutMs
   await waitFor(async () => {
     const cards = page.locator(HITL_CARD);
     const count = await cards.count();
@@ -106,7 +107,10 @@ async function askAndApprove(page, request, base, streams, text, done, timeoutMs
         return false;
       }
     }
-    return (await done()) && !(await isStreaming(page));
+    const streaming = await isStreaming(page);
+    if (!streaming && (await done())) return true;
+    idlePolls = streaming ? 0 : idlePolls + 1;
+    return idlePolls >= 8;
   }, { timeoutMs, intervalMs: 2000 }).catch(() => {});
   await waitReplyIdle(page, { timeoutMs: 60000 }).catch(() => {});
   return approvals;
