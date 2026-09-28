@@ -5,7 +5,7 @@ type: feature
 status: Ready
 priority: P1
 milestone: M25
-needs_decision: "D1 Done needs Jacob's approval click or Architect's review is enough; D2 return rounds before escalating to Jacob; D3 does Done trigger a merge request (see Plan and decisions)"
+needs_decision: none
 proof:
   journeys: [card-564-architect-reviews-developer-work]
   checks: [tests/unit/skills/test_card564_architect_review.py, tests/unit/skills/test_card564_returned_handoff.py]
@@ -99,6 +99,15 @@ Architect still never edits code, never commits except the card file, never merg
 | D1 | Does Architect's Done need Jacob's approval? | A: yes, one approval click on Done (and Returned), as for `hand_off_card`. B: no, Architect's review is enough; Jacob's merge is the gate. | A for now: one click keeps Jacob in the loop while the reviewer is new; slice 4 (approval level) can relax it per project. |
 | D2 | How many return rounds before Jacob decides? | A: keep the existing `max_review_rounds` 3 (per card, editable in front matter). B: 1 round, then Jacob. C: no limit. | A: already in the domain rules; at the limit Architect cannot Return again and asks Jacob. |
 | D3 | Does Done trigger anything (merge request, push, notification)? | A: nothing; Done only records the review, Jacob merges by hand. B: open a local merge proposal / PR draft. | A: D4 says Jacob approves every merge; a merge request can be its own card with slice 4. |
+
+**Decided by Jacob 2026-09-28 ("build"): D1 B, D2 A, D3 A.** Architect's Done and Returned need no approval click
+(Jacob's merge is the gate); `hand_off_card`, including handing a Returned card back, still asks once as today.
+`max_review_rounds` stays 3: a Return needs review_rounds + 1 < max_review_rounds, so the third review cannot Return and
+the tool tells Architect to bring the card to Jacob. Done triggers nothing (no push, merge request or notification).
+
+Build shape: because Done/Returned need no click but `set_card_status` is an approval tool, the verdict is its own tool
+`finish_review(card_id, verdict, review)` (Architect only, no approval), and `set_card_status` keeps refusing Done/Returned
+for Architect with "use review_card, then finish_review". The round limit rule: round N = review_rounds + 1.
 
 Build notes: reuse the CARD-562 check record and evidence reader, `selected_or_refuse`, the CARD-563 `hand_off_card` path and
 outcome renderer, and the domain `validate_transition` rules (`return_reason`, `review_rounds`, `max_review_rounds`).
