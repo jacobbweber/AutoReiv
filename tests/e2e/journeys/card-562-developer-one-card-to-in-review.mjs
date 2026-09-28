@@ -137,7 +137,15 @@ export default {
       if (!made.ok()) throw new Error(`create session -> ${made.status()}`);
       sid = (await made.json()).id;
       await openApp(page, base);
-      await openSessionByTitle(page, title, { agentId: 'developer' });
+      try {
+        await openSessionByTitle(page, title, { agentId: 'developer' });
+      } catch (err) {
+        // The newest chat opens as the active one, and the drawer lists only the *other* chats.
+        const active = await page.evaluate(() => localStorage.getItem('autoreiv_active_session_id'));
+        if (active !== sid) throw err;
+        j.note('the QA chat was already the open chat (the drawer lists only the other chats)');
+        await page.locator('#toggleSidebarBtn').click();
+      }
     }, { timeoutMs: 60000 });
 
     await j.step('Developer works CARD-1: branch, fix, checks green, one commit, card In Review', async () => {

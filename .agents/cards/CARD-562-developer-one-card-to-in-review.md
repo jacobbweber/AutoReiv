@@ -2,7 +2,7 @@
 id: CARD-562
 title: "Developer works one card to In Review on the active project"
 type: feature
-status: Ready
+status: In Review
 priority: P1
 milestone: M25
 needs_decision: none
@@ -11,7 +11,7 @@ proof:
   checks: [tests/unit/skills/test_card_tools.py, tests/unit/skills/test_git_tools.py, tests/unit/agent_packs, cards-folder guard, ADR-0061 binding guard]
 branch: feat/card-562-developer-one-card-to-in-review
 absorbs: [CARD-558, CARD-540, CARD-541, CARD-557 (scratch-file half)]
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 150, qa_runs: 3, findings: 7}
 created: 2026-09-27
 ---
 
@@ -86,12 +86,21 @@ to In Review. Push and merge are never done by Developer.
 - Order: folder move first (its own commit, paths only), then templates, tools, skills and pack, then the journey.
 - Developer model pin is an Agent Studio setting done by Jacob; the journey can run on any configured model.
 - Approval level (unattended) is slice 4; this card still asks on edits in `ask` mode.
+- Commit 1 = folder move only (single `git mv`, 549 cards) + references + `paths.py` detection + guard test. Old `docs/cards` / `.github/cards` folders are still read when a project already uses them (no migration code).
+- Deviation from D5: the self-extension skills (mcp-engineering, native-tool-engineering, capability-authoring, proposals, build-agent-pack) stay ticked on Developer, because "Ask Developer" and Tools Studio hand-offs still rely on them. Jacob to confirm or park them in slice 2.
+- Developer card rules: moves only Ready->In Progress->In Review (and Returned->In Progress); every card it creates must be `status: Proposed`.
+- New tools (`patch_project_file`, `run_project_checks`) ask for approval in `ask` mode (HITL list).
+- Live-proof model: vLLM on .218 timed out on completions, so the journey ran on Nimo Ollama `qwen3.6:35b-a3b-65k` (the Developer model override is not pinned; the coder endpoint is not configured).
 
 ## Findings
+- In area, fixed: the card tools had no Proposed status; the scaffold still listed steering/SDD placeholders; scratch defaulted inside the checkout; tools fell back to the AutoReiv checkout with no project selected.
+- Off area -> docs/findings.md (7 rows dated 2026-09-28): CARD-541 partial, CARD-540 not done, capability-authoring has 10 tools, project-setup tools unbound, MCP engineering uses resolve_root, openSessionByTitle misses API-created Developer chats, vLLM .218 completions time out.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-562-developer-one-card-to-in-review | desktop | FAIL (harness) | Round 1-2: step 1 pass (Developer has the 11 SDLC skills, no repo_file_* tools); fixture selected as active project via API (the calc chip shows). Step 2 fails in the harness: the chat drawer does not list the API-created Developer chat (same as the CARD-454 finding), so the Developer work and audit steps never ran. Stopped after 2 rounds. |
+| preflight --fast --base qa | - | GREEN | ruff, eslint, pytest guard/changed/mapped, vitest 955 |
 
 ## Release note
 Changed: cards now live in `.agents/cards/`. Added: the Developer agent can take a card to In Review on the active project (branch, plan, edit, checks, commit) and file Proposed cards.

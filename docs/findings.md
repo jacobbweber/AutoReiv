@@ -27,3 +27,10 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
 - 2026-09-27 | developer | Developer reply can end with "Reply failed: The model returned an empty reply" right after registering a tool (folded from CARD-538) | CARD-561 triage | src/application/kernel/agent_kernel.py
 - 2026-09-27 | jobs | Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (folded from CARD-547) | CARD-561 triage | src/web/static/modules/studios/chat*
+- 2026-09-28 | packs | CARD-541 only partly done: pack_tool_names removed from the Developer pack only; autoreiv, direct and tutor packs plus pack schema/export/linter still carry it (tutor/autoreiv tests depend on it) | from CARD-562 | platform-packs/*/pack.json, src/application/agent_packs/
+- 2026-09-28 | packs | CARD-540 (allow_wiki_access removal) not done in slice 1 | from CARD-562 | src/domain/agents/, platform-packs/
+- 2026-09-28 | skills | capability-authoring still requires 10 tools, over the ADR-0061 cap of 8 | from CARD-562 | platform-packs/developer/skills/capability-authoring/SKILL.md
+- 2026-09-28 | projects | create_project / detect_drift / align_project are not bound to any Developer skill yet (project-setup skill is slice 2) | from CARD-562 | src/application/sdlc/projects_service.py
+- 2026-09-28 | mcp | MCP engineering tools still resolve their root with resolve_root instead of the selected project / refusal | from CARD-562 | src/application/skills/mcp_engineering_tools.py
+- 2026-09-28 | live-qa | openSessionByTitle also misses an API-created Developer chat (it opens as the active chat and the drawer lists only the other chats); card-562 journey checks the stored session id instead | from CARD-562 | tests/e2e/journeys/lib/app.mjs
+- 2026-09-28 | live-qa | vLLM on 192.168.1.218:8099 lists models but chat completions time out (60 s) for nemotron-3.5-lightning and qwen3-coder-next; CARD-562 proof ran on Nimo Ollama | from CARD-562 | scripts/live_qa.py
