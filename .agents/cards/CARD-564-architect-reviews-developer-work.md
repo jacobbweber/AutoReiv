@@ -2,7 +2,7 @@
 id: CARD-564
 title: "Architect reviews Developer's work and marks the card Done or Returned"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-564-architect-reviews-developer-work
 log: {minutes: 70, qa_runs: 6, findings: 6}
 created: 2026-09-28
+completed: 2026-09-28
 ---
 
 # CARD-564 Architect reviews Developer's work and marks the card Done or Returned
