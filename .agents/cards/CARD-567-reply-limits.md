@@ -53,7 +53,7 @@ Unbounded model replies in chat turns.
 Technical defaults, configurable; not a product decision. No Spark/Nimo server config changes. A Settings UI field is left out.
 
 ## Findings
-- (to findings list, not done here) The limits have an API (`/api/settings/reply-limits`) but no Settings UI field yet.
+- (to findings list) The limits have an API (`/api/settings/reply-limits`) but no Settings UI field yet.
 - The stop is shown through the existing failed-reply path: a "Reply failed: Stopped: ..." alert and toast, plus the saved chat row.
 
 ## Results
