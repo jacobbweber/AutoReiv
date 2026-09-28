@@ -54,16 +54,16 @@ def client(tmp_path):
     return TestClient(app)
 
 
-def test_health_check_returns_dynamic_version(client):
-    resp = client.get("/health")
+def test_health_check_returns_dynamic_version(shared_client):
+    resp = shared_client.get("/health")
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "ok"
     assert data["version"].startswith("0.")
 
 
-def test_get_system_version_endpoint(client):
-    resp = client.get("/api/system/version")
+def test_get_system_version_endpoint(shared_client):
+    resp = shared_client.get("/api/system/version")
     assert resp.status_code == 200
     data = resp.json()
     assert "current_version" in data

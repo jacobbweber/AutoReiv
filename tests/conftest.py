@@ -78,6 +78,50 @@ def isolate_test_environment(tmp_path, monkeypatch):
 
 
 
+# --- CARD-560: one create_app() per test module for read-only route tests -------------------------
+# create_app() seeds the catalog, installs platform packs and builds the registry (~0.3-0.7 s). Tests
+# that only GET pages/routes or assert removed routes 404 can share one app per module.
+# Rules: use ``shared_app``/``shared_client`` ONLY when the test never mutates app.state, settings,
+# the DB or the data dir. Anything that saves, posts real data, swaps app.state.* or depends on a fresh
+# data dir keeps its own function-scoped create_app(). dependency_overrides are reset after each test.
+
+
+@pytest.fixture(scope="module")
+def _shared_app_module(tmp_path_factory):
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+    from src.web.app import create_app
+
+    root = tmp_path_factory.mktemp("shared_app")
+    mp = pytest.MonkeyPatch()
+    try:
+        mp.setenv("AUTOREIV_DATA_DIR", str(root / "data"))
+        mp.setenv("AUTOREIV_DB_PATH", str(root / "api.db"))
+        mp.setenv("AUTOREIV_WIKI_PATH", str(root / "wiki"))
+        store = SQLiteStateStore(db_path=str(root / "api.db"))
+        app = create_app(state_store=store, wiki_path=str(root / "wiki"))
+    finally:
+        mp.undo()
+    return app
+
+
+@pytest.fixture
+def shared_app(_shared_app_module):
+    """Module-shared FastAPI app for read-only tests; overrides restored after each test [CARD-560]."""
+    app = _shared_app_module
+    saved = dict(app.dependency_overrides)
+    yield app
+    app.dependency_overrides.clear()
+    app.dependency_overrides.update(saved)
+
+
+@pytest.fixture
+def shared_client(shared_app):
+    """TestClient on the module-shared app (no lifespan), for GET/404-style tests [CARD-560]."""
+    from fastapi.testclient import TestClient
+
+    return TestClient(shared_app)
+
+
 TOOL_SKILL_PREFIX = "tool:"
 
 

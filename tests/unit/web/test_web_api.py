@@ -68,14 +68,14 @@ def client(store, tmp_path):
     return TestClient(app)
 
 
-def test_index_view(client):
-    response = client.get("/")
+def test_index_view(shared_client):
+    response = shared_client.get("/")
     assert response.status_code == 200
     assert "AutoReiv Control Plane" in response.text
 
 
-def test_list_agents(client):
-    response = client.get("/api/agents")
+def test_list_agents(shared_client):
+    response = shared_client.get("/api/agents")
     assert response.status_code == 200
     agents = response.json()
     assert len(agents) >= 3

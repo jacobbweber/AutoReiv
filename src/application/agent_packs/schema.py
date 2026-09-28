@@ -25,11 +25,6 @@ FORBIDDEN_PACK_KEYS = frozenset(
 SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".db", ".db-wal", ".db-shm"})
 
 
-# Retired from Agent Training Factory runtime (CARD-171). Kept empty so nothing
-# treats persona packs as the Factory. Packs may remain on disk unused.
-FACTORY_PACK_IDS = frozenset()
-RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset({"conductor", "inspector", "coder", "sandbox_runner", "critic"})
-
 # CARD-339 / CARD-341 / CARD-366 / CARD-388: Platform agent consolidation & restoration.
 # autoreiv, direct, developer, tutor are the platform packs.
 CHAT_HIDDEN_BY_ID = frozenset(

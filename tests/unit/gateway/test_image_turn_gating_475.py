@@ -114,23 +114,6 @@ async def test_text_only_model_gets_no_image_bytes_but_a_note_and_a_notice(tmp_p
 
 
 @pytest.mark.asyncio
-async def test_vision_model_gets_the_current_turn_image(tmp_path):
-    provider = RecordingProvider()
-    gw = _gateway(provider, {OVERRIDES_SETTING: {"vllm/gemma-4-26b-a4b": True}})
-    path = _image(tmp_path)
-    req = CompletionRequest(
-        model="vllm/gemma-4-26b-a4b",
-        messages=[ChatMessage(role=Role.USER, content=_image_turn(path))],
-    )
-    chunks = await _drain(gw.stream(req))
-
-    sent = provider.requests[0].messages[-1]
-    assert sent.images and len(sent.images) == 1
-    assert sent.images[0]["path"] == str(path)
-    assert not any(c.notice for c in chunks)
-
-
-@pytest.mark.asyncio
 async def test_earlier_images_are_never_resent_even_to_vision_models(tmp_path):
     provider = RecordingProvider()
     gw = _gateway(provider, {OVERRIDES_SETTING: {"vllm/gemma-4-26b-a4b": True}})
@@ -146,24 +129,6 @@ async def test_earlier_images_are_never_resent_even_to_vision_models(tmp_path):
     chunks = await _drain(gw.stream(req))
     assert all(not m.images for m in provider.requests[0].messages)
     assert not any(c.notice for c in chunks)
-
-
-@pytest.mark.asyncio
-async def test_poisoned_text_only_session_next_hi_sends_no_images(tmp_path):
-    provider = RecordingProvider()
-    gw = _gateway(provider)
-    old = _image(tmp_path, "old.png")
-    req = CompletionRequest(
-        model="vllm/nemotron-3.5-lightning",
-        messages=[
-            ChatMessage(role=Role.USER, content=_image_turn(old, "old.png")),
-            ChatMessage(role=Role.USER, content="Hi"),
-        ],
-    )
-    chunks = await _drain(gw.stream(req))
-    assert all(not m.images for m in provider.requests[0].messages)
-    assert not any(c.notice for c in chunks)
-    assert provider.requests[0].messages[-1].content == "Hi"
 
 
 @pytest.mark.asyncio

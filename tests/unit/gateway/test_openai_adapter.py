@@ -188,7 +188,16 @@ async def test_openai_auth_failure_401():
 
 
 @pytest.mark.asyncio
-async def test_openai_rate_limit_429():
+async def test_openai_rate_limit_429(monkeypatch):
+    import src.infrastructure.gateway.openai_adapter as mod
+
+    delays = []
+
+    async def no_wait(seconds):  # the retry backoff is real sleep; record it instead [CARD-560]
+        delays.append(seconds)
+
+    monkeypatch.setattr(mod.asyncio, "sleep", no_wait)
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(429, json={"error": {"message": "Rate limit reached"}})
 
@@ -202,6 +211,7 @@ async def test_openai_rate_limit_429():
     with pytest.raises(RateLimitError) as exc_info:
         await adapter.complete(req)
     assert "Rate limit" in str(exc_info.value)
+    assert delays and all(d > 0 for d in delays)  # it did back off between retries
 
 
 def test_openai_format_messages_sanitizes_duplicate_and_orphaned_tool_calls():

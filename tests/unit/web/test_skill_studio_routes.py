@@ -189,8 +189,8 @@ async def test_4_skills_list_and_open(app_env):
         ("GET", "/api/agent_training_factory/skills/wiki?agent_id=autoreiv", "/api/skill_studio/skills/wiki?agent_id=autoreiv"),
     ],
 )
-async def test_5_old_paths_redirect_308(app_env, method, old, new):
-    app, _ = app_env
+async def test_5_old_paths_redirect_308(shared_app, method, old, new):
+    app = shared_app  # stateless redirect check [CARD-560]
     async with _client(app) as ac:
         resp = await ac.request(method, old, json={"skill_id": "x"} if method == "POST" else None)
     assert resp.status_code == 308
@@ -225,8 +225,8 @@ async def test_5b_redirect_keeps_method_and_body(app_env):
         ("POST", "/api/agents/autoreiv/gaps/gap_x/train"),
     ],
 )
-async def test_6_removed_routes_404(app_env, method, path):
-    app, _ = app_env
+async def test_6_removed_routes_404(shared_app, method, path):
+    app = shared_app  # stateless 404 check [CARD-560]
     async with _client(app) as ac:
         resp = await ac.request(method, path, json={} if method in ("POST", "PUT") else None)
     assert resp.status_code in (404, 405)

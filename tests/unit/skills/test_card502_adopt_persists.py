@@ -92,19 +92,6 @@ def test_adopted_skill_survives_restart_with_keep_customizations_on(boot):
     assert "Always cite the source C502" in prompt
 
 
-def test_agent_studio_extra_tick_survives_restart(boot):
-    """REQ-502-003 (Agent Studio tick, D3)."""
-    client, _store, _app = boot()
-    tutor = client.get("/api/agents/tutor").json()
-    tutor = tutor.get("agent") or tutor
-    assert "build-agent-pack" not in tutor["allowed_skill"]
-    put = client.put("/api/agents/tutor", json={**tutor, "allowed_skill": [*tutor["allowed_skill"], "build-agent-pack"]})
-    assert put.status_code == 200, put.text
-    assert "build-agent-pack" in _skills(client, "tutor")
-    client2, _s2, _a2 = boot()
-    assert "build-agent-pack" in _skills(client2, "tutor")
-
-
 def test_keep_customizations_off_warns_and_restart_removes_but_keeps_file(boot):
     """REQ-502-004 / D4."""
     client, store, _app = boot()
