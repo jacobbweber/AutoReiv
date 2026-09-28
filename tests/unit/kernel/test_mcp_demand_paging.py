@@ -116,7 +116,7 @@ def test_resolve_active_tools_prioritizes_mcp_tools_and_respects_cap(bind_skills
     registry = ScopedToolRegistry()
     mcp_tools = [
         ToolDefinition(name=f"mcp_blender_tool_{i}", description=f"Blender Tool {i}", parameters={"type": "object"})
-        for i in range(12)
+        for i in range(20)
     ]
     # Add a specific script tool to test keyword relevance
     script_tool = ToolDefinition(name="mcp_blender_execute_script", description="Execute python script in Blender", parameters={"type": "object"})

@@ -44,7 +44,7 @@ to In Review. Push and merge are never done by Developer.
    - One `.agents/cards/`, `docs/adr/` and a new card template.
    - Cut the steering placeholders, the SDD trio, `.github/cards`, CONTRIBUTING, and the Conductor/Coding/"Jacob"/"AutoReiv" wording.
    - Update the manifest.
-3. **Tools (each registered and bound to exactly one skill, ADR-0061; ≤8 tools per skill).**
+3. **Tools (each registered and bound to exactly one skill, ADR-0061; ≤15 tools per skill since round 3).**
    - `git_create_branch` (from the `## Branches` base; refuses a dirty tree; no force).
    - `run_project_checks` (runs only `AGENTS.md ## Checks` commands in the active project; timeout; exit code + output tail).
    - `search_project` (grep).
@@ -78,7 +78,7 @@ to In Review. Push and merge are never done by Developer.
   6. With no active project, a tool call returns the clear error.
 - Checks:
   - Guard: no tracked `docs/cards/*.md` remain and card tools write to `.agents/cards`.
-  - Guard: every tool bound to a Developer skill is registered, and no skill has more than 8 tools.
+  - Guard: every tool bound to a Developer skill is registered, and no skill has more than 15 tools (cap raised from 8 in round 3).
   - Guard: the template manifest matches the files.
   - Fast tier green.
 
@@ -87,7 +87,11 @@ to In Review. Push and merge are never done by Developer.
 - Developer model pin is an Agent Studio setting done by Jacob; the journey can run on any configured model.
 - Approval level (unattended) is slice 4; this card still asks on edits in `ask` mode.
 - Commit 1 = folder move only (single `git mv`, 549 cards) + references + `paths.py` detection + guard test. Old `docs/cards` / `.github/cards` folders are still read when a project already uses them (no migration code).
-- Deviation from D5: the self-extension skills (mcp-engineering, native-tool-engineering, capability-authoring, proposals, build-agent-pack) stay ticked on Developer, because "Ask Developer" and Tools Studio hand-offs still rely on them. Jacob to confirm or park them in slice 2.
+- D5 deferred (Jacob, 2026-09-28): the self-extension skills (mcp-engineering, native-tool-engineering, capability-authoring, proposals, build-agent-pack) stay ticked on Developer until slice 2, because "Ask Developer" and Tools Studio hand-offs rely on them.
+- Tool cap raised 8 -> 15 (Jacob, 2026-09-28): linter `MAX_TOOLS_PER_SKILL` and kernel `MAX_ACTIVE_TOOLS_PER_TURN` move together (guard test keeps them equal); ADR-0054 amended as a judgment cap, not a measured one. capability-authoring (10 tools) now fits.
+- Round 3: CARD-540 done here (allow_wiki_access removed; old data still loads). The rest of CARD-541 (~170 `pack_tool_names` references in 61 files) stays a finding.
+- Chat drawer: a stale session load for the previous agent (AutoReiv, no chats) finished after the switch to Developer and created "Developer Chat", hiding the API-made chat. `loadSessions` now ignores a load whose agent is no longer selected (vitest `chat_stale_session_load_562`).
+- Model: Developer's override was `qwen3-coder-next` on Ollama/Nimo, which Nimo does not have (404). Set to `qwen3.6:35b-a3b-65k` (loaded on Nimo, structured tool calls OK). `qwen2.5-coder:7b` returns tool calls as text, so it cannot drive tools. Spark vLLM `qwen3-coder-next` crash-loops (quantization flag mismatch), reported, not changed.
 - Developer card rules: moves only Ready->In Progress->In Review (and Returned->In Progress); every card it creates must be `status: Proposed`.
 - New tools (`patch_project_file`, `run_project_checks`) ask for approval in `ask` mode (HITL list).
 - Live-proof model: vLLM on .218 timed out on completions, so the journey ran on Nimo Ollama `qwen3.6:35b-a3b-65k` (the Developer model override is not pinned; the coder endpoint is not configured).

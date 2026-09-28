@@ -102,7 +102,6 @@ class AgentCustomization(BaseModel):
     pinned_memory: Optional[str] = None
     allow_autonomous_training: Optional[bool] = None
     max_training_retries: Optional[int] = None
-    allow_wiki_access: Optional[bool] = None
     allowed_credentials: Optional[list[str]] = None
     mcp_servers: Optional[list[MCPServerConfig]] = None
     origin: Optional[str] = None

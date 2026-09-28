@@ -1,6 +1,6 @@
 """CARD-562 (supersedes CARD-550 D1): Developer carries the SDLC skill set, not coding / sdlc-engineering.
 
-- The shipped pack ticks the 11 SDLC skills, each with a runbook and at most 8 tools (ADR-0061).
+- The shipped pack ticks the 11 SDLC skills, each with a runbook and at most MAX_TOOLS_PER_SKILL tools (15, ADR-0054 as amended by CARD-562).
 - Developer's allowed set has the git, card and project tools, and no checkout repo_file_* tools.
 - A one-time migration swaps the stored Developer's skills with a backup and a marker; a later untick survives.
 """
@@ -17,6 +17,7 @@ from src.application.agent_packs.capability_migration import (
     move_developer_to_sdlc_skills,
 )
 from src.application.agent_packs.skill_list import remove_skill_from_agent
+from src.application.skills.linter import MAX_TOOLS_PER_SKILL
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -61,7 +62,7 @@ def test_shipped_pack_ticks_the_sdlc_skills_with_runbooks_and_small_tool_sets():
     for sid in DEV_SDLC_SKILLS:
         assert sid in PACK["allowed_skill"], sid
         assert Path(f"platform-packs/developer/skills/{sid}/SKILL.md").is_file(), sid
-        assert 1 <= len(entries[sid]["tools"]) <= 8, sid
+        assert 1 <= len(entries[sid]["tools"]) <= MAX_TOOLS_PER_SKILL, sid
     assert "coding" not in PACK["allowed_skill"] and "sdlc-engineering" not in PACK["allowed_skill"]
     assert not Path("platform-packs/developer/skills/coding").exists()
     assert "pack_tool_names" not in PACK  # CARD-541: tools come from ticked skills only
@@ -112,3 +113,12 @@ def test_an_already_current_developer_is_untouched(tmp_path):
     report = move_developer_to_sdlc_skills(store, agents, data_root=tmp_path)
     assert report["changed"] is False
     assert not (tmp_path / BACKUP).exists()
+
+
+def test_cap_is_15_and_capability_authoring_fits():
+    """CARD-562: per-skill cap raised 8 -> 15 (judgment cap); capability-authoring (10 tools) no longer breaches it."""
+    from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN
+
+    assert MAX_TOOLS_PER_SKILL == MAX_ACTIVE_TOOLS_PER_TURN == 15
+    entry = next(s for s in PACK["skills"] if s.get("id") == "capability-authoring")
+    assert 8 < len(entry["tools"]) <= MAX_TOOLS_PER_SKILL

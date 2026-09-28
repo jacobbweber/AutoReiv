@@ -5,6 +5,7 @@
  * 3) Asked to work CARD-1, Developer (journey presses Approve) branches, fixes the code, runs the AGENTS.md checks green,
  *    commits, and moves the card to In Review. Nothing is pushed (no remote, no push tool).
  * 4) Asked for a quick audit, Developer files a new card with status Proposed and changes no code.
+ * 5) With no active project, Developer's project tools refuse and it points to Projects Studio.
  * Checks are structural (git state, card files, tool rows), never exact model wording.
  */
 import { execFileSync } from 'node:child_process';
@@ -190,5 +191,25 @@ export default {
       if (git(root, 'rev-parse', 'HEAD') !== head) throw new Error('audit made a commit');
       if (fs.readFileSync(path.join(root, 'calc.js'), 'utf8') !== calcBefore) throw new Error('audit changed code');
     }, { timeoutMs: 960000 });
+
+    await j.step('With no active project, Developer refuses project work and points to Projects Studio', async () => {
+      const cleared = await request.put(`${base}/api/projects/selected`, { data: {} });
+      if (!cleared.ok()) throw new Error(`clear project -> ${cleared.status()}`);
+      const sel = await getJson(request, `${base}/api/projects/selected`);
+      if (sel.selected && sel.selected.path) throw new Error('project still selected');
+      const head = git(root, 'rev-parse', 'HEAD');
+      const refused = async () => {
+        const rows = await allRows(request, base, sid);
+        const tail = rows.slice(-12);
+        return tail.some((m) => /No project is selected|Projects Studio/i.test(String(m.content || '')));
+      };
+      await askAndApprove(page, request, base, streams,
+        'List the cards in the active project.', refused, 300000);
+      const rows = await allRows(request, base, sid);
+      const toolRefusal = rows.slice(-12).some((m) => role(m) === 'tool' && /No project is selected/.test(String(m.content || '')));
+      j.note(`tool refusal row ${toolRefusal}`);
+      if (!(await refused())) throw new Error('no refusal naming Projects Studio');
+      if (git(root, 'rev-parse', 'HEAD') !== head) throw new Error('fixture changed with no project selected');
+    }, { timeoutMs: 360000 });
   },
 };

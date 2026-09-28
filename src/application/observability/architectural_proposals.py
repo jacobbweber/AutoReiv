@@ -92,7 +92,7 @@ class ArchitecturalProposalGenerator:
                     continue
                 p_id = cls._make_proposal_id(alert.id, ArchitecturalProposalType.TOOL_PRUNING)
                 active_tools = alert.metadata.get("active_tool_count", 0)
-                max_tools = alert.metadata.get("max_active_tools", 8)
+                max_tools = alert.metadata.get("max_active_tools", 15)
                 proposal = ArchitecturalProposal(
                     id=p_id,
                     alert_id=alert.id,

@@ -158,8 +158,6 @@ class BuiltinAgentRegistry:
                     profile.allow_autonomous_training = override.allow_autonomous_training
                 if getattr(override, "max_training_retries", None) is not None:
                     profile.max_training_retries = override.max_training_retries
-                if getattr(override, "allow_wiki_access", None) is not None:
-                    profile.allow_wiki_access = override.allow_wiki_access
                 if getattr(override, "mcp_servers", None) is not None:
                     profile.mcp_servers = override.mcp_servers
                 if getattr(override, "allowed_credentials", None) is not None:

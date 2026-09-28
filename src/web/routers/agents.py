@@ -45,7 +45,6 @@ class AgentProfilePayload(BaseModel):
     memory_enabled: Optional[bool] = True
     memory_retention_days: Optional[int] = 30
     pinned_memory: Optional[str] = ""
-    allow_wiki_access: Optional[bool] = True
     allowed_credentials: Optional[List[str]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
     expected_skills_version: Optional[str] = None  # CARD-539 D10 stale-save check
@@ -435,8 +434,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["allowed_skill"] = existing.allowed_skill or []
     if data.get("show_in_chat") is None:
         data["show_in_chat"] = existing.show_in_chat is not False
-    if data.get("allow_wiki_access") is None:
-        data["allow_wiki_access"] = getattr(existing, "allow_wiki_access", True)
+    data.pop("allow_wiki_access", None)  # CARD-540: retired field, ignored if an old client sends it
     if data.get("allowed_credentials") is None:
         data["allowed_credentials"] = getattr(existing, "allowed_credentials", []) or []
     if data.get("mcp_servers") is None:

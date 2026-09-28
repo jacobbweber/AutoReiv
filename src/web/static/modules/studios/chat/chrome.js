@@ -124,10 +124,15 @@ export async function loadSessions(arg1 = {}, arg2 = {}) {
 
   try {
     const exclude = state.activeSessionId ? `&exclude_session_id=${encodeURIComponent(state.activeSessionId)}` : '';
-    const agentParam = state.selectedAgentId ? `agent_id=${encodeURIComponent(state.selectedAgentId)}` : 'agent_id=autoreiv';
+    const requestedAgent = state.selectedAgentId || '';
+    const agentParam = requestedAgent ? `agent_id=${encodeURIComponent(requestedAgent)}` : 'agent_id=autoreiv';
     const res = await fetchFn(`/api/sessions?${agentParam}${exclude}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.sessions = await res.json();
+    const sessions = await res.json();
+    // CARD-562: a load that finishes after the user switched agent is stale; it must not
+    // render, open or create a chat for the agent that is now selected.
+    if ((state.selectedAgentId || '') !== requestedAgent) return;
+    state.sessions = sessions;
     renderSessionList({
       sessionList,
       sessions: state.sessions,

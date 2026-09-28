@@ -168,6 +168,9 @@ def provider_payload(env: Mapping[str, str]) -> dict:
     """POST /api/settings/providers body that points a throwaway env at the real vLLM."""
     url = (env.get("AUTOREIV_QA_VLLM_URL") or DEFAULT_VLLM_URL).strip()
     model = (env.get("AUTOREIV_QA_MODEL") or DEFAULT_MODEL).strip()
+    if ":11434" in url:  # CARD-562: an Ollama host (e.g. Nimo) is registered as the ollama provider, not vLLM
+        host = url.rstrip("/").removesuffix("/v1")
+        return {"provider_id": "ollama", "default_provider_id": "ollama", "base_url": host, "ollama_host": host, "default_model_id": model}
     return {"provider_id": "vllm", "default_provider_id": "vllm", "base_url": url, "openai_base_url": url, "default_model_id": model}
 
 

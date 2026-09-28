@@ -1,9 +1,9 @@
 ---
 id: CARD-540
 title: "Drop the inert allow_wiki_access agent field"
-status: Ready
+status: In Review
 created: 2026-09-26
-branch: qa
+branch: feat/card-562-developer-one-card-to-in-review
 related:
   - CARD-539
 labels:
@@ -31,3 +31,6 @@ Remove the field from models, guardrails, settings payloads and the SQLite colum
 ## Done when
 
 No code reads or writes `allow_wiki_access`; a unit test asserts wiki tools follow ticks only; old profiles with the field still load.
+
+## Results
+Absorbed and done in CARD-562 (2026-09-28): field removed from AgentProfile, AgentCustomization, pack schema, guardrails, registry override, settings repo and the agents router; old profiles/packs that still carry it load (ignored). Test: tests/unit/agents/test_card540_no_wiki_access_field.py.

@@ -57,7 +57,7 @@ NESTED_COMPLETE_MAX_CTX = 32768
 NESTED_COMPLETE_MAX_TOKENS = 8192
 
 # ADR-0054 / CARD-362: Demand-Paged Capability Engine constants
-MAX_ACTIVE_TOOLS_PER_TURN: int = 8
+MAX_ACTIVE_TOOLS_PER_TURN: int = 15  # judgment cap, not measured (ADR-0054 amended by CARD-562)
 BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
     {
         "activate_skill",
@@ -831,7 +831,7 @@ class AgentKernel:
         except Exception:
             pass
 
-        # CARD-362 / ADR-0054 / CARD-377: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 8)
+        # CARD-362 / ADR-0054 / CARD-377: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 15, CARD-562)
         if len(tools) > MAX_ACTIVE_TOOLS_PER_TURN:
             active_skill_set = {str(s).strip().lower() for s in (active_skills or [])}
             import re
