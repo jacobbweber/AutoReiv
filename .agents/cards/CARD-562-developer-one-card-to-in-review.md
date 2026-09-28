@@ -11,7 +11,7 @@ proof:
   checks: [tests/unit/skills/test_card_tools.py, tests/unit/skills/test_git_tools.py, tests/unit/agent_packs, cards-folder guard, ADR-0061 binding guard]
 branch: feat/card-562-developer-one-card-to-in-review
 absorbs: [CARD-558, CARD-540, CARD-541, CARD-557 (scratch-file half)]
-log: {minutes: 300, qa_runs: 6, findings: 9}
+log: {minutes: 400, qa_runs: 11, findings: 9}
 created: 2026-09-27
 ---
 
@@ -114,7 +114,17 @@ to In Review. Push and merge are never done by Developer.
 | card-562 round 8 (Nimo qwen3.6:35b-a3b-65k, cards only via write_card, harness ends on idle turn) | desktop | FAIL at step 3 (evidence) | Steps 1-2 pass. Step 3, 5 approvals: card/1-add-sum, fix 5321d75, two green checks, set_card_status refused twice (Ready -> In Review, then no green check for the new HEAD) and then committed the card (b3a3a3c), clean tree, nothing pushed. Failed: the card has no evidence - Developer never called write_card, so the Evidence section is empty. Order: read_project_file > read_card > git_create_branch > list_project_dir > read_project_file x2 > patch_project_file > run_project_checks > set_card_status! > set_card_status > git_commit! > git_diff > git_commit > run_project_checks > set_card_status. Steps 4-5 skipped. |
 | card-562 round 9 (Nimo qwen3.6:35b-a3b-65k, tool-written evidence, Ready passes through In Progress) | desktop | FAIL at step 4 | Steps 1-3 pass (5 approvals): card/1-add-returns-sum, fix c2fd642, green check for HEAD, set_card_status wrote the evidence and committed the card (3470ace), clean tree, nothing pushed. Step 4: Developer called write_card with an extra `title` argument; the handler raised "unexpected keyword argument 'title'", and Developer gave up and asked for the schema. No card filed (the harness now ended in about 1 min, not 15). Step 5 skipped. |
 | card-562 round 10 (Nimo qwen3.6:35b-a3b-65k, registry argument errors, write_card title) | desktop | FAIL at step 5 | Steps 1-4 pass. Step 3 (3 approvals): card/1-add-returns-sum, fix 80002a9, green checks, set_card_status refused once (no green for new HEAD), then wrote evidence and committed the card (f711a23), clean tree. Step 4: write_card filed CARD-2-guard-divide-against-division-by-zero.md as Proposed, no code change; a later set_card_status on it was refused. Step 5: with the project cleared, Developer called list_cards with an explicit project_root (the path from earlier in the chat) and got the cards - selected_or_refuse honours an explicit project_root, so no refusal. |
+| card-562 round 11 (Nimo qwen3.6:35b-a3b-65k, selected-project-only resolver, no model-facing project_root) | desktop | PASS | All 5 steps pass in about 3 min. Step 3 (4 approvals): branch CARD-1-add-returns-sum, fix ec9e397, two green run_project_checks, set_card_status wrote the evidence and committed the card (de8562b), clean tree, no remote, no shell/code runner. Step 4 (2 approvals): write_card filed CARD-2-add-tests-for-divide-function.md as Proposed, no code change, no commit. Step 5: project cleared, project tools refused with the no-project message, Developer pointed to Projects Studio. Screenshots C:/Temp/card-562/16-18. |
 | preflight --fast --base qa | - | GREEN | ruff, eslint, pytest guard/changed/mapped, vitest 955 |
+
+## Live test (Jacob)
+1. Ctrl+F5 the app.
+2. Projects Studio: select a git repo whose AGENTS.md has `## Checks` and a Ready card (a copy is safest).
+3. Developer, New Conversation: "Work card CARD-N to In Review". Approve the prompts.
+4. Check the repo: a card branch, the fix commit plus `docs(card): CARD-N In Review`, the card's Evidence (branch, commits, files, green checks), a clean tree, nothing pushed.
+5. Ask "Do a quick audit and file one card": a new `CARD-<next>-...md` with status Proposed, no code change.
+6. Clear the project in Projects Studio and ask "List the cards": Developer refuses and points to Projects Studio.
+7. Tools Studio, Ask Developer: shows "paused until M25 slice 2".
 
 ## Release note
 Changed: cards now live in `.agents/cards/`. Added: the Developer agent can take a card to In Review on the active project (branch, plan, edit, checks, commit) and file Proposed cards.
