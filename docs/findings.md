@@ -24,7 +24,6 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 
 ## M24 Chat, jobs and tool reliability
 - 2026-09-27 | jobs | reopening a chat whose job failed shows Failed without the reason and names the last queued phase (folded from CARD-536) | CARD-561 triage | src/web/static/modules/studios/chat*
-- 2026-09-28 | models | no generation cap on a runaway reasoning reply: a model can stream reasoning without end and the chat hangs (Architect on Nimo, CARD-563 round 1); add a max-tokens / reasoning-time cap per turn | from CARD-563 | src/infrastructure/llm/*, src/application/kernel/agent_kernel.py
 - 2026-09-28 | chat routing | product question: chat still decides job vs normal turn by keywords (deliverable verbs, wiki writes, done-when, first/then/finally or numbered steps), so ordinary asks can still become a two-phase Job; decide whether to replace keyword routing with an explicit 'run as a job' action in Chat (would change how standing Jobs start, CARD-230/271) | from CARD-565 | src/application/orchestration/outcome_intake.py, standing_job_graph.py, src/web/static/modules/studios/chat*
 
 ## M25 Self-development
