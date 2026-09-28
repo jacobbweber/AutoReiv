@@ -2,7 +2,7 @@
 id: CARD-561
 title: "Card triage and test value pass"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M22
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: chore/card-561-triage-test-value
 log: {minutes: 45, qa_runs: 0, findings: 11}
 created: 2026-09-27
+completed: 2026-09-27
 ---
 
 # CARD-561 Card triage and test value pass
