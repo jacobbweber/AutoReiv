@@ -14,6 +14,8 @@ labels:
   - area:kernel
   - area:chat
   - P1
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-461] Graceful ending at the turn limit: final no-tools summary instead of a bare error
@@ -34,8 +36,6 @@ labels:
 | **`continue`** | Refine the card - **still no product code** |
 | **`build`** | Implement the graceful ending test-first (sync + stream) |
 | **`merge to qa`** | After In Review + the Human Verification Runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 
@@ -122,7 +122,6 @@ Do not write product code until Jacob says **build** on this card.
 
 ## 4. Constraints
 
-- Docs-only until **build**.
 - Exactly one extra model call per limit stop; never loops.
 - No `main` merge, no GitHub PR, no version bump for docs-only.
 

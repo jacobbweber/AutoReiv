@@ -11,6 +11,8 @@ labels:
   - type:bug
   - area:tools
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-552] read_document_file has no path guard

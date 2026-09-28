@@ -11,6 +11,8 @@ labels:
   - type:bug
   - area:observability
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-525] Friction audit dedup drops recommendations for other tools

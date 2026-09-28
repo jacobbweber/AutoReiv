@@ -10,6 +10,8 @@ labels:
   - type:chore
   - area:agents
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-540] Drop the inert allow_wiki_access agent field

@@ -12,6 +12,8 @@ labels:
   - area:chat
   - area:backend
   - P3
+needs_decision: "D1/D2: keep the words already shown when a reply is stopped (recommendations written; needs a yes)"
+milestone: M24
 ---
 
 # [CARD-489] A stopped reply disappears: the words already shown are not kept
@@ -31,8 +33,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

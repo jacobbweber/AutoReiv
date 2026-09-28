@@ -13,6 +13,8 @@ labels:
   - area:packs
   - area:serve
   - P2
+needs_decision: none
+milestone: M22
 ---
 
 # [CARD-459] Serve bootstraps twice; second platform-pack run overwrites the boot report
@@ -31,8 +33,6 @@ labels:
 | **`continue`** | Refine approach - **still no product code** |
 | **`build`** | Make serve bootstrap once, test-first |
 | **`merge to qa`** | After a restart shows one promotion run and an honest boot report |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

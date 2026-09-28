@@ -11,6 +11,8 @@ labels:
   - area:chat
   - area:gateway
   - P3
+needs_decision: "Whether to add a vision helper model for text-only chat models, and how it is configured (Beat 3)"
+milestone: M24
 ---
 
 # [CARD-480] Vision helper: describe images with a configured vision model when the chat model is text-only
@@ -30,8 +32,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

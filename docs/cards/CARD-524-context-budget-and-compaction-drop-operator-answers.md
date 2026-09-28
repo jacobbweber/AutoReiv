@@ -12,6 +12,8 @@ labels:
   - type:bug
   - area:kernel
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-524] Context budget and compaction drop the operator's answers mid-task

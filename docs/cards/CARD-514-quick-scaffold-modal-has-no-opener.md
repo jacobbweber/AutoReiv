@@ -12,6 +12,8 @@ labels:
   - area:agents
   - area:frontend
   - P3
+needs_decision: none
+milestone: M21
 ---
 
 # [CARD-514] Agent Studio's Quick Scaffold modal has no opener

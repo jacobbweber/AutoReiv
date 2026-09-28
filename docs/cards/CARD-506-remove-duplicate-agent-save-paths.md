@@ -11,6 +11,8 @@ labels:
   - type:chore
   - area:agents
   - P3
+needs_decision: none
+milestone: M22
 ---
 
 # [CARD-506] Remove the unused duplicate agent-save paths

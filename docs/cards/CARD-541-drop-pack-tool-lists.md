@@ -10,6 +10,8 @@ labels:
   - type:chore
   - area:agents
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-541] Drop platform pack.json allowed_tool_names / pack_tool_names

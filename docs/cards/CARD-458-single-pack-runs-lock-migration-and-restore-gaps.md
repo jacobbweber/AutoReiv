@@ -11,6 +11,8 @@ labels:
   - type:bug
   - area:packs
   - P3
+needs_decision: none
+milestone: M22
 ---
 
 # [CARD-458] Single-pack promotion overwrites lock-migration report; restore gaps
@@ -29,8 +31,6 @@ labels:
 | **`continue`** | Refine scope - **still no product code** |
 | **`build`** | Implement this card test-first |
 | **`merge to qa`** | After the acceptance criteria are proven |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

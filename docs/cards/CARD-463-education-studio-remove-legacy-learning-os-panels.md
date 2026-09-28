@@ -18,6 +18,8 @@ labels:
   - area:education
   - area:frontend
   - P1
+needs_decision: "Education cleanup: answer the product questions in section 4 (which legacy panels go)"
+milestone: M23
 ---
 
 # [CARD-463] Education Studio cleanup: remove the legacy Learning OS panels, keep operator bar + players
@@ -51,8 +53,6 @@ Jacob: the original "engineering look" Learning OS UI never added value (it move
 | **`continue`** | Answer the product questions (section 4) - **still no product code** |
 | **`build`** | Remove the legacy panels and their frontend code/tests per the inventory |
 | **`merge to qa`** | After In Review + the Human Verification Runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

@@ -10,6 +10,8 @@ labels:
   - type:bug
   - area:tools
   - P2
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-543] Developer can register a stub tool ("real API integration pending") that the agent then declines to use

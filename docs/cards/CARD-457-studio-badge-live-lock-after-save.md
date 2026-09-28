@@ -12,6 +12,8 @@ labels:
   - area:packs
   - area:studio
   - P3
+needs_decision: none
+milestone: M22
 ---
 
 # [CARD-457] Studio platform badge should reflect a lock set by Save, not only the last sync
@@ -30,8 +32,6 @@ labels:
 | **`continue`** | Refine scope - **still no product code** |
 | **`build`** | Implement this card test-first |
 | **`merge to qa`** | After the acceptance criteria are proven |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

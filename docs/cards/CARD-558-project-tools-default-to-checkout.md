@@ -11,6 +11,8 @@ labels:
   - type:product
   - area:tools
   - P3
+needs_decision: "D1: where cli_exec, git, card and read tools point when no project is selected"
+milestone: M25
 ---
 
 # [CARD-558] Other project tools default to the checkout with no project selected

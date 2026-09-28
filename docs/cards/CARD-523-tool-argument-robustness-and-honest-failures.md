@@ -13,6 +13,8 @@ labels:
   - area:kernel
   - area:orchestration
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-523] Tool-argument robustness and honest failure reporting

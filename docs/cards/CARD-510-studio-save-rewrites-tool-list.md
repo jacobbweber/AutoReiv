@@ -13,6 +13,8 @@ labels:
   - type:bug
   - area:agents
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-510] An Agent Studio Save rewrites the agent's tool list from pills

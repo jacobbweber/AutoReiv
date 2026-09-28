@@ -13,6 +13,8 @@ labels:
   - area:chat
   - area:frontend
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-471] Chat options drawer and tools modal wiring lost in the CARD-397 split: Compact, View tools, close paths, Escape
@@ -32,8 +34,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

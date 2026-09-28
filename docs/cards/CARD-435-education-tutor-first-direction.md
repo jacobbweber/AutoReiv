@@ -12,6 +12,8 @@ labels:
   - domain:education
   - area:tutor
   - P0
+needs_decision: "Education direction: lock the north-star forks, then scaffold the successor build cards (design phase)"
+milestone: M23
 ---
 
 # [CARD-435] Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Operator + Players

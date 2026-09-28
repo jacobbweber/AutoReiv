@@ -13,6 +13,8 @@ labels:
   - area:chat
   - area:skills
   - P3
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-504] Needs-tool proposal card is titled "Synthesized Skill" instead of the missing tool

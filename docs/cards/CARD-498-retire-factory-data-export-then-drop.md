@@ -13,6 +13,8 @@ labels:
   - area:factory
   - area:data
   - P2
+needs_decision: "D1/D2: export Factory data, then drop the tables (data-destructive; recommendations written)"
+milestone: M21
 ---
 
 # [CARD-498] Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables

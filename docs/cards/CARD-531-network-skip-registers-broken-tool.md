@@ -13,6 +13,8 @@ labels:
   - area:developer
   - area:tools
   - P2
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-531] Registered without a test run: `get_weather` returns HTTP 400

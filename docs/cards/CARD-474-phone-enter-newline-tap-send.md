@@ -13,6 +13,8 @@ labels:
   - area:mobile
   - area:frontend
   - P3
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-474] Phone keyboard Enter inserts a newline in Chat; tap Send to send
@@ -32,8 +34,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Implement test-first |
 | **`merge to qa`** | After In Review and the phone runbook passes |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

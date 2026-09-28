@@ -11,6 +11,8 @@ labels:
   - type:security
   - area:gateway
   - P3
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-483] Only send images from the attachments folder, not any "Local Path" written in a user message

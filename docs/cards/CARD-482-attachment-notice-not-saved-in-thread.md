@@ -11,6 +11,8 @@ labels:
   - type:ux
   - area:chat
   - P3
+needs_decision: "Whether and where to persist the can't-view-images notice (Beat 3)"
+milestone: M24
 ---
 
 # [CARD-482] The "can't view images" notice is not saved, so it is gone after a reload or on another device

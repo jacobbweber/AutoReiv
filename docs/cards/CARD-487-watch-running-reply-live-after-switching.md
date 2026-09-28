@@ -1,7 +1,7 @@
 ---
 id: CARD-487
 title: "Watch a reply that is still running live after switching chats, reloading, or moving to another device"
-status: Ready
+status: Parked
 created: 2026-09-25
 branch: qa
 related:
@@ -14,11 +14,13 @@ labels:
   - area:backend
   - area:frontend
   - P3
+needs_decision: none
+milestone: Horizon
 ---
 
 # [CARD-487] Watch a reply that is still running live after switching chats, reloading, or moving to another device
 
-> **Status**: Ready
+> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-485 planning (decision D2).
 > **Related**: CARD-485 (busy state + poll), CARD-473 (phone return), CARD-154 (background work survives disconnect)
@@ -33,8 +35,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

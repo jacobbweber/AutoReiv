@@ -10,6 +10,8 @@ labels:
   - type:bug
   - area:agents
   - P2
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-546] Out-of-domain routing still depends on the model following the prompt

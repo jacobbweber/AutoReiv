@@ -14,6 +14,8 @@ labels:
   - area:education
   - area:frontend
   - P2
+needs_decision: "Education expansion scope: full-screen players and flip-style flashcards"
+milestone: M23
 ---
 
 # [CARD-464] Education Studio expansion: full-screen players and flip-style flashcards
@@ -34,8 +36,6 @@ labels:
 | **`continue`** | Refine layout - **still no product code** |
 | **`build`** | Implement the full-screen players and flip cards |
 | **`merge to qa`** | After In Review + the Human Verification Runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

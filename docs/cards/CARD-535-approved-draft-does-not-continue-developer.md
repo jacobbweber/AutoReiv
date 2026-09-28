@@ -12,6 +12,8 @@ labels:
   - area:chat
   - area:hitl
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-535] Approving a draft does not make the Developer continue
