@@ -135,9 +135,8 @@ def test_oc_s2_export_import_fidelity(hybrid_env, tmp_path):
     store.save_custom_agent_profile(profile)
     out = service.export_folder(pack_id, dest_dir=tmp_path / "export2")
     pack_data = json.loads((out / "pack.json").read_text(encoding="utf-8"))
-    exported_tools = list(pack_data.get("allowed_tool_names") or pack_data.get("pack_tool_names") or [])
     exported_skills = list(pack_data.get("allowed_skill") or [])
-    assert "wiki_note_create" in exported_tools
+    assert "pack_tool_names" not in pack_data and "allowed_tool_names" not in pack_data  # CARD-541
     assert "wiki" in exported_skills or "proposals" in exported_skills
 
     import_src = tmp_path / "import-src2" / pack_id
@@ -343,6 +342,10 @@ def test_oc_s6_local_gate_and_docker_hard_fail(tmp_path, monkeypatch):
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
     monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "docker")
     db2 = docker_ud / "database" / "docker_fail.db"
+    # AUTOREIV_DB_PATH must follow the docker root too: the resolver peeks wiki_path from it, and the
+    # first `import src.web.app` (module-level create_app) persists a local wiki_path into the DB it
+    # names. Under xdist that import can happen in this test, so the peek found the local wiki.
+    monkeypatch.setenv("AUTOREIV_DB_PATH", str(db2))
     db2.parent.mkdir(parents=True, exist_ok=True)
     store2 = SQLiteStateStore(db_path=str(db2))
     store2.initialize_db()

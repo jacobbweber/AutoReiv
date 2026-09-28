@@ -24,8 +24,7 @@ def test_pack_manifest_roundtrip():
         purpose="task_execution",
         avatar_icon="cpu",
         model="default",
-        allowed_skill=["user-provisioning"],
-        pack_tool_names=["system_info"],
+        skills=[{"id": "user-provisioning", "tools": ["system_info"]}],
         show_in_chat=False,
         created_at="2026-08-30T00:00:00+00:00",
         updated_at="2026-08-30T00:00:00+00:00",
@@ -34,7 +33,8 @@ def test_pack_manifest_roundtrip():
     loaded = AgentPackManifest.model_validate(dumped)
     assert loaded.id == "eu-c-specialist"
     assert loaded.allowed_skill == ["user-provisioning"]
-    assert loaded.pack_tool_names == ["system_info"]
+    assert loaded.pack_tool_names == ["system_info"]  # read-only union of skill tools (CARD-541)
+    assert "pack_tool_names" not in dumped and "allowed_tool_names" not in dumped
     assert loaded.show_in_chat is False
     assert "input_packet_json" not in dumped
     assert "transcripts" not in dumped
@@ -135,12 +135,14 @@ def test_legacy_1_0_sibling_lists_still_validate():
         }
     )
     assert manifest.allowed_skill == ["user-provisioning"]
-    assert manifest.pack_tool_names == ["system_info"]
+    assert manifest.pack_tool_names == []  # CARD-541: the flat list is ignored with a note
+    assert manifest.ignored_tool_lists == ["pack_tool_names"]
     assert manifest.skills[0].id == "user-provisioning"
     assert manifest.skills[0].tools == []
 
 
-def test_leftover_top_level_tools_union_not_copied_onto_every_skill():
+def test_leftover_top_level_tools_are_ignored_not_merged():
+    """CARD-541: a flat pack_tool_names next to nested skills is ignored (was merged before)."""
     manifest = AgentPackManifest.model_validate(
         {
             "id": "mixed-bot",
@@ -149,9 +151,10 @@ def test_leftover_top_level_tools_union_not_copied_onto_every_skill():
             "pack_tool_names": ["wiki_note_read"],
         }
     )
-    assert manifest.pack_tool_names == ["system_info", "wiki_note_read"]
+    assert manifest.pack_tool_names == ["system_info"]
     assert manifest.skills[0].tools == ["system_info"]
-    assert all(skill.tools != manifest.pack_tool_names for skill in manifest.skills)
+    assert manifest.ignored_tool_lists == ["pack_tool_names"]
+    assert "pack_tool_names" not in manifest.model_dump(mode="json")
 
 
 def test_extra_allowed_skill_is_not_pack_owned():

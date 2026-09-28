@@ -599,6 +599,21 @@ def sync_checkout_example_user_packs(
 
 
 
+def seed_pack_tools(pack_data: dict) -> list[str]:
+    """CARD-541: the shipped pack's tools = union of its nested skills' tools (legacy flat list tolerated)."""
+    names: list[str] = []
+    for skill in pack_data.get("skills") or []:
+        for tool in (skill.get("tools") if isinstance(skill, dict) else None) or []:
+            text = str(tool or "").strip()
+            if text and text not in names:
+                names.append(text)
+    for tool in pack_data.get("pack_tool_names") or []:
+        text = str(tool or "").strip()
+        if text and text not in names:
+            names.append(text)
+    return names
+
+
 def refresh_live_pack_json_skill_projection(dest_pack: Path, pack_data: dict) -> bool:
     """Merge seed skill projection into live pack.json without wiping local extras.
 
@@ -635,6 +650,10 @@ def refresh_live_pack_json_skill_projection(dest_pack: Path, pack_data: dict) ->
             continue
         if live.get(key) != pack_data.get(key):
             live[key] = pack_data.get(key)
+            changed = True
+    for key in ("pack_tool_names", "allowed_tool_names"):  # CARD-541: shipped packs carry no flat tool lists
+        if key in live and key not in pack_data:
+            live.pop(key)
             changed = True
     if not changed:
         return False
