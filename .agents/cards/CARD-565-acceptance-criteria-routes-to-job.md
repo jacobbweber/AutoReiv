@@ -2,7 +2,7 @@
 id: CARD-565
 title: "A chat message that mentions acceptance criteria stays a normal turn"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: fix/card-565-acceptance-criteria-routes-to-job
 log: {minutes: 25, qa_runs: 1, findings: 1}
 created: 2026-09-28
+completed: 2026-09-28
 ---
 
 
