@@ -235,6 +235,7 @@ async def test_skill_view_refuses_unticked_id(tmp_path):
     assert refused.output["success"] is False
     assert "not allowed" in (refused.output.get("error") or "").lower()
     assert "unticked-runbook-secret" not in str(refused.output)
+    assert "user-provisioning" in refused.output["error"]  # CARD-564: the refusal names the ids to use
 
     allowed = await tool_reg.execute(
         ToolCall(id="c2", name=SKILL_VIEW, arguments={"pack_id": "user-provisioning"}),
