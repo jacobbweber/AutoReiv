@@ -2,7 +2,7 @@
 id: CARD-563
 title: "Architect plans cards with Jacob and hands a Ready card to Developer"
 type: feature
-status: Ready
+status: In Review
 priority: P1
 milestone: M25
 needs_decision: none
@@ -95,10 +95,31 @@ Build notes: reuse `HandoffEngine` (child max turns via `bound_child_max_turns`)
 green-check record and evidence reader; the argument-mismatch error from CARD-562 covers new tools automatically.
 
 ## Findings
+- Fixed in area: `write_card` left the `CARD-<n>` placeholder in the heading and slug; now replaced with the real id.
+- Fixed in area: the hand-off approval card now says Developer is working (the request stays open while Developer runs).
+- Fixed in area: a nested Developer turn that got an empty model reply (seen on Nimo) now gets one nudge retry; a failed resumed child reports failed with the card outcome instead of hanging.
+- Architect prompt: the tools refuse, not the model. On Spark, Architect first refused Done by itself without calling the tool; the prompt now says to call the tool and report its answer.
+- Open: Jacob's real Developer profile has no Nimo override (provider/model default); the live proof set Nimo only in the throwaway env.
+- Open: Architect uses the loaded default (qwen3.8-27b-fp8 on Spark); `deepseek-r1` is not loaded and was not used.
+- Open: no generation cap for runaway reasoning streams (one Nimo round hung on Architect).
+- Open: Developer runs inside the approval request, so Architect's chat shows only the "Developer is working" status until the outcome; a live progress view (D2 option B) could follow.
+- Open, not this card: `test_card354_developer_simulations` (3 tests, need an external sentinel.db) and `test_card509_unpilled_skills` (2 slow tests) fail on qa as well.
+- Follow-up (D3 B): tool building gets its own card with a Toolsmith agent after slice 3.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-563-architect-plans-and-hands-off | desktop | PASS | 2026-09-28 round 5: Architect on Spark qwen3.8-27b-fp8, Developer on Nimo qwen3.6:35b-a3b-65k (throwaway env). Ready CARD-3 filed, Done refused by the tool, hand-off one click, Developer branched, fixed, tested green and set In Review (2 commits, clean tree, no remote); outcome shown in Architect chat; Developer conversation opens; Proposed and no-project refusals. Screenshots C:\Temp\card-563\. |
+
+## Live test (Jacob)
+1. Restarted serve on :8000. Open Agents: Architect is listed and shown in chat. (Optional: set Developer to Nimo `qwen3.6:35b-a3b-65k` in Agent Studio.)
+2. In Projects, select a small throwaway git repo that has a fast check (for example `node --test`).
+3. Open Chat with Architect. Describe one small change and ask for a card. Architect reads the project, asks if unclear, and files the card; ask it to make the card Ready.
+4. Ask Architect to set an In Review card to Done. The tool refuses ("review is slice 3") and the card is unchanged.
+5. Say "Hand CARD-N to Developer." Approve the one hand-off card. The approval says Developer is working; approve Developer's own steps if they show.
+6. When it finishes, Architect's chat shows the Hand-off outcome card: status In Review, branch, commits, clean tree, Evidence.
+7. Open the chat list, switch to Developer and open "CARD-N: handed off by Architect" to see every Developer step.
+8. Ask Architect to hand off a Proposed card, then clear the project and try again: both are refused with a reason.
 
 ## Release note
 CARD-563: new Architect agent (reasoning model) brainstorms with Jacob, writes Ready cards and hands one to Developer with `hand_off_card`; the outcome (branch, commits, card status) shows back in Architect's chat.
