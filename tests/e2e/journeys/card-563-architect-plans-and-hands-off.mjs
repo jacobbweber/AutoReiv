@@ -93,13 +93,14 @@ function toolOrder(rows, from = 0) {
     .join(' > ') || 'none';
 }
 
-async function askAndApprove(page, streams, text, done, timeoutMs) {
+async function askAndApprove(page, streams, text, done, timeoutMs, { idleLimit = 10, progress = null } = {}) {
   const n = streams.count;
   await send(page, text);
   await waitFor(() => streams.count > n, { timeoutMs: 15000 });
   let approvals = 0;
   const approved = [];
   let idlePolls = 0;
+  let lastProgress = -1;
   await waitFor(async () => {
     const cards = page.locator(HITL_CARD);
     const count = await cards.count();
@@ -115,10 +116,15 @@ async function askAndApprove(page, streams, text, done, timeoutMs) {
         return false;
       }
     }
-    const streaming = await isStreaming(page);
+    // Approving a hand-off runs Developer inside the decision request: the card says so and the chat is not streaming.
+    const deciding = (await page.locator(`${HITL_CARD} .hitl-card-status`).filter({ hasText: /Developer is working|Approving/ }).count()) > 0;
+    const streaming = (await isStreaming(page)) || deciding;
     if (!streaming && (await done())) return true;
-    idlePolls = streaming ? 0 : idlePolls + 1;
-    return idlePolls >= 10;
+    const p = progress ? await progress() : 0;
+    const moved = p !== lastProgress;
+    lastProgress = p;
+    idlePolls = streaming || moved ? 0 : idlePolls + 1;
+    return idlePolls >= idleLimit;
   }, { timeoutMs, intervalMs: 2000 }).catch(() => {});
   await waitReplyIdle(page, { timeoutMs: 120000 }).catch(() => {});
   return { approvals, approved };
@@ -232,8 +238,13 @@ export default {
       const t0 = Date.now();
       const outcomeRow = async () => (await rowsOf(request, base, sid)).slice(from)
         .some((m) => role(m) === 'tool' && m.name === 'hand_off_card' && /Card status: In Review/.test(String(m.content || '')));
+      const devRowCount = async () => {
+        const list = await getJson(request, `${base}/api/sessions?agent_id=developer`).catch(() => []);
+        const child = (Array.isArray(list) ? list : []).find((s) => String(s.id).startsWith(`${sid}_child_`));
+        return (await rowsOf(request, base, sid)).length + (child ? (await rowsOf(request, base, child.id)).length : 0);
+      };
       const r = await askAndApprove(page, streams, `Hand ${newId} to Developer.`,
-        async () => statusOf(file()) === 'In Review' && (await outcomeRow()), 2700000);
+        async () => statusOf(file()) === 'In Review' && (await outcomeRow()), 2700000, { idleLimit: 150, progress: devRowCount });
       const minutes = ((Date.now() - t0) / 60000).toFixed(1);
       await waitReplyIdle(page, { timeoutMs: 300000 }).catch(() => {});
       const rows = await rowsOf(request, base, sid);

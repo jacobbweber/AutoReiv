@@ -284,6 +284,14 @@ export function buildHitlCardInnerHtml({ title, toolName, message, argsText, res
   `;
 }
 
+/** CARD-563: approving a hand-off runs Developer inside this request; say so instead of a bare "Approving". */
+export function approvingText(cardEl) {
+  const text = String((cardEl && cardEl.textContent) || '');
+  return /hand_off_card/.test(text)
+    ? 'Approved. Developer is working the card; this waits until Developer finishes or needs your approval.'
+    : 'Approving…';
+}
+
 export async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
   const buttons = cardEl.querySelectorAll('[data-hitl-decision]');
   buttons.forEach((btn) => {
@@ -294,7 +302,7 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
   });
   const statusEl = cardEl.querySelector('.hitl-card-status');
   if (statusEl) {
-    statusEl.textContent = decision === 'APPROVED' ? 'Approving…' : 'Rejecting…';
+    statusEl.textContent = decision === 'APPROVED' ? approvingText(cardEl) : 'Rejecting…';
   }
   try {
     const res = await fetch(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
