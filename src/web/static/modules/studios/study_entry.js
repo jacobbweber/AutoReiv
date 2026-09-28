@@ -458,7 +458,7 @@ export async function fetchStudyProgress(agentId = STUDY_TUTOR_AGENT_ID, opts = 
     try {
       const errBody = await res.json();
       detail = errBody.detail || errBody.error || '';
-    } catch (_) {
+    } catch {
       /* ignore */
     }
     return {
@@ -663,7 +663,7 @@ export async function curateStudyWiki(opts = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  let data = null;
+  let data;
   try {
     data = await res.json();
   } catch {
@@ -863,7 +863,7 @@ export async function enterTutorEducationMode(opts = {}) {
     return { ok: false, error: 'STUDY_TOPIC_REQUIRED' };
   }
 
-  let coursePayload = null;
+  let coursePayload;
   try {
     coursePayload = await startOrResumeStudyCourse(topic, STUDY_TUTOR_AGENT_ID);
   } catch (err) {

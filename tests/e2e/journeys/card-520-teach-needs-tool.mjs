@@ -31,13 +31,11 @@ export default {
     const streams = trackStreams(page);
     const title = `QA 520 weather ${viewport.name} ${Date.now() % 100000}`;
     let sessionId = '';
-    let before = new Set();
     let newTools = [];
     let beforeProposals = new Set();
     let proposal = null;
 
     await j.step('Ask AutoReiv about the weather in Boston', async () => {
-      before = await grantedTools(request, base);
       beforeProposals = new Set((await attachProposals(request, base)).map((r) => String(r.id)));
       const res = await request.post(`${base}/api/sessions`, { data: { agent_id: 'autoreiv', title } });
       if (!res.ok()) throw new Error(`create session -> ${res.status()}`);
