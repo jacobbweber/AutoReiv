@@ -46,7 +46,7 @@ def cards_folder_refusal(root: Path, target: Path) -> str:
 
 
 def _slug(title: str) -> str:
-    title = re.sub(r"^\s*\[?CARD-\d+\]?\s*", "", title or "", flags=re.IGNORECASE)
+    title = re.sub(r"^\s*\[?[A-Z]+(?:-[A-Z]+)*-\d+\]?\s*", "", title or "", flags=re.IGNORECASE)
     slug = "".join(ch if ch.isalnum() else "-" for ch in title.lower())
     return re.sub(r"-+", "-", slug).strip("-")[:60].strip("-") or "card"
 
@@ -66,6 +66,30 @@ def insert_evidence(card: str, lines: List[str]) -> str:
     existing = text[m.end():end].strip("\n")
     body = "\n\n" + block + (("\n" + existing + "\n") if existing.strip() else "")
     return text[: m.end()] + body + ("\n" if nxt else "") + text[end:]
+
+
+def apply_card_title(content: str, title: str, new: bool) -> str:
+    """CARD-562: a `title` argument sets the frontmatter title and the heading text (and so the new card's slug)."""
+    text = content.replace("\r\n", "\n")
+    safe = title.replace('"', "'")
+    if text.lstrip().startswith("---"):
+        start = text.index("---")
+        end = text.find("\n---", start + 3)
+        if end != -1:
+            head, rest = text[:end], text[end:]
+            if re.search(r"(?m)^title:", head):
+                head = re.sub(r"(?m)^title:.*$", lambda _m: f'title: "{safe}"', head, count=1)
+            else:
+                head = head + f'\ntitle: "{safe}"'
+            text = head + rest
+    m = re.search(r"(?m)^#\s+(\[?[A-Z]+(?:-[A-Z]+)*-\d+\]?\s*)?.*$", text)
+    if m:
+        ident = (m.group(1) or "").strip()
+        heading = f"# {ident + ' ' if ident else ''}{title}"
+        text = text[: m.start()] + heading + text[m.end():]
+    elif new:
+        text = re.sub(r"(?s)^(---.*?\n---\n)?", lambda mm: (mm.group(0) or "") + f"\n# {title}\n", text, count=1)
+    return text
 
 
 def stamp_new_card(content: str, card_id: str, status: Optional[str] = None) -> str:
@@ -88,7 +112,7 @@ def stamp_new_card(content: str, card_id: str, status: Optional[str] = None) -> 
                 head + f"\nstatus: {status}"
             )
         text = head + rest
-    return re.sub(r"(?m)^(#\s+)(?:\[?[A-Z]+-\d+\]?\s*)?", lambda m: f"{m.group(1)}{card_id} ", text, count=1)
+    return re.sub(r"(?m)^(#\s+)(?:\[?[A-Z]+(?:-[A-Z]+)*-\d+\]?\s*)?", lambda m: f"{m.group(1)}{card_id} ", text, count=1)
 
 
 class CardTools:
@@ -259,12 +283,15 @@ class CardTools:
         filename: Optional[str] = None,
         card_id: Optional[str] = None,
         project_root: Optional[str] = None,
+        title: Optional[str] = None,
     ) -> Dict[str, Any]:
         if not (content or "").strip():
             return {"success": False, "error": "content is required"}
         root = self._root(project_root)
         cards_dir = self._cards_dir(root)
         path = self._existing_card(root, filename, card_id, content)
+        if title and title.strip():
+            content = apply_card_title(content, title.strip(), new=path is None)
         assigned = ""
         if path is None:
             # CARD-562: new cards get the next CARD-N id and a CARD-N-slug.md filename; Developer's are Proposed.
@@ -630,6 +657,7 @@ class CardTools:
                     "content": {"type": "string", "description": "Full markdown card including frontmatter"},
                     "filename": {"type": "string", "description": "Target filename such as CARD-080-slug.md"},
                     "card_id": {"type": "string"},
+                    "title": {"type": "string", "description": "Card title; sets the heading and the new card's filename slug"},
                     "project_root": {"type": "string"},
                 },
                 "required": ["content"],

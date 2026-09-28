@@ -90,3 +90,19 @@ def test_operator_keeps_a_free_explicit_id(project: Path):
     assert (project / ".agents" / "cards" / "CARD-600-planned.md").is_file()
     nxt = cards.write_card("---\nstatus: Discuss\n---\n# Something new\n")
     assert nxt["assigned_id"] == "CARD-601"
+
+
+def test_write_card_title_sets_heading_frontmatter_and_slug(project: Path, as_developer):
+    content = AUDIT_CARD.replace("PROPOSED-1", "CARD-PROPOSED-1")
+    res = CardTools(default_project_root=str(project)).write_card(content, title="Add tests for divide()")
+    assert res["success"] and res["assigned_id"] == "CARD-8"
+    path = project / ".agents" / "cards" / "CARD-8-add-tests-for-divide.md"
+    text = path.read_text(encoding="utf-8")
+    assert 'title: "Add tests for divide()"' in text and "# CARD-8 Add tests for divide()" in text
+    assert "PROPOSED" not in text
+
+
+def test_write_card_title_on_body_without_heading(project: Path, as_developer):
+    res = CardTools(default_project_root=str(project)).write_card("## Why\nx\n", title="Missing divide tests")
+    assert res["success"] and res["assigned_id"] == "CARD-8"
+    assert (project / ".agents" / "cards" / "CARD-8-missing-divide-tests.md").is_file()

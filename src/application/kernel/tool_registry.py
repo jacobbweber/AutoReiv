@@ -24,6 +24,48 @@ def get_tool_context() -> Dict[str, Any]:
     return dict(_tool_context.get() or {})
 
 
+def argument_mismatch_error(tool_name: str, handler: Any, schema: Optional[Dict[str, Any]], args: Dict[str, Any]) -> Optional[str]:
+    """CARD-562: unknown or missing arguments become a clear tool error listing the accepted parameters.
+
+    Unknown arguments are never dropped silently (that can lose data); the model is told to call again.
+    """
+    try:
+        sig = inspect.signature(handler)
+    except (TypeError, ValueError):
+        return None
+    try:
+        sig.bind(**args)
+        return None
+    except TypeError:
+        pass
+    params = sig.parameters
+    takes_kwargs = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    named = {n for n, p in params.items() if p.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)}
+    unknown = [] if takes_kwargs else sorted(k for k in args if k not in named)
+    missing = [
+        n for n, p in params.items()
+        if p.default is inspect.Parameter.empty
+        and p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+        and n not in args
+    ]
+    props = (schema or {}).get("properties") or {}
+    required = set((schema or {}).get("required") or []) | set(missing)
+    if props:
+        accepted = [
+            f"{n} ({(props[n] or {}).get('type', 'any')}{', required' if n in required else ''})" for n in props
+        ]
+    else:
+        accepted = [f"{n}{' (required)' if n in required else ''}" for n in named]
+    parts = [f"Tool '{tool_name}' was called with arguments it does not accept."]
+    if unknown:
+        parts.append("Unknown: " + ", ".join(unknown) + ".")
+    if missing:
+        parts.append("Missing: " + ", ".join(missing) + ".")
+    parts.append("Accepted parameters: " + (", ".join(accepted) or "none") + ".")
+    parts.append("Nothing was run; call it again using only these parameters.")
+    return " ".join(parts)
+
+
 @dataclass
 class ToolRegistration:
     definition: ToolDefinition
@@ -232,6 +274,18 @@ class ScopedToolRegistry:
         try:
             handler = registration.handler
             args = tool_call.arguments or {}
+            mismatch = argument_mismatch_error(
+                tool_call.name, handler, getattr(registration.definition, "parameters", None), args
+            )
+            if mismatch:
+                return ToolResult(
+                    call_id=tool_call.id,
+                    tool_name=tool_call.name,
+                    output=None,
+                    success=False,
+                    error=mismatch,
+                    duration_ms=(time.perf_counter() - start_time) * 1000,
+                )
 
             if inspect.iscoroutinefunction(handler):
                 output = await handler(**args)
