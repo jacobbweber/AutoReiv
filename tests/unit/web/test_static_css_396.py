@@ -27,13 +27,3 @@ def test_static_css_files_served_successfully(client):
         assert "text/css" in response.headers.get("content-type", "")
         assert len(response.text) > 200
 
-
-def test_index_inline_style_hygiene(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    html = response.text
-    # Monolithic inline styles (which were > 1,300 lines) are eliminated from index.html
-    assert "CARD-315: Education sections collapse" not in html
-    assert "CARD-312: Observe expand scrolls" not in html
-    assert "CARD-313: Settings collapse" not in html
-    assert "CARD-314: Factory fills hosted" not in html

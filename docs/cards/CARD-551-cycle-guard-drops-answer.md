@@ -11,6 +11,8 @@ labels:
   - type:bug
   - area:kernel
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-551] Cycle guard throws away a good tool result

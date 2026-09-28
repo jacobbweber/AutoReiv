@@ -13,6 +13,8 @@ labels:
   - area:observability
   - area:tools
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-527] Tool escalations for built-in tools point at the Developer, who only authors custom tools

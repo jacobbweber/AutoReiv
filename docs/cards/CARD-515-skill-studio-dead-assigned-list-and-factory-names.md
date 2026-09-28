@@ -13,6 +13,8 @@ labels:
   - area:skills
   - area:frontend
   - P3
+needs_decision: none
+milestone: M21
 ---
 
 # [CARD-515] Skill Studio renders into the removed Factory brief; Factory-named leftovers

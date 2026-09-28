@@ -12,6 +12,8 @@ labels:
   - area:mcp
   - area:agents
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-518] Developer's `test_mcp_server` claims a handshake it never runs

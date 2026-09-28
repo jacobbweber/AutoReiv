@@ -13,6 +13,8 @@ labels:
   - type:bug
   - area:orchestration
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-557] Developer's Execute phase over-asks for approval and writes scratch scripts into the checkout

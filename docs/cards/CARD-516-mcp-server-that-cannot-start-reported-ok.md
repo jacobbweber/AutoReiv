@@ -13,6 +13,8 @@ labels:
   - area:mcp
   - area:settings
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-516] An MCP server that cannot start is reported as "ok" and "mounted"

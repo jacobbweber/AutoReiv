@@ -12,6 +12,8 @@ labels:
   - area:chat
   - area:attachments
   - P2
+needs_decision: "Document attachments: inline size limits and whether Direct mode may read attached files (Beat 3)"
+milestone: M24
 ---
 
 # [CARD-479] Document attachments: tiny inline limits and Direct mode cannot read attached files
@@ -31,8 +33,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

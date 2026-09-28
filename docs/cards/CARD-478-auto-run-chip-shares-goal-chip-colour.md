@@ -11,6 +11,8 @@ labels:
   - area:chat
   - area:frontend
   - P3
+needs_decision: "Auto-run ON chip colour (Beat 3)"
+milestone: M24
 ---
 
 # [CARD-478] Auto-run ON chip shares the amber colour of the multi-phase goal chip
@@ -30,8 +32,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 id: CARD-549
 title: "Formulate on AutoReiv should know the Execute phase is on Developer"
-status: Ready
+status: Superseded
 created: 2026-09-27
 branch: qa
 related:
@@ -11,11 +11,13 @@ labels:
   - type:bug
   - area:orchestration
   - P3
+superseded_by: CARD-554
+needs_decision: none
 ---
 
 # [CARD-549] Formulate should name the agent that runs Execute
 
-> **Status**: Ready (filed from CARD-544 live QA, 2026-09-27 ~1:30 AM ET).
+> **Status**: Superseded by CARD-554. Covered by CARD-554: Formulate plans only and knows the Execute agent.
 > **Related**: CARD-544, CARD-546
 > **Labels**: `type:bug`, `area:orchestration`, `P3`
 

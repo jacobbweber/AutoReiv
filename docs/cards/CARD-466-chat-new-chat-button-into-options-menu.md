@@ -1,7 +1,7 @@
 ---
 id: CARD-466
 title: "Chat Studio: move the New chat button into the + Options menu"
-status: Ready
+status: Parked
 created: 2026-09-24
 branch: qa
 adr: none
@@ -15,11 +15,13 @@ labels:
   - area:chat
   - area:frontend
   - P3
+needs_decision: none
+milestone: Horizon
 ---
 
 # [CARD-466] Chat Studio: move the New chat button into the + Options menu
 
-> **Status**: Ready
+> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
 > **Created**: 2026-09-24
 > **Observed during**: Jacob using Chat Studio on Jarvis - starting a new chat should not require opening the session-history drawer.
 > **ADR Reference**: none
@@ -35,8 +37,6 @@ labels:
 | **`continue`** | Refine - **still no product code** |
 | **`build`** | Move the button test-first |
 | **`merge to qa`** | After In Review + the Human Verification Runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

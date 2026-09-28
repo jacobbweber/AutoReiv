@@ -1,140 +1,23 @@
-# AutoReiv Master Engineering Roadmap (v0.1.0 - v1.0.0)
+# AutoReiv Roadmap
 
-> **Repository**: `jacobbweber/AutoReiv`  
-> **Target Release**: Production Multi-Agent SRE & Knowledge Platform (v1.0.0)  
-> **Branch Strategy**: Features cut from `qa` (`feat/*`), merged to `qa`, and promoted to `main`.
+> Milestones only. Cards carry `milestone:` in front matter; list them with `list_card_status.py --open --json`.
+> Branches: `feat/*` from `qa`, merged to `qa` (fast tier + journey), `qa` promoted to `main` after `preflight --release`.
+> Findings for each milestone live in `docs/findings.md`. Rebuilt by CARD-561 (2026-09-27).
 
----
+## Done
+- [x] **M1-M8 (v0.1-v0.8)**: gateway and adapters, agent kernel, built-in agents, routines, Settings Studio, observability, web/mobile front door, packaging.
+- [x] **M9-M11 (v0.9-v0.11)**: frontend modularization, quality gates, UX hardening.
+- [x] **M12-M17 (v0.12-v0.17)**: cognition and memory, sandboxing and HITL, multi-agent handoff, MCP client, self-verification (M17 superseded by the job graph).
+- [x] **M18 (v0.18)**: autonomic OS and mechanical governance (ADR-0054).
+- [x] **M19**: primitive realignment and specialized platform agents (Studio Maker CARD-393 parked).
+- [x] **M20**: architecture cleanliness, subtractive engineering, monolith decomposition.
 
-## 🗺️ Milestone Evolution
+## Open
+- [ ] **M21 Factory retirement** ([ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md)): export and drop the Factory tables, retire the scaffold spine and Factory leftovers. Ready: 4 (CARD 498, 512, 514, 515).
+- [ ] **M22 Clean baseline and process**: green fast tier, fast tests, one findings list, platform-pack housekeeping and debt. Ready: 7 (CARD 457, 458, 459, 468, 506, 521, 561).
+- [ ] **M23 Education Studio** (ADR-0059): Tutor-first direction, legacy panel cleanup, full-screen players. Ready: 3 (CARD 435, 463, 464).
+- [ ] **M24 Chat, jobs and tool reliability**: kernel repeat/turn limits, Stop and resume, chat wiring, attachments and images, tool-argument robustness, credential and path guards. Ready: 26 (CARD 460, 461, 462, 471, 473, 474, 477, 478, 479, 480, 482, 483, 484, 489, 490, 491, 492, 503, 504, 510, 519, 523, 524, 535, 551, 552).
+- [ ] **M25 Self-development** ([design note](self-development.md)): Developer builds, checks and live-tests AutoReiv capabilities; ADR-0061 capability-scoping follow-ups; journey testing inside AutoReiv. Ready: 15 (CARD 516, 518, 522, 525, 527, 529, 531, 533, 540, 541, 543, 545, 546, 557, 558).
 
-### Phase 1: Local-First Core Foundations (Completed & Merged to `qa`)
-
-- [x] **Milestone 1 (v0.1.0)**: Multi-Provider LLM Gateway, Ollama/OpenAI Adapters, Streaming Demuxer (`<think>`).
-- [x] **Milestone 2 (v0.2.0)**: Agent Kernel ReAct Engine, Scoped Tool Registry, SQLite WAL State Persistence.
-- [x] **Milestone 3 (v0.3.0)**: 4 Built-in Day-1 Agents (General Assistant, Linux Sysadmin, Librarian, System Agent) & Scoped Skills.
-- [x] **Milestone 4 (v0.4.0)**: Autonomous Routine Engine, Cron/Interval Schedule Matcher, Background Scheduler.
-- [x] **Milestone 5 (v0.5.0)**: Settings Studio, Live Model Discovery, Hermes-style Purpose Matrix, 128GB Nimo PC RAM Calculator, Provider URL/Token Credentials.
-- [x] **Milestone 6 (v0.6.0)**: Analytical Observability & KPI Dashboard Backend, Sub-millisecond SQLite Spans, Tool Reliability Matrix, JSON Trace Dumps.
-- [x] **Milestone 7 (v0.7.0)**: Responsive Web & Mobile Front-Door, Real-Time SSE Streaming, Collapsible Reasoning Drawers, One-Click PARA-Wiki Exporter.
-- [x] **Milestone 8 (v0.8.0)**: Multi-OS Packaging & Deployment, Unified CLI `autoreiv`, Ubuntu `systemd` daemon, Windows service/runners, Docker Compose with volume mounts.
-
----
-
-### Phase 2: Frontend Modularization, Quality Gates & Stability Remediation
-
-- [x] **Milestone 9 (v0.9.0 - P0 Critical Safety)**:
-  - [x] **CARD-031**: Frontend Modularization Foundation & Baseline Quality Gates (ES modules, try/catch isolated `initApp()`, defensive `$(id)` DOM helpers, Playwright zero-console-error smoke test gate, Vitest pure utils test suite).
-  - [x] **CARD-032**: Playwright CI/Pre-Flight Gate Integration & Multi-Studio Navigation Smoke Suite.
-  - [x] **CARD-033**: Defensive DOM Query & Null-Safety Audit across all Studio interfaces.
-
-- [x] **Milestone 10 (v0.10.0 - P1 Quality & Testability)**:
-  - [x] **CARD-034**: ESLint & Prettier Static Analysis Pipeline for Frontend.
-  - [x] **CARD-035**: Comprehensive Unit Test Suite for Frontend Pure Logic (Vitest: mind-map physics, state reducers, token formatters).
-  - [x] **CARD-036**: Gateway, Wiki & Settings End-to-End API Contract Integration Tests.
-  - [x] **CARD-037**: Steering & Product Documentation Truth Sync (`product.md`, `steering/roadmap.md`).
-
-- [x] **Milestone 11 (v0.11.0 - P2 UX Hardening & Resilience)**:
-  - [x] **CARD-038**: Mobile & Keyboard Accessibility (ARIA roles, focus traps, screen-reader landmarks).
-  - [x] **CARD-039**: Performance Budgets, Module Bundling & First-Paint Optimization.
-  - [x] **CARD-040**: User-Visible Error Boundary Toasts & Offline/Degraded Backend Messaging.
-
----
-
-### Phase 3: Enterprise Agentic Cognition, Security & Multi-Agent Architecture
-
-- [x] **Milestone 12 (v0.12.0 - Agentic Cognition, Memory & Resilience Hardening)**:
-  - [x] **CARD-041**: Context Window Compaction & Sliding Dynamic Token Budget Strategy.
-  - [x] **CARD-042**: SQLite Episodic Fact Memory Store & Agent Auto-Recall.
-  - [x] **CARD-043**: Gateway Resilience Hardening (Exponential Backoff, Jitter, Connection Pooling & Streaming Cycle Detection).
-
-- [x] **Milestone 13 (v0.13.0 - Sandboxing, Security Guardrails & Human-In-The-Loop)**:
-  - [x] **CARD-044**: Ephemeral Subprocess Execution Sandbox & Process Isolation.
-  - [x] **CARD-045**: Dangerous Shell Command Safety Guardrails & Path Traversal Protection.
-  - [x] **CARD-046**: Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine.
-
-- [x] **Milestone 14 (v0.14.0 - Multi-Agent Handoff Protocol & Supervisor Delegation Orchestration)**:
-  - [x] **CARD-011**: Standardized 5-Key A2A Handoff Envelope, Supervisor Orchestrator with recursion depth guardrails (max 2 tiers), circular self-handoff prevention, `DelegateSubtaskSkill` tool registration, REST delegation API (`POST /api/agents/delegate`), live streaming handoff SSE indicators, and Chat Studio animated delegation badges.
-
-- [x] **Milestone 15 (v0.15.0)**: Model Context Protocol (MCP) Standard Client Adapter / Settings MCP surfaces — **Done** (src/infrastructure/mcp, /api/settings/mcp*). Intent-driven skill-manual loader continues to iterate under Skills/Forge; core MCP client adapter is shipped.
-- [x] **Milestone 16 (v0.16.0)**: Self-Verification Loops, Reflexion & SRE Health Auditing — **Done** (Reflexion engine, Observability/SRE health tools, CARD-216 standing external verifier policy: `verified` / `skipped_no_checker` / `failed`).
-- [x] **Milestone 17 (v0.17.0)**: Plan-and-Execute Graph Engine & Goal Mode — **Superseded** by standing Job-Graph runtime (CARD-215..221). Goal-mode Chat theatre retired; multi-step Chat uses `JobPhaseOrchestrator` + catalog resolve (CARD-220) with crash-resume checkpoints (CARD-219). `PlanAndExecuteEngine` kept formulator-only (not a parallel execute authority).
-
----
-
-### Phase 4: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance (Completed)
-
-- [x] **Milestone 18 (v0.18.0 - Autonomic OS & Mechanical Governance [ADR-0054])**: **Done**
-  - [x] **ADR-0054**: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance accepted.
-  - [x] **CARD-340**: Multi-Agent Group Chat Roundtable — **Retired / Superseded** as anti-pattern per Conway's Law and ADR-0054.
-  - [x] **CARD-361**: Dual-Engine Front Door: AutoReiv Core & Direct Mode (Retire persona dropdowns & roundtable in Chat Studio).
-  - [x] **CARD-362**: Demand-Paged Capability Engine & Progressive Tool Mounting (Prune static 40-tool schema bloat down to skill-bound sets).
-  - [x] **CARD-363**: Mechanical Capability Linter & Contract Compiler (Static validation for `SKILL.md`: tool cap <= 6, verification contracts).
-  - [x] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
-  - [x] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
-
----
-
-### Phase 5: Primitive Matrix Realignment & Ecosystem Expansion (In Progress)
-
-- **Milestone 19 (v0.19.0 - Primitive Realignment & Specialized Platform Agents)**:
-  - [x] **CARD-386**: 3-Column Agent & Skill Scaffolder & Capabilities Workshop (Factory Studio overhaul).
-  - [x] **CARD-387**: Factory Scaffolder UX Top Action Banner, Auto Slug & Tool Batch Selection.
-  - [x] **CARD-388**: Restore Developer and Tutor as Unified Agent Packs (Re-seed packs, model routing, Chat Studio front door selection).
-  - [x] **CARD-389**: Uniform Skill-First Architecture and Agent Forge Realignment (Zero naked tools, editable display names, specialty storage toggle).
-  - [x] **CARD-390**: Integrated Runbook Editor and Mechanical Capability Linter (Direct `SKILL.md` authoring, live ADR-0054 validation feedback in Agent Studio, pre-save guard, and canonical blueprint).
-  - [x] **CARD-391**: Developer Agent and Projects Studio Workspace Integration (Active project grounding, DotAgents SDLC cards bridge).
-  - [x] **CARD-392**: AutoReiv Hosted MCP Server and Cross-Instance Federation (Inbound HTTP/SSE MCP server, multi-instance federation).
-  - [ ] **CARD-393**: Studio Maker Agent and Dynamic Custom Studio Pack (Declarative JSON schema blueprints, dynamic dock & desktop window mounting) — **Parked**.
-  - [x] **CARD-394**: Enterprise MCP Server Development and Docker Deployment Skill Pack (FastMCP scaffolding, JSON-RPC protocol testing, Docker containerization, Single Lever Invariant) — **Done**.
-
-- **Milestone 20 (v0.20.0 - Architecture Cleanliness, Subtractive Engineering & Monolith Decomposition)**:
-  - [x] **CARD-395**: Dead Code Scavenger, Orphaned Workflows Pruning & Git Hygiene — **Done**.
-  - [x] **CARD-396**: Modular CSS Extraction & Index Template Hygiene — **Done**.
-  - [x] **CARD-397**: Chat Studio Monolith Decomposition & Submodule Refactoring — **Done**.
-  - [x] **CARD-398**: Agent Forge Studio Monolith Decomposition & Submodule Refactoring — **Done**.
-  - [x] **CARD-399**: Wiki Studio Monolith Decomposition & Submodule Refactoring — **Done**.
-  - [x] **CARD-401**: Fix Chat Studio SSE Stream Event Parsing & Message Load Rendering — **Done**.
-
-- **Milestone 21 (Agent Training Factory retirement, [ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md))**:
-  - [x] **CARD-495**: ADR-0060, gap and dependency audit, steering docs - **Done**.
-  - [x] **CARD-496**: Remove the Factory screen, Lab Monitor, training popup and "Agent Training Optimization" panel; gap backlog opens Skill Studio or Developer - **Done**.
-  - [x] **CARD-511**: Check Developer-built native tools before registering them - **Done**.
-  - [x] **CARD-497**: Move Skill Studio routes out of the Factory router; delete the Factory backend and chat tool - **Done**.
-  - [x] **CARD-520**: Rename `factory_escalation` to `tool_escalation`; Observability tool escalations get Ask Developer instead of Apply (folds CARD-526) - **Done**.
-  - [x] **CARD-530**: Approving a HITL card while the Developer reply is still streaming must not cancel and resume the turn ("Cannot complete phase ... still queued") - **Done**.
-  - [x] **CARD-532**: Live QA runner and dedicated test environment: the coding assistant runs each card's live-test journeys against a real serve with real models. - **Done**.
-  - [x] **CARD-539**: Capability scoping ([ADR-0061](../docs/adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)): one allowed-tools function, tools only through ticked skills, selection only narrows, proposals instead of grants, route not refuse (folds CARD-529 items 2 and 4) - **Done**.
-  - [ ] **CARD-533**: Journey testing inside AutoReiv: Developer skill and tools, Projects Studio journey runs (depends on CARD-532).
-  - [ ] **CARD-529**: Developer cannot read an existing custom tool's code, and a stopped phase hides why (partly folded into CARD-539: tools offered outside the allowlist and keyword-family routing moved there).
-  - [ ] **CARD-512**: Retire the scaffold spine backend.
-  - [ ] **CARD-498**: Export Factory data, then drop the tables a release later.
-  - [ ] **CARD-534**: A resumed job phase runs on the parent chat session instead of its phase session.
-  - [ ] **CARD-535**: After approving a propose_* draft once the reply has ended, the Developer does not continue.
-  - [ ] **CARD-536**: Reopening a chat whose job failed shows Failed without the reason.
-  - [x] **CARD-537**: AutoReiv uses an accepted skill tool (weather) and routes instead of refusing (depends on CARD-539). **Done** 2026-09-27: end-to-end tests, journey `card-537-accepted-skill-widens-domain`, Tutor prompt routes.
-  - [ ] **CARD-538**: Developer reply can end with "Reply failed: The model returned an empty reply" right after registering a tool.
-  - [ ] **CARD-540**: Drop the inert `allow_wiki_access` agent field (from CARD-539).
-  - [ ] **CARD-541**: Drop platform pack.json `allowed_tool_names` / `pack_tool_names` (from CARD-539).
-  - [ ] **CARD-542**: Own-skill search when an agent ticks more than 20 skills (ADR-0061 D9, from CARD-539).
-  - [ ] **CARD-543**: Developer can register a stub tool that the agent then declines to use (from CARD-539 live QA).
-  - [x] **CARD-544**: Untick `coding` on AutoReiv so code work routes to Developer (D1 decided by Jacob 2026-09-26). **Done** 2026-09-27: pack, migration, job phases run as their assigned agent, routing journey.
-  - [ ] **CARD-545**: Native tools declare risk at registration (ADR-0061 D11, full; from CARD-539).
-  - [ ] **CARD-546**: Out-of-domain routing and the Ask Developer button still depend on the model following the prompt (from CARD-539 live QA).
-  - [ ] **CARD-547**: Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (from CARD-539 live QA).
-  - [x] **CARD-548**: Approving a Developer Execute phase in an AutoReiv chat resumes and finishes as Developer (from CARD-544 live QA). **Done** 2026-09-27: resume runs in the phase session, reply relayed to the chat.
-  - [ ] **CARD-549**: Formulate on AutoReiv should name the agent that runs Execute (from CARD-544 live QA).
-  - [x] **CARD-550**: Developer ticks `coding` (the checkout repo_file_* tools; D1 decided by Jacob 2026-09-27). **Done** 2026-09-27: pack, one-time migration, guard/smoke tests, live QA journey.
-  - [ ] **CARD-551**: The repetitive-cycle guard ends the turn with no answer even when the tool already returned it (from CARD-537 live QA).
-  - [ ] **CARD-552**: `read_document_file` reads any path on disk; add a path guard (from CARD-550 live QA).
-  - [x] **CARD-553**: A handoff from a job phase keeps the job's capability subset, so Developer's `cli_exec` is skipped (from CARD-550 live QA). **Done** 2026-09-27: the job subset narrows only the job's own agent.
-  - [x] **CARD-554**: Formulate does the work itself, ends FAILED after a completed handoff, and Execute stays queued (from CARD-550 live QA). **Done** 2026-09-27: Formulate plans only, handoff no longer parks the phase.
-  - [x] **CARD-555**: Live QA's throwaway serve lets Developer write into the real checkout (from CARD-550 live QA). **Done** 2026-09-27: sandbox worktree, protected write roots, git status guard.
-  - [x] **CARD-556**: `write_project_file` with no project selected writes into the AutoReiv checkout (from CARD-555; D1 decided by Jacob 2026-09-27: scratch under the data folder). **Done** 2026-09-27: `<data root>/scratch`, never the checkout, the result says where.
-  - [ ] **CARD-557**: Developer's Execute phase asks for 8-12 approvals for a one-file count and writes scratch scripts into the checkout (from CARD-554 live QA).
-  - [ ] **CARD-558**: `cli_exec`, git and card tools default to the AutoReiv checkout when no project is selected (needs a decision; from CARD-556).
-  - [ ] **Education Studio** (no card yet).
-
-
-
-
+## Horizon (Parked)
+Studio Maker, Help Studio, companion, video, horizon ideas (CARD-146, 170, 275, 277, 280, 283-289, 331, 393) and CARD-466, 487, 493, 494, 499, 542 (parked by CARD-561 to keep Ready P3 at or below 30).

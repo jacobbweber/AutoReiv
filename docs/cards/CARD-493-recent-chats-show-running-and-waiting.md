@@ -1,7 +1,7 @@
 ---
 id: CARD-493
 title: "Recent Chats doesn't show which chats are still replying or waiting for approval"
-status: Ready
+status: Parked
 created: 2026-09-25
 branch: qa
 related:
@@ -14,11 +14,13 @@ labels:
   - area:frontend
   - area:backend
   - P3
+needs_decision: none
+milestone: Horizon
 ---
 
 # [CARD-493] Recent Chats doesn't show which chats are still replying or waiting for approval
 
-> **Status**: Ready
+> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-488 planning (decisions D4 and D6)
 > **Related**: CARD-488 (switching during a reply), CARD-485 (busy state for the open chat), CARD-487 (live replay)
@@ -33,8 +35,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

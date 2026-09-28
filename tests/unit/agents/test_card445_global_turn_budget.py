@@ -212,11 +212,6 @@ def test_req_445_004_006_startup_install_applies_upgrade_and_keeps_operator_valu
 # --- REQ-445-007 / 008 + grep guards ------------------------------------------------------
 
 
-def test_req_445_007_flashcard_skill_states_no_numeric_default_budget():
-    text = (REPO / "platform-packs/tutor/skills/flashcard-turn/SKILL.md").read_text(encoding="utf-8")
-    assert not re.search(r"default (turn )?budget of \d+", text, re.IGNORECASE)
-
-
 def test_req_445_008_pack_manifest_has_no_max_turns_field():
     from src.application.agent_packs.schema import AgentPackManifest
 

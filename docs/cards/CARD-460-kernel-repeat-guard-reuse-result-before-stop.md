@@ -14,6 +14,8 @@ labels:
   - area:kernel
   - area:agents
   - P1
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-460] Kernel repeat guard: hand back the earlier result before stopping a loop
@@ -34,8 +36,6 @@ labels:
 | **`continue`** | Refine the card (e.g. the open decisions below) - **still no product code** |
 | **`build`** | Implement the repeat guard changes test-first |
 | **`merge to qa`** | After In Review + the Human Verification Runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 
@@ -133,7 +133,6 @@ Do not write product code until Jacob says **build** on this card.
 
 ## 5. Constraints
 
-- Docs-only until **build**.
 - Do not raise or remove the turn limit here (CARD-445 owns the number).
 - Amend ADR-0043's consequences section at build if behaviour on a hit changes as described.
 - No `main` merge, no GitHub PR, no version bump for docs-only.

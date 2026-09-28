@@ -1,7 +1,7 @@
 ---
 id: CARD-494
 title: "A reply waiting behind another chat's reply just says \"Streaming...\" with nothing happening"
-status: Ready
+status: Parked
 created: 2026-09-25
 branch: qa
 related:
@@ -14,11 +14,13 @@ labels:
   - area:backend
   - area:frontend
   - P3
+needs_decision: none
+milestone: Horizon
 ---
 
 # [CARD-494] A reply waiting behind another chat's reply just says "Streaming..." with nothing happening
 
-> **Status**: Ready
+> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 repro (first driver run) and CARD-488 planning (decision D7)
 > **Related**: CARD-488 (send in B while A runs), CARD-486 (Stop frees the slot), CARD-491 (side calls hold the slot)
@@ -33,8 +35,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

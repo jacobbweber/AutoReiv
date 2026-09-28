@@ -15,6 +15,8 @@ labels:
   - area:jobs
   - area:chat
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-462] Per-reply time limit and separate turn budgets for chat vs standing Jobs
@@ -37,8 +39,6 @@ labels:
 | **`continue`** | Lock the numbers / split the card - **still no product code** |
 | **`build`** | Implement the time limit and job budget test-first |
 | **`merge to qa`** | After In Review + the Human Verification Runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 
@@ -127,7 +127,6 @@ Do not write product code until Jacob says **build** on this card.
 
 ## 5. Constraints
 
-- Docs-only until **build**.
 - Do not kill tools mid-execution; checks happen between steps.
 - No `main` merge, no GitHub PR, no version bump for docs-only.
 

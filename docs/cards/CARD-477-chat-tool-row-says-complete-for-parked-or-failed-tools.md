@@ -14,6 +14,8 @@ labels:
   - area:hitl
   - area:frontend
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-477] Chat tool rows say "Complete" for tools that were parked for approval or failed
@@ -35,8 +37,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

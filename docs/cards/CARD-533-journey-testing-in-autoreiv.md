@@ -15,6 +15,8 @@ labels:
   - area:developer
   - area:projects
   - P2
+needs_decision: "D1-D6: what journey tools may start, sandbox and permissions"
+milestone: M25
 ---
 
 # [CARD-533] Journey testing built into AutoReiv

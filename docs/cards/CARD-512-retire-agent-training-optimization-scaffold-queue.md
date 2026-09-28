@@ -13,6 +13,8 @@ labels:
   - type:cleanup
   - area:agents
   - P3
+needs_decision: none
+milestone: M21
 ---
 
 # [CARD-512] Retire the always-empty "Agent Training Optimization" queue (scaffold spine)

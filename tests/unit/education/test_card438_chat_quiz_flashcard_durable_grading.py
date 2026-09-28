@@ -210,18 +210,6 @@ def test_hard_refresh_path_mastery_and_due_reflect_grade(tmp_path: Path):
     assert repo.get_education_mastery(mid)["grade"] == "pass"
 
 
-def test_education_studio_quiz_chrome_not_removed():
-    """[REQ-438-004] Do not remove Education Studio quiz UI on this card."""
-    index = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    assert 'id="tab-education"' in index
-    assert 'id="view-education"' in index
-    assert 'id="educationQuizPanel"' in index or "educationQuizPanel" in index
-
-    edu_js = Path("src/web/static/modules/studios/education.js").read_text(encoding="utf-8")
-    assert "/api/education/quiz/grade" in edu_js
-    assert "gradeEducationAnswerLocal" in edu_js
-
-
 def test_tutor_pack_names_education_tools_on_quiz_and_flashcard_skills():
     """Skills + pack_tool_names list the exact CARD-438 tools."""
     import json

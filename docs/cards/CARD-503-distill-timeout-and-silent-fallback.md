@@ -11,6 +11,8 @@ labels:
   - type:bug
   - area:skills
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-503] Teach distill gives the model 4.5 s, then silently uses a canned fallback

@@ -12,6 +12,8 @@ labels:
   - area:tools
   - area:security
   - P2
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-519] Agent credentials leak into the process environment during tool calls

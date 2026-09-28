@@ -12,6 +12,8 @@ labels:
   - type:feature
   - area:studios
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-522] Prefill Skill Studio from a capability gap

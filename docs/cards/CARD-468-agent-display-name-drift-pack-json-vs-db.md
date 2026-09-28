@@ -14,6 +14,8 @@ labels:
   - area:agents
   - area:packs
   - P3
+needs_decision: none
+milestone: M22
 ---
 
 # [CARD-468] Agent display name drifts between AppData pack.json and the DB agent record
@@ -33,8 +35,6 @@ labels:
 | **`continue`** | Refine - **still no product code** |
 | **`build`** | Pick the source of truth and make rename write/reconcile both |
 | **`merge to qa`** | After tests pass and live names match |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 
@@ -92,4 +92,4 @@ An agent has one name. If I rename it in Agent Studio (or it is renamed any othe
 
 ## 4. Constraints
 
-- Docs-only until **build**. Never rewrite AppData files during tests (CARD-467 isolation applies).
+- Never rewrite AppData files during tests (CARD-467 isolation applies).

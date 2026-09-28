@@ -13,6 +13,8 @@ labels:
   - area:chat
   - area:frontend
   - P3
+needs_decision: none
+milestone: M24
 ---
 
 # [CARD-490] After Stop in a plan chat there is no clear way to resume the job
@@ -32,8 +34,6 @@ labels:
 | **`continue`** | Refine. **Still no product code** |
 | **`build`** | Fix test-first |
 | **`merge to qa`** | After In Review and the runbook passes on Jarvis |
-
-Do not write product code until Jacob says **build** on this card.
 
 ---
 

@@ -10,6 +10,8 @@ labels:
   - type:feature
   - area:tools
   - P3
+needs_decision: none
+milestone: M25
 ---
 
 # [CARD-545] Native tools declare risk at registration (ADR-0061 D11, full)
