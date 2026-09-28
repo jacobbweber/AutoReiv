@@ -1,19 +1,65 @@
 ---
 id: CARD-454
-title: "qa preflight ruff debt + platform pack CAP-001 mechanical linter failures"
-status: Ready
+title: "qa baseline: ruff errors and Tutor skills over the CAP-001 tool cap"
+type: bug
+status: In Progress
+priority: P1
+milestone: M22
+needs_decision: none
+related: [CARD-456, CARD-451]
+proof:
+  journeys: [card-454-tutor-trimmed-skills]
+  checks:
+    - tests/unit/skills/test_capability_linter.py::test_platform_packs_all_pass_mechanical_linter
+    - tests/unit/skills/test_capability_linter.py::test_skill_tool_cap_matches_the_runtime_per_turn_clamp
+    - preflight.py --fast and --full with no KNOWN
+branch: fix/card-454-456-clean-baseline
+log: {minutes: 0, qa_runs: 0, findings: 0}
 created: 2026-09-24
-branch: qa
-related:
-  - CARD-451
-labels:
-  - type:chore
-  - area:tooling
-  - area:skills
-  - P2
 ---
 
-# [CARD-454] qa preflight ruff debt + platform pack CAP-001 mechanical linter failures
+# CARD-454 qa baseline: ruff errors and Tutor skills over the CAP-001 tool cap
+
+## Problem
+`ruff check .` reported 7 errors on qa, and `test_platform_packs_all_pass_mechanical_linter` failed (4 Tutor skills over
+CAP-001). Preflight carried both as KNOWN/XFAIL, so new failures could hide behind them.
+
+## Cause
+- Unsorted imports in 6 education files and an unused local (`blob`) in the CARD-440 test.
+- CAP-001 allowed 6 tools per skill while the kernel mounts up to 8 per turn (`MAX_ACTIVE_TOOLS_PER_TURN`, ADR-0061 rule 4).
+  `due-review` and `education-wiki-curation` declared 10 tools; `progress-summary` 8, `quiz-turn` 7.
+
+## Change
+- `ruff --fix` plus deleting the unused `fm`/`blob` lines.
+- `linter.MAX_TOOLS_PER_SKILL` 6 -> 8, with a guard test that it equals the kernel per-turn clamp; ADR-0054 amended.
+- Trimmed in `platform-packs/tutor/pack.json` and `SKILL.md` (v1.2.0):
+  - `due-review` 10 -> 7: dropped `wiki_note_search`, `wiki_note_list`, `wiki_template_list` (the runbook's turn is ledger-only; `wiki_note_read` kept for a due item's source note).
+  - `education-wiki-curation` 10 -> 8: dropped `wiki_note_search`, `wiki_note_list` (curation creates, reads and updates notes; templates stay).
+  - Every dropped tool is still ticked on Tutor through sibling skills (socratic-tutoring, start-resume-topic, quiz-turn), so Tutor loses no capability.
+- Removed the `xfail(CARD-454)` marker and the ruff `KNOWN_LINT` entry.
+
+## What dies
+The ruff `KNOWN_LINT` entry, the CARD-454 xfail, the 6-tool CAP-001 limit.
+
+## Proof
+- Journey `card-454-tutor-trimmed-skills`: a Tutor chat's due review calls the due ledger tools; a curriculum curation calls the curation tools; no tool is policy-blocked.
+- Checks: platform packs pass the linter; cap guard (skill cap == per-turn clamp == 8); CAP-001 still rejects 9 tools.
+
+## Plan and decisions
+Cap 8 instead of trimming everything to 6: the kernel mounts 8 tools per turn, so 6 only forced cuts without a runtime reason (Jacob's direction).
+
+## Findings
+
+## Results
+| Journey | Viewport | Result | Notes |
+|---|---|---|---|
+
+## Release note
+Fixed: qa baseline is clean (ruff 0, platform packs pass the linter); CAP-001 skill tool cap is 8, equal to the per-turn clamp; Tutor due-review and wiki-curation trimmed to 7 and 8 tools.
+
+## Legacy notes (pre-CARD-559 format)
+
+### [CARD-454] qa preflight ruff debt + platform pack CAP-001 mechanical linter failures
 
 > **Status**: Ready
 > **Created**: 2026-09-24
