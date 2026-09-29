@@ -80,7 +80,7 @@ export function mountSkillFileStatus({ host, fetchImpl = (...a) => fetch(...a), 
         ids.forEach((sid) => hiddenList.append(button(`Unhide ${sid}`, `skill-unhide-${sid}`, () => post(`/api/skill_studio/skills/${encodeURIComponent(sid)}/unhide`, `${sid} is shown again.`))));
         host.classList.remove('hidden');
       }
-    } catch (_err) {
+    } catch {
       /* the list is optional */
     }
   }

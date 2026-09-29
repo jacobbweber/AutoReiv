@@ -38,12 +38,12 @@ export function mountRuntimeTools({ host, fetchImpl = (...a) => fetch(...a), toa
   }
 
   async function refresh() {
-    let rows = [];
+    let rows;
     try {
       const resp = await fetchImpl('/api/tools/native');
       const data = resp && resp.ok ? await resp.json() : {};
       rows = (data && Array.isArray(data.tools)) ? data.tools : [];
-    } catch (_err) {
+    } catch {
       rows = [];
     }
     host.replaceChildren();
