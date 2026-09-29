@@ -1,0 +1,38 @@
+---
+name: Agent Coordination & Handoff
+description: Multi-agent task delegation, peer lookup, and workflow followups.
+tools:
+- lookup_agents
+- handoff_to_agent
+- propose_followup
+---
+
+# Agent Coordination & Handoff
+
+Use this runbook to coordinate work across specialist agents, delegate sub-tasks, and manage inter-agent workflows.
+
+## Tools
+
+- lookup_agents — inspect available peer agents, roles, and capability descriptions
+- handoff_to_agent — transfer conversational flow and context to a target specialist agent
+- propose_followup — record actionable multi-agent next steps
+
+## Order
+
+1. Check available agent profiles and capabilities with `lookup_agents`.
+2. Transfer conversational context and delegate specialist sub-tasks using `handoff_to_agent`.
+3. Capture any unfinished multi-agent next steps with `propose_followup`.
+
+## When
+
+- Complex user requests that require specialized roles (e.g. architect, engineer, administrator).
+- Coordinating tasks between public lead coordinators and internal background specialists.
+
+## Pitfalls
+
+- Do not handoff to an agent without providing concise context and specific deliverables.
+- Do not delegate user-facing conversational turns to internal background specialists directly.
+
+## Done-when
+
+- Target agent completes the delegated task and returns structured findings to the coordinator.

@@ -15,7 +15,6 @@ from fastapi.testclient import TestClient
 
 from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone, ModelPurpose
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.infrastructure.skills.platform_pack_promotion import list_pack_content_backups
 from src.web.app import create_app
 
 pytestmark = pytest.mark.slow
@@ -92,17 +91,6 @@ def test_adopted_skill_survives_restart_with_keep_customizations_on(boot):
     assert "Always cite the source C502" in prompt
 
 
-def test_keep_customizations_off_warns_and_restart_removes_but_keeps_file(boot):
-    """REQ-502-004 / D4."""
-    client, store, _app = boot()
-    assert client.put("/api/settings/platform-pack-keep-customizations", json={"enabled": False}).status_code == 200
-    res = _adopt(client)
-    assert res.status_code == 200, res.text
-    assert res.json()["resets_on_restart"] is True
-    client2, store2, _a2 = boot()
-    assert "cite-sources" not in _skills(client2, "autoreiv")
-    assert (_data_root() / "packs" / "autoreiv" / "skills" / "cite-sources" / "SKILL.md").is_file()
-    assert list_pack_content_backups(store2, "autoreiv"), "a backup is written before the reset"
 
 
 def test_readopt_updates_one_entry_and_the_runbook(boot):

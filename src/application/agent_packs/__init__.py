@@ -1,6 +1,5 @@
-"""Agent Pack packaging (import / export / scaffold). Not a fourth primitive."""
+"""Agent permission helpers (resolve_allowed_tools). Agents and skills are files [CARD-570]."""
 
-from src.application.agent_packs.schema import AgentPackManifest, is_visible_in_chat
-from src.application.agent_packs.service import AgentPackService
+from src.application.agent_packs.schema import is_visible_in_chat
 
-__all__ = ["AgentPackManifest", "AgentPackService", "is_visible_in_chat"]
+__all__ = ["is_visible_in_chat"]

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from tests.unit.agent_packs.catalog import load_platform_manifest, platform_dir
+from tests.unit.agent_packs.catalog import REPO_PLATFORM, load_platform_manifest, pack_dict
+
+SKILLS_ROOT = REPO_PLATFORM / "skills"
 
 LEARNING_OS_SKILL_IDS = (
     "start-resume-topic",
@@ -33,7 +34,7 @@ def test_tutor_pack_lists_learning_os_skills():
 
 
 def test_tutor_learning_os_skill_md_files_resolve():
-    skills_root = platform_dir() / "tutor" / "skills"
+    skills_root = SKILLS_ROOT
     for sid in ALL_TUTOR_SKILL_IDS:
         skill_md = skills_root / sid / "SKILL.md"
         assert skill_md.is_file(), f"missing {skill_md}"
@@ -45,13 +46,12 @@ def test_tutor_learning_os_skill_md_files_resolve():
 
 
 def test_tutor_pack_json_skills_match_folders():
-    pack_path = platform_dir() / "tutor" / "pack.json"
-    raw = json.loads(pack_path.read_text(encoding="utf-8"))
+    raw = pack_dict("tutor")
     listed = [s["id"] for s in raw["skills"]]
     assert listed == list(ALL_TUTOR_SKILL_IDS)
     assert raw["allowed_skill"] == list(ALL_TUTOR_SKILL_IDS)
     for sid in ALL_TUTOR_SKILL_IDS:
-        assert (platform_dir() / "tutor" / "skills" / sid / "SKILL.md").is_file()
+        assert (SKILLS_ROOT / sid / "SKILL.md").is_file()
 
 
 def test_inventory_catalogues_learning_os_skill_ids():

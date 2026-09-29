@@ -21,6 +21,7 @@ from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.tools.native_packaging import NativeCustomToolService
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import pack_dict
 
 CODE = "def run(port='', **kw):\n    return {'port': port or 'Boston', 'high_tide': '14:05'}\n"
 SCHEMA = {"type": "object", "properties": {"port": {"type": "string"}}}
@@ -28,8 +29,11 @@ QUESTION = "What time is high tide at Boston harbor today?"
 REFUSAL = re.compile(r"outside (of )?my (authorized )?domain|not authorized to|\brefuse|unable to help", re.I)
 
 
+_SAVED: dict = {}
+
+
 class _Agents:
-    """Applies the stored override like BuiltinAgentRegistry.get_agent; a new instance = a fresh read (new chat)."""
+    """Like BuiltinAgentRegistry: a saved agent file wins; a new instance = a fresh read (new chat)."""
 
     def __init__(self, store):
         self.store = store
@@ -37,18 +41,21 @@ class _Agents:
     def get_agent(self, agent_id):
         if agent_id != "autoreiv":
             return None
-        prof = AgentProfile(id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
+        if agent_id in _SAVED:
+            return _SAVED[agent_id].model_copy(deep=True)
+        return AgentProfile(id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
                             allowed_skill=["wiki-knowledge"], is_builtin=True)
-        ov = self.store.get_agent_override(agent_id)
-        if ov and ov.allowed_skill is not None:
-            prof.allowed_skill = list(ov.allowed_skill)
-        return prof
+
+    def save_agent(self, profile, *, create=False):
+        _SAVED[profile.id] = profile.model_copy(deep=True)
+        return profile
 
 
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     db, data = tmp_path / "s.db", tmp_path / "data"
     data.mkdir()
+    _SAVED.clear()
     monkeypatch.setenv("AUTOREIV_DB_PATH", str(db))
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data))
     store = SQLiteStateStore(db_path=str(db))
@@ -108,10 +115,8 @@ async def test_accepting_widens_the_domain_line_and_the_next_turn_in_a_new_chat(
 def test_no_platform_pack_pins_a_fixed_domain_that_would_hide_an_accepted_skill(pack_id):
     """Scavenger Pass (CARD-537): D1 holds for every agent. A hand-written "Focus strictly on ..." boundary
     contradicts an accepted skill tool; the boundary must point at the generated "Your domain" line and route."""
-    import json
-    from pathlib import Path
 
-    prompt = json.loads(Path(f"platform-packs/{pack_id}/pack.json").read_text(encoding="utf-8"))["system_prompt"]
+    prompt = pack_dict(pack_id)["system_prompt"]
     if "[DOMAIN BOUNDARIES & REFUSALS]" not in prompt:
         return
     section = prompt.split("[DOMAIN BOUNDARIES & REFUSALS]", 1)[1].split("\n\n", 1)[0]

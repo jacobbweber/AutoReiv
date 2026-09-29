@@ -5,8 +5,7 @@ from __future__ import annotations
 from src.application.agent_packs.allowed_tools import domain_line, resolve_allowed_tools
 from src.application.safety.tool_policy_gate import ToolPolicyGate, ToolPolicyVerdict
 from src.domain.gateway.models import ToolCall
-from src.infrastructure.skills.platform_packs import ALL_PLATFORM_PACK_IDS
-from tests.unit.agent_packs.catalog import load_platform_manifest, platform_pack_profile
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 PLANNING = {
     "active_project_info", "read_project_file", "search_project", "list_project_dir", "read_steering",
@@ -18,11 +17,6 @@ FORBIDDEN = {
 }
 
 
-def test_architect_is_seeded_shown_and_on_the_default_model():
-    m = load_platform_manifest("architect")
-    assert "architect" in ALL_PLATFORM_PACK_IDS
-    assert m.model == "default" and m.provider == "default" and m.show_in_chat
-    assert list(m.allowed_skill) == ["project-orientation", "brainstorm", "card-writing", "hand-off", "review"]
 
 
 def test_architect_tools_are_the_planning_set():

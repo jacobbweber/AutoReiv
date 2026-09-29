@@ -39,7 +39,7 @@ def test_resolve_agent_memory_path_refuses_checkout_data_dir():
 
 def test_resolve_agent_memory_path_allows_tmp(tmp_path):
     path = resolve_agent_memory_path("assistant", data_dir=tmp_path)
-    assert path == tmp_path / "packs" / "assistant" / "assistant_memory.db"
+    assert path == tmp_path / "agents" / "assistant" / "memory.db"
     assert "Projects" not in str(path).replace("\\", "/") or "AppData" in str(path) or str(tmp_path) in str(path)
 
 

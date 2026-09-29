@@ -70,8 +70,8 @@ def test_req_jpmem_001_memory_path_never_storage(data_dir):
     """Cognitive path is *_memory.db only [REQ-JPMEM-001]."""
     mem = resolve_agent_memory_path("assistant", data_dir=data_dir)
     stor = resolve_agent_storage_path("assistant", data_dir=data_dir)
-    assert mem.name.endswith("_memory.db")
-    assert stor.name.endswith("_storage.db")
+    assert mem.name == "memory.db"  # CARD-570: agents/<id>/memory.db
+    assert stor.name == "storage.db"
     assert mem != stor
     assert_memory_db_path(mem)
     with pytest.raises(ValueError):
@@ -159,8 +159,8 @@ def test_req_jpmem_003_kill_resume_phase_n_plus_1_recalls_fact(orch, store, data
 def test_req_jpmem_004_bridge_uses_card116_repo_not_storage(data_dir):
     """Bridge writes through AgentMemoryRepository path only [REQ-JPMEM-004]."""
     bridge = JobPhaseMemoryBridge(agent_id="assistant", data_dir=data_dir)
-    assert str(bridge.db_path).endswith("_memory.db")
-    assert "_storage.db" not in str(bridge.db_path)
+    assert str(bridge.db_path).endswith("memory.db")
+    assert "storage.db" not in str(bridge.db_path)
     refs = bridge.persist_phase_facts(
         job_id="job_demo",
         phase_index=0,

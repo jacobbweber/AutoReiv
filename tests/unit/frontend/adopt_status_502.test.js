@@ -72,11 +72,11 @@ describe('CARD-502 Adopt message', () => {
     expect(card.querySelector('.card-actions').innerHTML).toContain('Cite Sources is on for autoreiv from your next message.');
   });
 
-  it('REQ-502-004: keep-customizations off adds the restart warning', async () => {
+  it('CARD-570: adopted skills are files that survive restart, so there is no restart warning', async () => {
     const { toast } = await adoptWith({ ...OK, resets_on_restart: true });
     const [msg, type] = toast.mock.calls[0];
-    expect(msg).toBe('Cite Sources is on for autoreiv from your next message. Keep my agent customizations is off, so it will be removed on the next restart.');
-    expect(type).toBe('warning');
+    expect(msg).toBe('Cite Sources is on for autoreiv from your next message.');
+    expect(type).not.toBe('warning');
   });
 
   it('REQ-502-006: re-adopt says Updated', async () => {

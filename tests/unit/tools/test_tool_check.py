@@ -217,8 +217,8 @@ def test_12_tool_check_has_no_factory_imports_and_owns_path_safety():
 
 
 def test_14_developer_guidance_mentions_the_check():
-    native_skill = (ROOT / "platform-packs/developer/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
-    mcp_skill = (ROOT / "platform-packs/developer/skills/mcp-engineering/SKILL.md").read_text(encoding="utf-8")
+    native_skill = (ROOT / "platform/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
+    mcp_skill = (ROOT / "platform/skills/mcp-engineering/SKILL.md").read_text(encoding="utf-8")
     for text in (native_skill, mcp_skill):
         assert "sample_arguments" in text
         assert "sample_call" in text

@@ -6,15 +6,15 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.skills.linter import MAX_TOOLS_PER_SKILL
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import pack_dict
 
-PACK = json.loads(Path("platform-packs/developer/pack.json").read_text(encoding="utf-8"))
+PACK = pack_dict("developer")
 BACKUP = Path("migrations") / "card-562-developer-skills.json"
 REPO_TOOLS = {"repo_file_read", "repo_file_list", "repo_file_write", "repo_file_patch"}
 SDLC_TOOLS = {
@@ -39,6 +39,10 @@ class _Agents:
     def register_custom_agent(self, profile):
         self.profiles[profile.id] = profile
 
+    def save_agent(self, profile, *, create=False):
+        self.profiles[profile.id] = profile
+        return profile
+
 
 def _store(tmp_path):
     store = SQLiteStateStore(db_path=str(tmp_path / "m.db"))
@@ -54,10 +58,9 @@ def test_shipped_pack_ticks_the_sdlc_skills_with_runbooks_and_small_tool_sets():
     entries = {s["id"]: s for s in PACK["skills"]}
     for sid in PACK["allowed_skill"]:
         assert sid in PACK["allowed_skill"], sid
-        assert Path(f"platform-packs/developer/skills/{sid}/SKILL.md").is_file(), sid
+        assert Path(f"platform/skills/{sid}/SKILL.md").is_file(), sid
         assert 1 <= len(entries[sid]["tools"]) <= MAX_TOOLS_PER_SKILL, sid
     assert "coding" not in PACK["allowed_skill"] and "sdlc-engineering" not in PACK["allowed_skill"]
-    assert not Path("platform-packs/developer/skills/coding").exists()
     assert "pack_tool_names" not in PACK  # CARD-541: tools come from ticked skills only
 
 
@@ -65,10 +68,10 @@ def test_runbook_frontmatter_matches_the_pack_tool_lists():
     import yaml
 
     for sid in PACK["allowed_skill"]:
-        text = Path(f"platform-packs/developer/skills/{sid}/SKILL.md").read_text(encoding="utf-8")
+        text = Path(f"platform/skills/{sid}/SKILL.md").read_text(encoding="utf-8")
         meta = yaml.safe_load(text.split("---", 2)[1])
         entry = next(s for s in PACK["skills"] if s["id"] == sid)
-        assert meta["requires_tools"] == entry["tools"], sid
+        assert meta["tools"] == entry["tools"], sid
 
 
 def test_developer_gets_project_tools_and_not_the_checkout_tools():

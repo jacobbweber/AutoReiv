@@ -2,37 +2,10 @@
 Unit tests for CARD-148: Agent Pack storage manifest, pack export/import, and SQLite persistence.
 """
 
-import json
 
-from src.application.agent_packs.schema import AgentPackManifest, PackStorageConfig
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-
-
-def test_agent_pack_manifest_storage_serialization():
-    manifest = AgentPackManifest(
-        id="finance-specialist",
-        name="Finance Specialist",
-        description="Tracks transactions",
-        system_prompt="Manage personal finances.",
-        storage=PackStorageConfig(enabled=True, type="sqlite"),
-    )
-    assert manifest.storage is not None
-    assert manifest.storage.enabled is True
-    assert manifest.storage.type == "sqlite"
-    assert manifest.storage_enabled is True
-    assert manifest.storage_type == "sqlite"
-
-    dumped = manifest.model_dump()
-    assert dumped["storage"]["enabled"] is True
-    assert dumped["storage"]["type"] == "sqlite"
-
-    # Test roundtrip from raw JSON
-    raw_json = json.dumps(dumped)
-    reloaded = AgentPackManifest.model_validate_json(raw_json)
-    assert reloaded.storage.enabled is True
-    assert reloaded.storage_enabled is True
 
 
 def test_sqlite_store_persists_custom_agent_storage(tmp_path):
@@ -101,7 +74,5 @@ def test_agent_api_eagerly_creates_storage_db(tmp_path, monkeypatch):
     res = client.post("/api/agents", json=payload)
     assert res.status_code == 200
     agent_id = res.json()["agent"]["id"]
-    snake_id = agent_id.replace("-", "_")
-
-    db_file = tmp_path / "data" / "packs" / agent_id / f"{snake_id}_storage.db"
+    db_file = tmp_path / "data" / "agents" / agent_id / "storage.db"  # CARD-570 layout
     assert db_file.is_file()

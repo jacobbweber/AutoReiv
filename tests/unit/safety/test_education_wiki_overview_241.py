@@ -17,7 +17,7 @@ from src.application.safety.tool_policy_gate import (
 )
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.infrastructure.skills.seed import bundled_skill_md
+from tests.unit.agent_packs.catalog import bundled_skill_md
 
 pytestmark = pytest.mark.guard
 

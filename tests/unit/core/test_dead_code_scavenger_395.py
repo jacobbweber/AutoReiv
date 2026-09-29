@@ -13,7 +13,6 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-from src.application.agent_packs.service import AgentPackService
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
@@ -62,10 +61,6 @@ def test_workflow_domain_file_excised():
         importlib.import_module("src.domain.orchestration.workflow")
 
 
-def test_agent_pack_service_no_workflow_helpers():
-    """Verify that AgentPackService does not expose legacy workflow copy methods."""
-    assert not hasattr(AgentPackService, "_copy_workflows_out"), "AgentPackService still exposes _copy_workflows_out"
-    assert not hasattr(AgentPackService, "_copy_workflows_in"), "AgentPackService still exposes _copy_workflows_in"
 
 
 def test_app_unmounts_workflow_endpoints_and_goal_endpoint():

@@ -134,11 +134,25 @@ class UserSkillCatalog:
         self._manifests: List[UserSkillManifest] = []
 
     def list_manifests(self) -> List[UserSkillManifest]:
-        """Return name + description + path. Does not parse SKILL.md bodies."""
-        if self.skills_dir is None or not self.skills_dir.is_dir():
-            self._manifests = []
-            return []
-        self._manifests = DynamicSkillLoader.list_skill_manifests(str(self.skills_dir))
+        """Return name + description + path. Does not parse SKILL.md bodies.
+
+        Data-dir skills win; shipped ``platform/skills`` fill in the rest (minus hidden ones) [CARD-570].
+        """
+        found: List[UserSkillManifest] = []
+        if self.skills_dir is not None and self.skills_dir.is_dir():
+            found = DynamicSkillLoader.list_skill_manifests(str(self.skills_dir))
+        seen = {m.id for m in found}
+        try:
+            from src.infrastructure.content.store import REPO_PLATFORM, get_store
+
+            hidden = get_store().skills.hidden()
+            for manifest in DynamicSkillLoader.list_skill_manifests(str(REPO_PLATFORM / "skills")):
+                if manifest.id not in seen and manifest.id not in hidden:
+                    found.append(manifest)
+                    seen.add(manifest.id)
+        except Exception:
+            pass
+        self._manifests = found
         return list(self._manifests)
 
     def mount_at_bootstrap(self) -> List[UserSkillManifest]:
@@ -376,34 +390,12 @@ class UserSkillCatalog:
         return resolved
 
     def resolve_pack_scoped_skill_md(self, pack_id: str) -> Optional[Path]:
-        """Look up SKILL.md inside an agent pack, fleet suite, platform packs, or bundled seeds [CARD-186, CARD-200]."""
+        """Winning SKILL.md for an id: data ``skills/`` copy, else repo ``platform/skills`` [CARD-570]."""
+        from src.infrastructure.content.store import get_store
+
         clean_id = pack_id.strip().replace("\\", "/").split("/")[-1]
-
-        # 1. Look up in $DATA_DIR/packs
-        if self.skills_dir is not None:
-            packs_dir = self.skills_dir.parent / "packs"
-            if packs_dir.is_dir():
-                for candidate in packs_dir.glob(f"*/skills/{clean_id}/SKILL.md"):
-                    if candidate.is_file():
-                        return candidate
-                for candidate in packs_dir.glob(f"{clean_id}/skills/*/SKILL.md"):
-                    if candidate.is_file():
-                        return candidate
-
-        # 2. Look up in repo platform-packs/
-        repo_root = Path(__file__).resolve().parents[3]
-        repo_platform_packs = repo_root / "platform-packs"
-        if repo_platform_packs.is_dir():
-            for candidate in repo_platform_packs.glob(f"*/skills/{clean_id}/SKILL.md"):
-                if candidate.is_file():
-                    return candidate
-
-        # 3. Look up in bundled seeds (src/infrastructure/skills/seeds/<clean_id>/SKILL.md)
-        repo_seed = repo_root / "src" / "infrastructure" / "skills" / "seeds" / clean_id / "SKILL.md"
-        if repo_seed.is_file():
-            return repo_seed
-
-        return None
+        loaded = get_store().skills.load(clean_id)
+        return loaded.path if loaded else None
 
     def resolve_chat_skill_md(self, pack_id: str, agent_id: Optional[str] = None) -> Optional[Path]:
         """Live SKILL.md for chat: operator store, this agent's pack, then any pack or seed.

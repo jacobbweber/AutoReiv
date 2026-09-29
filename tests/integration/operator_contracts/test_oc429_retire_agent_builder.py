@@ -16,11 +16,6 @@ from pathlib import Path
 import pytest
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.domain.kernel.models import AgentProfile
-from src.domain.routines.manifests import SKILL_EVAL_SLEEP_ROUTINE
-from src.domain.settings.models import AgentCustomization
-from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.infrastructure.skills.platform_packs import install_platform_agent_packs
 
 
 def _refuse_live(user_data: Path) -> None:
@@ -103,102 +98,5 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
     assert coding_names & code_tools
 
 
-def test_oc429_boot_purges_leftover_agent_builder_row(tmp_path, monkeypatch):
-    """Old profile rows are deleted. Session and job id rewrite is CARD-432."""
-    from src.web.app import create_app
-
-    user_data = (tmp_path / "user-data").resolve()
-    wiki = user_data / "wiki"
-    db = user_data / "autoreiv.db"
-    user_data.mkdir(parents=True, exist_ok=True)
-    wiki.mkdir(parents=True, exist_ok=True)
-    _refuse_live(user_data)
-    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(user_data))
-    monkeypatch.setenv("AUTOREIV_DB_PATH", str(db))
-    monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(wiki))
-    monkeypatch.setenv("AUTOREIV_DEPLOY_MODE", "local")
-
-    store = SQLiteStateStore(db_path=str(db))
-    store.initialize_db()
-    store.save_agent_profile(
-        AgentProfile(
-            id="agent-builder",
-            name="Agent Builder",
-            description="Leftover hidden builtin row.",
-            system_prompt="You are a retired hidden builtin that must not boot.",
-            is_builtin=True,
-            show_in_chat=False,
-        )
-    )
-    stale = SKILL_EVAL_SLEEP_ROUTINE.model_copy(update={"agent_id": "agent-builder", "enabled": False})
-    store.save_routine(stale)
-    assert store.get_agent_profile("agent-builder") is not None
-
-    app = create_app(state_store=store, wiki_path=str(wiki))
-    assert app.state.registry.get_agent("agent-builder") is None
-    assert store.get_agent_profile("agent-builder") is None
-    routine = store.get_routine("skill-eval-sleep")
-    assert routine is not None
-    assert routine.agent_id == "developer"
-    assert routine.enabled is False
-
-    # A row inserted after boot is still not a live agent, and the next purge removes it.
-    store.save_agent_profile(
-        AgentProfile(
-            id="agent-builder",
-            name="Agent Builder",
-            description="Inserted after boot.",
-            system_prompt="You are a retired hidden builtin that must not boot.",
-            is_builtin=True,
-        )
-    )
-    assert app.state.registry.get_agent("agent-builder") is None
-    store.retire_agent_builder_rows()
-    assert store.get_agent_profile("agent-builder") is None
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
-def test_oc429_user_modified_developer_gains_authoring_without_prompt_rewrite(operator_client):
-    client, store, wiki = operator_client
-    registry = client.app.state.registry
-    tools = client.app.state.tool_registry
-    developer = registry.get_agent("developer")
-    assert developer is not None
-    prompt = f"OPERATOR PROMPT CARD-429\n{developer.system_prompt}"
-    skills = [
-        sid
-        for sid in (developer.allowed_skill or [])
-        if sid not in {"capability-authoring", "proposals"}
-    ]
-    drop = {
-        "propose_skill",
-        "propose_tool",
-        "commit_skill_pack",
-        "list_available_skills_and_tools",
-    }
-    allowed = [name for name in list(resolve_allowed_tools(developer)) if name not in drop]
-    pack_tools = [name for name in list(resolve_allowed_tools(developer)) if name not in drop]
-    developer.system_prompt = prompt
-    developer.allowed_skill = list(skills)
-    developer.allowed_tool_names = list(allowed)
-    developer.pack_tool_names = list(pack_tools)
-    developer.user_modified = True
-    store.save_custom_agent_profile(developer)
-    store.mark_agent_user_modified("developer", modified=True)
-    store.save_agent_override(
-        AgentCustomization(
-            agent_id="developer",
-            system_prompt=prompt,
-            allowed_skill=list(skills),
-            user_modified=True,
-        )
-    )
-
-    install_platform_agent_packs(wiki.parent, registry, tools)
-    after = registry.get_agent("developer")
-    assert after is not None
-    assert after.system_prompt == prompt
-    assert "capability-authoring" in (after.allowed_skill or [])
-    assert "propose_skill" in list(resolve_allowed_tools(after))
-    assert "save_agent_specification" not in list(resolve_allowed_tools(after))
-    assert "cli_exec" in list(resolve_allowed_tools(after)) or "execute_code" in list(resolve_allowed_tools(after))

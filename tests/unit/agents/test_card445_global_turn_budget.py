@@ -12,10 +12,6 @@ from pydantic import ValidationError
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentProfile
 from src.domain.settings.models import AgentCustomization
-from src.infrastructure.agents.max_turns_upgrade import (
-    AGENT_MAX_TURNS_DEFAULT_50_SETTING,
-    apply_default_max_turns_upgrade,
-)
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 REPO = Path(__file__).resolve().parents[3]
@@ -122,91 +118,19 @@ def _seed_live_like(store: SQLiteStateStore) -> None:
     store.save_agent_override(_override("ov-only", 10))
 
 
-def test_req_445_004_upgrade_raises_exactly_10_and_records_key(tmp_path: Path):
-    store = _store(tmp_path)
-    _seed_live_like(store)
-
-    record = apply_default_max_turns_upgrade(store)
-
-    assert record is not None
-    assert record["raised"] == ["autoreiv", "direct", "ov-only"]
-    assert record["from"] == 10 and record["to"] == 50
-    assert record["applied_at"]
-    assert store.get_setting(AGENT_MAX_TURNS_DEFAULT_50_SETTING) == record
-    assert _stored(store, "custom_agents", "id", "autoreiv") == 50
-    assert _stored(store, "custom_agents", "id", "direct") == 50
-    assert _stored(store, "custom_agents", "id", "developer") == 25
-    assert _stored(store, "custom_agents", "id", "tutor") == 100
-    assert _stored(store, "agent_overrides", "agent_id", "developer") == 25
-    assert _stored(store, "agent_overrides", "agent_id", "tutor") == 100
-    assert _stored(store, "agent_overrides", "agent_id", "ov-only") == 50
 
 
-def test_req_445_004_upgrade_does_not_lock_packs(tmp_path: Path):
-    """CARD-449: max_turns is a setting, not a lock - the upgrade must not set user_modified."""
-    store = _store(tmp_path)
-    _seed_live_like(store)
-    apply_default_max_turns_upgrade(store)
-    assert store.get_agent_profile("autoreiv").user_modified is False
-    assert store.get_agent_profile("direct").user_modified is False
 
 
-def test_req_445_005_upgrade_runs_once_even_if_10_is_saved_later(tmp_path: Path):
-    store = _store(tmp_path)
-    _seed_live_like(store)
-    first = apply_default_max_turns_upgrade(store)
-    store.save_custom_agent_profile(_profile("autoreiv", 10))  # operator picks 10 on purpose
-
-    assert apply_default_max_turns_upgrade(store) is None
-    assert apply_default_max_turns_upgrade(store) is None  # double bootstrap (CARD-459)
-    assert _stored(store, "custom_agents", "id", "autoreiv") == 10
-    assert store.get_setting(AGENT_MAX_TURNS_DEFAULT_50_SETTING) == first
 
 
-def test_req_445_004_upgrade_skips_stores_without_support():
-    class _Bare:
-        def get_setting(self, key, default=None):
-            return default
-
-    assert apply_default_max_turns_upgrade(_Bare()) is None
-    assert apply_default_max_turns_upgrade(None) is None
 
 
-def test_req_445_004_006_startup_install_applies_upgrade_and_keeps_operator_values(tmp_path: Path, monkeypatch):
-    """Boot path: install_platform_agent_packs runs the upgrade after promotion; 25/100 survive sync."""
-    from src.infrastructure.agents.registry import BuiltinAgentRegistry
-    from src.infrastructure.data import resolver as resolver_mod
-    from src.infrastructure.skills.platform_packs import install_platform_agent_packs
-
-    monkeypatch.setattr(resolver_mod, "repo_root", lambda: REPO)
-    store = _store(tmp_path)
-    _seed_live_like(store)
-    registry = BuiltinAgentRegistry(profiles=[], state_store=store)
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-
-    install_platform_agent_packs(data_dir, registry, None, checkout_root=REPO)
-
-    assert registry.get_agent("autoreiv").max_turns == 50
-    assert registry.get_agent("direct").max_turns == 50
-    assert registry.get_agent("developer").max_turns == 25
-    assert registry.get_agent("tutor").max_turns == 100
-    assert store.get_setting(AGENT_MAX_TURNS_DEFAULT_50_SETTING)["raised"][:2] == ["autoreiv", "direct"]
-
-    # Second boot: nothing changes
-    install_platform_agent_packs(data_dir, registry, None, checkout_root=REPO)
-    assert registry.get_agent("tutor").max_turns == 100
-    assert registry.get_agent("developer").max_turns == 25
-    assert registry.get_agent("autoreiv").max_turns == 50
 
 
 # --- REQ-445-007 / 008 + grep guards ------------------------------------------------------
 
 
-def test_req_445_008_pack_manifest_has_no_max_turns_field():
-    from src.application.agent_packs.schema import AgentPackManifest
-
-    assert "max_turns" not in AgentPackManifest.model_fields
 
 
 LEGACY_TEN_PATTERNS = {

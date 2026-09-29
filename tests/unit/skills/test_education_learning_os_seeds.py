@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.infrastructure.skills.seed import (
+from tests.unit.agent_packs.catalog import (
     BUNDLED_PACK_IDS,
     bundled_skill_md,
     seed_bundled_skill_packs,

@@ -52,7 +52,6 @@ async def get_tools_studio_capabilities(request: Request) -> Dict[str, Any]:
     tools = tool_registry.list_tools() if tool_registry else []
 
     from src.application.tools.native_packaging import catalog_origin_label, load_native_tool_names
-    from src.infrastructure.agents.legacy_pack_tools import LEGACY_PACK_TOOL_ORIGIN
 
     store = getattr(request.app.state, "store", None)
     native_names = load_native_tool_names(store)
@@ -63,10 +62,6 @@ async def get_tools_studio_capabilities(request: Request) -> Dict[str, Any]:
         t_desc = tool.description or ""
         t_params = tool.parameters or {}
         server_name = ""
-        tool_origin = ""
-        if tool_registry is not None and hasattr(tool_registry, "get_tool_origin"):
-            tool_origin = tool_registry.get_tool_origin(t_name)
-
         if t_name in native_names:
             ns_id = "native_custom"
             ns_name = "Native custom"
@@ -78,10 +73,6 @@ async def get_tools_studio_capabilities(request: Request) -> Dict[str, Any]:
             ns_id = f"mcp:{server_key}"
             ns_name = f"MCP: {server_key.title()}"
             ns_source = "mcp"
-        elif tool_origin == LEGACY_PACK_TOOL_ORIGIN:
-            ns_id = "legacy_pack_tool"
-            ns_name = "Legacy pack tool"
-            ns_source = "legacy_pack_tool"
         else:
             # Shipped callables are one Platform group. Do not split Dynamic or Built-in Primitives [CARD-429].
             ns_id = "platform"
@@ -283,7 +274,6 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     if clean_agent_id:
         _pin_saved_skill_on_agent(
             request,
-            agent_dir=data_root / "packs" / clean_agent_id,
             clean_agent_id=clean_agent_id,
             clean_skill_id=clean_skill_id,
             display_name=display_name,
@@ -300,7 +290,7 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
         "requires_tools": persisted["requires_tools"],
         "tier": persisted["tier"],
         "safety": persisted["safety"],
-        "binding_store": "sqlite",
+        "binding_store": "skill_md",
         "markdown_content": persisted["markdown"],
     }
 
@@ -308,78 +298,26 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
 def _pin_saved_skill_on_agent(
     request: Request,
     *,
-    agent_dir: Path,
     clean_agent_id: str,
     clean_skill_id: str,
     display_name: str,
     req: SaveScaffoldRequest,
 ) -> None:
-    """Pin a saved skill on one agent pack. Does not write tool bindings into pack.json."""
-    agent_dir.mkdir(parents=True, exist_ok=True)
-    pack_json_file = agent_dir / "pack.json"
-    if pack_json_file.is_file():
-        try:
-            pack_data = json.loads(pack_json_file.read_text(encoding="utf-8"))
-        except Exception:
-            pack_data = {}
-    else:
-        pack_data = {}
-
-    if not isinstance(pack_data, dict):
-        pack_data = {}
-
-    pack_data.setdefault("schema_version", "1.0")
-    pack_data.setdefault("id", clean_agent_id)
-    if req.agent_name:
-        pack_data["name"] = req.agent_name
-    elif "name" not in pack_data:
-        pack_data["name"] = clean_agent_id.replace("-", " ").replace("_", " ").title()
-
-    if req.role_persona:
-        pack_data["system_prompt"] = req.role_persona
-        pack_data["description"] = req.role_persona[:120]
-    elif "description" not in pack_data:
-        pack_data["description"] = f"Specialist agent {clean_agent_id}"
-
-    if req.model:
-        pack_data["model"] = req.model
-
-    allowed_skills = list(pack_data.get("allowed_skill") or [])
-    if req.auto_pin and clean_skill_id not in allowed_skills:
-        allowed_skills.append(clean_skill_id)
-    pack_data["allowed_skill"] = allowed_skills
-
-    skills_list = list(pack_data.get("skills") or [])
-    existing_skill_entry = next((s for s in skills_list if isinstance(s, dict) and s.get("id") == clean_skill_id), None)
-    # Identity only. Tool bindings are operational SQLite, not pack.json [CARD-411].
-    if existing_skill_entry:
-        existing_skill_entry.pop("tools", None)
-        existing_skill_entry["name"] = display_name
-    else:
-        skills_list.append({
-            "id": clean_skill_id,
-            "name": display_name,
-        })
-    pack_data["skills"] = skills_list
-
-    pack_json_file.write_text(json.dumps(pack_data, indent=2), encoding="utf-8")
-
+    """Tick a saved skill on an existing agent and save its agent file [CARD-570]."""
     registry = getattr(request.app.state, "registry", None)
-    if registry:
-        prof = registry.get_agent(clean_agent_id)
-        if prof:
-            cur_skills = list(prof.allowed_skill or [])
-            if req.auto_pin and clean_skill_id not in cur_skills:
-                prof.allowed_skill = cur_skills + [clean_skill_id]
-            if req.agent_name:
-                prof.name = req.agent_name
-            if req.role_persona:
-                prof.system_prompt = req.role_persona
-            if req.model:
-                prof.model = req.model
-            if registry.state_store:
-                # auto_pin does not set the pack content lock [CARD-449].
-                registry.state_store.save_agent_profile(prof)
+    prof = registry.get_agent(clean_agent_id) if registry else None
+    if prof is None:
+        return
+    cur_skills = list(prof.allowed_skill or [])
+    if req.auto_pin and clean_skill_id not in cur_skills:
+        prof.allowed_skill = cur_skills + [clean_skill_id]
+    if req.agent_name:
+        prof.name = req.agent_name
+    if req.role_persona:
+        prof.system_prompt = req.role_persona
+    if req.model:
+        prof.model = req.model
+    registry.save_agent(prof)
 
 
 @router.get("/api/skill_studio/skills")

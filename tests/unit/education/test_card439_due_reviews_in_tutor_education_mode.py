@@ -13,6 +13,7 @@ from pathlib import Path
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+from tests.unit.agent_packs.catalog import pack_dict
 
 DUE_REVIEW_TOOL_NAMES = (
     "education_mastery_due",
@@ -193,9 +194,8 @@ def test_retention_run_without_orch_does_not_fake_mint(tmp_path: Path):
 
 def test_tutor_pack_due_review_skill_names_tools():
     """due-review skill + pack_tool_names list CARD-439 tools."""
-    import json
 
-    pack = json.loads(Path("platform-packs/tutor/pack.json").read_text(encoding="utf-8"))
+    pack = pack_dict("tutor")
     by_id = {s["id"]: s for s in pack["skills"]}
     due_tools = set(by_id["due-review"]["tools"])
     pack_tools = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
@@ -211,7 +211,7 @@ def test_tutor_pack_due_review_skill_names_tools():
         assert name in due_tools, name
         assert name in pack_tools, name
 
-    skill_md = Path("platform-packs/tutor/skills/due-review/SKILL.md").read_text(encoding="utf-8")
+    skill_md = Path("platform/skills/due-review/SKILL.md").read_text(encoding="utf-8")
     assert "education_due_review_list" in skill_md
     assert "education_due_review_complete" in skill_md
     assert "CARD-439" in skill_md

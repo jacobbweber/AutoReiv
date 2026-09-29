@@ -13,11 +13,11 @@ Enforces:
 import pytest
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.agent_packs.schema import PLATFORM_SKILL_TOOLS
 from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import SHIPPED_SKILL_TOOLS as PLATFORM_SKILL_TOOLS
 
 PRUNED_WEEKLY_TOOLS = [
     "get_or_create_weekly_note",

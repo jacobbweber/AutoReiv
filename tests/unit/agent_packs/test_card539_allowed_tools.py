@@ -1,30 +1,36 @@
 """CARD-539 / ADR-0061: resolve_allowed_tools is the only decider of an agent's tools.
 
-REQ-539-001: allowed = REQUIRED_PLATFORM_TOOLS + tools bound to ticked skills (D1: SQLite rows win).
+REQ-539-001: allowed = REQUIRED_PLATFORM_TOOLS + tools named by ticked skills (CARD-570: the SKILL.md ``tools:`` list).
 """
 
 from __future__ import annotations
-
-import json
 
 import pytest
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools, skill_tools
 from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
 from src.domain.kernel.models import AgentProfile
-from src.infrastructure.memory.repositories.skill_bindings import SkillToolBindingRepository
+from src.infrastructure.content.store import configure
+from tests.unit.agent_packs.catalog import pack_dict
 
 pytestmark = pytest.mark.guard
 
 
 @pytest.fixture
 def env(tmp_path, monkeypatch):
-    db = tmp_path / "ops.db"
     data = tmp_path / "data"
-    (data / "packs").mkdir(parents=True)
-    monkeypatch.setenv("AUTOREIV_DB_PATH", str(db))
+    data.mkdir()
+    monkeypatch.setenv("AUTOREIV_DB_PATH", str(tmp_path / "ops.db"))
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data))
-    return SkillToolBindingRepository(db_path=str(db)), data
+    store = configure(data)
+    return store, data
+
+
+def _user_skill(data, skill_id, tools):
+    d = data / "skills" / skill_id
+    d.mkdir(parents=True)
+    tl = "".join(f"  - {t}\n" for t in tools)
+    (d / "SKILL.md").write_text(f"---\nname: {skill_id}\ndescription: d\ntools:\n{tl}---\nbody\n", encoding="utf-8")
 
 
 def _agent(agent_id="a539", **kw):
@@ -62,34 +68,30 @@ def test_storage_comes_from_the_sqlite_storage_tick(env):
     assert "query_agent_database" in resolve_allowed_tools(_agent(allowed_skill=["sqlite-storage"]))
 
 
-def test_sqlite_binding_row_wins_over_seed_d1(env):
-    repo, _ = env
-    repo.replace("wiki-knowledge", ["wiki_note_read", "get_weather"])
+def test_user_copy_tools_win_over_shipped_d1(env):
+    store, _ = env
+    store.set_skill_tools("wiki-knowledge", ["wiki_note_read", "get_weather"])
     names = resolve_allowed_tools(_agent(allowed_skill=["wiki-knowledge"])).names
     assert {"wiki_note_read", "get_weather"} <= names
     assert "wiki_note_search" not in names
     assert skill_tools(["wiki-knowledge"])["wiki-knowledge"] == ["wiki_note_read", "get_weather"]
 
 
-def test_pack_json_skill_tools_seed_when_no_row(env):
+def test_user_skill_file_tools_grant(env):
     _, data = env
-    pack = data / "packs" / "a539"
-    pack.mkdir()
-    (pack / "pack.json").write_text(
-        json.dumps({"id": "a539", "skills": [{"id": "weather-desk", "tools": ["get_weather"]}]}), encoding="utf-8"
-    )
+    _user_skill(data, "weather-desk", ["get_weather"])
     assert "get_weather" in resolve_allowed_tools(_agent(allowed_skill=["weather-desk"]))
-    assert "get_weather" not in resolve_allowed_tools(_agent(agent_id="other", allowed_skill=["weather-desk"]))
+    assert "get_weather" not in resolve_allowed_tools(_agent(allowed_skill=[]))
 
 
-def test_repo_platform_pack_seed_covers_pack_only_skills(env):
+def test_shipped_skill_tools_come_from_platform_skills(env):
     names = resolve_allowed_tools(_agent(agent_id="autoreiv", allowed_skill=["agent-authoring"])).names
     assert "inspect_agent" in names
 
 
 def test_mcp_wildcard_binding_matches_registered_names(env):
-    repo, _ = env
-    repo.replace("mcp-srv", ["mcp_srv_*"])
+    _, data = env
+    _user_skill(data, "mcp-srv", ["mcp_srv_*"])
     allowed = resolve_allowed_tools(_agent(allowed_skill=["mcp-srv"]))
     assert "mcp_srv_lookup" in allowed
     assert "mcp_other_lookup" not in allowed
@@ -120,10 +122,8 @@ def test_skill_view_available_when_any_skill_is_ticked(env):
 def test_autoreiv_pack_prompt_stores_no_static_domain_list():
     """D5: the domain comes from ticked skills at runtime; the pack prompt must not pin a fixed list
     (live QA: AutoReiv quoted the fixed list and ignored an accepted get-weather skill)."""
-    import json
-    from pathlib import Path
 
-    prompt = json.loads(Path("platform-packs/autoreiv/pack.json").read_text(encoding="utf-8"))["system_prompt"]
+    prompt = pack_dict("autoreiv")["system_prompt"]
     section = prompt.split("[DOMAIN BOUNDARIES & REFUSALS]", 1)[1].split("\n\n", 1)[0]
     assert "Focus on" not in section
     assert "Your domain" in section

@@ -14,43 +14,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.agent_packs.schema import (
-    OPTIONAL_PLATFORM_SKILLS,
-    PLATFORM_SKILL_METADATA,
-    PLATFORM_SKILL_TOOLS,
-    REQUIRED_PLATFORM_TOOLS,
-)
+from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
 from src.domain.agents.guardrails import AgentProfileGuardrail
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.infrastructure.skills.seed import BUNDLED_PACK_IDS
 from src.web.app import app
 
 pytestmark = pytest.mark.guard
 
 
-def test_req_389_001_sqlite_storage_seed_and_registration():
-    """[REQ-389-001] sqlite-storage seed exists with declared tools and is registered as a platform skill."""
-    seed_file = Path("src/infrastructure/skills/seeds/sqlite-storage/SKILL.md")
-    assert seed_file.is_file(), "sqlite-storage SKILL.md must exist in seeds directory"
-    content = seed_file.read_text(encoding="utf-8")
-    assert "name: SQLite Specialty Storage" in content
-    assert "query_agent_database" in content
-    assert "execute_agent_database" in content
-
-    # Seed list registration
-    assert "sqlite-storage" in BUNDLED_PACK_IDS
-
-    # Schema registration
-    assert "sqlite-storage" in OPTIONAL_PLATFORM_SKILLS
-    assert "sqlite-storage" in PLATFORM_SKILL_TOOLS
-    assert PLATFORM_SKILL_TOOLS["sqlite-storage"] == (
-        "query_agent_database",
-        "execute_agent_database",
-    )
-    assert "sqlite-storage" in PLATFORM_SKILL_METADATA
 
 
 def test_req_389_002_agent_name_customization_and_immutable_slug(tmp_path: Path):
@@ -68,13 +42,7 @@ def test_req_389_002_agent_name_customization_and_immutable_slug(tmp_path: Path)
     )
     assert customization.name == "Lead AI Architect"
 
-    # 2. Store persists name override
-    store.save_agent_override(customization)
-    override = store.get_agent_override("developer")
-    assert override is not None
-    assert override.name == "Lead AI Architect"
-
-    # 3. Registry overlays custom name while preserving immutable agent id
+    # 2-3. CARD-570: the customization is saved as the agent's user copy; the slug stays immutable
     base_profile = AgentProfile(
         id="developer",
         name="Developer",
@@ -82,6 +50,7 @@ def test_req_389_002_agent_name_customization_and_immutable_slug(tmp_path: Path)
         system_prompt="Write production code.",
     )
     registry = BuiltinAgentRegistry(profiles=[base_profile], state_store=store)
+    registry.apply_customization(customization)
     agent = registry.get_agent("developer")
     assert agent is not None
     assert agent.id == "developer"  # Immutable slug

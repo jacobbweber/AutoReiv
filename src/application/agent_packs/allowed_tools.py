@@ -1,8 +1,8 @@
 """The one function that decides which tools an agent may use [CARD-539, ADR-0061].
 
-allowed = REQUIRED_PLATFORM_TOOLS + tools bound to the agent's ticked skills.
-A skill's tools come from its SQLite binding row when one exists (D1), otherwise from the
-agent pack.json seed (user data, then repo platform-packs) and the platform skill tables.
+allowed = REQUIRED_PLATFORM_TOOLS + tools of the agent's ticked skills.
+A skill's tools come only from the ``tools:`` list of its winning SKILL.md (user copy in the data
+dir, else platform/skills in the repo) [CARD-570]. An unknown tool id grants nothing.
 Legacy tool lists, profile flags and agent ids grant nothing. Every consumer calls this.
 """
 
@@ -10,17 +10,10 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
-from src.application.agent_packs.schema import (
-    DYNAMIC_SKILL_TOOLS,
-    PLATFORM_SKILL_METADATA,
-    PLATFORM_SKILL_TOOLS,
-    REQUIRED_PLATFORM_TOOLS,
-)
+from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
 
-REPO_PACKS = Path(__file__).resolve().parents[3] / "platform-packs"
 NO_TOOL_AGENTS = frozenset({"direct"})
 # CARD-563: platform tools an agent must not get. Architect starts Developer only through hand_off_card.
 WITHHELD_PLATFORM_TOOLS: dict[str, frozenset[str]] = {"architect": frozenset({"handoff_to_agent", "lookup_agents"})}
@@ -83,55 +76,24 @@ def ticked_skills(agent: Any) -> list[str]:
     return seen
 
 
-def _data_root() -> Optional[Path]:
-    try:
-        from src.infrastructure.data.resolver import DataDirResolver
+def _store():
+    from src.infrastructure.content.store import get_store
 
-        return DataDirResolver().resolve().root
-    except Exception:
-        return None
+    return get_store()
 
 
-def pack_skill_entries(agent_id: Optional[str]) -> dict[str, dict[str, Any]]:
-    """skills[] of the agent's pack.json: user data first, repo seed for anything missing."""
-    entries: dict[str, dict[str, Any]] = {}
-    clean = (agent_id or "").strip()
-    if not clean:
-        return entries
-    root = _data_root()
-    for base in [root / "packs" if root else None, REPO_PACKS]:
-        path = base / clean / "pack.json" if base else None
-        if not path or not path.is_file():
-            continue
-        try:
-            skills = json.loads(path.read_text(encoding="utf-8")).get("skills") or []
-        except (OSError, ValueError):
-            continue
-        for entry in skills:
-            if isinstance(entry, dict) and entry.get("id") and str(entry["id"]) not in entries:
-                entries[str(entry["id"])] = entry
-    return entries
+def _granted(tool: str) -> bool:
+    """Unknown tool ids grant nothing once the tool registry is known [CARD-570]."""
+    from src.infrastructure.content.store import is_known_tool
+
+    return is_known_tool(tool)
 
 
 def skill_tools(skill_ids: Iterable[str], agent_id: Optional[str] = None) -> dict[str, list[str]]:
-    """Tools bound to each skill. A SQLite binding row wins over every seed (D1)."""
+    """Tools of each skill: the ``tools:`` list of its winning SKILL.md (one source)."""
     ids = [str(s).strip() for s in skill_ids if str(s).strip()]
-    try:
-        from src.infrastructure.memory.repositories.skill_bindings import sqlite_tools_for_skills
-
-        bound = sqlite_tools_for_skills(ids)
-    except Exception:
-        bound = {}
-    pack = pack_skill_entries(agent_id) if any(s not in bound for s in ids) else {}
-    out: dict[str, list[str]] = {}
-    for sid in ids:
-        if sid in bound:
-            tools = list(bound[sid])
-        else:
-            tools = [str(t) for t in (pack.get(sid) or {}).get("tools") or []]
-            tools += list(PLATFORM_SKILL_TOOLS.get(sid, ())) + list(DYNAMIC_SKILL_TOOLS.get(sid, ()))
-        out[sid] = list(dict.fromkeys(t for t in tools if t))
-    return out
+    raw = _store().skill_tools(ids)
+    return {sid: [t for t in raw.get(sid) or [] if _granted(t)] for sid in ids}
 
 
 def resolve_allowed_tools(agent: Any) -> AllowedTools:
@@ -168,12 +130,12 @@ def ticked_skills_for_domains(agent: Any, domains: Iterable[str]) -> list[str]:
         return []
     ticks = ticked_skills(agent)
     bound = skill_tools(ticks, str(_field(agent, "id") or ""))
+    domain_tools = _store().skill_tools(wanted)
     out: list[str] = []
     for sid in ticks:
         tools = set(bound.get(sid) or [])
         for dom in wanted:
-            seed = set(PLATFORM_SKILL_TOOLS.get(dom, ())) | set(DYNAMIC_SKILL_TOOLS.get(dom, ()))
-            seed |= DOMAIN_EXTRA_TOOLS.get(dom, frozenset())
+            seed = set(domain_tools.get(dom) or []) | DOMAIN_EXTRA_TOOLS.get(dom, frozenset())
             mcp = f"mcp_{dom.replace('-', '_')}_"
             if sid.lower() == dom or tools & seed or any(t.startswith(mcp) for t in tools):
                 out.append(sid)
@@ -182,14 +144,17 @@ def ticked_skills_for_domains(agent: Any, domains: Iterable[str]) -> list[str]:
 
 
 def skill_that_binds(tool: str, agent_id: Optional[str] = None) -> Optional[str]:
-    """First known skill that binds the tool: the agent's pack skills, then the platform seeds."""
-    for sid, entry in pack_skill_entries(agent_id).items():
-        if tool in (entry.get("tools") or []):
+    """First skill that lists the tool: the agent's ticked skills, then every other skill."""
+    store = _store()
+    agent = None
+    if agent_id:
+        loaded = store.agents.load(agent_id)
+        agent = loaded.skills if loaded else None
+    ordered = list(agent or []) + [s.id for s in store.skills.list()]
+    for sid in dict.fromkeys(ordered):
+        loaded = store.skills.load(sid)
+        if loaded and tool in loaded.tools:
             return sid
-    for table in (PLATFORM_SKILL_TOOLS, DYNAMIC_SKILL_TOOLS):
-        for sid, tools in table.items():
-            if tool in tools:
-                return sid
     return None
 
 
@@ -201,8 +166,9 @@ def skills_version(agent: Any) -> str:
 
 
 def platform_seed_tools(skill_ids: Iterable[str]) -> list[str]:
-    """Tools of platform skills from the seed table only. For derived display/compat columns, never permission."""
-    return list(dict.fromkeys(t for sid in skill_ids for t in PLATFORM_SKILL_TOOLS.get(str(sid).strip(), ())))
+    """Tools of the given skills from their SKILL.md. For display only, never permission."""
+    tools = skill_tools(skill_ids)
+    return list(dict.fromkeys(t for sid in tools for t in tools[sid]))
 
 
 def allowed_capability_ids(agent: Any) -> set[str]:
@@ -211,28 +177,21 @@ def allowed_capability_ids(agent: Any) -> set[str]:
     return {f"tool.{t}" for t in allowed.ordered} | {f"skill.{s}" for s in ticked_skills(agent)}
 
 
-def _operator_skill_meta(sid: str) -> dict[str, Any]:
-    """name/description from an operator skill's SKILL.md frontmatter ({data}/skills/<id>/SKILL.md)."""
-    root = _data_root()
-    path = root / "skills" / sid / "SKILL.md" if root else None
-    try:
-        text = path.read_text(encoding="utf-8") if path and path.is_file() else ""
-        if not text.startswith("---"):
-            return {}
-        import yaml
-
-        meta = yaml.safe_load(text.split("---", 2)[1]) or {}
-        return meta if isinstance(meta, dict) else {}
-    except Exception:  # unreadable or malformed frontmatter: no blurb
-        return {}
-
-
 def _skill_meta(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] = None) -> dict[str, Any]:
-    return (
-        PLATFORM_SKILL_METADATA.get(sid)
-        or (pack if pack is not None else pack_skill_entries(agent_id)).get(sid)
-        or _operator_skill_meta(sid)
-    )
+    loaded = _store().skills.load(sid)
+    return dict(loaded.meta) if loaded else {}
+
+
+def pack_skill_entries(agent_id: Optional[str]) -> dict[str, dict[str, Any]]:
+    """Kept name for callers: {skill id: frontmatter} for the agent's ticked skills."""
+    store = _store()
+    loaded = store.agents.load(agent_id) if agent_id else None
+    out: dict[str, dict[str, Any]] = {}
+    for sid in loaded.skills if loaded else []:
+        skill = store.skills.load(sid)
+        if skill:
+            out[sid] = {"id": sid, **skill.meta}
+    return out
 
 
 def skill_label(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] = None) -> str:
@@ -242,17 +201,15 @@ def skill_label(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] =
 
 def _labels(agent: Any) -> list[str]:
     agent_id = str(_field(agent, "id") or "")
-    pack = pack_skill_entries(agent_id)
-    return [skill_label(s, agent_id, pack) for s in ticked_skills(agent)]
+    return [skill_label(s, agent_id) for s in ticked_skills(agent)]
 
 
 def _blurbed_labels(agent: Any, limit: int = 90) -> list[str]:
     """"Name (first sentence of the description)" per ticked skill (D5: ticked skill blurbs)."""
     agent_id = str(_field(agent, "id") or "")
-    pack = pack_skill_entries(agent_id)
     out = []
     for sid in ticked_skills(agent):
-        meta = _skill_meta(sid, agent_id, pack)
+        meta = _skill_meta(sid, agent_id)
         label = str(meta.get("name") or sid.replace("-", " ").replace("_", " ").title())
         blurb = " ".join(str(meta.get("description") or "").split()).split(". ")[0].rstrip(".")
         blurb = blurb if len(blurb) <= limit else blurb[: limit - 3].rstrip() + "..."

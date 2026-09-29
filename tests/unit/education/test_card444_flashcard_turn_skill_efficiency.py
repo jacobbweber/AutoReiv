@@ -13,14 +13,14 @@ from pathlib import Path
 from src.application.skills.education_tools import EducationTools
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+from tests.unit.agent_packs.catalog import pack_dict
 
 DEFAULT_MAX_TURNS = AgentProfile.model_fields["max_turns"].default
 # CARD-445 raised the agent default to 50; CARD-444 still proves the skill fits the old tight
 # budget of 10, so a bigger default can never hide a regression in flashcard-turn efficiency.
 CARD444_EFFICIENCY_CEILING = 10
 BUDGET_TERMINATOR_PREFIX = "Execution terminated: Max turn budget of"
-FLASH_SKILL = Path("platform-packs/tutor/skills/flashcard-turn/SKILL.md")
-PACK_JSON = Path("platform-packs/tutor/pack.json")
+FLASH_SKILL = Path("platform/skills/flashcard-turn/SKILL.md")
 
 FORBIDDEN_MID_TURN = (
     "wiki_note_create",
@@ -49,7 +49,7 @@ def _tools(repo: AgentMemoryRepository) -> EducationTools:
 
 def test_tutor_pack_flashcard_skill_tools_exclude_curation():
     """[REQ-444-001] pack.json flashcard-turn tools exclude wiki create/search/list."""
-    pack = json.loads(PACK_JSON.read_text(encoding="utf-8"))
+    pack = pack_dict("tutor")
     by_id = {s["id"]: s for s in pack["skills"]}
     flash_tools = by_id["flashcard-turn"]["tools"]
     for name in HAPPY_PATH_CORE + ("education_mastery_due", "education_mastery_upsert"):

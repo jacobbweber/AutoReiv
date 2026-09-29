@@ -25,7 +25,7 @@ def test_linter_resolves_without_import_error(tmp_path: Path):
 def test_consolidated_skills_exist_and_pass_lint():
     """Consolidated skills pass lint across platform packs."""
     repo_root = Path(__file__).resolve().parents[3]
-    platform_packs_dir = repo_root / "platform-packs"
+    skills_dir = repo_root / "platform" / "skills"
 
     expected_skills = [
         ("developer", "implement-change"),
@@ -34,8 +34,8 @@ def test_consolidated_skills_exist_and_pass_lint():
     ]
 
     compiler = SkillContractCompiler()
-    for pack_id, skill_name in expected_skills:
-        skill_path = platform_packs_dir / pack_id / "skills" / skill_name / "SKILL.md"
+    for _agent_id, skill_name in expected_skills:
+        skill_path = skills_dir / skill_name / "SKILL.md"
         assert skill_path.is_file(), f"Expected skill {skill_name} at {skill_path}"
 
         text = skill_path.read_text(encoding="utf-8")

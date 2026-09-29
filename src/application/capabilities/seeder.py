@@ -174,7 +174,7 @@ def seed_builtin_capabilities(
     # 5. Prune retired tools and obsolete builtin/platform capabilities
     if hasattr(repo, "delete_entry"):
         try:
-            from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES
+            from src.application.agent_packs.schema import RETIRED_TOOL_NAMES
 
             for tool_name in RETIRED_TOOL_NAMES:
                 repo.delete_entry(f"tool.{tool_name}")

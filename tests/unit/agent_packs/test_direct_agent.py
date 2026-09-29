@@ -1,23 +1,12 @@
 """Unit tests for CARD-337: Platform Direct Agent [REQ-TEL-001]."""
 
-from src.application.agent_packs.schema import (
-    PLATFORM_PACK_IDS,
-    is_platform_pack,
-    is_visible_in_chat,
-)
+from src.application.agent_packs.schema import is_visible_in_chat
 from tests.unit.agent_packs.catalog import load_platform_manifest
-
-
-def test_direct_pack_is_platform_pack():
-    """[REQ-TEL-001] Direct agent must be registered in PLATFORM_PACK_IDS."""
-    assert "direct" in PLATFORM_PACK_IDS
-    assert is_platform_pack("direct")
 
 
 def test_direct_pack_manifest_zero_tools_zero_skills():
     """[REQ-TEL-001] Direct agent manifest must have zero tools, zero skills, and show_in_chat=True."""
     manifest = load_platform_manifest("direct")
-    assert manifest.schema_version == "1.1"
     assert manifest.id == "direct"
     assert manifest.name == "Direct"
     assert is_visible_in_chat(manifest) is True

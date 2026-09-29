@@ -140,7 +140,7 @@ describe('New Agent opens the Agent Studio form [CARD-569]', () => {
   });
 
   it('proposals runbook has no pack scaffolding', () => {
-    const recommend = read('src/infrastructure/skills/seeds/proposals/SKILL.md');
+    const recommend = read('platform/skills/proposals/SKILL.md');
     expect(recommend).toContain('Capability Proposals');
     expect(recommend).toContain('Do not commit until approved');
     expect(recommend).not.toContain('scaffold_agent_pack');

@@ -187,7 +187,7 @@ def test_1_simulation_redundant_verification(sim_environment):
     resolver = ToolSkillResolver(data_dir=user_data)
     rec = resolver.synthesize_recommendation(inc)
     assert rec.remedy_kind == "runbook_patch"
-    assert "packs/developer/skills" in (rec.skill_path or "")
+    assert "skills/" in (rec.skill_path or "")
     assert "Do not invoke read_project_file immediately after a successful mutation" in rec.proposed_patch
 
 
@@ -392,7 +392,7 @@ def test_5_safe_apply_dismiss_and_deduplication_lifecycle(sim_environment):
 
     assert not any(
         p.read_text(encoding="utf-8").count("Do not invoke read_project_file")
-        for p in Path("platform-packs/developer/skills").glob("*/SKILL.md")
+        for p in Path("platform/skills").glob("*/SKILL.md")
     )
 
     dismiss_res = client.post(f"/api/observability/friction/recommendations/{thrash_rec['id']}/dismiss")

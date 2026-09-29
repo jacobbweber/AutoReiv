@@ -5,15 +5,15 @@ REQ-544-001 (pack), REQ-544-003 (no repo_file_* tools, no Coding in the domain l
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from src.application.agent_packs.allowed_tools import domain_line, resolve_allowed_tools
 from src.application.orchestration.job_phase_orchestrator import resolve_specialist_agent_for_capabilities
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import pack_dict
 
-PACK = json.loads(Path("platform-packs/autoreiv/pack.json").read_text(encoding="utf-8"))
+PACK = pack_dict("autoreiv")
 CODING_CAPS = ["tool.repo_file_read", "tool.repo_file_write", "skill.coding"]
 
 
@@ -30,6 +30,10 @@ class _Agents:
     def register_custom_agent(self, profile):
         self.profiles[profile.id] = profile
 
+    def save_agent(self, profile, *, create=False):
+        self.profiles[profile.id] = profile
+        return profile
+
 
 def _store(tmp_path):
     store = SQLiteStateStore(db_path=str(tmp_path / "m.db"))
@@ -44,7 +48,7 @@ def _autoreiv(skills):
 def test_shipped_autoreiv_pack_does_not_tick_coding_but_still_ships_the_runbook():
     assert "coding" not in PACK["allowed_skill"]
     assert any(s.get("id") == "coding" for s in PACK.get("skills") or []) or Path(
-        "platform-packs/autoreiv/skills/coding/SKILL.md"
+        "platform/skills/coding/SKILL.md"
     ).is_file()  # the operator can tick it again in Agent Studio
 
 

@@ -30,8 +30,8 @@ from src.domain.routines.manifests import (
     get_builtin_routine,
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.infrastructure.skills.seed import seed_bundled_skill_packs
 from src.web.app import create_app
+from tests.unit.agent_packs.catalog import seed_bundled_skill_packs
 
 BUNDLED_FIXTURE_ID = "sample-runbook"
 BUNDLED_FIXTURE_MD = """---
@@ -76,13 +76,12 @@ def _age_mtime(path: Path, days: int, now: datetime) -> None:
 
 def _env(tmp_path: Path, now: datetime, monkeypatch):
     monkeypatch.setattr(
-        "src.application.skills.skill_curator.BUNDLED_PACK_IDS",
-        (BUNDLED_FIXTURE_ID,),
+        "src.application.skills.skill_curator.is_bundled_pack",
+        lambda pack_id: str(pack_id).split("/")[0] == BUNDLED_FIXTURE_ID,
     )
     data_dir = tmp_path / "data"
     skills = data_dir / "skills"
     skills.mkdir(parents=True)
-    seed_bundled_skill_packs(skills)
     bundled = _write_pack(skills, BUNDLED_FIXTURE_ID, BUNDLED_FIXTURE_MD)
     _age_mtime(bundled, 200, now)
     old = _write_pack(skills, "old-experiment", USER_PACK_MD)
@@ -311,7 +310,6 @@ def test_api_hides_archived_and_unarchive_reopens(tmp_path, now, monkeypatch):
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(tmp_path / "wiki"))
     skills = tmp_path / "data" / "skills"
     skills.mkdir(parents=True)
-    seed_bundled_skill_packs(skills)
     old = _write_pack(skills, "old-experiment", USER_PACK_MD)
     _age_mtime(old, 100, now)
     client = TestClient(create_app())

@@ -7,19 +7,14 @@ to developer via handoff_to_agent.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS
+from tests.unit.agent_packs.catalog import SHIPPED_SKILL_TOOLS as DYNAMIC_SKILL_TOOLS
+from tests.unit.agent_packs.catalog import pack_dict
 
 
 def test_autoreiv_pack_excludes_cli_exec():
-    repo_root = Path(__file__).resolve().parents[3]
-    pack_json_path = repo_root / "platform-packs" / "autoreiv" / "pack.json"
-    assert pack_json_path.exists(), f"Missing {pack_json_path}"
-
-    with open(pack_json_path, "r", encoding="utf-8") as f:
-        pack_data = json.load(f)
+    pack_data = pack_dict("autoreiv")  # CARD-570: platform/agents/autoreiv.md + its skills
 
     # 1. pack_tool_names must not contain cli_exec
     pack_tools = pack_data.get("pack_tool_names", [])
@@ -47,7 +42,7 @@ def test_dynamic_skill_tools_exclude_cli_exec():
 def test_platform_health_skill_md_excludes_cli_exec():
     repo_root = Path(__file__).resolve().parents[3]
     skill_md_path = (
-        repo_root / "platform-packs" / "autoreiv" / "skills" / "platform-health" / "SKILL.md"
+        repo_root / "platform" / "skills" / "platform-health" / "SKILL.md"
     )
     assert skill_md_path.exists(), f"Missing {skill_md_path}"
 

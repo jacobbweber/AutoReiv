@@ -1,8 +1,8 @@
 """Attach a tool to a skill of an agent, as a pending proposal Jacob accepts [CARD-539, ADR-0061 rule 8].
 
 Developer (register_native_tool with target_agent_id), Teach and the CARD-539 migration create the
-proposal; nothing changes an agent's tools until the proposal is accepted. Accepting writes the skill
-binding (and a runbook for a new skill) and ticks the skill on the agent, so Agent Studio shows it.
+proposal; nothing changes an agent's tools until the proposal is accepted. Accepting edits the skill's
+``tools:`` list (user copy of its SKILL.md; a new skill gets a runbook) and ticks the skill on the agent.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ def apply_tool_attachment(
 ) -> dict[str, Any]:
     """Accept: bind the tool to the skill (new skill gets a runbook) and tick the skill on the agent."""
     from src.application.skills.workshop import catalog_tool_ids, persist_workshop_skill
-    from src.infrastructure.memory.repositories.skill_bindings import SkillToolBindingRepository
+    from src.infrastructure.content.store import get_store
 
     tool = str(args.get("tool") or "").strip()
     agent_id = str(args.get("agent_id") or "").strip()
@@ -103,10 +103,10 @@ def apply_tool_attachment(
             db_path=db_path,
         )
         if wildcard:
-            SkillToolBindingRepository(db_path=db_path).replace(sid, [tool])
+            get_store().set_skill_tools(sid, [tool])
     else:
         current = skill_tools([sid], agent_id).get(sid, [])
         if tool not in current:
-            SkillToolBindingRepository(db_path=db_path).replace(sid, current + [tool])
+            get_store().set_skill_tools(sid, current + [tool])  # user copy of the SKILL.md [CARD-570]
     tick_skill(store, agent_registry, agent_id, sid, Path(data_root))
     return {"tool": tool, "agent_id": agent_id, "skill_id": sid, "new_skill": bool(args.get("new_skill")), "ticked": True}

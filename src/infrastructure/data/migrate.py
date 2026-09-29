@@ -313,7 +313,6 @@ def resolve_paths_for_root(root: Path) -> DataDirPaths:
         skills_path=root / "skills",
         agents_path=root / "agents",
         job_templates_path=root / "templates" / "jobs",
-        packs_path=root / "packs",
         backups_path=root / "backups",
     )
 

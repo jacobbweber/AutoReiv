@@ -1,7 +1,7 @@
 """CARD-539 / ADR-0061 rule 8: Developer growth is a proposal, never a direct grant.
 
 REQ-539-007 (pending proposal, no permission change until accepted),
-REQ-539-008 (accepted = skill binding + visible tick).
+REQ-539-008 (accepted = the skill's SKILL.md tools list + visible tick; CARD-570).
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.tools.developer_mediation import format_developer_prompt
 from src.application.tools.native_packaging import NativeCustomToolService, NativeToolError
 from src.domain.kernel.models import AgentProfile
+from src.infrastructure.content.store import configure
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 GOOD = "def run(city='', **kw):\n    return {'city': city, 'temp_c': 20}\n"
@@ -25,23 +26,24 @@ SCHEMA = {"type": "object", "properties": {"city": {"type": "string"}}}
 
 
 class _Agents:
-    """Registry stub that applies the stored override like BuiltinAgentRegistry.get_agent."""
+    """Registry stub: a saved agent file wins, like BuiltinAgentRegistry.get_agent."""
 
     def __init__(self, store):
         self.store = store
+        self.saved = {}
         self.base = AgentProfile(
             id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
-            allowed_skill=["wiki-knowledge"], is_builtin=True,
+            allowed_skill=["wiki-knowledge"],
         )
 
     def get_agent(self, agent_id):
         if agent_id != "autoreiv":
             return None
-        ov = self.store.get_agent_override(agent_id)
-        prof = self.base.model_copy()
-        if ov and ov.allowed_skill is not None:
-            prof.allowed_skill = list(ov.allowed_skill)
-        return prof
+        return (self.saved.get(agent_id) or self.base).model_copy(deep=True)
+
+    def save_agent(self, profile, *, create=False):
+        self.saved[profile.id] = profile.model_copy(deep=True)
+        return profile
 
 
 @pytest.fixture
@@ -53,6 +55,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data))
     store = SQLiteStateStore(db_path=str(db))
     store.initialize_db()
+    configure(data)
     registry = ScopedToolRegistry()
     agents = _Agents(store)
     service = NativeCustomToolService(store=store, tool_registry=registry, agent_registry=agents)
@@ -70,7 +73,7 @@ async def test_register_proposes_an_attachment_instead_of_granting(env):
     store, _, agents, service, _ = env
     body = await service.register(_raw("c539_weather", target_agent_id="autoreiv"))
     assert "granted_agent_ids" not in body
-    assert store.get_agent_override("autoreiv") is None
+    assert agents.saved == {}
     assert "c539_weather" not in resolve_allowed_tools(agents.get_agent("autoreiv"))
     pending = store.get_pending_approvals(agent_id="autoreiv")
     assert [p["tool_name"] for p in pending] == [ATTACH_TOOL_PROPOSAL]

@@ -151,7 +151,7 @@ def test_custom_agent_allowed_skill_persists(tmp_path):
 
 def test_platform_pack_override_allowed_skill_persists_across_get(tmp_path):
     (registry, _tool_reg), store, _tel = _bootstrap(tmp_path, tmp_path / "skills")
-    store.save_agent_override(
+    registry.apply_customization(  # CARD-570: saved as the agent's user copy
         AgentCustomization(
             agent_id="direct",
             allowed_skill=["user-provisioning"],

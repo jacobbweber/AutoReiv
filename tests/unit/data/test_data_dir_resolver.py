@@ -112,13 +112,11 @@ def test_layout_derived_paths(tmp_path, monkeypatch):
     assert paths.wiki_path == paths.root / "wiki"
     assert paths.skills_path == paths.root / "skills"
     assert paths.agents_path == paths.root / "agents"
-    assert paths.packs_path == paths.root / "packs"
     assert paths.job_templates_path == paths.root / "templates" / "jobs"
     assert paths.db_path.parent.is_dir()
     assert paths.wiki_path.is_dir()
     assert paths.skills_path.is_dir()
     assert paths.agents_path.is_dir()
-    assert paths.packs_path.is_dir()
     assert paths.job_templates_path.is_dir()
 
 

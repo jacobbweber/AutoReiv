@@ -289,8 +289,8 @@ def test_oc423_mcp_lane_groups_under_the_attached_server(operator_client):
 def test_oc423_developer_skills_describe_both_lanes(operator_client):
     """REQ-423-004. Skills live on the developer pack, not under .agents/."""
     client, _store, _wiki = operator_client
-    native_skill = (ROOT / "platform-packs/developer/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
-    mcp_skill = (ROOT / "platform-packs/developer/skills/mcp-engineering/SKILL.md").read_text(encoding="utf-8")
+    native_skill = (ROOT / "platform/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
+    mcp_skill = (ROOT / "platform/skills/mcp-engineering/SKILL.md").read_text(encoding="utf-8")
     assert "register_native_tool" in native_skill
     assert "plan_native_folder" in native_skill
     assert "ToolPolicyGate" in native_skill

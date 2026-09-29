@@ -1,10 +1,8 @@
-"""Skill Studio workshop persistence: skill-store body + SQLite bindings [CARD-411, CARD-497]."""
+"""Skill Studio workshop persistence: SKILL.md files; ``tools:`` is the only tool list [CARD-411, CARD-570]."""
 
 from __future__ import annotations
 
-import os
 import re
-import shutil
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
@@ -13,14 +11,8 @@ from src.application.skills.runbook_frontmatter import (
     frontmatter_view,
     split_skill_markdown,
 )
-from src.application.skills.user_catalog import ARCHIVE_DIRNAME, PackJailError, UserSkillCatalog
-from src.infrastructure.data.resolver import repo_root
-from src.infrastructure.memory.repositories.skill_bindings import (
-    SkillToolBindingRepository,
-    operational_db_path,
-    sqlite_tools_for_skills,
-)
-from src.infrastructure.skills.seed import BUNDLED_PACK_IDS
+from src.application.skills.user_catalog import ARCHIVE_DIRNAME
+from src.infrastructure.content.store import get_store, split_frontmatter
 
 # Same jail as user skill packs: letters, digits, dot, underscore, hyphen, nested segments.
 _SKILL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$")
@@ -75,39 +67,20 @@ def locate_skill_markdown(
     skill_id: str,
     agent_id: Optional[str] = None,
 ) -> Optional[Path]:
-    """Resolve a picker id to SKILL.md.
-
-    Order: operator skill store, that agent's pack home, any pack home,
-    repo platform-packs, then bundled seeds (same roots as the skill catalog).
-    """
+    """Resolve a picker id to the winning SKILL.md: data ``skills/`` copy, else ``platform/skills``."""
     clean = accept_skill_id(skill_id)
     if not clean:
         return None
-    root = Path(data_root)
-    catalog = UserSkillCatalog(skills_dir=root / "skills")
-    try:
-        direct = catalog.resolve_skill_md(clean)
-    except PackJailError:
-        direct = None
-    if direct is not None and direct.is_file():
-        return direct
-
-    leaf = clean.split("/")[-1]
-    agent = accept_skill_id(agent_id or "")
-    if agent and "/" not in agent:
-        for relative in (clean, leaf):
-            pack_file = root / "packs" / agent / "skills" / relative / "SKILL.md"
-            if pack_file.is_file():
-                return pack_file
-
-    # Pack homes, platform-packs, and src/infrastructure/skills/seeds.
-    return catalog.resolve_pack_scoped_skill_md(clean)
-
+    loaded = get_store().skills.load(clean, include_hidden=True)
+    if loaded is not None:
+        return loaded.path
+    direct = Path(data_root) / "skills" / clean / "SKILL.md"
+    return direct if direct.is_file() else None
 
 def operator_skill_deletable(data_root: Path, skill_id: str, path: Optional[Path] = None) -> bool:
     """True only for an operator skill-store file that is not a bundled seed."""
     clean = accept_skill_id(skill_id) or ""
-    if not clean or clean in BUNDLED_PACK_IDS or clean.split("/")[0] in BUNDLED_PACK_IDS:
+    if not clean or get_store().skills.shipped_path(clean.split("/")[0]).is_file():
         return False
     if path is None:
         return False
@@ -126,26 +99,8 @@ def clear_operator_skill_side_effects(
     skill_id: str,
     db_path: Optional[str] = None,
 ) -> None:
-    """After the user-pack delete, drop pack projections and SQLite bindings for that id."""
-    clean = accept_skill_id(skill_id)
-    if not clean:
-        return
-    packs_root = (Path(data_root) / "packs").resolve()
-    if packs_root.is_dir():
-        for agent_dir in packs_root.iterdir():
-            if not agent_dir.is_dir():
-                continue
-            target = (agent_dir / "skills" / clean).resolve()
-            try:
-                target.relative_to(packs_root)
-            except ValueError:
-                continue
-            if target.is_dir():
-                shutil.rmtree(target)
-    resolved_db = operational_db_path(db_path or os.environ.get("AUTOREIV_DB_PATH"))
-    if resolved_db:
-        SkillToolBindingRepository(db_path=resolved_db).delete(clean)
-
+    """Nothing else holds a skill's tools since CARD-570 (the SKILL.md is the only source)."""
+    return None
 
 def _row_for_skill_file(path: Path, skill_id: str, source: str, data_root: Path) -> dict[str, Any]:
     view = frontmatter_view(_read_text(path) or "")
@@ -162,58 +117,21 @@ def _row_for_skill_file(path: Path, skill_id: str, source: str, data_root: Path)
 
 
 def list_workshop_skills(data_root: Path) -> list[dict[str, str]]:
-    """Skills the workshop loader can open. Picker options come from this list only."""
+    """Skills the workshop loader can open: user copies/user skills, then shipped platform skills."""
     root = Path(data_root)
     found: dict[str, dict[str, str]] = {}
-
-    def add(skill_id: str, path: Path, source: str, *, overwrite: bool = False) -> None:
-        if skill_id in found and not overwrite:
-            return
-        if not path.is_file():
-            return
-        found[skill_id] = _row_for_skill_file(path, skill_id, source, root)
-
+    for item in get_store().skills.list(include_hidden=True):
+        source = "store" if item.source == "user" else "platform"
+        found[item.id] = _row_for_skill_file(item.path, item.id, source, root)
     skills_root = root / "skills"
     if skills_root.is_dir():
         for skill_file in sorted(skills_root.glob("**/SKILL.md")):
             if any(part in _SKIP_SEGMENTS for part in skill_file.relative_to(skills_root).parts[:-1]):
                 continue
             skill_id = _id_under_skills_dir(skills_root, skill_file)
-            if skill_id:
-                add(skill_id, skill_file, "store", overwrite=True)
-
-    packs_root = root / "packs"
-    if packs_root.is_dir():
-        for agent_dir in sorted(p for p in packs_root.iterdir() if p.is_dir()):
-            skills_dir = agent_dir / "skills"
-            if not skills_dir.is_dir():
-                continue
-            for skill_file in sorted(skills_dir.glob("**/SKILL.md")):
-                skill_id = _id_under_skills_dir(skills_dir, skill_file)
-                if skill_id:
-                    add(skill_id, skill_file, "pack")
-
-    checkout = repo_root()
-    platform_root = checkout / "platform-packs"
-    if platform_root.is_dir():
-        for pack_dir in sorted(p for p in platform_root.iterdir() if p.is_dir()):
-            skills_dir = pack_dir / "skills"
-            if not skills_dir.is_dir():
-                continue
-            for skill_file in sorted(skills_dir.glob("**/SKILL.md")):
-                skill_id = _id_under_skills_dir(skills_dir, skill_file)
-                if skill_id:
-                    add(skill_id, skill_file, "platform")
-
-    seeds_root = checkout / "src" / "infrastructure" / "skills" / "seeds"
-    if seeds_root.is_dir():
-        for skill_file in sorted(seeds_root.glob("*/SKILL.md")):
-            skill_id = accept_skill_id(skill_file.parent.name)
-            if skill_id:
-                add(skill_id, skill_file, "seed")
-
+            if skill_id and skill_id not in found:
+                found[skill_id] = _row_for_skill_file(skill_file, skill_id, "store", root)
     return [found[key] for key in sorted(found)]
-
 
 def operator_store_skills(data_root: Path) -> list[dict[str, Any]]:
     """Operator skill-store files. Platform seeds and pack homes stay out of this list."""
@@ -252,12 +170,10 @@ def load_workshop_skill(
         return None
     raw = _read_text(path) or ""
     view = frontmatter_view(raw)
-    bindings = sqlite_tools_for_skills([clean], db_path=db_path)
-    if clean in bindings:
-        view["requires_tools"] = list(bindings[clean])
-        view["binding_source"] = "sqlite"
-    else:
-        view["binding_source"] = "frontmatter"
+    view["binding_source"] = "frontmatter"
+    loaded = get_store().skills.load(clean, include_hidden=True)
+    if loaded is not None:
+        view["status"] = loaded.status()
     view["skill_id"] = clean
     view["path"] = str(path)
     view["markdown_content"] = raw
@@ -279,9 +195,8 @@ def persist_workshop_skill(
     requires_tools: Optional[Sequence[str]] = None,
     db_path: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Write one SKILL.md projection to the skill store and bind tools in SQLite.
+    """Write the SKILL.md user copy (data ``skills/<id>``); its ``tools:`` is the only tool list.
 
-    When agent_id is set, also copy the runbook into that agent's pack home.
     Raises UnknownCatalogToolError before any write when a tool id is not in the catalog.
     """
     catalog = list(catalog_ids)
@@ -297,34 +212,30 @@ def persist_workshop_skill(
     if not rendered.endswith("\n"):
         rendered += "\n"
 
-    store_file = data_root / "skills" / skill_id / "SKILL.md"
-    store_file.parent.mkdir(parents=True, exist_ok=True)
-    store_file.write_text(rendered, encoding="utf-8")
+    meta, body = split_frontmatter(rendered)
+    meta.pop("requires_tools", None)
+    meta["tools"] = list(view["requires_tools"])
+    content = get_store()
+    if content.data_root is not None and Path(content.data_root).resolve() == Path(data_root).resolve():
+        saved = content.skills.save(skill_id, meta, body)
+        store_file = saved.path
+        rendered = store_file.read_text(encoding="utf-8")
+    else:
+        from src.infrastructure.content.store import join_frontmatter
 
-    pack_path: Optional[str] = None
-    clean_agent = (agent_id or "").strip()
-    if clean_agent:
-        pack_file = data_root / "packs" / clean_agent / "skills" / skill_id / "SKILL.md"
-        pack_file.parent.mkdir(parents=True, exist_ok=True)
-        pack_file.write_text(rendered, encoding="utf-8")
-        pack_path = str(pack_file)
-
-    resolved_db = operational_db_path(db_path or os.environ.get("AUTOREIV_DB_PATH"))
-    record = SkillToolBindingRepository(db_path=resolved_db).replace(
-        skill_id,
-        view["requires_tools"],
-        tier=view["tier"],
-        safety=view["safety"],
-    )
+        store_file = data_root / "skills" / skill_id / "SKILL.md"
+        store_file.parent.mkdir(parents=True, exist_ok=True)
+        rendered = join_frontmatter(meta, body)
+        store_file.write_text(rendered, encoding="utf-8")
     return {
         "markdown": rendered,
         "frontmatter": view,
-        "requires_tools": list(record.get("requires_tools") or []),
-        "tier": record.get("tier") or view["tier"],
-        "safety": record.get("safety") or view["safety"],
+        "requires_tools": list(view["requires_tools"]),
+        "tier": view["tier"],
+        "safety": view["safety"],
         "skill_store_path": str(store_file),
-        "pack_skill_path": pack_path,
-        "binding_store": "sqlite",
+        "pack_skill_path": None,
+        "binding_store": "skill_md",
     }
 
 

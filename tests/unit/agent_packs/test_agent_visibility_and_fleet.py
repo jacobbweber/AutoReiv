@@ -6,40 +6,11 @@ import tempfile
 
 import pytest
 
-from src.application.agent_packs.schema import AgentPackManifest, is_visible_in_chat
+from src.application.agent_packs.schema import is_visible_in_chat
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.agents import _public_agent
-
-
-def test_agent_pack_manifest_visibility_defaults_and_sync():
-    """AgentPackManifest defaults to public and syncs visibility with show_in_chat."""
-    # Default visibility is public
-    m_default = AgentPackManifest(id="test-lead", name="Test Lead")
-    assert m_default.visibility == "public"
-    assert m_default.show_in_chat is True
-    assert m_default.fleet is None
-
-    # Explicit internal visibility automatically forces show_in_chat to False
-    m_internal = AgentPackManifest(
-        id="test-worker",
-        name="Test Worker",
-        visibility="internal",
-        fleet="homelab",
-    )
-    assert m_internal.visibility == "internal"
-    assert m_internal.show_in_chat is False
-    assert m_internal.fleet == "homelab"
-
-    # Setting show_in_chat=False syncs visibility to internal
-    m_hidden = AgentPackManifest(
-        id="test-hidden",
-        name="Test Hidden",
-        show_in_chat=False,
-    )
-    assert m_hidden.visibility == "internal"
-    assert m_hidden.show_in_chat is False
 
 
 def test_is_visible_in_chat_respects_visibility_and_deprecated_hyperv():

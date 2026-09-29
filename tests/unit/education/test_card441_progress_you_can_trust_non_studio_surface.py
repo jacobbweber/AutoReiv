@@ -7,7 +7,6 @@ Education Studio progress chrome retained.
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,6 +17,7 @@ from src.application.education.progress_summary import (
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+from tests.unit.agent_packs.catalog import pack_dict
 
 PROGRESS_TOOL_NAMES = (
     "education_progress_summary",
@@ -178,7 +178,7 @@ def test_progress_courses_and_mastery_tools(tmp_path: Path):
 
 def test_tutor_pack_progress_summary_skill_names_tools():
     """progress-summary skill + pack_tool_names list CARD-441 tools."""
-    pack = json.loads(Path("platform-packs/tutor/pack.json").read_text(encoding="utf-8"))
+    pack = pack_dict("tutor")
     by_id = {s["id"]: s for s in pack["skills"]}
     progress_tools = set(by_id["progress-summary"]["tools"])
     pack_tools = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
@@ -192,7 +192,7 @@ def test_tutor_pack_progress_summary_skill_names_tools():
         assert name in progress_tools, name
         assert name in pack_tools, name
 
-    skill_md = Path("platform-packs/tutor/skills/progress-summary/SKILL.md").read_text(
+    skill_md = Path("platform/skills/progress-summary/SKILL.md").read_text(
         encoding="utf-8"
     )
     assert "education_progress_summary" in skill_md

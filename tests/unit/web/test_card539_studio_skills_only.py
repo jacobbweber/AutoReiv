@@ -93,7 +93,9 @@ def test_domain_line_carries_short_skill_blurbs_including_operator_skills(tmp_pa
         "---\nname: Get Weather\ndescription: Returns current weather for a given location. More text here.\n---\n# body\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(allowed_tools, "_data_root", lambda: tmp_path)
+    from src.infrastructure.content.store import configure
+
+    configure(tmp_path)
     agent = AgentProfile(id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
                          allowed_skill=["wiki-knowledge", "get-weather"])
     line = allowed_tools.domain_line(agent)

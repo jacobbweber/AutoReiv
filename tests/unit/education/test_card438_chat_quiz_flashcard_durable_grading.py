@@ -13,6 +13,7 @@ from src.application.education.quiz_engine import grade_answer_binary
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+from tests.unit.agent_packs.catalog import pack_dict
 
 EDU_TOOL_NAMES = (
     "education_quiz_extract",
@@ -212,9 +213,8 @@ def test_hard_refresh_path_mastery_and_due_reflect_grade(tmp_path: Path):
 
 def test_tutor_pack_names_education_tools_on_quiz_and_flashcard_skills():
     """Skills + pack_tool_names list the exact CARD-438 tools."""
-    import json
 
-    pack = json.loads(Path("platform-packs/tutor/pack.json").read_text(encoding="utf-8"))
+    pack = pack_dict("tutor")
     by_id = {s["id"]: s for s in pack["skills"]}
     quiz_tools = set(by_id["quiz-turn"]["tools"])
     flash_tools = set(by_id["flashcard-turn"]["tools"])
@@ -232,8 +232,8 @@ def test_tutor_pack_names_education_tools_on_quiz_and_flashcard_skills():
         assert name in flash_tools
         assert name in pack_tools
 
-    quiz_md = Path("platform-packs/tutor/skills/quiz-turn/SKILL.md").read_text(encoding="utf-8")
-    flash_md = Path("platform-packs/tutor/skills/flashcard-turn/SKILL.md").read_text(
+    quiz_md = Path("platform/skills/quiz-turn/SKILL.md").read_text(encoding="utf-8")
+    flash_md = Path("platform/skills/flashcard-turn/SKILL.md").read_text(
         encoding="utf-8"
     )
     assert "education_quiz_grade" in quiz_md

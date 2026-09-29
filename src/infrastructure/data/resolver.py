@@ -17,9 +17,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
-from src.infrastructure.skills.platform_packs import seed_platform_pack_folders
-from src.infrastructure.skills.seed import seed_bundled_skill_packs
-
 logger = logging.getLogger(__name__)
 
 DATA_DIR_SETTING_KEY = "data_dir"
@@ -53,12 +50,9 @@ class DataDirPaths:
     skills_path: Path
     agents_path: Path
     job_templates_path: Path
-    packs_path: Optional[Path] = None
     backups_path: Optional[Path] = None
 
     def __post_init__(self) -> None:
-        if self.packs_path is None:
-            object.__setattr__(self, "packs_path", self.root / "packs")
         if self.backups_path is None:
             object.__setattr__(self, "backups_path", self.root / "backups")
 
@@ -276,7 +270,6 @@ class DataDirResolver:
             skills_path=root / "skills",
             agents_path=root / "agents",
             job_templates_path=root / "templates" / "jobs",
-            packs_path=root / "packs",
             backups_path=backups_path,
         )
 
@@ -291,7 +284,6 @@ class DataDirResolver:
         paths.skills_path.mkdir(parents=True, exist_ok=True)
         paths.agents_path.mkdir(parents=True, exist_ok=True)
         paths.job_templates_path.mkdir(parents=True, exist_ok=True)
-        paths.packs_path.mkdir(parents=True, exist_ok=True)
         paths.backups_path.mkdir(parents=True, exist_ok=True)
 
     def _db_migrate_source(self, dest_db: Path) -> Optional[Path]:
@@ -528,8 +520,6 @@ def bootstrap_data_dir(
     resolver.ensure_layout(paths)
     if migrate:
         resolver.migrate_if_needed(paths)
-    seed_bundled_skill_packs(paths.skills_path)
-    seed_platform_pack_folders(paths.root / "packs", checkout_root=resolver.checkout_root)
     prune_bled_platform_skills(paths.skills_path)
     prune_orphan_databases(paths.root)
     return paths
@@ -653,31 +643,7 @@ def resolve_agent_storage_path(
     else:
         root = ensure_live_data_root(DataDirResolver().resolve().root)
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
-    snake_id = _agent_id_to_snake_case(agent_id)
-    db_filename = f"{snake_id}_storage.db"
-    pack_dir = root / "packs" / safe_id
-    target_path = pack_dir / db_filename
-
-    # Migrate any previously named candidate files to target_path
-    candidates_to_migrate = [
-        pack_dir / "storage.db",
-        root / "agents" / safe_id / "storage.db",
-        root / "agents" / safe_id / db_filename,
-    ]
-    for candidate in candidates_to_migrate:
-        if candidate.exists() and not target_path.exists():
-            pack_dir.mkdir(parents=True, exist_ok=True)
-            try:
-                shutil.move(str(candidate), str(target_path))
-                for ext in ("-wal", "-shm"):
-                    sidecar = Path(f"{candidate}{ext}")
-                    if sidecar.exists():
-                        shutil.move(str(sidecar), str(f"{target_path}{ext}"))
-            except Exception:
-                shutil.copy2(candidate, target_path)
-            break
-
-    return target_path
+    return root / "agents" / safe_id / "storage.db"  # CARD-570: agents/<id>/, no packs/
 
 
 def get_agent_storage_connection(
@@ -712,8 +678,5 @@ def resolve_agent_memory_path(
     else:
         root = ensure_live_data_root(DataDirResolver().resolve().root)
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
-    snake_id = _agent_id_to_snake_case(agent_id)
-    db_filename = f"{snake_id}_memory.db"
-    pack_dir = root / "packs" / safe_id
-    return pack_dir / db_filename
+    return root / "agents" / safe_id / "memory.db"  # CARD-570: agents/<id>/memory.db
 

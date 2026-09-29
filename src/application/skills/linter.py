@@ -300,23 +300,20 @@ class CapabilityLinter:
         )
 
     def lint_platform_and_user_skills(self, data_dir: Optional[Path] = None) -> LintReport:
-        """Scan platform-packs/ seed directory and resolved user-data pack directories."""
+        """Scan repo platform/skills and the user-data skills directory [CARD-570]."""
         paths: List[Path] = []
 
         # Platform seed packs in repository
         repo_root = Path(__file__).resolve().parent.parent.parent.parent
-        platform_packs_dir = repo_root / "platform-packs"
-        if platform_packs_dir.exists():
-            paths.append(platform_packs_dir)
+        platform_skills_dir = repo_root / "platform" / "skills"
+        if platform_skills_dir.exists():
+            paths.append(platform_skills_dir)
 
         # User data packs directory
         from src.infrastructure.data.resolver import DataDirResolver
 
         resolved_data = data_dir or DataDirResolver().resolve().root
         if resolved_data.exists():
-            packs_dir = resolved_data / "packs"
-            if packs_dir.exists():
-                paths.append(packs_dir)
             skills_dir = resolved_data / "skills"
             if skills_dir.exists():
                 paths.append(skills_dir)

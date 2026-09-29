@@ -106,7 +106,7 @@ SKILL_EVAL_SLEEP_ROUTINE = Routine(
 SKILL_CURATOR_PROMPT = (
     "Classify unused user skill packs (active -> stale at 30d -> archive at 90d). "
     "Archive means move to $DATA_DIR/skills/_archive/<id>/. Do not delete SKILL.md. "
-    "Do not auto-archive bundled seeds in BUNDLED_PACK_IDS. "
+    "Do not auto-archive shipped skills (platform/skills). "
     "Do not delete repo src/infrastructure/skills/seeds/. "
     "Unknown last-used fails closed. Dest-exists fails closed."
 )

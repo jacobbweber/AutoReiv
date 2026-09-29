@@ -46,7 +46,7 @@ def test_pack_modules_and_seed_are_gone():
     assert importlib.util.find_spec("src.application.skills.agent_pack_tools") is None
     assert importlib.util.find_spec("src.infrastructure.mcp.pack_server") is None
     assert not (ROOT / "src/infrastructure/skills/seeds/build-agent-pack").exists()
-    assert not (ROOT / "platform-packs/autoreiv/skills/build-agent-pack").exists()
+    assert not (ROOT / "platform/skills/build-agent-pack").exists()
 
 
 def test_pack_routes_are_gone():

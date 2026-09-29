@@ -3,7 +3,7 @@
 [REQ-IMPROVE-013] [REQ-IMPROVE-014] [REQ-IMPROVE-015] [REQ-IMPROVE-016]
 
 Unused user packs: active --(30d)--> stale --(90d)--> archive (move).
-Never deletes SKILL.md. Never auto-archives ids in BUNDLED_PACK_IDS
+Never deletes SKILL.md. Never auto-archives shipped skill ids (platform/skills)
 (empty after CARD-118; no product seeds ship). Never touches repo src/infrastructure/skills/seeds/.
 Unknown last-used fails closed. Auto-archive is opt-in (paused routine /
 skill-eval-sleep metadata.auto_archive).
@@ -25,7 +25,7 @@ from src.application.skills.user_catalog import (
     PackJailError,
     UserSkillCatalog,
 )
-from src.infrastructure.skills.seed import BUNDLED_PACK_IDS, bundled_seed_root
+from src.infrastructure.content.store import REPO_PLATFORM, get_store
 
 logger = logging.getLogger(__name__)
 
@@ -66,11 +66,12 @@ def _parse_iso(text: str) -> Optional[datetime]:
 
 
 def is_bundled_pack(pack_id: str) -> bool:
-    return pack_id in BUNDLED_PACK_IDS
+    """Shipped skills (repo platform/skills) are never auto-archived [CARD-570]."""
+    return get_store().skills.shipped_path(str(pack_id).split("/")[0]).is_file()
 
 
 def repo_seed_root() -> Path:
-    return bundled_seed_root()
+    return REPO_PLATFORM / "skills"
 
 
 def last_used_at(

@@ -1,59 +1,8 @@
 """Unit tests for Developer Agent capability consolidation [CARD-181, CARD-366, REQ-CONSOL-001]."""
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.agent_packs.schema import (
-    CHAT_HIDDEN_BY_ID,
-    PLATFORM_PACK_IDS,
-    is_platform_pack,
-    is_visible_in_chat,
-)
-from src.infrastructure.skills.platform_packs import platform_packs_root
-from tests.unit.agent_packs.catalog import load_platform_manifest, platform_pack_profile
-
-
-def test_developer_pack_is_restored_as_platform_pack():
-    """CARD-388: developer is restored as a unified platform pack."""
-    assert "developer" in PLATFORM_PACK_IDS
-    assert is_platform_pack("developer")
-    assert "developer" not in CHAT_HIDDEN_BY_ID
-    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is True
-
-    manifest = load_platform_manifest("developer")
-    assert manifest.id == "developer"
-    assert manifest.name == "Developer"
-    assert manifest.purpose == "task_execution"
-    assert manifest.show_in_chat is True
-    assert "implement-change" in {s.id for s in manifest.skills}  # CARD-562
-
-    profile = platform_pack_profile("developer")
-    assert profile.id == "developer"
-    assert profile.show_in_chat is True
-    assert "cli_exec" not in list(resolve_allowed_tools(profile))  # CARD-562: no shell/code runner on Developer
-    assert "write_project_file" in list(resolve_allowed_tools(profile))
-    assert "implement-change" in profile.allowed_skill
-
-
-def test_developer_carries_the_sdlc_skills():
-    """CARD-562 (was sdlc-engineering): developer carries the SDLC skills; autoreiv delegates via handoff."""
-    manifest = load_platform_manifest("developer")
-    assert manifest.id == "developer"
-    assert {"implement-change", "run-checks", "debug"} <= {s.id for s in manifest.skills}
-
-    dev_root = platform_packs_root() / "developer"
-    runbook = dev_root / "skills" / "implement-change" / "SKILL.md"
-    assert runbook.is_file(), "Missing runbook for implement-change under developer"
-    assert len(runbook.read_text(encoding="utf-8")) > 50
-
-    # Required developer tools come from the ticked skills
-    tools = {t for s in manifest.skills for t in s.tools}
-    required_tools = {
-        "read_project_file",
-        "write_project_file",
-        "list_project_dir",
-        "run_project_checks",
-        "patch_project_file",
-    }
-    assert required_tools <= tools
+from src.application.agent_packs.schema import CHAT_HIDDEN_BY_ID, is_visible_in_chat
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 def test_autoreiv_pack_profile_delegates_developer_capabilities():

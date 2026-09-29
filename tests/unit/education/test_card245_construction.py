@@ -24,7 +24,7 @@ from src.application.safety.tool_policy_gate import (
 )
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
-from src.infrastructure.skills.seed import BUNDLED_PACK_IDS, bundled_skill_md
+from tests.unit.agent_packs.catalog import BUNDLED_PACK_IDS, bundled_skill_md
 
 
 def test_construction_allowlist_matches_card241():

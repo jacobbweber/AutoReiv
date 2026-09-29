@@ -4,7 +4,6 @@ and database exclusion from pack zip exports.
 """
 
 
-from src.application.agent_packs.schema import AgentPackManifest, PackMemoryConfig
 from src.domain.agents.guardrails import AgentProfileGuardrail
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization
@@ -52,18 +51,4 @@ def test_agent_customization_memory_fields():
     assert custom.pinned_memory == "Always use metric units."
 
 
-def test_agent_pack_manifest_memory_round_trip():
-    manifest = AgentPackManifest(
-        id="coder-bot",
-        name="Coder Bot",
-        system_prompt="You write Python code.",
-        memory=PackMemoryConfig(
-            enabled=True,
-            retention_days=45,
-            pinned_memory="Always use type annotations.",
-        ),
-    )
-    assert manifest.memory_enabled is True
-    assert manifest.memory_retention_days == 45
-    assert manifest.pinned_memory == "Always use type annotations."
 

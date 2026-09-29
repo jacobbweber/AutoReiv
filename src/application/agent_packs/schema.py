@@ -1,32 +1,15 @@
-"""Agent Pack schema. Packaging of one specialist, not a fourth primitive."""
+"""Platform agent constants and the chat-visibility rule (CARD-570: no pack schema).
+
+Agents and skills are files (``platform/agents``, ``platform/skills``); a skill's tools live only
+in its SKILL.md ``tools:`` list. What stays here: the always-on platform tools, chat visibility,
+retired tool names, and the capability-authoring tool set the kernel keeps off normal turns.
+"""
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, List, Optional
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-PACK_SCHEMA_VERSION = "1.1"
-
-# Never copy these into a pack (instance data / secrets / tool source).
-FORBIDDEN_PACK_KEYS = frozenset(
-    {
-        "input_packet_json",
-        "output_packet_json",
-        "transcripts",
-        "transcript",
-        "secrets",
-        "secret",
-        "instance_facts",
-        "episodic_facts",
-    }
-)
-SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".db", ".db-wal", ".db-shm"})
-
-
-# CARD-339 / CARD-341 / CARD-366 / CARD-388: Platform agent consolidation & restoration.
-# autoreiv, direct, developer, tutor are the platform packs.
+# Ids never listed in Chat pickers (retired personas) and ids always listed.
 CHAT_HIDDEN_BY_ID = frozenset(
     {
         "agent-builder",
@@ -41,183 +24,21 @@ CHAT_HIDDEN_BY_ID = frozenset(
         "finance",
     }
 )
-# Stale hide overrides must not win for these human-facing companions.
 CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "developer", "tutor", "architect"})
 
-# Initial Factory Seed Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
-# All seeded packs are simply agent packs once installed.
-DEFAULT_SEEDED_PACK_IDS = frozenset({"autoreiv", "direct", "developer", "tutor", "architect"})  # architect: CARD-563
-PLATFORM_PACK_IDS = DEFAULT_SEEDED_PACK_IDS  # Backward compatibility alias
+# Tool names removed from the platform; the capability catalog drops their rows at seed time.
+RETIRED_TOOL_NAMES: tuple[str, ...] = (
+    "get_or_create_weekly_note",
+    "log_daily_work_item",
+    "complete_weekly_task",
+    "rollover_weekly_tasks",
+    "get_weekly_summary",
+    "list_wiki_templates",
+    "get_wiki_template",
+    "launch_factory_training",  # retired Factory dispatch [CARD-497 D12]
+)
 
-
-PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
-    "wiki_tasks": (
-        "wiki_note_read",
-        "wiki_note_create",
-        "wiki_note_update",
-        "wiki_template_read",
-    ),
-    "wiki-knowledge": (
-        "wiki_note_search",
-        "wiki_note_read",
-        "wiki_note_list",
-        "wiki_graph",
-    ),
-    "wiki-inbox": (
-        "wiki_note_create",
-        "promote_artifact_to_wiki",
-    ),
-    "wiki-curation": (
-        "wiki_note_organize",
-        "wiki_note_update",
-        "wiki_note_archive",
-        "wiki_template_list",
-        "wiki_template_read",
-        "wiki_overview",
-    ),
-    "coordination": (
-        "lookup_agents",
-        "handoff_to_agent",
-        "propose_followup",
-    ),
-    "proposals": (
-        "propose_skill",
-        "propose_tool",
-        "list_available_skills_and_tools",
-        "skill_view",
-        "list_user_skill_packs",
-        "commit_skill_pack",
-    ),
-    "worker": (
-        "batch_worker_scan",
-        "get_session_artifact",
-    ),
-    "sandbox": ("execute_code",),
-    "sqlite-storage": (
-        "query_agent_database",
-        "execute_agent_database",
-    ),
-}
-
-DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
-    "diagnostics": (
-        "inspect_system_health",
-        "get_system_logs",
-        "get_recent_errors",
-        "get_tool_health_matrix",
-        "system_info",
-        "test_provider_connectivity",
-    ),
-    "platform-health": (
-        "system_info",
-        "inspect_system_health",
-        "get_tool_health_matrix",
-        "get_recent_errors",
-        "get_system_logs",
-        "test_provider_connectivity",
-    ),
-    "wiki_tasks": (
-        "wiki_note_read",
-        "wiki_note_create",
-        "wiki_note_update",
-        "wiki_template_read",
-    ),
-    "tasks": (
-        "wiki_note_read",
-        "wiki_note_create",
-        "wiki_note_update",
-        "wiki_template_read",
-    ),
-    "wiki-knowledge": (
-        "wiki_note_search",
-        "wiki_note_read",
-        "wiki_note_list",
-        "wiki_graph",
-    ),
-    "wiki-inbox": (
-        "wiki_note_create",
-        "promote_artifact_to_wiki",
-    ),
-    "wiki-curation": (
-        "wiki_note_organize",
-        "wiki_note_update",
-        "wiki_note_archive",
-        "wiki_template_list",
-        "wiki_template_read",
-        "wiki_overview",
-    ),
-    "wiki": (
-        "wiki_note_create",
-        "wiki_note_read",
-        "wiki_note_update",
-        "wiki_note_search",
-        "wiki_note_list",
-        "wiki_note_organize",
-        "wiki_note_archive",
-        "wiki_template_list",
-        "wiki_template_read",
-        "wiki_overview",
-        "promote_artifact_to_wiki",
-    ),
-    "coding": (
-        "repo_file_read",
-        "repo_file_list",
-        "repo_file_write",
-        "repo_file_patch",
-    ),
-    "session-inspect": (
-        "get_session_transcript",
-        "get_agent_sessions",
-        "get_agent_usage_summary",
-    ),
-    "sqlite-storage": (
-        "query_agent_database",
-        "execute_agent_database",
-    ),
-    "mcp-engineering": (
-        "scaffold_mcp_server",
-        "test_mcp_server",
-        "deploy_mcp_container",
-        "register_mcp_service",
-    ),
-    "native-tool-engineering": (
-        "register_native_tool",
-        "plan_native_folder",
-    ),
-    "capability-authoring": (
-        "list_available_skills_and_tools",
-        "propose_skill",
-        "propose_tool",
-        "commit_skill_pack",
-        "list_user_skill_packs",
-        "skill_view",
-    ),
-}
-
-# Developer turn-cap names for capability authoring [CARD-429]. Not save_agent_specification.
-CAPABILITY_AUTHORING_TOOL_NAMES = frozenset(DYNAMIC_SKILL_TOOLS["capability-authoring"])
-
-
-class SkillTier(str, Enum):
-    REQUIRED_PLATFORM = "required_platform"
-    OPTIONAL_PLATFORM = "optional_platform"
-    AGENT_PACK = "agent_pack"
-
-
-# Tier 1: Enforced Platform Required Skills & Tools (CARD-339, ADR-0052)
-REQUIRED_PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
-    "platform_base": (
-        "activate_skill",
-        "ask_clarification",
-        "handoff_to_agent",
-        "lookup_agents",
-        "get_session_info",
-        "recall_agent_memory",
-        "memorize_fact",
-        "read_document_file",
-    ),
-}
-REQUIRED_PLATFORM_SKILLS: tuple[str, ...] = tuple(REQUIRED_PLATFORM_SKILL_TOOLS.keys())
+# Every agent with tools gets these (CARD-339, ADR-0052, CARD-539 D3).
 REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "activate_skill",
     "ask_clarification",
@@ -226,97 +47,31 @@ REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "get_session_info",
     "recall_agent_memory",
     "memorize_fact",
-    "read_document_file",  # CARD-539 D3: document reading is platform-wide
+    "read_document_file",
 )
 
-# Tier 2: Platform Optional Skills
-OPTIONAL_PLATFORM_SKILLS: tuple[str, ...] = (
-    "wiki_tasks",
-    "wiki-knowledge",
-    "wiki-inbox",
-    "wiki-curation",
-    "coordination",
-    "worker",
-    "proposals",
-    "sandbox",
-    "sqlite-storage",
+# Tool building tools (parked off Developer, CARD-562). The kernel keeps them off turns that do not ask.
+CAPABILITY_AUTHORING_TOOL_NAMES = frozenset(
+    {
+        "list_available_skills_and_tools",
+        "propose_skill",
+        "propose_tool",
+        "commit_skill_pack",
+        "list_user_skill_packs",
+        "skill_view",
+    }
 )
 
-PLATFORM_SKILL_IDS = tuple(PLATFORM_SKILL_TOOLS.keys())
-WIKI_TOOL_NAMES: tuple[str, ...] = (
-    "wiki_note_create",
-    "wiki_note_read",
-    "wiki_note_update",
-    "wiki_note_search",
-    "wiki_note_list",
-    "wiki_note_organize",
-    "wiki_note_archive",
-    "wiki_template_list",
-    "wiki_template_read",
-    "wiki_overview",
-    "promote_artifact_to_wiki",
-)
 
-PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
-    "wiki_tasks": {
-        "name": "Weekly Work Logs & Tasks",
-        "description": "Maintain Obsidian-compatible weekly work logs, daily checklists (- [ ]), and task carry-over using standard Wiki tools.",
-    },
-    "wiki-knowledge": {
-        "name": "Wiki Knowledge Lookup",
-        "description": "Search and read verified notes and facts from AutoReiv's Wiki vault.",
-    },
-    "wiki-inbox": {
-        "name": "Wiki Inbox Staging",
-        "description": "Stage new notes, reports, and session artifacts cleanly into 00_Inbox/ (One-Door Policy).",
-    },
-    "wiki-curation": {
-        "name": "Wiki Vault Curation",
-        "description": "One-by-one inbox graduation, template conformance, deduplication, and archival preservation.",
-    },
-    "wiki": {
-        "name": "Wiki & Knowledge Vault",
-        "description": "Local-first Wiki document management, structured notes, and knowledge graph indexing.",
-    },
-    "coordination": {
-        "name": "Agent Coordination & Handoff",
-        "description": "Multi-agent task delegation, peer lookup, and workflow followups.",
-    },
-    "worker": {
-        "name": "Batch Worker & Artifacts",
-        "description": "Parallel batch worker scans and session artifact retrieval.",
-    },
-    "proposals": {
-        "name": "Capability Proposals & Discovery",
-        "description": "Dynamic capability discovery, HITL proposals for skills and tools.",
-    },
-    "sandbox": {
-        "name": "Isolated Code Sandbox",
-        "description": "Guarded ephemeral code execution.",
-    },
-    "sqlite-storage": {
-        "name": "SQLite Specialty Storage",
-        "description": "Query and execute operations on private agent SQLite databases with strict security guardrails.",
-    },
-}
+def shipped_agent_ids() -> frozenset[str]:
+    from src.infrastructure.content.store import get_store
 
-
-class FleetManifest(BaseModel):
-    """Manifest for a consolidated multi-agent fleet suite [CARD-199, REQ-FLEET-012]."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    schema_version: str = "1.0"
-    id: str
-    name: str
-    description: str = ""
-    lead_agent_id: str
-    shared_skills: list[str] = Field(default_factory=list)
-    agent_ids: list[str] = Field(default_factory=list)
+    return frozenset(get_store().agents.shipped_ids())
 
 
 def is_platform_pack(agent_id: str) -> bool:
-    return (agent_id or "").strip() in PLATFORM_PACK_IDS
+    """True for a shipped agent (``platform/agents/<id>.md``). Name kept for callers."""
+    return (agent_id or "").strip() in shipped_agent_ids()
 
 
 def is_visible_in_chat(agent: Any) -> bool:
@@ -338,191 +93,3 @@ def is_visible_in_chat(agent: Any) -> bool:
     if agent_id in CHAT_SHOWN_BY_ID:
         return True
     return flag is not False
-
-
-def _normalize_str_list(value: Any) -> List[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        value = [value]
-    seen: List[str] = []
-    for item in value:
-        text = str(item).strip()
-        if text and text not in seen:
-            seen.append(text)
-    return seen
-
-
-class PackSkill(BaseModel):
-    """One skill on a pack: runbook id plus the tools that belong to it."""
-
-    id: str
-    name: str = ""
-    description: str = ""
-    tools: List[str] = Field(default_factory=list)
-
-    @field_validator("id")
-    @classmethod
-    def validate_id_not_empty(cls, value: str) -> str:
-        cleaned = (value or "").strip()
-        if not cleaned:
-            raise ValueError("Skill id cannot be empty.")
-        return cleaned
-
-    @field_validator("name", "description", mode="before")
-    @classmethod
-    def normalize_optional_str(cls, value: Any) -> str:
-        if value is None:
-            return ""
-        return str(value).strip()
-
-    @field_validator("tools", mode="before")
-    @classmethod
-    def normalize_tools(cls, value: Any) -> List[str]:
-        return _normalize_str_list(value)
-
-
-class PackStorageConfig(BaseModel):
-    """Storage settings for an agent pack [CARD-148]."""
-
-    enabled: bool = False
-    type: str = "sqlite"
-
-
-class PackMemoryConfig(BaseModel):
-    """Cognitive memory settings for an agent pack [CARD-116]."""
-
-    enabled: bool = True
-    retention_days: int = 30
-    pinned_memory: str = ""
-
-
-class PackMCPServerConfig(BaseModel):
-    """MCP Server settings for an agent pack [CARD-176, CARD-183, REQ-DELIV-004, REQ-MCP-AGENT-001]."""
-
-    name: Optional[str] = None
-    enabled: bool = False
-    entrypoint: str = "mcp/server.py"
-    transport: str = "stdio"  # "stdio" | "sse"
-    url: Optional[str] = None
-    command: Optional[List[str]] = None
-    headers: Optional[dict[str, str]] = None
-    env: Optional[dict[str, str]] = None
-
-
-# CARD-568: flat tool lists were removed; a pack.json that still has one is rejected on import.
-REJECTED_TOOL_LIST_KEYS = ("pack_tool_names", "allowed_tool_names")
-
-
-class AgentPackManifest(BaseModel):
-    """pack.json for one specialist: identity, nested skills (each with its tools), Show in Chat.
-
-    Tools live only in each skill's ``tools``; a flat tool list is rejected (CARD-568).
-    """
-
-    schema_version: str = PACK_SCHEMA_VERSION
-    id: str
-    name: str
-    description: str = ""
-    system_prompt: str = ""
-    tone: str = "default"
-    provider: str = "default"
-    purpose: str = "general"
-    avatar_icon: str = "bot"
-    model: str = "default"
-    skills: List[PackSkill] = Field(default_factory=list)
-    allowed_skill: List[str] = Field(default_factory=list)
-    show_in_chat: bool = True
-    visibility: str = "public"
-    fleet: Optional[str] = None
-    storage: Optional[PackStorageConfig] = None
-    storage_enabled: bool = False
-    storage_type: str = "sqlite"
-    memory: Optional[PackMemoryConfig] = None
-    memory_enabled: bool = True
-    memory_retention_days: int = 30
-    pinned_memory: str = ""
-    mcp_server: Optional[PackMCPServerConfig] = None
-    mcp_servers: List[PackMCPServerConfig] = Field(default_factory=list)
-    allowed_credentials: List[str] = Field(default_factory=list)
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def reject_flat_tool_lists(cls, data: Any) -> Any:
-        """A flat tool list is not supported: tools go in each skill's ``tools`` (CARD-568)."""
-        if isinstance(data, dict):
-            found = [key for key in REJECTED_TOOL_LIST_KEYS if key in data]
-            if found:
-                raise ValueError(
-                    f"pack.json has {', '.join(found)}: flat tool lists are not supported. "
-                    "Put each tool in its skill's tools list."
-                )
-        return data
-
-    @field_validator("id")
-    @classmethod
-    def validate_id_not_empty(cls, value: str) -> str:
-        cleaned = (value or "").strip()
-        if not cleaned:
-            raise ValueError("Pack id cannot be empty.")
-        return cleaned
-
-    @field_validator("name")
-    @classmethod
-    def validate_name_not_empty(cls, value: str) -> str:
-        cleaned = (value or "").strip()
-        if not cleaned:
-            raise ValueError("Pack name cannot be empty.")
-        return cleaned
-
-    @field_validator("purpose", mode="before")
-    @classmethod
-    def normalize_purpose(cls, value: Any) -> str:
-        val = str(value or "general").strip().lower()
-        if val == "code":
-            return "task_execution"
-        return val or "general"
-
-    @field_validator("allowed_skill", "allowed_credentials", mode="before")
-    @classmethod
-    def normalize_str_list(cls, value: Any) -> List[str]:
-        return _normalize_str_list(value)
-
-    @model_validator(mode="after")
-    def derive_compat_lists(self) -> AgentPackManifest:
-        nested_ids = [skill.id for skill in self.skills if skill.id]
-        if nested_ids:
-            merged_ids = list(nested_ids)
-            for sid in self.allowed_skill:
-                if sid not in merged_ids:
-                    merged_ids.append(sid)
-            self.allowed_skill = merged_ids
-            # Extra allowed_skill ids (e.g. Platform skill wiki) stay ticked but are not pack-owned.
-        elif self.allowed_skill:
-            self.skills = [PackSkill(id=sid, tools=[]) for sid in self.allowed_skill if sid not in PLATFORM_SKILL_IDS]
-
-        if self.storage is not None:
-            self.storage_enabled = bool(self.storage.enabled)
-            self.storage_type = str(self.storage.type or "sqlite")
-        elif self.storage_enabled:
-            self.storage = PackStorageConfig(enabled=True, type=self.storage_type or "sqlite")
-
-        if self.memory is not None:
-            self.memory_enabled = bool(self.memory.enabled)
-            self.memory_retention_days = int(self.memory.retention_days)
-            self.pinned_memory = str(self.memory.pinned_memory or "")
-        else:
-            self.memory = PackMemoryConfig(
-                enabled=self.memory_enabled,
-                retention_days=self.memory_retention_days,
-                pinned_memory=self.pinned_memory,
-            )
-
-        if self.visibility == "internal":
-            self.show_in_chat = False
-        elif self.show_in_chat is False and self.visibility == "public":
-            self.visibility = "internal"
-
-        return self

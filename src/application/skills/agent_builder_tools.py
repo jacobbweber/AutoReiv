@@ -131,13 +131,16 @@ class AgentBuilderTools:
 
     async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
         """Authoring catalog: skills, platform tools, purposes and tones. Not a tool list for the caller."""
-        from src.application.agent_packs.schema import PLATFORM_SKILL_METADATA
+        from src.infrastructure.content.store import get_store
 
         tools_list = []
         if self.tool_registry:
             for t in self.tool_registry.list_tools():
                 tools_list.append({"name": t.name, "description": t.description})
-        skills = [{"id": sid, **meta} for sid, meta in PLATFORM_SKILL_METADATA.items()]
+        skills = [
+            {"id": f.id, "name": f.meta.get("name") or f.id, "description": f.meta.get("description") or ""}
+            for f in get_store().skills.list()
+        ]
 
         purposes = [p.value for p in ModelPurpose]
         tones = [t.value for t in AgentTone]

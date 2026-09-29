@@ -8,10 +8,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.agent_packs.schema import PLATFORM_SKILL_TOOLS
 from src.application.skills.linter import CapabilityLinter
 from src.application.skills.manifest import BUILTIN_TOOL_GROUPS
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
+from tests.unit.agent_packs.catalog import SHIPPED_SKILL_TOOLS as PLATFORM_SKILL_TOOLS
 
 
 @pytest.fixture
@@ -73,13 +73,11 @@ def test_all_registered_tools_have_valid_schemas_and_callables(bootstrapped_tool
 def test_all_platform_and_seed_skill_runbooks_pass_linter():
     """Verify every SKILL.md in platform packs and seeds passes CapabilityLinter cleanly [CARD-376]."""
     repo_root = Path(__file__).resolve().parent.parent.parent.parent
-    platform_skills = list((repo_root / "platform-packs" / "autoreiv" / "skills").glob("*/SKILL.md"))
-    seed_skills = list((repo_root / "src" / "infrastructure" / "skills" / "seeds").glob("*/SKILL.md"))
+    platform_skills = list((repo_root / "platform" / "skills").glob("*/SKILL.md"))
     assert len(platform_skills) >= 10, "Expected at least 10 platform skills"
-    assert len(seed_skills) >= 10, "Expected at least 10 seed skills"
 
     linter = CapabilityLinter()
-    for skill_file in platform_skills + seed_skills:
+    for skill_file in platform_skills:
         contract, violations = linter.lint_file(skill_file)
         errors = [v for v in violations if v.severity.value == "error"]
         assert len(errors) == 0, (

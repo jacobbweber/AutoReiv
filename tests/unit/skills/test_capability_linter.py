@@ -280,7 +280,7 @@ def test_platform_packs_all_pass_mechanical_linter():
     from pathlib import Path
 
     repo_root = Path(__file__).resolve().parent.parent.parent.parent
-    platform_packs_dir = repo_root / "platform-packs"
+    platform_packs_dir = repo_root / "platform" / "skills"
 
     linter = CapabilityLinter()
     report = linter.lint_paths([platform_packs_dir])
