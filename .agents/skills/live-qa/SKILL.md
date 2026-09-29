@@ -13,7 +13,7 @@ description: Run a card's journeys on real models in a real browser, desktop and
 - Commit or `git add` new files first; the worktree copies tracked files only. Don't edit the repo during a run; exit code 3 means the real checkout changed.
 - `--data clone` copies real AppData (read-only source, no `.vault_key`) when the card needs real agents or history.
 - `--viewports desktop|phone`, `--keep`, `--out <dir>`.
-- Model: `AUTOREIV_QA_VLLM_URL` / `AUTOREIV_QA_MODEL` (default `qwen3.8:latest` on Nimo Ollama `http://192.168.1.29:11434/v1`, registered as the ollama provider). On an Ollama host QA asks for context `AUTOREIV_QA_NUM_CTX` (default 65536, the same as Developer; 0 = off) in check-model and in the throwaway serve's matrix, so Nimo does not reload the model at another size (CARD-575).
+- Model: `AUTOREIV_QA_VLLM_URL` / `AUTOREIV_QA_MODEL` (default `qwen3.8:latest` on Nimo Ollama `http://192.168.1.29:11434/v1`, registered as the ollama provider). On an Ollama host QA asks for context `AUTOREIV_QA_NUM_CTX` (default 262144, the same as Developer and Nimo's OLLAMA_CONTEXT_LENGTH; 0 = off) in check-model and in the throwaway serve's matrix, so Nimo does not reload the model at another size (CARD-575, CARD-576).
 
 ## Endpoint check
 - `run` first sends one chat completion (`max_tokens` 5, 20 s timeout) to the QA model. By hand:

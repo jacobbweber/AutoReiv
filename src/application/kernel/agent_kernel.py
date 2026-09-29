@@ -58,10 +58,9 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
 
-# Nested run_turn (handoffs, routines) must not inherit Chat's 131k window.
-# Live CARD-001 complete() at num_ctx=131072 sent zero bytes for 90s+ and
-# tripped the Ollama read timeout. 32k returns a tool call in seconds.
-NESTED_COMPLETE_MAX_CTX = 32768
+# CARD-576: nested run_turn (routines, plans, resumes) uses the agent's own context window, like stream_turn.
+# The old 32k cap (CARD-001 stall at 131072) made Ollama reload the model at another size on every nested run;
+# Nimo now serves qwen3.8 at its full 262144 (OLLAMA_CONTEXT_LENGTH). The reply stays capped by max_tokens.
 NESTED_COMPLETE_MAX_TOKENS = 8192
 
 # ADR-0054 / CARD-362: Demand-Paged Capability Engine constants
@@ -1004,7 +1003,7 @@ class AgentKernel:
             inter_step_latency_ms = ((turn_start - last_turn_end) * 1000) if last_turn_end is not None else None
             self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             context_limit = self._resolve_context_limit(agent, model_name)
-            nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
+            nested_ctx = context_limit  # CARD-576: no smaller override
             scaled_tool_chars = resolve_max_tool_chars(nested_ctx)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,

@@ -895,8 +895,8 @@ async def test_stream_turn_aclose_before_nested_complete(store, collector, regis
 
 
 @pytest.mark.asyncio
-async def test_run_turn_caps_nested_context_window(store, collector, registry):
-    """Handoff complete() must not inherit Chat 131k [REQ-ORCH-028]."""
+async def test_run_turn_uses_the_agents_own_context_window(store, collector, registry):
+    """CARD-576: nested run_turn sends the agent's context window (no 32k cap, so Ollama does not reload)."""
     llm = MockScriptedLLM(
         [
             CompletionResponse(
@@ -918,17 +918,17 @@ async def test_run_turn_caps_nested_context_window(store, collector, registry):
         tone=AgentTone.TECHNICAL,
         allowed_skill=["tool:task_tracker"],
     )
-    session = store.create_session(agent_id=profile.id, title="Nested ctx cap")
+    session = store.create_session(agent_id=profile.id, title="Nested ctx")
     await kernel.run_turn(agent=profile, session_id=session.id, user_content="pong")
     assert llm.requests, "complete() was not called"
     req = llm.requests[0]
-    assert req.num_ctx == 32768
+    assert req.num_ctx == 131072
     assert req.max_tokens == 8192
 
 
 @pytest.mark.asyncio
 async def test_stream_turn_uses_full_context_window(store, collector, registry):
-    """Chat/child stream_turn keeps the model window. 32k cap is run_turn only [REQ-ORCH-037]."""
+    """Chat/child stream_turn keeps the model window [REQ-ORCH-037]."""
     llm = MockScriptedLLM(
         responses=[],
         stream_chunks=[[StreamChunk(content="pong", is_finished=True, finish_reason="stop")]],

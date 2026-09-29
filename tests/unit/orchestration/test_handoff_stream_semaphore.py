@@ -72,7 +72,7 @@ def store(tmp_path):
 
 @pytest.mark.asyncio
 async def test_child_stream_turn_does_not_apply_32k_run_turn_cap(store):
-    """Child handoff uses stream_turn full context, not NESTED_COMPLETE_MAX_CTX [REQ-ORCH-037]."""
+    """Child handoff uses stream_turn with the full context window [REQ-ORCH-037]."""
     llm = RecordingLLM()
     gateway = MultiProviderGateway()
     gateway.register_provider(llm)

@@ -12,7 +12,6 @@ import httpx
 
 from src.application.gateway.model_capabilities import looks_like_vision_name
 from src.application.gateway.ports import LLMProviderPort
-from src.application.kernel.context_compactor import get_model_context_limit
 from src.domain.gateway.errors import (
     GatewayError,
     ModelNotFoundError,
@@ -161,11 +160,13 @@ class OllamaProviderAdapter(LLMProviderPort):
             "model": model_name,
             "messages": self._format_messages(request.messages),
             "stream": stream,
-            "options": {
-                "temperature": request.temperature,
-                "num_ctx": request.num_ctx or get_model_context_limit(model_name),
-            },
+            "options": {"temperature": request.temperature},
         }
+        # CARD-576: send num_ctx only when the caller set one (agent turns do). Background calls (memory extraction,
+        # distillation, detectors) leave it to the server default (OLLAMA_CONTEXT_LENGTH), instead of a guessed
+        # 32768 that made Ollama reload a model already loaded at another size.
+        if request.num_ctx:
+            payload["options"]["num_ctx"] = int(request.num_ctx)
         if request.max_tokens:
             payload["options"]["num_predict"] = request.max_tokens
 

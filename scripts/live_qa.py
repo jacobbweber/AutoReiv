@@ -48,9 +48,9 @@ CLONE_SKIP_SUFFIXES = (".db-wal", ".db-shm", ".lock")
 # 2026-09-29: Nimo Ollama; qwen3.6:35b-a3b-65k is gone and qwen3-coder cannot load next to the pinned models.
 DEFAULT_VLLM_URL = "http://192.168.1.29:11434/v1"
 DEFAULT_MODEL = "qwen3.8:latest"
-# CARD-575: Ollama context size for QA calls, the same as Jacob's Developer (num_ctx 65536), so Nimo keeps one
-# load of the model instead of reloading it at the server default (262144). AUTOREIV_QA_NUM_CTX overrides; 0 = off.
-DEFAULT_NUM_CTX = 65536
+# CARD-575/576: Ollama context size for QA calls, the same as Jacob's Developer and Nimo's OLLAMA_CONTEXT_LENGTH
+# (full 262144 for qwen3.8), so Nimo keeps one load of the model. AUTOREIV_QA_NUM_CTX overrides; 0 = off.
+DEFAULT_NUM_CTX = 262144
 EXIT_REFUSED = 2
 EXIT_CHECKOUT_CHANGED = 3
 EXIT_MODEL_DOWN = 4
