@@ -11,7 +11,7 @@ Studio. There is no self-copy mechanism; the running AutoReiv never edits its ow
 | Agent | Model | Does |
 |---|---|---|
 | Architect (slice 2) | reasoning model on DGX Spark (vLLM, global reasoning default) | brainstorms with Jacob, writes cards, hands one to Developer, reviews the result against the card (slice 3) |
-| Developer | coder model on Nimo (Ollama, set by Agent Studio model override; today `qwen3.6:35b-a3b-65k`) | takes a Ready card to In Review: branch, plan, edit, AGENTS.md checks, commit, evidence; files gaps it finds as Proposed cards; never invents features, never pushes or merges |
+| Developer | coder model on Nimo (Ollama, set by Agent Studio model override; was `qwen3.6:35b-a3b-65k`, gone from Nimo 2026-09-29; use `qwen3.6:35b-a3b`, same weights) | takes a Ready card to In Review: branch, plan, edit, AGENTS.md checks, commit, evidence; files gaps it finds as Proposed cards; never invents features, never pushes or merges |
 
 ## Platform vs project
 - Platform skills: general know-how (orientation, card intake and writing, planning, implementing, tests, debugging, checks, git, review, audit).

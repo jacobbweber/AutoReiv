@@ -61,7 +61,16 @@ for agents he does not trust.
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
 | card-573-always-auto-run | desktop | PASS | Agent Studio tutor: ticked and saved (PUT sent always_auto_run true; autoreiv stays false). Tutor chat A opened with Auto-run checked (badge shown), Run as a job off beside it. Unticked in A: send carried approval_mode ask; tutor chat B still opened checked; A stayed unticked on return; an autoreiv chat opened unchecked. New tutor routine: box pre-checked, saved run; a saved ask routine kept ask; API create without approval_mode got run. |
+- Follow-up (load timing): Agent Studio overwrote an edit made before the agent finished loading (a tick on the still-empty
+  form was replaced when the load filled it in). Fix: the four agent sections start `inert` in index.html and stay inert
+  while an agent is filled in; a newer render makes older ones stop after their awaits; a late load keeps the form the user
+  picked; Save waits while busy. vitest `card_573_forge_load_timing.test.js`; the journey now ticks right after picking
+  the agent (failed before the fix: "the tick was overwritten by the agent load"; PASS after).
+- QA default model: `qwen3.8:latest` on Nimo Ollama (`scripts/live_qa.py`, live-qa skill); Developer journeys default to
+  `qwen3.6:35b-a3b`. `qwen3.6:35b-a3b-65k` is gone from Nimo; `qwen3-coder:latest` is installed but its runner is killed
+  on load while qwen3.8 and qwen3.6 are pinned in memory.
 
 ## Log
 - 2026-09-29: Jacob asked for this (D1); routine behaviour D2 proposed by the parent agent. Ready; building stacked on CARD-572.
 - 2026-09-29: Built; checks green; journey PASS; In Review. Not merged or pushed.
+- 2026-09-29: Follow-ups: Agent Studio load-timing fix; QA default model qwen3.8:latest on Nimo. Journey PASS.
