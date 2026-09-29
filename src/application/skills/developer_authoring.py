@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 PACKET_SCHEMA = "skill_studio_authoring_packet"
 PACKET_VERSION = 1
 PROPOSAL_SCHEMA = "skill_studio_authoring_proposal"
-TEMPLATE_ID = "skill_studio_developer_authoring"
+TEMPLATE_ID = "skill_studio_toolsmith_authoring"  # CARD-577: was skill_studio_developer_authoring (jobs go to Toolsmith)
 # CARD-574: Skill Studio authoring jobs go to Toolsmith, like every Ask Developer button (CARD-571).
 TOOLSMITH_AGENT_ID = "toolsmith"
 PACKET_EVENT_KIND = "skill_studio_authoring_packet"

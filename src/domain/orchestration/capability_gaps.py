@@ -1,5 +1,5 @@
 """
-Domain models for Capability Gaps & Needs Training Backlog [REQ-FACT-027].
+Domain models for capability gaps [REQ-FACT-027].
 """
 
 from typing import Optional

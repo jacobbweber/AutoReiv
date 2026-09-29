@@ -1,7 +1,8 @@
 ---
 id: CARD-514
 title: "Agent Studio's Quick Scaffold modal has no opener (dead UI)"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-25
 branch: qa
 related:
@@ -18,7 +19,7 @@ milestone: M21
 
 # [CARD-514] Agent Studio's Quick Scaffold modal has no opener
 
-> **Status**: Ready (found in the CARD-496 scratch reproduction, 2026-09-25 ~11:52 PM ET, qa `7b22c933`). Not next: dead UI only, no data risk. The queue is Factory retirement CARD-496, CARD-511, CARD-497, CARD-512, CARD-498, then Education Studio.
+> **Status**: Done (closed in CARD-577). Superseded by CARD-569: Agent Studio New Agent now opens the Quick Scaffold modal; CARD-577 removed only the dead #forgeQuickScaffoldBtn hook.
 > **Related**: CARD-496 (removes only this modal's Factory jump, D6), CARD-197 (origin)
 > **Labels**: `type:cleanup`, `area:agents`, `area:frontend`, `P3`
 
@@ -35,3 +36,6 @@ Confirm again that nothing opens the modal (rg plus a smoke check), then delete 
 ## Done when
 
 No unreachable Quick Scaffold code or markup remains (or it has a visible opener, per Jacob); New Agent still hands off to AutoReiv; tests pass.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Superseded by CARD-569: Agent Studio New Agent now opens the Quick Scaffold modal; CARD-577 removed only the dead #forgeQuickScaffoldBtn hook.

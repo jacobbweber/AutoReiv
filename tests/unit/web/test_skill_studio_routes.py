@@ -164,34 +164,7 @@ async def test_4_skills_list_and_open(app_env):
         assert missing.status_code == 404
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "method,old,new",
-    [
-        ("GET", "/api/agent_training_factory/capabilities", "/api/tools_studio/capabilities"),
-        ("POST", "/api/agent_training_factory/scaffold/runbook", "/api/skill_studio/runbook"),
-        ("POST", "/api/agent_training_factory/scaffold/save", "/api/skill_studio/save"),
-        ("GET", "/api/agent_training_factory/skills", "/api/skill_studio/skills"),
-        ("GET", "/api/agent_training_factory/skills/wiki?agent_id=autoreiv", "/api/skill_studio/skills/wiki?agent_id=autoreiv"),
-    ],
-)
-async def test_5_old_paths_redirect_308(shared_app, method, old, new):
-    app = shared_app  # stateless redirect check [CARD-560]
-    async with _client(app) as ac:
-        resp = await ac.request(method, old, json={"skill_id": "x"} if method == "POST" else None)
-    assert resp.status_code == 308
-    assert resp.headers["location"] == new
-
-
-@pytest.mark.asyncio
-async def test_5b_redirect_keeps_method_and_body(app_env):
-    app, _ = app_env
-    app.state.gateway = None
-    payload = {"skill_id": "kept-body", "skill_name": "Kept Body", "trigger_description": "Body survives redirect"}
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", follow_redirects=True) as ac:
-        resp = await ac.post("/api/agent_training_factory/scaffold/runbook", json=payload)
-    assert resp.status_code == 200
-    assert resp.json()["skill_id"] == "kept-body"
+# CARD-577: the 308 redirects from /api/agent_training_factory/* are gone; the old paths are 404 (test_6).
 
 
 @pytest.mark.asyncio
@@ -199,6 +172,9 @@ async def test_5b_redirect_keeps_method_and_body(app_env):
     "method,path",
     [
         ("GET", "/api/agent_training_factory/jobs"),
+        ("GET", "/api/agent_training_factory/capabilities"),
+        ("POST", "/api/agent_training_factory/scaffold/runbook"),
+        ("GET", "/api/agent_training_factory/skills"),
         ("POST", "/api/agent_training_factory/jobs"),
         ("GET", "/api/agent_training_factory/jobs/fjob_1"),
         ("POST", "/api/agent_training_factory/jobs/fjob_1/step"),

@@ -308,25 +308,8 @@ def test_16b_no_src_file_imports_a_deleted_module():
     assert not bad, bad
 
 
-# 17 ------------------------------------------------------------------------
-def test_17_existing_factory_rows_survive_startup(tmp_path, monkeypatch):
-    _, db = _env(tmp_path, monkeypatch)
-    _app(db)  # creates schema, including the kept factory_* tables
-    conn = sqlite3.connect(str(db))
-    conn.execute(
-        "INSERT INTO factory_jobs (id, target_agent_id, session_id, status, seed_intent) "
-        "VALUES ('fjob_old', 'autoreiv', 'sess_x', 'running', 'legacy job')"
-    )
-    conn.commit()
-    conn.close()
+# 17: CARD-577 exports and drops the factory_* tables (tests/unit/core/test_card577_retired_tables.py).
 
-    app = _app(db)
-    client = TestClient(app)
-    assert client.get("/api/health").status_code == 200
-    conn = sqlite3.connect(str(db))
-    rows = conn.execute("SELECT id, status FROM factory_jobs").fetchall()
-    conn.close()
-    assert rows == [("fjob_old", "running")]
 
 def test_12e_talk_opens_an_empty_developer_session_so_the_client_sends_a_real_turn():
     """REQ-497-016: /talk must not pre-save the intent as a user message; the browser sends it via /api/chat/stream."""

@@ -1,7 +1,8 @@
 ---
 id: CARD-458
 title: "Single-pack promotion overwrites lock-migration report; restore gaps"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-24
 branch: qa
 related:
@@ -17,7 +18,7 @@ milestone: M22
 
 # [CARD-458] Single-pack promotion overwrites lock-migration report; restore gaps
 
-> **Status**: Ready
+> **Status**: Done (closed in CARD-577). Obsolete: removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).
 > **Created**: 2026-09-24
 > **Observed during**: CARD-450 build on Jarvis (`feat/card-450-studio-platform-pack-reset`)
 > **Labels**: `type:bug`, `area:packs`, `P3`
@@ -62,3 +63,6 @@ Reset or restore on one agent wiping other agents' lock-migration diagnostics.
 
 - **[REQ-458-001]** WHEN promotion runs for a `pack_ids` subset, THE SYSTEM SHALL keep other packs' entries in the lock-migration report.
 - **[REQ-458-002]** WHEN a backup taken before reset is restored, THE SYSTEM SHALL restore that pack's turned-off-skills record.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).

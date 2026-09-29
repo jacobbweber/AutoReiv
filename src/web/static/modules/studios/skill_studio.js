@@ -74,8 +74,6 @@ export function initSkillStudio(_state, callbacks = {}) {
   const factorySelectedToolCountBadge = $('factorySelectedToolCountBadge');
   const factorySourceContextInput = $('factorySourceContextInput');
   const factoryRefreshBtn = $('factoryRefreshBtn');
-  const factoryCurrentSkillsList = $('factoryCurrentSkillsList');
-  const factoryAssignedSkillsCount = $('factoryAssignedSkillsCount');
 
   let currentCapabilities = [];
   let selectedTools = new Set();
@@ -127,16 +125,7 @@ export function initSkillStudio(_state, callbacks = {}) {
     getAgentId: () => pinAgentId,
     onLoadSkill: (skillId, agentId) => { loadExistingSkill(skillId, agentId); },
     onNewSkill: () => resetNewSkillForm({ clearPicker: false }),
-    onOpenInSkillStudio: (skillId) => {
-      if (typeof callbacks.openSkillStudio === 'function') {
-        callbacks.openSkillStudio(pinAgentId || null, skillId || null);
-        return;
-      }
-      loadExistingSkill(skillId, pinAgentId);
-    },
     elements: () => ({
-      factoryCurrentSkillsList,
-      factoryAssignedSkillsCount,
       factoryExistingSkillSelect,
       factoryExistingSkillFilter,
       factoryNewSkillFormBtn,
@@ -155,7 +144,6 @@ export function initSkillStudio(_state, callbacks = {}) {
     pinAgentName = String(snapshot.agentName || '').trim();
     pinRolePersona = String(snapshot.rolePersona || '').trim();
     if (Array.isArray(snapshot.skills)) assignedSkills = snapshot.skills.slice();
-    skillScope.renderAssignedSkills();
     if (refreshPicker) {
       const selected = factoryExistingSkillSelect ? factoryExistingSkillSelect.value : '';
       skillScope.refreshEditableSkillOptions(selected);
@@ -363,7 +351,6 @@ export function initSkillStudio(_state, callbacks = {}) {
       if (pinAgentId && !assignedSkills.includes(skillId)) {
         assignedSkills.push(skillId);
       }
-      skillScope.renderAssignedSkills();
       await skillScope.refreshEditableSkillOptions(skillId);
       skillScope.selectSkillInPicker(skillId);
 

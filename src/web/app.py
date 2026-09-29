@@ -65,7 +65,6 @@ from src.web.routers.remote_hosts import router as remote_hosts_router
 from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
 from src.web.routers.skill_authoring import router as skill_authoring_router
-from src.web.routers.skill_studio import legacy_router as skill_studio_legacy_router
 from src.web.routers.skill_studio import router as skill_studio_router
 from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
@@ -520,9 +519,7 @@ def create_app(
 
     from pathlib import Path as _Path
 
-    from src.application.capabilities.scaffold_spine import SelfScaffoldSpine
     from src.application.skills.user_catalog import UserSkillCatalog
-    from src.infrastructure.memory.repositories.scaffold_spine import ScaffoldSpineRepository
     _data_dir = getattr(app.state, "data_dir", None)
     if _data_dir is None:
         _settings = getattr(app.state, "settings", None)
@@ -541,11 +538,6 @@ def create_app(
         orch_state = getattr(app.state, "job_orchestrator", None)
         if orch_state is not None:
             orch_state._skill_catalog = _catalog
-    app.state.scaffold_spine = SelfScaffoldSpine(
-        spine_repo=ScaffoldSpineRepository(store),
-        capability_repo=app.state.capability_catalog_repo,
-        catalog=_catalog,
-    )
 
     # 8. Middleware
     app.add_middleware(
@@ -589,7 +581,6 @@ def create_app(
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)
     app.include_router(skill_studio_router)
-    app.include_router(skill_studio_legacy_router)
     app.include_router(gaps_router)
     app.include_router(agents_router)
     app.include_router(skills_router)

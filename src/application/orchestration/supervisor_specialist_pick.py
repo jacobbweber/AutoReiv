@@ -347,21 +347,13 @@ def supervisor_specialist_handoff(
             except Exception as exc:  # noqa: BLE001
                 logger.warning("supervisor no-match park failed: %s", exc)
         elif action == "scaffold":
-            # Defer to CARD-233 hook when available; still fail-closed on invent.
-            handler = getattr(orchestrator, "handle_mid_job_capability_gap", None)
-            if callable(handler):
-                try:
-                    handler(phase_id, spine=None, park=True)
-                except Exception as exc:  # noqa: BLE001
-                    logger.debug("supervisor scaffold defer soft-fail: %s", exc)
-                    action = "fail_closed"
-            else:
+            # CARD-577: the self-scaffold spine is retired; "scaffold" parks the phase (still fail-closed on invent).
+            action = "fail_closed"
+            try:
+                orchestrator.park_phase(phase_id, verifier_status="none")
+                action = "park"
+            except Exception:
                 action = "fail_closed"
-                try:
-                    orchestrator.park_phase(phase_id, verifier_status="none")
-                    action = "park"
-                except Exception:
-                    action = "fail_closed"
         payload = {
             "ok": False,
             "action": action,

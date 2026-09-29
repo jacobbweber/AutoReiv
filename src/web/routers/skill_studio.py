@@ -3,21 +3,17 @@
 Moved out of the retired Agent Training Factory router with identical payloads:
 ``GET /api/tools_studio/capabilities``, ``POST /api/skill_studio/runbook``,
 ``POST /api/skill_studio/save``, ``GET /api/skill_studio/skills`` and
-``GET /api/skill_studio/skills/{id}``. The five old ``/api/agent_training_factory/*``
-paths answer 308 to these for one release (CARD-498 removes the redirects).
+``GET /api/skill_studio/skills/{id}``. The old ``/api/agent_training_factory/*`` redirects are gone (CARD-577).
 """
 
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["Skill Studio"])
-legacy_router = APIRouter(prefix="/api/agent_training_factory", include_in_schema=False)
 
 
 class ScaffoldRunbookRequest(BaseModel):
@@ -398,34 +394,3 @@ def _workshop_data_root(request: Request):
     from src.infrastructure.data.resolver import DataDirResolver
 
     return DataDirResolver().resolve().root
-
-
-def _permanent_redirect(request: Request, new_path: str) -> RedirectResponse:
-    """308 keeps the method, body and query string [CARD-497 D1]."""
-    query = request.url.query
-    return RedirectResponse(f"{new_path}?{query}" if query else new_path, status_code=308)
-
-
-@legacy_router.get("/capabilities")
-async def legacy_capabilities(request: Request) -> RedirectResponse:
-    return _permanent_redirect(request, "/api/tools_studio/capabilities")
-
-
-@legacy_router.post("/scaffold/runbook")
-async def legacy_runbook(request: Request) -> RedirectResponse:
-    return _permanent_redirect(request, "/api/skill_studio/runbook")
-
-
-@legacy_router.post("/scaffold/save")
-async def legacy_save(request: Request) -> RedirectResponse:
-    return _permanent_redirect(request, "/api/skill_studio/save")
-
-
-@legacy_router.get("/skills")
-async def legacy_skills(request: Request) -> RedirectResponse:
-    return _permanent_redirect(request, "/api/skill_studio/skills")
-
-
-@legacy_router.get("/skills/{skill_id:path}")
-async def legacy_skill(skill_id: str, request: Request) -> RedirectResponse:
-    return _permanent_redirect(request, f"/api/skill_studio/skills/{quote(skill_id, safe='/')}")

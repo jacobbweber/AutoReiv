@@ -16,7 +16,6 @@ from pydantic import BaseModel
 
 from src.application.gateway.ports import LLMProviderPort
 from src.domain.settings.models import (
-    AgentCustomization,
     HardwareSpecs,
     MCPServerConfig,
     ModelDescriptor,
@@ -847,16 +846,7 @@ async def refresh_models(request: Request, req: Optional[HardwareFitQueryRequest
     return [r.model_dump() for r in reports]
 
 
-@router.post("/api/settings/agents/{agent_id}")
-async def customize_agent(request: Request, agent_id: str, custom: AgentCustomization):
-    """Partial agent edit: model/provider go to settings, the rest into the agent file [CARD-570]."""
-    registry = request.app.state.registry
-    custom.agent_id = agent_id
-    try:
-        registry.apply_customization(custom)
-    except LookupError:
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    return {"status": "saved", "customization": custom.model_dump()}
+# CARD-506: POST /api/settings/agents/{id} removed; Agent Studio saves through PUT /api/agents/{id}.
 
 
 @router.get("/api/settings/reply-limits")

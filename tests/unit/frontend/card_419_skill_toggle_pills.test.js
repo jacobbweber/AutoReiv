@@ -15,7 +15,6 @@ import {
   toggleSkillInAllowlist,
 } from '../../../src/web/static/modules/studios/forge/skill_pills.js';
 import { operatorSkillPillModel, skillRowHtml } from '../../../src/web/static/modules/studios/forge/runbook.js';
-import { factoryAssignedSkillChrome } from '../../../src/web/static/modules/studios/skill_studio/skill_scope.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
 
@@ -186,14 +185,10 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(forge).toContain('allowed_skill: checkedSkills');
   });
 
-  it('Factory assigned skills stay display-only with a separate Skill Studio link', () => {
-    const chrome = factoryAssignedSkillChrome('wiki-knowledge');
-    expect(chrome.interactiveToggle).toBe(false);
-    expect(chrome.linkLabel).toBe('Open in Skill Studio');
-    expect(chrome.skillId).toBe('wiki-knowledge');
-
-    expect(skillScope).toContain('interactiveToggle');
-    expect(skillScope).toContain('factory-assigned-open-studio');
+  it('Skill Studio has no assigned-skills strip (CARD-577: the Factory brief it rendered into is gone)', () => {
+    expect(skillScope).not.toContain('renderAssignedSkills');
+    expect(skillScope).not.toContain('factoryAssignedSkillChrome');
+    expect(skillScope).not.toContain('factoryCurrentSkillsList');
     expect(skillScope).not.toContain('role="switch"');
     expect(skillScope).not.toContain('forge-skill-pill');
     expect(skillScope).not.toContain('factory-skill-open-btn');

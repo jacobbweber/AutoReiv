@@ -204,7 +204,7 @@ def propose_catalog_gaps(
             {
                 "kind": "catalog_gap",
                 "gap": "no_matched_capabilities",
-                "suggested_action": "draft_candidate_via_scaffold_spine",
+                "suggested_action": "ask_toolsmith",
                 "success_rule": (success_rule or "")[:240],
                 "trust_write_forbidden": True,
             }
@@ -218,7 +218,7 @@ def propose_catalog_gaps(
                 "gap": f"missing_critical_role:{fam}",
                 "family": fam,
                 "keywords": sorted(_CRITICAL_FAMILIES.get(fam, ())),
-                "suggested_action": "draft_candidate_via_scaffold_spine",
+                "suggested_action": "ask_toolsmith",
                 "matched_capability_ids": list(matched_capability_ids or []),
                 "trust_write_forbidden": True,
             }
