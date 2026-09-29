@@ -2,19 +2,20 @@
 id: CARD-572
 title: "Chat runs a job only when Jacob asks: an explicit Run as a job action replaces keyword routing"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
 proof: "Journey card-572-explicit-job: in Chat, a message full of old trigger words (numbered steps, 'first ... then ... finally', 'create a note that ...', 'done when: ...') runs as one normal turn with 0 Job/Phase rows; the same text sent with Run as a job creates one Job, the phase strip shows it, and the reply comes back in the chat. Checks: route_standing_chat is gone (guard test: no chat, routine or handoff path calls a text classifier to start a Job); existing Job tests re-pointed at the explicit flag."
 branch: feat/card-572-explicit-job
 created: 2026-09-29
+completed: 2026-09-29
 related: [CARD-565, CARD-564, CARD-548, CARD-554, CARD-271, CARD-230, CARD-222, CARD-215]
 ---
 
 # CARD-572 Chat runs a job only when Jacob asks
 
-> **Status**: In Review
+> **Status**: Done
 
 ## Why
 Chat decides "normal turn or two-phase Job" by matching words in the message. When it guesses Job, the work runs in
@@ -123,3 +124,4 @@ asks can still become a Job. Jacob can't tell in advance which way a message wil
 - 2026-09-29: Research on qa (read-only, ~15 min): triggers T1-T4, misfires, explicit paths, harness comparison; Draft with D1-D4.
 - 2026-09-29: Jacob: build, all four recommendations. Ready; built on feat/card-572-explicit-job; checks green; journey PASS; In Review.
 - 2026-09-29: Clean journey rerun PASS (QA model qwen3.8:latest; qwen3.6:35b-a3b-65k missing on the Ollama host).
+- 2026-09-29: Jacob: merge to qa. Done; merged into qa.
