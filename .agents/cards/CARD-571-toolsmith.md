@@ -1,8 +1,9 @@
 ---
 id: CARD-571
 title: "Toolsmith: restore runtime tool building and Ask Developer on the CARD-570 setup"
-status: In Review
+status: Done
 created: 2026-09-29
+completed: 2026-09-29
 branch: feat/card-571-toolsmith
 related:
   - CARD-570
@@ -21,7 +22,7 @@ proof: "unit tests for the builder agent's tool list (no shell, no code runner, 
 
 # [CARD-571] Toolsmith: restore runtime tool building and Ask Developer
 
-> **Status**: In Review
+> **Status**: Done
 > **Related**: CARD-570 (tools are files with approval hash and Jacob-only enable), CARD-562 (parked tool building off Developer), CARD-539 (attach_tool_to_skill proposals, Ask Developer from chat), CARD-520 (Observability Ask Developer), CARD-511 (tool check before save)
 > **Labels**: `type:feature`, `area:tools`, `P2`
 
@@ -105,3 +106,4 @@ Out of scope: MCP server building and Docker deploys (`mcp-engineering`), agents
 - 2026-09-29: Jacob chose all six recommendations; Ready.
 - 2026-09-29: Built on feat/card-571-toolsmith; checks green; live journey PASS; In Review.
 - 2026-09-29: Follow-up: flagged code is never run by the save check (enforced in tool_check), skip flag removed, guard tests, Toolsmith wording in Tools Studio; preflight fast GREEN; still In Review.
+- 2026-09-29: Jacob: merge to qa. Done; merged into qa.
