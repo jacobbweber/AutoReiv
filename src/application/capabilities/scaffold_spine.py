@@ -32,9 +32,9 @@ def _new_id() -> str:
     return f"scf_{uuid.uuid4().hex[:12]}"
 
 
-def _cap_id(kind: CapabilityKind | str, pack_id: str) -> str:
+def _cap_id(kind: CapabilityKind | str, skill_id: str) -> str:
     k = kind.value if isinstance(kind, CapabilityKind) else str(kind).strip().lower()
-    return f"{k}.{pack_id}"
+    return f"{k}.{skill_id}"
 
 
 class SelfScaffoldSpine:
@@ -66,7 +66,7 @@ class SelfScaffoldSpine:
         *,
         kind: CapabilityKind | str,
         name: str,
-        pack_id: str,
+        skill_id: str,
         summary: str = "",
         content: str = "",
         proposal_id: Optional[str] = None,
@@ -76,34 +76,34 @@ class SelfScaffoldSpine:
     ) -> ScaffoldRecord:
         """Always land as candidate — never trusted by default [REQ-SCAFFOLD-001]."""
         kind_e = CapabilityKind(str(kind.value if isinstance(kind, CapabilityKind) else kind).strip().lower())
-        pid = (pack_id or "").strip()
+        pid = (skill_id or "").strip()
         if not pid:
-            raise ValueError("pack_id is required.")
+            raise ValueError("skill_id is required.")
         nm = (name or "").strip()
         if not nm:
             raise ValueError("name is required.")
 
-        # Capture prior trusted snapshot id if a trusted pack already exists.
+        # Capture prior trusted snapshot id if a trusted skill already exists.
         prior_snap: Optional[str] = None
-        existing_pack = None
+        existing_skill = None
         try:
-            existing_pack = self.catalog.read_pack(pid)
+            existing_skill = self.catalog.read_skill(pid)
         except Exception:
-            existing_pack = None
-        if existing_pack and existing_pack.get("success"):
-            snap = self.catalog.snapshot_pack(pid)
+            existing_skill = None
+        if existing_skill and existing_skill.get("success"):
+            snap = self.catalog.snapshot_skill(pid)
             if snap.get("success"):
                 prior_snap = snap.get("snapshot_id")
 
         if not skip_disk_write:
-            saved = self.catalog.save_pack(
+            saved = self.catalog.save_skill(
                 pid,
                 nm,
                 summary or nm,
                 content or f"# {nm}\n",
             )
             if not saved.get("success"):
-                raise ValueError(saved.get("error") or "UserSkillCatalog.save_pack failed.")
+                raise ValueError(saved.get("error") or "UserSkillCatalog.save_skill failed.")
 
         cap_id = _cap_id(kind_e, pid)
         entry = CapabilityIndexEntry.self_authored(
@@ -112,7 +112,7 @@ class SelfScaffoldSpine:
             name=nm,
             summary=summary or "",
             keywords=list(keywords or [nm, pid, "scaffold", "candidate"]),
-            metadata={"scaffold": True, "pack_id": pid},
+            metadata={"scaffold": True, "skill_id": pid},
         )
         self.capability_repo.upsert_entry(entry)
 
@@ -121,7 +121,7 @@ class SelfScaffoldSpine:
             kind=kind_e,
             name=nm,
             summary=summary or "",
-            pack_id=pid,
+            skill_id=pid,
             capability_id=cap_id,
             phase=ScaffoldPhase.DRAFT,
             trust_tier=TrustTier.CANDIDATE,
@@ -168,9 +168,9 @@ class SelfScaffoldSpine:
         rec = self.get(record_id)
         if not rec.sandboxed:
             raise CandidateUnsandboxedError("candidate cannot run unsandboxed; sandbox_exec required before version")
-        snap = self.catalog.snapshot_pack(rec.pack_id)
+        snap = self.catalog.snapshot_skill(rec.skill_id)
         if not snap.get("success"):
-            # Pack may be brand-new; create a version marker anyway.
+            # Skill may be brand-new; create a version marker anyway.
             snap_id = f"ver_{uuid.uuid4().hex[:10]}"
         else:
             snap_id = snap.get("snapshot_id") or f"ver_{uuid.uuid4().hex[:10]}"
@@ -245,11 +245,11 @@ class SelfScaffoldSpine:
                 "error": "No prior trusted snapshot to restore.",
                 "record_id": rec.id,
             }
-        restored = self.catalog.rollback_pack(rec.pack_id, snapshot_id=prior)
+        restored = self.catalog.rollback_skill(rec.skill_id, snapshot_id=prior)
         if not restored.get("success"):
             return {
                 "success": False,
-                "error": restored.get("error") or "rollback_pack failed",
+                "error": restored.get("error") or "rollback_skill failed",
                 "record_id": rec.id,
             }
         entry = self.capability_repo.get_entry(rec.capability_id)
@@ -280,7 +280,7 @@ class SelfScaffoldSpine:
             "success": True,
             "record_id": rec.id,
             "prior_trusted_snapshot_id": prior,
-            "pack_id": rec.pack_id,
+            "skill_id": rec.skill_id,
             "restored": restored,
         }
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
@@ -18,6 +17,7 @@ from src.application.skills.git_tools import GitTools
 from src.application.skills.project_dev_tools import ProjectDevTools
 from src.domain.sdlc.agents_contract import parse_agents_md
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_skills.catalog import pack_dict
 
 PY = f'"{sys.executable}"'
 AGENTS = f"""# AGENTS.md - demo
@@ -228,7 +228,7 @@ def test_every_developer_tool_is_registered_and_skills_stay_under_eight(tmp_path
     skills.mkdir(parents=True)
     _, reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=TelemetryCollector(store=store), skills_dir=str(skills))
     registered = {t.name for t in reg.list_tools()}
-    pack = json.loads(Path("platform-packs/developer/pack.json").read_text(encoding="utf-8"))
+    pack = pack_dict("developer")
     for entry in pack["skills"]:
         if entry["id"] == "capability-authoring":
             continue  # tool-building lane, parked (D5); tracked separately

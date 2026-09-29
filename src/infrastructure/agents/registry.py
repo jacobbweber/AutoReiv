@@ -2,6 +2,7 @@
 Built-in Agent Registry & Bootstrapper [REQ-AGENTS-001].
 """
 
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -18,13 +19,24 @@ from src.domain.agents.profiles import (
     get_builtin_profile,
 )
 from src.domain.kernel.models import AgentProfile
+from src.infrastructure.agents.agent_files import (
+    MODEL_FIELDS,
+    MODEL_SETTINGS_KEY,
+    meta_from_profile,
+    model_settings_from_profile,
+    profile_from_file,
+)
+from src.infrastructure.content.store import ContentStore, get_store
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+logger = logging.getLogger(__name__)
 
 
 class BuiltinAgentRegistry:
     """
-    Registry for managing available agent profiles and bootstrapping
-    Platform Agent Packs, custom agents, and authorized tools.
+    Registry of agent profiles. Agents are files [CARD-570]: shipped ``platform/agents/<id>.md``
+    read in place, user copies in data ``agents/<id>.md`` win by id. Per-agent model/provider are
+    separate settings. In-memory profiles (tests, BUILTIN_PROFILES) are a fallback only.
     agent-builder is retired [CARD-429] and is never registered.
     """
 
@@ -33,166 +45,138 @@ class BuiltinAgentRegistry:
         profiles: Optional[List[AgentProfile]] = None,
         state_store: Optional[SQLiteStateStore] = None,
         master_tool_registry: Optional[ScopedToolRegistry] = None,
+        content_store: Optional[ContentStore] = None,
     ):
         self._profiles: Dict[str, AgentProfile] = {}
         self.state_store = state_store
         self.master_tool_registry = master_tool_registry or ScopedToolRegistry()
-        if self.state_store is not None and hasattr(self.state_store, "retire_agent_builder_rows"):
-            self.state_store.retire_agent_builder_rows()
-        if self.state_store is not None and hasattr(self.state_store, "scrub_historical_agent_builder_rows"):
-            self.state_store.scrub_historical_agent_builder_rows()
+        self._content = content_store
 
         source = BUILTIN_PROFILES if profiles is None else profiles
         for p in source:
             self.register_profile(p)
 
+    @property
+    def content(self) -> ContentStore:
+        return self._content if self._content is not None else get_store()
+
+    # model settings ----------------------------------------------------------------------------
+    def model_settings(self, agent_id: str) -> dict:
+        if not self.state_store or not hasattr(self.state_store, "get_setting"):
+            return {}
+        raw = self.state_store.get_setting(MODEL_SETTINGS_KEY) or {}
+        entry = raw.get(agent_id) if isinstance(raw, dict) else None
+        return dict(entry) if isinstance(entry, dict) else {}
+
+    def save_model_settings(self, agent_id: str, values: dict) -> None:
+        if not self.state_store or not hasattr(self.state_store, "set_setting"):
+            return
+        raw = self.state_store.get_setting(MODEL_SETTINGS_KEY) or {}
+        raw = dict(raw) if isinstance(raw, dict) else {}
+        clean = {k: v for k, v in (values or {}).items() if k in MODEL_FIELDS and v not in (None, "")}
+        if clean:
+            raw[agent_id] = clean
+        else:
+            raw.pop(agent_id, None)
+        self.state_store.set_setting(MODEL_SETTINGS_KEY, raw)
+
+    # writes ------------------------------------------------------------------------------------
     def register_profile(self, profile: AgentProfile) -> None:
         if profile.id in RETIRED_LIVE_AGENT_IDS:
             return
         self._profiles[profile.id] = profile
 
     def register_custom_agent(self, profile: AgentProfile) -> None:
-        """Persist a custom agent profile and cache in memory."""
+        """Save the full agent file (user copy) and its model settings. No field merging."""
+        self.save_agent(profile)
+
+    def save_agent(self, profile: AgentProfile, *, create: bool = False) -> AgentProfile:
+        """Write data ``agents/<id>.md``. ``create`` refuses shipped (reserved) and existing ids."""
         if profile.id in RETIRED_LIVE_AGENT_IDS:
-            return
-        self._profiles[profile.id] = profile
-        if self.state_store:
-            self.state_store.save_agent_profile(profile)
+            raise ValueError(f"'{profile.id}' is retired.")
+        meta, body = meta_from_profile(profile)
+        if self.content.data_root is None:
+            self._profiles[profile.id] = profile  # no data dir (unit tests): memory only
+        else:
+            self.content.agents.save(profile.id, meta, body, create=create)
+        self.save_model_settings(profile.id, model_settings_from_profile(profile))
+        return self.get_agent(profile.id) or profile
+
+    def apply_customization(self, custom) -> AgentProfile:
+        """Apply the set fields of an AgentCustomization and save (full copy; model fields to settings)."""
+        existing = self.get_agent(custom.agent_id)
+        if existing is None:
+            raise LookupError(custom.agent_id)
+        update = {
+            k: v
+            for k, v in custom.model_dump(exclude={"agent_id", "user_modified"}).items()
+            if v is not None and k in AgentProfile.model_fields
+        }
+        profile = AgentProfile.model_validate({**existing.model_dump(), **update})
+        return self.save_agent(profile)
+
+    def use_shipped_version(self, agent_id: str) -> bool:
+        """Delete the user copy of a shipped agent. Model settings are kept."""
+        return self.content.agents.use_shipped(agent_id)
 
     def delete_custom_agent(self, agent_id: str, purge_history: bool = False) -> bool:
+        """Shipped agent -> hidden (persisted); user-created -> file removed."""
         if agent_id in ("agent-builder", "autoreiv"):
             return False
+        in_memory = self._profiles.pop(agent_id, None) is not None
+        outcome = self.content.agents.delete(agent_id)
+        if purge_history and self.state_store and hasattr(self.state_store, "delete_agent_history"):
+            try:
+                self.state_store.delete_agent_history(agent_id)
+            except Exception:
+                pass
+        return in_memory or outcome in ("hidden", "deleted")
 
-        if agent_id in self._profiles:
-            del self._profiles[agent_id]
+    def unhide_agent(self, agent_id: str) -> bool:
+        return self.content.agents.unhide(agent_id)
 
-        if self.state_store:
-            return self.state_store.delete_agent_profile(agent_id, purge_history=purge_history)
-        return True
+    def agent_file_status(self, agent_id: str) -> dict:
+        loaded = self.content.agents.load(agent_id, include_hidden=True)
+        if loaded is None:
+            return {"source": "memory", "shipped": False, "edited": False, "shipped_changed": False, "warnings": []}
+        status = loaded.status()
+        status["hidden"] = agent_id in self.content.agents.hidden()
+        return status
 
+    # reads -------------------------------------------------------------------------------------
     def get_agent(self, agent_id: str) -> Optional[AgentProfile]:
-        """Fetch agent profile with SQLite custom agent resolution, alias fallback, and override overlay."""
-        if (agent_id or "").strip() in RETIRED_LIVE_AGENT_IDS or canonical_agent_id(agent_id) in RETIRED_LIVE_AGENT_IDS:
+        """Agent file (user copy wins), else an in-memory profile; alias fallback."""
+        raw = (agent_id or "").strip()
+        if raw in RETIRED_LIVE_AGENT_IDS or canonical_agent_id(raw) in RETIRED_LIVE_AGENT_IDS:
             return None
-        profile: Optional[AgentProfile] = None
-
-        # 1. Direct match by exact agent_id
-        if self.state_store:
-            profile = self.state_store.get_agent_profile(agent_id)
-
-        if not profile:
-            profile = self._profiles.get(agent_id)
-
-        # 2. Alias fallback via canonical_agent_id
-        if not profile:
-            lookup_id = canonical_agent_id(agent_id)
-            if lookup_id != agent_id:
-                if self.state_store:
-                    profile = self.state_store.get_agent_profile(lookup_id)
-                if not profile:
-                    profile = self._profiles.get(lookup_id)
-            else:
-                lookup_id = agent_id
-
-            if not profile:
-                profile = get_builtin_profile(lookup_id)
-
-        if not profile:
-            return None
-
-        # Apply any operator override
-        if self.state_store:
-            override = self.state_store.get_agent_override(profile.id)
-            if override:
-                profile = profile.model_copy()
-                if getattr(override, "name", None):
-                    profile.name = override.name
-                if override.system_prompt:
-                    profile.system_prompt = override.system_prompt
-                if override.tone:
-                    from src.domain.kernel.models import AgentTone
-
-                    profile.tone = (
-                        AgentTone(override.tone) if override.tone in [t.value for t in AgentTone] else override.tone
-                    )
-                if override.provider:
-                    profile.provider = override.provider
-                if hasattr(override, "api_base_url") and override.api_base_url is not None:
-                    profile.api_base_url = override.api_base_url
-                if hasattr(override, "api_key") and override.api_key is not None:
-                    profile.api_key = override.api_key
-                if hasattr(override, "context_window") and override.context_window is not None:
-                    profile.context_window = override.context_window
-                if override.model:
-                    profile.model = override.model
-                if override.purpose:
-                    from src.domain.settings.models import ModelPurpose
-
-                    try:
-                        profile.purpose = ModelPurpose(override.purpose)
-                    except ValueError:
-                        pass
-                if override.allowed_skill is not None:
-                    profile.allowed_skill = override.allowed_skill
-                if override.show_in_chat is not None:
-                    profile.show_in_chat = override.show_in_chat
-                if override.max_turns:
-                    profile.max_turns = override.max_turns
-                if override.history_retention_days is not None:
-                    profile.history_retention_days = override.history_retention_days
-                if getattr(override, "storage_enabled", None) is not None:
-                    profile.storage_enabled = override.storage_enabled
-                if getattr(override, "storage_type", None) is not None:
-                    profile.storage_type = override.storage_type
-                if getattr(override, "memory_enabled", None) is not None:
-                    profile.memory_enabled = override.memory_enabled
-                if getattr(override, "memory_retention_days", None) is not None:
-                    profile.memory_retention_days = override.memory_retention_days
-                if getattr(override, "pinned_memory", None) is not None:
-                    profile.pinned_memory = override.pinned_memory
-                if getattr(override, "allow_autonomous_training", None) is not None:
-                    profile.allow_autonomous_training = override.allow_autonomous_training
-                if getattr(override, "max_training_retries", None) is not None:
-                    profile.max_training_retries = override.max_training_retries
-                if getattr(override, "mcp_servers", None) is not None:
-                    profile.mcp_servers = override.mcp_servers
-                if getattr(override, "allowed_credentials", None) is not None:
-                    profile.allowed_credentials = override.allowed_credentials
-
-        return profile
+        for lookup in dict.fromkeys([raw, canonical_agent_id(raw)]):
+            if not lookup:
+                continue
+            loaded = self.content.agents.load(lookup)
+            if loaded is not None:
+                return profile_from_file(loaded, self.model_settings(lookup))
+            if lookup in self.content.agents.hidden() and self.content.agents.shipped_path(lookup).is_file():
+                return None
+            profile = self._profiles.get(lookup) or get_builtin_profile(lookup)
+            if profile is not None:
+                settings = self.model_settings(lookup)
+                return profile.model_copy(update=settings) if settings else profile
+        return None
 
     def get_profile(self, agent_id: str) -> Optional[AgentProfile]:
         return self.get_agent(agent_id)
 
     def list_agents(self) -> List[AgentProfile]:
-        """List all available agents (built-in baseline merged with custom agents)."""
-        agents_map: Dict[str, AgentProfile] = {}
-
-        # 1. Built-in defaults (none after CARD-429)
-        for p in BUILTIN_PROFILES:
-            if p.id in RETIRED_LIVE_AGENT_IDS:
-                continue
-            agents_map[p.id] = p
-
-        # 2. In-memory registrations
-        for pid, p in self._profiles.items():
-            agents_map[pid] = p
-
-        # 3. SQLite custom agents
-        if self.state_store:
-            custom_agents = self.state_store.list_custom_agent_profiles()
-            for ca in custom_agents:
-                agents_map[ca.id] = ca
-
-        # 4. Resolve overrides for all
-        result = []
-        for aid in agents_map:
+        """Every visible agent: files (shipped + user), then in-memory profiles."""
+        ids: list[str] = [f.id for f in self.content.agents.list()]
+        ids += [p.id for p in BUILTIN_PROFILES] + list(self._profiles)
+        result: List[AgentProfile] = []
+        for aid in dict.fromkeys(ids):
             if aid in RETIRED_LIVE_AGENT_IDS:
                 continue
             ag = self.get_agent(aid)
-            if ag and ag not in result:
+            if ag is not None and ag.id not in {r.id for r in result}:
                 result.append(ag)
-
         return result
 
     def list_profiles(self) -> List[AgentProfile]:
@@ -207,7 +191,7 @@ class BuiltinAgentRegistry:
         skills_dir: Optional[str] = None,
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
-        Bootstrap the agent ecosystem: platform packs, tool groups, and the master ScopedToolRegistry.
+        Bootstrap the agent ecosystem: platform skills, tool groups, and the master ScopedToolRegistry.
         Does not register agent-builder [CARD-429]. Builder HITL tools stay on the master registry
         for Developer.
         """
@@ -224,17 +208,11 @@ class BuiltinAgentRegistry:
             master_tool_registry=tool_registry,
         )
 
-        # CARD-367: Early declarative pack reconciliation on boot
+        # CARD-570: agents and skills are files (platform/ in the repo, user copies in the data dir)
         data_root = Path(skills_dir).parent if skills_dir else None
-        if data_root and store:
-            from src.infrastructure.skills.reconciler import DeclarativePackReconciler
+        from src.infrastructure.content.store import configure
 
-            reconciler = DeclarativePackReconciler(
-                data_dir=data_root,
-                state_store=store,
-                agent_registry=agent_registry,
-            )
-            reconciler.reconcile()
+        agent_registry._content = configure(data_root)
 
         # 0. Lean Platform Primitives (CARD-339, ADR-0052)
         from src.application.skills.platform_primitives import PlatformPrimitiveTools
@@ -321,7 +299,7 @@ class BuiltinAgentRegistry:
         worker_tools = BatchWorkerTools(state_store=store, wiki_tools=wiki_tools)
         worker_tools.register_tools(tool_registry)
 
-        # 10. Sandbox Execution Tools (Coding pack ticks execute_code)
+        # 10. Sandbox Execution Tools (Coding skill ticks execute_code)
         from src.application.skills.sandbox_tools import SandboxExecutionTools
 
         sandbox_tools = SandboxExecutionTools()
@@ -425,7 +403,7 @@ class BuiltinAgentRegistry:
         native_tool_engineering.register_tools(tool_registry)
         agent_registry.native_tool_engineering = native_tool_engineering
 
-        # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
+        # 13. User agentskills.io skills (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
         from src.application.skills.user_catalog import UserSkillCatalog
 
         catalog = UserSkillCatalog(skills_dir=skills_dir, tool_registry=tool_registry)
@@ -433,23 +411,15 @@ class BuiltinAgentRegistry:
         catalog.mount_at_bootstrap()
         agent_registry.user_skill_catalog = catalog
 
-        # 14. Platform Agent Packs (Assistant, AutoReiv) — copy-if-missing, import if unregistered.
-        if skills_dir:
-            from src.infrastructure.skills.platform_packs import install_platform_agent_packs
-            from src.infrastructure.skills.seed import seed_bundled_skill_packs
+        # 14. Validate skill tools: an unknown tool id is a warning and grants nothing [CARD-570]
+        from src.application.agent_skills.tool_attachment import make_skill_write_guard
+        from src.infrastructure.content.store import set_skill_write_guard, set_tool_registry
 
-            seed_bundled_skill_packs(skills_dir)
-            install_platform_agent_packs(
-                Path(skills_dir).parent,
-                agent_registry,
-                tool_registry,
-            )
-
-        # 15. Legacy in-process pack tools (packs/<id>/tools/*.py) [CARD-425].
-        # Not the CARD-423 native custom lane. See legacy_pack_tools.py.
-        if skills_dir:
-            from src.infrastructure.agents.legacy_pack_tools import load_legacy_pack_tools
-
-            load_legacy_pack_tools(Path(skills_dir).parent / "packs", tool_registry)
+        known = {t.name for t in tool_registry.list_tools()}
+        set_tool_registry(tool_registry)
+        set_skill_write_guard(make_skill_write_guard(store))  # agents cannot grant tools [CARD-570]
+        agent_registry.skill_tool_warnings = agent_registry._content.validate_tools(known)
+        for sid, names in agent_registry.skill_tool_warnings.items():
+            logger.warning("Skill %s names unknown tools %s; they grant nothing.", sid, names)
 
         return agent_registry, tool_registry

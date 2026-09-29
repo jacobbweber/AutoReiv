@@ -43,12 +43,12 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     expect(forgeJs).toContain('renderAssignedSkills');
     expect(forgeJs).not.toContain('No pack-owned skills yet.');
     expect(forgeJs).toContain("'platform'");
-    expect(forgeJs).toContain("'pack'");
+    expect(forgeJs).toContain("'agent'");
     expect(forgeJs).not.toContain('forge-skill-expand');
     expect(forgeJs).not.toContain('forge-skill-tools hidden');
     expect(forgeJs).not.toContain('pack-master-checkbox');
     expect(forgeJs).not.toContain('data-pack=');
-    expect(forgeJs).not.toContain('skill_packs');
+    expect(forgeJs).not.toContain('skill_rows');
     expect(forgeJs).not.toContain('RBAC');
     expect(forgeJs).not.toContain('Skill Capabilities');
     expect(forgeJs).not.toContain('Hermes');
@@ -60,7 +60,7 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     expect(html).toContain('id="forgeBaselineBox"');
     expect(html).toContain('id="forgeSkillsGrid"');
     expect(html).not.toContain('id="forgePlatformBox"');
-    expect(html).not.toContain('id="forgePackBox"');
+    expect(html).not.toContain('id="forgeSkillBox"');
     expect(html).not.toContain('id="forgeToolsSection"');
     expect(html).not.toContain('Ticked schemas go to the model');
     expect(html).toContain('forgeSystemPrompt');
@@ -127,7 +127,7 @@ describe('CARD-118 one Agent Studio', () => {
   it('Agent Studio opens Skill Studio instead of inspecting or saving a runbook [CARD-411, CARD-419]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).not.toContain('studio-runbook-open-btn');
-    expect(forgeJs).not.toContain('/api/skills/user-packs');
+    expect(forgeJs).not.toContain('/api/skills/user-skills');
     expect(forgeJs).not.toContain('studioRunbookOpenFactoryBtn');
     expect(forgeJs).toContain('Open in Skill Studio');
     expect(forgeJs).toContain('openSkillStudio');

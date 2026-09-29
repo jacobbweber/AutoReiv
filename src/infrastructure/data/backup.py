@@ -206,7 +206,7 @@ class DataDirBackupService:
         include_wiki_content: bool = False,
         written_members: Optional[set[str]] = None,
     ) -> dict[str, Any]:
-        """ADR-0056 manifest: DBs, wiki URI, digests, pack set, provenance."""
+        """ADR-0056 manifest: DBs, wiki URI, digests, agent databases, provenance."""
         import hashlib
 
         from src.infrastructure.data.wiki_gate import configured_wiki_path, resolve_deploy_mode
@@ -224,23 +224,21 @@ class DataDirBackupService:
                 return None
 
         wiki = configured_wiki_path() or self.paths.wiki_path
-        packs = []
-        packs_root = self.paths.packs_path
-        if packs_root and Path(packs_root).is_dir():
-            for sub in sorted(Path(packs_root).iterdir()):
+        agent_dbs = []  # agent databases: agents/<id>/memory.db and storage.db [CARD-570]
+        agents_root = self.paths.agents_path
+        if agents_root and Path(agents_root).is_dir():
+            for sub in sorted(Path(agents_root).iterdir()):
                 if not sub.is_dir():
                     continue
                 entry: dict[str, Any] = {"agent_id": sub.name, "path": str(sub)}
-                for suffix in ("_storage.db", "_memory.db"):
-                    # snake-ish match
-                    for db in sub.glob(f"*{suffix}"):
-                        role = "storage" if suffix.endswith("storage.db") else "memory"
+                for name in ("storage.db", "memory.db"):
+                    db = sub / name
+                    if db.is_file():
+                        role = name.split(".")[0]
                         entry.setdefault("databases", []).append(
                             {"role": role, "path": str(db), "sha256": _digest(db)}
                         )
-                if (sub / "pack.json").is_file():
-                    entry["pack_json"] = True
-                packs.append(entry)
+                agent_dbs.append(entry)
 
         manifest = {
             "schema_version": 1,
@@ -258,7 +256,7 @@ class DataDirBackupService:
                 "include_content": bool(include_wiki_content),
                 "sha256": None,
             },
-            "packs": packs,
+            "agent_dbs": agent_dbs,
             "members": sorted(written_members) if written_members else [],
             "provenance": {
                 "app": "AutoReiv",

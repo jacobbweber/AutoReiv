@@ -205,11 +205,11 @@ def test_skills_catalog_endpoint(client):
     assert resp.status_code == 200
     data = resp.json()
     assert "tools" in data
-    assert "skill_packs" in data
-    assert len(data["skill_packs"]) >= 6
-    pack_ids = [p["id"] for p in data["skill_packs"]]
-    assert "sysadmin" in pack_ids
-    assert "wiki" in pack_ids
+    assert "skill_rows" in data
+    assert len(data["skill_rows"]) >= 6
+    skill_ids = [p["id"] for p in data["skill_rows"]]
+    assert "sysadmin" in skill_ids
+    assert "wiki" in skill_ids
     tool_names = [t["name"] for t in data["tools"]]
     assert "execute_code" in tool_names
     assert "wiki_note_read" in tool_names

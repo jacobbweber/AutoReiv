@@ -158,7 +158,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
       id: 'dock-notes',
       name: 'Dock Notes',
       description: 'Notes saved from Skill Studio',
-      requires_tools: ['wiki_note_read'],
+      tools: ['wiki_note_read'],
     });
     expect(model.tools).toEqual(['wiki_note_read']);
     const row = skillRowHtml(model, 'operator', false);

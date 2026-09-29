@@ -16,7 +16,7 @@ const PATCH_FIELDS = new Set([
   'description',
   'tier',
   'safety',
-  'requires_tools',
+  'tools',
   'markdown',
 ]);
 
@@ -43,20 +43,20 @@ export function lintRequestPlan() {
 export function normalizeAuthoringDraft(raw = {}) {
   const source = raw && typeof raw === 'object' ? raw : {};
   const safety = source.safety && typeof source.safety === 'object' ? source.safety : {};
-  const tools = Array.isArray(source.requires_tools)
-    ? source.requires_tools.map((item) => String(item || '').trim()).filter(Boolean)
+  const tools = Array.isArray(source.tools)
+    ? source.tools.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
   return {
     skill_id: String(source.skill_id || '').trim(),
     name: String(source.name || '').trim(),
     description: String(source.description || '').trim(),
-    tier: String(source.tier || 'pack').trim() || 'pack',
+    tier: String(source.tier || 'user').trim() || 'user',
     safety: {
       read_only: Boolean(safety.read_only),
       requires_hitl: Boolean(safety.requires_hitl),
       untrusted_input_allowed: Boolean(safety.untrusted_input_allowed),
     },
-    requires_tools: tools,
+    tools: tools,
     markdown: String(source.markdown || ''),
     intent_notes: String(source.intent_notes || ''),
     source_context: String(source.source_context || ''),
@@ -104,8 +104,8 @@ export function applyAuthoringPatches(draft, patches) {
       };
       return;
     }
-    if (field === 'requires_tools' && Array.isArray(patch.value)) {
-      next.requires_tools = patch.value.map((item) => String(item || '').trim()).filter(Boolean);
+    if (field === 'tools' && Array.isArray(patch.value)) {
+      next.tools = patch.value.map((item) => String(item || '').trim()).filter(Boolean);
       return;
     }
     if (field === 'name' || field === 'description' || field === 'tier' || field === 'markdown') {

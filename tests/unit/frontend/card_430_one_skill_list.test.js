@@ -24,24 +24,24 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     const list = assignedSkillListHtml({
       platformSkills: [{ id: 'wiki', name: 'Wiki', description: 'Vault' }],
       operatorSkills: [{ id: 'dock-notes', name: 'Dock Notes', description: 'Store' }],
-      packSkills: [{ id: 'sdlc-engineering', name: 'SDLC', description: 'Pack runbook' }],
+      ownSkillRows: [{ id: 'sdlc-engineering', name: 'SDLC', description: 'Pack runbook' }],
       archivedSkills: [{ id: 'old-skill', name: 'Old', description: 'Retired' }],
     });
 
     expect(skillHomeLabel('platform')).toBe('Platform');
     expect(skillHomeLabel('operator')).toBe('Operator');
-    expect(skillHomeLabel('pack')).toBe('Pack');
+    expect(skillHomeLabel('agent')).toBe('Agent');
     expect(list).toContain('data-testid="forge-skill-home-label">Platform');
     expect(list).toContain('data-testid="forge-skill-home-label">Operator');
-    expect(list).toContain('data-testid="forge-skill-home-label">Pack');
+    expect(list).toContain('data-testid="forge-skill-home-label">Agent');
     expect(list).toContain('data-home="platform"');
     expect(list).toContain('data-home="operator"');
-    expect(list).toContain('data-home="pack"');
+    expect(list).toContain('data-home="agent"');
     expect(list).toContain('data-testid="forge-skill-pill"');
     expect(list).toContain('Open in Skill Studio');
     expect(list.indexOf('data-home="platform"')).toBeLessThan(list.indexOf('data-home="operator"'));
-    expect(list.indexOf('data-home="operator"')).toBeLessThan(list.indexOf('data-home="pack"'));
-    expect(list.indexOf('data-skill-id="old-skill"')).toBeGreaterThan(list.indexOf('data-home="pack"'));
+    expect(list.indexOf('data-home="operator"')).toBeLessThan(list.indexOf('data-home="agent"'));
+    expect(list.indexOf('data-skill-id="old-skill"')).toBeGreaterThan(list.indexOf('data-home="agent"'));
     expect(list).toContain('data-testid="forge-skill-archived"');
     expect(list).toContain('>Archived<');
     expect(list).not.toContain('<h4');
@@ -70,11 +70,11 @@ describe('Agent Studio one skill list [CARD-430]', () => {
   it('does not copy skill files between homes [REQ-430-003]', () => {
     expect(runbook).not.toContain('copytree');
     expect(runbook).not.toContain('writeFile');
-    expect(runbook).not.toContain('/api/skills/user-packs');
+    expect(runbook).not.toContain('/api/skills/user-skills');
     const list = assignedSkillListHtml({
-      packSkills: [{ id: 'sdlc-engineering', name: 'SDLC' }],
+      ownSkillRows: [{ id: 'sdlc-engineering', name: 'SDLC' }],
     });
-    expect(list).toContain('data-home="pack"');
+    expect(list).toContain('data-home="agent"');
     expect(list).not.toContain('$DATA_DIR');
   });
 
@@ -102,7 +102,7 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     });
     expect(operatorOnly).toContain('data-home="operator"');
     expect(operatorOnly).not.toContain('data-home="platform"');
-    expect(operatorOnly).not.toContain('data-home="pack"');
+    expect(operatorOnly).not.toContain('data-home="agent"');
     expect(operatorOnly).not.toContain('No platform runbooks');
     expect(operatorOnly).not.toContain('No operator skills');
     expect(operatorOnly).not.toContain('No pack-owned skills');
@@ -117,8 +117,8 @@ describe('Agent Studio one skill list [CARD-430]', () => {
 
     expect(html).not.toContain('id="forgePlatformBox"');
     expect(html).not.toContain('id="forgeOperatorBox"');
-    expect(html).not.toContain('id="forgePackBox"');
-    expect(html).not.toContain('id="forgePackBoxTitle"');
+    expect(html).not.toContain('id="forgeSkillBox"');
+    expect(html).not.toContain('id="forgeSkillBoxTitle"');
     expect(html).not.toContain('id="forgeOperatorSkillsGrid"');
     expect(html).not.toContain('id="forgeRunbooksGrid"');
     expect(html).not.toContain('Platform Skills & Tools');
@@ -127,7 +127,7 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     expect(html).not.toContain('Dedicated runbooks owned by this agent pack');
     expect(runbook).not.toContain('renderPlatformSkills');
     expect(runbook).not.toContain('renderOperatorSkills');
-    expect(runbook).not.toContain('renderPackSkills');
+    expect(runbook).not.toContain('renderOwnSkills');
     expect(runbook).not.toContain('No pack-owned skills yet.');
   });
 });

@@ -44,7 +44,7 @@ class AgentProfileGuardrail:
             )
         if agent_id == "agent-builder":
             raise AgentValidationError(
-                "agent-builder is retired. Use the developer pack to scaffold agents and to propose or commit skills and tools."
+                "agent-builder is retired. Use the developer skill to scaffold agents and to propose or commit skills and tools."
             )
 
         # 2. Validate Name & Description
@@ -234,9 +234,9 @@ class AgentProfileGuardrail:
             try:
                 origin = AgentOrigin(str(raw_origin).lower())
             except (ValueError, TypeError):
-                origin = AgentOrigin.PACK
+                origin = AgentOrigin.FILE
         else:
-            origin = AgentOrigin.PACK
+            origin = AgentOrigin.FILE
 
         return AgentProfile(
             id=agent_id,

@@ -3,41 +3,12 @@ CARD-326: Education Learning OS — Tutor Agent (Wiki + Ledger Aware).
 Tests [REQ-EDU-TUTOR-001] through [REQ-EDU-TUTOR-004].
 """
 
-import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from src.application.agent_packs.schema import (
-    AgentPackManifest,
-)
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-from src.infrastructure.skills.platform_packs import (
-    platform_packs_root,
-)
 from src.web.app import app
-
-
-def test_req_edu_tutor_001_platform_pack_exists_and_valid():
-    """Verify tutor capability exists as socratic-tutoring skill in autoreiv [REQ-EDU-TUTOR-001, CARD-366]."""
-    root = platform_packs_root()
-    pack_dir = root / "autoreiv"
-    manifest_path = pack_dir / "pack.json"
-    skill_path = pack_dir / "skills" / "socratic-tutoring" / "SKILL.md"
-
-    assert manifest_path.is_file(), f"Expected manifest at {manifest_path}"
-    assert skill_path.is_file(), f"Expected runbook at {skill_path}"
-
-    data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest = AgentPackManifest.model_validate(data)
-
-    assert manifest.id == "autoreiv"
-    assert "socratic-tutoring" in {s.id for s in manifest.skills}
-    assert "socratic-tutoring" in manifest.allowed_skill
-
-    skill_text = skill_path.read_text(encoding="utf-8")
-    assert "tutoring" in skill_text.lower()
-    assert "socratic" in skill_text.lower()
 
 
 def test_req_edu_tutor_002_context_loads_wiki_and_ledger_from_same_memory_db(tmp_path: Path):

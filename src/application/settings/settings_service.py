@@ -59,36 +59,23 @@ class SettingsService:
         return matrix.purposes.get(purpose, matrix.default_model)
 
     def save_agent_customization(self, customization: AgentCustomization) -> None:
-        """Persist agent persona/tone/tool overrides."""
-        from src.application.agent_packs.schema import is_platform_pack
-        from src.infrastructure.skills.platform_pack_promotion import should_set_content_lock
+        """Persist a partial agent edit through the agent file (CARD-570)."""
+        registry = getattr(self, "agent_registry", None)
+        if registry is None:
+            from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
-        existing = None
-        if hasattr(self.state_store, "get_agent_profile"):
-            existing = self.state_store.get_agent_profile(customization.agent_id)
-        lock = True
-        if is_platform_pack(customization.agent_id) and existing is not None:
-            lock = should_set_content_lock(
-                existing=existing,
-                new_prompt=getattr(customization, "system_prompt", None),
-                new_skills=list(getattr(customization, "allowed_skill", None) or []) or None,
-                store=self.state_store,
-                pack_id=customization.agent_id,
-                stock_skills=list(getattr(existing, "allowed_skill", None) or []),
-            )
-        if lock:
-            customization.user_modified = True
-        else:
-            customization.user_modified = bool(getattr(existing, "user_modified", False)) if existing else False
-        self.state_store.save_agent_override(customization)
-        if hasattr(self.state_store, "mark_agent_user_modified"):
-            self.state_store.mark_agent_user_modified(
-                customization.agent_id, modified=bool(customization.user_modified)
-            )
+            registry = BuiltinAgentRegistry(state_store=self.state_store)
+        registry.apply_customization(customization)
 
     def get_agent_customization(self, agent_id: str) -> Optional[AgentCustomization]:
-        """Fetch agent overrides from SQLite."""
-        return self.state_store.get_agent_override(agent_id)
+        """Model/provider settings for an agent (the agent file holds the rest)."""
+        registry = getattr(self, "agent_registry", None)
+        if registry is None:
+            from src.infrastructure.agents.registry import BuiltinAgentRegistry
+
+            registry = BuiltinAgentRegistry(state_store=self.state_store)
+        values = registry.model_settings(agent_id)
+        return AgentCustomization(agent_id=agent_id, **values) if values else None
 
     def get_effective_agent_profile(self, agent_id: str) -> Optional[AgentProfile]:
         """

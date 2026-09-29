@@ -8,8 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.application.skills.user_catalog import ARCHIVE_DIRNAME
-from src.infrastructure.skills.seed import seed_bundled_skill_packs
 from src.web.app import create_app
+from tests.unit.agent_skills.catalog import seed_bundled_skill_rows
 
 pytestmark = pytest.mark.slow
 
@@ -39,9 +39,9 @@ def _skills_root() -> Path:
 
 
 def _write_pack(slug: str, content: str) -> Path:
-    pack_dir = _skills_root() / slug
-    pack_dir.mkdir(parents=True, exist_ok=True)
-    skill = pack_dir / "SKILL.md"
+    skill_dir = _skills_root() / slug
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    skill = skill_dir / "SKILL.md"
     skill.write_text(content, encoding="utf-8")
     return skill
 
@@ -49,43 +49,43 @@ def _write_pack(slug: str, content: str) -> Path:
 def _client() -> TestClient:
     skills = _skills_root()
     skills.mkdir(parents=True, exist_ok=True)
-    seed_bundled_skill_packs(skills)
+    seed_bundled_skill_rows(skills)
     _write_pack("test-live-pong", USER_PACK_MD)
     _write_pack("keep-me", OTHER_PACK_MD)
     return TestClient(create_app())
 
 
 def _ids(response) -> set[str]:
-    return {p["id"] for p in response.json()["packs"]}
+    return {p["id"] for p in response.json()["skills"]}
 
 
 def test_archive_hides_from_live_list_and_unarchive_restores():
     client = _client()
-    live = client.get("/api/skills/user-packs")
+    live = client.get("/api/skills/user-skills")
     assert live.status_code == 200
     assert "test-live-pong" in _ids(live)
     assert "okta-admin" not in _ids(live)
 
-    archived = client.post("/api/skills/user-packs/test-live-pong/archive", json={"confirm": True})
+    archived = client.post("/api/skills/user-skills/test-live-pong/archive", json={"confirm": True})
     assert archived.status_code == 200
     assert archived.json().get("archived") is True
 
-    live2 = client.get("/api/skills/user-packs")
+    live2 = client.get("/api/skills/user-skills")
     assert "test-live-pong" not in _ids(live2)
     assert "keep-me" in _ids(live2)
     assert not (_skills_root() / "test-live-pong").exists()
     assert (_skills_root() / ARCHIVE_DIRNAME / "test-live-pong" / "SKILL.md").is_file()
 
-    listed_arch = client.get("/api/skills/archived-packs")
+    listed_arch = client.get("/api/skills/archived-skills")
     assert listed_arch.status_code == 200
     assert "test-live-pong" in _ids(listed_arch)
 
-    restored = client.post("/api/skills/user-packs/test-live-pong/unarchive")
+    restored = client.post("/api/skills/user-skills/test-live-pong/unarchive")
     assert restored.status_code == 200
-    live3 = client.get("/api/skills/user-packs")
+    live3 = client.get("/api/skills/user-skills")
     assert "test-live-pong" in _ids(live3)
     assert (_skills_root() / "test-live-pong" / "SKILL.md").is_file()
-    opened = client.get("/api/skills/user-packs/test-live-pong")
+    opened = client.get("/api/skills/user-skills/test-live-pong")
     assert opened.status_code == 200
     assert "Distinctive-delete-token" in opened.json()["instructions"]
 
@@ -94,35 +94,35 @@ def test_delete_without_confirm_is_400_and_files_remain():
     client = _client()
     skill = _skills_root() / "test-live-pong" / "SKILL.md"
     assert skill.is_file()
-    res = client.delete("/api/skills/user-packs/test-live-pong")
+    res = client.delete("/api/skills/user-skills/test-live-pong")
     assert res.status_code == 400
     assert skill.is_file()
-    res2 = client.delete("/api/skills/user-packs/test-live-pong", params={"confirm": False})
+    res2 = client.delete("/api/skills/user-skills/test-live-pong", params={"confirm": False})
     assert res2.status_code == 400
     assert skill.is_file()
 
 
-def test_delete_user_pack_removes_directory():
+def test_delete_user_skill_removes_directory():
     client = _client()
     live_dir = _skills_root() / "test-live-pong"
     assert live_dir.is_dir()
-    res = client.delete("/api/skills/user-packs/test-live-pong", params={"confirm": True})
+    res = client.delete("/api/skills/user-skills/test-live-pong", params={"confirm": True})
     assert res.status_code == 200
     body = res.json()
     assert body.get("deleted") is True
     assert not live_dir.exists()
     assert not (_skills_root() / ARCHIVE_DIRNAME / "test-live-pong").exists()
-    listed = client.get("/api/skills/user-packs")
+    listed = client.get("/api/skills/user-skills")
     assert "test-live-pong" not in _ids(listed)
     assert "keep-me" in _ids(listed)
 
 
-def test_delete_archived_user_pack_removes_archive_dir():
+def test_delete_archived_user_skill_removes_archive_dir():
     client = _client()
-    assert client.post("/api/skills/user-packs/test-live-pong/archive", json={"confirm": True}).status_code == 200
+    assert client.post("/api/skills/user-skills/test-live-pong/archive", json={"confirm": True}).status_code == 200
     arch = _skills_root() / ARCHIVE_DIRNAME / "test-live-pong"
     assert arch.is_dir()
-    res = client.delete("/api/skills/user-packs/test-live-pong", params={"confirm": True})
+    res = client.delete("/api/skills/user-skills/test-live-pong", params={"confirm": True})
     assert res.status_code == 200
     assert not arch.exists()
     assert not (_skills_root() / "test-live-pong").exists()
@@ -132,7 +132,7 @@ def test_delete_missing_okta_admin_is_not_a_shipped_seed():
     client = _client()
     dest = _skills_root() / "okta-admin" / "SKILL.md"
     assert not dest.exists()
-    missing = client.delete("/api/skills/user-packs/okta-admin", params={"confirm": True})
+    missing = client.delete("/api/skills/user-skills/okta-admin", params={"confirm": True})
     assert missing.status_code == 404
     assert not dest.exists()
     seeds = REPO_ROOT / "src" / "infrastructure" / "skills" / "seeds"
@@ -148,9 +148,9 @@ def test_delete_rejects_path_traversal_outside_skills_jail():
     marker = outside / "SKILL.md"
     marker.write_text("do-not-delete", encoding="utf-8")
 
-    for pack_id in ("../", "../escape-pack", "..%2Fescape-pack", "foo/../../escape-pack"):
-        res = client.delete(f"/api/skills/user-packs/{pack_id}", params={"confirm": True})
-        assert res.status_code in (400, 404, 422), (pack_id, res.status_code, res.text)
+    for skill_id in ("../", "../escape-pack", "..%2Fescape-pack", "foo/../../escape-pack"):
+        res = client.delete(f"/api/skills/user-skills/{skill_id}", params={"confirm": True})
+        assert res.status_code in (400, 404, 422), (skill_id, res.status_code, res.text)
         assert res.status_code != 200
 
     assert marker.is_file()
@@ -162,36 +162,11 @@ def test_delete_bundled_wiki_seed_stays_without_confirm_seed():
     client = _client()
     wiki = _skills_root() / "wiki" / "SKILL.md"
     assert wiki.is_file()
-    res = client.delete("/api/skills/user-packs/wiki", params={"confirm": True})
+    res = client.delete("/api/skills/user-skills/wiki", params={"confirm": True})
     assert res.status_code == 409
     assert wiki.is_file()
 
 
-def test_confirmed_delete_clears_pack_projection_and_bindings():
-    import os
-
-    client = _client()
-    data = Path(os.environ["AUTOREIV_DATA_DIR"])
-    projection = data / "packs" / "autoreiv" / "skills" / "test-live-pong"
-    projection.mkdir(parents=True)
-    (projection / "SKILL.md").write_text(USER_PACK_MD, encoding="utf-8")
-    other = data / "packs" / "autoreiv" / "skills" / "keep-me"
-    other.mkdir(parents=True)
-    (other / "SKILL.md").write_text(OTHER_PACK_MD, encoding="utf-8")
-
-    from src.infrastructure.memory.repositories.skill_bindings import SkillToolBindingRepository
-
-    repo = SkillToolBindingRepository(db_path=os.environ["AUTOREIV_DB_PATH"])
-    repo.replace("test-live-pong", ["wiki_note_read"])
-    repo.replace("keep-me", ["wiki_note_read"])
-
-    res = client.delete("/api/skills/user-packs/test-live-pong", params={"confirm": True})
-    assert res.status_code == 200
-    assert not (_skills_root() / "test-live-pong").exists()
-    assert not projection.exists()
-    assert (other / "SKILL.md").is_file()
-    assert repo.get("test-live-pong") is None
-    assert repo.get("keep-me") is not None
 
 
 def test_agent_studio_runbook_inspector_is_not_a_write_path_card_411():

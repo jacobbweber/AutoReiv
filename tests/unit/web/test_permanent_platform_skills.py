@@ -24,7 +24,8 @@ def test_platform_skills_permanence_in_catalog():
         "sandbox",
         "sqlite-storage",
     }
-    assert returned_ids == expected_platform_skills, f"Platform skills mismatch: {returned_ids ^ expected_platform_skills}"
+    # CARD-570: the catalog lists every shipped skill (platform/skills); the core primitives are always there.
+    assert expected_platform_skills <= returned_ids, f"missing: {expected_platform_skills - returned_ids}"
 
 
 def test_coordination_skill_contains_core_handoff_tools():
@@ -43,26 +44,4 @@ def test_coordination_skill_contains_core_handoff_tools():
     assert "delegate_to_fleet_agent" not in tool_names
 
 
-def test_pack_skills_payload_excludes_platform_skills():
-    """Verify that _pack_skills_payload never returns platform skills in Box 2 [CARD-201]."""
-    from src.application.agent_packs.schema import AgentPackManifest, PackSkill
-    from src.web.routers.agents import _pack_skills_payload
-
-    manifest = AgentPackManifest(
-        schema_version="2.0.0",
-        id="test-agent",
-        name="Test Agent",
-        description="Test description",
-        skills=[
-            PackSkill(id="wiki_tasks", tools=[]),
-            PackSkill(id="coordination", tools=[]),
-            PackSkill(id="custom-domain-skill", tools=["custom_tool"]),
-        ],
-        allowed_skill=["wiki_tasks", "coordination", "custom-domain-skill"],
-    )
-    payload = _pack_skills_payload(manifest)
-    returned_skill_ids = [s["id"] for s in payload.get("pack_skills", [])]
-    assert "wiki_tasks" not in returned_skill_ids
-    assert "coordination" not in returned_skill_ids
-    assert returned_skill_ids == ["custom-domain-skill"]
 

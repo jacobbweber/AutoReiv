@@ -2,7 +2,7 @@
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
 
 CARD-429: no live builtin agents. autoreiv, direct, developer, and tutor are
-Platform Agent Packs (platform-packs/, always seeded). The hidden agent-builder
+Shipped agents (platform/agents/*.md, read in place; CARD-570). The hidden agent-builder
 profile is retired; Developer holds scaffold / propose / commit for agents,
 skills, and tools.
 """

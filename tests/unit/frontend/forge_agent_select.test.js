@@ -22,9 +22,9 @@ describe('Agent Studio Alphabetized Picker [CARD-202, CARD-339]', () => {
     expect(isStudioAgentVisible({ id: 'wiki' })).toBe(false);
   });
   it('formats agent names cleanly without platform or custom tags [CARD-388]', () => {
-    const platformAgent = { id: 'autoreiv', name: 'AutoReiv', is_platform_pack: true };
+    const platformAgent = { id: 'autoreiv', name: 'AutoReiv', is_platform_skill: true };
     const builtinAgent = { id: 'assistant', name: 'Assistant', is_builtin: true };
-    const customAgent = { id: 'my-bot', name: 'My Bot', is_platform_pack: false, is_builtin: false };
+    const customAgent = { id: 'my-bot', name: 'My Bot', is_platform_skill: false, is_builtin: false };
     const explicitPlatform = { id: 'autoreiv', name: 'AutoReiv', origin: 'platform' };
     const explicitCustom = { id: 'my-bot', name: 'My Bot', origin: 'custom' };
 
@@ -70,7 +70,7 @@ describe('Agent Studio Alphabetized Picker [CARD-202, CARD-339]', () => {
     try {
       const agents = [
         { id: 'z-agent', name: 'Zebra Agent', is_builtin: false },
-        { id: 'a-agent', name: 'Alpha Agent', is_platform_pack: true },
+        { id: 'a-agent', name: 'Alpha Agent', is_platform_skill: true },
       ];
 
       const activeId = populateForgeAgentSelectOptions(mockSelect, agents, 'z-agent');

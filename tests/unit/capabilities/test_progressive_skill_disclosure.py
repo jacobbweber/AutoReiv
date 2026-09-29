@@ -116,7 +116,7 @@ def _seed_with_body_in_metadata(resolver: CapabilityCatalogResolver) -> None:
         risk_level=RiskLevel.HIGH,
         requires_hitl=True,
         metadata={
-            "pack_id": "platform-health",
+            "skill_id": "platform-health",
             "instructions": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE\n" * 20,
             "body": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE",
             "content": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE",
@@ -222,8 +222,8 @@ def test_req_pskill_004_chat_still_lists_ticked_tool_schemas():
         description="Open a runbook",
         parameters={
             "type": "object",
-            "properties": {"pack_id": {"type": "string"}},
-            "required": ["pack_id"],
+            "properties": {"skill_id": {"type": "string"}},
+            "required": ["skill_id"],
         },
         handler=lambda **kwargs: {"ok": True},
     )
@@ -288,7 +288,7 @@ def test_entry_to_resolve_view_strips_body_keys():
         name="X",
         risk_level=RiskLevel.MEDIUM,
         requires_hitl=False,
-        metadata={"instructions": "SECRET_BODY", "pack_id": "x"},
+        metadata={"instructions": "SECRET_BODY", "skill_id": "x"},
     )
     view = entry_to_resolve_view(entry)
     assert view["id"] == "skill.x"

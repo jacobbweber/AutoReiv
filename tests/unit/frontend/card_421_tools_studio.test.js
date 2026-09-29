@@ -194,7 +194,7 @@ describe('Tools Studio dock [CARD-421]', () => {
     const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
     expect(skillStudio).toContain('type="checkbox"');
     expect(skillStudio).toContain('data-tool-name');
-    expect(skillStudio).toContain('requires_tools');
+    expect(skillStudio).toContain('tools');
     const markup = renderCatalogMarkup(buildCatalogGroups({
       namespaces: sampleNamespaces,
       platformServers,

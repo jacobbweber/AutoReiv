@@ -5,13 +5,13 @@ The planner no longer switches prompts by agent id.
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.plan_engine import PlanAndExecuteEngine
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.domain.agents.profiles import get_builtin_profile
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 def test_agent_builder_is_not_in_registry():
@@ -53,5 +53,5 @@ def test_planner_uses_one_prompt_for_every_agent():
 def test_developer_pack_holds_builder_tools():
     dev = platform_pack_profile("developer")
     assert "propose_skill" in list(resolve_allowed_tools(dev))
-    assert "commit_skill_pack" in list(resolve_allowed_tools(dev))
+    assert "commit_skill" in list(resolve_allowed_tools(dev))
     assert "save_agent_specification" not in list(resolve_allowed_tools(dev))

@@ -69,10 +69,10 @@ WEEKLY_NOTE_ROLLOVER_ROUTINE = Routine(
 # 21:00 UTC is 17:00 EDT -- also wrong. next_run_at is weekday 21:00 America/New_York.
 SKILL_EVAL_SLEEP_PROMPT = (
     "Harvest failed turns from telemetry/sqlite in the lookback window. "
-    "Mine pack gaps. Replay only if metadata.replay is true. "
+    "Mine skill gaps. Replay only if metadata.replay is true. "
     "Run the Verify checker. If it passes, propose_skill the bounded delta. "
     "Do not write SKILL.md. Do not write Python under src/. "
-    "Do not archive bundled packs. Do not commit_skill_pack."
+    "Do not archive bundled skills. Do not commit_skill."
 )
 
 SKILL_EVAL_SLEEP_ROUTINE = Routine(
@@ -104,9 +104,9 @@ SKILL_EVAL_SLEEP_ROUTINE = Routine(
 # CARD-112: paused skill curator. Auto-archive only when this sibling is enabled.
 # skill-eval-sleep hook stays off (metadata.auto_archive false) so harvest is not destructive.
 SKILL_CURATOR_PROMPT = (
-    "Classify unused user skill packs (active -> stale at 30d -> archive at 90d). "
+    "Classify unused user skills (active -> stale at 30d -> archive at 90d). "
     "Archive means move to $DATA_DIR/skills/_archive/<id>/. Do not delete SKILL.md. "
-    "Do not auto-archive bundled seeds in BUNDLED_PACK_IDS. "
+    "Do not auto-archive shipped skills (platform/skills). "
     "Do not delete repo src/infrastructure/skills/seeds/. "
     "Unknown last-used fails closed. Dest-exists fails closed."
 )
@@ -116,7 +116,7 @@ SKILL_CURATOR_ROUTINE = Routine(
     name="Skill curator (stale/archive)",
     description=(
         "Paused-by-default weekday 21:00 America/New_York curator. "
-        "Moves unused user packs to $DATA_DIR/skills/_archive/ after 90 days. "
+        "Moves unused user skills to $DATA_DIR/skills/_archive/ after 90 days. "
         "Never deletes SKILL.md or bundled seeds. "
         "Enable only when you want auto-archive."
     ),

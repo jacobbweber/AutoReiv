@@ -95,7 +95,7 @@ def _seed(resolver: CapabilityCatalogResolver) -> None:
     resolver.upsert(
         CapabilityIndexEntry.self_authored(
             id="pack.homelab-admin",
-            kind=CapabilityKind.PACK,
+            kind=CapabilityKind.AGENT,
             name="Homelab Admin Pack",
             summary="Homelab operations pack",
             keywords=["homelab", "vm", "opentofu"],
@@ -229,9 +229,9 @@ def test_api_resolve_and_registry_operator_cap(temp_db_path):
 def test_card409_capability_stopword_immunity_and_underscore_tokenization(resolver):
     resolver.upsert(
         CapabilityIndexEntry(
-            id="tool.commit_skill_pack",
+            id="tool.commit_skill",
             kind=CapabilityKind.TOOL,
-            name="commit_skill_pack",
+            name="commit_skill",
             summary="Scaffold an agent pack with the given name, description, tools and skills in the platform directory when a user asks to do so.",
             keywords=["scaffold", "agent", "pack"],
             roles=["autoreiv"],
@@ -271,8 +271,8 @@ def test_card409_capability_stopword_immunity_and_underscore_tokenization(resolv
     assert "tool.wiki_note_create" in matched_ids
     assert "tool.inspect_system_health" in matched_ids
     assert matched_ids.index("tool.wiki_note_create") < (
-        matched_ids.index("tool.commit_skill_pack") if "tool.commit_skill_pack" in matched_ids else 999
+        matched_ids.index("tool.commit_skill") if "tool.commit_skill" in matched_ids else 999
     )
     assert matched_ids.index("tool.inspect_system_health") < (
-        matched_ids.index("tool.commit_skill_pack") if "tool.commit_skill_pack" in matched_ids else 999
+        matched_ids.index("tool.commit_skill") if "tool.commit_skill" in matched_ids else 999
     )

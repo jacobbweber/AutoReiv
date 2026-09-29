@@ -21,7 +21,7 @@ def test_compiler_accepts_valid_contract():
 name: Code Inspection
 description: Read and inspect project files.
 version: 1.0.0
-requires_tools:
+tools:
   - repo_file_read
   - repo_file_list
 verification:
@@ -41,7 +41,7 @@ Procedural guidelines for inspecting code safely.
 
     assert contract is not None
     assert contract.name == "Code Inspection"
-    assert len(contract.requires_tools) == 2
+    assert len(contract.tools) == 2
     assert contract.verification is not None
     assert contract.verification.kind == VerificationKind.COMMAND
     assert contract.verification.rule == "git status --porcelain"
@@ -52,11 +52,11 @@ Procedural guidelines for inspecting code safely.
 
 
 def test_compiler_rejects_more_than_15_tools_cap_001():
-    """Rule CAP-001: len(requires_tools) <= 15, the runtime per-turn clamp [REQ-CAP-LINT-001, CARD-454, CARD-562]."""
+    """Rule CAP-001: len(tools) <= 15, the runtime per-turn clamp [REQ-CAP-LINT-001, CARD-454, CARD-562]."""
     raw = """---
 name: Bloated Skill
 description: Too many tools declared.
-requires_tools:
+tools:
   - tool_1
   - tool_2
   - tool_3
@@ -102,7 +102,7 @@ def test_compiler_rejects_missing_verification_cap_002():
     raw = """---
 name: Unverified Skill
 description: No verification contract.
-requires_tools:
+tools:
   - repo_file_read
 ---
 # Unverified
@@ -122,7 +122,7 @@ def test_compiler_accepts_markdown_done_when_fallback_cap_002():
     raw = """---
 name: Fallback Skill
 description: Verification declared in markdown section.
-requires_tools:
+tools:
   - repo_file_read
 ---
 # Fallback Skill
@@ -148,7 +148,7 @@ def test_compiler_rejects_security_collision_cap_003():
     raw = """---
 name: Hazardous Web Scraper
 description: Scrapes web and writes to local disk without HITL.
-requires_tools:
+tools:
   - web_search
   - cli_exec
 safety:
@@ -175,7 +175,7 @@ def test_compiler_permits_mutating_tools_when_hitl_protected_cap_003():
     raw = """---
 name: Guarded Web Agent
 description: Scrapes web but pauses for approval before mutating.
-requires_tools:
+tools:
   - web_search
   - cli_exec
 safety:
@@ -200,7 +200,7 @@ def test_compiler_warns_on_oversized_runbook_cap_004():
     raw = f"""---
 name: Verbose Skill
 description: Extremely long runbook.
-requires_tools:
+tools:
   - repo_file_read
 verification:
   kind: command
@@ -226,7 +226,7 @@ def test_linter_directory_scan(tmp_path):
         """---
 name: Good Skill
 description: Valid skill.
-requires_tools:
+tools:
   - tool_a
 verification:
   kind: command
@@ -243,7 +243,7 @@ verification:
         """---
 name: Bad Skill
 description: Missing verification and 9 tools.
-requires_tools:
+tools:
   - t1
   - t2
   - t3
@@ -280,7 +280,7 @@ def test_platform_packs_all_pass_mechanical_linter():
     from pathlib import Path
 
     repo_root = Path(__file__).resolve().parent.parent.parent.parent
-    platform_packs_dir = repo_root / "platform-packs"
+    platform_packs_dir = repo_root / "platform" / "skills"
 
     linter = CapabilityLinter()
     report = linter.lint_paths([platform_packs_dir])
@@ -297,7 +297,7 @@ def test_cli_lint_skills_human_format_success(tmp_path, capsys):
     (skill_dir / "SKILL.md").write_text(
         """---
 name: Sample Skill
-requires_tools:
+tools:
   - tool_a
 verification:
   kind: command
@@ -326,7 +326,7 @@ def test_cli_lint_skills_json_format(tmp_path, capsys):
     (skill_dir / "SKILL.md").write_text(
         """---
 name: Sample Skill
-requires_tools:
+tools:
   - tool_a
 verification:
   kind: command
@@ -355,7 +355,7 @@ def test_cli_lint_skills_failure_exit_code(tmp_path, capsys):
     (skill_dir / "SKILL.md").write_text(
         """---
 name: Bad Skill
-requires_tools:
+tools:
   - t1
   - t2
   - t3
@@ -394,7 +394,7 @@ def test_cli_lint_skills_strict_flag(tmp_path, capsys):
     (skill_dir / "SKILL.md").write_text(
         f"""---
 name: Oversized Skill
-requires_tools:
+tools:
   - tool_a
 verification:
   kind: command
@@ -423,7 +423,7 @@ def test_rest_api_lint_skill_valid(shared_client):
     payload = {
         "content": """---
 name: Inspect Code
-requires_tools:
+tools:
   - repo_file_read
 verification:
   kind: command
@@ -441,7 +441,7 @@ safety:
     assert data["valid"] is True
     assert data["error_count"] == 0
     assert data["contract"]["name"] == "Inspect Code"
-    assert data["contract"]["requires_tools"] == ["repo_file_read"]
+    assert data["contract"]["tools"] == ["repo_file_read"]
     assert data["contract"]["verification"]["kind"] == "command"
 
 
@@ -453,7 +453,7 @@ def test_rest_api_lint_skill_invalid(shared_client):
     payload = {
         "content": """---
 name: Bad Contract
-requires_tools:
+tools:
   - t1
   - t2
   - t3
@@ -499,7 +499,7 @@ def test_linter_flags_yaml_syntax_error():
     broken_yaml = """---
 name: Broken YAML Skill
 description: Bad colon here: unquoted syntax error
-requires_tools:
+tools:
   - execute_code
 ---
 

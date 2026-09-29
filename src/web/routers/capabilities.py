@@ -173,7 +173,7 @@ async def upsert_capability(request: Request, body: UpsertRequest):
 class ScaffoldDraftRequest(BaseModel):
     kind: str
     name: str = Field(..., min_length=1)
-    pack_id: str = Field(..., min_length=1)
+    skill_id: str = Field(..., min_length=1)
     summary: str = ""
     content: str = ""
     proposal_id: Optional[str] = None
@@ -188,7 +188,7 @@ class ScaffoldSandboxRequest(BaseModel):
 class ScaffoldWriteTrustedRequest(BaseModel):
     kind: str = "skill"
     name: str = Field(..., min_length=1)
-    pack_id: str = Field(..., min_length=1)
+    skill_id: str = Field(..., min_length=1)
     content: str = ""
     summary: str = ""
 
@@ -265,7 +265,7 @@ async def scaffold_draft(request: Request, body: ScaffoldDraftRequest):
         rec = spine.draft(
             kind=body.kind,
             name=body.name,
-            pack_id=body.pack_id,
+            skill_id=body.skill_id,
             summary=body.summary,
             content=body.content,
             proposal_id=body.proposal_id,
@@ -427,7 +427,7 @@ async def scaffold_write_trusted_rejected(request: Request, body: ScaffoldWriteT
         spine.write_trusted_unscoped(
             kind=body.kind,
             name=body.name,
-            pack_id=body.pack_id,
+            skill_id=body.skill_id,
             content=body.content,
             summary=body.summary,
         )

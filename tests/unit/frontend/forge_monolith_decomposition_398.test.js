@@ -60,7 +60,7 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
 
     // Quick scaffold & presets
     expect(typeof forgeModule.openQuickScaffoldModal).toBe('function');
-    expect(forgeModule.startNewAgentPackFromStudio).toBeUndefined();
+    expect(forgeModule.startNewAgentFromStudio).toBeUndefined();
     expect(forgeModule.FORGE_QUICK_PRESETS).toBeDefined();
     expect(typeof forgeModule.buildQuickScaffoldPayload).toBe('function');
     expect(typeof forgeModule.openQuickScaffoldModal).toBe('function');
@@ -77,7 +77,7 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
     expect(typeof forgeModule.scanAndSynthesizeProposals).toBe('function');
 
     // Lab training monitor drawer is retired with the Factory [CARD-496]
-    for (const name of ['buildExpectedPackPaths', 'collectPacketArtifacts', 'formatLabPacketFeedLines', 'formatLabActivityFeedText',
+    for (const name of ['buildExpectedSkillPaths', 'collectPacketArtifacts', 'formatLabPacketFeedLines', 'formatLabActivityFeedText',
       'populateTrainModalForRetry', 'updateLabRunsBadge', 'openLabMonitorDrawer', 'closeLabMonitorDrawer',
       'openLabArtifactPreview', 'closeLabArtifactPreview']) {
       expect(forgeModule[name], name).toBeUndefined();
@@ -94,7 +94,7 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
     expect(typeof forgeModule.renderAssignedSkills).toBe('function');
     expect(typeof forgeModule.assignedSkillListHtml).toBe('function');
     expect(forgeModule.renderPlatformSkills).toBeUndefined();
-    expect(forgeModule.renderPackSkills).toBeUndefined();
+    expect(forgeModule.renderOwnSkills).toBeUndefined();
     expect(typeof forgeModule.renderNestedHomes).toBe('function');
     expect(typeof forgeModule.loadPlatformSkills).toBe('function');
 

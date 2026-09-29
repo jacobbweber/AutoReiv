@@ -13,7 +13,7 @@ import { applySkillPillToggle, paintSkillPill } from './skill_pills.js';
 const SKILL_HOME_LABELS = {
   platform: 'Platform',
   operator: 'Operator',
-  pack: 'Pack',
+  agent: 'Agent',
 };
 
 export function skillHomeLabel(home) {
@@ -135,17 +135,17 @@ function skillRowHandlerOpts(options = {}) {
 export function assignedSkillListHtml({
   platformSkills = [],
   operatorSkills = [],
-  packSkills = [],
+  ownSkillRows = [],
   archivedSkills = [],
 } = {}) {
   const platform = (platformSkills || []).filter((skill) => skill && skill.id);
   const operator = (operatorSkills || []).map(operatorSkillPillModel).filter((skill) => skill.id);
-  const pack = (packSkills || []).filter((skill) => skill && skill.id);
+  const ownRows = (ownSkillRows || []).filter((skill) => skill && skill.id);
   const archived = (archivedSkills || []).filter((skill) => skill && skill.id);
   const rows = [
     ...platform.map((skill) => skillRowHtml(skill, 'platform', false)),
     ...operator.map((skill) => skillRowHtml(skill, 'operator', false)),
-    ...pack.map((skill) => skillRowHtml(skill, 'pack', false)),
+    ...ownRows.map((skill) => skillRowHtml(skill, 'agent', false)),
     ...archived.map((skill) => skillRowHtml(skill, 'archived', true)),
   ];
   if (!rows.length) {
@@ -165,11 +165,11 @@ export function renderAssignedSkills({
 } = {}) {
   const forgeSkillsGrid = $('forgeSkillsGrid');
   if (!forgeSkillsGrid) return;
-  const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
+  const ownSkillRows = (activeForgeAgent && activeForgeAgent.own_skills) || [];
   forgeSkillsGrid.innerHTML = assignedSkillListHtml({
     platformSkills: cachedPlatformSkills,
     operatorSkills: cachedOperatorSkills,
-    packSkills,
+    ownSkillRows,
     archivedSkills: cachedArchivedSkills,
   });
   bindSkillRowHandlers(forgeSkillsGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
@@ -179,15 +179,13 @@ export function renderAssignedSkills({
 export function operatorSkillPillModel(row) {
   const source = row && typeof row === 'object' ? row : {};
   const id = String(source.id || '').trim();
-  const required = Array.isArray(source.requires_tools)
-    ? source.requires_tools.map((item) => String(item || '').trim()).filter(Boolean)
+  const tools = Array.isArray(source.tools)
+    ? source.tools.map((item) => String((item && item.name) || item || '').trim()).filter(Boolean)
     : [];
-  const tools = Array.isArray(source.tools) && source.tools.length ? source.tools : required;
   return {
     id,
     name: String(source.name || id),
     description: String(source.description || ''),
-    requires_tools: required,
     tools,
   };
 }
@@ -240,10 +238,10 @@ export async function loadPlatformSkills({
         operatorSkills = catData.operator_skills || [];
       }
     }
-    const archRes = await fetch('/api/skills/archived-packs');
+    const archRes = await fetch('/api/skills/archived-skills');
     if (archRes.ok) {
       const archData = await archRes.json();
-      archivedSkills = archData.packs || [];
+      archivedSkills = archData.skills || [];
     }
   } catch (e) {
     console.warn('[AutoReiv UI] Failed to load platform skills:', e);

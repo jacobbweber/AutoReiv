@@ -66,7 +66,7 @@ def test_req_scaffold_001_draft_always_candidate(spine):
         kind="skill",
         name="wiki-helper",
         summary="Draft wiki helper skill",
-        pack_id="wiki-helper",
+        skill_id="wiki-helper",
         content="# Wiki Helper\n\nSearch notes.\n",
     )
     assert rec.phase == ScaffoldPhase.DRAFT
@@ -82,7 +82,7 @@ def test_req_scaffold_003_candidate_cannot_run_unsandboxed(spine):
         kind="tool",
         name="scratch_tool",
         summary="candidate tool",
-        pack_id="scratch-tool",
+        skill_id="scratch-tool",
         content="# Scratch\n",
     )
     with pytest.raises(CandidateUnsandboxedError, match="cannot run unsandboxed"):
@@ -94,9 +94,9 @@ def test_req_scaffold_003_candidate_cannot_run_unsandboxed(spine):
 
 def test_req_scaffold_004_rollback_restores_prior_trusted(spine, skills_dir):
     # Seed a trusted pack on disk + catalog entry.
-    pack_id = "okta-admin"
-    spine.catalog.save_pack(
-        pack_id,
+    skill_id = "okta-admin"
+    spine.catalog.save_skill(
+        skill_id,
         "okta-admin",
         "Prior trusted playbook",
         "# Prior Trusted\n\nList users only.\n",
@@ -105,7 +105,7 @@ def test_req_scaffold_004_rollback_restores_prior_trusted(spine, skills_dir):
         kind="skill",
         name="okta-admin",
         summary="prior",
-        pack_id=pack_id,
+        skill_id=skill_id,
         content="# Prior Trusted\n\nList users only.\n",
         skip_disk_write=True,
     )
@@ -116,7 +116,7 @@ def test_req_scaffold_004_rollback_restores_prior_trusted(spine, skills_dir):
     baseline = spine.get(trusted.id)
     assert baseline.phase == ScaffoldPhase.TRUSTED
     assert baseline.trust_tier == TrustTier.TRUSTED
-    prior_body = (skills_dir / pack_id / "SKILL.md").read_text(encoding="utf-8")
+    prior_body = (skills_dir / skill_id / "SKILL.md").read_text(encoding="utf-8")
     assert "Prior Trusted" in prior_body
 
     # New candidate revision overwrites pack content after full path.
@@ -124,18 +124,18 @@ def test_req_scaffold_004_rollback_restores_prior_trusted(spine, skills_dir):
         kind="skill",
         name="okta-admin",
         summary="candidate rewrite",
-        pack_id=pack_id,
+        skill_id=skill_id,
         content="# Candidate Rewrite\n\nDangerous reset.\n",
     )
     spine.mark_sandbox_exec(cand.id, evidence="sandbox")
     spine.version(cand.id)
     spine.hitl_approve(cand.id)
-    rewritten = (skills_dir / pack_id / "SKILL.md").read_text(encoding="utf-8")
+    rewritten = (skills_dir / skill_id / "SKILL.md").read_text(encoding="utf-8")
     assert "Candidate Rewrite" in rewritten
 
     rolled = spine.rollback(cand.id)
     assert rolled['success'] is True
-    restored = (skills_dir / pack_id / "SKILL.md").read_text(encoding="utf-8")
+    restored = (skills_dir / skill_id / "SKILL.md").read_text(encoding="utf-8")
     assert "Prior Trusted" in restored
     assert "Candidate Rewrite" not in restored
     entry = spine.capability_repo.get_entry(cand.capability_id)
@@ -150,7 +150,7 @@ def test_req_scaffold_005_unscoped_trusted_write_rejected(spine):
         spine.write_trusted_unscoped(
             kind="skill",
             name="evil",
-            pack_id="evil",
+            skill_id="evil",
             content="# Evil\n",
         )
 
@@ -160,7 +160,7 @@ def test_req_scaffold_002_lifecycle_phases(spine):
         kind="skill",
         name="demo",
         summary="demo",
-        pack_id="demo-pack",
+        skill_id="demo-pack",
         content="# Demo\n",
     )
     assert rec.phase == ScaffoldPhase.DRAFT
@@ -198,7 +198,7 @@ def test_api_forge_candidate_queue_and_gates(temp_db_path, skills_dir):
             "kind": "skill",
             "name": "queue-demo",
             "summary": "forge queue",
-            "pack_id": "queue-demo",
+            "skill_id": "queue-demo",
             "content": "# Queue Demo\n",
         },
     )
@@ -230,7 +230,7 @@ def test_api_forge_candidate_queue_and_gates(temp_db_path, skills_dir):
         json={
             "kind": "skill",
             "name": "nope",
-            "pack_id": "nope",
+            "skill_id": "nope",
             "content": "# Nope\n",
         },
     )

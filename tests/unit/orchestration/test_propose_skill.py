@@ -74,7 +74,7 @@ def test_agent_builder_schema_includes_propose_tools(setup):
     assert "list_available_skills_and_tools" in names
     assert "propose_agent_specification" not in names
     assert "save_agent_specification" not in names
-    assert "commit_skill_pack" in names
+    assert "commit_skill" in names
     for tool_name in ("propose_skill", "propose_tool"):
         definition = registry.get_tool_definition(tool_name)
         assert definition is not None
@@ -115,7 +115,7 @@ def test_propose_skill_creates_draft_and_hitl_without_skill_md(setup):
     assert payload["how"]
     assert payload["where"] == "skills/okta-admin/SKILL.md"
     assert payload["kind"] == "skill"
-    assert payload["target_pack_id"] == "okta-admin"
+    assert payload["target_skill_id"] == "okta-admin"
 
     pending = setup["store"].get_pending_approvals(session_id="sess_ab")
     assert any(row["id"] == result["approval_id"] for row in pending)
@@ -134,7 +134,7 @@ def test_propose_tool_creates_draft_without_python_file(setup):
         data_dir=setup["data_dir"],
         session_id="sess_ab",
         agent_id="assistant",
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         tool_json={
             "name": "okta_list_users",
             "description": "Stub: list Okta users.",
@@ -326,7 +326,7 @@ def test_sprawl_warning_when_allowlist_would_be_12(setup):
         data_dir=setup["data_dir"],
         session_id="sess_ab",
         agent_id="assistant",
-        pack_id="demo",
+        skill_id="demo",
         tool_json={"name": "extra_tool", "description": "stub", "parameters": {}},
         prefer_existing_agent_id="coding",
         agent_registry=setup["registry"],
@@ -347,7 +347,7 @@ def test_no_sprawl_warning_under_12(setup):
         data_dir=setup["data_dir"],
         session_id="sess_ab",
         agent_id="assistant",
-        pack_id="demo",
+        skill_id="demo",
         tool_json={"name": "small_tool", "description": "stub", "parameters": {}},
         prefer_existing_agent_id="review",
         agent_registry=setup["registry"],
@@ -384,7 +384,7 @@ def test_python_builtin_tool_stays_draft_with_note(setup):
         data_dir=setup["data_dir"],
         session_id="sess_ab",
         agent_id="assistant",
-        pack_id="demo",
+        skill_id="demo",
         tool_json={
             "name": "real_python_tool",
             "description": "would be a Python builtin",

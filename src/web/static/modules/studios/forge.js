@@ -7,7 +7,7 @@
  * - runbook.js: Skill toggle rows and Open in Skill Studio [CARD-411, CARD-418, CARD-419]
  * - skill_pills.js: Agent↔skill toggle pills; on/off writes allowed_skill only [CARD-419]
  * - config.js: Per-agent LLM providers, model discovery, avatar preview, routines, telemetry, brain drawer, tones
- * - platform_defaults.js: Platform update badge, Reset to platform defaults, backups + Restore [CARD-450]
+ * - agent_file_status.js: Edited / shipped version changed / Use shipped version [CARD-570]
  */
 
 import { $, $queryAll, safeCreateIcons } from '../dom.js';
@@ -75,7 +75,7 @@ import {
   loadTones,
   setCachedDiscoveredModels,
 } from './forge/config.js';
-import { setupPlatformDefaults } from './forge/platform_defaults.js';
+import { setupAgentFileStatus } from './forge/agent_file_status.js';
 
 /** Default turn budget for an agent with no stored value; keep equal to DEFAULT_AGENT_MAX_TURNS in src/domain/kernel/models.py [CARD-445]. */
 export const DEFAULT_AGENT_MAX_TURNS = 50;
@@ -146,7 +146,7 @@ export function initAgentForge(state, callbacks = {}) {
   let lastAllowedSkills = new Set();
   let currentAgentMcpServers = [];
 
-  const platformDefaults = setupPlatformDefaults({
+  const agentFileStatus = setupAgentFileStatus({
     onAgentRefreshed: (fresh) => renderAgentToForge(fresh),
   });
 
@@ -296,7 +296,7 @@ export function initAgentForge(state, callbacks = {}) {
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
       } else {
-        forgeBuiltinBadge.textContent = 'Agent Pack';
+        forgeBuiltinBadge.textContent = 'Agent Skill';
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800';
       }
@@ -325,7 +325,7 @@ export function initAgentForge(state, callbacks = {}) {
     });
     loadAgentCredentialGrants(agent);
     loadArchitecturalProposals(agent.id);
-    platformDefaults.render(agent);
+    agentFileStatus.render(agent);
     // CARD-539: accept/reject attach-tool-to-skill proposals; accepting reloads so the tick shows.
     loadPendingProposals(agent.id, typeof document !== 'undefined' ? document.getElementById('forgePendingProposals') : null, {
       onChanged: async () => {
@@ -340,7 +340,7 @@ export function initAgentForge(state, callbacks = {}) {
   function openDeleteModal() {
     if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
     if (deleteAgentModalMessage) {
-      deleteAgentModalMessage.textContent = `Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"? This will remove the agent configuration, delete its pack files, and unbind any assigned routines.`;
+      deleteAgentModalMessage.textContent = `Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"? This will remove the agent configuration, delete its skill files, and unbind any assigned routines.`;
     }
     if (purgeHistoryCheckbox) purgeHistoryCheckbox.checked = false;
     if (deleteAgentModal) deleteAgentModal.classList.remove('hidden');

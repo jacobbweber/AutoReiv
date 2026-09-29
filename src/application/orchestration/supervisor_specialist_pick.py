@@ -1,7 +1,7 @@
 """Supervisor specialist pick from matched catalog IDs [CARD-234 / REQ-SUPER-001..005].
 
 When a phase needs a specialist, pick the handoff target **only** from matched
-catalog agent/pack IDs in the working set — never free-form role theatre.
+catalog agent/skill IDs in the working set — never free-form role theatre.
 
 Handoff reuses standing_a2a_handoff: CARD-265 same job_id by default (never-widen); optional linked child_job_id remains CARD-224.
 No match => park / scaffold (233) / fail-closed — never invent out-of-catalog agents.
@@ -21,12 +21,12 @@ from src.application.orchestration.standing_a2a_handoff import (
 
 logger = logging.getLogger(__name__)
 
-_SPECIALIST_PREFIXES = ("agent.", "pack.")
+_SPECIALIST_PREFIXES = ("agent.",)
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
 class OutOfCatalogHandoffError(PermissionError):
-    """Raised when handoff target is outside matched catalog agent/pack IDs."""
+    """Raised when handoff target is outside matched catalog agent/skill IDs."""
 
 
 @dataclass(frozen=True)
@@ -56,14 +56,14 @@ class SpecialistPick:
 
 
 def catalog_specialist_ids(matched_ids: Sequence[str] | None) -> List[str]:
-    """Return matched IDs that are agents or packs (handoff targets only)."""
+    """Return matched IDs that are agents or skills (handoff targets only)."""
     out: List[str] = []
     for cid in matched_ids or []:
         s = str(cid or "").strip()
         if not s:
             continue
         low = s.lower()
-        if low.startswith(_SPECIALIST_PREFIXES) or low.startswith("agent/") or low.startswith("pack/"):
+        if low.startswith(_SPECIALIST_PREFIXES) or low.startswith("agent/") or low.startswith("skill/"):
             out.append(s)
             continue
         # Also accept bare ids when entry_meta later confirms kind — keep prefix filter primary.
@@ -75,7 +75,7 @@ def _tokens(text: str) -> set[str]:
 
 
 def _agent_id_from_catalog_id(catalog_id: str, meta: Mapping[str, Any] | None) -> str:
-    """Map catalog id / pack metadata to a handoff agent_id (no invent)."""
+    """Map catalog id / skill metadata to a handoff agent_id (no invent)."""
     meta = meta or {}
     mid = meta.get("metadata") if isinstance(meta.get("metadata"), dict) else {}
     for key in ("agent_id", "target_agent_id", "owner_agent_id"):
@@ -86,9 +86,6 @@ def _agent_id_from_catalog_id(catalog_id: str, meta: Mapping[str, Any] | None) -
     low = cid.lower()
     if low.startswith("agent."):
         return cid.split(".", 1)[1]
-    if low.startswith("pack."):
-        # Pack without explicit agent_id: use pack slug as agent id (still in-catalog).
-        return cid.split(".", 1)[1]
     return cid
 
 
@@ -98,7 +95,7 @@ def match_specialty_candidates(
     specialty: str,
     entry_meta: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> List[str]:
-    """Rank matched agent/pack IDs by specialty keyword overlap (highest first)."""
+    """Rank matched agent/skill IDs by specialty keyword overlap (highest first)."""
     meta = entry_meta or {}
     specialists = catalog_specialist_ids(matched_ids)
     # Filter by entry kind when meta present (tools wrongly prefixed never happen; safety).
@@ -106,7 +103,7 @@ def match_specialty_candidates(
     for cid in specialists:
         info = meta.get(cid) or {}
         kind = str(info.get("kind") or "").lower()
-        if kind and kind not in {"agent", "pack", ""}:
+        if kind and kind not in {"agent", ""}:
             continue
         if not kind:
             # prefix-only acceptance when meta missing
@@ -138,7 +135,7 @@ def pick_specialist_from_matched(
     specialty: str,
     entry_meta: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> SpecialistPick:
-    """Pick one specialist from matched catalog agent/pack IDs only [REQ-SUPER-001]."""
+    """Pick one specialist from matched catalog agent/skill IDs only [REQ-SUPER-001]."""
     ids = [str(x) for x in (matched_ids or [])]
     meta = entry_meta or {}
     candidates = match_specialty_candidates(
@@ -175,7 +172,7 @@ def _specialist_agent_ids(
     matched_ids: Sequence[str],
     entry_meta: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> set[str]:
-    """Allowed handoff agent ids derived from matched agent/pack catalog IDs."""
+    """Allowed handoff agent ids derived from matched agent/skill catalog IDs."""
     meta = entry_meta or {}
     allowed: set[str] = set()
     for cid in catalog_specialist_ids(matched_ids):
@@ -199,7 +196,7 @@ def reject_out_of_catalog_handoff(
     matched_ids: Sequence[str],
     entry_meta: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> None:
-    """Fail closed if target is not in matched catalog agent/pack set [REQ-SUPER-003]."""
+    """Fail closed if target is not in matched catalog agent/skill set [REQ-SUPER-003]."""
     target = (target_agent_id or "").strip()
     if not target:
         raise OutOfCatalogHandoffError("empty handoff target rejected")
@@ -211,7 +208,7 @@ def reject_out_of_catalog_handoff(
         if cid == target or cid.endswith("." + target) or cid.lower().endswith("." + target.lower()):
             return
     raise OutOfCatalogHandoffError(
-        f"out-of-catalog handoff rejected: {target!r} not in matched agent/pack IDs"
+        f"out-of-catalog handoff rejected: {target!r} not in matched agent/skill IDs"
     )
 
 

@@ -1,6 +1,6 @@
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.sysadmin_tools import SysadminTools
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 def test_sysadmin_tool_descriptions_network_and_os_aware():

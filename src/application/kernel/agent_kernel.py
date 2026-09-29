@@ -125,9 +125,9 @@ def _capability_authoring_requested(text: str) -> bool:
         return True
     if "commit" in raw and "skill" in raw:
         return True
-    if "scaffold" in raw and ("agent" in raw or "pack" in raw):
+    if "scaffold" in raw and "agent" in raw:
         return True
-    from src.application.agent_packs.schema import CAPABILITY_AUTHORING_TOOL_NAMES
+    from src.application.agent_skills.schema import CAPABILITY_AUTHORING_TOOL_NAMES
 
     for tool in CAPABILITY_AUTHORING_TOOL_NAMES:
         if tool in raw or tool.replace("_", " ") in raw:
@@ -177,7 +177,7 @@ class AgentKernel:
         self.react_state: Optional[ReactState] = None
         self.data_dir = data_dir
         self.user_skill_catalog = user_skill_catalog
-        self.ace_pack_id: Optional[str] = None
+        self.ace_skill_id: Optional[str] = None
         self._ace_tool_errors: List[Dict[str, Any]] = []
         self.capability_gap_repo = CapabilityGapRepository(state_store)
 
@@ -231,8 +231,8 @@ class AgentKernel:
             tool_res.error = scrubber.scrub(str(tool_res.error))
         return tool_res
 
-    def _resolve_ace_pack_id(self) -> Optional[str]:
-        explicit = (self.ace_pack_id or "").strip()
+    def _resolve_ace_skill_id(self) -> Optional[str]:
+        explicit = (self.ace_skill_id or "").strip()
         if explicit:
             return explicit
         names = [str(item.get("tool_name") or "") for item in self._ace_tool_errors]
@@ -279,13 +279,13 @@ class AgentKernel:
         try:
             from src.application.orchestration.ace_online import record_failed_turn_delta
 
-            pack_id = self._resolve_ace_pack_id()
+            skill_id = self._resolve_ace_skill_id()
             data_dir = self._resolve_ace_data_dir()
-            if not pack_id or not data_dir:
+            if not skill_id or not data_dir:
                 return
             record_failed_turn_delta(
                 self.state_store,
-                pack_id=pack_id,
+                skill_id=skill_id,
                 data_dir=data_dir,
                 session_id=session_id,
                 agent_id=agent_id,
@@ -669,7 +669,7 @@ class AgentKernel:
                 from src.application.sdlc.projects_service import ProjectsService
 
                 is_developer = getattr(agent, "id", None) == "developer"
-                from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+                from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
                 allowed_tools: set[str] = set(resolve_allowed_tools(agent).names)
                 has_project_tools = bool(
@@ -711,7 +711,7 @@ class AgentKernel:
 
         # CARD-539 D5: the domain line is generated from ticked skills; no hand-written capability block.
         if getattr(agent, "id", None) != "direct":
-            from src.application.agent_packs.allowed_tools import domain_line
+            from src.application.agent_skills.allowed_tools import domain_line
 
             base_prompt = f"{base_prompt}\n\n## Your domain\n{domain_line(agent)}"
 
@@ -798,7 +798,7 @@ class AgentKernel:
 
         if agent is None:
             return matched
-        from src.application.agent_packs.allowed_tools import ticked_skills_for_domains
+        from src.application.agent_skills.allowed_tools import ticked_skills_for_domains
 
         return ticked_skills_for_domains(agent, matched)
 
@@ -818,8 +818,8 @@ class AgentKernel:
         if getattr(agent, "id", None) == "direct":
             return []
 
-        from src.application.agent_packs.allowed_tools import resolve_allowed_tools, ticked_skills
-        from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+        from src.application.agent_skills.allowed_tools import resolve_allowed_tools, ticked_skills
+        from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 
         allowed = resolve_allowed_tools(agent)
         ticks = set(ticked_skills(agent))
@@ -868,7 +868,7 @@ class AgentKernel:
             import re
             user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) - _RANK_FILLER_WORDS
 
-            from src.application.agent_packs.schema import CAPABILITY_AUTHORING_TOOL_NAMES
+            from src.application.agent_skills.schema import CAPABILITY_AUTHORING_TOOL_NAMES
             from src.application.tools.native_packaging import AUTHORING_TOOL_NAMES, load_native_tool_names
 
             native_names = load_native_tool_names(self.state_store)
@@ -896,7 +896,7 @@ class AgentKernel:
                         return (0, 0, name)
 
                 # Naming the catalog tool keeps it inside the turn cap [CARD-428].
-                if name == "list_user_skill_packs" and "list_user_skill_packs" in text_l:
+                if name == "list_user_skills" and "list_user_skills" in text_l:
                     return (0, 0, name)
 
                 # Builder HITL stays off the default eight until the turn asks for it [CARD-429].

@@ -21,6 +21,7 @@ from src.application.education.wiki_curation import (
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.application.skills.wiki_tools import WikiTools
+from tests.unit.agent_skills.catalog import pack_dict
 
 CURATION_TOOL_NAMES = (
     "education_wiki_template_catalog",
@@ -234,9 +235,8 @@ def test_parse_curriculum_bullets():
 
 
 def test_tutor_pack_lists_curation_tools():
-    import json
 
-    pack = json.loads(Path("platform-packs/tutor/pack.json").read_text(encoding="utf-8"))
+    pack = pack_dict("tutor")
     skill = next(s for s in pack["skills"] if s["id"] == "education-wiki-curation")
     tools = skill.get("tools") or []
     for name in CURATION_TOOL_NAMES:

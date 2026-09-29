@@ -6,7 +6,6 @@ import ast
 import importlib
 import inspect
 import json
-import logging
 import sqlite3
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -14,20 +13,11 @@ from unittest.mock import MagicMock
 import pytest
 from starlette.testclient import TestClient
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-
 ROOT = Path(__file__).resolve().parents[3]
 # A made-up "old shipped" build-agent-pack SKILL.md; its hash is patched in as shipped (CARD-568: no fixture copy).
 OLD_SHIPPED_SKILL = "---\nname: proposals\n---\n\n# Proposals\n\nTools are trained in the Factory.\n"
 
 
-def _patch_shipped(monkeypatch):
-    import hashlib
-
-    from src.infrastructure.skills import seed
-
-    sha = hashlib.sha256(OLD_SHIPPED_SKILL.encode("utf-8")).hexdigest()
-    monkeypatch.setattr(seed, "SHIPPED_SEED_SHA256", {"proposals": frozenset({sha})})
 
 DELETED_MODULES = (
     "src.application.agent_training_factory",
@@ -178,95 +168,11 @@ async def test_10c_inspect_agent_not_found(inspect_tools):
 
 
 # 11 ------------------------------------------------------------------------
-def test_11_retired_tools_strip_launch_factory_training_from_user_modified_pack(tmp_path):
-    from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone, ModelPurpose
-    from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES, promote_platform_packs
-
-    assert "launch_factory_training" in RETIRED_TOOL_NAMES
-
-    checkout = tmp_path / "checkout"
-    pack = checkout / "platform-packs" / "fixturepack"
-    (pack / "skills" / "skill-a").mkdir(parents=True)
-    (pack / "skills" / "skill-a" / "SKILL.md").write_text("# a\nv1\n", encoding="utf-8")
-    (pack / "pack.json").write_text(
-        json.dumps(
-            {
-                "id": "fixturepack",
-                "name": "Fixturepack",
-                "version": "1",
-                "system_prompt": "SHIPPED",
-                "allowed_skill": ["skill-a"],
-                "skills": [{"id": "skill-a", "name": "a", "description": "a", "tools": ["wiki_note_read"]}],
-                "model": "default",
-            }
-        ),
-        encoding="utf-8",
-    )
-    profile = AgentProfile(
-        id="fixturepack",
-        name="Fixturepack",
-        description="fixture",
-        system_prompt="OPERATOR PROMPT",
-        origin=AgentOrigin.PACK,
-        tone=AgentTone.DEFAULT,
-        purpose=ModelPurpose.TASK_EXECUTION,
-        allowed_skill=["skill-a"],
-        user_modified=True,
-        seed_content_hash="deadbeef",
-        seed_version="1",
-    )
-
-    class _Store:
-        def __init__(self):
-            self.profiles = {"fixturepack": profile}
-            self.settings = {}
-
-        def get_agent_profile(self, agent_id):
-            return self.profiles.get(agent_id)
-
-        get_custom_agent_profile = get_agent_profile
-
-        def save_agent_profile(self, p):
-            self.profiles[p.id] = p
-
-        save_custom_agent_profile = save_agent_profile
-
-        def get_agent_override(self, agent_id):
-            return None
-
-        def save_agent_override(self, ov):
-            pass
-
-        def list_custom_agent_profiles(self):
-            return list(self.profiles.values())
-
-        def get_setting(self, key):
-            return self.settings.get(key)
-
-        def set_setting(self, key, value):
-            self.settings[key] = value
-
-        def mark_agent_user_modified(self, agent_id, *, modified=True):
-            self.profiles[agent_id].user_modified = modified
-
-    class _Registry:
-        def __init__(self, store):
-            self.state_store = store
-
-        def get_agent(self, agent_id):
-            return self.state_store.profiles.get(agent_id)
-
-    store = _Store()
-    report = promote_platform_packs(tmp_path / "data", _Registry(store), None, checkout_root=checkout, pack_ids=["fixturepack"])
-    assert report.results[0].status == "skipped_user_modified"
-    stored = store.profiles["fixturepack"]
-    assert "launch_factory_training" not in list(resolve_allowed_tools(stored))
-    assert stored.system_prompt == "OPERATOR PROMPT"
 
 
 # 12 ------------------------------------------------------------------------
 def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_training():
-    from tests.unit.agent_packs.catalog import load_platform_manifest
+    from tests.unit.agent_skills.catalog import load_platform_manifest
 
     manifest = load_platform_manifest("autoreiv")
     skill = next(s for s in manifest.skills if s.id == "agent-authoring")
@@ -289,20 +195,20 @@ def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_train
 def _authoring_skill_md():
     import yaml
 
-    text = (ROOT / "platform-packs/autoreiv/skills/agent-authoring/SKILL.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+    text = (ROOT / "platform/skills/agent-authoring/SKILL.md").read_text(encoding="utf-8").replace("\r\n", "\n")
     _, front, body = text.split("---\n", 2)
     return yaml.safe_load(front), body
 
 
 def test_12b_agent_authoring_is_found_for_teach_requests():
     """Live retest: 'Teach AutoReiv to ...' never opened agent-authoring (the index lists names, skill_view takes ids)."""
-    from tests.unit.agent_packs.catalog import load_platform_manifest
+    from tests.unit.agent_skills.catalog import load_platform_manifest
 
     front, _ = _authoring_skill_md()
-    pack_skill = next(s for s in load_platform_manifest("autoreiv").skills if s.id == "agent-authoring")
-    for desc in (front["description"], pack_skill.description):
+    assert "agent-authoring" in load_platform_manifest("autoreiv").allowed_skill
+    for desc in (front["description"],):
         low = desc.lower()
-        for needle in ("teach", "new capability", "learn to", 'skill_view(pack_id="agent-authoring")'):
+        for needle in ("teach", "new capability", "learn to", 'skill_view(skill_id="agent-authoring")'):
             assert needle in low, (needle, desc)
 
 
@@ -322,61 +228,18 @@ def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flo
 
 
 def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_view():
-    """Live retests 2-3: activate_skill(['agent-authoring']) fails (platform domains only); skill_view needs pack_id=."""
-    from tests.unit.agent_packs.catalog import load_platform_manifest
+    """Live retests 2-3: activate_skill(['agent-authoring']) fails (platform domains only); skill_view needs skill_id=."""
+    from tests.unit.agent_skills.catalog import load_platform_manifest
 
     prompt = load_platform_manifest("autoreiv").system_prompt
     lines = [ln for ln in prompt.splitlines() if "agent-authoring" in ln]
     assert len(lines) == 1, lines
     line = lines[0]
-    assert 'skill_view(pack_id="agent-authoring")' in line and "not activate_skill" in line
+    assert 'skill_view(skill_id="agent-authoring")' in line and "not activate_skill" in line
     assert "teach" in line.lower() and "new capability" in line.lower()
 
 
 # 13 ------------------------------------------------------------------------
-def test_13_unedited_shipped_seed_is_refreshed(tmp_path, monkeypatch):
-    from src.infrastructure.skills.seed import bundled_skill_md, seed_bundled_skill_packs
-
-    _patch_shipped(monkeypatch)
-    dest = tmp_path / "skills" / "proposals" / "SKILL.md"
-    dest.parent.mkdir(parents=True)
-    dest.write_bytes(OLD_SHIPPED_SKILL.encode("utf-8").replace(b"\n", b"\r\n"))  # CRLF copy, whatever the checkout wrote
-    seed_bundled_skill_packs(tmp_path / "skills", ["proposals"])
-    now = dest.read_text(encoding="utf-8")
-    assert "trained in the Factory" not in now
-    assert now.replace("\r\n", "\n") == bundled_skill_md("proposals").read_text(encoding="utf-8").replace("\r\n", "\n")
-
-
-def test_13b_edited_seed_is_left_alone_and_logged(tmp_path, monkeypatch):
-    from src.infrastructure.skills.seed import seed_bundled_skill_packs
-
-    _patch_shipped(monkeypatch)
-
-    records: list[logging.LogRecord] = []
-
-    class _Keep(logging.Handler):
-        def emit(self, record):
-            records.append(record)
-
-    seed_logger = logging.getLogger("src.infrastructure.skills.seed")
-    handler = _Keep(level=logging.INFO)
-    old_level = seed_logger.level
-    seed_logger.addHandler(handler)
-    seed_logger.setLevel(logging.INFO)
-
-    dest = tmp_path / "skills" / "proposals" / "SKILL.md"
-    dest.parent.mkdir(parents=True)
-    edited = OLD_SHIPPED_SKILL + "\nOperator note.\n"
-    dest.write_text(edited, encoding="utf-8")
-    try:
-        seed_bundled_skill_packs(tmp_path / "skills", ["proposals"])
-    finally:
-        seed_logger.removeHandler(handler)
-        seed_logger.setLevel(old_level)
-    assert dest.read_text(encoding="utf-8") == edited
-    assert any("proposals" in r.getMessage() and "edited" in r.getMessage().lower() for r in records)
-
-
 # 14 ------------------------------------------------------------------------
 def test_14_agents_api_drops_auto_training_fields(tmp_path, monkeypatch):
     _, db = _env(tmp_path, monkeypatch)
@@ -408,17 +271,6 @@ def test_14_agents_api_drops_auto_training_fields(tmp_path, monkeypatch):
     assert "max_training_retries" not in json.dumps(updated.json())
 
 
-def test_14b_pack_export_omits_and_import_ignores_auto_training_fields():
-    from src.application.agent_packs.schema import AgentPackManifest
-
-    assert "allow_autonomous_training" not in AgentPackManifest.model_fields
-    assert "max_training_retries" not in AgentPackManifest.model_fields
-    manifest = AgentPackManifest.model_validate(
-        {"id": "old-pack", "name": "Old Pack", "allow_autonomous_training": True, "max_training_retries": 3}
-    )
-    dumped = manifest.model_dump(mode="json")
-    assert "allow_autonomous_training" not in dumped
-    assert "max_training_retries" not in dumped
 
 
 # 15 ------------------------------------------------------------------------

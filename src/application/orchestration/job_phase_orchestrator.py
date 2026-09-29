@@ -97,7 +97,12 @@ def _ticks_coding(agent_id: str, store: Optional[Any]) -> bool:
         return True
     getter = getattr(store, "get_agent_profile", None) if store is not None else None
     profile = getter(agent_id) if callable(getter) else None
-    return "coding" in (getattr(profile, "allowed_skill", None) or [])
+    if profile is not None:
+        return "coding" in (getattr(profile, "allowed_skill", None) or [])
+    from src.infrastructure.content.store import get_store  # CARD-570: the winning agent file
+
+    item = get_store().agents.load(agent_id)
+    return bool(item and "coding" in item.skills)
 
 
 def resolve_specialist_agent_for_capabilities(
@@ -115,7 +120,7 @@ def resolve_specialist_agent_for_capabilities(
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
-        prefix = "agent." if s.startswith("agent.") else "pack." if s.startswith("pack.") else ""
+        prefix = "agent." if s.startswith("agent.") else ""
         candidate = s[len(prefix) :] if prefix else ""
         if not candidate:
             continue
@@ -642,7 +647,7 @@ class JobPhaseOrchestrator:
             "phase_id": phase_id,
             "job_id": phase.job_id,
             "skill_id": skill_id,
-            "pack_id": loaded.get("pack_id"),
+            "runbook_id": loaded.get("runbook_id"),
             "title": loaded.get("title"),
             "body_loaded": bool(loaded.get("body_loaded")),
             "success": bool(loaded.get("success")),
@@ -658,7 +663,7 @@ class JobPhaseOrchestrator:
             "phase_id": phase_id,
             "job_id": phase.job_id,
             "skill_id": skill_id,
-            "pack_id": loaded.get("pack_id"),
+            "runbook_id": loaded.get("runbook_id"),
             "title": loaded.get("title"),
             "body": loaded.get("body") if loaded.get("success") else None,
             "body_loaded": bool(loaded.get("body_loaded")),
@@ -694,7 +699,7 @@ class JobPhaseOrchestrator:
         park: bool = True,
         kind: Optional[str] = None,
         name: Optional[str] = None,
-        pack_id: Optional[str] = None,
+        skill_id: Optional[str] = None,
         summary: str = "",
         content: str = "",
     ) -> dict[str, Any]:
@@ -722,7 +727,7 @@ class JobPhaseOrchestrator:
             gap=gap,
             kind=kind,
             name=name,
-            pack_id=pack_id,
+            skill_id=skill_id,
             summary=summary,
             content=content,
             park=park,
@@ -782,7 +787,7 @@ class JobPhaseOrchestrator:
         intent: Optional[str] = None,
         verify_checker: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Pick specialist from matched catalog agent/pack IDs only [CARD-234]."""
+        """Pick specialist from matched catalog agent/skill IDs only [CARD-234]."""
         from src.application.orchestration.supervisor_specialist_pick import (
             supervisor_specialist_handoff,
         )

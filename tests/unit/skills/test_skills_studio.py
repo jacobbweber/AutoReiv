@@ -50,9 +50,9 @@ def _skills_root():
 
 
 def _write_pack(slug, content):
-    pack_dir = _skills_root() / slug
-    pack_dir.mkdir(parents=True, exist_ok=True)
-    skill = pack_dir / "SKILL.md"
+    skill_dir = _skills_root() / slug
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    skill = skill_dir / "SKILL.md"
     skill.write_text(content, encoding="utf-8")
     return skill
 
@@ -81,14 +81,14 @@ def test_index_html_has_one_agent_studio_and_no_skills_studio_nav():
     assert 'id="tab-skills"' not in page
 
 
-def test_list_and_get_user_packs_from_temp_skills_dir():
+def test_list_and_get_user_skills_from_temp_skills_dir():
     _write_pack("weekly-review", SAMPLE_SKILL_MD)
     _write_pack("inbox-triage", PLAYBOOK_ONLY_MD)
     client = TestClient(create_app())
 
-    listed = client.get("/api/skills/user-packs")
+    listed = client.get("/api/skills/user-skills")
     assert listed.status_code == 200
-    packs = listed.json()["packs"]
+    packs = listed.json()["skills"]
     ids = {p["id"] for p in packs}
     assert "weekly-review" in ids
     assert "inbox-triage" in ids
@@ -99,7 +99,7 @@ def test_list_and_get_user_packs_from_temp_skills_dir():
     assert "tools" not in weekly
     assert "Distinctive-body-token" not in str(weekly)
 
-    opened = client.get("/api/skills/user-packs/weekly-review")
+    opened = client.get("/api/skills/user-skills/weekly-review")
     assert opened.status_code == 200
     body = opened.json()
     assert body["manifest"]["id"] == "weekly-review"
@@ -107,19 +107,19 @@ def test_list_and_get_user_packs_from_temp_skills_dir():
     assert any(t["name"] == "list_open_loops" for t in body["tools"])
     assert any("List open loops" in (t.get("description") or "") for t in body["tools"])
 
-    playbook = client.get("/api/skills/user-packs/inbox-triage")
+    playbook = client.get("/api/skills/user-skills/inbox-triage")
     assert playbook.status_code == 200
     assert playbook.json()["tools"] == []
     assert "Playbook-only-token" in playbook.json()["instructions"]
 
-    missing = client.get("/api/skills/user-packs/no-such-pack")
+    missing = client.get("/api/skills/user-skills/no-such-pack")
     assert missing.status_code == 404
 
 
 def test_put_writes_skill_md_on_disk_and_creates_pack():
     client = TestClient(create_app())
     created = client.put(
-        "/api/skills/user-packs/new-playbook",
+        "/api/skills/user-skills/new-playbook",
         json={
             "name": "new-playbook",
             "description": "Created from Agent Studio.",
@@ -138,7 +138,7 @@ def test_put_writes_skill_md_on_disk_and_creates_pack():
     assert not agents_skills.exists()
 
     updated = client.put(
-        "/api/skills/user-packs/new-playbook",
+        "/api/skills/user-skills/new-playbook",
         json={
             "name": "new-playbook",
             "description": "Updated description.",
@@ -153,15 +153,15 @@ def test_put_writes_skill_md_on_disk_and_creates_pack():
 
 
 def test_put_rejects_path_traversal_out_of_skills_tree():
-    from src.application.skills.user_catalog import PackJailError, UserSkillCatalog
+    from src.application.skills.user_catalog import SkillJailError, UserSkillCatalog
 
     catalog = UserSkillCatalog(skills_dir=_skills_root())
-    for pack_id in ("../escape", "foo/../../escape", r"..\escape", "/tmp/evil"):
+    for skill_id in ("../escape", "foo/../../escape", r"..\escape", "/tmp/evil"):
         try:
-            catalog.resolve_skill_md(pack_id)
-        except PackJailError:
+            catalog.resolve_skill_md(skill_id)
+        except SkillJailError:
             continue
-        raise AssertionError(f"expected PackJailError for {pack_id!r}")
+        raise AssertionError(f"expected SkillJailError for {skill_id!r}")
 
     client = TestClient(create_app())
     payload = {
@@ -169,9 +169,9 @@ def test_put_rejects_path_traversal_out_of_skills_tree():
         "description": "should not write",
         "instructions": "nope",
     }
-    for pack_id in ("../escape", "..%2Fescape", "foo/../../escape"):
-        res = client.put(f"/api/skills/user-packs/{pack_id}", json=payload)
-        assert res.status_code in (400, 404, 422), (pack_id, res.status_code, res.text)
+    for skill_id in ("../escape", "..%2Fescape", "foo/../../escape"):
+        res = client.put(f"/api/skills/user-skills/{skill_id}", json=payload)
+        assert res.status_code in (400, 404, 422), (skill_id, res.status_code, res.text)
         assert res.status_code != 200
     escaped = REPO_ROOT / "escape" / "SKILL.md"
     assert not escaped.exists()
@@ -181,7 +181,7 @@ def test_put_rejects_path_traversal_out_of_skills_tree():
 def test_post_creates_empty_pack_and_conflicts_on_duplicate():
     client = TestClient(create_app())
     first = client.post(
-        "/api/skills/user-packs",
+        "/api/skills/user-skills",
         json={"id": "blank-pack", "name": "blank-pack", "description": "Empty playbook."},
     )
     assert first.status_code == 200
@@ -191,7 +191,7 @@ def test_post_creates_empty_pack_and_conflicts_on_duplicate():
     assert first.json()["tools"] == []
 
     dup = client.post(
-        "/api/skills/user-packs",
+        "/api/skills/user-skills",
         json={"id": "blank-pack", "name": "blank-pack", "description": "Empty playbook."},
     )
     assert dup.status_code == 409

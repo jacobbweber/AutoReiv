@@ -9,7 +9,7 @@ import pytest
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.librarian_tools import LibrarianTools
 from src.domain.gateway.models import ToolCall
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 LIBRARIAN_PROFILE = platform_pack_profile('autoreiv')
 

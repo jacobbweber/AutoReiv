@@ -29,8 +29,8 @@ DECISION_EVENT_KIND = "skill_studio_authoring_decision"
 PACKET_FACT_PREFIX = "skill_studio_authoring_packet_json="
 PROPOSAL_FACT_PREFIX = "skill_studio_authoring_proposal_json="
 
-ALLOWED_PATCH_FIELDS = frozenset({"name", "description", "tier", "safety", "requires_tools", "markdown"})
-VALID_TIERS = frozenset({"platform", "pack", "user"})
+ALLOWED_PATCH_FIELDS = frozenset({"name", "description", "tier", "safety", "tools", "markdown"})
+VALID_TIERS = frozenset({"platform", "user"})
 _OPEN_STATUSES = frozenset({JobStatus.QUEUED.value, JobStatus.RUNNING.value, JobStatus.WAITING_APPROVAL.value})
 _SUCCESS_RULE = (
     "Done-when: proposed field patches are attached for the operator to accept "
@@ -56,11 +56,11 @@ def normalize_draft(raw: Optional[Mapping[str, Any]]) -> dict[str, Any]:
     source = dict(raw or {})
     safety_raw = source.get("safety") if isinstance(source.get("safety"), Mapping) else {}
     tools: list[str] = []
-    for item in source.get("requires_tools") or []:
+    for item in source.get("tools") or []:
         text = str(item).strip()
         if text and text not in tools:
             tools.append(text)
-    tier = str(source.get("tier") or "pack").strip().lower() or "pack"
+    tier = str(source.get("tier") or "user").strip().lower() or "user"
     return {
         "skill_id": str(source.get("skill_id") or "").strip(),
         "name": str(source.get("name") or "").strip(),
@@ -71,7 +71,7 @@ def normalize_draft(raw: Optional[Mapping[str, Any]]) -> dict[str, Any]:
             "requires_hitl": bool(safety_raw.get("requires_hitl", False)),
             "untrusted_input_allowed": bool(safety_raw.get("untrusted_input_allowed", False)),
         },
-        "requires_tools": tools,
+        "tools": tools,
         "markdown": str(source.get("markdown") if source.get("markdown") is not None else ""),
         "intent_notes": str(source.get("intent_notes") or ""),
         "source_context": str(source.get("source_context") or ""),
@@ -124,13 +124,13 @@ def cheap_lint_draft(
     markdown = str(draft.get("markdown") or "")
     blockers = _frontmatter_blockers(markdown)
     catalog = [] if catalog_ids is None else [str(item) for item in catalog_ids]
-    _accepted, rejected = normalize_tool_ids(draft.get("requires_tools") or [], catalog)
+    _accepted, rejected = normalize_tool_ids(draft.get("tools") or [], catalog)
     if rejected:
         blockers.append(
             {
                 "code": "TOOL-UNKNOWN",
                 "message": "Unknown catalog tool ids: " + ", ".join(rejected),
-                "field": "requires_tools",
+                "field": "tools",
                 "rejected": rejected,
             }
         )
@@ -191,9 +191,9 @@ def validate_patches(patches: Any) -> list[dict[str, Any]]:
                 "requires_hitl": bool(value.get("requires_hitl", False)),
                 "untrusted_input_allowed": bool(value.get("untrusted_input_allowed", False)),
             }
-        elif field == "requires_tools":
+        elif field == "tools":
             if not isinstance(value, list):
-                raise AuthoringError("requires_tools patch must be a list")
+                raise AuthoringError("tools patch must be a list")
             tools: list[str] = []
             for tool in value:
                 text = str(tool).strip()
@@ -307,7 +307,7 @@ class DeveloperAuthoringService:
 
     def get_job(self, job_id: str) -> dict[str, Any]:
         job = self._require_job(job_id)
-        packet = self._read_packet(job)
+        packet = self._read_skillet(job)
         return self._job_payload(job, packet=packet, resumed=False, include_proposals=True)
 
     def propose(self, job_id: str, patches: Any) -> dict[str, Any]:
@@ -431,7 +431,7 @@ class DeveloperAuthoringService:
         phase.assigned_agent_id = DEVELOPER_AGENT_ID
         self._store.update_phase(phase)
 
-    def _read_packet(self, job: Any) -> Optional[dict[str, Any]]:
+    def _read_skillet(self, job: Any) -> Optional[dict[str, Any]]:
         phase = self._author_phase(job.id)
         return _load_prefixed(getattr(phase, "input_packet_json", None), PACKET_FACT_PREFIX)
 

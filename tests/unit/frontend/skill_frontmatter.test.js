@@ -1,5 +1,5 @@
 /**
- * CARD-411 REQ-411-001/002: structured metadata round-trips requires_tools and keeps the body.
+ * CARD-411 REQ-411-001/002: structured metadata round-trips tools and keeps the body.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -10,7 +10,7 @@ name: Widget Notes
 description: Read widget notes
 version: 1.0.0
 tier: pack
-requires_tools:
+tools:
   - inspect_widget
 safety:
   read_only: true
@@ -27,17 +27,17 @@ Keep-this-sentence.
 `;
 
 describe('skill frontmatter workshop metadata [CARD-411]', () => {
-  it('adds and removes catalog tools in requires_tools without dropping the body', () => {
+  it('adds and removes catalog tools in tools without dropping the body', () => {
     const catalog = ['inspect_widget', 'wiki_note_read'];
     const added = applyWorkshopMetadata(SAMPLE, {
       name: 'Widget Notes',
       description: 'Read widget notes',
       tier: 'user',
       safety: { read_only: false, requires_hitl: true, untrusted_input_allowed: false },
-      requires_tools: ['wiki_note_read', 'not_a_tool', 'wiki_note_read'],
+      tools: ['wiki_note_read', 'not_a_tool', 'wiki_note_read'],
     }, catalog);
 
-    expect(added.requires_tools).toEqual(['wiki_note_read']);
+    expect(added.tools).toEqual(['wiki_note_read']);
     expect(added.rejected).toEqual(['not_a_tool']);
     expect(added.markdown).toContain('wiki_note_read');
     expect(added.markdown).not.toContain('not_a_tool');
@@ -50,9 +50,9 @@ describe('skill frontmatter workshop metadata [CARD-411]', () => {
     expect(body).toContain('Keep-this-sentence.');
 
     const removed = applyWorkshopMetadata(added.markdown, {
-      requires_tools: [],
+      tools: [],
     }, catalog);
-    expect(removed.requires_tools).toEqual([]);
+    expect(removed.tools).toEqual([]);
     expect(removed.markdown).toContain('Keep-this-sentence.');
     expect(removed.markdown).not.toContain('wiki_note_read');
   });

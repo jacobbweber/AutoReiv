@@ -304,8 +304,8 @@ def test_req_research_003_writes_memory_db_not_trusted(orch, resolver, store, tm
     assert result.get("catalog_gap_proposals") is not None
     trusted_writer.assert_not_called()
 
-    mem_files = list(Path(data_dir).rglob("*_memory.db"))
-    storage_files = list(Path(data_dir).rglob("*_storage.db"))
+    mem_files = list(Path(data_dir).rglob("memory.db"))
+    storage_files = list(Path(data_dir).rglob("storage.db"))
     assert mem_files, "research must touch memory.db"
     assert not storage_files, "research must never touch storage.db"
 

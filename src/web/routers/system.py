@@ -64,7 +64,10 @@ async def health(request: Request):
         ver = svc.get_version_info().current_version
     except Exception:
         pass
-    return {"status": "ok", "app": "AutoReiv", "version": ver}
+    registry = getattr(request.app.state, "registry", None)
+    warnings = dict(getattr(registry, "skill_tool_warnings", None) or {})
+    # CARD-570: a skill naming an unknown tool is a visible warning; that tool grants nothing.
+    return {"status": "ok", "app": "AutoReiv", "version": ver, "skill_tool_warnings": warnings}
 
 
 @router.get("/api/system/version", response_model=SystemVersionInfo)

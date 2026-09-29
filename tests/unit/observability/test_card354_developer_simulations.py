@@ -1,6 +1,6 @@
 """
 5 Comprehensive Tests for CARD-354:
-Three live simulations using the developer agent against active agentic-test project,
+Three simulations using the developer agent against a temporary agentic-test project,
 validating telemetry capture, friction diagnosis, runbook optimization, and lifecycle safety.
 """
 
@@ -23,14 +23,12 @@ from src.domain.orchestration.models import ProposalKind, ProposalStatus
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.observability import router as observability_router
 
-AGENTIC_TEST_PATH = Path("D:/Projects/Exprimentation/agentic-test").resolve()
-
 
 @pytest.fixture
 def sim_environment(tmp_path: Path):
     """
     Sets up an isolated AutoReiv user-data environment mirroring live AppData,
-    seeded with developer pack and targeting the active agentic-test project.
+    seeded with developer skills and a self-contained temporary agentic-test project.
     """
     user_data = tmp_path / "user_data"
     user_data.mkdir()
@@ -41,56 +39,21 @@ def sim_environment(tmp_path: Path):
     store = SQLiteStateStore(db_path=db_dir / "autoreiv.db")
     store.initialize_db()
 
-    # 2. Developer pack in user data
-    dev_dir = user_data / "packs" / "developer"
-    skills_dir = dev_dir / "skills"
-    build_dir = skills_dir / "build"
-    plan_dir = skills_dir / "plan"
-    test_dir = skills_dir / "test"
-    build_dir.mkdir(parents=True)
-    plan_dir.mkdir(parents=True)
-    test_dir.mkdir(parents=True)
-
-    (dev_dir / "pack.json").write_text(
-        json.dumps(
-            {
-                "id": "developer",
-                "name": "Developer",
-                "skills": [
-                    {
-                        "id": "plan",
-                        "name": "Plan",
-                        "tools": ["list_project_dir", "read_project_file", "read_card", "write_card"],
-                    },
-                    {
-                        "id": "build",
-                        "name": "Build",
-                        "tools": ["read_project_file", "write_project_file", "git_status"],
-                    },
-                    {
-                        "id": "test",
-                        "name": "Test",
-                        "tools": ["cli_exec", "execute_code"],
-                    },
-                ],
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-    (build_dir / "SKILL.md").write_text(
-        "---\nname: Build\ndescription: Implement code changes\n---\n# Build\n\n## Order\n1. Read card\n2. Write code\n\n## Pitfalls\n\n- Do not invent scope beyond card.\n",
-        encoding="utf-8",
-    )
-    (plan_dir / "SKILL.md").write_text(
-        "---\nname: Plan\ndescription: Explore codebase\n---\n# Plan\n\n## Pitfalls\n\n- Do not plan without spec.\n",
-        encoding="utf-8",
-    )
-    (test_dir / "SKILL.md").write_text(
-        "---\nname: Test\ndescription: Run automated tests\n---\n# Test\n\n## Pitfalls\n\n- Do not ignore failing tests.\n",
-        encoding="utf-8",
-    )
+    # 2. Developer skills as user copies in the data dir [CARD-570]
+    for sid, name, desc, tools, body in (
+        ("plan", "Plan", "Explore codebase", ["list_project_dir", "read_project_file", "read_card", "write_card"],
+         "# Plan\n\n## Pitfalls\n\n- Do not plan without spec.\n"),
+        ("build", "Build", "Implement code changes", ["read_project_file", "write_project_file", "git_status"],
+         "# Build\n\n## Order\n1. Read card\n2. Write code\n\n## Pitfalls\n\n- Do not invent scope beyond card.\n"),
+        ("test", "Test", "Run automated tests", ["cli_exec", "execute_code"],
+         "# Test\n\n## Pitfalls\n\n- Do not ignore failing tests.\n"),
+    ):
+        skill_dir = user_data / "skills" / sid
+        skill_dir.mkdir(parents=True)
+        tool_lines = "".join(f"  - {t}\n" for t in tools)
+        (skill_dir / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: {desc}\ntools:\n{tool_lines}---\n{body}", encoding="utf-8"
+        )
 
     # 3. Platform wiki skill
     wiki_dir = user_data / "skills" / "wiki"
@@ -100,14 +63,17 @@ def sim_environment(tmp_path: Path):
         encoding="utf-8",
     )
 
-    # 4. Project tools targeting agentic-test
-    project_tools = ProjectFileTools(default_project_root=str(AGENTIC_TEST_PATH))
+    # 4. Self-contained project (no dependency on a real agentic-test checkout) with a 16 KB sentinel.db
+    project_root = tmp_path / "agentic-test"
+    project_root.mkdir()
+    (project_root / "sentinel.db").write_text("S" * 16384, encoding="utf-8")
+    project_tools = ProjectFileTools(default_project_root=str(project_root))
 
     return {
         "user_data": user_data,
         "store": store,
         "project_tools": project_tools,
-        "project_root": AGENTIC_TEST_PATH,
+        "project_root": project_root,
     }
 
 
@@ -187,7 +153,7 @@ def test_1_simulation_redundant_verification(sim_environment):
     resolver = ToolSkillResolver(data_dir=user_data)
     rec = resolver.synthesize_recommendation(inc)
     assert rec.remedy_kind == "runbook_patch"
-    assert "packs/developer/skills" in (rec.skill_path or "")
+    assert "skills/" in (rec.skill_path or "")
     assert "Do not invoke read_project_file immediately after a successful mutation" in rec.proposed_patch
 
 
@@ -212,12 +178,8 @@ def test_2_simulation_payload_bloat_inspection(sim_environment):
         ),
     )
 
-    real_db = AGENTIC_TEST_PATH / "sentinel.db"
-    if real_db.is_file():
-        file_res = project_tools.read_project_file("sentinel.db")
-        content_payload = json.dumps(file_res)
-    else:
-        content_payload = "A" * 16384
+    file_res = project_tools.read_project_file("sentinel.db")
+    content_payload = json.dumps(file_res)
 
     call_read = ToolCall(id="call_read_db", name="read_project_file", arguments={"path": "sentinel.db"})
     store.save_message(
@@ -392,7 +354,7 @@ def test_5_safe_apply_dismiss_and_deduplication_lifecycle(sim_environment):
 
     assert not any(
         p.read_text(encoding="utf-8").count("Do not invoke read_project_file")
-        for p in Path("platform-packs/developer/skills").glob("*/SKILL.md")
+        for p in Path("platform/skills").glob("*/SKILL.md")
     )
 
     dismiss_res = client.post(f"/api/observability/friction/recommendations/{thrash_rec['id']}/dismiss")

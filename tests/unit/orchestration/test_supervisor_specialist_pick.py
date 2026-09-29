@@ -109,7 +109,7 @@ def _seed_catalog(resolver: CapabilityCatalogResolver) -> None:
     resolver.upsert(
         CapabilityIndexEntry(
             id="pack.fleet-ops",
-            kind=CapabilityKind.PACK,
+            kind=CapabilityKind.AGENT,
             name="Fleet Ops Pack",
             summary="Homelab fleet operations pack",
             keywords=["fleet", "homelab", "ops", "infra"],
@@ -190,15 +190,14 @@ def _entry_meta(resolver, ids):
     return meta
 
 
-def test_catalog_specialist_ids_agents_and_packs_only():
+def test_catalog_specialist_ids_agents_only():
     ids = [
         "tool.wiki_note_search",
         "agent.researcher",
-        "pack.fleet-ops",
         "skill.wiki_index",
     ]
     specs = catalog_specialist_ids(ids)
-    assert specs == ["agent.researcher", "pack.fleet-ops"]
+    assert specs == ["agent.researcher"]  # CARD-570: no pack catalog ids; skills are not handoff targets
     assert "tool.wiki_note_search" not in specs
 
 

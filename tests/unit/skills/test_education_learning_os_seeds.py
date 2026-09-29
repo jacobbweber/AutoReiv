@@ -6,16 +6,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.infrastructure.skills.seed import (
-    BUNDLED_PACK_IDS,
+from tests.unit.agent_skills.catalog import (
+    BUNDLED_SKILL_IDS,
     bundled_skill_md,
-    seed_bundled_skill_packs,
+    seed_bundled_skill_rows,
 )
 
 
 def test_education_packs_are_bundled():
-    assert "education-priming" in BUNDLED_PACK_IDS
-    assert "education-dual-coding" in BUNDLED_PACK_IDS
+    assert "education-priming" in BUNDLED_SKILL_IDS
+    assert "education-dual-coding" in BUNDLED_SKILL_IDS
 
 
 def test_education_skill_md_files_exist_and_describe_modes():
@@ -44,12 +44,12 @@ def test_education_skills_only_catalog_matched_wiki_note_tools():
 
 def test_seed_bundled_copies_education_packs_if_missing(tmp_path: Path):
     skills = tmp_path / "skills"
-    seed_bundled_skill_packs(skills)
+    seed_bundled_skill_rows(skills)
     assert (skills / "education-priming" / "SKILL.md").is_file()
     assert (skills / "education-dual-coding" / "SKILL.md").is_file()
     # copy-if-missing: do not clobber
     marker = "USER EDIT"
     dest = skills / "education-priming" / "SKILL.md"
     dest.write_text(marker, encoding="utf-8")
-    seed_bundled_skill_packs(skills)
+    seed_bundled_skill_rows(skills)
     assert dest.read_text(encoding="utf-8") == marker

@@ -21,7 +21,7 @@ import yaml
 
 from src.application.orchestration.skill_proposals import (
     apply_skill_proposal_decision,
-    commit_skill_pack,
+    commit_skill,
 )
 from src.application.routines.skill_eval_sleep import (
     AGENT_ID,
@@ -29,7 +29,7 @@ from src.application.routines.skill_eval_sleep import (
     ROUTINE_ID,
     harvest_failed_turns,
     harvest_gate,
-    mine_pack_gaps,
+    mine_skill_gaps,
     run_skill_eval_job,
 )
 from src.application.skills.linter import CapabilityLinter
@@ -53,7 +53,7 @@ def dogfood_env(tmp_path):
 
     catalog = UserSkillCatalog(skills_dir=skills_dir)
     # Seed an active pack with Matt Pocock-compliant runbook
-    pack_id = "wiki-curator"
+    skill_id = "wiki-curator"
     initial_instructions = """# Wiki Curator Runbook
 
 Inspect and curate wiki notes in the knowledge vault.
@@ -65,13 +65,13 @@ Inspect and curate wiki notes in the knowledge vault.
 ## Done-when
 - Wiki note is reviewed and updated.
 """
-    catalog.save_pack(
-        pack_id=pack_id,
+    catalog.save_skill(
+        skill_id=skill_id,
         name="Wiki Curator",
         description="Curates and refines wiki notes in the vault.",
         instructions=initial_instructions,
     )
-    skill_path = skills_dir / pack_id / "SKILL.md"
+    skill_path = skills_dir / skill_id / "SKILL.md"
 
     # Track src file mtimes to ensure no core code is touched
     src_mtimes = {p: p.stat().st_mtime_ns for p in SRC_ROOT.rglob("*.py") if "pycache" not in str(p)}
@@ -81,7 +81,7 @@ Inspect and curate wiki notes in the knowledge vault.
         "data_dir": data_dir,
         "skills_dir": skills_dir,
         "catalog": catalog,
-        "pack_id": pack_id,
+        "skill_id": skill_id,
         "skill_path": skill_path,
         "skill_before": skill_path.read_bytes(),
         "src_mtimes": src_mtimes,
@@ -97,7 +97,7 @@ def _assert_src_untouched(dogfood_env):
 def test_harvest_and_mine_clusters_synthetic_failures(dogfood_env):
     """Verify synthetic failure turns in SQLite are harvested within lookback and mined into bounded gaps [CARD-372]."""
     store = dogfood_env["store"]
-    pack_id = dogfood_env["pack_id"]
+    skill_id = dogfood_env["skill_id"]
     now = datetime.now(timezone.utc)
 
     # 1. Seed 3 in-window failures for wiki_note_update
@@ -111,7 +111,7 @@ def test_harvest_and_mine_clusters_synthetic_failures(dogfood_env):
                 name="turn",
                 success=False,
                 error_message="wiki_note_update failed: target path locked by concurrent session",
-                metadata={"pack_id": pack_id, "tool_name": "wiki_note_update"},
+                metadata={"skill_id": skill_id, "tool_name": "wiki_note_update"},
                 created_at=now - timedelta(hours=i * 2),
             )
         )
@@ -126,7 +126,7 @@ def test_harvest_and_mine_clusters_synthetic_failures(dogfood_env):
             name="turn",
             success=False,
             error_message="wiki_note_update failed: stale error",
-            metadata={"pack_id": pack_id, "tool_name": "wiki_note_update"},
+            metadata={"skill_id": skill_id, "tool_name": "wiki_note_update"},
             created_at=now - timedelta(hours=96),
         )
     )
@@ -139,10 +139,10 @@ def test_harvest_and_mine_clusters_synthetic_failures(dogfood_env):
     assert "span_in_window_0" in span_ids
 
     # Mine gaps
-    candidates = mine_pack_gaps(harvested)
+    candidates = mine_skill_gaps(harvested)
     assert len(candidates) == 1
     cand = candidates[0]
-    assert cand["pack_id"] == pack_id
+    assert cand["skill_id"] == skill_id
     assert cand["tool_name"] == "wiki_note_update"
     assert cand["count"] == 3
     assert len(cand["insight"]) <= MAX_INSIGHT_CHARS
@@ -151,10 +151,10 @@ def test_harvest_and_mine_clusters_synthetic_failures(dogfood_env):
 
 def test_harvest_gate_safety_blocks_python_src_and_missing_pack(dogfood_env):
     """Verify safety gate strictly fails closed on python src rewrites and missing pack IDs [CARD-372]."""
-    # Case 1: Missing pack_id
+    # Case 1: Missing skill_id
     bad_candidate_1 = [
         {
-            "pack_id": "",
+            "skill_id": "",
             "tool_name": "cli_exec",
             "insight": "Fix error handling",
             "evidence": "Error in turn",
@@ -163,12 +163,12 @@ def test_harvest_gate_safety_blocks_python_src_and_missing_pack(dogfood_env):
     gate_res_1 = harvest_gate(bad_candidate_1)
     assert gate_res_1["passed"] is False
     assert gate_res_1["status"] == "fail"
-    assert gate_res_1["reason"] == "missing pack_id"
+    assert gate_res_1["reason"] == "missing skill_id"
 
     # Case 2: Attempting python src rewrite
     bad_candidate_2 = [
         {
-            "pack_id": "core-pack",
+            "skill_id": "core-pack",
             "tool_name": "code_tool",
             "insight": "Modify src/application/skills/wiki_tools.py to ignore file locks",
             "evidence": "src/application/kernel.py crashed",
@@ -182,7 +182,7 @@ def test_harvest_gate_safety_blocks_python_src_and_missing_pack(dogfood_env):
     # Case 3: Compliant operational runbook candidate
     good_candidate = [
         {
-            "pack_id": dogfood_env["pack_id"],
+            "skill_id": dogfood_env["skill_id"],
             "tool_name": "wiki_note_update",
             "insight": "Retry with backoff when wiki_note_update indicates file contention",
             "evidence": "Lock contention observed across 3 turns",
@@ -198,7 +198,7 @@ def test_full_lifecycle_harvest_draft_approve_commit_rollback(dogfood_env):
     store = dogfood_env["store"]
     data_dir = dogfood_env["data_dir"]
     catalog = dogfood_env["catalog"]
-    pack_id = dogfood_env["pack_id"]
+    skill_id = dogfood_env["skill_id"]
     skill_path = dogfood_env["skill_path"]
     skill_before = dogfood_env["skill_before"]
     now = datetime.now(timezone.utc)
@@ -214,7 +214,7 @@ def test_full_lifecycle_harvest_draft_approve_commit_rollback(dogfood_env):
                 name="turn",
                 success=False,
                 error_message="wiki_note_update returned lock collision on 01_Notes/index.md",
-                metadata={"pack_id": pack_id, "tool_name": "wiki_note_update"},
+                metadata={"skill_id": skill_id, "tool_name": "wiki_note_update"},
                 created_at=now - timedelta(minutes=15 * (i + 1)),
             )
         )
@@ -266,7 +266,7 @@ def test_full_lifecycle_harvest_draft_approve_commit_rollback(dogfood_env):
     assert skill_path.read_bytes() == skill_before
 
     # 4. Commit Approved Proposal to Disk
-    commit_res = commit_skill_pack(
+    commit_res = commit_skill(
         store,
         proposal_id=result["proposal_id"],
         data_dir=data_dir,
@@ -299,7 +299,7 @@ def test_full_lifecycle_harvest_draft_approve_commit_rollback(dogfood_env):
     assert len(errors) == 0, f"Updated SKILL.md failed linting: {[v.message for v in errors]}"
 
     # 6. Revert / Rollback Proposal
-    rolled = catalog.rollback_pack(pack_id, snapshot_id=result["snapshot_id"])
+    rolled = catalog.rollback_skill(skill_id, snapshot_id=result["snapshot_id"])
     assert rolled["success"] is True
 
     # Assert bit-for-bit restoration

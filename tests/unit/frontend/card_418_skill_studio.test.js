@@ -99,7 +99,7 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
       description: 'Read and file wiki notes',
       tier: 'platform',
       safety: { read_only: true, requires_hitl: false, untrusted_input_allowed: false },
-      requires_tools: ['wiki_note_read'],
+      tools: ['wiki_note_read'],
       markdown_content: '---\nname: Wiki Knowledge\n---\n# Wiki\n',
     }, 'wiki-knowledge');
 
@@ -108,7 +108,7 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
     expect(view.name).toBe('Wiki Knowledge');
     expect(view.skillId).toBe('wiki-knowledge');
     expect(view.description).toBe('Read and file wiki notes');
-    expect(view.requiresTools).toEqual(['wiki_note_read']);
+    expect(view.tools).toEqual(['wiki_note_read']);
     expect(view.markdown).toContain('# Wiki');
     expect(view.detail).not.toMatch(/not found/i);
 
@@ -135,7 +135,7 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
     expect(runbook).not.toContain("method: 'PUT'");
     expect(runbook).not.toContain('studioRunbookSaveBtn');
     expect(skillStudio).toContain('/api/skill_studio/save');
-    expect(skillStudio).toContain('requires_tools');
+    expect(skillStudio).toContain('tools');
     // CARD-496: the Factory window is gone, so Skill Studio is the only caller of the save route.
     expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/factory.js'))).toBe(false);
   });

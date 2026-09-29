@@ -24,7 +24,7 @@ from src.application.safety.tool_policy_gate import (
 )
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
-from src.infrastructure.skills.seed import BUNDLED_PACK_IDS, bundled_skill_md
+from tests.unit.agent_skills.catalog import BUNDLED_SKILL_IDS, bundled_skill_md
 
 
 def test_construction_allowlist_matches_card241():
@@ -126,7 +126,7 @@ def test_construction_module_never_calls_wiki_overview():
 
 
 def test_education_construction_skill_seed_bundled():
-    assert "education-construction" in BUNDLED_PACK_IDS
+    assert "education-construction" in BUNDLED_SKILL_IDS
     body = bundled_skill_md("education-construction").read_text(encoding="utf-8")
     tools_section = body.split("## Order")[0]
     allow_part = tools_section.split("Forbidden")[0]

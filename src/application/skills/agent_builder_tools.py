@@ -15,7 +15,7 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
 class AgentBuilderTools:
     """
-    Tool group providing agent introspection, specification drafts, and HITL pack drafts.
+    Tool group providing agent introspection, specification drafts, and HITL skill drafts.
     """
 
     def __init__(
@@ -52,7 +52,7 @@ class AgentBuilderTools:
         )
 
         payload_fields = {
-            "what": {"type": "string", "description": "What is being proposed (pack, tool, or playbook SOP)."},
+            "what": {"type": "string", "description": "What is being proposed (skill, tool, or playbook SOP)."},
             "why": {"type": "string", "description": "Why this is needed."},
             "how": {
                 "type": "string",
@@ -62,7 +62,7 @@ class AgentBuilderTools:
                 "type": "string",
                 "description": "Destination path relative to $DATA_DIR (typically skills/<slug>/SKILL.md).",
             },
-            "pack_id": {"type": "string", "description": "Target pack id (directory slug under $DATA_DIR/skills)."},
+            "skill_id": {"type": "string", "description": "Target skill id (directory slug under $DATA_DIR/skills)."},
             "prefer_existing_agent_id": {
                 "type": "string",
                 "description": "Existing specialist to extend rather than creating a new agent.",
@@ -77,7 +77,7 @@ class AgentBuilderTools:
             name="propose_skill",
             description=(
                 "Recommend-capability only: park a HITL draft for a new skill when no existing runbook fits. "
-                "Not pack birth. Creates a proposals row status draft. Does not write SKILL.md until commit after Approve."
+                "Not agent creation. Creates a proposals row status draft. Does not write SKILL.md until commit after Approve."
             ),
             parameters={
                 "type": "object",
@@ -91,7 +91,7 @@ class AgentBuilderTools:
             name="propose_tool",
             description=(
                 "Recommend-capability only: park a HITL draft for a declared tool (JSON stub) when no catalog tool fits. "
-                "Not pack birth. Do not call this to create a named agent with existing tools. "
+                "Not agent creation. Do not call this to create a named agent with existing tools. "
                 "Does not write a Python module. Approve does not write disk."
             ),
             parameters={
@@ -103,13 +103,13 @@ class AgentBuilderTools:
                         "description": "JSON stub: name, description, parameters. Not a Python handler.",
                     },
                 },
-                "required": ["what", "why", "how", "where", "pack_id", "tool_json"],
+                "required": ["what", "why", "how", "where", "skill_id", "tool_json"],
             },
             handler=self.propose_tool,
         )
 
         registry.register_tool(
-            name="commit_skill_pack",
+            name="commit_skill",
             description=(
                 "Write an approved skill/tool proposal to $DATA_DIR/skills via UserSkillCatalog. "
                 "Requires HITL status=approved. Draft/rejected fail closed. Soft sprawl warning is not a block. "
@@ -126,18 +126,21 @@ class AgentBuilderTools:
                 },
                 "required": ["proposal_id"],
             },
-            handler=self.commit_skill_pack,
+            handler=self.commit_skill,
         )
 
     async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
         """Authoring catalog: skills, platform tools, purposes and tones. Not a tool list for the caller."""
-        from src.application.agent_packs.schema import PLATFORM_SKILL_METADATA
+        from src.infrastructure.content.store import get_store
 
         tools_list = []
         if self.tool_registry:
             for t in self.tool_registry.list_tools():
                 tools_list.append({"name": t.name, "description": t.description})
-        skills = [{"id": sid, **meta} for sid, meta in PLATFORM_SKILL_METADATA.items()]
+        skills = [
+            {"id": f.id, "name": f.meta.get("name") or f.id, "description": f.meta.get("description") or ""}
+            for f in get_store().skills.list()
+        ]
 
         purposes = [p.value for p in ModelPurpose]
         tones = [t.value for t in AgentTone]
@@ -189,12 +192,12 @@ class AgentBuilderTools:
         why: str,
         how: str,
         where: str,
-        pack_id: Optional[str] = None,
+        skill_id: Optional[str] = None,
         prefer_existing_agent_id: Optional[str] = None,
         new_agent_id: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Park a skill-pack HITL draft. Does not write SKILL.md [REQ-BUILD-001]."""
+        """Park a skill HITL draft. Does not write SKILL.md [REQ-BUILD-001]."""
         from src.application.orchestration.skill_proposals import propose_skill as park
 
         try:
@@ -204,7 +207,7 @@ class AgentBuilderTools:
                     why=why,
                     how=how,
                     where=where,
-                    pack_id=pack_id,
+                    skill_id=skill_id,
                     prefer_existing_agent_id=prefer_existing_agent_id,
                     new_agent_id=new_agent_id,
                 )
@@ -218,7 +221,7 @@ class AgentBuilderTools:
         why: str,
         how: str,
         where: str,
-        pack_id: str,
+        skill_id: str,
         tool_json: Any,
         prefer_existing_agent_id: Optional[str] = None,
         new_agent_id: Optional[str] = None,
@@ -234,7 +237,7 @@ class AgentBuilderTools:
                     why=why,
                     how=how,
                     where=where,
-                    pack_id=pack_id,
+                    skill_id=skill_id,
                     tool_json=tool_json,
                     prefer_existing_agent_id=prefer_existing_agent_id,
                     new_agent_id=new_agent_id,
@@ -248,15 +251,15 @@ class AgentBuilderTools:
 
         return UserSkillCatalog(skills_dir=self._resolved_data_dir() / "skills")
 
-    async def commit_skill_pack(
+    async def commit_skill(
         self,
         proposal_id: str,
         overwrite: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Write an approved pack via UserSkillCatalog [REQ-BUILD-012]."""
+        """Write an approved skill via UserSkillCatalog [REQ-BUILD-012]."""
         from src.application.kernel.tool_registry import get_tool_context
-        from src.application.orchestration.skill_proposals import commit_skill_pack as apply_commit
+        from src.application.orchestration.skill_proposals import commit_skill as apply_commit
 
         ctx = get_tool_context()
         try:

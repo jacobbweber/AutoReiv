@@ -95,9 +95,7 @@ class ScopedToolRegistry:
     ) -> None:
         """Register a tool handler function.
 
-        ``origin`` is catalog metadata. ``legacy_pack_tool`` marks the
-        in-process ``packs/<id>/tools/*.py`` loader [CARD-425]. It is not
-        ``native_custom``.
+        ``origin`` is catalog metadata (platform, native_custom or mcp).
         """
         definition = ToolDefinition(
             name=name,
@@ -163,7 +161,7 @@ class ScopedToolRegistry:
 
         ``active_skills`` is accepted for old callers and ignored; selection narrows later.
         """
-        from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+        from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
         allowed = resolve_allowed_tools(agent)
         return [reg.definition for name, reg in self._tools.items() if name in allowed]
@@ -218,7 +216,7 @@ class ScopedToolRegistry:
 
     async def run_platform_verifier(self, tool_call: ToolCall, agent: AgentProfile) -> ToolResult:
         """Run a platform checker (PLATFORM_VERIFIER_TOOLS) for reflexion; not a model tool call."""
-        from src.application.agent_packs.allowed_tools import PLATFORM_VERIFIER_TOOLS, AllowedTools
+        from src.application.agent_skills.allowed_tools import PLATFORM_VERIFIER_TOOLS, AllowedTools
 
         name = tool_call.name if tool_call.name in PLATFORM_VERIFIER_TOOLS else ""
         only = AllowedTools(ordered=(name,), provenance={name: ("platform",)}) if name else AllowedTools()
@@ -228,7 +226,7 @@ class ScopedToolRegistry:
         start_time = time.perf_counter()
 
         # 1. Verify RBAC authorization: the one allowed-tools function (ADR-0061)
-        from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+        from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
         if allowed is None:
             allowed = resolve_allowed_tools(agent)

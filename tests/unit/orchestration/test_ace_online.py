@@ -22,7 +22,7 @@ from src.application.orchestration.ace_online import (
 from src.application.orchestration.skill_proposals import (
     PYTHON_BUILTIN_NOTE,
     apply_skill_proposal_decision,
-    commit_skill_pack,
+    commit_skill,
 )
 from src.application.skills.dynamic_loader import DynamicSkillLoader
 from src.application.skills.user_catalog import UserSkillCatalog
@@ -54,8 +54,8 @@ def env(tmp_path):
     skills_dir = data_dir / "skills"
     skills_dir.mkdir(parents=True)
     catalog = UserSkillCatalog(skills_dir=skills_dir)
-    catalog.save_pack("okta-admin", "okta-admin", "Homelab Okta admin playbook.", "List users. Stub reset.")
-    other = catalog.save_pack("other-pack", "other-pack", "Untouched sibling pack.", "Do not touch.")
+    catalog.save_skill("okta-admin", "okta-admin", "Homelab Okta admin playbook.", "List users. Stub reset.")
+    other = catalog.save_skill("other-pack", "other-pack", "Untouched sibling pack.", "Do not touch.")
     assert other["success"] is True
     return {
         "tmp": tmp_path,
@@ -96,7 +96,7 @@ def test_snapshot_then_rollback_restores_bytes(env):
     notes_bytes = notes_path.read_bytes()
     other_bytes = env["other_path"].read_bytes()
 
-    snap = catalog.snapshot_pack("okta-admin")
+    snap = catalog.snapshot_skill("okta-admin")
     assert snap["success"] is True
     assert snap["snapshot_id"]
     snap_dir = env["skills_dir"] / "okta-admin" / "snapshots" / snap["snapshot_id"]
@@ -106,7 +106,7 @@ def test_snapshot_then_rollback_restores_bytes(env):
     notes_path.write_text("- mutated\n", encoding="utf-8")
     assert skill_path.read_bytes() != original
 
-    rolled = catalog.rollback_pack("okta-admin", snap["snapshot_id"])
+    rolled = catalog.rollback_skill("okta-admin", snap["snapshot_id"])
     assert rolled["success"] is True
     assert skill_path.read_bytes() == original
     assert notes_path.read_bytes() == notes_bytes
@@ -117,7 +117,7 @@ def test_snapshot_then_rollback_restores_bytes(env):
 def test_snapshot_failure_skips_sidecar_append(env, monkeypatch):
     catalog = env["catalog"]
     skill_before = env["skill_path"].read_bytes()
-    monkeypatch.setattr(catalog, "snapshot_pack", lambda pack_id: {"success": False, "error": "disk full"})
+    monkeypatch.setattr(catalog, "snapshot_skill", lambda skill_id: {"success": False, "error": "disk full"})
     result = catalog.append_playbook_note("okta-admin", insight="should not land")
     assert result["success"] is False
     notes = env["skills_dir"] / "okta-admin" / "PLAYBOOK_NOTES.md"
@@ -131,7 +131,7 @@ def test_failed_turn_creates_draft_proposal_not_silent_skill_md_edit(env):
     skill_before = env["skill_path"].read_bytes()
     result = record_failed_turn_delta(
         env["store"],
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         session_id="sess_ace",
         agent_id="assistant",
@@ -168,10 +168,10 @@ def test_successful_turn_does_not_rewrite_skill_md(env):
     skill_before = env["skill_path"].read_bytes()
     catalog = env["catalog"]
     # Reflector on success is optional; curator must not rewrite SKILL.md.
-    insight = reflect_failed_turn(pack_id="okta-admin", error_message=None, tool_errors=[])
+    insight = reflect_failed_turn(skill_id="okta-admin", error_message=None, tool_errors=[])
     assert insight["insight"]
     assert env["skill_path"].read_bytes() == skill_before
-    assert catalog.read_pack("okta-admin")["instructions"]
+    assert catalog.read_skill("okta-admin")["instructions"]
     _src_untouched(env)
 
 
@@ -179,7 +179,7 @@ def test_python_shaped_delta_stays_propose_tool_draft(env):
     skill_before = env["skill_path"].read_bytes()
     result = record_failed_turn_delta(
         env["store"],
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         session_id="sess_py",
         agent_id="assistant",
@@ -202,7 +202,7 @@ def test_python_shaped_delta_stays_propose_tool_draft(env):
 def test_sidecar_append_only_does_not_modify_skill_md(env):
     skill_before = env["skill_path"].read_bytes()
     first = record_sidecar_note(
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         insight="first breadcrumb",
         evidence="tool stub",
@@ -215,7 +215,7 @@ def test_sidecar_append_only_does_not_modify_skill_md(env):
     md_after_first = md.read_text(encoding="utf-8")
     jsonl_after_first = jsonl.read_text(encoding="utf-8")
     second = record_sidecar_note(
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         insight="second breadcrumb",
         catalog=env["catalog"],
@@ -233,7 +233,7 @@ def test_sidecar_append_only_does_not_modify_skill_md(env):
     # promotion is still propose_skill
     promo = propose_notes_into_skill(
         env["store"],
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         session_id="sess_n",
         agent_id="assistant",
@@ -245,7 +245,7 @@ def test_sidecar_append_only_does_not_modify_skill_md(env):
 
 
 def test_snapshots_are_not_listed_as_live_packs(env):
-    env["catalog"].snapshot_pack("okta-admin")
+    env["catalog"].snapshot_skill("okta-admin")
     ids = {m.id for m in env["catalog"].list_manifests()}
     assert "okta-admin" in ids
     assert "other-pack" in ids
@@ -258,7 +258,7 @@ def test_commit_snapshots_before_apply_and_rollback_restores(env):
     skill_before = env["skill_path"].read_bytes()
     drafted = record_failed_turn_delta(
         env["store"],
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         session_id="sess_c",
         agent_id="agent-builder",
@@ -266,7 +266,7 @@ def test_commit_snapshots_before_apply_and_rollback_restores(env):
         catalog=env["catalog"],
     )
     apply_skill_proposal_decision(env["store"], proposal_id=drafted["proposal_id"], decision="approved")
-    committed = commit_skill_pack(
+    committed = commit_skill(
         env["store"],
         proposal_id=drafted["proposal_id"],
         data_dir=env["data_dir"],
@@ -276,7 +276,7 @@ def test_commit_snapshots_before_apply_and_rollback_restores(env):
     assert committed["disk_written"] is True
     assert committed["src_written"] is False
     assert env["skill_path"].read_bytes() != skill_before
-    rolled = env["catalog"].rollback_pack("okta-admin", committed["snapshot_id"])
+    rolled = env["catalog"].rollback_skill("okta-admin", committed["snapshot_id"])
     assert rolled["success"] is True
     assert env["skill_path"].read_bytes() == skill_before
     _src_untouched(env)
@@ -286,7 +286,7 @@ def test_commit_skips_apply_when_snapshot_fails(env, monkeypatch):
     skill_before = env["skill_path"].read_bytes()
     drafted = record_failed_turn_delta(
         env["store"],
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         session_id="sess_fail",
         agent_id="agent-builder",
@@ -294,8 +294,8 @@ def test_commit_skips_apply_when_snapshot_fails(env, monkeypatch):
         catalog=env["catalog"],
     )
     apply_skill_proposal_decision(env["store"], proposal_id=drafted["proposal_id"], decision="approved")
-    monkeypatch.setattr(env["catalog"], "snapshot_pack", lambda pack_id: {"success": False, "error": "io"})
-    result = commit_skill_pack(
+    monkeypatch.setattr(env["catalog"], "snapshot_skill", lambda skill_id: {"success": False, "error": "io"})
+    result = commit_skill(
         env["store"],
         proposal_id=drafted["proposal_id"],
         data_dir=env["data_dir"],
@@ -327,7 +327,7 @@ async def test_kernel_failed_turn_parks_one_draft(env):
         data_dir=str(env["data_dir"]),
         user_skill_catalog=env["catalog"],
     )
-    kernel.ace_pack_id = "okta-admin"
+    kernel.ace_skill_id = "okta-admin"
     profile = AgentProfile(
         id="assistant",
         name="Assistant",
@@ -377,7 +377,7 @@ async def test_kernel_success_does_not_write_skill_md(env):
         data_dir=str(env["data_dir"]),
         user_skill_catalog=env["catalog"],
     )
-    kernel.ace_pack_id = "okta-admin"
+    kernel.ace_skill_id = "okta-admin"
     profile = AgentProfile(
         id="assistant",
         name="Assistant",
@@ -401,13 +401,13 @@ async def test_kernel_success_does_not_write_skill_md(env):
 
 def test_ace_ignores_approval_required_events(env):
     tool_errors = [{"tool_name": "wiki_note_create", "error": "approval_required:appr_123"}]
-    reflected = reflect_failed_turn(pack_id="okta-admin", tool_errors=tool_errors)
+    reflected = reflect_failed_turn(skill_id="okta-admin", tool_errors=tool_errors)
     assert "approval_required" not in reflected["insight"]
     assert "Tool error in pack" not in reflected["insight"]
 
     result = record_failed_turn_delta(
         env["store"],
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         data_dir=env["data_dir"],
         session_id="test-session",
         agent_id="test-agent",

@@ -47,7 +47,7 @@ def _has_xdist() -> bool:
 PAR = ["-n", "auto"] if _has_xdist() else []
 PYTEST_PAR = PYTEST + PAR
 RUFF = [PY, "-m", "ruff", "check"]
-HONESTY = [PY, ".agents/skills/preflight/scripts/honesty_smoke_pack_261.py", "--validate"]
+HONESTY = [PY, ".agents/skills/preflight/scripts/honesty_smoke_skill_261.py", "--validate"]
 JS_LINT_ROOTS = ("src/web/static/", "tests/unit/frontend/", "tests/e2e/")
 
 # Named known lint failures: (card, error count). A stage at or below the count reports KNOWN, above it fails.

@@ -123,7 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
         "paths",
         nargs="*",
         default=[],
-        help="Target directories or SKILL.md files (default: platform-packs/ and user packs)",
+        help="Target directories or SKILL.md files (default: platform/skills and user skills)",
     )
     lint_p.add_argument(
         "--json",
@@ -196,7 +196,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f" • Wiki Root         : {paths.wiki_path}")
     print("-" * 60)
     print(" 📋 Registered Agents:")
-    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+    from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
     for profile in registry.list_profiles():
         tone_val = getattr(profile.tone, "value", str(profile.tone))
@@ -359,7 +359,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         root = repo_root()
         reload_kwargs["reload_dirs"] = [
             str(root / "src"),
-            str(root / "platform-packs"),
+            str(root / "platform"),
         ]
     uvicorn.run(
         "src.web.app:create_app",

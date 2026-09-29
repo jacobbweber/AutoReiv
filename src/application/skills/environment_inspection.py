@@ -98,7 +98,7 @@ def extract_domain_sops_from_content(content: str, filename: str) -> List[str]:
 
 class EnvironmentInspectionTools:
     """
-    Strictly read-only discovery tools for the Inspector platform pack [REQ-FACT-006, REQ-FACT-007].
+    Strictly read-only discovery tools for the Inspector platform agent [REQ-FACT-006, REQ-FACT-007].
     """
 
     def inspect_directory(self, directory_path: str, max_depth: int = 5) -> Dict[str, Any]:

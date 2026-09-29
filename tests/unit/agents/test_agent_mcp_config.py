@@ -3,9 +3,7 @@ Unit tests for Per-Agent Remote MCP Server Configuration and Pack Schema [CARD-1
 [REQ-MCP-AGENT-001]
 """
 
-import json
 
-from src.application.agent_packs.schema import AgentPackManifest, PackMCPServerConfig
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization, MCPServerConfig
 
@@ -45,37 +43,6 @@ def test_agent_profile_mcp_servers_field():
     assert restored.mcp_servers[0].url == "http://192.168.1.100:8080/sse"
 
 
-def test_agent_pack_manifest_mcp_servers_field():
-    manifest = AgentPackManifest(
-        id="hyperv",
-        name="Hyper-V Specialist",
-        description="Remote Hyper-V agent",
-        mcp_servers=[
-            PackMCPServerConfig(
-                name="hyperv-mcp",
-                transport="sse",
-                url="http://localhost:8080/sse",
-                headers={"X-Auth": "hyperv-key"},
-                enabled=True,
-            )
-        ],
-    )
-    assert len(manifest.mcp_servers) == 1
-    s = manifest.mcp_servers[0]
-    assert s.name == "hyperv-mcp"
-    assert s.transport == "sse"
-    assert s.url == "http://localhost:8080/sse"
-    assert s.headers == {"X-Auth": "hyperv-key"}
-
-    # JSON serialization
-    json_str = manifest.model_dump_json()
-    parsed = json.loads(json_str)
-    assert "mcp_servers" in parsed
-    assert parsed["mcp_servers"][0]["transport"] == "sse"
-
-    loaded = AgentPackManifest.model_validate_json(json_str)
-    assert len(loaded.mcp_servers) == 1
-    assert loaded.mcp_servers[0].name == "hyperv-mcp"
 
 
 def test_agent_customization_supports_mcp_servers():

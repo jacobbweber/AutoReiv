@@ -34,13 +34,13 @@ describe('CARD-388 Chat Studio Agent Selector & Restoration', () => {
   it('allows Developer and Tutor in isAgentVisibleInChat [REQ-388-002]', () => {
     const dev = { id: 'developer', name: 'Developer', show_in_chat: true };
     const tutor = { id: 'tutor', name: 'Tutor', show_in_chat: true };
-    const devPack = { id: 'developer', name: 'Developer', origin: 'pack', show_in_chat: true };
-    const tutorPack = { id: 'tutor', name: 'Tutor', origin: 'pack', show_in_chat: true };
+    const devAgent = { id: 'developer', name: 'Developer', origin: 'pack', show_in_chat: true };
+    const tutorAgent = { id: 'tutor', name: 'Tutor', origin: 'pack', show_in_chat: true };
 
     expect(isAgentVisibleInChat(dev)).toBe(true);
     expect(isAgentVisibleInChat(tutor)).toBe(true);
-    expect(isAgentVisibleInChat(devPack)).toBe(true);
-    expect(isAgentVisibleInChat(tutorPack)).toBe(true);
+    expect(isAgentVisibleInChat(devAgent)).toBe(true);
+    expect(isAgentVisibleInChat(tutorAgent)).toBe(true);
 
     const agents = [
       { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },

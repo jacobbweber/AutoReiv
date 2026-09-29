@@ -46,7 +46,7 @@ class ScaffoldSpineRepository:
             kind=row["kind"],
             name=row["name"],
             summary=row["summary"] or "",
-            pack_id=row["pack_id"],
+            skill_id=row["skill_id"],
             capability_id=row["capability_id"],
             phase=row["phase"],
             trust_tier=row["trust_tier"],
@@ -72,7 +72,7 @@ class ScaffoldSpineRepository:
             conn.execute(
                 """
                 INSERT INTO scaffold_spine (
-                    id, kind, name, summary, pack_id, capability_id,
+                    id, kind, name, summary, skill_id, capability_id,
                     phase, trust_tier, sandboxed, sandbox_evidence,
                     snapshot_id, prior_trusted_snapshot_id, proposal_id,
                     content, rolled_back, metadata_json, created_at, updated_at
@@ -81,7 +81,7 @@ class ScaffoldSpineRepository:
                     kind=excluded.kind,
                     name=excluded.name,
                     summary=excluded.summary,
-                    pack_id=excluded.pack_id,
+                    skill_id=excluded.skill_id,
                     capability_id=excluded.capability_id,
                     phase=excluded.phase,
                     trust_tier=excluded.trust_tier,
@@ -100,7 +100,7 @@ class ScaffoldSpineRepository:
                     payload.kind.value if hasattr(payload.kind, "value") else str(payload.kind),
                     payload.name,
                     payload.summary,
-                    payload.pack_id,
+                    payload.skill_id,
                     payload.capability_id,
                     payload.phase.value if hasattr(payload.phase, "value") else str(payload.phase),
                     payload.trust_tier.value

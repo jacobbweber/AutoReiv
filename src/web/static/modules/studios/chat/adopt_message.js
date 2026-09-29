@@ -11,8 +11,7 @@ export function adoptResultMessage(data, status, skillName, agent) {
   const text = data.already_adopted
     ? `Updated ${skillName} for ${agent}. It is used from your next message.`
     : `${skillName} is on for ${agent} from your next message.`;
-  if (!data.resets_on_restart) return { text, type: 'success' };
-  return { text: `${text} Keep my agent customizations is off, so it will be removed on the next restart.`, type: 'warning' };
+  return { text, type: 'success' };
 }
 
 /** Green banner that replaces the Adopt buttons; innerHtml must already be escaped. */

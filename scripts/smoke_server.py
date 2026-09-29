@@ -164,7 +164,6 @@ def resolve_paths(env: Mapping[str, str], checkout: Path = CHECKOUT) -> dict[str
             "wiki_path": resolved.wiki_path,
             "skills_path": resolved.skills_path,
             "agents_path": resolved.agents_path,
-            "packs_path": resolved.packs_path,
             "backups_path": resolved.backups_path,
             "job_templates_path": resolved.job_templates_path,
         }

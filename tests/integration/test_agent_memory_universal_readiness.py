@@ -211,8 +211,8 @@ async def test_universal_memory_tools_execution_and_isolation(registry, temp_dat
     assert len(res3.output.get("facts", [])) == 0
 
     # 4. Verify physical database locations
-    tutor_db = temp_data_dir / "packs" / "tutor" / "tutor_memory.db"
-    autoreiv_db = temp_data_dir / "packs" / "autoreiv" / "autoreiv_memory.db"
+    tutor_db = temp_data_dir / "agents" / "tutor" / "memory.db"
+    autoreiv_db = temp_data_dir / "agents" / "autoreiv" / "memory.db"
     assert tutor_db.exists()
     assert autoreiv_db.exists()
 

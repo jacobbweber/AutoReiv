@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.tool_ranker import ToolRanker
 from src.application.skills.sysadmin_tools import SysadminTools
 from src.domain.gateway.models import ToolDefinition
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 def test_get_system_info_returns_hostname_and_ip():

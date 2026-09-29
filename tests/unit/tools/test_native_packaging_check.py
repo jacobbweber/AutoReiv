@@ -60,9 +60,8 @@ async def test_13_broken_tool_saves_mounts_grants_and_syncs_nothing(env):
     assert caught.value.check["status"] == "failed"
     assert caught.value.check["stage"] == "import"
     assert str(caught.value).startswith("Not registered: c511_broken failed the import check")
-    assert store.get_setting("native_custom_tools") in (None, [])
+    assert service.list_tools() == []
     assert "c511_broken" not in registry
-    assert store.get_agent_override("autoreiv") is None
     assert store.get_pending_approvals(agent_id="autoreiv") == []
     assert store.get_setting("tool_policy") == policy_before
 
@@ -72,14 +71,18 @@ async def test_14_good_tool_row_carries_the_check(env):
     body = await service.register(_raw("c511_good", GOOD))
     assert body["success"] is True
     assert body["persisted"] is True
-    assert body["mounted"] is True
+    assert body["mounted"] is False  # CARD-570: saved, not mounted until Jacob enables it
+    assert body["approval"] == "disabled"
     assert body["proposal"]["status"] == "pending" and body["proposal"]["agent_id"] == "autoreiv"  # CARD-539
     assert body["check"]["status"] == "passed"
     assert body["message"].startswith("Checked: c511_good")
-    row = store.get_setting("native_custom_tools")[0]
+    assert "Jacob must enable it" in body["message"]
+    row = service.get("c511_good")
     assert row["check"]["status"] == "passed"
     assert row["check"]["sample_arguments"] == {}
     assert service.list_tools()[0]["check"]["status"] == "passed"
+    assert "c511_good" not in registry
+    assert service.enable_by_operator("c511_good")["mounted"] is True
     assert "c511_good" in registry
 
 
@@ -102,15 +105,15 @@ async def test_14c_skip_needs_a_reason(env):
     assert body["check"]["skip_reason"] == "sends email"
 
 
-async def test_15_old_row_without_check_still_mounts(env):
-    store, registry, service = env
-    store.set_setting(
-        "native_custom_tools",
-        [{"name": "c511_old", "description": "old", "code": GOOD, "parameters": {}, "requires_hitl": False, "risk_level": "low"}],
-    )
+async def test_15_only_enabled_approved_tools_remount(env):
+    """CARD-570: startup mounts a tool file only when Jacob enabled it and the code hash still matches."""
+    _store, registry, service = env
+    await service.register(_raw("c511_old", GOOD, target_agent_id=""))
+    assert service.mount_persisted() == []
+    service.enable_by_operator("c511_old")
+    registry.unmount_tool("c511_old")
     assert "c511_old" in service.mount_persisted()
     assert "c511_old" in registry
-    assert service.list_tools()[0]["check"] is None
 
 
 async def test_16_chat_tool_returns_not_registered(env):

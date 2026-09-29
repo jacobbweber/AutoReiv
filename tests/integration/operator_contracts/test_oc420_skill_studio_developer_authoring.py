@@ -1,7 +1,7 @@
 """CARD-420 operator contract: Skill Studio Build/Review mints a visible developer job.
 
 REQ-420-001..005. Temp user-data only [ADR-0055].
-Accept records a decision on the standing job and does not write skill_tool_bindings.
+Accept records a decision on the standing job and does not write any skill tools list.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import inspect
 GOOD_MARKDOWN = """---
 name: Wiki Digest
 description: File a short wiki digest
-requires_tools: []
+tools: []
 ---
 # Wiki Digest
 
@@ -29,7 +29,7 @@ GOOD_DRAFT = {
         "requires_hitl": False,
         "untrusted_input_allowed": False,
     },
-    "requires_tools": [],
+    "tools": [],
     "markdown": GOOD_MARKDOWN,
     "intent_notes": "Keep the runbook short.",
     "source_context": "",
@@ -50,17 +50,16 @@ def test_oc420_lint_does_not_mint_job_and_build_is_visible_developer_job(operato
     """REQ-420-001, REQ-420-002, REQ-420-004, REQ-420-005."""
     client, store, _wiki = operator_client
     jobs_before = _count(store, "jobs")
-    bindings_before = _count(store, "skill_tool_bindings")
 
     lint = client.post(
         "/api/skill_studio/authoring/lint",
         json={
             "draft": {
                 **GOOD_DRAFT,
-                "requires_tools": ["not_a_real_tool_420"],
+                "tools": ["not_a_real_tool_420"],
                 "markdown": GOOD_MARKDOWN.replace(
-                    "requires_tools: []",
-                    "requires_tools:\n- not_a_real_tool_420",
+                    "tools: []",
+                    "tools:\n- not_a_real_tool_420",
                 ),
             }
         },
@@ -156,7 +155,6 @@ def test_oc420_lint_does_not_mint_job_and_build_is_visible_developer_job(operato
     assert decision["decision"] == "accept"
     assert decision["persisted_skill"] is False
     assert decision["patches"] == [{"field": "description", "value": "Shorter trigger text"}]
-    assert _count(store, "skill_tool_bindings") == bindings_before
 
     from src.application.skills import developer_authoring as authoring
 

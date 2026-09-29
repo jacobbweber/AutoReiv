@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
@@ -69,7 +69,7 @@ def test_platform_prompts_hand_off_instead_of_refusing():
 
 
 def test_domain_and_routing_text_come_from_ticked_skills():
-    from src.application.agent_packs.allowed_tools import domain_line, routing_summary
+    from src.application.agent_skills.allowed_tools import domain_line, routing_summary
     from src.domain.kernel.models import AgentProfile
 
     agent = AgentProfile(id="notes", name="Notes", description="d", system_prompt="p",
@@ -84,7 +84,7 @@ def test_domain_and_routing_text_come_from_ticked_skills():
 def test_domain_line_carries_short_skill_blurbs_including_operator_skills(tmp_path, monkeypatch):
     """D5 as approved: "Your domain: <ticked skill blurbs>". Live QA: names alone ("Get Weather" among 13
     others) did not stop AutoReiv saying it has no weather access; the blurb says what the skill does."""
-    from src.application.agent_packs import allowed_tools
+    from src.application.agent_skills import allowed_tools
     from src.domain.kernel.models import AgentProfile
 
     skill_dir = tmp_path / "skills" / "get-weather"
@@ -93,7 +93,9 @@ def test_domain_line_carries_short_skill_blurbs_including_operator_skills(tmp_pa
         "---\nname: Get Weather\ndescription: Returns current weather for a given location. More text here.\n---\n# body\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(allowed_tools, "_data_root", lambda: tmp_path)
+    from src.infrastructure.content.store import configure
+
+    configure(tmp_path)
     agent = AgentProfile(id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
                          allowed_skill=["wiki-knowledge", "get-weather"])
     line = allowed_tools.domain_line(agent)

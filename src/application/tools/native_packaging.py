@@ -8,8 +8,12 @@ The Tools Studio form does not call this module. The developer agent does,
 via register_native_tool, or the operator does via /api/tools/native.
 
 CARD-511: register runs the tool check (tool_check.py) first. A tool that fails
-is not saved, mounted, proposed or added to tool policy. Rows registered before
-CARD-511 have no ``check`` block, still mount at startup, and read "Not checked".
+is not saved, mounted, proposed or added to tool policy.
+
+CARD-570: tools are files in the data dir ``tools/<name>/`` (see
+``src/infrastructure/content/runtime_tools.py``). A saved tool is mounted only when Jacob enabled
+it in Tools Studio and its code still matches the approved sha256; new code needs re-approval.
+Only the Tools Studio routes call ``enable_by_operator`` / ``disable_by_operator``.
 """
 
 from __future__ import annotations
@@ -25,10 +29,10 @@ from typing import Any, Mapping, Optional
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
 from src.application.tools.tool_check import NATIVE_RUNNER, ToolCheckService, record_check_on_job
 from src.domain.gateway.models import ToolCall
+from src.infrastructure.content.runtime_tools import RuntimeToolFiles
 
 logger = logging.getLogger(__name__)
 
-NATIVE_CUSTOM_TOOLS_SETTING = "native_custom_tools"
 TOOL_POLICY_SETTING = "tool_policy"
 AUTHORING_TOOL_NAMES = frozenset({"register_native_tool", "plan_native_folder"})
 SCRIPT_SUFFIXES = frozenset({".py", ".sh", ".ps1"})
@@ -54,17 +58,23 @@ class NativeToolCheckFailed(NativeToolError):
         self.check = dict(check)
 
 
-def load_native_tool_names(store: Any) -> set[str]:
-    rows = _read_rows(store)
-    return {str(row.get("name") or "") for row in rows if row.get("name")}
+def runtime_tool_files() -> RuntimeToolFiles:
+    """Runtime-built tools under ``<data>/tools`` [CARD-570]."""
+    from src.infrastructure.content.store import get_store
+
+    root = get_store().data_root
+    if root is None:
+        raise NativeToolError("The data dir is not configured.", 503)
+    return RuntimeToolFiles(Path(root) / "tools")
+
+
+def load_native_tool_names(store: Any = None) -> set[str]:
+    return {str(row.get("name") or "") for row in _read_rows(store) if row.get("name")}
 
 
 def catalog_origin_label(source: str, server_name: str = "") -> str:
     """Operator-facing catalog label [REQ-423-005, REQ-425-002]."""
     kind = str(source or "").strip().lower()
-    # Legacy in-process pack modules are not the CARD-423 native custom lane.
-    if kind in {"legacy_pack_tool", "legacy"}:
-        return "Legacy pack tool"
     if kind in {"native_custom", "native"}:
         return "Native custom"
     if kind == "mcp":
@@ -73,14 +83,11 @@ def catalog_origin_label(source: str, server_name: str = "") -> str:
     return "Platform"
 
 
-def _read_rows(store: Any) -> list[dict[str, Any]]:
-    getter = getattr(store, "get_setting", None)
-    if not callable(getter):
+def _read_rows(store: Any = None) -> list[dict[str, Any]]:
+    try:
+        return runtime_tool_files().rows()
+    except NativeToolError:
         return []
-    raw = getter(NATIVE_CUSTOM_TOOLS_SETTING)
-    if not isinstance(raw, list):
-        return []
-    return [dict(item) for item in raw if isinstance(item, dict) and item.get("name")]
 
 
 class NativeCustomToolService:
@@ -130,22 +137,30 @@ class NativeCustomToolService:
             logger.info("Native tool %s refused by the tool check: %s", name, check.status)
             raise NativeToolCheckFailed(check.to_dict())
         record["check"] = check.to_dict()
-        rows = [row for row in _read_rows(self.store) if row.get("name") != name]
-        rows.append(record)
-        self.store.set_setting(NATIVE_CUSTOM_TOOLS_SETTING, rows)
-        self._mount(record)
+        files = runtime_tool_files()
+        saved = files.save(record)
+        if saved.get("approval") == "enabled":
+            self._mount(record)  # same code as the approved hash
+        else:
+            self._unmount(name)  # new or changed code: not mounted until Jacob enables it
         self._sync_policy(name, bool(record["requires_hitl"]))
         proposal = self._propose(record)
         logger.info("Registered native custom tool %s (hitl=%s)", name, record["requires_hitl"])
-        body = _public_record(record)
+        body = _public_record(saved)
+        mounted = name in self.tool_registry
+        message = check.operator_message()
+        if not mounted:
+            message = (
+                f"{message} Saved to the data dir; Jacob must enable it in Tools Studio before any agent can use it."
+            )
         body.update(
             {
                 "success": True,
                 "persisted": True,
-                "mounted": name in self.tool_registry,
+                "mounted": mounted,
                 "packaging": "native",
                 "mcp_required": False,
-                "message": check.operator_message(),
+                "message": message,
             }
         )
         if proposal:
@@ -158,14 +173,13 @@ class NativeCustomToolService:
 
     def delete(self, name: str) -> dict[str, Any]:
         key = str(name or "").strip()
-        rows = _read_rows(self.store)
-        if not any(row.get("name") == key for row in rows):
+        try:
+            removed = runtime_tool_files().delete(key)
+        except ValueError:
+            removed = False
+        if not removed:
             raise NativeToolError(f"Native tool '{key}' was not found.", 404)
-        kept = [row for row in rows if row.get("name") != key]
-        self.store.set_setting(NATIVE_CUSTOM_TOOLS_SETTING, kept)
-        unmount = getattr(self.tool_registry, "unmount_tool", None)
-        if callable(unmount):
-            unmount(key)
+        self._unmount(key)
         self._sync_policy(key, False)
         logger.info("Removed native custom tool %s", key)
         return {"success": True, "name": key, "persisted": False, "packaging": "native", "mcp_required": False}
@@ -206,10 +220,39 @@ class NativeCustomToolService:
             "mcp_required": False,
         }
 
+    def enable_by_operator(self, name: str) -> dict[str, Any]:
+        """Jacob approves the current code and enables the tool. Tools Studio route only [CARD-570]."""
+        key = str(name or "").strip()
+        try:
+            runtime_tool_files().enable(key)
+        except (LookupError, ValueError):
+            raise NativeToolError(f"Native tool '{key}' was not found.", 404)
+        record = self.get(key) or {}
+        self._mount(record)
+        self._sync_policy(key, bool(record.get("requires_hitl")))
+        return _public_record(record) | {"mounted": key in self.tool_registry}
+
+    def disable_by_operator(self, name: str) -> dict[str, Any]:
+        key = str(name or "").strip()
+        try:
+            runtime_tool_files().disable(key)
+        except (LookupError, ValueError):
+            raise NativeToolError(f"Native tool '{key}' was not found.", 404)
+        self._unmount(key)
+        return _public_record(self.get(key) or {"name": key}) | {"mounted": False}
+
+    def _unmount(self, name: str) -> None:
+        unmount = getattr(self.tool_registry, "unmount_tool", None)
+        if callable(unmount) and name in self.tool_registry:
+            unmount(name)
+
     def mount_persisted(self) -> list[str]:
-        """Remount durable native tools. Called from serve startup."""
+        """Remount enabled, approved native tools. Called from serve startup."""
         mounted: list[str] = []
         for row in _read_rows(self.store):
+            if row.get("approval") != "enabled":
+                logger.info("Native tool %s not mounted: %s", row.get("name"), row.get("approval"))
+                continue
             try:
                 self._mount(row)
                 self._sync_policy(str(row["name"]), bool(row.get("requires_hitl")))
@@ -232,6 +275,12 @@ class NativeCustomToolService:
         record = self.get(key)
         if record is None:
             raise NativeToolError(f"Native tool '{key}' was not found.", 404)
+        if record.get("approval") != "enabled":
+            raise NativeToolError(
+                f"Native tool '{key}' is not enabled (or its code changed since approval). "
+                "Jacob enables it in Tools Studio.",
+                409,
+            )
         if key not in self.tool_registry:
             self._mount(record)
         agent = self._require_agent(agent_id)
@@ -358,7 +407,7 @@ class NativeCustomToolService:
         target = str(record.get("target_agent_id") or "").strip()
         if not target:
             return None
-        from src.application.agent_packs.tool_attachment import propose_tool_attachment
+        from src.application.agent_skills.tool_attachment import propose_tool_attachment
         from src.application.kernel.tool_registry import get_tool_context
 
         approval_id = propose_tool_attachment(
@@ -418,6 +467,9 @@ def _public_record(row: Mapping[str, Any]) -> dict[str, Any]:
         "origin_label": catalog_origin_label("native_custom"),
         "has_code": bool(str(row.get("code") or "").strip()),
         "check": dict(check) if isinstance(check, Mapping) else None,
+        "enabled": bool(row.get("enabled")),
+        "approval": row.get("approval") or "disabled",
+        "code_sha256": row.get("code_sha256"),
     }
 
 

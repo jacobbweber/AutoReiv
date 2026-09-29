@@ -2,7 +2,6 @@
 Agent Management & Delegation Router [REQ-FORGE-003, REQ-FORGE-006, REQ-A2A-006].
 """
 
-import json
 import logging
 import re
 from pathlib import Path
@@ -13,7 +12,7 @@ from pydantic import BaseModel
 
 from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentTone
 from src.domain.orchestration.models import HandoffEnvelope
-from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
+from src.domain.settings.models import MCPServerConfig, ModelPurpose
 from src.web.mcp_mount_reconcile import mcp_save_http_body, reconcile_saved_mcp_server
 
 logger = logging.getLogger(__name__)
@@ -46,86 +45,26 @@ class AgentProfilePayload(BaseModel):
     expected_skills_version: Optional[str] = None  # CARD-539 D10 stale-save check
 
 
-def _load_pack_manifest(data_dir, agent_id: str):
-    from src.application.agent_packs.schema import AgentPackManifest
-
-    if data_dir is None or not agent_id:
-        return None
-    path = Path(data_dir) / "packs" / agent_id / "pack.json"
-    if not path.is_file():
-        return None
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(raw, dict):
-        return None
-    try:
-        return AgentPackManifest.model_validate(raw)
-    except Exception:
-        return None
-
-
-def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-    from src.application.agent_packs.schema import PLATFORM_SKILL_IDS
-
-    tools_by_name = tools_by_name or {}
-    pack_skills = []
-    nested: List[str] = []
-    if manifest is None:
-        return {"pack_skills": [], "ungrouped_pack_tools": []}
-    for skill in manifest.skills:
-        if skill.id in PLATFORM_SKILL_IDS:
-            continue
-        skill_tools = []
-        for name in skill.tools:
-            if name not in nested:
-                nested.append(name)
-            skill_tools.append(
-                {
-                    "name": name,
-                    "description": tools_by_name.get(name, ""),
-                }
-            )
-        pack_skills.append(
-            {
-                "id": skill.id,
-                "name": skill.name or skill.id,
-                "description": skill.description or "",
-                "tools": skill_tools,
-            }
-        )
-    return {"pack_skills": pack_skills, "ungrouped_pack_tools": []}
-
-
 def _public_agent(
-    profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None, data_dir: Optional[Path] = None
+    profile, skill_manifest=None, tools_by_name: Optional[Dict[str, str]] = None, data_dir: Optional[Path] = None,
+    registry=None,
 ) -> Dict[str, Any]:
-    from src.application.agent_packs.allowed_tools import resolve_allowed_tools, skills_version
-    from src.application.agent_packs.schema import (
-        PLATFORM_SKILL_IDS,
-        is_platform_pack,
-        is_visible_in_chat,
-    )
-    from src.application.agent_packs.skill_list import studio_extra_skill_pills
+    from src.application.agent_skills.allowed_tools import resolve_allowed_tools, skills_version
+    from src.application.agent_skills.schema import is_platform_skill, is_visible_in_chat
     from src.domain.kernel.models import AgentOrigin
+    from src.infrastructure.content.store import get_store
 
     show_in_chat = is_visible_in_chat(profile)
-    pack_bits = _pack_skills_payload(pack_manifest, tools_by_name)
-    if data_dir is not None:
-        # CARD-509 / D3: every allowed or shipped skill with a SKILL.md gets a pill
-        from src.application.skills.workshop import operator_store_skills
-
-        shown = set(PLATFORM_SKILL_IDS) | {s["id"] for s in pack_bits["pack_skills"]}
-        shown |= {s["id"] for s in operator_store_skills(data_dir)}
-        pack_bits["pack_skills"] += studio_extra_skill_pills(profile, shown, data_dir)
+    content = registry.content if registry is not None else get_store()
+    loaded = content.agents.load(profile.id, include_hidden=True)
+    file_status = loaded.status() if loaded else {"source": "memory", "shipped": False, "edited": False}
 
     allowed = resolve_allowed_tools(profile)
     derived_tools = allowed.ordered + allowed.patterns  # wildcard MCP bindings shown as mcp_<server>_*
     if profile.is_builtin or profile.id == "agent-builder":
         origin_val = AgentOrigin.SYSTEM.value
     else:
-        origin_val = AgentOrigin.PACK.value
+        origin_val = AgentOrigin.FILE.value
 
     return {
         "id": profile.id,
@@ -146,8 +85,13 @@ def _public_agent(
         "allowed_tools": list(derived_tools),
         "allowed_skill": profile.allowed_skill or [],
         "skills_version": skills_version(profile),
-        "pack_skills": pack_bits["pack_skills"],
-        "ungrouped_pack_tools": pack_bits["ungrouped_pack_tools"],
+        "own_skills": [],
+        "file_status": file_status,  # CARD-570: shipped / edited / shipped_changed
+        "skill_tool_warnings": {
+            sid: names
+            for sid, names in (getattr(registry, "skill_tool_warnings", None) or {}).items()
+            if sid in (profile.allowed_skill or [])
+        },
         "show_in_chat": show_in_chat,
         "visibility": getattr(profile, "visibility", None) or ("internal" if not show_in_chat else "public"),
         "fleet": getattr(profile, "fleet", None),
@@ -160,7 +104,7 @@ def _public_agent(
         "pinned_memory": getattr(profile, "pinned_memory", "") or "",
         "model": profile.model,
         "is_builtin": profile.is_builtin,
-        "is_platform_pack": is_platform_pack(profile.id),
+        "is_platform_skill": is_platform_skill(profile.id),
         "allowed_credentials": getattr(profile, "allowed_credentials", []) or [],
         "mcp_servers": [
             s.model_dump() if hasattr(s, "model_dump") else s for s in (getattr(profile, "mcp_servers", None) or [])
@@ -190,36 +134,10 @@ def _data_dir_root(request: Request) -> Optional[Path]:
         return None
 
 
-def _pack_owned_skill_ids(data_dir: Optional[Path]) -> set:
-    from src.application.agent_packs.schema import AgentPackManifest
-
-    ids: set = set()
-    if data_dir is None:
-        return ids
-    packs = data_dir / "packs"
-    if not packs.is_dir():
-        return ids
-    candidate_pack_jsons = list(packs.glob("*/pack.json"))
-    for pack_json in candidate_pack_jsons:
-        try:
-            raw = json.loads(pack_json.read_text(encoding="utf-8"))
-            manifest = AgentPackManifest.model_validate(raw)
-        except Exception:
-            continue
-        for skill in manifest.skills:
-            if skill.id:
-                ids.add(skill.id)
-    return ids
-
-
 @router.get("/api/skills/catalog")
 async def get_skills_catalog(request: Request):
-    from src.application.agent_packs.allowed_tools import skill_tools
-    from src.application.agent_packs.schema import (
-        PLATFORM_SKILL_IDS,
-        PLATFORM_SKILL_METADATA,
-        REQUIRED_PLATFORM_TOOLS,
-    )
+    from src.application.agent_skills.allowed_tools import skill_tools
+    from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
     from src.application.skills.manifest import TOOL_GROUP_TIERS, get_hierarchical_tool_groups
     from src.application.skills.workshop import operator_store_skills
 
@@ -227,10 +145,9 @@ async def get_skills_catalog(request: Request):
     tools_def_list = tool_reg.list_tools()
     tools_by_name = {t.name: t.description for t in tools_def_list}
     tools_list = [{"name": t.name, "description": t.description} for t in tools_def_list]
-    skill_packs = get_hierarchical_tool_groups(tools_def_list)
+    skill_rows = get_hierarchical_tool_groups(tools_def_list)
 
     data_dir = _data_dir_root(request)
-    pack_owned = _pack_owned_skill_ids(data_dir)
     fleet_skills: dict[str, list[dict[str, Any]]] = {}
     seen: set = set()
     platform_skills = []
@@ -247,22 +164,23 @@ async def get_skills_catalog(request: Request):
             if name in tools_by_name
         ]
 
-    for sid in PLATFORM_SKILL_IDS:
-        meta = PLATFORM_SKILL_METADATA.get(sid, {})
-        name = meta.get("name", sid.replace("-", " ").title())
-        desc = meta.get("description", "")
-        tools = _skill_tools(sid)
-        has_required = any(t.get("tier") == "required_platform" for t in tools)
+    from src.infrastructure.content.store import get_store
+
+    for item in get_store().skills.list():
+        if not item.shipped:
+            continue  # user-created skills are listed under operator_skills
+        tools = _skill_tools(item.id)
         platform_skills.append(
             {
-                "id": sid,
-                "name": name,
-                "description": desc,
-                "has_required_tools": has_required,
+                "id": item.id,
+                "name": str(item.meta.get("name") or item.id),
+                "description": str(item.meta.get("description") or ""),
+                "has_required_tools": any(t.get("tier") == "required_platform" for t in tools),
                 "tools": tools,
+                "status": item.status(),
             }
         )
-        seen.add(sid)
+        seen.add(item.id)
 
     baseline_tools = [
         {
@@ -279,12 +197,12 @@ async def get_skills_catalog(request: Request):
     return {
         "tools": tools_list,
         "tiers": [t.model_dump() for t in TOOL_GROUP_TIERS],
-        "skill_packs": skill_packs,
+        "skill_rows": skill_rows,
         "baseline_tools": baseline_tools,
         "platform_skills": platform_skills,
         "operator_skills": operator_skills,
         "fleet_skills": fleet_skills,
-        "pack_owned_skills": sorted(pack_owned),
+        "owned_skills": [],
         "purposes": [p.value for p in ModelPurpose],
         "tones": (
             [t.id for t in store.list_tones()]
@@ -312,7 +230,7 @@ async def list_agents(request: Request):
     profiles = registry.list_agents()
     data_dir = _data_dir_root(request)
     tools_by_name = _tools_by_name(request)
-    return [_public_agent(p, _load_pack_manifest(data_dir, p.id), tools_by_name, data_dir) for p in profiles]
+    return [_public_agent(p, None, tools_by_name, data_dir, registry) for p in profiles]
 
 
 @router.get("/api/agents/{agent_id}")
@@ -322,7 +240,7 @@ async def get_agent_detail(request: Request, agent_id: str):
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
     data_dir = _data_dir_root(request)
-    return _public_agent(profile, _load_pack_manifest(data_dir, profile.id), _tools_by_name(request), data_dir)
+    return _public_agent(profile, None, _tools_by_name(request), data_dir, registry)
 
 
 @router.post("/api/agents")
@@ -343,7 +261,14 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
     except AgentValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    registry.register_custom_agent(profile)
+    from src.infrastructure.content.store import InvalidIdError, ReservedIdError
+
+    try:
+        profile = registry.save_agent(profile, create=True)  # CARD-570: shipped ids are reserved
+    except ReservedIdError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except InvalidIdError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     if profile.storage_enabled:
         from src.infrastructure.data.resolver import get_agent_storage_connection
 
@@ -379,7 +304,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
 
-    from src.application.agent_packs.allowed_tools import skills_version
+    from src.application.agent_skills.allowed_tools import skills_version
 
     expected = (payload.expected_skills_version or "").strip()
     if expected and expected != skills_version(existing):
@@ -415,41 +340,9 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         raise HTTPException(status_code=422, detail=str(e))
 
     # CARD-502: one save path shared with Teach > Adopt
-    from src.application.agent_packs.skill_list import persist_agent_profile
+    from src.application.agent_skills.skill_list import persist_agent_profile
 
     persist_agent_profile(store, registry, existing, profile, agent_id=agent_id, data_dir=_data_dir_root(request))
-
-    # CARD-381 / CARD-389: Synchronize user-data packs/<agent_id>/pack.json
-    data_dir = _data_dir_root(request)
-    if data_dir is not None:
-        pack_json_file = data_dir / "packs" / agent_id / "pack.json"
-        if pack_json_file.is_file():
-            try:
-                with open(pack_json_file, "r", encoding="utf-8") as pf:
-                    p_data = json.load(pf)
-                p_data["name"] = profile.name
-                p_data["allowed_skill"] = profile.allowed_skill
-                p_data["storage_enabled"] = profile.storage_enabled
-                p_data["max_turns"] = profile.max_turns
-                p_data["history_retention_days"] = profile.history_retention_days
-                if profile.tone:
-                    p_data["tone"] = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
-                if profile.system_prompt:
-                    p_data["system_prompt"] = profile.system_prompt
-                if profile.model:
-                    p_data["model"] = profile.model
-                if profile.provider:
-                    p_data["provider"] = profile.provider
-                if profile.mcp_servers is not None:
-                    p_data["mcp_servers"] = [
-                        s.model_dump() if hasattr(s, "model_dump") else s for s in profile.mcp_servers
-                    ]
-                if profile.allowed_credentials is not None:
-                    p_data["allowed_credentials"] = profile.allowed_credentials
-                with open(pack_json_file, "w", encoding="utf-8") as pf:
-                    json.dump(p_data, pf, indent=2)
-            except Exception:
-                logger.exception("Failed to sync updated pack.json for %s", agent_id)
 
     if profile.storage_enabled:
         from src.infrastructure.data.resolver import get_agent_storage_connection
@@ -484,16 +377,17 @@ async def delete_agent(request: Request, agent_id: str, purge_history: bool = Fa
     existing = registry.get_agent(agent_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    if agent_id in ("agent-builder", "autoreiv") or existing.is_builtin:
+    if agent_id in ("agent-builder", "autoreiv"):
         raise HTTPException(
             status_code=400,
             detail="Cannot delete core system agent.",
         )
-
+    # CARD-570: a shipped agent is hidden (persisted); a user-created agent's file is removed.
+    shipped = registry.content.agents.shipped_path(agent_id).is_file()
     deleted = registry.delete_custom_agent(agent_id, purge_history=purge_history)
     if not deleted:
         raise HTTPException(status_code=400, detail=f"Failed to delete agent '{agent_id}'.")
-    return {"status": "deleted", "id": agent_id, "purged": purge_history}
+    return {"status": "hidden" if shipped else "deleted", "id": agent_id, "purged": purge_history}
 
 
 @router.post("/api/agents/delegate")
@@ -625,7 +519,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
     for s in servers:
         name = s.get("name")
         active_info = (
-            active_map.get(name) or active_map.get(f"pack_{agent_id}_{name}") or active_map.get(f"pack_{agent_id}")
+            active_map.get(name)
         )
         result.append(
             {
@@ -657,30 +551,7 @@ async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
         existing_servers.append(req_dict)
 
     profile.mcp_servers = [MCPServerConfig.model_validate(s) for s in existing_servers]
-    if profile.is_builtin:
-        store = request.app.state.store
-        customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
-        customization.mcp_servers = profile.mcp_servers
-        # CARD-449: MCP attach/detach is not pack-content; do not newly lock
-        customization.user_modified = bool(getattr(profile, 'user_modified', False))
-        store.save_agent_override(customization)
-        if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(customization.agent_id, modified=bool(customization.user_modified))
-    else:
-        registry.register_custom_agent(profile)
-
-    data_dir = _data_dir_root(request)
-    if data_dir:
-        pack_json_file = Path(data_dir) / "packs" / agent_id / "pack.json"
-        if pack_json_file.is_file():
-            try:
-                p_data = json.loads(pack_json_file.read_text(encoding="utf-8"))
-                p_data["mcp_servers"] = [s.model_dump() for s in profile.mcp_servers]
-                pack_json_file.write_text(json.dumps(p_data, indent=2), encoding="utf-8")
-            except Exception as e:
-                import logging
-
-                logging.getLogger(__name__).warning(f"Failed to sync mcp_servers to {pack_json_file}: {e}")
+    registry.save_agent(profile)  # CARD-570: full user copy of the agent file
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
     outcome = await reconcile_saved_mcp_server(mcp_manager, req)
@@ -705,30 +576,7 @@ async def delete_agent_mcp_server(request: Request, agent_id: str, server_name: 
     filtered = [s for s in existing_servers if s.get("name") != server_name]
     profile.mcp_servers = [MCPServerConfig.model_validate(s) for s in filtered]
 
-    if profile.is_builtin:
-        store = request.app.state.store
-        customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
-        customization.mcp_servers = profile.mcp_servers
-        # CARD-449: MCP attach/detach is not pack-content; do not newly lock
-        customization.user_modified = bool(getattr(profile, 'user_modified', False))
-        store.save_agent_override(customization)
-        if hasattr(store, "mark_agent_user_modified"):
-            store.mark_agent_user_modified(customization.agent_id, modified=bool(customization.user_modified))
-    else:
-        registry.register_custom_agent(profile)
-
-    data_dir = _data_dir_root(request)
-    if data_dir:
-        pack_json_file = Path(data_dir) / "packs" / agent_id / "pack.json"
-        if pack_json_file.is_file():
-            try:
-                p_data = json.loads(pack_json_file.read_text(encoding="utf-8"))
-                p_data["mcp_servers"] = [s.model_dump() for s in profile.mcp_servers]
-                pack_json_file.write_text(json.dumps(p_data, indent=2), encoding="utf-8")
-            except Exception as e:
-                import logging
-
-                logging.getLogger(__name__).warning(f"Failed to sync delete to {pack_json_file}: {e}")
+    registry.save_agent(profile)  # CARD-570: full user copy of the agent file
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
     if mcp_manager:
@@ -815,124 +663,33 @@ async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
         }
 
 
-# --- CARD-443 platform pack AppData promotion ---
+# --- CARD-570: agent files (user copy wins; Use shipped version; hide) ---
 
 
-@router.get("/api/platform-packs/sync-status")
-async def platform_packs_sync_status(request: Request):
-    """Last platform-pack -> AppData promotion report [CARD-443 / REQ-443-003]."""
-    store = getattr(request.app.state, "state_store", None) or getattr(
-        getattr(request.app.state, "registry", None), "state_store", None
-    )
-    from src.infrastructure.skills.platform_pack_promotion import (
-        PLATFORM_LOCK_MIGRATION_SETTING,
-        get_last_platform_pack_sync_report,
-    )
-
-    report = get_last_platform_pack_sync_report(store) or {"triggered_at": None, "results": []}
-    if not isinstance(report, dict):
-        report = {"triggered_at": None, "results": [], "raw": report}
-    migration = None
-    if store is not None and hasattr(store, "get_setting"):
-        migration = store.get_setting(PLATFORM_LOCK_MIGRATION_SETTING)
-    report = dict(report)
-    report["lock_migration"] = migration
-    return report
-
-
-@router.post("/api/platform-packs/sync")
-async def platform_packs_sync_now(request: Request):
-    """Re-run platform pack promotion without full process restart [CARD-443]."""
-    from src.infrastructure.data.resolver import repo_root
-    from src.infrastructure.skills.platform_pack_promotion import promote_platform_packs
-
+@router.post("/api/agents/{agent_id}/use-shipped")
+async def use_shipped_version(request: Request, agent_id: str):
+    """Delete the user copy of a shipped agent. Model/provider settings are kept."""
     registry = request.app.state.registry
-    tools = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
-    data_dir = _data_dir_root(request)
-    if data_dir is None:
-        raise HTTPException(status_code=500, detail="data_dir unavailable")
-    report = promote_platform_packs(
-        data_dir,
-        registry,
-        tools,
-        checkout_root=repo_root(),
-    )
-    return report.to_dict()
-
-
-
-
-@router.get("/api/agents/{agent_id}/pack-content-backups")
-async def list_agent_pack_content_backups(request: Request, agent_id: str):
-    """CARD-449: list pack-content backups for an agent."""
-    from src.infrastructure.skills.platform_pack_promotion import list_pack_content_backups
-    store = request.app.state.store
-    return {"agent_id": agent_id, "backups": list_pack_content_backups(store, agent_id)}
-
-
-@router.post("/api/agents/{agent_id}/pack-content-backups/{backup_id}/restore")
-async def restore_agent_pack_content_backup(request: Request, agent_id: str, backup_id: str):
-    """CARD-449: restore a prior pack-content backup onto the live agent profile.
-
-    CARD-450 / REQ-450-009: re-run promotion for this one pack afterwards so the last sync
-    report reflects the restored (customized) content and the Studio badge returns.
-    """
-    from src.application.agent_packs.schema import is_platform_pack
-    from src.infrastructure.data.resolver import repo_root
-    from src.infrastructure.skills.platform_pack_promotion import (
-        promote_platform_packs,
-        restore_pack_content_backup,
-    )
-    registry = request.app.state.registry
-    store = request.app.state.store
+    if not registry.content.agents.shipped_path(agent_id).is_file():
+        raise HTTPException(status_code=400, detail=f"'{agent_id}' is not a shipped agent.")
+    removed = registry.use_shipped_version(agent_id)
     profile = registry.get_agent(agent_id)
-    if not profile:
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    try:
-        snap = restore_pack_content_backup(store, profile, backup_id)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    sync = None
-    data_dir = _data_dir_root(request)
-    if is_platform_pack(agent_id) and data_dir is not None:
-        tools = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
-        sync = promote_platform_packs(
-            data_dir,
-            registry,
-            tools,
-            checkout_root=repo_root(),
-            pack_ids=[agent_id],
-            # Report only: never force-reset the content the operator just restored
-            force_reset=False,
-        ).to_dict()
-    return {"agent_id": agent_id, "restored": snap, "sync": sync}
-
-
-@router.post("/api/agents/{agent_id}/accept-platform-seed")
-async def accept_platform_seed(request: Request, agent_id: str):
-    """Reset to platform defaults: backup, unlock, force the platform version [CARD-443, CARD-450]."""
-    from src.application.agent_packs.schema import is_platform_pack
-    from src.infrastructure.data.resolver import repo_root
-    from src.infrastructure.skills.platform_pack_promotion import reset_platform_pack_to_defaults
-
-    if not is_platform_pack(agent_id):
-        raise HTTPException(status_code=400, detail=f"'{agent_id}' is not a platform pack")
-    registry = request.app.state.registry
-    if not registry.get_agent(agent_id):
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    tools = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
-    data_dir = _data_dir_root(request)
-    if data_dir is None:
-        raise HTTPException(status_code=500, detail="data_dir unavailable")
-    report = reset_platform_pack_to_defaults(
-        data_dir,
-        registry,
-        tools,
-        pack_id=agent_id,
-        checkout_root=repo_root(),
-    )
     return {
         "agent_id": agent_id,
-        "user_modified_cleared": True,
-        "sync": report.to_dict(),
+        "removed_copy": removed,
+        "agent": _public_agent(profile, tools_by_name=_tools_by_name(request)) if profile else None,
     }
+
+
+@router.post("/api/agents/{agent_id}/unhide")
+async def unhide_agent(request: Request, agent_id: str):
+    registry = request.app.state.registry
+    if not registry.unhide_agent(agent_id):
+        raise HTTPException(status_code=404, detail=f"'{agent_id}' is not hidden.")
+    return {"agent_id": agent_id, "hidden": False}
+
+
+@router.get("/api/agents-hidden")
+async def list_hidden_agents(request: Request):
+    registry = request.app.state.registry
+    return {"hidden": sorted(registry.content.agents.hidden())}

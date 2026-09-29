@@ -25,6 +25,7 @@ import {
   renderMcpServerListMarkup,
   serverToSaveBody,
 } from './tools_studio_catalog.js';
+import { mountRuntimeTools } from './tools_studio_runtime_tools.js';
 import {
   TOOLS_AUTHORING_JOBS_URL,
   TOOLS_AUTHORING_TALK_URL,
@@ -220,7 +221,13 @@ export function initToolsStudio(_state, callbacks = {}) {
     return shownServers.find((server) => server && server.name === name) || null;
   }
 
+  let runtimeTools = null;
+
   async function refreshCatalog() {
+    if (!runtimeTools) {
+      runtimeTools = mountRuntimeTools({ host: $('toolsStudioRuntimeTools'), toast: showToast, onChanged: refreshCatalog });
+    }
+    runtimeTools.refresh();
     try {
       const catalogAgentId = readScope() === 'agent' ? readAgentId() : '';
       catalogGroups = await loadCatalogModel(fetch, { agentId: catalogAgentId });

@@ -1,9 +1,9 @@
-"""Skill curator: unused user packs go active -> stale -> archive.
+"""Skill curator: unused user skills go active -> stale -> archive.
 
 [REQ-IMPROVE-013] [REQ-IMPROVE-014] [REQ-IMPROVE-015] [REQ-IMPROVE-016]
 
-Unused user packs: active --(30d)--> stale --(90d)--> archive (move).
-Never deletes SKILL.md. Never auto-archives ids in BUNDLED_PACK_IDS
+Unused user skill_rows: active --(30d)--> stale --(90d)--> archive (move).
+Never deletes SKILL.md. Never auto-archives shipped skill ids (platform/skills)
 (empty after CARD-118; no product seeds ship). Never touches repo src/infrastructure/skills/seeds/.
 Unknown last-used fails closed. Auto-archive is opt-in (paused routine /
 skill-eval-sleep metadata.auto_archive).
@@ -22,10 +22,10 @@ from src.application.skills.user_catalog import (
     ARCHIVE_DIRNAME,
     SKILL_MD_NAME,
     SKIP_LIST_DIRNAMES,
-    PackJailError,
+    SkillJailError,
     UserSkillCatalog,
 )
-from src.infrastructure.skills.seed import BUNDLED_PACK_IDS, bundled_seed_root
+from src.infrastructure.content.store import REPO_PLATFORM, get_store
 
 logger = logging.getLogger(__name__)
 
@@ -65,18 +65,19 @@ def _parse_iso(text: str) -> Optional[datetime]:
     return _aware(parsed)
 
 
-def is_bundled_pack(pack_id: str) -> bool:
-    return pack_id in BUNDLED_PACK_IDS
+def is_bundled_skill(skill_id: str) -> bool:
+    """Shipped skills (repo platform/skills) are never auto-archived [CARD-570]."""
+    return get_store().skills.shipped_path(str(skill_id).split("/")[0]).is_file()
 
 
 def repo_seed_root() -> Path:
-    return bundled_seed_root()
+    return REPO_PLATFORM / "skills"
 
 
 def last_used_at(
-    pack_dir: Union[str, Path],
+    skill_dir: Union[str, Path],
     *,
-    pack_id: Optional[str] = None,
+    skill_id: Optional[str] = None,
     overrides: Optional[Dict[str, Optional[datetime]]] = None,
 ) -> Optional[datetime]:
     """Return last-used instant, or None when unknown (fail closed).
@@ -84,11 +85,11 @@ def last_used_at(
     last-used is max(SKILL.md mtime, .last_used sidecar, override). An explicit
     override of None means unknown even if mtime exists.
     """
-    pid = pack_id or Path(pack_dir).name
+    pid = skill_id or Path(skill_dir).name
     if overrides is not None and pid in overrides:
         return _aware(overrides[pid])
     candidates: List[datetime] = []
-    root = Path(pack_dir)
+    root = Path(skill_dir)
     skill = root / SKILL_MD_NAME
     if skill.is_file():
         try:
@@ -131,65 +132,65 @@ def classify_age(
 
 def _catalog_root(catalog: UserSkillCatalog) -> Path:
     if catalog.skills_dir is None:
-        raise PackJailError("Skills directory is not configured.")
+        raise SkillJailError("Skills directory is not configured.")
     return catalog.skills_dir.expanduser().resolve()
 
 
-def archive_pack_dir(catalog: UserSkillCatalog, pack_id: str) -> Path:
+def archive_skill_dir(catalog: UserSkillCatalog, skill_id: str) -> Path:
     """Jailed $DATA_DIR/skills/_archive/<id>/."""
-    catalog.pack_dir(pack_id)
+    catalog.skill_dir(skill_id)
     root = _catalog_root(catalog)
-    dest = (catalog.skills_dir / ARCHIVE_DIRNAME / pack_id).resolve()
+    dest = (catalog.skills_dir / ARCHIVE_DIRNAME / skill_id).resolve()
     try:
         dest.relative_to(root / ARCHIVE_DIRNAME)
     except ValueError as exc:
-        raise PackJailError("Path traversal rejected.") from exc
+        raise SkillJailError("Path traversal rejected.") from exc
     return dest
 
 
-def record_pack_use(catalog: UserSkillCatalog, pack_id: str) -> None:
+def record_skill_use(catalog: UserSkillCatalog, skill_id: str) -> None:
     """Write .last_used sidecar so last-used is known after skill_view/save."""
     try:
-        root = catalog.pack_dir(pack_id)
+        root = catalog.skill_dir(skill_id)
         if not root.is_dir():
             return
         (root / LAST_USED_NAME).write_text(
             datetime.now(timezone.utc).isoformat(),
             encoding="utf-8",
         )
-    except (OSError, PackJailError) as exc:
-        logger.debug("record_pack_use skipped for %s: %s", pack_id, exc)
+    except (OSError, SkillJailError) as exc:
+        logger.debug("record_skill_use skipped for %s: %s", skill_id, exc)
 
 
-def archive_pack(
+def archive_skill(
     catalog: UserSkillCatalog,
-    pack_id: str,
+    skill_id: str,
     *,
     confirm: bool = False,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
-    """Move a live pack to $DATA_DIR/skills/_archive/<id>/. Never delete SKILL.md."""
+    """Move a live skill to $DATA_DIR/skills/_archive/<id>/. Never delete SKILL.md."""
     del now
-    if is_bundled_pack(pack_id) and not confirm:
+    if is_bundled_skill(skill_id) and not confirm:
         return {
             "success": False,
             "archived": False,
-            "pack_id": pack_id,
+            "skill_id": skill_id,
             "error": (
-                f"Bundled seed '{pack_id}' is not auto-archived. "
-                "Explicit confirm is required to archive a bundled pack."
+                f"Bundled seed '{skill_id}' is not auto-archived. "
+                "Explicit confirm is required to archive a bundled skill."
             ),
             "bundled": True,
             "skill_md_deleted": False,
         }
     try:
-        live = catalog.pack_dir(pack_id)
-        dest = archive_pack_dir(catalog, pack_id)
-    except PackJailError as exc:
+        live = catalog.skill_dir(skill_id)
+        dest = archive_skill_dir(catalog, skill_id)
+    except SkillJailError as exc:
         return {
             "success": False,
             "archived": False,
-            "pack_id": pack_id,
+            "skill_id": skill_id,
             "error": str(exc),
             "skill_md_deleted": False,
         }
@@ -197,16 +198,16 @@ def archive_pack(
         return {
             "success": False,
             "archived": False,
-            "pack_id": pack_id,
-            "error": f"Pack '{pack_id}' is not a live directory.",
+            "skill_id": skill_id,
+            "error": f"Skill '{skill_id}' is not a live directory.",
             "skill_md_deleted": False,
         }
     if dest.exists():
         return {
             "success": False,
             "archived": False,
-            "pack_id": pack_id,
-            "error": f"Archive dest already exists for '{pack_id}'; fail closed.",
+            "skill_id": skill_id,
+            "error": f"Archive dest already exists for '{skill_id}'; fail closed.",
             "skill_md_deleted": False,
         }
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -215,41 +216,41 @@ def archive_pack(
     return {
         "success": True,
         "archived": True,
-        "pack_id": pack_id,
+        "skill_id": skill_id,
         "from": str(live),
         "to": str(dest),
         "skill_md": str(dest_skill) if dest_skill.is_file() else None,
         "skill_md_deleted": False,
-        "bundled": is_bundled_pack(pack_id),
+        "bundled": is_bundled_skill(skill_id),
     }
 
 
-def unarchive_pack(catalog: UserSkillCatalog, pack_id: str) -> Dict[str, Any]:
+def unarchive_skill(catalog: UserSkillCatalog, skill_id: str) -> Dict[str, Any]:
     """Move $DATA_DIR/skills/_archive/<id>/ back to $DATA_DIR/skills/<id>/. Dest-exists fails closed."""
     try:
-        live = catalog.pack_dir(pack_id)
-        src = archive_pack_dir(catalog, pack_id)
-    except PackJailError as exc:
+        live = catalog.skill_dir(skill_id)
+        src = archive_skill_dir(catalog, skill_id)
+    except SkillJailError as exc:
         return {
             "success": False,
             "unarchived": False,
-            "pack_id": pack_id,
+            "skill_id": skill_id,
             "error": str(exc),
         }
     if not src.is_dir():
         return {
             "success": False,
             "unarchived": False,
-            "pack_id": pack_id,
-            "error": f"Archived pack '{pack_id}' not found.",
+            "skill_id": skill_id,
+            "error": f"Archived skill '{skill_id}' not found.",
             "not_found": True,
         }
     if live.exists():
         return {
             "success": False,
             "unarchived": False,
-            "pack_id": pack_id,
-            "error": f"Live dest already exists for '{pack_id}'; fail closed.",
+            "skill_id": skill_id,
+            "error": f"Live dest already exists for '{skill_id}'; fail closed.",
             "conflict": True,
         }
     live.parent.mkdir(parents=True, exist_ok=True)
@@ -259,7 +260,7 @@ def unarchive_pack(catalog: UserSkillCatalog, pack_id: str) -> Dict[str, Any]:
     return {
         "success": True,
         "unarchived": True,
-        "pack_id": pack_id,
+        "skill_id": skill_id,
         "from": str(src),
         "to": str(live),
         "proposal_id": None,
@@ -267,7 +268,7 @@ def unarchive_pack(catalog: UserSkillCatalog, pack_id: str) -> Dict[str, Any]:
     }
 
 
-def list_archived_packs(catalog: UserSkillCatalog) -> List[Dict[str, Any]]:
+def list_archived_skills(catalog: UserSkillCatalog) -> List[Dict[str, Any]]:
     if catalog.skills_dir is None:
         return []
     root = catalog.skills_dir / ARCHIVE_DIRNAME
@@ -275,9 +276,9 @@ def list_archived_packs(catalog: UserSkillCatalog) -> List[Dict[str, Any]]:
         return []
     from src.application.skills.dynamic_loader import DynamicSkillLoader
 
-    packs: List[Dict[str, Any]] = []
+    skill_rows: List[Dict[str, Any]] = []
     for manifest in DynamicSkillLoader.list_skill_manifests(str(root)):
-        packs.append(
+        skill_rows.append(
             {
                 "id": manifest.id,
                 "name": manifest.name,
@@ -286,28 +287,28 @@ def list_archived_packs(catalog: UserSkillCatalog) -> List[Dict[str, Any]]:
                 "origin": "archived",
             }
         )
-    return packs
+    return skill_rows
 
 
-def read_archived_pack(catalog: UserSkillCatalog, pack_id: str) -> Dict[str, Any]:
+def read_archived_skill(catalog: UserSkillCatalog, skill_id: str) -> Dict[str, Any]:
     """Read SKILL.md from $DATA_DIR/skills/_archive/<id>/ for Studio view."""
     from src.application.skills.dynamic_loader import DynamicSkillLoader
 
     try:
-        dest = archive_pack_dir(catalog, pack_id)
-    except PackJailError as exc:
-        return {"success": False, "error": str(exc), "pack_id": pack_id}
+        dest = archive_skill_dir(catalog, skill_id)
+    except SkillJailError as exc:
+        return {"success": False, "error": str(exc), "skill_id": skill_id}
     skill = dest / SKILL_MD_NAME
     if not skill.is_file():
         return {
             "success": False,
-            "error": f"Archived pack '{pack_id}' not found.",
+            "error": f"Archived skill '{skill_id}' not found.",
             "not_found": True,
-            "pack_id": pack_id,
+            "skill_id": skill_id,
         }
     parsed = DynamicSkillLoader.load_skill_from_markdown(str(skill))
     if not parsed:
-        return {"success": False, "error": f"Failed to load archived SKILL.md for pack '{pack_id}'."}
+        return {"success": False, "error": f"Failed to load archived SKILL.md for skill '{skill_id}'."}
     tools_meta = []
     for tool in parsed.get("tools") or []:
         tools_meta.append({"name": tool.name, "description": tool.description})
@@ -315,8 +316,8 @@ def read_archived_pack(catalog: UserSkillCatalog, pack_id: str) -> Dict[str, Any
         "success": True,
         "archived": True,
         "manifest": {
-            "id": pack_id,
-            "name": parsed.get("name", pack_id),
+            "id": skill_id,
+            "name": parsed.get("name", skill_id),
             "description": parsed.get("description", ""),
             "path": str(skill),
             "origin": "archived",
@@ -331,49 +332,49 @@ def _assert_deletable_under_skills(target: Path, root: Path) -> Path:
     try:
         resolved.relative_to(root)
     except ValueError as exc:
-        raise PackJailError("Path traversal rejected.") from exc
+        raise SkillJailError("Path traversal rejected.") from exc
     if resolved == root:
-        raise PackJailError("Refusing to delete the skills root.")
+        raise SkillJailError("Refusing to delete the skills root.")
     archive_root = (root / ARCHIVE_DIRNAME).resolve()
     if resolved == archive_root:
-        raise PackJailError("Refusing to delete the archive root.")
+        raise SkillJailError("Refusing to delete the archive root.")
     return resolved
 
 
-def delete_pack(
+def delete_skill(
     catalog: UserSkillCatalog,
-    pack_id: str,
+    skill_id: str,
     *,
     confirm: bool = False,
     confirm_seed: bool = False,
 ) -> Dict[str, Any]:
-    """Hard-delete a jailed user pack (live and/or _archive). Never repo seeds."""
+    """Hard-delete a jailed user skill (live and/or _archive). Never repo seeds."""
     if not confirm:
         return {
             "success": False,
             "deleted": False,
-            "pack_id": pack_id,
-            "error": "confirm=true is required to hard-delete a user pack.",
+            "skill_id": skill_id,
+            "error": "confirm=true is required to hard-delete a user skill.",
             "confirm_required": True,
         }
-    if is_bundled_pack(pack_id) and not confirm_seed:
+    if is_bundled_skill(skill_id) and not confirm_seed:
         return {
             "success": False,
             "deleted": False,
-            "pack_id": pack_id,
+            "skill_id": skill_id,
             "error": "bundled seed, archive instead or pass confirm_seed",
             "bundled": True,
             "confirm_seed_required": True,
         }
     try:
-        live = catalog.pack_dir(pack_id)
-        archived = archive_pack_dir(catalog, pack_id)
+        live = catalog.skill_dir(skill_id)
+        archived = archive_skill_dir(catalog, skill_id)
         root = _catalog_root(catalog)
-    except PackJailError as exc:
+    except SkillJailError as exc:
         return {
             "success": False,
             "deleted": False,
-            "pack_id": pack_id,
+            "skill_id": skill_id,
             "error": str(exc),
             "jail": True,
         }
@@ -403,7 +404,7 @@ def delete_pack(
                     return {
                         "success": False,
                         "deleted": False,
-                        "pack_id": pack_id,
+                        "skill_id": skill_id,
                         "error": "Refusing to delete repository seed sources.",
                         "repo_seeds_untouched": True,
                     }
@@ -413,11 +414,11 @@ def delete_pack(
             elif resolved.is_file():
                 resolved.unlink()
                 removed.append(str(resolved))
-    except PackJailError as exc:
+    except SkillJailError as exc:
         return {
             "success": False,
             "deleted": False,
-            "pack_id": pack_id,
+            "skill_id": skill_id,
             "error": str(exc),
             "jail": True,
         }
@@ -442,8 +443,8 @@ def delete_pack(
         return {
             "success": False,
             "deleted": False,
-            "pack_id": pack_id,
-            "error": f"Pack '{pack_id}' not found.",
+            "skill_id": skill_id,
+            "error": f"Skill '{skill_id}' not found.",
             "not_found": True,
             "repo_seeds_untouched": seed_after_ok,
         }
@@ -452,15 +453,15 @@ def delete_pack(
     return {
         "success": True,
         "deleted": True,
-        "pack_id": pack_id,
+        "skill_id": skill_id,
         "removed": removed,
-        "bundled": is_bundled_pack(pack_id),
+        "bundled": is_bundled_skill(skill_id),
         "repo_seeds_untouched": seed_after_ok,
         "repo_seeds_touched": seed_touched,
     }
 
 
-def _iter_live_pack_dirs(catalog: UserSkillCatalog) -> List[Path]:
+def _iter_live_skill_dirs(catalog: UserSkillCatalog) -> List[Path]:
     if catalog.skills_dir is None or not catalog.skills_dir.is_dir():
         return []
     found: List[Path] = []
@@ -474,7 +475,7 @@ def _iter_live_pack_dirs(catalog: UserSkillCatalog) -> List[Path]:
     return found
 
 
-def curate_user_skill_packs(
+def curate_user_skills(
     catalog: UserSkillCatalog,
     *,
     now: Optional[datetime] = None,
@@ -484,7 +485,7 @@ def curate_user_skill_packs(
     archive_days: int = ARCHIVE_AFTER_DAYS,
     confirm_bundled: bool = False,
 ) -> Dict[str, Any]:
-    """Classify live packs. Move only unused user packs past the archive window.
+    """Classify live skills. Move only unused user skills past the archive window.
 
     auto_archive defaults False so nightly/harvest is not destructive.
     Bundled seeds are never auto-archived. Unknown last-used is not archived.
@@ -504,17 +505,17 @@ def curate_user_skill_packs(
     archived: List[Dict[str, Any]] = []
     skipped: List[Dict[str, Any]] = []
 
-    for pack_dir in _iter_live_pack_dirs(catalog):
-        pack_id = pack_dir.name
-        row: Dict[str, Any] = {"pack_id": pack_id, "path": str(pack_dir)}
-        if is_bundled_pack(pack_id):
+    for skill_dir in _iter_live_skill_dirs(catalog):
+        skill_id = skill_dir.name
+        row: Dict[str, Any] = {"skill_id": skill_id, "path": str(skill_dir)}
+        if is_bundled_skill(skill_id):
             row["status"] = STATUS_BUNDLED
             row["archived"] = False
             if auto_archive:
                 skipped.append({**row, "reason": "bundled seed; never auto-archive"})
             classified.append(row)
             continue
-        used = last_used_at(pack_dir, pack_id=pack_id, overrides=last_used_by_id)
+        used = last_used_at(skill_dir, skill_id=skill_id, overrides=last_used_by_id)
         status = classify_age(
             used,
             now=now_utc,
@@ -529,7 +530,7 @@ def curate_user_skill_packs(
             classified.append(row)
             continue
         if status == STATUS_ARCHIVE and auto_archive:
-            moved = archive_pack(catalog, pack_id, confirm=confirm_bundled, now=now_utc)
+            moved = archive_skill(catalog, skill_id, confirm=confirm_bundled, now=now_utc)
             row["archived"] = bool(moved.get("archived"))
             row["move"] = moved
             if moved.get("archived"):
@@ -595,7 +596,7 @@ def maybe_curate_from_routine(
             "archived_count": 0,
             "stream_turn_attached": False,
         }
-    return curate_user_skill_packs(
+    return curate_user_skills(
         catalog,
         now=now,
         auto_archive=True,
@@ -617,7 +618,7 @@ def run_curator_job(
     auto = bool(meta.get("auto_archive", True)) if routine is not None else True
     stale_days = int(meta.get("stale_days", STALE_AFTER_DAYS) or STALE_AFTER_DAYS)
     archive_days = int(meta.get("archive_days", ARCHIVE_AFTER_DAYS) or ARCHIVE_AFTER_DAYS)
-    result = curate_user_skill_packs(
+    result = curate_user_skills(
         catalog,
         now=now,
         auto_archive=auto,
@@ -635,7 +636,7 @@ def job_output_text(result: Dict[str, Any]) -> str:
             "status": "success" if result.get("success") else "failed",
             "auto_archive": result.get("auto_archive"),
             "archived_count": result.get("archived_count"),
-            "archived": [row.get("pack_id") for row in (result.get("archived") or [])],
+            "archived": [row.get("skill_id") for row in (result.get("archived") or [])],
             "skill_md_deleted": False,
         },
         indent=2,

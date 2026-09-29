@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.agent_kernel import (
     CARD_WORK_TOOLS,
     MAX_ACTIVE_TOOLS_PER_TURN,
@@ -14,7 +14,7 @@ from src.application.kernel.agent_kernel import (
     AgentKernel,
 )
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 @pytest.fixture

@@ -16,7 +16,7 @@ import asyncio
 import os
 from pathlib import Path
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.safety.tool_policy_gate import _DEFAULT_REQUIRE_CONFIRM
 from src.domain.gateway.models import ToolCall
@@ -42,7 +42,7 @@ def _catalog_names(payload: dict) -> set[str]:
     return names
 
 
-def test_oc431_catalog_omits_save_and_pack_tools(operator_client):
+def test_oc431_catalog_omits_save_and_skill_tool_list(operator_client):
     """CARD-569: save_agent_specification and the pack tools are gone; agents are made in Agent Studio."""
     client, store, wiki = operator_client
     _refuse_live(wiki.parent)

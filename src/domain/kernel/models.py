@@ -14,7 +14,7 @@ DEFAULT_AGENT_MAX_TURNS = 50
 
 
 class AgentOrigin(str, Enum):
-    PACK = "pack"
+    FILE = "file"
     SYSTEM = "system"
     # Legacy aliases for database backward compatibility
     PLATFORM = "platform"
@@ -46,8 +46,8 @@ class AgentProfile(BaseModel):
     description: str = Field(description="Summary of agent role")
     system_prompt: str = Field(description="Base persona prompt")
     origin: AgentOrigin = Field(
-        default=AgentOrigin.PACK,
-        description="Origin tier of the agent profile (pack or system).",
+        default=AgentOrigin.FILE,
+        description="Origin tier of the agent profile (file or system).",
     )
     provider: str = Field(
         default="default",

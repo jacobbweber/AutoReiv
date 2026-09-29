@@ -130,7 +130,7 @@ def _parked_mid_job(orch, store, spine, *, session_id: str):
         gap=gap,
         kind="skill",
         name="wiki-notes-index",
-        pack_id="wiki-notes-index",
+        skill_id="wiki-notes-index",
         summary="Index wiki notes",
         content="# Wiki Notes Index\n",
         park=True,
@@ -199,7 +199,7 @@ def test_req_forge_resume_standalone_promote_only(orch, store, spine):
     rec = spine.draft(
         kind="skill",
         name="standalone-candidate",
-        pack_id="standalone-candidate",
+        skill_id="standalone-candidate",
         summary="no job",
         content="# Solo\n",
         keywords=["solo"],

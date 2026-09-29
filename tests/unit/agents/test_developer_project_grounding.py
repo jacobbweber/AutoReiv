@@ -128,7 +128,7 @@ def test_developer_agent_kernel_prompt_grounding_with_active_project():
             system_prompt="You are the Lead Software Engineer.",
         )
 
-        from tests.unit.agent_packs.catalog import platform_pack_profile
+        from tests.unit.agent_skills.catalog import platform_pack_profile
 
         dev_agent = platform_pack_profile("developer")  # CARD-562: the real pack, so the guidance reflects its allowed tools
         assembled = kernel._build_effective_system_message(dev_agent).content

@@ -45,7 +45,7 @@ const draft = {
   description: 'File a short wiki digest',
   tier: 'pack',
   safety: { read_only: true, requires_hitl: false, untrusted_input_allowed: false },
-  requires_tools: ['wiki_note_read'],
+  tools: ['wiki_note_read'],
   markdown: '---\nname: Wiki Digest\n---\n# Wiki Digest\n',
   intent_notes: 'Keep it short',
   source_context: '',
@@ -238,7 +238,7 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     const planned = skillDeleteRequest('group/notes', { confirmed: true, deletable: true });
     expect(planned.allowed).toBe(true);
     expect(planned.method).toBe('DELETE');
-    expect(planned.url).toBe('/api/skills/user-packs/group/notes?confirm=true');
+    expect(planned.url).toBe('/api/skills/user-skills/group/notes?confirm=true');
     expect(planned.url).not.toContain('confirm_seed');
 
     const loaded = applyLoadedSkillView({

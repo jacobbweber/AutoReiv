@@ -9,7 +9,7 @@ from src.domain.kernel.models import AgentProfile, AgentTone
 from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def test_discover_builtin_agents(directory_service):
 
 
 def test_discover_custom_agent(directory_service, tmp_path):
-    """Verify custom SQLite agents created via Agent Forge are dynamically indexed [REQ-A2A-001]."""
+    """Verify custom agents created via Agent Forge are dynamically indexed [REQ-A2A-001]."""
     # Create a custom agent profile in SQLite
     custom_profile = AgentProfile(
         id="postgres-dba",
@@ -48,7 +48,7 @@ def test_discover_custom_agent(directory_service, tmp_path):
         max_turns=10,
         is_builtin=False,
     )
-    directory_service.state_store.save_agent_profile(custom_profile)
+    directory_service.agent_registry.register_custom_agent(custom_profile)  # CARD-570: agent files, not SQLite
 
     results = directory_service.search_agents(query="postgresql database query tuning", limit=3)
     assert len(results) >= 1

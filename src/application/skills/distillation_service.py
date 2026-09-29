@@ -52,7 +52,7 @@ class AdoptSkillConflict(ValueError):
 
 
 class SkillDistillationService:
-    """Extracts turn context, diagnoses procedural friction, and adopts skills into user packs."""
+    """Extracts turn context, diagnoses procedural friction, and adopts skills into user skills."""
 
     def __init__(
         self,
@@ -114,7 +114,7 @@ class SkillDistillationService:
         data_dir: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:
         """
-        Write the runbook to packs/<agent_id>/skills/<skill_id>/SKILL.md and switch the skill on
+        Write the runbook to the data dir skills/<skill_id>/SKILL.md and switch the skill on
         through the shared agent save path [CARD-502].
         """
         clean_agent = (target_agent_id or "").strip()
@@ -131,12 +131,8 @@ class SkillDistillationService:
         if self.agent_registry is None:
             raise ValueError("Agent registry is required for skill adoption.")
 
-        from src.application.agent_packs.schema import PLATFORM_SKILL_IDS, is_platform_pack
-        from src.application.agent_packs.skill_list import add_skill_to_agent
-        from src.infrastructure.skills.platform_pack_promotion import (
-            keep_customizations_enabled,
-            platform_seed_skills,
-        )
+        from src.application.agent_skills.skill_list import add_skill_to_agent
+        from src.infrastructure.content.store import get_store
 
         # CARD-502 REQ-502-007: never create a folder for an agent that does not exist
         if self.agent_registry.get_agent(clean_agent) is None:
@@ -144,15 +140,24 @@ class SkillDistillationService:
                 f"There is no agent called {clean_agent}. Pick an agent that exists and try again."
             )
         # CARD-502 REQ-502-008: never overwrite a shipped skill with a lesson of the same id
-        if clean_skill in PLATFORM_SKILL_IDS or clean_skill in platform_seed_skills(clean_agent):
+        content = get_store()
+        if content.skills.shipped_path(clean_skill).is_file():
             raise AdoptSkillConflict(
                 f"{clean_agent} already has a platform skill called {clean_skill}. "
                 "Rename the lesson and try again."
             )
 
-        skill_dir = root / "packs" / clean_agent / "skills" / clean_skill
-        skill_dir.mkdir(parents=True, exist_ok=True)
-        (skill_dir / "SKILL.md").write_text(runbook_markdown, encoding="utf-8")
+        # CARD-570: one flat user skills folder, written through the content store so an agent writer
+        # cannot add tools (they become proposals); Jacob's Adopt saves directly.
+        from src.infrastructure.content.store import split_frontmatter
+
+        meta, body = split_frontmatter(runbook_markdown)
+        if content.data_root is not None and Path(content.data_root).resolve() == root.resolve():
+            content.skills.save(clean_skill, meta, body)
+        else:
+            skill_dir = root / "skills" / clean_skill
+            skill_dir.mkdir(parents=True, exist_ok=True)
+            (skill_dir / "SKILL.md").write_text(runbook_markdown, encoding="utf-8")
 
         skill_title, skill_desc = self._parse_frontmatter(runbook_markdown, clean_skill)
         # CARD-502 REQ-502-001: same save path as Agent Studio so the skill survives restart
@@ -162,7 +167,6 @@ class SkillDistillationService:
             agent_id=clean_agent,
             skill_id=clean_skill,
             data_dir=root,
-            skill_entry={"id": clean_skill, "name": skill_title, "description": skill_desc, "tools": []},
         )
         active = clean_skill in list(getattr(profile, "allowed_skill", None) or [])
         return {
@@ -170,10 +174,9 @@ class SkillDistillationService:
             "target_agent_id": clean_agent,
             "skill_id": clean_skill,
             "name": skill_title,
-            "file_path": f"packs/{clean_agent}/skills/{clean_skill}/SKILL.md",
+            "file_path": f"skills/{clean_skill}/SKILL.md",
             "active": active,
             "already_adopted": already,
-            "resets_on_restart": is_platform_pack(clean_agent) and not keep_customizations_enabled(self.store),
         }
 
     def _extract_turn_history(self, session_id: str, message_id: str) -> Dict[str, Any]:

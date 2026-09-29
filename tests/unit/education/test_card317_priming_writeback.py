@@ -24,7 +24,7 @@ from src.application.safety.tool_policy_gate import EDUCATION_WIKI_NOTE_TOOLS
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-from src.infrastructure.skills.seed import bundled_skill_md
+from tests.unit.agent_skills.catalog import bundled_skill_md
 
 
 def _assert_memory_db_path(db: Path) -> None:

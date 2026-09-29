@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.skills.mcp_engineering_tools import MCPEngineeringTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ToolDefinition

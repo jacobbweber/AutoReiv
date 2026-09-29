@@ -39,20 +39,20 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
     expect(runbook).not.toContain('studioRunbookSaveBtn');
   });
 
-  it('Factory workshop edits safety and required tools and writes tier pack [CARD-429]', () => {
+  it('Factory workshop edits safety and required tools and writes tier user [CARD-429, CARD-570]', () => {
     expect(html).not.toContain('id="factorySkillTierSelect"');
     expect(html).not.toContain('data-testid="factory-skill-tier-advanced"');
     expect(html).toContain('id="factorySkillSafetyHitl"');
     expect(html).toContain('id="factoryRequiredToolsChips"');
     expect(html).toContain('id="factoryExistingSkillSelect"');
-    expect(factory).toContain('requires_tools');
+    expect(factory).toContain('tools');
     expect(factory).toContain('applyWorkshopMetadata');
     expect(factory).toContain('/api/skill_studio/skills/');
     expect(factory).toContain('syncFrontmatter');
-    expect(factory).toContain("tier: 'pack'");
+    expect(factory).toContain("tier: 'user'");
   });
 
-  it('save writes tier pack and ignores a leftover tier select [CARD-429]', async () => {
+  it('save writes tier user and ignores a leftover tier select [CARD-429]', async () => {
     const { createSkillWorkshop } = await import(
       '../../../src/web/static/modules/studios/skill_studio/workshop_meta.js'
     );
@@ -74,8 +74,8 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
       }),
     });
     const fields = workshop.workshopFields();
-    expect(fields.tier).toBe('pack');
+    expect(fields.tier).toBe('user');
     expect(fields.tier).not.toBe('platform');
-    expect(fields.requires_tools).toEqual(['wiki_note_read']);
+    expect(fields.tools).toEqual(['wiki_note_read']);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Skill Studio structured frontmatter controls [CARD-411, moved from studios/factory/ in CARD-496].
- * Tool picker state is the single lever for requires_tools.
+ * Tool picker state is the single lever for tools.
  */
 
 import { applyWorkshopMetadata } from '../../utils/skill_frontmatter.js';
@@ -15,8 +15,8 @@ export function applyLoadedSkillView(data = {}, skillId = '') {
   const payload = data && typeof data === 'object' ? data : {};
   const detail = typeof payload.detail === 'string' ? payload.detail : '';
   const description = String(payload.description || '').slice(0, 60);
-  const requiresTools = Array.isArray(payload.requires_tools)
-    ? payload.requires_tools.map((item) => String(item || '').trim()).filter(Boolean)
+  const tools = Array.isArray(payload.tools)
+    ? payload.tools.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
   return {
     ok: !detail,
@@ -25,20 +25,20 @@ export function applyLoadedSkillView(data = {}, skillId = '') {
     name: String(payload.name || skillId || ''),
     skillId: String(payload.skill_id || skillId || ''),
     description,
-    tier: String(payload.tier || 'pack'),
+    tier: String(payload.tier || 'user'),
     safety: {
       read_only: Boolean(payload.safety && payload.safety.read_only),
       requires_hitl: Boolean(payload.safety && payload.safety.requires_hitl),
       untrusted_input_allowed: Boolean(payload.safety && payload.safety.untrusted_input_allowed),
     },
-    requiresTools,
+    tools,
     markdown: String(payload.markdown_content || ''),
     deletable: Boolean(payload.deletable),
   };
 }
 
 /**
- * Plan a Skill Studio delete against the existing user-pack endpoint.
+ * Plan a Skill Studio delete against the existing user-skill endpoint.
  * Refuses unless the loaded skill is deletable and the operator confirmed.
  * Never sends confirm_seed.
  */
@@ -51,7 +51,7 @@ export function skillDeleteRequest(skillId, { confirmed = false, deletable = fal
   return {
     allowed: true,
     method: 'DELETE',
-    url: `/api/skills/user-packs/${encoded}?confirm=true`,
+    url: `/api/skills/user-skills/${encoded}?confirm=true`,
   };
 }
 
@@ -98,9 +98,9 @@ export function createSkillWorkshop({
     return {
       name: (factorySkillNameInput && factorySkillNameInput.value.trim()) || '',
       description: (factorySkillTriggerInput && factorySkillTriggerInput.value.trim()) || '',
-      tier: 'pack',
+      tier: 'user',
       safety: readSafety(),
-      requires_tools: Array.from(getSelectedTools()),
+      tools: Array.from(getSelectedTools()),
     };
   }
 
@@ -138,7 +138,7 @@ export function createSkillWorkshop({
     if (!factorySkillMarkdownEditor) return;
     const fields = workshopFields();
     const current = factorySkillMarkdownEditor.value || '';
-    if (!current.trim() && !fields.name && !fields.description && fields.requires_tools.length === 0) return;
+    if (!current.trim() && !fields.name && !fields.description && fields.tools.length === 0) return;
     const applied = applyWorkshopMetadata(current, fields, catalogIds());
     factorySkillMarkdownEditor.value = applied.markdown;
   }
@@ -164,6 +164,7 @@ export function createSkillWorkshop({
       const resp = await fetch(`/api/skill_studio/skills/${encoded}${query ? `?${query}` : ''}`);
       const data = await resp.json().catch(() => ({}));
       const view = applyLoadedSkillView(data, skillId);
+      view.fileStatus = data.status || null; // CARD-570: shipped / edited / hidden
       if (!resp.ok || view.notFound) throw new Error(view.detail || data.detail || `HTTP ${resp.status}`);
       setIdentityLocked(true);
       if (factorySkillNameInput) factorySkillNameInput.value = view.name;
@@ -175,7 +176,7 @@ export function createSkillWorkshop({
       if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = view.safety.read_only;
       if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = view.safety.requires_hitl;
       if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = view.safety.untrusted_input_allowed;
-      setSelectedTools(new Set(view.requiresTools));
+      setSelectedTools(new Set(view.tools));
       if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = view.markdown;
       renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
       syncFrontmatter();

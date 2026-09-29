@@ -48,7 +48,7 @@ def live_appdata_problems(environ=None):
         "root": resolved.root,
         "db_path": resolved.db_path,
         "wiki_path": resolved.wiki_path,
-        "packs_path": resolved.packs_path,
+        "agents_path": resolved.agents_path,
         "skills_path": resolved.skills_path,
         "backups_path": resolved.backups_path,
     }
@@ -75,6 +75,11 @@ def isolate_test_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_DATA_DIR", data_dir)
     monkeypatch.setenv("AUTOREIV_DB_PATH", test_db)
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", test_wiki)
+    from src.infrastructure.content.store import reset_store
+
+    reset_store()  # CARD-570: the agent/skill file store follows this test's data dir
+    yield
+    reset_store()
 
 
 
@@ -129,18 +134,18 @@ TOOL_SKILL_PREFIX = "tool:"
 def bind_skills(monkeypatch):
     """CARD-539: tools reach an agent only through ticked skills.
 
-    In tests a skill id ``"tool:<name>"`` binds exactly that tool (like a SQLite binding row), so a
+    In tests a skill id ``"tool:<name>"`` binds exactly that tool (like a SKILL.md ``tools:`` list), so a
     fixture agent ticks ``allowed_skill=["tool:calculator"]``. ``bind_skills({"s": ["a", "b"]})`` binds
     any other skill and returns the ids to tick.
     """
-    import src.infrastructure.memory.repositories.skill_bindings as bindings
+    from src.infrastructure.content.store import ContentStore
 
     bound = {}
-    real = bindings.sqlite_tools_for_skills
+    real = ContentStore.skill_tools
 
-    def fake(skill_ids, db_path=None):
+    def fake(self, skill_ids):
         ids = list(skill_ids)
-        out = dict(real(ids, db_path))
+        out = dict(real(self, ids))
         for sid in ids:
             if sid in bound:
                 out[sid] = list(bound[sid])
@@ -148,7 +153,7 @@ def bind_skills(monkeypatch):
                 out[sid] = [str(sid)[len(TOOL_SKILL_PREFIX):]]
         return out
 
-    monkeypatch.setattr(bindings, "sqlite_tools_for_skills", fake)
+    monkeypatch.setattr(ContentStore, "skill_tools", fake)
 
     def bind(mapping):
         bound.update({str(k): list(v) for k, v in mapping.items()})

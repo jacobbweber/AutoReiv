@@ -1266,33 +1266,12 @@
             <!-- Pending capability proposals: always visible, never inside a collapsed section [CARD-539] -->
             <div id="forgePendingProposals" class="hidden space-y-2 p-3 rounded-xl border border-amber-800/40 bg-amber-950/10" data-testid="forge-pending-proposals"></div>
 
-            <!-- Platform defaults: update status, Reset, backups [CARD-450] -->
-            <details id="forgePlatformDefaultsSection" class="forge-section hidden" data-card="450" data-section="platform-defaults" open>
-              <summary>Platform defaults</summary>
-              <div class="forge-section-body">
-                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
-                  <div id="forgePlatformUpdateBadge" class="hidden rounded-lg border border-amber-500/40 bg-amber-950/30 px-3 py-2" role="status">
-                    <p id="forgePlatformUpdateText" class="text-xs font-semibold text-amber-200"></p>
-                    <p id="forgePlatformUpdateHint" class="text-[11px] text-amber-100/80"></p>
-                  </div>
-                  <p id="forgePlatformKeepOffNotice" class="hidden rounded-lg border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-[11px] text-rose-200" role="note"></p>
-                  <p id="forgePlatformUpToDate" class="text-[11px] text-slate-400">This agent has the latest platform update.</p>
-                  <div class="flex flex-wrap items-center justify-between gap-2">
-                    <p class="text-[11px] text-slate-400">Put this agent back to the version that ships with AutoReiv. Max turns and model stay.</p>
-                    <button id="forgeResetPlatformDefaultsBtn" type="button" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-                      <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                      <span>Reset to platform defaults</span>
-                    </button>
-                  </div>
-                  <div class="pt-2 border-t border-white/[0.06]">
-                    <h4 class="text-[11px] font-semibold text-slate-300 mb-1">Backups</h4>
-                    <div id="forgePackBackupsList" class="space-y-0.5">
-                      <p class="text-[11px] text-slate-500">No backups yet.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </details>
+            <!-- Agent file status: Edited / shipped version changed / Use shipped version [CARD-570] -->
+            <div id="forgeAgentFileStatus" class="hidden p-3 rounded-xl border border-sky-800/40 bg-sky-950/10 space-y-2" data-card="570" role="status">
+              <p id="forgeAgentFileText" class="text-xs text-sky-200"></p>
+              <p id="forgeAgentFileChanged" class="hidden text-xs font-semibold text-amber-200">The shipped version changed since you edited this.</p>
+              <button id="forgeUseShippedBtn" type="button" class="hidden px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold">Use shipped version</button>
+            </div>
 
             <!-- Architectural Governance & Proposal Inbox [ADR-0054, CARD-365, REQ-ARCH-013] -->
             <details id="forgeArchitecturalSection" class="forge-section" data-card="365" data-section="architectural-inbox" open>
@@ -1591,7 +1570,7 @@
                       <select id="forgeStorageType" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
                         <option value="sqlite">SQLite (Isolated File)</option>
                       </select>
-                      <p class="text-[10px] text-slate-500 mt-0.5">Provisions an isolated SQLite database under <code>$DATA_DIR/packs/&lt;agent_id&gt;/&lt;agent_id&gt;_storage.db</code>.</p>
+                      <p class="text-[10px] text-slate-500 mt-0.5">Provisions an isolated SQLite database under <code>$DATA_DIR/agents/&lt;agent_id&gt;/storage.db</code>.</p>
                     </div>
                   </div>
                 </div>
@@ -1624,7 +1603,7 @@
               </div>
 
               <div id="forgeSkillsGrid" class="space-y-2 pt-1" data-testid="forge-assigned-skills">
-                <!-- One list: platform, operator, and pack rows. Home label is on each row. -->
+                <!-- One list: platform, operator, and skill rows. Home label is on each row. -->
               </div>
               <div class="flex flex-wrap items-center gap-2 pt-1">
                 <button id="studioOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" data-testid="forge-open-factory">
@@ -2023,28 +2002,6 @@
         <details class="settings-section" data-card="313" data-settings-section="preferences">
           <summary>Preferences</summary>
           <div class="settings-section-body">
-
-        <!-- Platform pack keep-customizations [CARD-449] -->
-        <div id="settingsPlatformPackKeepCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 shadow-sm backdrop-blur-sm" data-card="449">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="shield" class="w-4 h-4 text-brand-400"></i>
-                <span>Keep my agent customizations when platform packs update</span>
-              </h3>
-              <p class="text-xs text-slate-400 mt-1">
-                When on (default), AutoReiv keeps your edited prompts and skill choices during platform pack updates.
-                <span class="text-amber-300/90">Turning this off force-resets pack-owned content (prompt, skills, tools) to platform defaults on the next update while preserving max turns and model.</span>
-                A backup is written first so you can restore.
-              </p>
-            </div>
-            <label class="inline-flex items-center cursor-pointer shrink-0 mt-1">
-              <input id="platformPackKeepCustomizationsToggle" type="checkbox" class="sr-only peer" checked data-testid="platform-pack-keep-customizations" />
-              <span class="w-10 h-5 bg-slate-700 peer-checked:bg-brand-600 rounded-full relative transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5"></span>
-            </label>
-          </div>
-          <p id="platformPackKeepCustomizationsStatus" class="text-[11px] text-slate-500"></p>
-        </div>
 
         <!-- System & Software Updates [CARD-196 / CARD-451] -->
         <div id="settingsSystemUpdatesCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 shadow-sm backdrop-blur-sm">
@@ -3924,6 +3881,7 @@
                   <i data-lucide="sparkles" class="w-3 h-3"></i>
                   <span>Generate / Refine Runbook</span>
                 </button>
+                <div id="skillStudioFileStatus" class="hidden w-full p-2 rounded-lg border border-sky-800/40 bg-sky-950/10 space-y-1.5" data-card="570" role="status"></div>
                 <button type="button" id="skillStudioDeleteBtn" class="hidden px-2.5 py-1.5 bg-transparent hover:bg-rose-950/40 text-rose-300/80 hover:text-rose-200 border border-rose-500/20 rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1.5 shrink-0" data-testid="skill-studio-delete">
                   <i data-lucide="trash-2" class="w-3 h-3"></i>
                   <span>Delete skill</span>
@@ -4020,7 +3978,7 @@
                   <div>
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-[11px] font-semibold text-slate-400">Required tools</span>
-                      <span class="text-[10px] text-slate-500">The tool catalog writes <span class="font-mono">requires_tools</span></span>
+                      <span class="text-[10px] text-slate-500">The tool catalog writes <span class="font-mono">tools</span></span>
                     </div>
                     <div id="factoryRequiredToolsChips" class="flex flex-wrap gap-1.5 min-h-[28px]" data-testid="factory-required-tools"></div>
                   </div>
@@ -4039,7 +3997,7 @@
                     <label for="factorySkillMarkdownEditor" class="text-[11px] font-semibold text-slate-400">SKILL.md Runbook (Editable)</label>
                     <span class="text-[10px] text-slate-500 font-mono">Matt Pocock standard</span>
                   </div>
-                  <textarea id="factorySkillMarkdownEditor" rows="9" placeholder="---&#10;name: My Skill&#10;description: Trigger condition &lt;= 60 chars&#10;requires_tools: []&#10;---&#10;# My Skill&#10;## Procedure&#10;1. Step one..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
+                  <textarea id="factorySkillMarkdownEditor" rows="9" placeholder="---&#10;name: My Skill&#10;description: Trigger condition &lt;= 60 chars&#10;tools: []&#10;---&#10;# My Skill&#10;## Procedure&#10;1. Step one..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
                 </div>
               </div>
             </div>
@@ -4223,6 +4181,7 @@
                   <h3 class="text-xs font-bold text-slate-100">Tool catalog</h3>
                   <p class="text-[11px] text-slate-500">Platform tools stay in their own groups. MCP tools group under the server that provides them when that list is available.</p>
                 </div>
+                <div id="toolsStudioRuntimeTools" class="hidden space-y-1.5 p-2 rounded-lg border border-white/[0.06]" data-testid="tools-studio-runtime-tools" data-card="570"></div>
                 <div id="toolsStudioFilterBar" class="flex flex-wrap items-end gap-2" data-testid="tools-studio-filters">
                   <div class="flex-1 min-w-[10rem]">
                     <label for="toolsStudioFilterSearch" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Search</label>
@@ -4416,7 +4375,7 @@
             <button id="closeDeleteAgentModalBtn" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
           </div>
           <div class="p-6 space-y-4 text-xs text-slate-300">
-            <p id="deleteAgentModalMessage">Are you sure you want to delete this custom agent? This will remove the agent configuration and its pack files.</p>
+            <p id="deleteAgentModalMessage">Are you sure you want to delete this custom agent? This will remove the agent configuration and its skill files.</p>
             <div class="bg-rose-950/20 border border-rose-900/30 rounded-xl p-3.5 space-y-2">
               <label class="flex items-start space-x-2.5 cursor-pointer">
                 <input type="checkbox" id="purgeHistoryCheckbox" class="mt-0.5 rounded bg-[#13161f] border-white/[0.08] text-rose-600 focus:ring-0">
@@ -4433,44 +4392,6 @@
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               <span>Confirm Delete</span>
             </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ==================== RESET TO PLATFORM DEFAULTS CONFIRM [CARD-450] ==================== -->
-      <div id="resetPlatformDefaultsModal" role="dialog" aria-modal="true" aria-labelledby="resetPlatformDefaultsTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col">
-          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
-            <h3 id="resetPlatformDefaultsTitle" class="font-bold text-sm text-amber-300 flex items-center space-x-2">
-              <i data-lucide="rotate-ccw" class="w-4 h-4 text-amber-400"></i>
-              <span>Reset to platform defaults</span>
-            </h3>
-            <button type="button" data-modal-close aria-label="Close" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-          </div>
-          <div id="resetPlatformDefaultsBody" class="p-6 space-y-3 text-xs text-slate-300 overflow-y-auto"></div>
-          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2">
-            <button type="button" id="cancelResetPlatformDefaultsBtn" data-modal-close class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
-            <button type="button" id="confirmResetPlatformDefaultsBtn" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">Reset</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ==================== RESTORE PACK BACKUP CONFIRM [CARD-450] ==================== -->
-      <div id="restorePackBackupModal" role="dialog" aria-modal="true" aria-labelledby="restorePackBackupTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
-          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
-            <h3 id="restorePackBackupTitle" class="font-bold text-sm text-sky-300 flex items-center space-x-2">
-              <i data-lucide="history" class="w-4 h-4 text-sky-400"></i>
-              <span>Restore backup</span>
-            </h3>
-            <button type="button" data-modal-close aria-label="Close" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-          </div>
-          <div class="p-6 text-xs text-slate-300">
-            <p id="restorePackBackupMessage"></p>
-          </div>
-          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2">
-            <button type="button" id="cancelRestorePackBackupBtn" data-modal-close class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
-            <button type="button" id="confirmRestorePackBackupBtn" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">Restore</button>
           </div>
         </div>
       </div>
@@ -4579,7 +4500,7 @@
         </button>
       </div>
       <div class="px-5 py-3 border-b border-white/[0.06] space-y-2 bg-[#08090c]/40 flex-shrink-0">
-        <p id="labArtifactPreviewNote" class="text-[11px] text-amber-200/90">Pre-promote: content is from the job packet (not yet written under packs/).</p>
+        <p id="labArtifactPreviewNote" class="text-[11px] text-amber-200/90">Pre-promote: content is from the job packet (not yet written under skills/).</p>
         <div>
           <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Expected deploy paths</div>
           <ul id="labArtifactPreviewPaths" class="space-y-1"></ul>
@@ -4721,7 +4642,7 @@
 
       <!-- Modal Footer -->
       <div class="px-5 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-between text-xs text-slate-400">
-        <span>Authorized via agent allowlist &amp; pack storage</span>
+        <span>Authorized via agent allowlist &amp; skill storage</span>
         <button type="button" id="chatToolsModalDismissBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
       </div>
     </div>
@@ -4884,7 +4805,7 @@
           <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">Target Agent</span>
           <div class="flex items-center space-x-2">
             <span id="teachAgentTargetAgentBadge" class="px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-800/80 text-indigo-200 font-mono text-xs font-semibold">AutoReiv</span>
-            <span class="text-slate-500 text-[11px]">Skill will mount to this agent pack</span>
+            <span class="text-slate-500 text-[11px]">Skill will mount to this agent</span>
           </div>
         </div>
 

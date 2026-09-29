@@ -11,8 +11,8 @@ Modes:
   --live-full  also refresh CARD-258-style coverage (slower)
 
 Usage:
-  python notes/scripts/honesty_smoke_pack_261.py --validate
-  python notes/scripts/honesty_smoke_pack_261.py --live
+  python notes/scripts/honesty_smoke_skill_261.py --validate
+  python notes/scripts/honesty_smoke_skill_261.py --live
 """
 from __future__ import annotations
 
@@ -40,10 +40,10 @@ ROOT = _get_repo_root()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.application.orchestration.honesty_smoke_pack import (  # noqa: E402
+from src.application.orchestration.honesty_smoke_skill import (  # noqa: E402
     STRESS_CLASSES,
     classify_scenario,
-    evaluate_pack,
+    evaluate_skill,
     merge_gate_decision,
 )
 
@@ -237,7 +237,7 @@ def run_validate() -> dict[str, Any]:
     fixtures = frozen_fixtures()
     rows = [classify_fixture(fx) for fx in fixtures if fx.get("include_in_gate_pack", True)]
     red_checks = [classify_fixture(fx) for fx in fixtures if fx.get("expect_red")]
-    pack = evaluate_pack(rows)
+    pack = evaluate_skill(rows)
     gate = merge_gate_decision(pack)
 
     # Fixture self-check: expect_class matches; red fixtures must be is_red
@@ -253,7 +253,7 @@ def run_validate() -> dict[str, Any]:
             struct_errors.append(f"{row['id']}: expected red, got clean")
 
     # Prove red fixtures would block FF
-    red_pack = evaluate_pack(red_checks)
+    red_pack = evaluate_skill(red_checks)
     if red_pack["ok"]:
         struct_errors.append("red fixture pack unexpectedly ok")
     red_gate = merge_gate_decision(red_pack)
@@ -747,7 +747,7 @@ def run_live(*, full: bool = False) -> dict[str, Any]:
             )
         )
 
-    pack = evaluate_pack(rows)
+    pack = evaluate_skill(rows)
     gate = merge_gate_decision(pack)
     # Live red check: any Done-on-FAILED / silent SSE on live rows
     live_red = [r for r in rows if r.get("is_red")]

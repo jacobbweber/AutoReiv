@@ -180,7 +180,7 @@ async def test_distill_turn_detects_missing_native_tool_and_escalates(test_env):
     assert len(result["tool_escalation"]["starter_objectives"]) >= 2
 
 
-def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):
+def test_adopt_skill_persists_to_user_skill_and_updates_manifest(test_env):
     """[REQ-SKIL-013] One-click adoption writes SKILL.md and registers in pack.json.
 
     CARD-502: adopt goes through the agent save path, so it needs the agent registry.
@@ -193,7 +193,7 @@ def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):
     registry = BuiltinAgentRegistry(state_store=store)
     registry.register_custom_agent(AgentProfile(
         id="autoreiv", name="AutoReiv", description="fixture", system_prompt="You help.",
-        origin=AgentOrigin.PACK, tone=AgentTone.DEFAULT, purpose=ModelPurpose.TASK_EXECUTION,
+        origin=AgentOrigin.FILE, tone=AgentTone.DEFAULT, purpose=ModelPurpose.TASK_EXECUTION,
         allowed_skill=[], show_in_chat=True,
     ))
     service = SkillDistillationService(
@@ -222,16 +222,10 @@ def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):
     assert res["target_agent_id"] == "autoreiv"
     assert res["skill_id"] == "wiki-template-canonical-path"
 
-    skill_file = data_dir / "packs" / "autoreiv" / "skills" / "wiki-template-canonical-path" / "SKILL.md"
+    skill_file = data_dir / "skills" / "wiki-template-canonical-path" / "SKILL.md"
     assert skill_file.is_file()
     assert "Wiki Template Canonical Path" in skill_file.read_text(encoding="utf-8")
 
-    # Verify pack.json updated
-    pack_json_file = data_dir / "packs" / "autoreiv" / "pack.json"
-    manifest = json.loads(pack_json_file.read_text(encoding="utf-8"))
-    assert "wiki-template-canonical-path" in manifest["allowed_skill"]
-    skill_ids = [s["id"] for s in manifest.get("skills", [])]
-    assert "wiki-template-canonical-path" in skill_ids
     assert "wiki-template-canonical-path" in registry.get_agent("autoreiv").allowed_skill
 
 

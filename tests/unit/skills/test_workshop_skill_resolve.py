@@ -16,7 +16,7 @@ _RUNBOOK = """---
 name: Dotted Notes
 description: Notes for a dotted skill id
 tier: user
-requires_tools:
+tools:
   - inspect_widget
 safety:
   read_only: true
@@ -31,14 +31,14 @@ Keep-the-body.
 
 
 def test_seed_skill_resolves_without_a_data_dir_copy(tmp_path: Path):
-    """Catalog ids such as coordination live in bundled seeds, not only platform-packs."""
+    """Shipped ids such as coordination resolve from platform/skills without a data-dir copy."""
     listed = {row["id"]: row for row in list_workshop_skills(tmp_path)}
     assert "coordination" in listed
-    assert listed["coordination"]["source"] == "seed"
+    assert listed["coordination"]["source"] in ("platform", "shipped")
     path = locate_skill_markdown(tmp_path, "coordination")
     assert path is not None
     assert path.name == "SKILL.md"
-    assert "seeds" in path.parts
+    assert "platform" in path.parts
 
     loaded = load_workshop_skill(
         tmp_path,
@@ -56,10 +56,6 @@ def test_seed_skill_resolves_without_a_data_dir_copy(tmp_path: Path):
 
 
 def test_pack_home_and_skill_store_and_dotted_id(tmp_path: Path):
-    pack_skill = tmp_path / "packs" / "autoreiv" / "skills" / "pack-only" / "SKILL.md"
-    pack_skill.parent.mkdir(parents=True)
-    pack_skill.write_text(_RUNBOOK.replace("Dotted Notes", "Pack Only"), encoding="utf-8")
-
     dotted = tmp_path / "skills" / "My.Skill" / "SKILL.md"
     dotted.parent.mkdir(parents=True)
     dotted.write_text(_RUNBOOK, encoding="utf-8")
@@ -68,31 +64,26 @@ def test_pack_home_and_skill_store_and_dotted_id(tmp_path: Path):
     nested.parent.mkdir(parents=True)
     nested.write_text(_RUNBOOK.replace("Dotted Notes", "Grouped Notes"), encoding="utf-8")
 
-    assert locate_skill_markdown(tmp_path, "pack-only", agent_id="autoreiv") == pack_skill
     assert locate_skill_markdown(tmp_path, "My.Skill") == dotted
     assert locate_skill_markdown(tmp_path, "group/notes") == nested
 
     rows = {row["id"]: row for row in list_workshop_skills(tmp_path)}
-    assert "pack-only" in rows
     assert "My.Skill" in rows
     assert "group/notes" in rows
     assert "not-a-skill" not in rows
     assert rows["My.Skill"]["deletable"] is True
     assert rows["group/notes"]["deletable"] is True
-    assert rows["pack-only"]["deletable"] is False
 
     loaded = load_workshop_skill(tmp_path, "My.Skill", db_path=str(tmp_path / "no.db"))
     assert loaded is not None
     assert loaded["name"] == "Dotted Notes"
-    assert loaded["requires_tools"] == ["inspect_widget"]
+    assert loaded["tools"] == ["inspect_widget"]
     assert "Keep-the-body." in loaded["markdown_content"]
     assert loaded["deletable"] is True
 
     operator = {row["id"]: row for row in operator_store_skills(tmp_path)}
     assert set(operator) == {"My.Skill", "group/notes"}
-    assert operator["My.Skill"]["requires_tools"] == ["inspect_widget"]
-    assert operator["My.Skill"]["tools"] == [{"name": "inspect_widget"}]
-    assert "pack-only" not in operator
+    assert operator["My.Skill"]["tools"] == ["inspect_widget"]
     assert "coordination" not in operator
 
 
@@ -143,7 +134,7 @@ async def test_get_workshop_skill_opens_seed_pack_and_dotted_ids(tmp_path, monke
 
         dotted_res = await ac.get("/api/skill_studio/skills/My.Skill")
         assert dotted_res.status_code == 200
-        assert dotted_res.json()["requires_tools"] == ["inspect_widget"]
+        assert dotted_res.json()["tools"] == ["inspect_widget"]
         assert "Keep-the-body." in dotted_res.json()["markdown_content"]
 
         nested_res = await ac.get("/api/skill_studio/skills/group/notes")

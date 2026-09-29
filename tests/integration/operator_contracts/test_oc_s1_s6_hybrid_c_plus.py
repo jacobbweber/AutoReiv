@@ -12,8 +12,6 @@ from pathlib import Path
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-
 
 def _refuse_live(user_data: Path) -> None:
     local_app = os.environ.get("LOCALAPPDATA") or ""
@@ -55,45 +53,6 @@ def hybrid_env(tmp_path, monkeypatch):
     client.close()
 
 
-def test_oc_s1_reconcile_idempotent_user_edits_survive(hybrid_env, monkeypatch):
-    """OC-S1: built-in reconcile idempotent; user edits survive second boot."""
-    from src.infrastructure.skills.platform_packs import (
-        ALL_PLATFORM_PACK_IDS,
-        install_platform_agent_packs,
-    )
-
-    client, store, user_data, _wiki = hybrid_env
-    registry = client.app.state.registry
-    tools = getattr(client.app.state, "tool_registry", None)
-
-    # Ensure platform packs installed once
-    install_platform_agent_packs(user_data, registry, tools)
-    pack_id = "autoreiv" if "autoreiv" in ALL_PLATFORM_PACK_IDS else ALL_PLATFORM_PACK_IDS[0]
-    profile = store.get_agent_profile(pack_id) or registry.get_agent(pack_id)
-    assert profile is not None
-
-    # Operator edits the prompt (a real content edit) and marks user_modified
-    operator_prompt = "Operator prompt: keep me."
-    profile.system_prompt = operator_prompt
-    profile.user_modified = True
-    store.save_custom_agent_profile(profile)
-    store.mark_agent_user_modified(pack_id, modified=True)
-
-    # Custom skill dir under platform pack must not be pruned
-    custom_skill = user_data / "packs" / pack_id / "skills" / "operator-custom-skill"
-    custom_skill.mkdir(parents=True, exist_ok=True)
-    (custom_skill / "SKILL.md").write_text("# Operator custom\n", encoding="utf-8")
-
-    # Second + third boot
-    install_platform_agent_packs(user_data, registry, tools)
-    install_platform_agent_packs(user_data, registry, tools)
-
-    after = store.get_agent_profile(pack_id)
-    assert after is not None
-    assert bool(getattr(after, "user_modified", False)) is True
-    assert after.system_prompt == operator_prompt, "OC-S1 FAIL: operator prompt was overwritten by seed"
-    assert custom_skill.is_dir(), "OC-S1 FAIL: operator skill dir was pruned"
-    assert (custom_skill / "SKILL.md").is_file()
 
 
 def test_oc_s3_backup_manifest_restore(hybrid_env, tmp_path):
@@ -110,7 +69,6 @@ def test_oc_s3_backup_manifest_restore(hybrid_env, tmp_path):
         skills_path=user_data / "skills",
         agents_path=user_data / "agents",
         job_templates_path=user_data / "templates" / "jobs",
-        packs_path=user_data / "packs",
         backups_path=user_data / "backups",
     )
     svc = DataDirBackupService(paths)
@@ -135,7 +93,6 @@ def test_oc_s3_backup_manifest_restore(hybrid_env, tmp_path):
         skills_path=restore_root / "skills",
         agents_path=restore_root / "agents",
         job_templates_path=restore_root / "templates" / "jobs",
-        packs_path=restore_root / "packs",
         backups_path=restore_root / "backups",
     )
     DataDirBackupService(restore_paths).restore(out, confirm=True)
@@ -147,34 +104,6 @@ def test_oc_s3_backup_manifest_restore(hybrid_env, tmp_path):
     assert restored.get_setting("oc_s3_probe") == "hybrid-c-plus"
 
 
-def test_oc_s4_migration_preserves_refs(hybrid_env):
-    """OC-S4: upgrade migration preserves agents/skills/bindings; no invalid refs."""
-    from src.infrastructure.skills.platform_packs import install_platform_agent_packs
-
-    client, store, user_data, _wiki = hybrid_env
-    registry = client.app.state.registry
-    install_platform_agent_packs(user_data, registry, getattr(client.app.state, "tool_registry", None))
-    before = {
-        a.id: {
-            "tools": list(resolve_allowed_tools(a)),
-            "skills": list(getattr(a, "allowed_skill", None) or []),
-        }
-        for a in (store.list_custom_agent_profiles() if hasattr(store, "list_custom_agent_profiles") else [])
-    }
-    assert before, "expected seeded agents"
-    # Re-run install (upgrade simulation)
-    install_platform_agent_packs(user_data, registry, getattr(client.app.state, "tool_registry", None))
-    after_profiles = store.list_custom_agent_profiles()
-    after_ids = {a.id for a in after_profiles}
-    assert set(before) <= after_ids
-    for aid, snap in before.items():
-        p = store.get_agent_profile(aid)
-        assert p is not None
-        # No empty wipe
-        assert list(resolve_allowed_tools(p)) or snap["tools"] == []
-        for skill in snap["skills"]:
-            # skill id still listed (bindings preserved)
-            assert skill in (getattr(p, "allowed_skill", None) or [])
 
 
 def test_oc_s5_wiki_path_persist_fail_visible(hybrid_env, tmp_path, monkeypatch):

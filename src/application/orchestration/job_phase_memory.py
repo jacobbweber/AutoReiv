@@ -50,7 +50,7 @@ def assert_memory_db_path(path: Union[str, Path]) -> Path:
     name = p.name.lower()
     if name.endswith("_storage.db") or name == "storage.db":
         raise ValueError(f"Cognitive memory must not use storage.db path: {p}")
-    if not name.endswith("_memory.db"):
+    if not (name == "memory.db" or name.endswith("_memory.db")):  # CARD-570: agents/<id>/memory.db
         raise ValueError(f"Cognitive memory path must end with _memory.db: {p}")
     return p
 

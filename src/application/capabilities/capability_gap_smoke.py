@@ -41,11 +41,11 @@ def force_missing_capability_gap(
     )
 
     # 2. Stage durable candidate in scaffold spine
-    pack_id = f"tool_{clean_tool.lower().replace(' ', '_').replace('-', '_')}"
+    skill_id = f"tool_{clean_tool.lower().replace(' ', '_').replace('-', '_')}"
     record = spine.draft(
         kind=CapabilityKind.TOOL,
         name=clean_tool,
-        pack_id=pack_id,
+        skill_id=skill_id,
         summary=f"Automated candidate scaffold for {clean_tool}",
         content=f"# Tool: {clean_tool}\n\nCandidate implementation for missing capability gap {gap.id}.\n",
         metadata={

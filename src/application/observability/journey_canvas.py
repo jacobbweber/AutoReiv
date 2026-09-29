@@ -518,7 +518,7 @@ class JourneyCanvasService:
                         step_index=4,
                         swimlane="storage",
                         swimlane_label="4. Storage & Policy",
-                        title="Read Pack Database & Index",
+                        title="Read Skill Database & Index",
                         description="SQLite query scans wiki index and retrieves note paths and frontmatter tags.",
                         source_file="src/infrastructure/memory/sqlite_store.py",
                         source_line=88,

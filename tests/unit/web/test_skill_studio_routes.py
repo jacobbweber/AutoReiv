@@ -15,7 +15,7 @@ from src.web.app import create_app
 SKILL_MD = """---
 name: Blender Render
 description: Render 3D scenes via Blender MCP
-requires_tools:
+tools:
   - mcp_blender_render
 ---
 # Blender Render
@@ -91,7 +91,7 @@ async def test_2_runbook_fallback_and_model_text(app_env):
     assert "def execute(" not in md
 
     class _Resp:
-        text = "---\nname: Model Written\ndescription: x\nrequires_tools: []\n---\n# Model Written\n"
+        text = "---\nname: Model Written\ndescription: x\ntools: []\n---\n# Model Written\n"
 
     class _Gateway:
         default_model_id = "default"
@@ -109,20 +109,6 @@ async def test_2_runbook_fallback_and_model_text(app_env):
 @pytest.mark.asyncio
 async def test_3_save_binds_pins_and_uses_app_data_dir(app_env, tmp_path, monkeypatch):
     app, data_dir = app_env
-    agent_dir = data_dir / "packs" / "autoreiv"
-    agent_dir.mkdir(parents=True, exist_ok=True)
-    (agent_dir / "pack.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "1.0",
-                "id": "autoreiv",
-                "name": "AutoReiv Host",
-                "allowed_skill": ["wiki"],
-                "skills": [{"id": "wiki", "tools": ["wiki_note_create"]}],
-            }
-        ),
-        encoding="utf-8",
-    )
     app.state.tool_registry.register_tool(
         "mcp_blender_render", "Render via Blender", {"type": "object", "properties": {}}, lambda **_k: "ok"
     )
@@ -139,12 +125,12 @@ async def test_3_save_binds_pins_and_uses_app_data_dir(app_env, tmp_path, monkey
     res = resp.json()
     assert res["success"] is True
     assert res["pinned"] is True
-    assert res["binding_store"] == "sqlite"
-    assert res["requires_tools"] == ["mcp_blender_render"]
-    skill_file = agent_dir / "skills" / "blender-render" / "SKILL.md"
+    assert res["binding_store"] == "skill_md"  # CARD-570: the SKILL.md tools list is the binding
+    assert res["tools"] == ["mcp_blender_render"]
+    skill_file = data_dir / "skills" / "blender-render" / "SKILL.md"
     assert skill_file.is_file()
-    pack = json.loads((agent_dir / "pack.json").read_text(encoding="utf-8"))
-    assert {"wiki", "blender-render"} <= set(pack["allowed_skill"])
+    assert "blender-render" in app.state.registry.get_agent("autoreiv").allowed_skill
+    assert (data_dir / "agents" / "autoreiv.md").is_file()  # the pin wrote AutoReiv's user copy
     assert not elsewhere.exists() or not list(elsewhere.rglob("SKILL.md"))
 
     # Save without an agent brief (CARD-418) still writes to the skill store.

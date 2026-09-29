@@ -164,7 +164,7 @@ def test_req_scaffold_001_gap_opens_candidate_via_218_not_trusted(orch, store, s
         gap=gap,
         kind="skill",
         name="wiki-notes-index",
-        pack_id="wiki-notes-index",
+        skill_id="wiki-notes-index",
         summary="Index wiki notes for standing job",
         content="# Wiki Notes Index\n\nSearch and index notes.\n",
         park=True,
@@ -196,7 +196,7 @@ def test_req_scaffold_002_path_hitl_before_trusted_then_reresolve(orch, store, s
         gap=gap,
         kind="skill",
         name="wiki-notes-index",
-        pack_id="wiki-notes-index",
+        skill_id="wiki-notes-index",
         summary="Index wiki notes",
         content="# Wiki Notes Index\n",
         park=True,
@@ -228,7 +228,7 @@ def test_req_scaffold_002_path_hitl_before_trusted_then_reresolve(orch, store, s
 def test_req_scaffold_002_reject_unscoped_trusted_write_mid_phase(spine):
     with pytest.raises(UnscopedTrustedWriteError):
         reject_unscoped_trusted_write_mid_phase(
-            spine, kind="skill", name="evil", pack_id="evil"
+            spine, kind="skill", name="evil", skill_id="evil"
         )
 
 
@@ -247,7 +247,7 @@ def test_req_scaffold_003_park_until_promote_no_silent_candidate_trusted(orch, s
         gap=gap,
         kind="skill",
         name="wiki-notes-index",
-        pack_id="wiki-notes-index",
+        skill_id="wiki-notes-index",
         summary="Index wiki notes",
         content="# Wiki\n",
         park=True,
@@ -275,7 +275,7 @@ def test_req_scaffold_003_continue_with_matched_only(orch, store, spine):
         gap=gap,
         kind="skill",
         name="wiki-notes-index",
-        pack_id="wiki-notes-index",
+        skill_id="wiki-notes-index",
         summary="Index wiki notes",
         content="# Wiki\n",
         park=False,
@@ -303,7 +303,7 @@ def test_req_scaffold_004_journey_spans_and_forge_queue(orch, store, spine):
         gap=gap,
         kind="skill",
         name="wiki-notes-index",
-        pack_id="wiki-notes-index",
+        skill_id="wiki-notes-index",
         summary="Index wiki notes",
         content="# Wiki\n",
         park=True,

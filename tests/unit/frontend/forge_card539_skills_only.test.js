@@ -60,7 +60,7 @@ describe('Pending proposals in Agent Studio [CARD-539]', () => {
     const html = fs.readFileSync(path.join(repoRoot, 'src/web/templates/index.html'), 'utf-8');
     const host = html.indexOf('id="forgePendingProposals"');
     expect(host).toBeGreaterThan(-1);
-    expect(host).toBeLessThan(html.indexOf('id="forgePlatformDefaultsSection"'));
+    expect(host).toBeLessThan(html.indexOf('id="forgeAgentFileStatus"'));
   });
 
   it('accepting a proposal reloads the skill catalog so a new skill shows as a ticked pill', () => {
