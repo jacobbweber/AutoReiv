@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
 
 def _refuse_live(user_data: Path) -> None:

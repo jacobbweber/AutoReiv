@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.tool_ranker import ToolRanker
 from src.application.skills.sysadmin_tools import SysadminTools
 from src.domain.gateway.models import ToolDefinition

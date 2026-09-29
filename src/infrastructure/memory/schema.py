@@ -196,75 +196,7 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS agent_overrides (
-    agent_id TEXT PRIMARY KEY,
-    name TEXT,
-    provider TEXT DEFAULT 'default',
-    api_base_url TEXT,
-    api_key TEXT,
-    context_window INTEGER,
-    tone TEXT,
-    system_prompt TEXT,
-    model TEXT,
-    purpose TEXT,
-    allowed_skills_json TEXT,
-    show_in_chat INTEGER DEFAULT 1,
-    max_turns INTEGER,
-    history_retention_days INTEGER DEFAULT 30,
-    storage_enabled INTEGER DEFAULT 0,
-    storage_type TEXT DEFAULT 'sqlite',
-    memory_enabled INTEGER DEFAULT 1,
-    memory_retention_days INTEGER DEFAULT 30,
-    pinned_memory TEXT DEFAULT '',
-    allow_autonomous_training INTEGER DEFAULT 0,
-    max_training_retries INTEGER DEFAULT 2,
-    mcp_servers_json TEXT DEFAULT '[]',
-    allowed_credentials_json TEXT DEFAULT '[]',
-    visibility TEXT DEFAULT 'public',
-    fleet TEXT,
-    origin TEXT NOT NULL DEFAULT 'custom',
-    user_modified INTEGER NOT NULL DEFAULT 0,
-    seed_version TEXT,
-    seed_content_hash TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
-CREATE TABLE IF NOT EXISTS custom_agents (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    system_prompt TEXT NOT NULL,
-    origin TEXT NOT NULL DEFAULT 'custom',
-    provider TEXT NOT NULL DEFAULT 'default',
-    api_base_url TEXT,
-    api_key TEXT,
-    context_window INTEGER,
-    purpose TEXT NOT NULL DEFAULT 'general',
-    tone TEXT DEFAULT 'default',
-    avatar_icon TEXT DEFAULT 'bot',
-    model TEXT DEFAULT 'default',
-    allowed_skills_json TEXT,
-    show_in_chat INTEGER DEFAULT 1,
-    visibility TEXT DEFAULT 'public',
-    fleet TEXT,
-    max_turns INTEGER DEFAULT 50, -- CARD-445: keep equal to DEFAULT_AGENT_MAX_TURNS
-    history_retention_days INTEGER DEFAULT 30,
-    is_builtin BOOLEAN DEFAULT 0,
-    storage_enabled INTEGER DEFAULT 0,
-    storage_type TEXT DEFAULT 'sqlite',
-    memory_enabled INTEGER DEFAULT 1,
-    memory_retention_days INTEGER DEFAULT 30,
-    pinned_memory TEXT DEFAULT '',
-    allow_autonomous_training INTEGER DEFAULT 0,
-    max_training_retries INTEGER DEFAULT 2,
-    mcp_servers_json TEXT DEFAULT '[]',
-    allowed_credentials_json TEXT DEFAULT '[]',
-    user_modified INTEGER NOT NULL DEFAULT 0,
-    seed_version TEXT,
-    seed_content_hash TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 CREATE TABLE IF NOT EXISTS agent_capability_gaps (
     id TEXT PRIMARY KEY,
@@ -578,15 +510,7 @@ CREATE TABLE IF NOT EXISTS skill_binding_meta (
     updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS skill_tool_bindings (
-    skill_id TEXT NOT NULL,
-    tool_id TEXT NOT NULL,
-    position INTEGER NOT NULL DEFAULT 0,
-    updated_at TEXT NOT NULL,
-    PRIMARY KEY (skill_id, tool_id)
-);
 
-CREATE INDEX IF NOT EXISTS idx_skill_tool_bindings_tool ON skill_tool_bindings(tool_id);
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SKILL_TOOL_BINDINGS_SQL

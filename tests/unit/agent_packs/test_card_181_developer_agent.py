@@ -1,7 +1,7 @@
 """Unit tests for Developer Agent capability consolidation [CARD-181, CARD-366, REQ-CONSOL-001]."""
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.agent_packs.schema import CHAT_HIDDEN_BY_ID, is_visible_in_chat
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.schema import CHAT_HIDDEN_BY_ID, is_visible_in_chat
 from tests.unit.agent_packs.catalog import platform_pack_profile
 
 

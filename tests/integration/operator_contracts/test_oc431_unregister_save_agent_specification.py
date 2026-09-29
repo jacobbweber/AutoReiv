@@ -16,7 +16,7 @@ import asyncio
 import os
 from pathlib import Path
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.safety.tool_policy_gate import _DEFAULT_REQUIRE_CONFIRM
 from src.domain.gateway.models import ToolCall

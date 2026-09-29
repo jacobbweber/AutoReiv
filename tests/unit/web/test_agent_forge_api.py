@@ -215,20 +215,6 @@ async def test_builtin_agent_provider_override_persists(app):
         assert missing.status_code == 404
 
 
-@pytest.mark.asyncio
-async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
-    """A stale show_in_chat override must not resurrect agent-builder [CARD-429]."""
-    from src.domain.settings.models import AgentCustomization
-
-    app.state.store.save_agent_override(AgentCustomization(agent_id="agent-builder", show_in_chat=True))
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        list_resp = await ac.get("/api/agents")
-        assert list_resp.status_code == 200
-        by_id = {a["id"]: a for a in list_resp.json()}
-        assert "agent-builder" not in by_id
-        get_resp = await ac.get("/api/agents/agent-builder")
-        assert get_resp.status_code == 404
 
 
 @pytest.mark.asyncio

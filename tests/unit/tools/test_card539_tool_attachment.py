@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.agent_packs.tool_attachment import (
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.tool_attachment import (
     ATTACH_TOOL_PROPOSAL,
     apply_tool_attachment,
     propose_tool_attachment,

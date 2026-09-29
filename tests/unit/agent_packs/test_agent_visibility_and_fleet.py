@@ -2,14 +2,12 @@
 Tests for Agent Visibility ('public' vs 'internal') and Fleet Grouping [CARD-198, REQ-FLEET-001, REQ-FLEET-002].
 """
 
-import tempfile
 
 import pytest
 
-from src.application.agent_packs.schema import is_visible_in_chat
+from src.application.agent_skills.schema import is_visible_in_chat
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
-from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.agents import _public_agent
 
 
@@ -67,42 +65,6 @@ def test_guardrails_validate_visibility_and_fleet():
         AgentProfileGuardrail.validate(invalid_payload)
 
 
-def test_sqlite_persistence_of_visibility_and_fleet():
-    """StateStore preserves visibility and fleet across save and list operations."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = tmp.name
-    try:
-        store = SQLiteStateStore(db_path)
-        profile = AgentProfile(
-            id="homelab-admin",
-            name="Homelab Admin",
-            description="Operational admin",
-            system_prompt="Admin system prompt for VM execution testing.",
-            visibility="internal",
-            fleet="homelab",
-            show_in_chat=False,
-        )
-        store.save_custom_agent_profile(profile)
-
-        reloaded = store.get_custom_agent_profile("homelab-admin")
-        assert reloaded is not None
-        assert reloaded.visibility == "internal"
-        assert reloaded.fleet == "homelab"
-        assert reloaded.show_in_chat is False
-
-        all_profiles = store.list_custom_agent_profiles()
-        matching = [p for p in all_profiles if p.id == "homelab-admin"]
-        assert len(matching) == 1
-        assert matching[0].visibility == "internal"
-        assert matching[0].fleet == "homelab"
-    finally:
-        import os
-
-        for sfx in ("", "-wal", "-shm"):
-            try:
-                os.remove(db_path + sfx)
-            except OSError:
-                pass
 
 
 def test_public_agent_router_payload_includes_visibility_and_fleet():

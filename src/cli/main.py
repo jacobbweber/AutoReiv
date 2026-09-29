@@ -196,7 +196,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f" • Wiki Root         : {paths.wiki_path}")
     print("-" * 60)
     print(" 📋 Registered Agents:")
-    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+    from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
     for profile in registry.list_profiles():
         tone_val = getattr(profile.tone, "value", str(profile.tone))

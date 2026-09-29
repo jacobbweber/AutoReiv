@@ -1,6 +1,6 @@
 """CARD-121: tools are one atomic callable; untick omits schema; SKILL.md stubs are not callables."""
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.kernel.models import AgentProfile

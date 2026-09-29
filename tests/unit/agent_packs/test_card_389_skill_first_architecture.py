@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 from src.domain.agents.guardrails import AgentProfileGuardrail
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization

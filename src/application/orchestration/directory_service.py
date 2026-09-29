@@ -6,7 +6,7 @@ Discovers and ranks agent capabilities dynamically on demand without prompt bloa
 import re
 from typing import Any, Dict, List, Optional
 
-from src.application.agent_packs.allowed_tools import routing_summary
+from src.application.agent_skills.allowed_tools import routing_summary
 from src.domain.orchestration.models import CompactAgentCard
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore

@@ -127,7 +127,7 @@ def _capability_authoring_requested(text: str) -> bool:
         return True
     if "scaffold" in raw and ("agent" in raw or "pack" in raw):
         return True
-    from src.application.agent_packs.schema import CAPABILITY_AUTHORING_TOOL_NAMES
+    from src.application.agent_skills.schema import CAPABILITY_AUTHORING_TOOL_NAMES
 
     for tool in CAPABILITY_AUTHORING_TOOL_NAMES:
         if tool in raw or tool.replace("_", " ") in raw:
@@ -669,7 +669,7 @@ class AgentKernel:
                 from src.application.sdlc.projects_service import ProjectsService
 
                 is_developer = getattr(agent, "id", None) == "developer"
-                from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+                from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
                 allowed_tools: set[str] = set(resolve_allowed_tools(agent).names)
                 has_project_tools = bool(
@@ -711,7 +711,7 @@ class AgentKernel:
 
         # CARD-539 D5: the domain line is generated from ticked skills; no hand-written capability block.
         if getattr(agent, "id", None) != "direct":
-            from src.application.agent_packs.allowed_tools import domain_line
+            from src.application.agent_skills.allowed_tools import domain_line
 
             base_prompt = f"{base_prompt}\n\n## Your domain\n{domain_line(agent)}"
 
@@ -798,7 +798,7 @@ class AgentKernel:
 
         if agent is None:
             return matched
-        from src.application.agent_packs.allowed_tools import ticked_skills_for_domains
+        from src.application.agent_skills.allowed_tools import ticked_skills_for_domains
 
         return ticked_skills_for_domains(agent, matched)
 
@@ -818,8 +818,8 @@ class AgentKernel:
         if getattr(agent, "id", None) == "direct":
             return []
 
-        from src.application.agent_packs.allowed_tools import resolve_allowed_tools, ticked_skills
-        from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+        from src.application.agent_skills.allowed_tools import resolve_allowed_tools, ticked_skills
+        from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 
         allowed = resolve_allowed_tools(agent)
         ticks = set(ticked_skills(agent))
@@ -868,7 +868,7 @@ class AgentKernel:
             import re
             user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) - _RANK_FILLER_WORDS
 
-            from src.application.agent_packs.schema import CAPABILITY_AUTHORING_TOOL_NAMES
+            from src.application.agent_skills.schema import CAPABILITY_AUTHORING_TOOL_NAMES
             from src.application.tools.native_packaging import AUTHORING_TOOL_NAMES, load_native_tool_names
 
             native_names = load_native_tool_names(self.state_store)

@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.application.agent_packs.tool_attachment import ATTACH_TOOL_PROPOSAL, apply_tool_attachment
+from src.application.agent_skills.tool_attachment import ATTACH_TOOL_PROPOSAL, apply_tool_attachment
 from src.application.orchestration.followup import PROPOSE_FOLLOWUP_TOOL, apply_followup_decision
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.orchestration.skill_proposals import (

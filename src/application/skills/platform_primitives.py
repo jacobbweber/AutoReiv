@@ -28,7 +28,7 @@ class PlatformPrimitiveTools:
         Load the tools of one or more skills ticked for this agent for the current turn.
         Skills that are not ticked are refused and mount nothing (CARD-539, ADR-0061).
         """
-        from src.application.agent_packs.allowed_tools import skill_tools
+        from src.application.agent_skills.allowed_tools import skill_tools
 
         ctx = get_tool_context() or {}
         agent_id = ctx.get("agent_id")

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.tool_registry import ScopedToolRegistry, _tool_context
 from src.application.orchestration.skill_proposals import (
     apply_skill_proposal_decision,

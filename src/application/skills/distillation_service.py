@@ -131,7 +131,7 @@ class SkillDistillationService:
         if self.agent_registry is None:
             raise ValueError("Agent registry is required for skill adoption.")
 
-        from src.application.agent_packs.skill_list import add_skill_to_agent
+        from src.application.agent_skills.skill_list import add_skill_to_agent
         from src.infrastructure.content.store import get_store
 
         # CARD-502 REQ-502-007: never create a folder for an agent that does not exist

@@ -131,22 +131,6 @@ def test_kernel_prompt_injects_ticked_not_unticked(tmp_path):
     assert "Skills (runbooks) for this agent" not in empty_msg.content
 
 
-def test_custom_agent_allowed_skill_persists(tmp_path):
-    store = SQLiteStateStore(db_path=str(tmp_path / "store.db"))
-    store.initialize_db()
-    profile = AgentProfile(
-        id="okta-admin-agent",
-        name="Okta Admin",
-        description="Okta Admin is an agent",
-        system_prompt="You help with identity admin tasks.",
-        allowed_skill=["user-provisioning"],
-    )
-    store.save_agent_profile(profile)
-    fetched = store.get_agent_profile("okta-admin-agent")
-    assert fetched is not None
-    assert fetched.allowed_skill == ["user-provisioning"]
-    listed = store.list_custom_agent_profiles()
-    assert listed[0].allowed_skill == ["user-provisioning"]
 
 
 def test_platform_pack_override_allowed_skill_persists_across_get(tmp_path):

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools, ticked_skills
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools, ticked_skills
 from src.application.kernel.tool_registry import ScopedToolRegistry
 
 INSPECT_AGENT = "inspect_agent"

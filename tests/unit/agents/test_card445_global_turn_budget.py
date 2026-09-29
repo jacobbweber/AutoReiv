@@ -80,31 +80,10 @@ def test_req_445_001_handoff_child_profile_fallback_uses_default():
     assert "DEFAULT_AGENT_MAX_TURNS" in src
 
 
-def test_req_445_002_repository_null_max_turns_falls_back_to_50(tmp_path: Path):
-    store = _store(tmp_path)
-    store.save_custom_agent_profile(_profile("nullish", 30))
-    conn = sqlite3.connect(store.db_path)
-    conn.execute("UPDATE custom_agents SET max_turns = NULL WHERE id = 'nullish'")
-    conn.commit()
-    conn.close()
-    got = store.get_agent_profile("nullish")
-    assert got is not None and got.max_turns == 50
-    assert {p.id: p.max_turns for p in store.list_custom_agent_profiles()}["nullish"] == 50
 
 
-def test_req_445_002_fresh_schema_default_is_50(tmp_path: Path):
-    store = _store(tmp_path)
-    conn = sqlite3.connect(store.db_path)
-    cols = {r[1]: r[4] for r in conn.execute("PRAGMA table_info(custom_agents)").fetchall()}
-    conn.close()
-    assert cols["max_turns"] == str(DEFAULT_AGENT_MAX_TURNS)
 
 
-def test_req_445_002_legacy_schema_new_rows_still_get_50(tmp_path: Path):
-    """Existing DBs keep the old column DEFAULT 10, but every insert binds max_turns explicitly."""
-    store = _store(tmp_path)
-    store.save_custom_agent_profile(AgentProfile(id="fresh", name="Fresh", description="d", system_prompt="p"))
-    assert _stored(store, "custom_agents", "id", "fresh") == 50
 
 
 # --- REQ-445-004 / 005 / 006: one-time upgrade -------------------------------------------

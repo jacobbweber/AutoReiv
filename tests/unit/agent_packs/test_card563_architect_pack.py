@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.application.agent_packs.allowed_tools import domain_line, resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import domain_line, resolve_allowed_tools
 from src.application.safety.tool_policy_gate import ToolPolicyGate, ToolPolicyVerdict
 from src.domain.gateway.models import ToolCall
 from tests.unit.agent_packs.catalog import platform_pack_profile

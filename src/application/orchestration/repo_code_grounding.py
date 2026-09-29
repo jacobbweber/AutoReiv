@@ -35,7 +35,7 @@ _SOURCE_DEP_RE = re.compile(
 # Checkout-relative path claims (not Wiki 00_Inbox).
 _PATH_RE = re.compile(
     r"(?P<path>(?:AGENTS\.md|CHANGELOG\.md|README\.md|"
-    r"(?:src|tests|docs|notes|scripts|steering|platform-packs|\.github|"
+    r"(?:src|tests|docs|notes|scripts|steering|platform|\.github|"
     r"\.agents|deploy|skills|packs)"
     r"(?:/[\w.\-]+)+|"
     r"[\w.\-]+\.md))",

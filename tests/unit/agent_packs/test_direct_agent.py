@@ -1,6 +1,6 @@
 """Unit tests for CARD-337: Platform Direct Agent [REQ-TEL-001]."""
 
-from src.application.agent_packs.schema import is_visible_in_chat
+from src.application.agent_skills.schema import is_visible_in_chat
 from tests.unit.agent_packs.catalog import load_platform_manifest
 
 
@@ -25,7 +25,7 @@ def test_direct_pack_manifest_zero_tools_zero_skills():
 
 def test_direct_agent_resolves_zero_tools():
     """[REQ-TEL-001] Direct agent must resolve zero tools even with platform scoping."""
-    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+    from src.application.agent_skills.allowed_tools import resolve_allowed_tools
     from src.application.kernel.tool_registry import ScopedToolRegistry
     from src.domain.kernel.models import AgentProfile
 

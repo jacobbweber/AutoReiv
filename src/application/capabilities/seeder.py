@@ -11,7 +11,7 @@ import logging
 import re
 from typing import Any, Optional
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.capabilities.resolver import ENGLISH_STOPWORDS
 from src.domain.capabilities.models import (
     CapabilityIndexEntry,
@@ -174,7 +174,7 @@ def seed_builtin_capabilities(
     # 5. Prune retired tools and obsolete builtin/platform capabilities
     if hasattr(repo, "delete_entry"):
         try:
-            from src.application.agent_packs.schema import RETIRED_TOOL_NAMES
+            from src.application.agent_skills.schema import RETIRED_TOOL_NAMES
 
             for tool_name in RETIRED_TOOL_NAMES:
                 repo.delete_entry(f"tool.{tool_name}")

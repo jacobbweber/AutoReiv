@@ -358,7 +358,7 @@ class NativeCustomToolService:
         target = str(record.get("target_agent_id") or "").strip()
         if not target:
             return None
-        from src.application.agent_packs.tool_attachment import propose_tool_attachment
+        from src.application.agent_skills.tool_attachment import propose_tool_attachment
         from src.application.kernel.tool_registry import get_tool_context
 
         approval_id = propose_tool_attachment(

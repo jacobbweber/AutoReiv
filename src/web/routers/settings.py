@@ -393,7 +393,13 @@ async def get_settings(request: Request):
 
     matrix = settings_service.get_purpose_matrix()
     hw = hw_calc.get_hardware_specs()
-    overrides = store.list_agent_overrides()
+    # CARD-570: per-agent model/provider live in one settings key; the secret api_key is not echoed.
+    model_settings = store.get_setting("agent_model_settings") or {}
+    customizations = [
+        {"agent_id": aid, **{k: v for k, v in vals.items() if k != "api_key"}}
+        for aid, vals in (model_settings.items() if isinstance(model_settings, dict) else [])
+        if isinstance(vals, dict)
+    ]
     providers_cfg = store.get_setting("provider_settings") or {
         "ollama_host": os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434"),
         "openai_base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
@@ -478,7 +484,7 @@ async def get_settings(request: Request):
         "matrix": matrix.model_dump(),
         "hardware": hw.model_dump(),
         "providers": resp_providers,
-        "customizations": [c.model_dump() for c in overrides],
+        "customizations": customizations,
     }
 
 

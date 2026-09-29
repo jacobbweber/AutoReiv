@@ -97,7 +97,12 @@ def _ticks_coding(agent_id: str, store: Optional[Any]) -> bool:
         return True
     getter = getattr(store, "get_agent_profile", None) if store is not None else None
     profile = getter(agent_id) if callable(getter) else None
-    return "coding" in (getattr(profile, "allowed_skill", None) or [])
+    if profile is not None:
+        return "coding" in (getattr(profile, "allowed_skill", None) or [])
+    from src.infrastructure.content.store import get_store  # CARD-570: the winning agent file
+
+    item = get_store().agents.load(agent_id)
+    return bool(item and "coding" in item.skills)
 
 
 def resolve_specialist_agent_for_capabilities(

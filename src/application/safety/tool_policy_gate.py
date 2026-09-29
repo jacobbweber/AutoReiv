@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Sequence, Set
 
-from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import ToolResult
@@ -122,7 +122,7 @@ def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
 
 def _agent_allowed_names(agent: Any):
     """The agent's allowed tools, from the one decider (ADR-0061). No flags, no agent ids."""
-    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+    from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
     return resolve_allowed_tools(agent)
 

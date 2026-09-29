@@ -62,7 +62,6 @@ async def test_13_broken_tool_saves_mounts_grants_and_syncs_nothing(env):
     assert str(caught.value).startswith("Not registered: c511_broken failed the import check")
     assert store.get_setting("native_custom_tools") in (None, [])
     assert "c511_broken" not in registry
-    assert store.get_agent_override("autoreiv") is None
     assert store.get_pending_approvals(agent_id="autoreiv") == []
     assert store.get_setting("tool_policy") == policy_before
 

@@ -14,8 +14,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import domain_line, resolve_allowed_tools
-from src.application.agent_packs.tool_attachment import ATTACH_TOOL_PROPOSAL, apply_tool_attachment
+from src.application.agent_skills.allowed_tools import domain_line, resolve_allowed_tools
+from src.application.agent_skills.tool_attachment import ATTACH_TOOL_PROPOSAL, apply_tool_attachment
 from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.tools.native_packaging import NativeCustomToolService

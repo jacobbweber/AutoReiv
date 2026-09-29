@@ -205,14 +205,14 @@ async def test_formulate_assignment_plans_only_and_leaves_repo_reads_to_execute(
 
     sid = "sess_554"
     store.create_session(agent_id="autoreiv", title="Code ask", session_id=sid)
-    j = Job(id="job_554", agent_id="autoreiv", goal="Read src/application/agent_packs/allowed_tools.py and count defs", session_id=sid)
+    j = Job(id="job_554", agent_id="autoreiv", goal="Read src/application/agent_skills/allowed_tools.py and count defs", session_id=sid)
     formulate = Phase(id="ph_f554", job_id=j.id, name="Formulate", index=0, assigned_agent_id="autoreiv")
     execute = Phase(id="ph_e554", job_id=j.id, name="Execute", index=1, assigned_agent_id="developer")
     store.create_job(j, [formulate, execute])
     orch = MagicMock()
     orch.start_phase.side_effect = lambda pid: store.get_phase(pid)
     decision = RepoGroundingDecision(action=ACTION_REQUIRE_READ, reason="need_read", topic_query="allowed_tools",
-                                     suggested_paths=("src/application/agent_packs/allowed_tools.py",))
+                                     suggested_paths=("src/application/agent_skills/allowed_tools.py",))
     autoreiv, developer = MagicMock(id="autoreiv"), MagicMock(id="developer")
     registry = MagicMock()
     registry.get_profile.side_effect = lambda a: {"autoreiv": autoreiv, "developer": developer}.get(a)

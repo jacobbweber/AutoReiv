@@ -3,7 +3,7 @@ Unit tests for Built-in Agent Profiles [REQ-AGENTS-001, REQ-AGENTS-010, CARD-429
 Assistant / AutoReiv are Platform Agent Packs. agent-builder is not a live builtin.
 """
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.domain.agents.profiles import (
     BUILTIN_PROFILES,
     RETIRED_LIVE_AGENT_IDS,

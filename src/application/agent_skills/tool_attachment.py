@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from src.application.agent_packs.allowed_tools import skill_tools
+from src.application.agent_skills.allowed_tools import skill_tools
 
 ATTACH_TOOL_PROPOSAL = "attach_tool_to_skill"
 
@@ -67,7 +67,7 @@ def propose_tool_attachment(
 def tick_skill(store: Any, agent_registry: Any, agent_id: str, skill_id: str, data_dir: Optional[Path] = None) -> bool:
     """Tick skill_id on the agent through the shared Studio/Adopt save path, so the tick survives a
     restart's platform promotion (CARD-502). Returns True when it was added."""
-    from src.application.agent_packs.skill_list import add_skill_to_agent
+    from src.application.agent_skills.skill_list import add_skill_to_agent
 
     try:
         _profile, already = add_skill_to_agent(store, agent_registry, agent_id=agent_id, skill_id=skill_id, data_dir=data_dir)

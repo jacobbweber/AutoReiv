@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.skills.linter import MAX_TOOLS_PER_SKILL
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore

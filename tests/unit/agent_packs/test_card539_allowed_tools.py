@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools, skill_tools
-from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools, skill_tools
+from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.content.store import configure
 from tests.unit.agent_packs.catalog import pack_dict

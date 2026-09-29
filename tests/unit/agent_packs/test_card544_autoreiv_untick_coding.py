@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.application.agent_packs.allowed_tools import domain_line, resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import domain_line, resolve_allowed_tools
 from src.application.orchestration.job_phase_orchestrator import resolve_specialist_agent_for_capabilities
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -64,9 +64,11 @@ def test_code_execute_phase_goes_to_developer_when_autoreiv_has_no_coding():
 
 
 def test_code_execute_phase_stays_on_an_agent_that_ticks_coding(tmp_path):
-    store = _store(tmp_path)
-    store.save_custom_agent_profile(_autoreiv(["coding"]))
-    assert resolve_specialist_agent_for_capabilities(CODING_CAPS, "autoreiv", store=store) == "autoreiv"
+    class _Profiles:  # any store exposing get_agent_profile (the resolver also reads the agent file)
+        def get_agent_profile(self, agent_id):
+            return _autoreiv(["coding"])
+
+    assert resolve_specialist_agent_for_capabilities(CODING_CAPS, "autoreiv", store=_Profiles()) == "autoreiv"
 
 
 def test_a_self_match_on_the_chat_agent_does_not_keep_code_work_off_developer():

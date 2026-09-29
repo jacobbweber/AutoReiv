@@ -5,7 +5,7 @@ The planner no longer switches prompts by agent id.
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.plan_engine import PlanAndExecuteEngine
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.domain.agents.profiles import get_builtin_profile

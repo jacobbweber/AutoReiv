@@ -49,8 +49,8 @@ def _public_agent(
     profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None, data_dir: Optional[Path] = None,
     registry=None,
 ) -> Dict[str, Any]:
-    from src.application.agent_packs.allowed_tools import resolve_allowed_tools, skills_version
-    from src.application.agent_packs.schema import is_platform_pack, is_visible_in_chat
+    from src.application.agent_skills.allowed_tools import resolve_allowed_tools, skills_version
+    from src.application.agent_skills.schema import is_platform_pack, is_visible_in_chat
     from src.domain.kernel.models import AgentOrigin
     from src.infrastructure.content.store import get_store
 
@@ -131,8 +131,8 @@ def _data_dir_root(request: Request) -> Optional[Path]:
 
 @router.get("/api/skills/catalog")
 async def get_skills_catalog(request: Request):
-    from src.application.agent_packs.allowed_tools import skill_tools
-    from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+    from src.application.agent_skills.allowed_tools import skill_tools
+    from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
     from src.application.skills.manifest import TOOL_GROUP_TIERS, get_hierarchical_tool_groups
     from src.application.skills.workshop import operator_store_skills
 
@@ -299,7 +299,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
 
-    from src.application.agent_packs.allowed_tools import skills_version
+    from src.application.agent_skills.allowed_tools import skills_version
 
     expected = (payload.expected_skills_version or "").strip()
     if expected and expected != skills_version(existing):
@@ -335,7 +335,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         raise HTTPException(status_code=422, detail=str(e))
 
     # CARD-502: one save path shared with Teach > Adopt
-    from src.application.agent_packs.skill_list import persist_agent_profile
+    from src.application.agent_skills.skill_list import persist_agent_profile
 
     persist_agent_profile(store, registry, existing, profile, agent_id=agent_id, data_dir=_data_dir_root(request))
 

@@ -14,8 +14,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
-from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 from src.application.capabilities.resolver import CapabilityCatalogResolver
 from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry, _tool_context

@@ -12,7 +12,7 @@ Enforces:
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.infrastructure.agents.registry import BuiltinAgentRegistry

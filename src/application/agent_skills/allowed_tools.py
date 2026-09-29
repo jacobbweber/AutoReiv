@@ -12,7 +12,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Optional
 
-from src.application.agent_packs.schema import REQUIRED_PLATFORM_TOOLS
+from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 
 NO_TOOL_AGENTS = frozenset({"direct"})
 # CARD-563: platform tools an agent must not get. Architect starts Developer only through hand_off_card.

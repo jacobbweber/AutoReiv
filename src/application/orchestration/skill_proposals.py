@@ -131,7 +131,7 @@ def _allowlist_len(agent_registry: Any, agent_id: str) -> Optional[int]:
         profile = get_builtin_profile(aid)
     if profile is None:
         return None
-    from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+    from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
     return len(resolve_allowed_tools(profile))
 

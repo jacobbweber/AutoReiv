@@ -1,6 +1,6 @@
 /**
  * Tools Studio catalog grouping, search/filter, and MCP attach payloads [CARD-421].
- * Read-only catalog helpers do not write skill_tool_bindings.
+ * Read-only catalog helpers do not write skill tools lists.
  * Attach helpers speak the existing /api/settings/mcp* and /api/agents/{id}/mcp* contracts.
  */
 

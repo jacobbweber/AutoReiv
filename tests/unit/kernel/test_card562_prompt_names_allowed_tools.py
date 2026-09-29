@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.agent_kernel import project_tool_guidance
 from src.application.safety.tool_policy_gate import ToolPolicyGate, ToolPolicyVerdict
 from src.domain.gateway.models import ToolCall
