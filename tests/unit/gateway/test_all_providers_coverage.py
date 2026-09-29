@@ -323,7 +323,7 @@ def test_system_agent_tools_test_provider_connectivity_resolves_all_presets():
 
         res = tools.test_provider_connectivity(provider_id="ollama")
         assert res["reachable"] is True
-        assert "11434" in res["endpoint"] or "0.0.0.0" in res["endpoint"]
+        assert "11434" in res["endpoint"] and "0.0.0.0" not in res["endpoint"]  # CARD-580
 
     with patch("httpx.get") as mock_get:
         mock_resp = MagicMock()

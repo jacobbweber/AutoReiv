@@ -134,31 +134,101 @@ class SystemAgentTools:
             ],
         }
 
+    def _provider_target(self, provider_id: str, providers_cfg: Dict[str, Any]) -> tuple[str, str]:
+        """Resolve the base URL to probe for a provider from saved settings [CARD-580].
+
+        Order: the saved per-provider base_url (what Settings shows), the legacy
+        ollama_host / openai_base_url keys, the preset default, then OLLAMA_HOST.
+        Returns (url, source).
+        """
+        from src.application.settings.presets import get_preset_by_id
+
+        pid = provider_id.lower()
+        saved = (providers_cfg.get("providers") or {}).get(pid) or {}
+        if saved.get("base_url"):
+            return str(saved["base_url"]), "settings"
+        default_pid = str(providers_cfg.get("default_provider_id") or "").lower()
+        if pid == "ollama" and providers_cfg.get("ollama_host"):
+            return str(providers_cfg["ollama_host"]), "settings"
+        if pid == default_pid and pid != "ollama" and providers_cfg.get("openai_base_url"):
+            return str(providers_cfg["openai_base_url"]), "settings"
+        if pid == "openai" and providers_cfg.get("openai_base_url"):
+            return str(providers_cfg["openai_base_url"]), "settings"
+        preset = get_preset_by_id(pid)
+        if preset and preset.get("default_url"):
+            return str(preset["default_url"]), "preset"
+        if pid == "ollama" and os.environ.get("OLLAMA_HOST"):
+            return os.environ["OLLAMA_HOST"], "OLLAMA_HOST"
+        return "http://127.0.0.1:11434", "fallback"
+
+    @staticmethod
+    def _normalize_probe_url(url: str, provider_id: str) -> str:
+        """Make a probe-able URL: add a scheme, turn a bind address into loopback,
+        and add Ollama's default port when none is given [CARD-580]."""
+        from urllib.parse import urlsplit, urlunsplit
+
+        url = (url or "").strip()
+        if not url.startswith(("http://", "https://")):
+            url = f"http://{url}"
+        parts = urlsplit(url)
+        host = parts.hostname or "127.0.0.1"
+        if host in ("0.0.0.0", "::", "[::]"):
+            host = "127.0.0.1"
+        port = parts.port
+        if port is None and "ollama" in provider_id.lower() and parts.scheme == "http":
+            port = 11434
+        netloc = f"{host}:{port}" if port else host
+        return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
     def test_provider_connectivity(
         self,
-        provider_id: str = "ollama",
+        provider_id: Optional[str] = None,
         host_url: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Probe local or LAN LLM provider endpoints to measure round-trip latency and model availability.
-        """
-        from src.application.settings.presets import get_preset_by_id
 
+        With no provider_id, probes the configured default provider and every
+        per-agent model override with its own endpoint [CARD-580].
+        """
         providers_cfg = self.store.get_setting("provider_settings") or {}
+        if provider_id or host_url:
+            pid = provider_id or str(providers_cfg.get("default_provider_id") or "ollama")
+            return self._probe_provider(pid, host_url, providers_cfg)
+
+        default_pid = str(providers_cfg.get("default_provider_id") or "ollama")
+        result = self._probe_provider(default_pid, None, providers_cfg)
+        result["checked"] = "default provider"
+        overrides: List[Dict[str, Any]] = []
+        model_settings = self.store.get_setting("agent_model_settings") or {}
+        seen = {(default_pid.lower(), result.get("endpoint"))}
+        if isinstance(model_settings, dict):
+            for agent_id, vals in model_settings.items():
+                if not isinstance(vals, dict):
+                    continue
+                opid = str(vals.get("provider") or vals.get("provider_id") or "")
+                if not opid:
+                    continue
+                ourl = vals.get("api_base_url") or vals.get("base_url") or None
+                probe = self._probe_provider(opid, ourl, providers_cfg)
+                if vals.get("model"):
+                    probe["model"] = vals["model"]
+                key = (opid.lower(), probe.get("endpoint"))
+                probe["agent_id"] = agent_id
+                if key in seen:
+                    probe["same_as_default"] = True
+                seen.add(key)
+                overrides.append(probe)
+        if overrides:
+            result["agent_overrides"] = overrides
+        return result
+
+    def _probe_provider(self, provider_id: str, host_url: Optional[str], providers_cfg: Dict[str, Any]) -> Dict[str, Any]:
+        source = "argument"
         target_url = host_url
         if not target_url:
-            if provider_id.lower() == "ollama":
-                target_url = providers_cfg.get("ollama_host") or os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
-            elif provider_id.lower() == "openai":
-                target_url = providers_cfg.get("openai_base_url") or os.environ.get(
-                    "OPENAI_BASE_URL", "https://api.openai.com/v1"
-                )
-            else:
-                preset = get_preset_by_id(provider_id.lower())
-                target_url = (preset.get("default_url") if preset else None) or "http://127.0.0.1:11434"
-
-        if target_url and not target_url.startswith(("http://", "https://")):
-            target_url = f"http://{target_url}"
+            target_url, source = self._provider_target(provider_id, providers_cfg)
+        target_url = self._normalize_probe_url(target_url, provider_id)
 
         t_start = time.perf_counter()
         try:
@@ -172,6 +242,7 @@ class SystemAgentTools:
                         "reachable": True,
                         "provider_id": provider_id,
                         "endpoint": target_url,
+                        "endpoint_source": source,
                         "latency_ms": dur_ms,
                         "status_code": resp.status_code,
                         "available_models": models,
@@ -180,45 +251,64 @@ class SystemAgentTools:
                     "reachable": False,
                     "provider_id": provider_id,
                     "endpoint": target_url,
+                    "endpoint_source": source,
                     "latency_ms": dur_ms,
                     "status_code": resp.status_code,
-                    "error": resp.text,
+                    "error": resp.text[:500],
                 }
-            else:
-                models_url = target_url.rstrip("/") + "/models"
-                headers = {}
-                api_key = providers_cfg.get("openai_api_key") or os.environ.get("OPENAI_API_KEY", "")
-                if api_key:
-                    headers["Authorization"] = f"Bearer {api_key}"
-                resp = httpx.get(models_url, headers=headers, timeout=5.0)
-                dur_ms = round((time.perf_counter() - t_start) * 1000, 2)
-                if resp.status_code == 200:
-                    models = [m.get("id") for m in resp.json().get("data", [])]
-                    return {
-                        "reachable": True,
-                        "provider_id": provider_id,
-                        "endpoint": target_url,
-                        "latency_ms": dur_ms,
-                        "status_code": resp.status_code,
-                        "available_models": models,
-                    }
+            models_url = target_url.rstrip("/") + "/models"
+            headers = {}
+            api_key = self._provider_api_key(provider_id, providers_cfg)
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            resp = httpx.get(models_url, headers=headers, timeout=5.0)
+            dur_ms = round((time.perf_counter() - t_start) * 1000, 2)
+            if resp.status_code == 200:
+                models = [m.get("id") for m in resp.json().get("data", [])]
                 return {
-                    "reachable": False,
+                    "reachable": True,
                     "provider_id": provider_id,
                     "endpoint": target_url,
+                    "endpoint_source": source,
                     "latency_ms": dur_ms,
                     "status_code": resp.status_code,
-                    "error": resp.text,
+                    "available_models": models,
                 }
+            return {
+                "reachable": False,
+                "provider_id": provider_id,
+                "endpoint": target_url,
+                "endpoint_source": source,
+                "latency_ms": dur_ms,
+                "status_code": resp.status_code,
+                "error": resp.text[:500],
+            }
         except Exception as e:
             dur_ms = round((time.perf_counter() - t_start) * 1000, 2)
             return {
                 "reachable": False,
                 "provider_id": provider_id,
                 "endpoint": target_url,
+                "endpoint_source": source,
                 "latency_ms": dur_ms,
                 "error": str(e),
             }
+
+    def _provider_api_key(self, provider_id: str, providers_cfg: Dict[str, Any]) -> str:
+        pid = provider_id.lower()
+        saved = (providers_cfg.get("providers") or {}).get(pid) or {}
+        cred_id = saved.get("vault_cred_id") or f"llm-provider-{pid}"
+        try:
+            cred = self.store.get_credential(cred_id)
+            if cred and cred.secret:
+                return str(cred.secret)
+        except Exception:
+            pass
+        if pid == str(providers_cfg.get("default_provider_id") or "").lower() and providers_cfg.get("openai_api_key"):
+            return str(providers_cfg["openai_api_key"])
+        if pid == "openai":
+            return os.environ.get("OPENAI_API_KEY", "")
+        return ""
 
     def get_system_logs(
         self,
@@ -305,14 +395,13 @@ class SystemAgentTools:
 
         registry.register_tool(
             name="test_provider_connectivity",
-            description="Test network connectivity to LLM provider (Ollama / OpenAI), ping latency, and model availability.",
+            description="Test network connectivity to the configured LLM providers: latency and model availability. With no arguments it checks the default provider and each agent's own model override.",
             parameters={
                 "type": "object",
                 "properties": {
                     "provider_id": {
                         "type": "string",
-                        "description": "Provider ID (ollama or openai)",
-                        "default": "ollama",
+                        "description": "Provider ID (for example vllm, ollama, openai). Omit to check the configured default provider and every per-agent override.",
                     },
                     "host_url": {"type": "string", "description": "Optional custom host URL to probe"},
                 },
