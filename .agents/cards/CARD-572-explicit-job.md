@@ -117,7 +117,9 @@ asks can still become a Job. Jacob can't tell in advance which way a message wil
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
 | card-572-explicit-job | desktop | PASS | "First check the system health, then tell me ..." without the box: run_as_job false, 0 jobs, 0 phase sessions; with the box: run_as_job true, box and badge reset after send, 1 job (done, Phase 2/2 Execute); routine form saved run_as_job true, that routine ran as a job, a step-worded routine without the box ran as one turn (no job) |
+| card-572-explicit-job (clean rerun, checkout unchanged) | desktop | PASS | QA model `qwen3.8:latest` (the default `qwen3.6:35b-a3b-65k` is no longer on the Ollama host). Without the box: run_as_job false, 0 jobs; with it: run_as_job true, box/badge reset, 1 job done; routine with the box: job; step-worded routine without it: no job. Two earlier reruns on `qwen3.6:35b-a3b` created the job correctly but the job failed (model hit the 2048-token reply limit while thinking): model, not this card. |
 
 ## Log
 - 2026-09-29: Research on qa (read-only, ~15 min): triggers T1-T4, misfires, explicit paths, harness comparison; Draft with D1-D4.
 - 2026-09-29: Jacob: build, all four recommendations. Ready; built on feat/card-572-explicit-job; checks green; journey PASS; In Review.
+- 2026-09-29: Clean journey rerun PASS (QA model qwen3.8:latest; qwen3.6:35b-a3b-65k missing on the Ollama host).
