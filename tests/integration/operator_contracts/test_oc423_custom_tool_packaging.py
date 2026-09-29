@@ -12,8 +12,6 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.domain.gateway.models import ToolDefinition
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter

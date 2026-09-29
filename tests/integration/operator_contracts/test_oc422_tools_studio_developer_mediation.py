@@ -11,8 +11,6 @@ import asyncio
 import inspect
 from unittest.mock import patch
 
-import pytest
-
 from src.domain.gateway.models import ChatMessage, Role
 
 BEHAVIOR = "Look up a wiki note by title and return the first paragraph."
