@@ -27,14 +27,14 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
-from src.application.tools.tool_check import NATIVE_RUNNER, ToolCheckService, record_check_on_job
+from src.application.tools.tool_check import NATIVE_RUNNER, ToolCheckService, access_warning, record_check_on_job
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.content.runtime_tools import RuntimeToolFiles
 
 logger = logging.getLogger(__name__)
 
 TOOL_POLICY_SETTING = "tool_policy"
-AUTHORING_TOOL_NAMES = frozenset({"register_native_tool", "plan_native_folder"})
+AUTHORING_TOOL_NAMES = frozenset({"register_native_tool", "plan_native_folder", "view_native_tool"})
 SCRIPT_SUFFIXES = frozenset({".py", ".sh", ".ps1"})
 _NAME_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
 _RUN_DEF_RE = re.compile(r"def\s+run\s*\(")
@@ -153,6 +153,9 @@ class NativeCustomToolService:
             message = (
                 f"{message} Saved to the data dir; Jacob must enable it in Tools Studio before any agent can use it."
             )
+        warning = access_warning(list(check.access or []))
+        if warning:
+            message = f"{message} {warning}"
         body.update(
             {
                 "success": True,
@@ -170,6 +173,14 @@ class NativeCustomToolService:
                 f"{proposal['agent_id']}; it can use the tool once Jacob accepts the proposal."
             )
         return body
+
+    def view(self, name: str) -> dict[str, Any]:
+        """Read-only: record, code and approval state of one runtime-built tool (Toolsmith, Tools Studio)."""
+        key = str(name or "").strip()
+        row = self.get(key)
+        if row is None:
+            raise NativeToolError(f"Native tool '{key}' was not found.", 404)
+        return _public_record(row) | {"code": str(row.get("code") or "")}
 
     def delete(self, name: str) -> dict[str, Any]:
         key = str(name or "").strip()
@@ -470,6 +481,9 @@ def _public_record(row: Mapping[str, Any]) -> dict[str, Any]:
         "enabled": bool(row.get("enabled")),
         "approval": row.get("approval") or "disabled",
         "code_sha256": row.get("code_sha256"),
+        # CARD-571 D4: what the code can reach, shown as a warning before Jacob enables it.
+        "access": list((check or {}).get("access") or []) if isinstance(check, Mapping) else [],
+        "access_warning": access_warning(list((check or {}).get("access") or [])) if isinstance(check, Mapping) else "",
     }
 
 

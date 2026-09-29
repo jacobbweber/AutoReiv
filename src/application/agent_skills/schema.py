@@ -50,7 +50,7 @@ REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "read_document_file",
 )
 
-# Tool building tools (parked off Developer, CARD-562). The kernel keeps them off turns that do not ask.
+# Capability authoring tools (on no shipped agent). The kernel keeps them off turns that do not ask.
 CAPABILITY_AUTHORING_TOOL_NAMES = frozenset(
     {
         "list_available_skills_and_tools",

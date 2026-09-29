@@ -47,7 +47,7 @@ def test_no_pack_folders_ship():
 
 def test_shipped_agents_are_markdown_with_frontmatter():
     ids = sorted(p.stem for p in (ROOT / "platform" / "agents").glob("*.md"))
-    assert ids == ["architect", "autoreiv", "developer", "direct", "tutor"]
+    assert ids == ["architect", "autoreiv", "developer", "direct", "toolsmith", "tutor"]
     for agent_id in ids:
         text = (ROOT / "platform" / "agents" / f"{agent_id}.md").read_text(encoding="utf-8")
         assert text.startswith("---"), agent_id

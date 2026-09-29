@@ -128,7 +128,7 @@ export function setupTeachAgentModal(state, elements = {}, {
     try {
       await askDeveloperWithDraft(draft, { intent: 'create', fetchFn: doFetch, openDeveloperSessionFn });
     } catch (err) {
-      showToast(`Could not open a Developer chat: ${err.message || err}. Opening Tools Studio.`, 'error');
+      showToast(`Could not open a Toolsmith chat: ${err.message || err}. Opening Tools Studio.`, 'error');
       if (typeof callbacks.openToolsStudio === 'function') callbacks.openToolsStudio(agent);
     }
   }
@@ -150,7 +150,7 @@ export function setupTeachAgentModal(state, elements = {}, {
       const request = users.length ? String(users[users.length - 1].content || '') : '';
       const agent = state.selectedAgentId || 'autoreiv';
       askDeveloperWithDraft(buildAskDeveloperDraft(request, btn.getAttribute('data-reply') || '', agent), { intent: 'create', fetchFn: doFetch, openDeveloperSessionFn })
-        .catch((err) => showToast(`Could not open a Developer chat: ${err.message || err}`, 'error'))
+        .catch((err) => showToast(`Could not open a Toolsmith chat: ${err.message || err}`, 'error'))
         .finally(() => { btn.disabled = false; });
     });
   }

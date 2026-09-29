@@ -9,7 +9,11 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.application.agent_skills.tool_attachment import ATTACH_TOOL_PROPOSAL, apply_tool_attachment
+from src.application.agent_skills.tool_attachment import (
+    ATTACH_TOOL_PROPOSAL,
+    apply_tool_attachment,
+    runtime_tool_not_enabled,
+)
 from src.application.orchestration.followup import PROPOSE_FOLLOWUP_TOOL, apply_followup_decision
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.orchestration.skill_proposals import (
@@ -76,6 +80,15 @@ def _decide_tool_attachment(request: Request, record: Dict[str, Any], decision: 
 async def resolve_approval_endpoint(request: Request, approval_id: str, req: DecisionRequest):
     store = request.app.state.store
     record = store.get_approval(approval_id)
+    # CARD-571 Gap 1: accepting an attach for a runtime tool that is not enabled is refused; it stays pending.
+    if (
+        record
+        and record.get("tool_name") == ATTACH_TOOL_PROPOSAL
+        and (req.decision or "").strip().lower() in {"approved", "approve"}
+    ):
+        refusal = runtime_tool_not_enabled((record.get("arguments") or {}).get("tool"))
+        if refusal:
+            raise HTTPException(status_code=409, detail=refusal)
     resolved = store.resolve_approval(
         approval_id=approval_id,
         decision=req.decision,

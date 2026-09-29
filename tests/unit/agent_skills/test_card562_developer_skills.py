@@ -108,28 +108,8 @@ def test_developer_never_gets_an_unrestricted_shell_or_code_runner():
             assert not set(s["tools"]) & UNRESTRICTED_RUNNERS, s["id"]
 
 
-def test_tool_building_is_parked_off_developer():
-    parked = {"mcp-engineering", "native-tool-engineering", "capability-authoring", "proposals"}
-    assert not parked & set(PACK["allowed_skill"])
-    assert "slice 2" in PACK["system_prompt"]
-
-
-def test_tools_studio_talk_refuses_clearly_when_tool_building_is_parked():
-    from types import SimpleNamespace
-
-    import pytest
-
-    from src.application.tools.developer_mediation import (
-        TOOL_BUILDING_PARKED_MESSAGE,
-        ToolsAuthoringError,
-        ToolsDeveloperMediationService,
-    )
-
-    dev = SimpleNamespace(id="developer", allowed_skill=list(PACK["allowed_skill"]))
-    registry = SimpleNamespace(get_profile=lambda aid: dev if aid == "developer" else None)
-    store = SimpleNamespace(create_session=lambda **k: pytest.fail("must not open a chat"))
-    svc = ToolsDeveloperMediationService(store=store, orchestrator=None, registry=registry)
-    with pytest.raises(ToolsAuthoringError) as exc:
-        svc.open_chat("create", {"tool_name": "x_tool", "behavior": "does x"})
-    assert exc.value.status_code == 409 and str(exc.value) == TOOL_BUILDING_PARKED_MESSAGE
-    assert "slice 2" in TOOL_BUILDING_PARKED_MESSAGE
+def test_tool_building_stays_off_developer():
+    """CARD-571: tool building is Toolsmith's job; Developer keeps the card-only skill set."""
+    building = {"mcp-engineering", "native-tool-engineering", "capability-authoring", "proposals"}
+    assert not building & set(PACK["allowed_skill"])
+    assert "Toolsmith" in PACK["system_prompt"] and "slice 2" not in PACK["system_prompt"]

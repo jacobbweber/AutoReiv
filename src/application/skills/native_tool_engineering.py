@@ -1,4 +1,4 @@
-"""Developer tools for the native custom-tool lane [CARD-423].
+"""Toolsmith tools for the native custom-tool lane [CARD-423, CARD-571].
 
 Same service as POST /api/tools/native. No second registration store.
 """
@@ -74,6 +74,15 @@ class NativeToolEngineeringTools:
                 "check": exc.check,
             }
 
+    def view_native_tool(self, name: str) -> dict[str, Any]:
+        """Read-only: code, check result and approval state of one runtime-built tool [CARD-571 D6]."""
+        from src.application.tools.native_packaging import NativeToolError
+
+        try:
+            return self._service().view(name)
+        except NativeToolError as exc:
+            return {"success": False, "name": name, "message": str(exc)}
+
     def plan_native_folder(self, directory: str) -> dict[str, Any]:
         """Plan one tool per script in a directory. Does not register or open a folder picker."""
         return self._service().plan_folder(directory)
@@ -83,12 +92,14 @@ class NativeToolEngineeringTools:
         registry.register_tool(
             name="register_native_tool",
             description=(
-                "Register a native AutoReiv custom tool that runs in the sandbox without an MCP server. "
+                "Save a native AutoReiv custom tool (no MCP server). It is saved disabled: only Jacob enables it "
+                "in Tools Studio, after reading the code. "
                 "Code must define run(**kwargs). requires_hitl defaults to true. "
                 "Pass target_agent_id for the agent that needs it: this creates a pending proposal to attach the "
                 "tool to a skill of that agent (target_skill_id, or a new skill); the agent can use it only after "
                 "Jacob accepts. "
-                "Registration runs the tool once in the sandbox first (import plus one sample call); "
+                "Saving runs the tool check first (import plus one sample call in a temporary folder; this is "
+                "not isolation: network and file access are allowed and shown to Jacob as a warning); "
                 "a result starting 'Not registered:' means nothing was saved: tell the operator, fix the code, call again."
             ),
             parameters={
@@ -132,6 +143,20 @@ class NativeToolEngineeringTools:
                 "required": ["name", "description", "code"],
             },
             handler=self.register_native_tool,
+        )
+        registry.register_tool(
+            name="view_native_tool",
+            description=(
+                "Read one runtime-built tool: its code, description, parameters, last check and approval state "
+                "(enabled, disabled or needs_reapproval). Read-only. Use it before changing an existing tool; "
+                "register_native_tool with the same name saves new code, which Jacob must approve again."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {"name": {"type": "string", "description": "Runtime tool id."}},
+                "required": ["name"],
+            },
+            handler=self.view_native_tool,
         )
         registry.register_tool(
             name="plan_native_folder",

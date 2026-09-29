@@ -309,7 +309,7 @@ export function initToolsStudio(_state, callbacks = {}) {
     if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
     const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
     if (chat && typeof chat.openDeveloperSession === 'function') {
-      await chat.openDeveloperSession(plan.sessionId, plan.prompt);
+      await chat.openDeveloperSession(plan.sessionId, plan.prompt, plan.agentId);
       return;
     }
     const promptInput = $('promptInput');

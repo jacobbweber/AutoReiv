@@ -60,7 +60,22 @@ def list_native_tools(request: Request) -> dict[str, Any]:
         tools = _service(request).list_tools()
     except NativeToolError as exc:
         raise _http(exc) from exc
+    from src.application.agent_skills.tool_attachment import pending_attach_proposals
+
+    store = getattr(request.app.state, "store", None)
+    for row in tools:
+        # CARD-571 D5: Tools Studio shows what enabling will also accept.
+        row["pending_attach"] = pending_attach_proposals(store, str(row.get("name") or ""))
     return {"tools": tools, "packaging": "native", "mcp_required": False}
+
+
+@router.get("/{name}")
+def view_native_tool(name: str, request: Request) -> dict[str, Any]:
+    """Read-only record plus code, so Jacob reads the code before enabling [CARD-571 D3]."""
+    try:
+        return _service(request).view(name)
+    except NativeToolError as exc:
+        raise _http(exc) from exc
 
 
 @router.post("")
@@ -109,9 +124,22 @@ async def invoke_native_tool(name: str, payload: NativeToolInvokeRequest, reques
 @router.post("/{name}/enable")
 def enable_native_tool(name: str, request: Request) -> dict[str, Any]:
     try:
-        return _service(request).enable_by_operator(name)
+        body = _service(request).enable_by_operator(name)
     except NativeToolError as exc:
         raise _http(exc) from exc
+    # CARD-571 D5: enabling also accepts the tool's pending attach proposals (one decision).
+    from src.application.agent_skills.tool_attachment import accept_attach_proposals
+    from src.web.routers.agents import _data_dir_root
+
+    state = request.app.state
+    try:
+        body["accepted_attach"] = accept_attach_proposals(
+            state.store, state.registry, getattr(state, "tool_reg", None), name, data_root=_data_dir_root(request)
+        )
+    except Exception as exc:  # noqa: BLE001 - the tool is enabled; report the attach failure plainly
+        body["accepted_attach"] = []
+        body["attach_error"] = f"{name} is enabled, but attaching it to the agent's skill failed: {exc}"
+    return body
 
 
 @router.post("/{name}/disable")

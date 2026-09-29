@@ -912,17 +912,19 @@ export function initChatStudio(state, callbacks = {}) {
     newChatBtn.addEventListener('click', createNewSession);
   }
 
-  async function openDeveloperSession(sessionId, composerText = '') {
+  // CARD-571: Ask Developer chats belong to Toolsmith; the agent comes from the Talk reply.
+  async function openDeveloperSession(sessionId, composerText = '', agentId = 'toolsmith') {
     const id = String(sessionId || '').trim();
     if (!id) return null;
-    state.selectedAgentId = 'developer';
-    storageSet('autoreiv_active_agent_id', 'developer');
-    updateEngineSelectorUi('developer');
+    const agent = String(agentId || 'toolsmith');
+    state.selectedAgentId = agent;
+    storageSet('autoreiv_active_agent_id', agent);
+    updateEngineSelectorUi(agent);
     updateActiveAgentHeader();
     state.activeSessionId = id;
     await loadSessions();
     await selectSession(id);
-    // CARD-497 REQ-497-016: a real send - the Developer reply starts now, as if typed and Enter pressed.
+    // CARD-497 REQ-497-016: a real send - the Toolsmith reply starts now, as if typed and Enter pressed.
     const outcome = sendDeveloperIntent({
       sessionId: id,
       prompt: composerText,

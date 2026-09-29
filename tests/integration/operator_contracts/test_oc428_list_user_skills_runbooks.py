@@ -66,7 +66,7 @@ def _listed(tools, agent):
     )
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
+@pytest.mark.skip(reason="Capability authoring / MCP building is on no agent (CARD-571 Toolsmith builds native tools only)")
 def test_oc428_list_user_skills_includes_allowlisted_pack_runbook_only(operator_client):
     """REQ-428-001 and REQ-428-002. Pack runbook is listed by name. No operator-store copy."""
     client, _store, wiki = operator_client

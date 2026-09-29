@@ -107,7 +107,7 @@ describe('REQ-496-003/004: capability gaps open Skill Studio or a Developer chat
   it('Ask Developer posts to the Tools Studio talk route and opens the Developer chat', async () => {
     const { askDeveloperAboutGap, buildGapDeveloperDraft } = await import('../../../src/web/static/modules/studios/forge/tools.js');
     const draft = buildGapDeveloperDraft(gap, 'autoreiv');
-    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ session_id: 'dev1', agent_id: 'developer', prompt: `Create ${draft.tool_name}: ${draft.behavior}`, opened_job: false }) }));
+    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ session_id: 'dev1', agent_id: 'toolsmith', prompt: `Create ${draft.tool_name}: ${draft.behavior}`, opened_job: false }) }));
     const openDeveloperSession = vi.fn(async () => {});
     const callbacks = { switchTab: vi.fn(), getChatCtrl: () => ({ openDeveloperSession }), openToolsStudio: vi.fn() };
     const ok = await askDeveloperAboutGap(gap, 'autoreiv', { fetchFn, callbacks, toastFn: vi.fn() });
@@ -117,7 +117,7 @@ describe('REQ-496-003/004: capability gaps open Skill Studio or a Developer chat
     expect(body.intent).toBe('create');
     expect(body.draft.tool_name).toBe('get_tc49_inventory');
     expect(callbacks.switchTab).toHaveBeenCalledWith('chat');
-    expect(openDeveloperSession).toHaveBeenCalledWith('dev1', expect.stringContaining('get_tc49_inventory'));
+    expect(openDeveloperSession).toHaveBeenCalledWith('dev1', expect.stringContaining('get_tc49_inventory'), 'toolsmith');
     expect(callbacks.openToolsStudio).not.toHaveBeenCalled();
   });
 

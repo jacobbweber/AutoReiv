@@ -123,7 +123,7 @@ describe('REQ-520-008/009/010: Ask Developer and Apply handlers', () => {
       calls.push([url, init.body ? JSON.parse(init.body) : null]);
       if (url.endsWith('/authoring/talk')) {
         const b = JSON.parse(init.body);
-        return json(200, { session_id: 'dev-520', agent_id: 'developer', opened_job: false, job_id: null, prompt: `Modify ${b.draft.tool_name}: ${b.draft.behavior}` });
+        return json(200, { session_id: 'dev-520', agent_id: 'toolsmith', opened_job: false, job_id: null, prompt: `Modify ${b.draft.tool_name}: ${b.draft.behavior}` });
       }
       if (url.endsWith('/escalate')) return json(200, { success: true });
       return json(200, []);
@@ -144,7 +144,7 @@ describe('REQ-520-008/009/010: Ask Developer and Apply handlers', () => {
     expect(talks[0][1].draft.behavior).toContain('8 KB');
     expect(switchTab).toHaveBeenCalledWith('chat');
     expect(openDeveloperSession).toHaveBeenCalledTimes(1);
-    expect(openDeveloperSession).toHaveBeenCalledWith('dev-520', expect.stringContaining('c520_inventory_dump'));
+    expect(openDeveloperSession).toHaveBeenCalledWith('dev-520', expect.stringContaining('c520_inventory_dump'), 'toolsmith');
     const esc = calls.find(([u]) => u.endsWith('/recommendations/rec_esc/escalate'));
     expect(esc && esc[1]).toEqual({ developer_session_id: 'dev-520' });
     expect(btn.disabled).toBe(true);
@@ -185,12 +185,12 @@ describe('REQ-520-011: one Ask Developer helper for gap, Teach and Observability
     const { askDeveloperWithDraft } = await import('../../../src/web/static/modules/studios/tools_studio_authoring.js');
     const fetchFn = vi.fn(async (url, init) => {
       const b = JSON.parse(init.body);
-      return json(200, { session_id: 'd1', agent_id: 'developer', opened_job: false, job_id: null, prompt: `X ${b.draft.tool_name} ${b.draft.behavior}` });
+      return json(200, { session_id: 'd1', agent_id: 'toolsmith', opened_job: false, job_id: null, prompt: `X ${b.draft.tool_name} ${b.draft.behavior}` });
     });
     const open = vi.fn(async () => {});
     const plan = await askDeveloperWithDraft({ tool_name: 't1', behavior: 'do it' }, { intent: 'modify', fetchFn, openDeveloperSessionFn: open });
     expect(JSON.parse(fetchFn.mock.calls[0][1].body).intent).toBe('modify');
-    expect(open).toHaveBeenCalledWith('d1', expect.stringContaining('t1'));
+    expect(open).toHaveBeenCalledWith('d1', expect.stringContaining('t1'), 'toolsmith');
     expect(plan.sessionId).toBe('d1');
   });
 });

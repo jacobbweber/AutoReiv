@@ -98,7 +98,7 @@ export function buildGapDeveloperDraft(gap = {}, agentId = '') {
 }
 
 /**
- * Ask Developer: open a Developer chat with the gap attached; Tools Studio if that fails.
+ * Ask Developer: open a Toolsmith chat with the gap attached; Tools Studio if that fails.
  * Same path as Teach (chat/teach_modal.js) and Tools Studio Talk [CARD-472, CARD-496].
  */
 export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callbacks = {}, toastFn = showToast } = {}) {
@@ -112,7 +112,7 @@ export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callb
     });
     return true;
   } catch (err) {
-    toastFn(`Could not open a Developer chat: ${err.message || err}. Opening Tools Studio.`, 'error');
+    toastFn(`Could not open a Toolsmith chat: ${err.message || err}. Opening Tools Studio.`, 'error');
     if (typeof callbacks.openToolsStudio === 'function') callbacks.openToolsStudio(agentId);
     return false;
   }

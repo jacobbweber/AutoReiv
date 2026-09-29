@@ -240,7 +240,7 @@ describe('CARD-472 Teach modal (chat/teach_modal.js)', () => {
     const fetchFn = vi.fn(async (url, init) => {
       const body = JSON.parse(init.body);
       return json(200, {
-        session_id: 'dev1', agent_id: 'developer', opened_job: false, job_id: null,
+        session_id: 'dev1', agent_id: 'toolsmith', opened_job: false, job_id: null,
         prompt: `Create tool ${body.draft.tool_name}: ${body.draft.behavior}`,
       });
     });
@@ -259,7 +259,7 @@ describe('CARD-472 Teach modal (chat/teach_modal.js)', () => {
     expect(body.draft.tool_name).toBe('get_city_weather');
     expect(body.draft.behavior).toContain('Fetch weather for a city');
     expect(body.draft.behavior).toContain('Return temperature');
-    expect(openDeveloperSessionFn).toHaveBeenCalledWith('dev1', expect.stringContaining('get_city_weather'));
+    expect(openDeveloperSessionFn).toHaveBeenCalledWith('dev1', expect.stringContaining('get_city_weather'), 'toolsmith');
   });
 
   it('REQ-472-007: if the Developer chat cannot open, toast and fall back to Tools Studio', async () => {

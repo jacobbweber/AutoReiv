@@ -117,6 +117,81 @@ def detect_path_safety_violation(tool_code: str) -> Optional[str]:
     return None
 
 
+# CARD-571 D4: built tools may use the network, files or other programs. The check only names that
+# access so Tools Studio can warn before Jacob enables the tool; nothing here blocks it.
+_NETWORK_MODULES = frozenset({
+    "socket", "ssl", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib", "smtplib", "poplib",
+    "imaplib", "telnetlib", "websocket", "websockets", "paramiko", "xmlrpc",
+})
+_FILE_MODULES = frozenset({"pathlib", "shutil", "glob", "tempfile", "fileinput", "sqlite3", "zipfile", "tarfile"})
+_PROGRAM_MODULES = frozenset({"subprocess", "pty", "multiprocessing"})
+_OS_FILE_CALLS = frozenset({
+    "remove", "unlink", "rename", "replace", "listdir", "scandir", "walk", "makedirs", "mkdir", "rmdir",
+    "removedirs", "chmod", "open",
+})
+_OS_PROGRAM_PREFIXES = ("system", "popen", "startfile", "exec", "spawn", "posix_spawn", "fork", "kill")
+ACCESS_LABELS = {
+    "network": "the network",
+    "files": "files on this computer",
+    "programs": "other programs",
+    "hidden_imports": "modules imported by name (cannot be checked)",
+}
+
+
+def detect_access(code: str) -> list[str]:
+    """What a native tool can reach: network, files, programs, hidden_imports. Empty for pure helpers."""
+    try:
+        tree = ast.parse(code or "")
+    except SyntaxError:
+        return []
+    found: set[str] = set()
+
+    def _module(name: str) -> None:
+        root = (name or "").split(".")[0]
+        if root in _NETWORK_MODULES:
+            found.add("network")
+        if root in _FILE_MODULES:
+            found.add("files")
+        if root in _PROGRAM_MODULES:
+            found.add("programs")
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                _module(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            _module(node.module or "")
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name):
+                if func.id == "open":
+                    found.add("files")
+                elif func.id == "__import__":
+                    found.add("hidden_imports")
+            elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+                owner, attr = func.value.id, func.attr
+                if owner == "os" and attr in _OS_FILE_CALLS:
+                    found.add("files")
+                if owner == "os" and attr.startswith(_OS_PROGRAM_PREFIXES):
+                    found.add("programs")
+                if owner == "importlib" and attr == "import_module":
+                    found.add("hidden_imports")
+                if owner == "io" and attr == "open":
+                    found.add("files")
+    return [key for key in ACCESS_LABELS if key in found]
+
+
+def access_warning(access: list[str]) -> str:
+    """Plain sentence for Tools Studio and the register reply; empty when the tool reaches nothing."""
+    labels = [ACCESS_LABELS[a] for a in access if a in ACCESS_LABELS]
+    if not labels:
+        return ""
+    return (
+        "This tool can use " + ", ".join(labels) + ". AutoReiv does not block that: once enabled it runs "
+        "with your Windows user's access. Read the code before enabling."
+    )
+
+
 @dataclass
 class ToolCheckResult:
     """Outcome of one check. Stored on the tool row, the MCP record and the job journey."""
@@ -128,6 +203,7 @@ class ToolCheckResult:
     error: Optional[str] = None
     stages: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
+    access: list = field(default_factory=list)  # CARD-571 D4: network / files / programs
     sample_arguments: Optional[dict] = None
     sample_tool: Optional[str] = None
     skip_reason: Optional[str] = None
@@ -300,6 +376,7 @@ class ToolCheckService:
         try:
             error, warnings = _static_native(str(code or ""))
             result.warnings = warnings
+            result.access = detect_access(str(code or ""))
             if error:
                 raise _Outcome(STATUS_FAILED, "static", error)
             result.stages.append({"name": "static", "ok": True})

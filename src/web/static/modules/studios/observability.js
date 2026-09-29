@@ -956,11 +956,11 @@ async function askDeveloperAboutFriction(btn, recId, callbacks) {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      showToast(`Developer chat opened, but the card was not marked: ${body.detail || `HTTP ${res.status}`}`, 'warning');
+      showToast(`Toolsmith chat opened, but the card was not marked: ${body.detail || `HTTP ${res.status}`}`, 'warning');
     }
     loadFrictionRecommendations();
   } catch (err) {
-    showToast(`Could not open a Developer chat: ${err.message || err}`, 'error');
+    showToast(`Could not open a Toolsmith chat: ${err.message || err}`, 'error');
     btn.disabled = false;
   } finally {
     askDeveloperInFlight.delete(recId);

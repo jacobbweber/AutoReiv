@@ -1,7 +1,7 @@
 """CARD-422 operator contract: Tools Studio Talk and Submit.
 
 REQ-422-001..004. Temp user-data only [ADR-0055].
-Submit runs a developer turn or refuses. A queued job is not success.
+Submit runs a Toolsmith turn (CARD-571) or refuses. A queued job is not success.
 Packaging preference is stored on the packet and is not applied.
 """
 
@@ -55,7 +55,7 @@ class _RecordingKernel:
         assert kwargs.get("job_id")
         assert kwargs.get("phase_id")
         agent = kwargs.get("agent")
-        assert getattr(agent, "id", None) == "developer"
+        assert getattr(agent, "id", None) == "toolsmith"
         return ChatMessage(role=Role.ASSISTANT, content=self.content)
 
 
@@ -75,7 +75,6 @@ class _SlowKernel:
         return ChatMessage(role=Role.ASSISTANT, content="too late")
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_client):
     """REQ-422-001, REQ-422-002, REQ-422-003, REQ-422-004."""
     client, store, _wiki = operator_client
@@ -118,7 +117,7 @@ def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_cli
     created = client.post("/api/tools_studio/authoring/jobs", json={"intent": "create", "draft": DRAFT})
     assert created.status_code == 200, created.text
     body = created.json()
-    assert body["agent_id"] == "developer"
+    assert body["agent_id"] == "toolsmith"
     assert body["status"] == "done"
     assert body["status"] != "queued"
     assert body["ran"] is True
@@ -142,7 +141,7 @@ def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_cli
 
     job = store.get_job(body["job_id"])
     assert _status(job) == "done"
-    assert job.agent_id == "developer"
+    assert job.agent_id == "toolsmith"
     assert job.template_id == "tools_studio_developer_mediation"
     assert job.session_id == body["session_id"]
 
@@ -152,7 +151,7 @@ def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_cli
     assert BEHAVIOR in transcript
     assert reply in transcript
     session = store.get_session(body["session_id"])
-    assert session.agent_id == "developer"
+    assert session.agent_id == "toolsmith"
 
     observed = client.get(f"/api/observe/jobs/{body['job_id']}")
     assert observed.status_code == 200, observed.text
@@ -175,7 +174,7 @@ def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_cli
     assert talked["opened_job"] is False
     assert talked["opened_chat"] is True
     assert talked["job_id"] is None
-    assert talked["agent_id"] == "developer"
+    assert talked["agent_id"] == "toolsmith"
     assert talked["session_id"] != body["session_id"]
     assert BEHAVIOR in talked["prompt"]
     assert talked["persisted_tool"] is False
@@ -186,7 +185,7 @@ def test_oc422_talk_opens_developer_chat_and_submit_runs_or_refuses(operator_cli
     assert talk_messages.json() == []
     assert talked["session_id"]
     talk_session = store.get_session(talked["session_id"])
-    assert talk_session.agent_id == "developer"
+    assert talk_session.agent_id == "toolsmith"
     again = client.post("/api/tools_studio/authoring/talk", json={"intent": "modify", "draft": DRAFT})
     assert again.status_code == 200, again.text
     assert again.json()["session_id"] != talked["session_id"]
@@ -266,7 +265,6 @@ class _RegisteringKernel:
         return ChatMessage(role=Role.ASSISTANT, content=str(output.get("message") or result.error or "no output"))
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc511_job_records_the_tool_check_and_the_tool_is_not_registered(operator_client):
     """CARD-511 REQ-511-010: the Tools Studio job keeps the check result; persisted_tool stays false."""
     client, store, _wiki = operator_client

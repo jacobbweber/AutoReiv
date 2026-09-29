@@ -1,6 +1,6 @@
 """Attach a tool to a skill of an agent, as a pending proposal Jacob accepts [CARD-539, ADR-0061 rule 8].
 
-Developer (register_native_tool with target_agent_id), Teach and the CARD-539 migration create the
+Toolsmith (register_native_tool with target_agent_id), Teach and the CARD-539 migration create the
 proposal; nothing changes an agent's tools until the proposal is accepted. Accepting edits the skill's
 ``tools:`` list (user copy of its SKILL.md; a new skill gets a runbook) and ticks the skill on the agent.
 """
@@ -108,6 +108,59 @@ def tick_skill(store: Any, agent_registry: Any, agent_id: str, skill_id: str, da
     return not already
 
 
+def runtime_tool_not_enabled(tool: str) -> Optional[str]:
+    """CARD-571 Gap 1: a runtime-built tool must be enabled (approved code) before any agent gets it.
+
+    Returns the refusal sentence, or None for built-in tools and enabled runtime tools.
+    """
+    from src.application.tools.native_packaging import NativeToolError, runtime_tool_files
+
+    try:
+        files = runtime_tool_files()
+    except NativeToolError:  # no data dir configured: no runtime tools exist
+        return None
+    name = str(tool or "").strip()
+    if not name or files.read(name) is None:
+        return None
+    if files.mountable(name):
+        return None
+    return (
+        f"{name} is a runtime-built tool that is not enabled (or its code changed since approval). "
+        "Enable it in Tools Studio > Runtime-built tools; enabling also accepts this proposal."
+    )
+
+
+def pending_attach_proposals(store: Any, tool: str) -> list[dict[str, Any]]:
+    """Pending attach proposals for one tool (all agents), for Tools Studio and the one-step enable."""
+    out: list[dict[str, Any]] = []
+    getter = getattr(store, "get_pending_approvals", None)
+    if not callable(getter):
+        return out
+    for row in getter() or []:
+        args = row.get("arguments") or {}
+        if row.get("tool_name") == ATTACH_TOOL_PROPOSAL and args.get("tool") == tool:
+            out.append({"approval_id": str(row.get("id")), "agent_id": args.get("agent_id"), "skill_id": args.get("skill_id")})
+    return out
+
+
+def accept_attach_proposals(
+    store: Any, agent_registry: Any, tool_registry: Any, tool: str, *, data_root: Path
+) -> list[dict[str, Any]]:
+    """CARD-571 D5: Jacob enabling a runtime tool also accepts its pending attach proposals (one step).
+
+    Called only from the Tools Studio enable route, after the tool is enabled.
+    """
+    accepted: list[dict[str, Any]] = []
+    for item in pending_attach_proposals(store, tool):
+        record = store.get_approval(item["approval_id"]) or {}
+        result = apply_tool_attachment(store, agent_registry, tool_registry, record.get("arguments") or {}, data_root=data_root)
+        store.resolve_approval(
+            approval_id=item["approval_id"], decision="approved", reason="Accepted by enabling the tool in Tools Studio."
+        )
+        accepted.append(result | {"approval_id": item["approval_id"]})
+    return accepted
+
+
 def apply_tool_attachment(
     store: Any, agent_registry: Any, tool_registry: Any, args: Mapping[str, Any], *, data_root: Path
 ) -> dict[str, Any]:
@@ -120,6 +173,9 @@ def apply_tool_attachment(
     sid = str(args.get("skill_id") or "").strip()
     if not (tool and agent_id and sid):
         raise ValueError("Proposal is missing tool, agent_id or skill_id.")
+    refusal = runtime_tool_not_enabled(tool)
+    if refusal:
+        raise ValueError(refusal)
     db_path = getattr(store, "db_path", None)
     wildcard = tool.endswith("*")
     if args.get("new_skill"):
