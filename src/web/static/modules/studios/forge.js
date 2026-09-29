@@ -101,10 +101,11 @@ export function createForgeLoadGuard() {
   };
 }
 
-/** CARD-573: while an agent is being filled in, its editable sections cannot be changed (inert) and Save waits. */
+/** CARD-573: until an agent is shown / while one is filled in, its editable sections are inert (they start inert in index.html) and Save waits. */
+export const FORGE_AGENT_SECTIONS = 'details.forge-section[data-card="299"]';
 export function setForgeFormBusy(on, doc = typeof document !== 'undefined' ? document : null) {
   if (!doc || typeof doc.querySelectorAll !== 'function') return;
-  doc.querySelectorAll('details.forge-section').forEach((el) => {
+  doc.querySelectorAll(FORGE_AGENT_SECTIONS).forEach((el) => {
     if (on) { el.setAttribute('inert', ''); el.setAttribute('aria-busy', 'true'); } else { el.removeAttribute('inert'); el.removeAttribute('aria-busy'); }
   });
 }
@@ -165,7 +166,8 @@ export function initAgentForge(state, callbacks = {}) {
   // Internal coordinator state
   let activeForgeAgent = null;
   const loadGuard = createForgeLoadGuard(); // CARD-573
-  let forgeBusy = false;
+  let forgeBusy = true; // CARD-573: nothing shown until the first load renders an agent
+  let loadsInFlight = 0;
   let cachedSkillsCatalog = null;
   let cachedPlatformSkills = [];
   let cachedOperatorSkills = [];
@@ -234,6 +236,8 @@ export function initAgentForge(state, callbacks = {}) {
 
   async function loadAgentForge(targetAgentId) {
     const pickMark = loadGuard.pickMark(); // CARD-573
+    if (!activeForgeAgent) { forgeBusy = true; setForgeFormBusy(true); } // nothing shown yet: no edits on an empty form
+    loadsInFlight += 1;
     try {
       const catRes = await fetch('/api/skills/catalog');
       if (catRes.ok) {
@@ -276,6 +280,9 @@ export function initAgentForge(state, callbacks = {}) {
       }
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load Agent Studio:', err);
+    } finally {
+      loadsInFlight -= 1;
+      if (!activeForgeAgent && !loadsInFlight) { forgeBusy = false; setForgeFormBusy(false); }
     }
   }
 
@@ -595,6 +602,10 @@ export function initAgentForge(state, callbacks = {}) {
       if (selectedId) storageSet(PICKER_KEYS.agents, selectedId);
       const agent = (state.agents || []).find((a) => a.id === selectedId);
       if (agent) renderAgentToForge(agent);
+      else if (selectedId) { // CARD-573: roster not loaded yet; the running load (or a new one) shows the pick
+        activeForgeAgent = null; forgeBusy = true; setForgeFormBusy(true);
+        if (!loadsInFlight) loadAgentForge(selectedId);
+      }
     });
   }
 

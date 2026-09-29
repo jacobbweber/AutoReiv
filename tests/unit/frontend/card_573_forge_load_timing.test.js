@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createForgeLoadGuard, setForgeFormBusy } from '../../../src/web/static/modules/studios/forge.js';
+import { FORGE_AGENT_SECTIONS, createForgeLoadGuard, setForgeFormBusy } from '../../../src/web/static/modules/studios/forge.js';
 
 const ROOT = path.resolve(__dirname, '../../..');
 const forge = fs.readFileSync(path.join(ROOT, 'src/web/static/modules/studios/forge.js'), 'utf-8');
@@ -31,7 +31,7 @@ describe('CARD-573 Agent Studio load timing', () => {
   it('busy makes the editable sections inert, and clears it after', () => {
     const attrs = [new Map(), new Map()];
     const els = attrs.map((m) => ({ setAttribute: (k, v) => m.set(k, v), removeAttribute: (k) => m.delete(k) }));
-    const doc = { querySelectorAll: (sel) => (sel === 'details.forge-section' ? els : []) };
+    const doc = { querySelectorAll: (sel) => (sel === FORGE_AGENT_SECTIONS ? els : []) };
     setForgeFormBusy(true, doc);
     expect(attrs.every((m) => m.has('inert') && m.get('aria-busy') === 'true')).toBe(true);
     setForgeFormBusy(false, doc);
@@ -45,5 +45,14 @@ describe('CARD-573 Agent Studio load timing', () => {
     expect(forge).toMatch(/loadGuard\.pickedSince\(pickMark\)/);
     expect(forge).toMatch(/loadGuard\.userPicked\(\)/);
     expect(forge).toMatch(/if \(forgeBusy\) \{ showToast/);
+    expect(forge).toMatch(/let forgeBusy = true;/);
+  });
+
+  it('the four agent sections start inert in index.html until an agent is shown', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'src/web/templates/index.html'), 'utf-8');
+    const tags = html.match(/<details class="forge-section" data-card="299"[^>]*>/g) || [];
+    expect(tags.length).toBe(4);
+    expect(tags.every((t) => / inert aria-busy="true" /.test(t))).toBe(true);
+    expect(FORGE_AGENT_SECTIONS).toBe('details.forge-section[data-card="299"]');
   });
 });
