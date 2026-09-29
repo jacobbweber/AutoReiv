@@ -1,6 +1,6 @@
 """SKILL.md YAML frontmatter parse/serialize for the Skill Studio workshop [CARD-411].
 
-Structured fields (name, description, tier, safety, requires_tools) round-trip
+Structured fields (name, description, tier, safety, tools) round-trip
 without dropping the markdown body or unrelated frontmatter keys such as
 verification.
 """
@@ -20,14 +20,14 @@ _FIELD_ORDER = (
     "version",
     "author",
     "tier",
-    "requires_tools",
+    "tools",
     "safety",
     "verification",
 )
 
 
 class UnknownCatalogToolError(ValueError):
-    """requires_tools contains ids that are not in the platform tool catalog."""
+    """tools contains ids that are not in the platform tool catalog."""
 
     def __init__(self, rejected: Sequence[str]):
         self.rejected = [str(item) for item in rejected]
@@ -102,14 +102,14 @@ def serialize_skill_markdown(meta: Mapping[str, Any], body: str) -> str:
 def frontmatter_view(text: str) -> dict[str, Any]:
     """Structured inspector/editor view of a SKILL.md document."""
     meta, body = split_skill_markdown(text)
-    tools, _rejected = normalize_tool_ids(meta.get("requires_tools") or meta.get("tools") or [])
+    tools, _rejected = normalize_tool_ids(meta.get("tools") or [])
     tier = str(meta.get("tier") or "pack").strip() or "pack"
     return {
         "name": str(meta.get("name") or "").strip(),
         "description": str(meta.get("description") or "").strip(),
         "tier": tier if tier in VALID_TIERS else "pack",
         "safety": _normalize_safety(meta.get("safety") if isinstance(meta.get("safety"), dict) else {}),
-        "requires_tools": tools,
+        "tools": tools,
         "body": body,
     }
 
@@ -121,13 +121,13 @@ def apply_workshop_metadata(
     description: Optional[str] = None,
     tier: Optional[str] = None,
     safety: Optional[Mapping[str, Any]] = None,
-    requires_tools: Optional[Sequence[Any]] = None,
+    tools: Optional[Sequence[Any]] = None,
     catalog_ids: Optional[Iterable[str]] = None,
 ) -> tuple[str, dict[str, Any]]:
     """Overlay structured workshop fields onto frontmatter and preserve the body.
 
     When ``catalog_ids`` is provided, unknown tool ids raise UnknownCatalogToolError
-    and are not written into requires_tools.
+    and are not written into tools.
     """
     meta, body = split_skill_markdown(markdown)
     if name is not None:
@@ -149,14 +149,13 @@ def apply_workshop_metadata(
         safety_source = {}
     meta["safety"] = _normalize_safety(safety_source)
 
-    if requires_tools is None:
-        raw_tools = meta.get("requires_tools") if meta.get("requires_tools") is not None else meta.get("tools") or []
+    if tools is None:
+        raw_tools = meta.get("tools") or []
         accepted, rejected = normalize_tool_ids(raw_tools, catalog_ids)
     else:
-        accepted, rejected = normalize_tool_ids(requires_tools, catalog_ids)
+        accepted, rejected = normalize_tool_ids(tools, catalog_ids)
     if catalog_ids is not None and rejected:
         raise UnknownCatalogToolError(rejected)
-    meta["requires_tools"] = accepted
-    meta.pop("tools", None)
+    meta["tools"] = accepted
     rendered = serialize_skill_markdown(meta, body)
     return rendered, frontmatter_view(rendered)

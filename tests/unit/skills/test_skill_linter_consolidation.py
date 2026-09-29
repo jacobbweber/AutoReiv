@@ -44,6 +44,6 @@ def test_consolidated_skills_exist_and_pass_lint():
         error_violations = [v for v in violations if v.severity.value == "error"]
         assert not error_violations, f"Violations found for {skill_name}: {error_violations}"
         assert contract is not None
-        assert len(contract.requires_tools) <= 6
+        assert len(contract.tools) <= 6
         assert contract.verification is not None
         assert contract.verification.rule.strip() != ""

@@ -45,7 +45,7 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
     expect(html).toContain('id="factorySkillSafetyHitl"');
     expect(html).toContain('id="factoryRequiredToolsChips"');
     expect(html).toContain('id="factoryExistingSkillSelect"');
-    expect(factory).toContain('requires_tools');
+    expect(factory).toContain('tools');
     expect(factory).toContain('applyWorkshopMetadata');
     expect(factory).toContain('/api/skill_studio/skills/');
     expect(factory).toContain('syncFrontmatter');
@@ -76,6 +76,6 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
     const fields = workshop.workshopFields();
     expect(fields.tier).toBe('pack');
     expect(fields.tier).not.toBe('platform');
-    expect(fields.requires_tools).toEqual(['wiki_note_read']);
+    expect(fields.tools).toEqual(['wiki_note_read']);
   });
 });

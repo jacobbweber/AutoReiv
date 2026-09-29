@@ -179,15 +179,13 @@ export function renderAssignedSkills({
 export function operatorSkillPillModel(row) {
   const source = row && typeof row === 'object' ? row : {};
   const id = String(source.id || '').trim();
-  const required = Array.isArray(source.requires_tools)
-    ? source.requires_tools.map((item) => String(item || '').trim()).filter(Boolean)
+  const tools = Array.isArray(source.tools)
+    ? source.tools.map((item) => String((item && item.name) || item || '').trim()).filter(Boolean)
     : [];
-  const tools = Array.isArray(source.tools) && source.tools.length ? source.tools : required;
   return {
     id,
     name: String(source.name || id),
     description: String(source.description || ''),
-    requires_tools: required,
     tools,
   };
 }

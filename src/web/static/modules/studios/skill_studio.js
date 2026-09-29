@@ -336,7 +336,7 @@ export function initSkillStudio(_state, callbacks = {}) {
       description: fields.description,
       tier: fields.tier,
       safety: fields.safety,
-      requires_tools: fields.requires_tools,
+      tools: fields.tools,
     };
     if (pinAgentId) {
       payload.agent_id = pinAgentId;

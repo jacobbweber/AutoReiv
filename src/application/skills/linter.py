@@ -73,8 +73,8 @@ class SkillContractCompiler:
         description = frontmatter_dict.get("description", "") if frontmatter_dict else ""
         version = str(frontmatter_dict.get("version", "1.0.0")) if frontmatter_dict else "1.0.0"
 
-        # Resolve requires_tools
-        requires_tools = self._resolve_tools(frontmatter_dict, raw_body)
+        # Resolve tools
+        tools = self._resolve_tools(frontmatter_dict, raw_body)
 
         # Resolve verification contract
         verification = self._resolve_verification(frontmatter_dict, raw_body)
@@ -87,22 +87,22 @@ class SkillContractCompiler:
             name=name,
             description=description,
             version=version,
-            requires_tools=requires_tools,
+            tools=tools,
             verification=verification,
             safety=safety,
             raw_body=raw_body,
             path=path_str or None,
         )
 
-        # Rule CAP-001: Tool Entropy Budget Cap (len(requires_tools) <= MAX_TOOLS_PER_SKILL) [REQ-CAP-LINT-001]
-        if len(contract.requires_tools) > MAX_TOOLS_PER_SKILL:
+        # Rule CAP-001: Tool Entropy Budget Cap (len(tools) <= MAX_TOOLS_PER_SKILL) [REQ-CAP-LINT-001]
+        if len(contract.tools) > MAX_TOOLS_PER_SKILL:
             violations.append(
                 LintViolation(
                     rule_id="CAP-001",
                     rule_name="tool_budget_cap",
                     severity=LintSeverity.ERROR,
                     message=(
-                        f"Tool budget exceeded: {len(contract.requires_tools)} tools declared, "
+                        f"Tool budget exceeded: {len(contract.tools)} tools declared, "
                         f"maximum allowed is {MAX_TOOLS_PER_SKILL}."
                     ),
                     path=path_str,
@@ -123,7 +123,7 @@ class SkillContractCompiler:
 
         # Rule CAP-003: Security Boundary Collision [REQ-CAP-LINT-003]
         if contract.safety.untrusted_input_allowed:
-            mutating = [t for t in contract.requires_tools if t in HIGH_RISK_TOOLS]
+            mutating = [t for t in contract.tools if t in HIGH_RISK_TOOLS]
             if mutating and not contract.safety.requires_hitl:
                 violations.append(
                     LintViolation(
@@ -177,7 +177,7 @@ class SkillContractCompiler:
         return {}, body.strip(), None
 
     def _resolve_tools(self, frontmatter: Dict[str, Any], body: str) -> List[str]:
-        raw_tools = frontmatter.get("requires_tools") or frontmatter.get("tools")
+        raw_tools = frontmatter.get("tools")
         if isinstance(raw_tools, (list, tuple)):
             return [str(t).strip() for t in raw_tools if str(t).strip()]
 

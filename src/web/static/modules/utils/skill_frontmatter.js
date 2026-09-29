@@ -3,7 +3,7 @@
  * Structured metadata is the editor source of truth. The markdown body is preserved.
  */
 
-const FIELD_ORDER = ['name', 'description', 'version', 'author', 'tier', 'requires_tools', 'safety', 'verification'];
+const FIELD_ORDER = ['name', 'description', 'version', 'author', 'tier', 'tools', 'safety', 'verification'];
 export const SKILL_TIERS = ['platform', 'pack', 'user'];
 export const SAFETY_KEYS = ['read_only', 'requires_hitl', 'untrusted_input_allowed'];
 
@@ -160,17 +160,16 @@ export function applyWorkshopMetadata(markdown, fields = {}, catalogIds = null) 
     next.tier = 'pack';
   }
   next.safety = normalizeSafety(fields.safety != null ? fields.safety : next.safety);
-  const rawTools = fields.requires_tools != null
-    ? fields.requires_tools
-    : (next.requires_tools || next.tools || []);
+  const rawTools = fields.tools != null
+    ? fields.tools
+    : (next.tools || []);
   const { accepted, rejected } = normalizeToolIds(rawTools, catalogIds);
-  next.requires_tools = accepted;
-  delete next.tools;
+  next.tools = accepted;
   return {
     markdown: serializeSkillMarkdown(next, body),
     meta: next,
     rejected,
-    requires_tools: accepted,
+    tools: accepted,
   };
 }
 

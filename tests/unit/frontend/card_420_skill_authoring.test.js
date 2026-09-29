@@ -45,7 +45,7 @@ const draft = {
   description: 'File a short wiki digest',
   tier: 'pack',
   safety: { read_only: true, requires_hitl: false, untrusted_input_allowed: false },
-  requires_tools: ['wiki_note_read'],
+  tools: ['wiki_note_read'],
   markdown: '---\nname: Wiki Digest\n---\n# Wiki Digest\n',
   intent_notes: 'Keep it short',
   source_context: '',

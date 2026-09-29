@@ -42,7 +42,7 @@ class SaveScaffoldRequest(BaseModel):
     description: Optional[str] = None
     tier: Optional[str] = None
     safety: Optional[Dict[str, Any]] = None
-    requires_tools: Optional[List[str]] = None
+    tools: Optional[List[str]] = None
 
 
 @router.get("/api/tools_studio/capabilities")
@@ -132,7 +132,7 @@ async def scaffold_skill_runbook(req: ScaffoldRunbookRequest, request: Request) 
         "---\n"
         "name: <Skill Name>\n"
         "description: <Trigger description, strictly <= 60 chars>\n"
-        "requires_tools:\n"
+        "tools:\n"
         "  - <tool_name>\n"
         "---\n"
         "Followed by clear markdown sections:\n"
@@ -164,9 +164,9 @@ async def scaffold_skill_runbook(req: ScaffoldRunbookRequest, request: Request) 
 
     if req.selected_tools:
         tools_list = "\n".join(f"  - {t}" for t in req.selected_tools)
-        fallback_tools_yaml = f"requires_tools:\n{tools_list}"
+        fallback_tools_yaml = f"tools:\n{tools_list}"
     else:
-        fallback_tools_yaml = "requires_tools: []"
+        fallback_tools_yaml = "tools: []"
 
     tools_line = ", ".join(req.selected_tools) if req.selected_tools else "None (Pure procedural skill)"
     fallback_runbook = f"""---
@@ -213,7 +213,7 @@ description: {clean_trigger}
         "skill_id": req.skill_id,
         "skill_name": req.skill_name,
         "trigger_description": clean_trigger,
-        "requires_tools": req.selected_tools,
+        "tools": req.selected_tools,
         "markdown_content": generated.strip(),
     }
 
@@ -258,7 +258,7 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
             description=req.description,
             tier=req.tier,
             safety=req.safety,
-            requires_tools=req.requires_tools,
+            tools=req.tools,
             db_path=str(db_path) if db_path else None,
         )
     except UnknownCatalogToolError as exc:
@@ -287,7 +287,7 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
         "skill_path": str(skill_file),
         "skill_store_path": persisted["skill_store_path"],
         "pinned": bool(clean_agent_id and req.auto_pin),
-        "requires_tools": persisted["requires_tools"],
+        "tools": persisted["tools"],
         "tier": persisted["tier"],
         "safety": persisted["safety"],
         "binding_store": "skill_md",

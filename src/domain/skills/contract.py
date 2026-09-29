@@ -48,7 +48,7 @@ class SkillContract(BaseModel):
     version: str = "1.0.0"
     author: Optional[str] = None
     tier: str = "platform"
-    requires_tools: List[str] = Field(default_factory=list)
+    tools: List[str] = Field(default_factory=list)
     verification: Optional[VerificationContract] = None
     safety: SafetyContract = Field(default_factory=SafetyContract)
     raw_body: str = ""

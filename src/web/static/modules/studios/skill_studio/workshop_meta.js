@@ -1,6 +1,6 @@
 /**
  * Skill Studio structured frontmatter controls [CARD-411, moved from studios/factory/ in CARD-496].
- * Tool picker state is the single lever for requires_tools.
+ * Tool picker state is the single lever for tools.
  */
 
 import { applyWorkshopMetadata } from '../../utils/skill_frontmatter.js';
@@ -15,8 +15,8 @@ export function applyLoadedSkillView(data = {}, skillId = '') {
   const payload = data && typeof data === 'object' ? data : {};
   const detail = typeof payload.detail === 'string' ? payload.detail : '';
   const description = String(payload.description || '').slice(0, 60);
-  const requiresTools = Array.isArray(payload.requires_tools)
-    ? payload.requires_tools.map((item) => String(item || '').trim()).filter(Boolean)
+  const tools = Array.isArray(payload.tools)
+    ? payload.tools.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
   return {
     ok: !detail,
@@ -31,7 +31,7 @@ export function applyLoadedSkillView(data = {}, skillId = '') {
       requires_hitl: Boolean(payload.safety && payload.safety.requires_hitl),
       untrusted_input_allowed: Boolean(payload.safety && payload.safety.untrusted_input_allowed),
     },
-    requiresTools,
+    tools,
     markdown: String(payload.markdown_content || ''),
     deletable: Boolean(payload.deletable),
   };
@@ -100,7 +100,7 @@ export function createSkillWorkshop({
       description: (factorySkillTriggerInput && factorySkillTriggerInput.value.trim()) || '',
       tier: 'pack',
       safety: readSafety(),
-      requires_tools: Array.from(getSelectedTools()),
+      tools: Array.from(getSelectedTools()),
     };
   }
 
@@ -138,7 +138,7 @@ export function createSkillWorkshop({
     if (!factorySkillMarkdownEditor) return;
     const fields = workshopFields();
     const current = factorySkillMarkdownEditor.value || '';
-    if (!current.trim() && !fields.name && !fields.description && fields.requires_tools.length === 0) return;
+    if (!current.trim() && !fields.name && !fields.description && fields.tools.length === 0) return;
     const applied = applyWorkshopMetadata(current, fields, catalogIds());
     factorySkillMarkdownEditor.value = applied.markdown;
   }
@@ -176,7 +176,7 @@ export function createSkillWorkshop({
       if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = view.safety.read_only;
       if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = view.safety.requires_hitl;
       if (factorySkillSafetyUntrusted) factorySkillSafetyUntrusted.checked = view.safety.untrusted_input_allowed;
-      setSelectedTools(new Set(view.requiresTools));
+      setSelectedTools(new Set(view.tools));
       if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = view.markdown;
       renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
       syncFrontmatter();

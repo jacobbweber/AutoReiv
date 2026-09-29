@@ -131,7 +131,7 @@ def apply_tool_attachment(
             catalog_ids=catalog_tool_ids(tool_registry),
             name=sid.replace("-", " ").title(),
             description=str(args.get("description") or f"Use {tool}"),
-            requires_tools=[] if wildcard else [tool],
+            tools=[] if wildcard else [tool],
             db_path=db_path,
         )
         if wildcard:

@@ -238,7 +238,7 @@ async def lint_skill_content(payload: SkillLintRequest):
 
     contract_dict = contract.model_dump(mode="json") if contract else None
     if contract_dict:
-        contract_dict["tools_count"] = len(contract.requires_tools)
+        contract_dict["tools_count"] = len(contract.tools)
 
     return {
         "valid": len(errors) == 0,

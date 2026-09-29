@@ -19,7 +19,7 @@ def test_lint_endpoint_valid_runbook_passes():
     valid_markdown = """---
 name: System Health Auditor
 description: Inspect and verify node health metrics and service status.
-requires_tools:
+tools:
   - inspect_system_health
   - get_system_logs
 ---
@@ -46,8 +46,8 @@ requires_tools:
     assert data["violations"] == []
     assert data["contract"]["name"] == "System Health Auditor"
     assert data["contract"]["tools_count"] == 2
-    assert "inspect_system_health" in data["contract"]["requires_tools"]
-    assert "get_system_logs" in data["contract"]["requires_tools"]
+    assert "inspect_system_health" in data["contract"]["tools"]
+    assert "get_system_logs" in data["contract"]["tools"]
 
 
 def test_lint_endpoint_missing_verification_fails_cap_002():
@@ -55,7 +55,7 @@ def test_lint_endpoint_missing_verification_fails_cap_002():
     unverified_markdown = """---
 name: Unfinished Runner
 description: Runs batch scripts without verifying completion.
-requires_tools:
+tools:
   - execute_code
 ---
 
@@ -78,7 +78,7 @@ def test_lint_endpoint_excessive_tools_fails_cap_001():
     bloated_markdown = """---
 name: Overloaded Specialist
 description: Tries to do everything under a single skill.
-requires_tools:
+tools:
   - tool_one
   - tool_two
   - tool_three

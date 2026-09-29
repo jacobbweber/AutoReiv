@@ -11,7 +11,7 @@ import inspect
 GOOD_MARKDOWN = """---
 name: Wiki Digest
 description: File a short wiki digest
-requires_tools: []
+tools: []
 ---
 # Wiki Digest
 
@@ -29,7 +29,7 @@ GOOD_DRAFT = {
         "requires_hitl": False,
         "untrusted_input_allowed": False,
     },
-    "requires_tools": [],
+    "tools": [],
     "markdown": GOOD_MARKDOWN,
     "intent_notes": "Keep the runbook short.",
     "source_context": "",
@@ -56,10 +56,10 @@ def test_oc420_lint_does_not_mint_job_and_build_is_visible_developer_job(operato
         json={
             "draft": {
                 **GOOD_DRAFT,
-                "requires_tools": ["not_a_real_tool_420"],
+                "tools": ["not_a_real_tool_420"],
                 "markdown": GOOD_MARKDOWN.replace(
-                    "requires_tools: []",
-                    "requires_tools:\n- not_a_real_tool_420",
+                    "tools: []",
+                    "tools:\n- not_a_real_tool_420",
                 ),
             }
         },

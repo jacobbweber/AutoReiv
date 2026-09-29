@@ -16,7 +16,7 @@ _RUNBOOK = """---
 name: Dotted Notes
 description: Notes for a dotted skill id
 tier: user
-requires_tools:
+tools:
   - inspect_widget
 safety:
   read_only: true
@@ -77,14 +77,13 @@ def test_pack_home_and_skill_store_and_dotted_id(tmp_path: Path):
     loaded = load_workshop_skill(tmp_path, "My.Skill", db_path=str(tmp_path / "no.db"))
     assert loaded is not None
     assert loaded["name"] == "Dotted Notes"
-    assert loaded["requires_tools"] == ["inspect_widget"]
+    assert loaded["tools"] == ["inspect_widget"]
     assert "Keep-the-body." in loaded["markdown_content"]
     assert loaded["deletable"] is True
 
     operator = {row["id"]: row for row in operator_store_skills(tmp_path)}
     assert set(operator) == {"My.Skill", "group/notes"}
-    assert operator["My.Skill"]["requires_tools"] == ["inspect_widget"]
-    assert operator["My.Skill"]["tools"] == [{"name": "inspect_widget"}]
+    assert operator["My.Skill"]["tools"] == ["inspect_widget"]
     assert "coordination" not in operator
 
 
@@ -135,7 +134,7 @@ async def test_get_workshop_skill_opens_seed_pack_and_dotted_ids(tmp_path, monke
 
         dotted_res = await ac.get("/api/skill_studio/skills/My.Skill")
         assert dotted_res.status_code == 200
-        assert dotted_res.json()["requires_tools"] == ["inspect_widget"]
+        assert dotted_res.json()["tools"] == ["inspect_widget"]
         assert "Keep-the-body." in dotted_res.json()["markdown_content"]
 
         nested_res = await ac.get("/api/skill_studio/skills/group/notes")

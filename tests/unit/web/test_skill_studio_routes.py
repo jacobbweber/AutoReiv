@@ -15,7 +15,7 @@ from src.web.app import create_app
 SKILL_MD = """---
 name: Blender Render
 description: Render 3D scenes via Blender MCP
-requires_tools:
+tools:
   - mcp_blender_render
 ---
 # Blender Render
@@ -91,7 +91,7 @@ async def test_2_runbook_fallback_and_model_text(app_env):
     assert "def execute(" not in md
 
     class _Resp:
-        text = "---\nname: Model Written\ndescription: x\nrequires_tools: []\n---\n# Model Written\n"
+        text = "---\nname: Model Written\ndescription: x\ntools: []\n---\n# Model Written\n"
 
     class _Gateway:
         default_model_id = "default"
@@ -126,7 +126,7 @@ async def test_3_save_binds_pins_and_uses_app_data_dir(app_env, tmp_path, monkey
     assert res["success"] is True
     assert res["pinned"] is True
     assert res["binding_store"] == "skill_md"  # CARD-570: the SKILL.md tools list is the binding
-    assert res["requires_tools"] == ["mcp_blender_render"]
+    assert res["tools"] == ["mcp_blender_render"]
     skill_file = data_dir / "skills" / "blender-render" / "SKILL.md"
     assert skill_file.is_file()
     assert "blender-render" in app.state.registry.get_agent("autoreiv").allowed_skill

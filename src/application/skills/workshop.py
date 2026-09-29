@@ -111,7 +111,7 @@ def _row_for_skill_file(path: Path, skill_id: str, source: str, data_root: Path)
         "name": name,
         "description": description,
         "source": source,
-        "requires_tools": list(view.get("requires_tools") or []),
+        "tools": list(view.get("tools") or []),
         "deletable": operator_skill_deletable(data_root, skill_id, path) if source == "store" else False,
     }
 
@@ -145,14 +145,13 @@ def operator_store_skills(data_root: Path) -> list[dict[str, Any]]:
         skill_id = str(row.get("id") or "").strip()
         if not skill_id:
             continue
-        tools = [str(item).strip() for item in (row.get("requires_tools") or []) if str(item).strip()]
+        tools = [str(item).strip() for item in (row.get("tools") or []) if str(item).strip()]
         rows.append(
             {
                 "id": skill_id,
                 "name": str(row.get("name") or skill_id),
                 "description": str(row.get("description") or ""),
-                "requires_tools": tools,
-                "tools": [{"name": tool_id} for tool_id in tools],
+                "tools": tools,
             }
         )
     return rows
@@ -195,7 +194,7 @@ def persist_workshop_skill(
     description: Optional[str] = None,
     tier: Optional[str] = None,
     safety: Optional[dict[str, Any]] = None,
-    requires_tools: Optional[Sequence[str]] = None,
+    tools: Optional[Sequence[str]] = None,
     db_path: Optional[str] = None,
 ) -> dict[str, Any]:
     """Write the SKILL.md user copy (data ``skills/<id>``); its ``tools:`` is the only tool list.
@@ -209,15 +208,14 @@ def persist_workshop_skill(
         description=description,
         tier=tier,
         safety=safety,
-        requires_tools=requires_tools,
+        tools=tools,
         catalog_ids=catalog,
     )
     if not rendered.endswith("\n"):
         rendered += "\n"
 
     meta, body = split_frontmatter(rendered)
-    meta.pop("requires_tools", None)
-    meta["tools"] = list(view["requires_tools"])
+    meta["tools"] = list(view["tools"])
     content = get_store()
     if content.data_root is not None and Path(content.data_root).resolve() == Path(data_root).resolve():
         saved = content.skills.save(skill_id, meta, body)
@@ -233,7 +231,7 @@ def persist_workshop_skill(
     return {
         "markdown": rendered,
         "frontmatter": view,
-        "requires_tools": list(view["requires_tools"]),
+        "tools": list(view["tools"]),
         "tier": view["tier"],
         "safety": view["safety"],
         "skill_store_path": str(store_file),
@@ -242,9 +240,9 @@ def persist_workshop_skill(
     }
 
 
-def extract_requires_tools(skill_content: str) -> list[str]:
+def extract_tools(skill_content: str) -> list[str]:
     meta, _body = split_skill_markdown(skill_content)
-    raw = meta.get("requires_tools") if meta.get("requires_tools") is not None else meta.get("tools") or []
+    raw = meta.get("tools") if meta.get("tools") is not None else meta.get("tools") or []
     if not isinstance(raw, list):
         return []
     return [str(item).strip() for item in raw if str(item).strip()]
