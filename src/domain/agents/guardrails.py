@@ -169,6 +169,8 @@ class AgentProfileGuardrail:
         if storage_enabled and "sqlite-storage" not in allowed_skill:
             allowed_skill.append("sqlite-storage")
 
+        always_auto_run = payload.get("always_auto_run") is True  # CARD-573
+
         # 9. Memory Configuration [CARD-116]
         raw_memory_enabled = payload.get("memory_enabled")
         memory_enabled = True if raw_memory_enabled is None else bool(raw_memory_enabled)
@@ -255,6 +257,7 @@ class AgentProfileGuardrail:
             fleet=fleet,
             max_turns=max_turns,
             history_retention_days=history_retention_days,
+            always_auto_run=always_auto_run,
             is_builtin=is_builtin,
             api_base_url=api_base_url,
             api_key=api_key,

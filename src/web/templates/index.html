@@ -1452,6 +1452,11 @@
                     </div>
                   </div>
                   <p class="text-[10px] text-slate-500">Max ReAct execution turns allowed per loop (1–1000 turns). Sessions older than cleanup threshold are purged. 0 means never.</p>
+                  <!-- CARD-573: Always auto-run -->
+                  <label class="flex items-start space-x-2 pt-2 border-t border-white/[0.06] cursor-pointer select-none" title="Chat Auto-run starts checked for every chat with this agent; you can untick it per chat.">
+                    <input type="checkbox" id="forgeAlwaysAutoRunInput" data-testid="forge-always-auto-run" class="mt-0.5 rounded bg-[#08090c] border-white/[0.08] text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
+                    <span class="text-[11px] text-slate-300"><span class="font-semibold text-slate-200">Always auto-run</span>: every chat with this agent starts with Auto-run on (write, shell and code tools run without asking; untick it in a chat to ask again there). New routines for this agent start with Auto-run on; existing routines keep their own setting.</span>
+                  </label>
                 </div>
               </div>
             </details>
@@ -4849,7 +4854,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.93"></script>
+  <script type="module" src="/static/app.js?v=2.0.94"></script>
 </body>
 </html>
 

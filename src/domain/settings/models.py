@@ -90,6 +90,7 @@ class AgentCustomization(BaseModel):
     show_in_chat: Optional[bool] = None
     max_turns: Optional[int] = None
     history_retention_days: Optional[int] = None
+    always_auto_run: Optional[bool] = None  # CARD-573
     api_base_url: Optional[str] = None
     api_key: Optional[str] = None
     context_window: Optional[int] = None

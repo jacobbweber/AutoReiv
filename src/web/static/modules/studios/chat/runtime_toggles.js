@@ -6,6 +6,7 @@
  */
 
 import { storageGet, storageSet } from '../../utils/storage.js';
+import { subscribeAgentsLoaded } from '../../state/store.js';
 import {
   APPROVAL_AUTORUN_STORAGE_KEY,
   readLastApprovalAutoRun,
@@ -28,6 +29,10 @@ export function resetSavedAutoRunOnce({ reader = storageGet, writer = storageSet
   }
 }
 
+function byId(id) {
+  return typeof document !== 'undefined' && typeof document.getElementById === 'function' ? document.getElementById(id) : null;
+}
+
 function showChip(chip, on) {
   if (chip && chip.classList && typeof chip.classList.toggle === 'function') {
     chip.classList.toggle('hidden', !on);
@@ -46,9 +51,13 @@ export function setupRuntimeModeToggles(
   showChip(approvalBadge, autoRun);
   approvalToggle?.addEventListener('change', (e) => {
     state.approvalAutoRun = Boolean(e.target.checked);
-    writeLastApprovalAutoRun(state.approvalAutoRun, writer);
+    // CARD-573: with the agent's Always auto-run on, a change is this chat's choice only.
+    if (state.autoRunFromAgent && state.activeSessionId) writeChatAutoRunChoice(state.activeSessionId, state.approvalAutoRun, { reader, writer });
+    else writeLastApprovalAutoRun(state.approvalAutoRun, writer);
     showChip(approvalBadge, state.approvalAutoRun);
   });
+  // CARD-573: re-apply the agent's Always auto-run when the roster (re)loads.
+  subscribeAgentsLoaded(() => { if (state.activeSessionId) applySessionAutoRun(state, { approvalToggle, approvalBadge, reader }); });
 
   state.verifyEnabled = Boolean(verifyToggle && verifyToggle.checked);
   showChip(verifyBadge, state.verifyEnabled);
@@ -85,5 +94,56 @@ export function takeRunAsJob(state, els = {}) {
   const toggle = els.runAsJobToggle;
   const on = Boolean(toggle ? toggle.checked : state.runAsJob);
   setRunAsJob(state, false, els);
+  return on;
+}
+
+/** CARD-573: per-chat Auto-run choices for agents with Always auto-run ({sessionId: 'run'|'ask'}). */
+export const AUTORUN_CHAT_CHOICES_KEY = 'autoreiv_autorun_chat_choices_573';
+const MAX_CHAT_CHOICES = 200;
+
+function readChatChoices(reader = storageGet) {
+  try {
+    const raw = reader(AUTORUN_CHAT_CHOICES_KEY, '');
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeChatAutoRunChoice(sessionId, on, { reader = storageGet, writer = storageSet } = {}) {
+  const id = String(sessionId || '').trim();
+  if (!id) return;
+  const choices = readChatChoices(reader);
+  delete choices[id];
+  choices[id] = on ? 'run' : 'ask';
+  const keys = Object.keys(choices);
+  while (keys.length > MAX_CHAT_CHOICES) delete choices[keys.shift()];
+  try { writer(AUTORUN_CHAT_CHOICES_KEY, JSON.stringify(choices)); } catch { /* storage full: choice lasts until reload */ }
+}
+
+/**
+ * CARD-573: set the Auto-run box for the chat being shown.
+ * Agent with Always auto-run: checked unless Jacob unticked it in this chat. Other agents: the remembered choice (CARD-470).
+ */
+export function applySessionAutoRun(state, {
+  approvalToggle = byId('approvalToggle'),
+  approvalBadge = byId('approvalBadge'),
+  agent = (state.agents || []).find((a) => a && a.id === state.selectedAgentId),
+  sessionId = state.activeSessionId,
+  reader = storageGet,
+} = {}) {
+  const always = Boolean(agent && agent.always_auto_run === true);
+  let on;
+  if (always) {
+    const choice = readChatChoices(reader)[String(sessionId || '')];
+    on = choice ? choice === 'run' : true;
+  } else {
+    on = readLastApprovalAutoRun(reader);
+  }
+  if (approvalToggle) approvalToggle.checked = on;
+  state.approvalAutoRun = on;
+  state.autoRunFromAgent = always;
+  showChip(approvalBadge, on);
   return on;
 }

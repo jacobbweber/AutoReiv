@@ -5,6 +5,7 @@
  * (2 s status re-check) while the chat's reply is still running elsewhere. Live replay is CARD-487.
  */
 
+import { applySessionAutoRun } from './runtime_toggles.js'; // CARD-573
 import { querySessionStatus } from './stream.js';
 import { createInlineJobChromeModel, applyInlineJobChromeModel } from './job_chrome.js';
 import { renderSessionList, loadChatSessionContext } from './chrome.js';
@@ -255,6 +256,7 @@ export function createSessionSelect(state, deps = {}) {
 
   async function afterSelect(sessionId, { userPick = false } = {}) {
     if (!sessionId) return;
+    applySessionAutoRun(state); // CARD-573: the agent's Always auto-run sets this chat's Auto-run box
     const streaming = getStreamSessionId();
     if (streaming && streaming !== sessionId) detachOwnStream(); // CARD-488 D1: server keeps going
     watcher.stop();
