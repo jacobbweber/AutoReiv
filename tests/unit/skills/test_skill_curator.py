@@ -209,11 +209,11 @@ def test_auto_archive_default_is_not_destructive(env):
 def test_list_user_skills_hides_archived(env):
     curate_user_skills(env["catalog"], now=env["now"], auto_archive=True)
     listed = env["catalog"].list_user_skills()
-    ids = {p["id"] for p in listed["packs"]}
+    ids = {p["id"] for p in listed["skills"]}
     assert "old-experiment" not in ids
     assert "fresh-pack" in ids
     assert BUNDLED_FIXTURE_ID in ids
-    assert all(ARCHIVE_DIRNAME not in p["id"] for p in listed["packs"])
+    assert all(ARCHIVE_DIRNAME not in p["id"] for p in listed["skills"])
     loader_ids = {m.id for m in DynamicSkillLoader.list_skill_manifests(str(env["skills"]))}
     assert "old-experiment" not in loader_ids
     assert all(ARCHIVE_DIRNAME not in i for i in loader_ids)
@@ -227,7 +227,7 @@ def test_unarchive_restores_and_dest_exists_fails_closed(env):
     live = env["skills"] / "old-experiment" / "SKILL.md"
     assert live.is_file()
     assert "Distinctive-archive-token" in live.read_text(encoding="utf-8")
-    ids = {p["id"] for p in env["catalog"].list_user_skills()["packs"]}
+    ids = {p["id"] for p in env["catalog"].list_user_skills()["skills"]}
     assert "old-experiment" in ids
     # archive again then plant a live dest to prove fail-closed
     curate_user_skills(env["catalog"], now=env["now"], auto_archive=True)
@@ -318,13 +318,13 @@ def test_api_hides_archived_and_unarchive_reopens(tmp_path, now, monkeypatch):
 
     listed = client.get("/api/skills/user-skills")
     assert listed.status_code == 200
-    ids = {p["id"] for p in listed.json()["packs"]}
+    ids = {p["id"] for p in listed.json()["skills"]}
     assert "old-experiment" not in ids
     assert "okta-admin" not in ids
 
     archived = client.get("/api/skills/archived-skills")
     assert archived.status_code == 200
-    arch_ids = {p["id"] for p in archived.json()["packs"]}
+    arch_ids = {p["id"] for p in archived.json()["skills"]}
     assert "old-experiment" in arch_ids
 
     restored = client.post("/api/skills/user-skills/old-experiment/unarchive")

@@ -17,23 +17,23 @@ from src.application.skills.user_catalog import SkillJailError, UserSkillCatalog
 router = APIRouter(tags=["Skills"])
 
 
-class UserPackWrite(BaseModel):
+class UserSkillWrite(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
     instructions: str = ""
 
 
-class UserPackCreate(BaseModel):
+class UserSkillCreate(BaseModel):
     id: str = Field(..., min_length=1)
     name: Optional[str] = None
-    description: str = "User skill pack."
+    description: str = "User skill."
 
 
-class UserPackArchive(BaseModel):
+class UserSkillArchive(BaseModel):
     confirm: bool = False
 
 
-class UserPackDelete(BaseModel):
+class UserSkillDelete(BaseModel):
     confirm: bool = False
     confirm_seed: bool = False
 
@@ -55,9 +55,9 @@ def _http_jail(exc: SkillJailError) -> HTTPException:
 @router.get("/api/skills/user-skills")
 async def list_user_skills(request: Request, include_archived: bool = False):
     catalog = _catalog(request)
-    packs = []
+    skill_rows = []
     for manifest in catalog.list_manifests():
-        packs.append(
+        skill_rows.append(
             {
                 "id": manifest.id,
                 "name": manifest.name,
@@ -67,18 +67,18 @@ async def list_user_skills(request: Request, include_archived: bool = False):
             }
         )
     if include_archived:
-        packs.extend(list_archived_skills(catalog))
-    return {"packs": packs}
+        skill_rows.extend(list_archived_skills(catalog))
+    return {"skills": skill_rows}
 
 
 @router.get("/api/skills/archived-skills")
 async def get_archived_skills(request: Request):
     catalog = _catalog(request)
-    return {"packs": list_archived_skills(catalog)}
+    return {"skills": list_archived_skills(catalog)}
 
 
 @router.post("/api/skills/user-skills/{skill_id:path}/archive")
-async def post_archive_user_skill(request: Request, skill_id: str, payload: Optional[UserPackArchive] = None):
+async def post_archive_user_skill(request: Request, skill_id: str, payload: Optional[UserSkillArchive] = None):
     catalog = _catalog(request)
     confirm = bool(payload.confirm) if payload is not None else False
     try:
@@ -87,7 +87,7 @@ async def post_archive_user_skill(request: Request, skill_id: str, payload: Opti
         raise _http_jail(exc) from exc
     if not result.get("success"):
         code = 409 if "already exists" in str(result.get("error") or "") else 400
-        raise HTTPException(status_code=code, detail=result.get("error", "Failed to archive pack"))
+        raise HTTPException(status_code=code, detail=result.get("error", "Failed to archive skill"))
     return result
 
 
@@ -99,15 +99,15 @@ async def post_unarchive_user_skill(request: Request, skill_id: str):
     except SkillJailError as exc:
         raise _http_jail(exc) from exc
     if result.get("not_found"):
-        raise HTTPException(status_code=404, detail=result.get("error", f"Archived pack '{skill_id}' not found"))
+        raise HTTPException(status_code=404, detail=result.get("error", f"Archived skill '{skill_id}' not found"))
     if not result.get("success"):
         code = 409 if result.get("conflict") else 400
-        raise HTTPException(status_code=code, detail=result.get("error", "Failed to unarchive pack"))
+        raise HTTPException(status_code=code, detail=result.get("error", "Failed to unarchive skill"))
     return result
 
 
 @router.post("/api/skills/user-skills")
-async def create_user_skill(request: Request, payload: UserPackCreate):
+async def create_user_skill(request: Request, payload: UserSkillCreate):
     catalog = _catalog(request)
     try:
         result = catalog.create_skill(payload.id, name=payload.name, description=payload.description)
@@ -116,7 +116,7 @@ async def create_user_skill(request: Request, payload: UserPackCreate):
     if result.get("conflict"):
         raise HTTPException(status_code=409, detail=result["error"])
     if not result.get("success"):
-        raise HTTPException(status_code=400, detail=result.get("error", "Failed to create pack"))
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to create skill"))
     return result
 
 
@@ -130,11 +130,11 @@ async def get_user_skill(request: Request, skill_id: str):
             if archived.get("success"):
                 result = archived
             else:
-                raise HTTPException(status_code=404, detail=f"Pack '{skill_id}' not found.")
+                raise HTTPException(status_code=404, detail=f"Skill '{skill_id}' not found.")
     except SkillJailError as exc:
         raise _http_jail(exc) from exc
     if result.get("not_found") or not result.get("success"):
-        raise HTTPException(status_code=404, detail=result.get("error", f"Pack '{skill_id}' not found."))
+        raise HTTPException(status_code=404, detail=result.get("error", f"Skill '{skill_id}' not found."))
     return result
 
 
@@ -144,7 +144,7 @@ async def delete_user_skill(
     skill_id: str,
     confirm: bool = False,
     confirm_seed: bool = False,
-    payload: Optional[UserPackDelete] = None,
+    payload: Optional[UserSkillDelete] = None,
 ):
     catalog = _catalog(request)
     if payload is not None:
@@ -164,9 +164,9 @@ async def delete_user_skill(
     if result.get("jail"):
         raise _http_jail(SkillJailError(result.get("error") or "Path traversal rejected."))
     if result.get("not_found"):
-        raise HTTPException(status_code=404, detail=result.get("error", f"Pack '{skill_id}' not found"))
+        raise HTTPException(status_code=404, detail=result.get("error", f"Skill '{skill_id}' not found"))
     if not result.get("success"):
-        raise HTTPException(status_code=400, detail=result.get("error", "Failed to delete pack"))
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to delete skill"))
     from pathlib import Path
 
     from src.application.skills.workshop import clear_operator_skill_side_effects
@@ -185,7 +185,7 @@ async def delete_user_skill(
 
 
 @router.put("/api/skills/user-skills/{skill_id:path}")
-async def put_user_skill(request: Request, skill_id: str, payload: UserPackWrite):
+async def put_user_skill(request: Request, skill_id: str, payload: UserSkillWrite):
     catalog = _catalog(request)
     try:
         result = catalog.save_skill(
@@ -198,7 +198,7 @@ async def put_user_skill(request: Request, skill_id: str, payload: UserPackWrite
         raise _http_jail(exc) from exc
     if not result.get("success"):
         code = 404 if result.get("not_found") else 400
-        raise HTTPException(status_code=code, detail=result.get("error", "Failed to save pack"))
+        raise HTTPException(status_code=code, detail=result.get("error", "Failed to save skill"))
     return result
 
 

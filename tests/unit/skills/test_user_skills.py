@@ -112,7 +112,7 @@ def test_bootstrap_lists_user_skill_and_keeps_python_builtins(tmp_path):
     assert not hasattr(user, "instructions") or "instructions" not in user.model_dump()
 
     listed = catalog.list_user_skills()
-    listed_by_id = {pack["id"]: pack for pack in listed["packs"]}
+    listed_by_id = {pack["id"]: pack for pack in listed["skills"]}
     assert "weekly-review" in listed_by_id
     weekly = listed_by_id["weekly-review"]
     assert weekly["name"] == "weekly-review"
@@ -186,8 +186,8 @@ async def test_user_skill_tools_respect_forge_allowlist(tmp_path):
     list_call = ToolCall(id="c3", name=LIST_USER_SKILLS, arguments={})
     list_res = await tool_reg.execute(list_call, allowed)
     assert list_res.success is True
-    assert list_res.output["packs"][0]["name"] == "weekly-review"
-    assert "instructions" not in list_res.output["packs"][0]
+    assert list_res.output["skills"][0]["name"] == "weekly-review"
+    assert "instructions" not in list_res.output["skills"][0]
 
 
 def test_colliding_user_tool_does_not_overwrite_python_builtin(tmp_path):

@@ -44,9 +44,9 @@ class ToolGroupManifest(BaseModel):
     description: str = Field(..., description="Scope and capability description")
     tier: str = Field(default="productivity", description="Functional tier category (productivity, system, cognition)")
     icon: str = Field(default="cpu", description="Lucide icon name")
-    is_core: bool = Field(default=False, description="Whether this pack is core-dedicated to a specific agent")
+    is_core: bool = Field(default=False, description="Whether this tool_group is core-dedicated to a specific agent")
     core_agent_id: Optional[str] = Field(default=None, description="Target agent ID if core-dedicated")
-    tool_names: List[str] = Field(default_factory=list, description="Tool names mapped to this pack")
+    tool_names: List[str] = Field(default_factory=list, description="Tool names mapped to this tool_group")
 
 
 BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
@@ -76,7 +76,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
     ),
     ToolGroupManifest(
         id="worker",
-        name="Batch Worker & Map-Reduce Pack",
+        name="Batch Worker & Map-Reduce Skill",
         description="Partition massive context tasks across parallel in-memory subagents and manage session artifacts.",
         tier="productivity",
         icon="layers",
@@ -168,16 +168,16 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
 def get_hierarchical_tool_groups(tools: List[ToolDefinition]) -> List[Dict[str, Any]]:
     """
     Cluster tools into hierarchical tool groups.
-    Any unmapped tools are grouped into the 'General & Custom Tools' pack.
+    Any unmapped tools are grouped into the 'General & Custom Tools' tool_group.
     """
     tools_by_name: Dict[str, ToolDefinition] = {t.name: t for t in tools}
     assigned_tools = set()
 
     result: List[Dict[str, Any]] = []
 
-    for pack in BUILTIN_TOOL_GROUPS:
+    for tool_group in BUILTIN_TOOL_GROUPS:
         skill_tool_list = []
-        for t_name in pack.tool_names:
+        for t_name in tool_group.tool_names:
             if t_name in tools_by_name:
                 t = tools_by_name[t_name]
                 skill_tool_list.append(
@@ -191,18 +191,18 @@ def get_hierarchical_tool_groups(tools: List[ToolDefinition]) -> List[Dict[str, 
         if skill_tool_list:
             result.append(
                 {
-                    "id": pack.id,
-                    "name": pack.name,
-                    "description": pack.description,
-                    "tier": pack.tier,
-                    "icon": pack.icon,
-                    "is_core": pack.is_core,
-                    "core_agent_id": pack.core_agent_id,
+                    "id": tool_group.id,
+                    "name": tool_group.name,
+                    "description": tool_group.description,
+                    "tier": tool_group.tier,
+                    "icon": tool_group.icon,
+                    "is_core": tool_group.is_core,
+                    "core_agent_id": tool_group.core_agent_id,
                     "tools": skill_tool_list,
                 }
             )
 
-    # Group external MCP tools into dedicated per-server packs [REQ-MCP-010]
+    # Group external MCP tools into dedicated per-server skills [REQ-MCP-010]
     mcp_skills_map: Dict[str, List[Dict[str, Any]]] = {}
     other_unassigned: List[Dict[str, Any]] = []
 

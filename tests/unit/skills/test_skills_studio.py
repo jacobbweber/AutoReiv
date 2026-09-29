@@ -88,7 +88,7 @@ def test_list_and_get_user_skills_from_temp_skills_dir():
 
     listed = client.get("/api/skills/user-skills")
     assert listed.status_code == 200
-    packs = listed.json()["packs"]
+    packs = listed.json()["skills"]
     ids = {p["id"] for p in packs}
     assert "weekly-review" in ids
     assert "inbox-triage" in ids

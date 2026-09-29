@@ -4,7 +4,7 @@
  */
 
 const FIELD_ORDER = ['name', 'description', 'version', 'author', 'tier', 'tools', 'safety', 'verification'];
-export const SKILL_TIERS = ['platform', 'pack', 'user'];
+export const SKILL_TIERS = ['platform', 'user'];
 export const SAFETY_KEYS = ['read_only', 'requires_hitl', 'untrusted_input_allowed'];
 
 function coerceScalar(raw) {
@@ -155,9 +155,9 @@ export function applyWorkshopMetadata(markdown, fields = {}, catalogIds = null) 
   if (fields.description != null) next.description = String(fields.description).trim();
   if (fields.tier != null) {
     const tier = String(fields.tier).trim().toLowerCase();
-    next.tier = SKILL_TIERS.includes(tier) ? tier : 'pack';
+    next.tier = SKILL_TIERS.includes(tier) ? tier : 'user';
   } else if (next.tier == null) {
-    next.tier = 'pack';
+    next.tier = 'user';
   }
   next.safety = normalizeSafety(fields.safety != null ? fields.safety : next.safety);
   const rawTools = fields.tools != null

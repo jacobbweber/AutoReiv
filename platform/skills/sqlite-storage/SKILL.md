@@ -11,7 +11,7 @@ tools:
 Manage structured tabular records in the agent's dedicated private database (`<agent_id>_storage.db`).
 
 ## Operating Principles
-1. **Isolated Agent Scope**: Every database operation runs strictly against this agent's private SQLite storage file under `$DATA_DIR/packs/<agent_id>/<agent_id>_storage.db`. Cross-agent table access is mechanically isolated.
+1. **Isolated Agent Scope**: Every database operation runs strictly against this agent's private SQLite storage file under `$DATA_DIR/agents/<agent_id>/storage.db`. Cross-agent table access is mechanically isolated.
 2. **Read Before Write**: Always inspect the existing schema via `query_agent_database("SELECT name, sql FROM sqlite_master WHERE type='table';")` before authoring tables or updating records.
 3. **Parametric & Safe SQL**: Construct deterministic SQL queries. Avoid unindexed Cartesian joins on large datasets.
 4. **Structured Output**: Query results return structured JSON rows. Always format summaries concisely for the operator.

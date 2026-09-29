@@ -25,7 +25,7 @@ export function applyLoadedSkillView(data = {}, skillId = '') {
     name: String(payload.name || skillId || ''),
     skillId: String(payload.skill_id || skillId || ''),
     description,
-    tier: String(payload.tier || 'pack'),
+    tier: String(payload.tier || 'user'),
     safety: {
       read_only: Boolean(payload.safety && payload.safety.read_only),
       requires_hitl: Boolean(payload.safety && payload.safety.requires_hitl),
@@ -98,7 +98,7 @@ export function createSkillWorkshop({
     return {
       name: (factorySkillNameInput && factorySkillNameInput.value.trim()) || '',
       description: (factorySkillTriggerInput && factorySkillTriggerInput.value.trim()) || '',
-      tier: 'pack',
+      tier: 'user',
       safety: readSafety(),
       tools: Array.from(getSelectedTools()),
     };

@@ -125,7 +125,7 @@ def _capability_authoring_requested(text: str) -> bool:
         return True
     if "commit" in raw and "skill" in raw:
         return True
-    if "scaffold" in raw and ("agent" in raw or "pack" in raw):
+    if "scaffold" in raw and "agent" in raw:
         return True
     from src.application.agent_skills.schema import CAPABILITY_AUTHORING_TOOL_NAMES
 

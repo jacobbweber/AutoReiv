@@ -235,7 +235,7 @@ def run_self_scaffold_queue_e2e(
     """
     Full queue loop proof [REQ-SSQ-001..004].
 
-    Optional baseline trusted pack so rollback has a prior snapshot to restore.
+    Optional baseline trusted skill so rollback has a prior snapshot to restore.
     """
     _ensure_trusted_health_probe(spine)
     skill_id = "education-wiki-notes-index"
@@ -263,7 +263,7 @@ def run_self_scaffold_queue_e2e(
     opened = open_forge_candidate_from_education_gap(
         orchestrator, spine=spine, session_id=session_id
     )
-    # Overwrite pack content to the candidate body (draft already wrote).
+    # Overwrite skill content to the candidate body (draft already wrote).
     spine.catalog.save_skill(
         skill_id, skill_id, "Education wiki notes index (candidate)", new_body
     )

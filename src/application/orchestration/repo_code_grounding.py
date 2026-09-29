@@ -36,7 +36,7 @@ _SOURCE_DEP_RE = re.compile(
 _PATH_RE = re.compile(
     r"(?P<path>(?:AGENTS\.md|CHANGELOG\.md|README\.md|"
     r"(?:src|tests|docs|notes|scripts|steering|platform|\.github|"
-    r"\.agents|deploy|skills|packs)"
+    r"\.agents|deploy|skills)"
     r"(?:/[\w.\-]+)+|"
     r"[\w.\-]+\.md))",
     re.IGNORECASE,

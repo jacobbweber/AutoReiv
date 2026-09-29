@@ -296,7 +296,7 @@ export function initAgentForge(state, callbacks = {}) {
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
       } else {
-        forgeBuiltinBadge.textContent = 'Agent Pack';
+        forgeBuiltinBadge.textContent = 'Agent Skill';
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800';
       }
@@ -340,7 +340,7 @@ export function initAgentForge(state, callbacks = {}) {
   function openDeleteModal() {
     if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
     if (deleteAgentModalMessage) {
-      deleteAgentModalMessage.textContent = `Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"? This will remove the agent configuration, delete its pack files, and unbind any assigned routines.`;
+      deleteAgentModalMessage.textContent = `Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"? This will remove the agent configuration, delete its skill files, and unbind any assigned routines.`;
     }
     if (purgeHistoryCheckbox) purgeHistoryCheckbox.checked = false;
     if (deleteAgentModal) deleteAgentModal.classList.remove('hidden');

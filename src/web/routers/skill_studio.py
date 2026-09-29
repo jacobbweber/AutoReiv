@@ -222,7 +222,7 @@ description: {clean_trigger}
 async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> Dict[str, Any]:
     """Persist authored SKILL.md to the skill store and SQLite bindings.
 
-    When agent_id is present, also pin the skill on that agent pack. Skill Studio
+    When agent_id is present, also pin the skill on that agent. Skill Studio
     can save without an agent brief [CARD-418]. The SKILL.md tools list is the binding (CARD-570).
     """
     import re

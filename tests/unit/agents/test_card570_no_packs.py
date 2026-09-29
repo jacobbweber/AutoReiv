@@ -25,6 +25,20 @@ def test_no_pack_terms_in_src():
     assert not hits, "pack terms left in src/:\n" + "\n".join(hits)
 
 
+def test_no_pack_wording_in_src_or_shipped_content():
+    """CARD-570: the word "pack" is gone from src/ and platform/ (package/packet/unpack are other words)."""
+    hits = []
+    for base in (ROOT / "src", ROOT / "platform"):
+        for path in base.rglob("*"):
+            if not path.is_file() or path.suffix not in {".py", ".js", ".html", ".css", ".md", ".json", ".toml", ".yaml"}:
+                continue
+            for n, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+                cleaned = re.sub(r"(?i)packag\w*|packet\w*|unpack\w*|backpack\w*", "", line)
+                if re.search(r"(?i)pack", cleaned):
+                    hits.append(f"{path.relative_to(ROOT)}:{n}: {line.strip()[:120]}")
+    assert not hits, "pack wording left:\n" + "\n".join(hits[:40])
+
+
 def test_no_pack_folders_ship():
     assert not (ROOT / "platform-packs").exists()
     assert not (ROOT / "src" / "infrastructure" / "skills" / "seeds").exists()

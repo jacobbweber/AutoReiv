@@ -1,4 +1,4 @@
-"""Standing honesty / stress smoke pack classifiers [CARD-261].
+"""Standing honesty / stress smoke skill classifiers [CARD-261].
 
 Freeze stress classes as a tip merge gate:
   timeout | gate | tool | honesty | kill_resume | pass

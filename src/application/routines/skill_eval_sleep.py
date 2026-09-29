@@ -1,7 +1,7 @@
 """
 Nightly SkillOpt-Sleep-shaped skill eval (CARD-111) [REQ-IMPROVE-007 - REQ-IMPROVE-012] [REQ-IMPROVE-016].
 
-Harvest failed turns from live SQLite, mine pack gaps, optional replay (default off),
+Harvest failed turns from live SQLite, mine group_sid gaps, optional replay (default off),
 in-process checker gate, then CARD-106 propose_skill draft only. Never commit_skill.
 Never write SKILL.md. Never train weights. No skillopt pip. No second scheduler.
 
@@ -214,14 +214,14 @@ def harvest_failed_turns(
 def mine_skill_gaps(harvested: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for row in harvested:
-        pack = str(row.get("skill_id") or "").strip() or "unknown"
+        group_sid = str(row.get("skill_id") or "").strip() or "unknown"
         tool = str(row.get("tool_name") or "").strip() or "turn"
         err = str(row.get("error") or "failed").strip()[:120]
-        groups[f"{pack}|{tool}|{err}"].append(row)
+        groups[f"{group_sid}|{tool}|{err}"].append(row)
     candidates: List[Dict[str, Any]] = []
     for key, rows in groups.items():
-        pack, tool, _err = key.split("|", 2)
-        skill_id = pack
+        group_sid, tool, _err = key.split("|", 2)
+        skill_id = group_sid
         if skill_id == "unknown":
             continue
         head = rows[0]

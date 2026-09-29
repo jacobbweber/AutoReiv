@@ -191,7 +191,7 @@ class BuiltinAgentRegistry:
         skills_dir: Optional[str] = None,
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
-        Bootstrap the agent ecosystem: platform packs, tool groups, and the master ScopedToolRegistry.
+        Bootstrap the agent ecosystem: platform skills, tool groups, and the master ScopedToolRegistry.
         Does not register agent-builder [CARD-429]. Builder HITL tools stay on the master registry
         for Developer.
         """
@@ -299,7 +299,7 @@ class BuiltinAgentRegistry:
         worker_tools = BatchWorkerTools(state_store=store, wiki_tools=wiki_tools)
         worker_tools.register_tools(tool_registry)
 
-        # 10. Sandbox Execution Tools (Coding pack ticks execute_code)
+        # 10. Sandbox Execution Tools (Coding skill ticks execute_code)
         from src.application.skills.sandbox_tools import SandboxExecutionTools
 
         sandbox_tools = SandboxExecutionTools()
@@ -403,7 +403,7 @@ class BuiltinAgentRegistry:
         native_tool_engineering.register_tools(tool_registry)
         agent_registry.native_tool_engineering = native_tool_engineering
 
-        # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
+        # 13. User agentskills.io skills (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
         from src.application.skills.user_catalog import UserSkillCatalog
 
         catalog = UserSkillCatalog(skills_dir=skills_dir, tool_registry=tool_registry)

@@ -15,7 +15,7 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
 class AgentBuilderTools:
     """
-    Tool group providing agent introspection, specification drafts, and HITL pack drafts.
+    Tool group providing agent introspection, specification drafts, and HITL skill drafts.
     """
 
     def __init__(
@@ -52,7 +52,7 @@ class AgentBuilderTools:
         )
 
         payload_fields = {
-            "what": {"type": "string", "description": "What is being proposed (pack, tool, or playbook SOP)."},
+            "what": {"type": "string", "description": "What is being proposed (skill, tool, or playbook SOP)."},
             "why": {"type": "string", "description": "Why this is needed."},
             "how": {
                 "type": "string",
@@ -62,7 +62,7 @@ class AgentBuilderTools:
                 "type": "string",
                 "description": "Destination path relative to $DATA_DIR (typically skills/<slug>/SKILL.md).",
             },
-            "skill_id": {"type": "string", "description": "Target pack id (directory slug under $DATA_DIR/skills)."},
+            "skill_id": {"type": "string", "description": "Target skill id (directory slug under $DATA_DIR/skills)."},
             "prefer_existing_agent_id": {
                 "type": "string",
                 "description": "Existing specialist to extend rather than creating a new agent.",
@@ -77,7 +77,7 @@ class AgentBuilderTools:
             name="propose_skill",
             description=(
                 "Recommend-capability only: park a HITL draft for a new skill when no existing runbook fits. "
-                "Not pack birth. Creates a proposals row status draft. Does not write SKILL.md until commit after Approve."
+                "Not agent creation. Creates a proposals row status draft. Does not write SKILL.md until commit after Approve."
             ),
             parameters={
                 "type": "object",
@@ -91,7 +91,7 @@ class AgentBuilderTools:
             name="propose_tool",
             description=(
                 "Recommend-capability only: park a HITL draft for a declared tool (JSON stub) when no catalog tool fits. "
-                "Not pack birth. Do not call this to create a named agent with existing tools. "
+                "Not agent creation. Do not call this to create a named agent with existing tools. "
                 "Does not write a Python module. Approve does not write disk."
             ),
             parameters={
@@ -197,7 +197,7 @@ class AgentBuilderTools:
         new_agent_id: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Park a skill-pack HITL draft. Does not write SKILL.md [REQ-BUILD-001]."""
+        """Park a skill HITL draft. Does not write SKILL.md [REQ-BUILD-001]."""
         from src.application.orchestration.skill_proposals import propose_skill as park
 
         try:
@@ -257,7 +257,7 @@ class AgentBuilderTools:
         overwrite: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Write an approved pack via UserSkillCatalog [REQ-BUILD-012]."""
+        """Write an approved skill via UserSkillCatalog [REQ-BUILD-012]."""
         from src.application.kernel.tool_registry import get_tool_context
         from src.application.orchestration.skill_proposals import commit_skill as apply_commit
 

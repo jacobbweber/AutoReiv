@@ -21,7 +21,7 @@ SAMPLE = f"""---
 name: Widget Notes
 description: Read widget notes
 version: 1.0.0
-tier: pack
+tier: user
 tools:
   - inspect_widget
 safety:
@@ -72,5 +72,5 @@ def test_unknown_catalog_tool_is_rejected_and_not_serialized():
     assert "not_a_tool" in exc.value.rejected
     view = frontmatter_view(SAMPLE)
     assert view["tools"] == ["inspect_widget"]
-    assert view["tier"] == "pack"
+    assert view["tier"] == "user"
     assert view["safety"]["read_only"] is True

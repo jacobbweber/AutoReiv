@@ -1,7 +1,7 @@
 """inspect_agent: read an agent's identity, ticked skills and resolved tools [CARD-569].
 
 Read-only. Used by the agent-authoring skill to see what an agent already has before
-proposing something new. The pack builder tools are gone.
+proposing something new. The agent builder tools are gone.
 """
 
 from __future__ import annotations

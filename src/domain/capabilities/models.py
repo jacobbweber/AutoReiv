@@ -22,7 +22,6 @@ class CapabilityKind(str, Enum):
     AGENT = "agent"
     SKILL = "skill"
     TOOL = "tool"
-    PACK = "pack"
     ROUTINE = "routine"
 
 

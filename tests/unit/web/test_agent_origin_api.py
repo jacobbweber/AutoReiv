@@ -27,7 +27,7 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
 
         # Verify origin surfaced on packs & system agents
         assert "origin" in agent_map["autoreiv"]
-        assert agent_map["autoreiv"]["origin"] == "pack"
+        assert agent_map["autoreiv"]["origin"] == "file"
 
         assert "agent-builder" not in agent_map
         dev = agent_map["developer"]
@@ -46,7 +46,7 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
         # Query created agent
         get_resp = await ac.get("/api/agents/operator-assistant")
         assert get_resp.status_code == 200
-        assert get_resp.json()["origin"] == "pack"
+        assert get_resp.json()["origin"] == "file"
 
         # 3. Forbid DELETE on autoreiv core agent
         del_platform = await ac.delete("/api/agents/autoreiv")

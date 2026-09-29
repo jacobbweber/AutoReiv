@@ -157,7 +157,6 @@ _EDUCATION_SKILL_MARKERS: frozenset[str] = frozenset(
 _NON_TOOL_CAPABILITY_PREFIXES: tuple[str, ...] = (
     "skill.",
     "agent.",
-    "pack.",
     "routine.",
 )
 
@@ -194,7 +193,7 @@ def _capability_tool_names(matched_capability_ids: Optional[Sequence[str]]) -> O
 
     - tool.<name> -> <name>
     - bare tool names accepted
-    - skill./agent./pack./routine. IDs are NOT tool names (CARD-241: skill-only
+    - skill./agent./routine. IDs are NOT tool names (CARD-241: skill-only
       matches must not poison the subset into blocking every real tool)
     - Education skill matches expand to EDUCATION_WIKI_NOTE_TOOLS
     - Empty sequence or sequence with no extracted tools returns None (falls back to agent allowlist)

@@ -13,7 +13,7 @@ import { applySkillPillToggle, paintSkillPill } from './skill_pills.js';
 const SKILL_HOME_LABELS = {
   platform: 'Platform',
   operator: 'Operator',
-  pack: 'Pack',
+  agent: 'Agent',
 };
 
 export function skillHomeLabel(home) {
@@ -135,17 +135,17 @@ function skillRowHandlerOpts(options = {}) {
 export function assignedSkillListHtml({
   platformSkills = [],
   operatorSkills = [],
-  packSkills = [],
+  ownSkillRows = [],
   archivedSkills = [],
 } = {}) {
   const platform = (platformSkills || []).filter((skill) => skill && skill.id);
   const operator = (operatorSkills || []).map(operatorSkillPillModel).filter((skill) => skill.id);
-  const pack = (packSkills || []).filter((skill) => skill && skill.id);
+  const ownRows = (ownSkillRows || []).filter((skill) => skill && skill.id);
   const archived = (archivedSkills || []).filter((skill) => skill && skill.id);
   const rows = [
     ...platform.map((skill) => skillRowHtml(skill, 'platform', false)),
     ...operator.map((skill) => skillRowHtml(skill, 'operator', false)),
-    ...pack.map((skill) => skillRowHtml(skill, 'pack', false)),
+    ...ownRows.map((skill) => skillRowHtml(skill, 'agent', false)),
     ...archived.map((skill) => skillRowHtml(skill, 'archived', true)),
   ];
   if (!rows.length) {
@@ -165,11 +165,11 @@ export function renderAssignedSkills({
 } = {}) {
   const forgeSkillsGrid = $('forgeSkillsGrid');
   if (!forgeSkillsGrid) return;
-  const packSkills = (activeForgeAgent && activeForgeAgent.own_skills) || [];
+  const ownSkillRows = (activeForgeAgent && activeForgeAgent.own_skills) || [];
   forgeSkillsGrid.innerHTML = assignedSkillListHtml({
     platformSkills: cachedPlatformSkills,
     operatorSkills: cachedOperatorSkills,
-    packSkills,
+    ownSkillRows,
     archivedSkills: cachedArchivedSkills,
   });
   bindSkillRowHandlers(forgeSkillsGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
@@ -241,7 +241,7 @@ export async function loadPlatformSkills({
     const archRes = await fetch('/api/skills/archived-skills');
     if (archRes.ok) {
       const archData = await archRes.json();
-      archivedSkills = archData.packs || [];
+      archivedSkills = archData.skills || [];
     }
   } catch (e) {
     console.warn('[AutoReiv UI] Failed to load platform skills:', e);

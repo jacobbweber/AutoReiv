@@ -64,7 +64,7 @@ def _public_agent(
     if profile.is_builtin or profile.id == "agent-builder":
         origin_val = AgentOrigin.SYSTEM.value
     else:
-        origin_val = AgentOrigin.PACK.value
+        origin_val = AgentOrigin.FILE.value
 
     return {
         "id": profile.id,
@@ -519,7 +519,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
     for s in servers:
         name = s.get("name")
         active_info = (
-            active_map.get(name) or active_map.get(f"pack_{agent_id}_{name}") or active_map.get(f"pack_{agent_id}")
+            active_map.get(name)
         )
         result.append(
             {

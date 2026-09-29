@@ -1,4 +1,4 @@
-"""Platform agent constants and the chat-visibility rule (CARD-570: no pack schema).
+"""Platform agent constants and the chat-visibility rule (CARD-570: no skill schema).
 
 Agents and skills are files (``platform/agents``, ``platform/skills``); a skill's tools live only
 in its SKILL.md ``tools:`` list. What stays here: the always-on platform tools, chat visibility,

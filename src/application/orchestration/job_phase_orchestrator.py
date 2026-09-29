@@ -120,7 +120,7 @@ def resolve_specialist_agent_for_capabilities(
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
-        prefix = "agent." if s.startswith("agent.") else "pack." if s.startswith("pack.") else ""
+        prefix = "agent." if s.startswith("agent.") else ""
         candidate = s[len(prefix) :] if prefix else ""
         if not candidate:
             continue
@@ -787,7 +787,7 @@ class JobPhaseOrchestrator:
         intent: Optional[str] = None,
         verify_checker: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Pick specialist from matched catalog agent/pack IDs only [CARD-234]."""
+        """Pick specialist from matched catalog agent/skill IDs only [CARD-234]."""
         from src.application.orchestration.supervisor_specialist_pick import (
             supervisor_specialist_handoff,
         )

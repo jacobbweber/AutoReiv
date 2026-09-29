@@ -43,7 +43,7 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     expect(forgeJs).toContain('renderAssignedSkills');
     expect(forgeJs).not.toContain('No pack-owned skills yet.');
     expect(forgeJs).toContain("'platform'");
-    expect(forgeJs).toContain("'pack'");
+    expect(forgeJs).toContain("'agent'");
     expect(forgeJs).not.toContain('forge-skill-expand');
     expect(forgeJs).not.toContain('forge-skill-tools hidden');
     expect(forgeJs).not.toContain('pack-master-checkbox');
@@ -60,7 +60,7 @@ describe('Forge skill-first capability architecture [CARD-389 / CARD-350]', () =
     expect(html).toContain('id="forgeBaselineBox"');
     expect(html).toContain('id="forgeSkillsGrid"');
     expect(html).not.toContain('id="forgePlatformBox"');
-    expect(html).not.toContain('id="forgePackBox"');
+    expect(html).not.toContain('id="forgeSkillBox"');
     expect(html).not.toContain('id="forgeToolsSection"');
     expect(html).not.toContain('Ticked schemas go to the model');
     expect(html).toContain('forgeSystemPrompt');

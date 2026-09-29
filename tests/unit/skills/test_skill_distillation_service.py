@@ -193,7 +193,7 @@ def test_adopt_skill_persists_to_user_skill_and_updates_manifest(test_env):
     registry = BuiltinAgentRegistry(state_store=store)
     registry.register_custom_agent(AgentProfile(
         id="autoreiv", name="AutoReiv", description="fixture", system_prompt="You help.",
-        origin=AgentOrigin.PACK, tone=AgentTone.DEFAULT, purpose=ModelPurpose.TASK_EXECUTION,
+        origin=AgentOrigin.FILE, tone=AgentTone.DEFAULT, purpose=ModelPurpose.TASK_EXECUTION,
         allowed_skill=[], show_in_chat=True,
     ))
     service = SkillDistillationService(

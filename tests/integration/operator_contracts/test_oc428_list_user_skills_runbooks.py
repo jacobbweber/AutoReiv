@@ -102,7 +102,7 @@ def test_oc428_list_user_skills_includes_allowlisted_pack_runbook_only(operator_
     opened = _listed(tools, developer)
     assert opened.success is True, opened.error
     body = opened.output or {}
-    packs = {row["id"]: row for row in body.get("packs") or []}
+    packs = {row["id"]: row for row in body.get("skills") or []}
     assert NATIVE_SKILL in packs, "REQ-428-001 FAIL: allowlisted pack runbook missing from list_user_skills"
     entry = packs[NATIVE_SKILL]
     assert entry["name"] == NAME
@@ -130,7 +130,7 @@ def test_oc428_list_user_skills_includes_allowlisted_pack_runbook_only(operator_
     assert without.allowed_skill
     hidden = _listed(tools, without)
     assert hidden.success is True, hidden.error
-    hidden_ids = {row["id"] for row in (hidden.output or {}).get("packs") or []}
+    hidden_ids = {row["id"] for row in (hidden.output or {}).get("skills") or []}
     assert NATIVE_SKILL not in hidden_ids, "REQ-428-002 FAIL: skill id listed for an agent that does not allow it"
 
     assert not operator_copy.exists(), "REQ-428-002 FAIL: pack runbook was copied into $DATA_DIR/skills/"

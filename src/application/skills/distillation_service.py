@@ -52,7 +52,7 @@ class AdoptSkillConflict(ValueError):
 
 
 class SkillDistillationService:
-    """Extracts turn context, diagnoses procedural friction, and adopts skills into user packs."""
+    """Extracts turn context, diagnoses procedural friction, and adopts skills into user skills."""
 
     def __init__(
         self,

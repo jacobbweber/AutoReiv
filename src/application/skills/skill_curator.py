@@ -1,8 +1,8 @@
-"""Skill curator: unused user packs go active -> stale -> archive.
+"""Skill curator: unused user skills go active -> stale -> archive.
 
 [REQ-IMPROVE-013] [REQ-IMPROVE-014] [REQ-IMPROVE-015] [REQ-IMPROVE-016]
 
-Unused user packs: active --(30d)--> stale --(90d)--> archive (move).
+Unused user skill_rows: active --(30d)--> stale --(90d)--> archive (move).
 Never deletes SKILL.md. Never auto-archives shipped skill ids (platform/skills)
 (empty after CARD-118; no product seeds ship). Never touches repo src/infrastructure/skills/seeds/.
 Unknown last-used fails closed. Auto-archive is opt-in (paused routine /
@@ -169,7 +169,7 @@ def archive_skill(
     confirm: bool = False,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
-    """Move a live pack to $DATA_DIR/skills/_archive/<id>/. Never delete SKILL.md."""
+    """Move a live skill to $DATA_DIR/skills/_archive/<id>/. Never delete SKILL.md."""
     del now
     if is_bundled_skill(skill_id) and not confirm:
         return {
@@ -178,7 +178,7 @@ def archive_skill(
             "skill_id": skill_id,
             "error": (
                 f"Bundled seed '{skill_id}' is not auto-archived. "
-                "Explicit confirm is required to archive a bundled pack."
+                "Explicit confirm is required to archive a bundled skill."
             ),
             "bundled": True,
             "skill_md_deleted": False,
@@ -199,7 +199,7 @@ def archive_skill(
             "success": False,
             "archived": False,
             "skill_id": skill_id,
-            "error": f"Pack '{skill_id}' is not a live directory.",
+            "error": f"Skill '{skill_id}' is not a live directory.",
             "skill_md_deleted": False,
         }
     if dest.exists():
@@ -242,7 +242,7 @@ def unarchive_skill(catalog: UserSkillCatalog, skill_id: str) -> Dict[str, Any]:
             "success": False,
             "unarchived": False,
             "skill_id": skill_id,
-            "error": f"Archived pack '{skill_id}' not found.",
+            "error": f"Archived skill '{skill_id}' not found.",
             "not_found": True,
         }
     if live.exists():
@@ -276,9 +276,9 @@ def list_archived_skills(catalog: UserSkillCatalog) -> List[Dict[str, Any]]:
         return []
     from src.application.skills.dynamic_loader import DynamicSkillLoader
 
-    packs: List[Dict[str, Any]] = []
+    skill_rows: List[Dict[str, Any]] = []
     for manifest in DynamicSkillLoader.list_skill_manifests(str(root)):
-        packs.append(
+        skill_rows.append(
             {
                 "id": manifest.id,
                 "name": manifest.name,
@@ -287,7 +287,7 @@ def list_archived_skills(catalog: UserSkillCatalog) -> List[Dict[str, Any]]:
                 "origin": "archived",
             }
         )
-    return packs
+    return skill_rows
 
 
 def read_archived_skill(catalog: UserSkillCatalog, skill_id: str) -> Dict[str, Any]:
@@ -302,13 +302,13 @@ def read_archived_skill(catalog: UserSkillCatalog, skill_id: str) -> Dict[str, A
     if not skill.is_file():
         return {
             "success": False,
-            "error": f"Archived pack '{skill_id}' not found.",
+            "error": f"Archived skill '{skill_id}' not found.",
             "not_found": True,
             "skill_id": skill_id,
         }
     parsed = DynamicSkillLoader.load_skill_from_markdown(str(skill))
     if not parsed:
-        return {"success": False, "error": f"Failed to load archived SKILL.md for pack '{skill_id}'."}
+        return {"success": False, "error": f"Failed to load archived SKILL.md for skill '{skill_id}'."}
     tools_meta = []
     for tool in parsed.get("tools") or []:
         tools_meta.append({"name": tool.name, "description": tool.description})
@@ -348,13 +348,13 @@ def delete_skill(
     confirm: bool = False,
     confirm_seed: bool = False,
 ) -> Dict[str, Any]:
-    """Hard-delete a jailed user pack (live and/or _archive). Never repo seeds."""
+    """Hard-delete a jailed user skill (live and/or _archive). Never repo seeds."""
     if not confirm:
         return {
             "success": False,
             "deleted": False,
             "skill_id": skill_id,
-            "error": "confirm=true is required to hard-delete a user pack.",
+            "error": "confirm=true is required to hard-delete a user skill.",
             "confirm_required": True,
         }
     if is_bundled_skill(skill_id) and not confirm_seed:
@@ -444,7 +444,7 @@ def delete_skill(
             "success": False,
             "deleted": False,
             "skill_id": skill_id,
-            "error": f"Pack '{skill_id}' not found.",
+            "error": f"Skill '{skill_id}' not found.",
             "not_found": True,
             "repo_seeds_untouched": seed_after_ok,
         }
@@ -485,7 +485,7 @@ def curate_user_skills(
     archive_days: int = ARCHIVE_AFTER_DAYS,
     confirm_bundled: bool = False,
 ) -> Dict[str, Any]:
-    """Classify live packs. Move only unused user packs past the archive window.
+    """Classify live skills. Move only unused user skills past the archive window.
 
     auto_archive defaults False so nightly/harvest is not destructive.
     Bundled seeds are never auto-archived. Unknown last-used is not archived.

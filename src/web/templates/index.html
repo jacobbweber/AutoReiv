@@ -1570,7 +1570,7 @@
                       <select id="forgeStorageType" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
                         <option value="sqlite">SQLite (Isolated File)</option>
                       </select>
-                      <p class="text-[10px] text-slate-500 mt-0.5">Provisions an isolated SQLite database under <code>$DATA_DIR/packs/&lt;agent_id&gt;/&lt;agent_id&gt;_storage.db</code>.</p>
+                      <p class="text-[10px] text-slate-500 mt-0.5">Provisions an isolated SQLite database under <code>$DATA_DIR/agents/&lt;agent_id&gt;/storage.db</code>.</p>
                     </div>
                   </div>
                 </div>
@@ -1603,7 +1603,7 @@
               </div>
 
               <div id="forgeSkillsGrid" class="space-y-2 pt-1" data-testid="forge-assigned-skills">
-                <!-- One list: platform, operator, and pack rows. Home label is on each row. -->
+                <!-- One list: platform, operator, and skill rows. Home label is on each row. -->
               </div>
               <div class="flex flex-wrap items-center gap-2 pt-1">
                 <button id="studioOpenFactoryBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" data-testid="forge-open-factory">
@@ -4375,7 +4375,7 @@
             <button id="closeDeleteAgentModalBtn" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
           </div>
           <div class="p-6 space-y-4 text-xs text-slate-300">
-            <p id="deleteAgentModalMessage">Are you sure you want to delete this custom agent? This will remove the agent configuration and its pack files.</p>
+            <p id="deleteAgentModalMessage">Are you sure you want to delete this custom agent? This will remove the agent configuration and its skill files.</p>
             <div class="bg-rose-950/20 border border-rose-900/30 rounded-xl p-3.5 space-y-2">
               <label class="flex items-start space-x-2.5 cursor-pointer">
                 <input type="checkbox" id="purgeHistoryCheckbox" class="mt-0.5 rounded bg-[#13161f] border-white/[0.08] text-rose-600 focus:ring-0">
@@ -4500,7 +4500,7 @@
         </button>
       </div>
       <div class="px-5 py-3 border-b border-white/[0.06] space-y-2 bg-[#08090c]/40 flex-shrink-0">
-        <p id="labArtifactPreviewNote" class="text-[11px] text-amber-200/90">Pre-promote: content is from the job packet (not yet written under packs/).</p>
+        <p id="labArtifactPreviewNote" class="text-[11px] text-amber-200/90">Pre-promote: content is from the job packet (not yet written under skills/).</p>
         <div>
           <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Expected deploy paths</div>
           <ul id="labArtifactPreviewPaths" class="space-y-1"></ul>
@@ -4642,7 +4642,7 @@
 
       <!-- Modal Footer -->
       <div class="px-5 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-between text-xs text-slate-400">
-        <span>Authorized via agent allowlist &amp; pack storage</span>
+        <span>Authorized via agent allowlist &amp; skill storage</span>
         <button type="button" id="chatToolsModalDismissBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
       </div>
     </div>
@@ -4805,7 +4805,7 @@
           <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">Target Agent</span>
           <div class="flex items-center space-x-2">
             <span id="teachAgentTargetAgentBadge" class="px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-800/80 text-indigo-200 font-mono text-xs font-semibold">AutoReiv</span>
-            <span class="text-slate-500 text-[11px]">Skill will mount to this agent pack</span>
+            <span class="text-slate-500 text-[11px]">Skill will mount to this agent</span>
           </div>
         </div>
 

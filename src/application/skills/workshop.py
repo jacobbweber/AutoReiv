@@ -14,7 +14,7 @@ from src.application.skills.runbook_frontmatter import (
 from src.application.skills.user_catalog import ARCHIVE_DIRNAME
 from src.infrastructure.content.store import get_store, split_frontmatter
 
-# Same jail as user skill packs: letters, digits, dot, underscore, hyphen, nested segments.
+# Same jail as user skills: letters, digits, dot, underscore, hyphen, nested segments.
 _SKILL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$")
 _SKIP_SEGMENTS = frozenset({"snapshots", "_archive", ".", ".."})
 
@@ -137,7 +137,7 @@ def list_workshop_skills(data_root: Path) -> list[dict[str, str]]:
     return [found[key] for key in sorted(found)]
 
 def operator_store_skills(data_root: Path) -> list[dict[str, Any]]:
-    """Operator skill-store files. Platform seeds and pack homes stay out of this list."""
+    """Operator skill-store files. Platform seeds and skill homes stay out of this list."""
     rows: list[dict[str, Any]] = []
     for row in list_workshop_skills(data_root):
         if row.get("source") != "store" or row.get("deletable") is not True:

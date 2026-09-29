@@ -54,13 +54,13 @@ async def test_list_available_skills_and_tools(builder_setup):
 
 
 @pytest.mark.asyncio
-async def test_propose_descriptions_are_recommend_not_pack_birth(builder_setup):
+async def test_propose_descriptions_are_recommend_not_agent_creation(builder_setup):
     skill, agent_reg, tool_reg = builder_setup
     skill.register_tools(tool_reg)
     by_name = {t.name: t.description.lower() for t in tool_reg.list_tools()}
     assert "propose_agent_specification" not in by_name
     assert "save_agent_specification" not in by_name
     assert "recommend-capability only" in by_name["propose_tool"]
-    assert "not pack birth" in by_name["propose_tool"]
+    assert "not agent creation" in by_name["propose_tool"]
     assert "recommend-capability only" in by_name["propose_skill"]
     assert "propose_workflow" not in by_name

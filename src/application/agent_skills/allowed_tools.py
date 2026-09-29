@@ -177,7 +177,7 @@ def allowed_capability_ids(agent: Any) -> set[str]:
     return {f"tool.{t}" for t in allowed.ordered} | {f"skill.{s}" for s in ticked_skills(agent)}
 
 
-def _skill_meta(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] = None) -> dict[str, Any]:
+def _skill_meta(sid: str, agent_id: Optional[str] = None, owner: Optional[dict] = None) -> dict[str, Any]:
     loaded = _store().skills.load(sid)
     return dict(loaded.meta) if loaded else {}
 
@@ -194,8 +194,8 @@ def skill_entries(agent_id: Optional[str]) -> dict[str, dict[str, Any]]:
     return out
 
 
-def skill_label(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] = None) -> str:
-    meta = _skill_meta(sid, agent_id, pack)
+def skill_label(sid: str, agent_id: Optional[str] = None, owner: Optional[dict] = None) -> str:
+    meta = _skill_meta(sid, agent_id, owner)
     return str(meta.get("name") or sid.replace("-", " ").replace("_", " ").title())
 
 

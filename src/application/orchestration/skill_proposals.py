@@ -4,7 +4,7 @@ propose_skill / propose_tool / propose_workflow HITL drafts [REQ-BUILD-001 - REQ
 Creates a proposals row (kind skill|tool|workflow, status draft) and a pending_approvals
 park. Does not write SKILL.md, Python under src/, or job-template YAML.
 Approve marks approved without UserSkillCatalog.save_skill. Reject marks rejected.
-Disk commit of packs is commit_skill after HITL Approve (CARD-107).
+Disk commit of skills is commit_skill after HITL Approve (CARD-107).
 """
 
 from __future__ import annotations
@@ -174,7 +174,7 @@ def sprawl_warning_text(
     return None
 
 
-def propose_pack_draft(
+def propose_skill_draft(
     store: Any,
     *,
     kind: ProposalKind,
@@ -343,7 +343,7 @@ def propose_skill(
     agent_registry: Any = None,
     extra_payload: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    return propose_pack_draft(
+    return propose_skill_draft(
         store,
         kind=ProposalKind.SKILL,
         what=what,
@@ -380,7 +380,7 @@ def propose_tool(
     agent_registry: Any = None,
     extra_payload: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    return propose_pack_draft(
+    return propose_skill_draft(
         store,
         kind=ProposalKind.TOOL,
         what=what,
@@ -498,7 +498,7 @@ def commit_skill(
     If approval_mode=ask and the proposal is still draft, park (no write).
     """
     if store is None:
-        raise ValueError("proposal store is unavailable. Pack was not written.")
+        raise ValueError("proposal store is unavailable. Skill was not written.")
     pid = _require_text("proposal_id", proposal_id)
     proposal = store.get_proposal(pid)
     if proposal.kind not in {ProposalKind.SKILL, ProposalKind.TOOL, ProposalKind.WORKFLOW}:
@@ -508,7 +508,7 @@ def commit_skill(
 
     mode = (approval_mode or "").strip().lower()
     if proposal.status == ProposalStatus.REJECTED:
-        raise ValueError("Rejected proposals cannot be committed. Pack was not written.")
+        raise ValueError("Rejected proposals cannot be committed. Skill was not written.")
     if proposal.status != ProposalStatus.APPROVED:
         if mode in {"ask", "approval"}:
             return {
@@ -519,7 +519,7 @@ def commit_skill(
                 "disk_written": False,
                 "src_written": False,
                 "parked": True,
-                "error": "Approve the HITL draft first. Pack was not written.",
+                "error": "Approve the HITL draft first. Skill was not written.",
             }
         raise ValueError("commit_skill requires status=approved. Approve the HITL draft first.")
 
@@ -540,7 +540,7 @@ def commit_skill(
     existing = cat.read_skill(skill_id)
     dest_exists = bool(existing.get("success"))
     what = str(payload.get("what") or skill_id)
-    why = str(payload.get("why") or what or "User skill pack.")
+    why = str(payload.get("why") or what or "User skill.")
     how = str(payload.get("how") or "")
 
     snapshot_id = payload.get("snapshot_id")
@@ -556,7 +556,7 @@ def commit_skill(
                 "src_written": False,
                 "sprawl_warning": warning,
                 "skill_id": skill_id,
-                "error": snap.get("error") or "Snapshot failed; pack was not written.",
+                "error": snap.get("error") or "Snapshot failed; skill was not written.",
             }
         snapshot_id = snap.get("snapshot_id")
 
@@ -572,7 +572,7 @@ def commit_skill(
                 "sprawl_warning": warning,
                 "skill_id": skill_id,
                 "path": (existing.get("manifest") or {}).get("path"),
-                "error": f"Pack '{skill_id}' already exists. Pass overwrite=true to replace.",
+                "error": f"Skill '{skill_id}' already exists. Pass overwrite=true to replace.",
             }
         if dest_exists and payload.get("ace_delta"):
             name = (existing.get("manifest") or {}).get("name") or skill_id

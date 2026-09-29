@@ -97,7 +97,7 @@ def entry_to_resolve_view(entry: CapabilityIndexEntry) -> Dict[str, Any]:
 
 
 def runbook_id_from_skill_capability_id(skill_id: str) -> str:
-    """Map capability id `skill.<pack>` → pack id for UserSkillCatalog."""
+    """Map capability id `skill.<skill>` → skill id for UserSkillCatalog."""
     raw = (skill_id or "").strip().replace("\\", "/")
     if raw.startswith("skill."):
         return raw[len("skill.") :]

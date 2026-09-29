@@ -23,27 +23,19 @@ MCP-backed tools are the other lane. Use `mcp-engineering` for those. Do not for
 
 ## Two lanes
 
-1. **Native** — `register_native_tool`. The tool is stored in the `native_custom_tools` setting, mounted on the AutoReiv tool registry, and run in the same subprocess sandbox as `execute_code`. ToolPolicyGate and the agent allowlist still apply. HITL defaults on.
+1. **Native** — `register_native_tool`. The tool is saved in the data dir (`tools/<name>/tool.py` + `tool.json`). It is mounted on the AutoReiv tool registry only after Jacob enables it in Tools Studio (that approves the code hash; changed code needs approval again), and run in the same subprocess sandbox as `execute_code`. ToolPolicyGate and the agent allowlist still apply. HITL defaults on.
 2. **MCP** — `mcp-engineering`, then attach with the existing platform or agent MCP save. Tools Studio groups those tools under the server name. MCP hosting stays in Settings.
 
 The Tools Studio packaging dropdown is a **note** on the developer brief. It does not write the tool. You do, after the operator can see the job.
-
-## Not the legacy pack loader
-
-<!-- autoreiv:native-tool-legacy-loader -->
-
-`packs/<id>/tools/*.py` is a legacy in-process loader. Those modules run inside the AutoReiv process. Tools Studio labels them **Legacy pack tool**. They are not **Native custom**. They do not use `native_custom_tools`, the sandbox worker, or ToolPolicyGate HITL.
-
-Do not drop a new tool in that folder and call it a native custom tool. Native custom tools go through this skill and `register_native_tool`.
 
 ## Register a native tool
 
 1. Agree the tool name, what `run` returns, and which agents may call it.
 2. Write Python that defines `run(**kwargs)` and returns a JSON-friendly value. Do not shell out to the host.
-3. Call `register_native_tool` with `name`, `description`, `code`, a JSON Schema `parameters` object, `requires_hitl`, and `grant_agent_ids`.
+3. Call `register_native_tool` with `name`, `description`, `code`, a JSON Schema `parameters` object, `requires_hitl`, and optionally `target_agent_id` / `target_skill_id`.
 4. Names are lowercase identifiers. Names starting with `mcp_` are rejected. That prefix is the MCP lane.
 5. `risk_level: high` always requires HITL, even if you pass `requires_hitl: false`.
-6. `grant_agent_ids` appends the tool to those agents' existing allowlists (`save_agent_override`). A tool that is not granted is refused at the policy gate.
+6. `target_agent_id` (and `target_skill_id`) creates a proposal to add the tool to that agent's skill; Jacob accepts it. You cannot enable the tool or grant it yourself. Tell the operator to enable it in Tools Studio.
 7. Confirm `GET /api/tools/native` lists it with origin **Native custom**, and `mcp_servers` did not gain a server.
 
 ## Registration runs the tool once [CARD-511]

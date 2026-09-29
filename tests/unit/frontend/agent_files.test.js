@@ -87,8 +87,8 @@ describe('Agent Studio pack UI [CARD-119]', () => {
 
   it('has no Import/Export pack buttons on Agent Studio, no Pack Studio [CARD-569]', () => {
     const html = read('src/web/templates/index.html');
-    expect(html).not.toContain('forgeImportPackBtn');
-    expect(html).not.toContain('forgeExportPackBtn');
+    expect(html).not.toContain('forgeImportAgentBtn');
+    expect(html).not.toContain('forgeExportAgentBtn');
     expect(html).toContain('Show in Chat');
     expect(html).toContain('forgeShowInChat');
     expect(html).not.toContain('Pack Studio');
@@ -127,11 +127,11 @@ describe('New Agent opens the Agent Studio form [CARD-569]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/scaffold.js');
     expect(forgeJs).toContain('openQuickScaffoldModal');
     expect(forgeJs).toContain("fetch('/api/agents'");
-    expect(forgeJs).not.toContain('startNewAgentPackFromStudio');
-    expect(forgeJs).not.toContain('onStartNewAgentPack');
+    expect(forgeJs).not.toContain('startNewAgentFromStudio');
+    expect(forgeJs).not.toContain('onStartNewAgent');
     expect(forgeJs).not.toContain('Talk to AutoReiv to build the pack.');
     const appJs = read('src/web/static/app.js');
-    expect(appJs).not.toContain('onStartNewAgentPack');
+    expect(appJs).not.toContain('onStartNewAgent');
     const chatJs = read('src/web/static/modules/studios/chat.js') + read('src/web/static/modules/studios/chat/stream.js');
     expect(chatJs).not.toContain('startNewAgentAuthoring');
     expect(chatJs).not.toContain('I am ready to create a new agent.');

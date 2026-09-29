@@ -27,8 +27,8 @@ export function indexListedSkills(listed = [], assignedIds = []) {
 export function mergeEditableSkillOptions({
   assignedIds = [],
   platformSkills = [],
-  packOwnedIds = [],
-  userPacks = [],
+  ownedSkillIds = [],
+  userSkillRows = [],
 } = {}) {
   const byId = new Map();
 
@@ -50,10 +50,10 @@ export function mergeEditableSkillOptions({
     if (!skill) return;
     upsert(skill.id || skill.skill_id, skill.name, 'platform');
   });
-  (packOwnedIds || []).forEach((id) => upsert(id, id, 'pack'));
-  (userPacks || []).forEach((pack) => {
-    if (!pack) return;
-    upsert(pack.id, pack.name, 'user');
+  (ownedSkillIds || []).forEach((id) => upsert(id, id, 'agent'));
+  (userSkillRows || []).forEach((userSkill) => {
+    if (!userSkill) return;
+    upsert(userSkill.id, userSkill.name, 'user');
   });
 
   return Array.from(byId.values()).sort((a, b) => {

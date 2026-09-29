@@ -577,23 +577,6 @@ def prune_orphan_databases(root_path: Union[str, Path]) -> list[str]:
         except OSError:
             pass
 
-    # 2. empty packs/autoreiv/storage.db (legacy unmigrated name with 0 tables)
-    autoreiv_storage = root / "packs" / "autoreiv" / "storage.db"
-    if autoreiv_storage.is_file():
-        is_empty = False
-        try:
-            conn = sqlite3.connect(str(autoreiv_storage))
-            count = len(conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall())
-            conn.close()
-            if count == 0:
-                is_empty = True
-        except Exception:
-            is_empty = True
-        if is_empty:
-            cleanup_db_files(autoreiv_storage)
-            pruned.append(str(autoreiv_storage))
-            logger.info("Pruned empty legacy storage database %s", autoreiv_storage)
-
     return pruned
 
 
@@ -622,7 +605,7 @@ def is_checkout_live_tree_path(path: Union[str, Path], *, checkout: Optional[Pat
 def ensure_live_data_root(data_dir: Union[str, Path], *, checkout: Optional[Path] = None) -> Path:
     """Refuse live user-data roots that sit inside the git checkout (CARD-294).
 
-    Temporary local work belongs under checkout/scratch/ only. Live packs/DBs/wiki
+    Temporary local work belongs under checkout/scratch/ only. Live skills/DBs/wiki
     must use AUTOREIV_DATA_DIR or the platform default (e.g. LocalAppData/AutoReiv).
     """
     root = Path(data_dir).expanduser().resolve()
@@ -643,7 +626,7 @@ def resolve_agent_storage_path(
     else:
         root = ensure_live_data_root(DataDirResolver().resolve().root)
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
-    return root / "agents" / safe_id / "storage.db"  # CARD-570: agents/<id>/, no packs/
+    return root / "agents" / safe_id / "storage.db"  # CARD-570: agents/<id>/, no skills/
 
 
 def get_agent_storage_connection(

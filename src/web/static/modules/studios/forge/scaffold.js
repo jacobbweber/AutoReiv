@@ -29,7 +29,7 @@ export const FORGE_QUICK_PRESETS = {
 };
 
 /**
- * Construct a structured agent pack specification with gold-standard sections [CARD-197, REQ-FACT-047, CARD-269].
+ * Construct a structured agent specification with gold-standard sections [CARD-197, REQ-FACT-047, CARD-269].
  */
 export function buildQuickScaffoldPayload({
   id = '',

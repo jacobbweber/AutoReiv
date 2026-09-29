@@ -9,7 +9,7 @@ tools:
 - list_user_skills
 - skill_view
 version: 1.1.0
-tier: pack
+tier: platform
 safety:
   read_only: false
   requires_hitl: true

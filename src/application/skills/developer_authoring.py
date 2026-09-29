@@ -30,7 +30,7 @@ PACKET_FACT_PREFIX = "skill_studio_authoring_packet_json="
 PROPOSAL_FACT_PREFIX = "skill_studio_authoring_proposal_json="
 
 ALLOWED_PATCH_FIELDS = frozenset({"name", "description", "tier", "safety", "tools", "markdown"})
-VALID_TIERS = frozenset({"platform", "pack", "user"})
+VALID_TIERS = frozenset({"platform", "user"})
 _OPEN_STATUSES = frozenset({JobStatus.QUEUED.value, JobStatus.RUNNING.value, JobStatus.WAITING_APPROVAL.value})
 _SUCCESS_RULE = (
     "Done-when: proposed field patches are attached for the operator to accept "
@@ -60,7 +60,7 @@ def normalize_draft(raw: Optional[Mapping[str, Any]]) -> dict[str, Any]:
         text = str(item).strip()
         if text and text not in tools:
             tools.append(text)
-    tier = str(source.get("tier") or "pack").strip().lower() or "pack"
+    tier = str(source.get("tier") or "user").strip().lower() or "user"
     return {
         "skill_id": str(source.get("skill_id") or "").strip(),
         "name": str(source.get("name") or "").strip(),

@@ -90,7 +90,7 @@ def _seed(resolver: CapabilityCatalogResolver) -> None:
     resolver.upsert(
         CapabilityIndexEntry.self_authored(
             id="pack.homelab-admin",
-            kind=CapabilityKind.PACK,
+            kind=CapabilityKind.AGENT,
             name="Homelab Admin Pack",
             summary="Unrelated pack",
             keywords=["homelab", "vm", "hyperv"],

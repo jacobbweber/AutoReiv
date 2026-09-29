@@ -22,7 +22,7 @@ class CompactAgentCard(BaseModel):
     name: str = Field(description="Display name of the agent")
     tone: str = Field(default="analytical", description="Persona tone")
     summary: str = Field(description="1-2 sentence capability summary")
-    skills: List[str] = Field(default_factory=list, description="List of authorized skill pack tags or tools")
+    skills: List[str] = Field(default_factory=list, description="List of authorized skill tags or tools")
 
 
 class HandoffEnvelope(BaseModel):

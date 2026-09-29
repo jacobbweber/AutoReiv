@@ -303,13 +303,13 @@ class CapabilityLinter:
         """Scan repo platform/skills and the user-data skills directory [CARD-570]."""
         paths: List[Path] = []
 
-        # Platform seed packs in repository
+        # Platform seed skills in repository
         repo_root = Path(__file__).resolve().parent.parent.parent.parent
         platform_skills_dir = repo_root / "platform" / "skills"
         if platform_skills_dir.exists():
             paths.append(platform_skills_dir)
 
-        # User data packs directory
+        # User data skills directory
         from src.infrastructure.data.resolver import DataDirResolver
 
         resolved_data = data_dir or DataDirResolver().resolve().root

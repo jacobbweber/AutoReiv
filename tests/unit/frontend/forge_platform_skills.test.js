@@ -19,7 +19,7 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(html).toContain('id="forgeSkillsGrid"');
     expect(html).toContain('data-testid="forge-assigned-skills"');
     expect(html).not.toContain('id="forgePlatformBox"');
-    expect(html).not.toContain('id="forgePackBox"');
+    expect(html).not.toContain('id="forgeSkillBox"');
     expect(html).not.toContain('id="forgeFleetBox"');
     expect(html).not.toContain('Also ticked');
   });
@@ -29,9 +29,9 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(forgeJs).toContain('renderNestedHomes');
     expect(forgeJs).toContain('renderAssignedSkills');
     expect(forgeJs).not.toContain('renderPlatformSkills');
-    expect(forgeJs).not.toContain('renderPackSkills');
+    expect(forgeJs).not.toContain('renderOwnSkills');
     expect(forgeJs).not.toContain('renderFleetSkills');
-    expect(forgeJs).not.toContain('packOwnedIds');
+    expect(forgeJs).not.toContain('ownedSkillIds');
     expect(forgeJs).not.toContain('Also ticked');
     expect(forgeJs).not.toContain('ungrouped_skill_tool_list');
   });

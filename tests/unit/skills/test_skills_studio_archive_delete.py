@@ -56,7 +56,7 @@ def _client() -> TestClient:
 
 
 def _ids(response) -> set[str]:
-    return {p["id"] for p in response.json()["packs"]}
+    return {p["id"] for p in response.json()["skills"]}
 
 
 def test_archive_hides_from_live_list_and_unarchive_restores():

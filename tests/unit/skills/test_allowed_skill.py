@@ -230,7 +230,7 @@ async def test_skill_view_refuses_unticked_id(tmp_path):
         ToolCall(id="c3", name=LIST_USER_SKILLS, arguments={}),
         agent,
     )
-    ids = {p["id"] for p in listed.output["packs"]}
+    ids = {p["id"] for p in listed.output["skills"]}
     assert ids == {"user-provisioning"}
 
 

@@ -95,9 +95,7 @@ class ScopedToolRegistry:
     ) -> None:
         """Register a tool handler function.
 
-        ``origin`` is catalog metadata. ``legacy_pack_tool`` marks the
-        in-process ``packs/<id>/tools/*.py`` loader [CARD-425]. It is not
-        ``native_custom``.
+        ``origin`` is catalog metadata (platform, native_custom or mcp).
         """
         definition = ToolDefinition(
             name=name,

@@ -84,7 +84,7 @@ def detect_mid_job_capability_gap(
     name = f"{hint}-scaffold"
     if phase_name:
         name = f"{_slug(phase_name)}-{hint}"
-    pack = _slug(name)
+    slug_id = _slug(name)
     kind = "tool" if hint in {"health", "verify", "execute"} else "skill"
     return MidJobCapabilityGap(
         is_gap=True,
@@ -93,7 +93,7 @@ def detect_mid_job_capability_gap(
         match_count=assessment.match_count,
         suggested_kind=kind,
         suggested_name=name,
-        suggested_skill_id=pack,
+        suggested_skill_id=slug_id,
     )
 
 

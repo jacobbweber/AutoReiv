@@ -50,7 +50,7 @@ def profile_from_file(item: ContentFile, model_settings: Optional[dict[str, Any]
         "system_prompt": item.body.strip(),
         "allowed_skill": item.skills,
         "avatar_icon": str(meta.get("avatar") or "bot"),
-        "origin": AgentOrigin.PACK,  # all file agents are normal chat agents; shipped/edited is in file status
+        "origin": AgentOrigin.FILE,  # all file agents are normal chat agents; shipped/edited is in file status
         "is_builtin": False,  # is_builtin/"system" hide an agent in the UI
         "user_modified": item.edited,
         "seed_content_hash": item.shipped_hash,

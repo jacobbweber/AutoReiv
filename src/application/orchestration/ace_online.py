@@ -55,13 +55,13 @@ def reflect_failed_turn(
 
     if tool_bits:
         insight = (
-            f"Tool error in pack '{skill_id}': {tool_bits[0]}. "
+            f"Tool error in skill '{skill_id}': {tool_bits[0]}. "
             "Record the failure mode in the SOP; do not treat stubs as live APIs."
         )
     elif error_message:
-        insight = f"Failed turn for pack '{skill_id}': {error_message.strip()}"
+        insight = f"Failed turn for skill '{skill_id}': {error_message.strip()}"
     else:
-        insight = f"Failed turn for pack '{skill_id}'; capture the miss as one SOP bullet."
+        insight = f"Failed turn for skill '{skill_id}'; capture the miss as one SOP bullet."
     insight = insight.replace("\r\n", " ").strip()
     if len(insight) > MAX_INSIGHT_CHARS:
         insight = insight[: MAX_INSIGHT_CHARS - 1].rstrip() + "…"

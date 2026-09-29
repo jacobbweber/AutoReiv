@@ -50,7 +50,7 @@ export function normalizeAuthoringDraft(raw = {}) {
     skill_id: String(source.skill_id || '').trim(),
     name: String(source.name || '').trim(),
     description: String(source.description || '').trim(),
-    tier: String(source.tier || 'pack').trim() || 'pack',
+    tier: String(source.tier || 'user').trim() || 'user',
     safety: {
       read_only: Boolean(safety.read_only),
       requires_hitl: Boolean(safety.requires_hitl),

@@ -40,7 +40,7 @@ Skill bodies: `platform/skills/<id>/SKILL.md`
 
 ## Education Studio chrome map
 
-Sources walked: `src/web/static/modules/studios/education.js`, `#view-education` in `src/web/templates/index.html`, `src/web/routers/education.py`, `src/web/routers/education_priming.py`, `src/application/education/*`, `platform-packs/tutor/*`, Wiki templates, seeds `src/infrastructure/skills/seeds/education-*`.
+Sources walked: `src/web/static/modules/studios/education.js`, `#view-education` in `src/web/templates/index.html`, `src/web/routers/education.py`, `src/web/routers/education_priming.py`, `src/application/education/*`, `platform/agents/tutor.md`, `platform/skills/*`, Wiki templates, seeds `src/infrastructure/skills/seeds/education-*`.
 
 | Studio chrome | DOM / module anchors | Application module(s) | HTTP API | Durable store | Wiki template(s) | Tutor skill id | Disposition |
 |---|---|---|---|---|---|---|---|
@@ -57,7 +57,7 @@ Sources walked: `src/web/static/modules/studios/education.js`, `#view-education`
 | Dual Coding section | `#educationDualCodingSection`, `#educationDualCodingPanel` | course dual-coding; visual_amplifiers | course dual-coding preview + complete-step | course artifact + wiki | education-dual-coding | `education-wiki-curation` (+ course via start-resume) | **re-home**; seed `education-dual-coding` related |
 | Quiz / SRS panel | `#educationQuizPanel`, `#educationDueList`, `#educationRefreshDueBtn`, `#educationRunRetentionBtn` | quiz_engine.py, srs.py, retention_routine.py, learner_model.py | `/api/education/quiz/*`, `/api/education/mastery/due`, `/api/education/retention/run`, `/api/education/ask/pressure`, `/api/education/learner` | `education_mastery` | education-quiz, education-flashcard | `quiz-turn`, `flashcard-turn`, `due-review` | **re-home** 438/439 |
 | Elaboration panel | `#educationElaborationPanel` | elaboration.py | `/api/education/elaboration/*`, course elaboration preview/complete | mastery + wiki | education-elaboration | *(no day-one Tutor skill — gap)* | **keep** Studio; later rails |
-| Construction lab | `#educationConstructionPanel` | construction.py, labs.py | `/api/education/construction/*`, course lab preview/grade | wiki + mastery | education-lab | seed `education-construction` (not Tutor pack id) | **keep** Studio; later rails |
+| Construction lab | `#educationConstructionPanel` | construction.py, labs.py | `/api/education/construction/*`, course lab preview/grade | wiki + mastery | education-lab | seed `education-construction` (not a Tutor skill id) | **keep** Studio; later rails |
 | Application lab | `#educationApplicationPanel` | application.py | `/api/education/application/*`, course application complete | exercise jobs + mastery | education-lab, education-problem | seed `education-application` | **keep** Studio; later rails |
 | Analysis panel | `#educationAnalysisPanel` | analysis.py | `/api/education/analysis*`, course analysis/handoff | analysis + mastery | education-score | `progress-summary` (partial) | **re-home** partial via 441 |
 | Environment panel | `#educationEnvironmentPanel` | environment.py | `/api/education/environment*` | delivery profiles | education-priming | — | **re-home** later |
@@ -91,11 +91,11 @@ Code catalog: `src/application/education/templates.py` (`list_education_template
 
 ---
 
-## Related seed runbooks (not Tutor pack skill ids)
+## Related seed runbooks (not Tutor skill ids)
 
 `src/infrastructure/skills/seeds/education-priming`, `education-dual-coding`, `education-construction`, `education-application` — Ask/Job matched seeds. Do not conflate with Tutor Learning OS skill ids in allowlists.
 
-Autoreiv pack still mirrors `socratic-tutoring` for historical parity; Tutor is the education-first Learning OS agent.
+AutoReiv still mirrors `socratic-tutoring` for historical parity; Tutor is the education-first Learning OS agent.
 
 ---
 
@@ -110,13 +110,13 @@ Autoreiv pack still mirrors `socratic-tutoring` for historical parity; Tutor is 
 | Links / curriculum ingest API | `POST /api/education/wiki/curate` + `education_wiki_curate_from_*` tools (CARD-440) | CARD-440 (In Review) |
 | Non-Studio progress surface | APIs + Tutor strip shipped (CARD-441 Done); operator UI may relocate to Studio | CARD-441 Done; relocate CARD-447 |
 | Education Studio operator + players (not retirement) | Studio = operator console + players per ADR-0059 amendment; chat strip temporary | CARD-446 parent; CARD-447 strip+context; CARD-448 players (CARD-442 Superseded) |
-| `user_modified` Tutor allowlist | Seed sync updates non-`user_modified`; modified packs may need operator tick | live-proof note |
+| `user_modified` Tutor allowlist | Seed sync updates non-`user_modified`; edited agents may need an operator tick | live-proof note |
 
 ---
 
 ## Live proof for Jacob
 
 1. Education Studio still present: bottom-nav Education, `#view-education`, Ask → course chrome → quiz → Discuss with Tutor.
-2. Tutor pack skill list shows Learning OS ids (`start-resume-topic`, `quiz-turn`, `flashcard-turn`, `due-review`, `education-wiki-curation`, `progress-summary`, plus `socratic-tutoring`).
-3. Contract: `pytest tests/unit/agent_packs/test_card_436_tutor_learning_os_skills.py`.
+2. Tutor skill list shows Learning OS ids (`start-resume-topic`, `quiz-turn`, `flashcard-turn`, `due-review`, `education-wiki-curation`, `progress-summary`, plus `socratic-tutoring`).
+3. Contract: `pytest tests/unit/agent_skills/test_card_436_tutor_learning_os_skills.py`.
 4. After live proof: say **merge to qa** (or **continue** if gaps).

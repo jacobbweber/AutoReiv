@@ -87,10 +87,6 @@ Education-mode Tutor **must** use a named Learning OS skill (this skill or a sib
 
 Never invent a successful durable grade when `education_flashcard_grade` fails. Never spend the turn budget on Wiki side quests instead of grading.
 
-## AppData note
-
-Prefer the platform pack body under `platform-packs/tutor/skills/flashcard-turn/`. If live AppData `packs/tutor/` lags, that is [CARD-443](../../../../.agents/cards/CARD-443-platform-tutor-pack-appdata-sync.md) — do not manually redesign Learning OS here.
-
 ## Successor
 
 - Due-review packaging / queue UX: **CARD-439** (Done tools); default turn budget for every agent: **CARD-445** (separate — do not raise budget as a crutch for this skill).

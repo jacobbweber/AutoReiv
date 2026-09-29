@@ -12,7 +12,7 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 
 import yaml
 
-VALID_TIERS = ("platform", "pack", "user")
+VALID_TIERS = ("platform", "user")
 SAFETY_KEYS = ("read_only", "requires_hitl", "untrusted_input_allowed")
 _FIELD_ORDER = (
     "name",
@@ -103,11 +103,11 @@ def frontmatter_view(text: str) -> dict[str, Any]:
     """Structured inspector/editor view of a SKILL.md document."""
     meta, body = split_skill_markdown(text)
     tools, _rejected = normalize_tool_ids(meta.get("tools") or [])
-    tier = str(meta.get("tier") or "pack").strip() or "pack"
+    tier = str(meta.get("tier") or "user").strip() or "user"
     return {
         "name": str(meta.get("name") or "").strip(),
         "description": str(meta.get("description") or "").strip(),
-        "tier": tier if tier in VALID_TIERS else "pack",
+        "tier": tier if tier in VALID_TIERS else "user",
         "safety": _normalize_safety(meta.get("safety") if isinstance(meta.get("safety"), dict) else {}),
         "tools": tools,
         "body": body,
@@ -140,7 +140,7 @@ def apply_workshop_metadata(
             raise InvalidSkillTierError(clean_tier)
         meta["tier"] = clean_tier
     elif "tier" not in meta:
-        meta["tier"] = "pack"
+        meta["tier"] = "user"
     if isinstance(safety, Mapping):
         safety_source = safety
     elif isinstance(meta.get("safety"), dict):

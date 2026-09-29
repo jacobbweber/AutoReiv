@@ -1,5 +1,5 @@
 """
-User agentskills.io pack catalog with progressive disclosure [REQ-DATA-009 - REQ-DATA-011].
+User agentskills.io skill catalog with progressive disclosure [REQ-DATA-009 - REQ-DATA-011].
 
 List is frontmatter only. Body and JSON tool blocks load on demand via
 DynamicSkillLoader.load_skill_from_markdown. Python builtins are never replaced.
@@ -44,7 +44,7 @@ LAST_USED_NAME = ".last_used"
 def render_skill_index(allowed_skill, catalog=None, agent_id=None) -> str:
     """Name + blurb for ticked runbooks only. Empty allowlist injects nothing.
 
-    Operator-store manifests win. Allowlisted pack runbooks that are not copied
+    Operator-store manifests win. Allowlisted skill runbooks that are not copied
     into ``$DATA_DIR/skills/`` still contribute a name and blurb [CARD-427].
     """
     ids = [str(s).strip() for s in (allowed_skill or []) if str(s).strip()]
@@ -85,7 +85,7 @@ def render_skill_index(allowed_skill, catalog=None, agent_id=None) -> str:
 
 
 def _skill_index_entry(catalog, skill_id: str, agent_id: Optional[str]) -> Optional[tuple]:
-    """Name and description for one pack runbook. Body stays out of the index."""
+    """Name and description for one skill runbook. Body stays out of the index."""
     if catalog is None:
         return None
     reader = getattr(catalog, "skill_index_entry", None)
@@ -103,7 +103,7 @@ def _skill_index_entry(catalog, skill_id: str, agent_id: Optional[str]) -> Optio
 
 
 class SkillJailError(ValueError):
-    """Pack id is not a jailed path under $DATA_DIR/skills."""
+    """Skill id is not a jailed path under $DATA_DIR/skills."""
 
 
 def render_skill_md(name: str, description: str, instructions: str) -> str:
@@ -121,7 +121,7 @@ def render_skill_md(name: str, description: str, instructions: str) -> str:
 
 
 class UserSkillCatalog:
-    """Catalog of USER packs under $DATA_DIR/skills. Repo .agents/skills are not scanned."""
+    """Catalog of user skills under $DATA_DIR/skills. Repo .agents/skills are not scanned."""
 
     def __init__(
         self,
@@ -168,7 +168,7 @@ class UserSkillCatalog:
         for manifest in self._manifests:
             if manifest.id == skill_id:
                 return manifest
-        # CARD-228: packs may appear after bootstrap — refresh once on miss.
+        # CARD-228: skills may appear after bootstrap — refresh once on miss.
         self.list_manifests()
         for manifest in self._manifests:
             if manifest.id == skill_id:
@@ -249,7 +249,7 @@ class UserSkillCatalog:
             source_path = str(live)
         loaded = DynamicSkillLoader.load_skill_from_markdown(source_path)
         if not loaded:
-            return {"success": False, "error": f"Failed to load SKILL.md for pack '{skill_id}'."}
+            return {"success": False, "error": f"Failed to load SKILL.md for skill '{skill_id}'."}
 
         # CARD-121: JSON `tools` in SKILL.md are labels in the runbook, not model callables.
         skipped = self._mount_skill_tools(loaded)
@@ -276,7 +276,7 @@ class UserSkillCatalog:
             return {
                 "success": False,
                 "error": (
-                    f"Tool '{tool_name}' is declared by user pack '{skill_name}' as an "
+                    f"Tool '{tool_name}' is declared by user skill '{skill_name}' as an "
                     "agentskills.io schema, not an executable Python builtin."
                 ),
             }
@@ -303,12 +303,12 @@ class UserSkillCatalog:
     def list_user_skills(self) -> Dict[str, Any]:
         """Tool handler: catalog list is name + description only. Agent calls see ticked ids only.
 
-        Allowlisted pack runbooks that are not copied into ``$DATA_DIR/skills/`` are
+        Allowlisted skill runbooks that are not copied into ``$DATA_DIR/skills/`` are
         included with name and description only. The runbook body stays out [CARD-428].
         """
-        packs = []
+        skill_rows = []
         for manifest in self.list_manifests():
-            packs.append(
+            skill_rows.append(
                 {
                     "id": manifest.id,
                     "name": manifest.name,
@@ -319,8 +319,8 @@ class UserSkillCatalog:
             )
         allowed = self._allowed_skill_ids_for_current_agent()
         if allowed is not None:
-            packs = [p for p in packs if p["id"] in allowed]
-            known = {p["id"] for p in packs}
+            skill_rows = [p for p in skill_rows if p["id"] in allowed]
+            known = {p["id"] for p in skill_rows}
             agent_id = self._chat_agent_id()
             for skill_id in sorted(allowed):
                 if skill_id in known:
@@ -329,14 +329,14 @@ class UserSkillCatalog:
                 if not found:
                     continue
                 name, description = found
-                packs.append(
+                skill_rows.append(
                     {
                         "id": skill_id,
                         "name": name,
                         "description": description,
                     }
                 )
-        return {"packs": packs}
+        return {"skills": skill_rows}
 
     def skill_view(self, skill_id: str) -> Dict[str, Any]:
         """Tool handler: load SKILL.md body for one allowed runbook."""
@@ -366,12 +366,12 @@ class UserSkillCatalog:
         if self.skills_dir is None:
             raise SkillJailError("Skills directory is not configured.")
         if not skill_id or not isinstance(skill_id, str) or not _SKILL_ID_RE.match(skill_id):
-            raise SkillJailError("Invalid pack id.")
+            raise SkillJailError("Invalid skill id.")
         if ".." in skill_id.split("/"):
             raise SkillJailError("Path traversal rejected.")
         for part in skill_id.replace("\\", "/").split("/"):
             if part in SKIP_LIST_DIRNAMES:
-                raise SkillJailError("Invalid pack id.")
+                raise SkillJailError("Invalid skill id.")
         root = self.skills_dir.expanduser().resolve()
         candidate = self.skills_dir / skill_id / "SKILL.md"
         try:
@@ -398,9 +398,9 @@ class UserSkillCatalog:
         return loaded.path if loaded else None
 
     def resolve_chat_skill_md(self, skill_id: str, agent_id: Optional[str] = None) -> Optional[Path]:
-        """Live SKILL.md for chat: operator store, this agent's pack, then any pack or seed.
+        """Live SKILL.md for chat: operator store, this agent's skill, then any skill or seed.
 
-        Read-only. A pack runbook is not copied into ``$DATA_DIR/skills/`` [CARD-427].
+        Read-only. A skill runbook is not copied into ``$DATA_DIR/skills/`` [CARD-427].
         """
         if self.skills_dir is None:
             return None
@@ -413,7 +413,7 @@ class UserSkillCatalog:
         return None
 
     def skill_index_entry(self, skill_id: str, agent_id: Optional[str] = None) -> Optional[tuple]:
-        """Frontmatter name and description for a pack runbook. Omits the body."""
+        """Frontmatter name and description for a skill runbook. Omits the body."""
         path = self.resolve_chat_skill_md(skill_id, agent_id=agent_id)
         if path is None:
             return None
@@ -445,10 +445,10 @@ class UserSkillCatalog:
             if skill_scoped and skill_scoped.is_file():
                 path = skill_scoped
             else:
-                return {"success": False, "error": f"Pack '{skill_id}' not found.", "not_found": True}
+                return {"success": False, "error": f"Skill '{skill_id}' not found.", "not_found": True}
         parsed = DynamicSkillLoader.load_skill_from_markdown(str(path))
         if not parsed:
-            return {"success": False, "error": f"Failed to load SKILL.md for pack '{skill_id}'."}
+            return {"success": False, "error": f"Failed to load SKILL.md for skill '{skill_id}'."}
         tools_meta = []
         for tool in parsed.get("tools") or []:
             tools_meta.append({"name": tool.name, "description": tool.description})
@@ -469,7 +469,7 @@ class UserSkillCatalog:
                 "name": parsed.get("name", skill_id),
                 "description": parsed.get("description", ""),
                 "path": str(path),
-                "origin": "pack" if "packs" in path.parts else "user",
+                "origin": "platform" if path.parent.parent.parent.name == "platform" else "user",
             },
             "instructions": parsed.get("instructions", ""),
             "tools": tools_meta,
@@ -484,7 +484,7 @@ class UserSkillCatalog:
         description: str,
         instructions: str,
     ) -> Dict[str, Any]:
-        """Write SKILL.md inside the skills tree or pack tree. Creates the pack folder if needed."""
+        """Write SKILL.md inside the skills tree or skill tree. Creates the skill folder if needed."""
         clean_name = (name or "").strip()
         clean_description = (description or "").strip()
         if not clean_name or not clean_description:
@@ -512,19 +512,19 @@ class UserSkillCatalog:
         self,
         skill_id: str,
         name: Optional[str] = None,
-        description: str = "User skill pack.",
+        description: str = "User skill.",
     ) -> Dict[str, Any]:
-        """Create an empty playbook pack (folder + SKILL.md)."""
+        """Create an empty playbook skill (folder + SKILL.md)."""
         path = self.resolve_skill_md(skill_id)
         if path.is_file():
-            return {"success": False, "error": f"Pack '{skill_id}' already exists.", "conflict": True}
+            return {"success": False, "error": f"Skill '{skill_id}' already exists.", "conflict": True}
         display = (name or skill_id).strip() or skill_id
-        desc = (description or "User skill pack.").strip() or "User skill pack."
+        desc = (description or "User skill.").strip() or "User skill."
         return self.save_skill(skill_id, display, desc, "")
 
 
     def skill_dir(self, skill_id: str) -> Path:
-        """Jailed pack directory under $DATA_DIR/skills/<id>/."""
+        """Jailed skill directory under $DATA_DIR/skills/<id>/."""
         return self.resolve_skill_md(skill_id).parent
 
     def _snapshot_id(self) -> str:
@@ -564,7 +564,7 @@ class UserSkillCatalog:
         return sorted(p.name for p in root.iterdir() if p.is_dir())
 
     def rollback_skill(self, skill_id: str, snapshot_id: Optional[str] = None) -> Dict[str, Any]:
-        """Restore SKILL.md + notes from a snapshot. Other packs untouched [REQ-IMPROVE-004]."""
+        """Restore SKILL.md + notes from a snapshot. Other skills untouched [REQ-IMPROVE-004]."""
         try:
             root = self.skill_dir(skill_id)
             snap_id = (snapshot_id or "").strip() or None
@@ -685,7 +685,7 @@ class UserSkillCatalog:
             name=LIST_USER_SKILLS,
             description=(
                 "Optional catalog of this agent's allowed SKILL.md runbooks (name and description only). "
-                "Includes allowlisted pack runbooks that stay under packs/<agent>/skills/ and are not copied "
+                "Includes allowlisted skill runbooks that stay under platform/skills/ and are not copied "
                 "into $DATA_DIR/skills. The same index is already in the system prompt. Prefer the prompt list; "
                 "do not treat this as a way to discover unticked runbooks."
             ),
@@ -705,7 +705,7 @@ class UserSkillCatalog:
                         "type": "string",
                         "description": (
                             "Allowlisted skill id. Opens the operator skill store copy when one exists, "
-                            "otherwise the agent pack runbook. Does not copy a pack file into $DATA_DIR/skills."
+                            "otherwise the agent runbook. Does not copy a skill file into $DATA_DIR/skills."
                         ),
                     },
                 },

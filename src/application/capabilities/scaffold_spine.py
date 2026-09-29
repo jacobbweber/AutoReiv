@@ -83,7 +83,7 @@ class SelfScaffoldSpine:
         if not nm:
             raise ValueError("name is required.")
 
-        # Capture prior trusted snapshot id if a trusted pack already exists.
+        # Capture prior trusted snapshot id if a trusted skill already exists.
         prior_snap: Optional[str] = None
         existing_skill = None
         try:
@@ -170,7 +170,7 @@ class SelfScaffoldSpine:
             raise CandidateUnsandboxedError("candidate cannot run unsandboxed; sandbox_exec required before version")
         snap = self.catalog.snapshot_skill(rec.skill_id)
         if not snap.get("success"):
-            # Pack may be brand-new; create a version marker anyway.
+            # Skill may be brand-new; create a version marker anyway.
             snap_id = f"ver_{uuid.uuid4().hex[:10]}"
         else:
             snap_id = snap.get("snapshot_id") or f"ver_{uuid.uuid4().hex[:10]}"
