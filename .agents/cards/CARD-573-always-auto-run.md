@@ -2,7 +2,7 @@
 id: CARD-573
 title: "Agent Studio: Always auto-run preference per agent"
 type: feature
-status: Ready
+status: In Review
 priority: P2
 milestone: M24
 needs_decision: none
@@ -14,7 +14,7 @@ related: [CARD-572, CARD-470, CARD-299]
 
 # CARD-573 Agent Studio: Always auto-run preference per agent
 
-> **Status**: Ready
+> **Status**: In Review
 
 ## Why
 Jacob trusts some agents to run write, shell and code tools without asking. Today the Chat Auto-run box is one
@@ -46,5 +46,22 @@ for agents he does not trust.
 - New routine for the agent -> box pre-checked; existing routines unchanged.
 - Agents without it behave as before. Fast preflight GREEN; journey card-573-always-auto-run PASS.
 
+## Results (2026-09-29, In Review)
+- Agent: `AgentProfile.always_auto_run` (default off) in the agent file (written only when on), the Agent Studio payload
+  (omitted = keep the saved value), public agent JSON and `AgentCustomization`.
+- Agent Studio: **Always auto-run** checkbox in Agent Preferences (under Max turns / Session cleanup).
+- Chat: `applySessionAutoRun` (runtime_toggles.js) runs on every chat select (chat/session_select.js) and when the roster
+  reloads. Agent with the preference: box checked unless unticked in that chat (per-chat choice in browser storage
+  `autoreiv_autorun_chat_choices_573`); other agents: CARD-470 remembered choice, unchanged. chat.js untouched (CARD-397 line cap).
+- Routines: the form pre-checks Auto-run for a new routine of such an agent (also on agent change in the new form); the
+  create API uses the agent preference only when `approval_mode` is omitted; an update that omits it keeps the saved value.
+- Tests: `tests/unit/web/test_card573_always_auto_run.py` (3), vitest `card_573_always_auto_run.test.js`; full not-slow
+  suite 2038 passed, 13 skipped; vitest 947; fast preflight --base qa GREEN.
+
+| Journey | Viewport | Result | Notes |
+|---|---|---|---|
+| card-573-always-auto-run | desktop | PASS | Agent Studio tutor: ticked and saved (PUT sent always_auto_run true; autoreiv stays false). Tutor chat A opened with Auto-run checked (badge shown), Run as a job off beside it. Unticked in A: send carried approval_mode ask; tutor chat B still opened checked; A stayed unticked on return; an autoreiv chat opened unchecked. New tutor routine: box pre-checked, saved run; a saved ask routine kept ask; API create without approval_mode got run. |
+
 ## Log
 - 2026-09-29: Jacob asked for this (D1); routine behaviour D2 proposed by the parent agent. Ready; building stacked on CARD-572.
+- 2026-09-29: Built; checks green; journey PASS; In Review. Not merged or pushed.
