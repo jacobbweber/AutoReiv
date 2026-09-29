@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
-from src.domain.observability.models import LEGACY_TOOL_ESCALATION, TOOL_ESCALATION
+from src.domain.observability.models import TOOL_ESCALATION
 
 # CARD-520 REQ-520-015: guidance that says a tool is missing ("has no weather tool", "needs a tool").
 _NAMED_TOOL_RE = re.compile(
@@ -319,8 +319,7 @@ class SkillDistillationService:
         }
 
         if needs_tool:
-            # CARD-520 REQ-520-002: accept the pre-rename key from the model too.
-            escalation = llm_data.get(TOOL_ESCALATION) or llm_data.get(LEGACY_TOOL_ESCALATION) or {
+            escalation = llm_data.get(TOOL_ESCALATION) or {
                 "target_agent_id": target_agent_id,
                 "seed_intent": guidance or "Synthesize missing capability tool",
                 "starter_objectives": ["Implement verified tool handler", "Add schema guardrails"],

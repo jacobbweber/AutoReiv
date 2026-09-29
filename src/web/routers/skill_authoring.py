@@ -48,13 +48,13 @@ def _call(action):
 
 @router.post("/lint")
 def lint_skill_draft(payload: AuthoringDraftRequest, request: Request) -> dict[str, Any]:
-    """Cheap lint only. Does not open a developer job."""
+    """Cheap lint only. Does not open a Toolsmith job."""
     return _call(lambda: _service(request).lint(payload.draft))
 
 
 @router.post("/jobs")
 def submit_authoring_job(payload: AuthoringJobRequest, request: Request) -> dict[str, Any]:
-    """Create or resume a visible developer standing job for this draft."""
+    """Create or resume a visible Toolsmith standing job for this draft (CARD-574)."""
     return _call(lambda: _service(request).submit(payload.intent, payload.draft))
 
 

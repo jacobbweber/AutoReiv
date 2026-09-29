@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional, Tuple
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.domain.observability.models import TOOL_ESCALATION, TelemetryFilter, normalize_remedy_kind
+from src.domain.observability.models import TOOL_ESCALATION, TelemetryFilter
 
 router = APIRouter(tags=["Observability"])
 
@@ -341,8 +341,7 @@ def _friction_ledger(data_dir: Any) -> Path:
 
 
 def _normalize_friction_rec(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Old records read as tool_escalation with tool_name/payload_bytes derived from the text [CARD-520 REQ-520-004]."""
-    data["remedy_kind"] = normalize_remedy_kind(data.get("remedy_kind"))
+    """Records without tool_name/payload_bytes get them derived from the text [CARD-520 REQ-520-004]."""
     text = f"{data.get('summary') or ''} {data.get('proposed_patch') or ''}"
     if not data.get("tool_name"):
         m = _ESCALATE_RE.search(text)

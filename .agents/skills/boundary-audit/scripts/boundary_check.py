@@ -38,7 +38,7 @@ def check_working_tree_files(repo_root: Path) -> list[str]:
         if p.exists():
             violations.append(f"Stray wiki directory found in repo root: {p} (must live in %LOCALAPPDATA%\\AutoReiv\\wiki\\)")
 
-    # 2. Check for live packs directory in repo root (platform-packs/ is factory seed; packs/ is live runtime)
+    # 2. Check for a stray live packs directory in repo root (runtime data belongs in %LOCALAPPDATA%)
     live_packs = repo_root / "packs"
     if live_packs.exists():
         violations.append(f"Live packs/ directory found in repo root: {live_packs} (must live in user data directory)")

@@ -6,7 +6,8 @@
 
 export const PACKET_SCHEMA = 'skill_studio_authoring_packet';
 export const PACKET_VERSION = 1;
-export const DEVELOPER_AGENT_ID = 'developer';
+// CARD-574: authoring jobs go to Toolsmith, like every Ask Developer button (CARD-571).
+export const TOOLSMITH_AGENT_ID = 'toolsmith';
 export const AUTHORING_JOBS_URL = '/api/skill_studio/authoring/jobs';
 export const AUTHORING_LINT_URL = '/api/skill_studio/authoring/lint';
 export const SILENT_RUNBOOK_URL = '/api/skill_studio/runbook';
@@ -70,7 +71,7 @@ export function buildAuthoringPacket({ intent, draft, blockers = [] } = {}) {
     version: PACKET_VERSION,
     studio: 'skill',
     intent: cleanIntent,
-    agent_id: DEVELOPER_AGENT_ID,
+    agent_id: TOOLSMITH_AGENT_ID,
     draft: normalizeAuthoringDraft(draft),
     lint: {
       cheap: true,
@@ -81,7 +82,7 @@ export function buildAuthoringPacket({ intent, draft, blockers = [] } = {}) {
 }
 
 /**
- * Apply developer field patches onto a Skill Studio draft.
+ * Apply Toolsmith field patches onto a Skill Studio draft.
  * Unknown fields (skill id, agent allowlists) are ignored.
  * This does not persist. The operator still uses Skill Studio Save.
  */
@@ -127,7 +128,7 @@ export function planAuthoringWatch(jobId) {
     jobId: id,
     primary: 'observe',
     observe: { studio: 'observe', tab: 'observability', jobId: id },
-    chat: { studio: 'chat', jobId: id, agentId: DEVELOPER_AGENT_ID },
+    chat: { studio: 'chat', jobId: id, agentId: TOOLSMITH_AGENT_ID },
   };
 }
 
@@ -149,7 +150,7 @@ export async function runCheapLint(draft, { fetchFn = fetch } = {}) {
   });
   const data = await readJson(resp);
   if (data.job_id || data.opened_job) {
-    throw new Error('cheap lint must not open a developer job');
+    throw new Error('cheap lint must not open a Toolsmith job');
   }
   return {
     blockers: Array.isArray(data.blockers) ? data.blockers : [],
@@ -174,7 +175,7 @@ export async function submitSkillAuthoring(draft, intent, { fetchFn = fetch } = 
   if (data.llm_rewrite) throw new Error('Build must not silently rewrite the skill.');
   return {
     jobId,
-    agentId: data.agent_id || DEVELOPER_AGENT_ID,
+    agentId: data.agent_id || TOOLSMITH_AGENT_ID,
     resumed: Boolean(data.resumed),
     visible: data.visible !== false,
     llmRewrite: false,

@@ -64,15 +64,6 @@ def test_patch_recommendations_also_carry_the_tool_name(data_dir):
     assert rec.tool_name == "wiki_note_search"
 
 
-# ---------------------------------------------------------------- model reader (REQ-520-004)
-
-def test_model_reads_the_old_remedy_name_as_tool_escalation():
-    rec = RunbookRecommendation(
-        id="rec_old", agent_id="autoreiv", friction_type="payload_bloat", summary="s", proposed_patch="p", remedy_kind=OLD,
-    )
-    assert rec.remedy_kind == "tool_escalation"
-
-
 # ---------------------------------------------------------------- apply reasons (REQ-520-010)
 
 def test_apply_with_reason_explains_every_outcome(data_dir):
@@ -130,13 +121,13 @@ def test_apply_route_answers_409_404_or_200_with_plain_messages(store, data_dir)
     assert c.post(f"{base}/{patch.id}/apply").status_code == 200
 
 
-def test_list_normalizes_old_records_and_derives_the_tool_name(store, data_dir):
+def test_list_derives_the_tool_name_and_payload_bytes(store, data_dir):
     ledger = data_dir / "skills" / "_friction_recommendations.json"
     ledger.write_text(json.dumps([{
         "id": "rec_legacy", "agent_id": "autoreiv", "skill_path": None, "friction_type": "payload_bloat",
         "summary": "Escalate c520_inventory_dump to Factory Studio (unbounded payload).",
         "proposed_patch": "Escalate c520_inventory_dump to Factory Studio: Tool lacks pagination/filter parameters to constrain large payloads (20790 bytes).",
-        "remedy_kind": OLD, "status": "pending",
+        "remedy_kind": "tool_escalation", "status": "pending",
     }]), encoding="utf-8")
     recs = _client(store, data_dir).get("/api/observability/friction/recommendations").json()
     legacy = next(r for r in recs if r["id"] == "rec_legacy")
@@ -197,8 +188,8 @@ def _distill_env(tmp_path, store):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model_key", ["tool_escalation", OLD])
-async def test_distill_needs_tool_result_uses_tool_escalation(tmp_path, store, model_key):
+async def test_distill_needs_tool_result_uses_tool_escalation(tmp_path, store):
+    model_key = "tool_escalation"
     Svc, data, sid, mid = _distill_env(tmp_path, store)
     payload = {"needs_tool": True, "suggested_tool_name": "get_city_weather", "plain_summary": {"observed_slip": "a", "remedy": "b"},
                model_key: {"target_agent_id": "autoreiv", "seed_intent": "Current weather for a city", "starter_objectives": ["o1"]}}
@@ -285,45 +276,9 @@ def test_talk_without_a_target_agent_adds_no_grant_line_and_drops_unsafe_ids():
     assert bad["draft"].get("target_agent_id", "") == ""
 
 
-# ---------------------------------------------------------------- migration (REQ-520-005)
-
-def test_startup_migration_rewrites_old_names_once(tmp_path, store, data_dir):
-    from src.application.observability.tool_escalation_migration import migrate_tool_escalation_names
-
-    sess = store.create_session(agent_id="autoreiv", title="old")
-    old_prop = {"status": "ok", "needs_tool": True, OLD: {"seed_intent": "weather", "suggested_tool_name": "get_w"}}
-    store.save_message(session_id=sess.id, agent_id="autoreiv", message=ChatMessage(role=Role.SKILL_PROPOSAL, content=json.dumps(old_prop), name="distill_skill"))
-    store.save_message(session_id=sess.id, agent_id="autoreiv", message=ChatMessage(role=Role.SKILL_PROPOSAL, content="{not json " + OLD, name="distill_skill"))
-    store.save_message(session_id=sess.id, agent_id="autoreiv", message=ChatMessage(role=Role.ASSISTANT, content="talking about " + OLD))
-    store.create_proposal(Proposal(id="rec_old1", kind=ProposalKind.SKILL, status=ProposalStatus.DRAFT, requested_by_job_id="telemetry-friction-auditor",
-                                   payload_json=json.dumps({"id": "rec_old1", "remedy_kind": OLD, "summary": "s"})))
-    ledger = data_dir / "skills" / "_friction_recommendations.json"
-    ledger.write_text(json.dumps([{"id": "rec_old1", "remedy_kind": OLD}, {"id": "rec_new", "remedy_kind": "runbook_patch"}]), encoding="utf-8")
-
-    counts = migrate_tool_escalation_names(store, data_dir)
-    assert counts == {"messages": 1, "proposals": 1, "ledger": 1}
-    msgs = store.get_messages(sess.id)
-    first = json.loads(msgs[0].content)
-    assert OLD not in first and first["tool_escalation"]["suggested_tool_name"] == "get_w"
-    assert msgs[1].content.startswith("{not json")  # malformed row untouched
-    assert msgs[2].content == "talking about " + OLD  # only skill_proposal rows
-    assert json.loads(store.get_proposal("rec_old1").payload_json)["remedy_kind"] == "tool_escalation"
-    assert [r["remedy_kind"] for r in json.loads(ledger.read_text(encoding="utf-8"))] == ["tool_escalation", "runbook_patch"]
-    assert migrate_tool_escalation_names(store, data_dir) == {"messages": 0, "proposals": 0, "ledger": 0}
-
-
-def test_app_startup_runs_the_migration():
-    src = (ROOT / "src" / "web" / "app.py").read_text(encoding="utf-8")
-    assert "migrate_tool_escalation_names(" in src
-
-
 # ---------------------------------------------------------------- sweep (REQ-520-012, 014)
 
-ALLOW = {
-    "src/domain/observability/models.py",
-    "src/application/observability/tool_escalation_migration.py",
-    "src/web/static/modules/studios/tool_escalation.js",
-}
+ALLOW: set = set()  # CARD-574: the old name is no longer read or migrated anywhere
 
 
 def test_old_name_only_in_the_allowlist():
@@ -345,3 +300,8 @@ def test_no_factory_in_operator_strings():
         code = re.sub(r"//.*$|#.*$", "", text, flags=re.M)
         assert "Factory" not in code, rel
 
+
+
+def test_the_startup_migration_is_gone():
+    assert not (ROOT / "src/application/observability/tool_escalation_migration.py").exists()
+    assert "migrate_tool_escalation_names" not in (ROOT / "src" / "web" / "app.py").read_text(encoding="utf-8")
