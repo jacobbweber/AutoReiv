@@ -1,9 +1,7 @@
 from unittest.mock import patch
 
 from src.application.agent_skills.allowed_tools import resolve_allowed_tools
-from src.application.kernel.tool_ranker import ToolRanker
 from src.application.skills.sysadmin_tools import SysadminTools
-from src.domain.gateway.models import ToolDefinition
 from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
@@ -34,7 +32,7 @@ def test_get_system_info_offline_fallback():
 
 
 
-def test_autoreiv_profile_pins_telemetry_and_developer_has_cli_exec():
+def test_autoreiv_profile_has_telemetry_and_developer_has_no_cli_exec():
     autoreiv = platform_pack_profile("autoreiv")
     pinned = ["system_info", "get_recent_errors", "inspect_system_health"]
     assert set(pinned) <= set(list(resolve_allowed_tools(autoreiv)))
@@ -42,28 +40,3 @@ def test_autoreiv_profile_pins_telemetry_and_developer_has_cli_exec():
 
     developer = platform_pack_profile("developer")
     assert "cli_exec" not in list(resolve_allowed_tools(developer))  # CARD-562: no shell/code runner on Developer
-
-    # Verify ToolRanker unconditionally includes pinned tools even for an unrelated query
-    tools = [
-        ToolDefinition(name="system_info", description="Sys info"),
-        ToolDefinition(name="get_recent_errors", description="Errors"),
-        ToolDefinition(name="inspect_system_health", description="Health"),
-        ToolDefinition(name="wiki_read", description="Read wiki note"),
-        ToolDefinition(name="wiki_search", description="Search wiki note"),
-        ToolDefinition(name="wiki_list", description="List wiki notes"),
-        ToolDefinition(name="delegate_task", description="Delegate to agent"),
-        ToolDefinition(name="handoff_to_agent", description="Handoff to agent"),
-    ]
-
-    ranked = ToolRanker.rank_tools(
-        query="What is the wiki structure of our repository?",
-        tools=tools,
-        pinned_tool_names=pinned,
-        max_tools=6,
-    )
-
-    active_names = [t.name for t in ranked]
-    assert "inspect_system_health" in active_names
-    assert "system_info" in active_names
-    assert "get_recent_errors" in active_names
-

@@ -48,7 +48,7 @@ const sampleNamespaces = [
     source: 'builtin',
     tools: [
       { name: 'wiki_note_read', description: 'Read a wiki note' },
-      { name: 'activate_skill', description: 'Activate a skill' },
+      { name: 'ask_clarification', description: 'Ask a clarifying question' },
     ],
   },
   {
@@ -234,7 +234,7 @@ describe('Tools Studio catalog grouping and filters [CARD-421]', () => {
     expect(groups.find((group) => group.id === 'mcp:github')).toBeUndefined();
     const platform = groups.find((group) => group.id === 'builtin');
     expect(platform.source).toBe('platform');
-    expect(platform.tools.map((tool) => tool.name)).toEqual(['wiki_note_read', 'activate_skill']);
+    expect(platform.tools.map((tool) => tool.name)).toEqual(['wiki_note_read', 'ask_clarification']);
 
     const markup = renderCatalogMarkup(groups);
     expect(markup).toContain('data-testid="tools-studio-catalog-row"');
@@ -252,7 +252,7 @@ describe('Tools Studio catalog grouping and filters [CARD-421]', () => {
     const searchMarkup = renderCatalogMarkup(searched);
     expect(searchMarkup).toContain('wiki_note_read');
     expect(searchMarkup).not.toContain('mcp_github_search');
-    expect(searchMarkup).not.toContain('activate_skill');
+    expect(searchMarkup).not.toContain('ask_clarification');
 
     const mcpOnly = filterCatalogGroups(groups, { source: 'mcp' });
     expect(mcpOnly.every((group) => group.source === 'mcp')).toBe(true);

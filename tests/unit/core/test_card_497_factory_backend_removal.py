@@ -228,14 +228,14 @@ def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flo
 
 
 def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_view():
-    """Live retests 2-3: activate_skill(['agent-authoring']) fails (platform domains only); skill_view needs skill_id=."""
+    """Live retests 2-3: skill_view needs skill_id=. CARD-578 removed activate_skill, so the prompt no longer names it."""
     from tests.unit.agent_skills.catalog import load_platform_manifest
 
     prompt = load_platform_manifest("autoreiv").system_prompt
     lines = [ln for ln in prompt.splitlines() if "agent-authoring" in ln]
     assert len(lines) == 1, lines
     line = lines[0]
-    assert 'skill_view(skill_id="agent-authoring")' in line and "not activate_skill" in line
+    assert 'skill_view(skill_id="agent-authoring")' in line and "activate_skill" not in line
     assert "teach" in line.lower() and "new capability" in line.lower()
 
 

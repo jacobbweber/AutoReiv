@@ -40,7 +40,6 @@ RETIRED_TOOL_NAMES: tuple[str, ...] = (
 
 # Every agent with tools gets these (CARD-339, ADR-0052, CARD-539 D3).
 REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
-    "activate_skill",
     "ask_clarification",
     "handoff_to_agent",
     "lookup_agents",

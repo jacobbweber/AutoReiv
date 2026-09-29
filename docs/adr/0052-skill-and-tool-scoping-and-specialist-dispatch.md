@@ -3,6 +3,7 @@
 > **Status**: Accepted  
 > **Date**: 2026-09-16  
 > **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): Layer 1 intent and Layer 2 `activate_skill` only narrow inside the agent's ticked skills (never mount an unticked skill); specialist dispatch hands off to the agent whose skills cover the work instead of mounting foreign skills  
+> **Amended**: 2026-09-29 by [ADR-0064](./0064-tools-load-all-at-once.md): Layer 1 intent matching and Layer 2 `activate_skill` are removed; every tool of the agent's ticked skills is sent on every call  
 > **Deciders**: Jacob (Visionary & Product Owner), Antigravity (Principal Software Engineer)  
 > **Card Reference**: [CARD-339](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-339-skill-and-tool-architecture-and-scoping-strategy.md)  
 > **Spec Reference**: `docs/specs/skill-and-tool-architecture-and-scoping-strategy/design.md`  

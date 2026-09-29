@@ -34,7 +34,7 @@ def test_detect_tool_bloat_triggers_on_exceeded_entropy():
     assert alert.threshold_type == ArchitecturalThresholdType.TOOL_BLOAT
     assert alert.severity == "high"
     assert "10 tools" in alert.evidence
-    assert "Rule of 7" in alert.remediation_proposal
+    assert "untick" in alert.remediation_proposal.lower()
 
 
 def test_detect_tool_bloat_clean_when_under_budget():
@@ -71,7 +71,7 @@ def test_detect_context_tax_triggers_on_large_schema():
     assert alert.threshold_type == ArchitecturalThresholdType.CONTEXT_TAX
     assert alert.severity == "medium"
     assert "5800 characters" in alert.evidence
-    assert "demand-paged" in alert.remediation_proposal.lower()
+    assert "untick" in alert.remediation_proposal.lower()
 
 
 def test_detect_security_collision_untrusted_input_with_mutating_tools():

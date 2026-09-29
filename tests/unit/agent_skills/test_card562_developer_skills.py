@@ -81,10 +81,8 @@ def test_developer_gets_project_tools_and_not_the_checkout_tools():
 
 
 def test_cap_is_15_and_every_developer_skill_fits():
-    """CARD-562: per-skill cap raised 8 -> 15 (judgment cap); it equals the per-turn clamp."""
-    from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN
-
-    assert MAX_TOOLS_PER_SKILL == MAX_ACTIVE_TOOLS_PER_TURN == 15
+    """CARD-562: per-skill authoring cap 15. CARD-578: no per-turn clamp any more (ADR-0064)."""
+    assert MAX_TOOLS_PER_SKILL == 15
     assert all(len(s["tools"]) <= MAX_TOOLS_PER_SKILL for s in PACK["skills"])
 
 

@@ -25,8 +25,8 @@ from src.domain.skills.contract import (
 
 logger = logging.getLogger(__name__)
 
-# Matches the runtime per-turn clamp (agent_kernel.MAX_ACTIVE_TOOLS_PER_TURN, ADR-0061 rule 4) [CARD-454].
-# 15 since CARD-562: a judgment cap, not a measured one (ADR-0054 amendment).
+# Authoring guideline for one skill's tool list [CARD-454]. Not a runtime cap: since CARD-578 (ADR-0064)
+# every tool of every ticked skill is sent on every model call, so a skill stays small to keep calls lean.
 MAX_TOOLS_PER_SKILL = 15
 MAX_RUNBOOK_BODY_CHARS = 8000
 

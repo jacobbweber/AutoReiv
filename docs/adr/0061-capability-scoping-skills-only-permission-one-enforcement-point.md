@@ -10,6 +10,8 @@
 
 > **Note (2026-09-28, CARD-570 / [ADR-0062](./0062-agents-and-skills-are-files-no-packs.md))**: skill-to-tool bindings now come from the winning `SKILL.md` `tools:` list (shipped `platform/skills` or the data-dir user copy). SQLite `skill_tool_bindings`, pack.json skill lists and seeds are gone; `resolve_allowed_tools` is still the only decider.
 
+> **Note (2026-09-29, CARD-578 / [ADR-0064](./0064-tools-load-all-at-once.md))**: rule 4 selection is gone. There is no intent matcher, `activate_skill` or per-turn clamp; every allowed tool is sent on every call, only job/phase policy narrows, and a tool runs only if it was sent on that call.
+
 ---
 
 ## 1. Context

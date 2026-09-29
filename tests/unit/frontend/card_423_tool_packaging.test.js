@@ -33,7 +33,7 @@ const namespaces = [
     name: 'Built-in Primitives',
     source: 'builtin',
     origin_label: 'Platform',
-    tools: [{ name: 'activate_skill', description: 'Activate a skill' }],
+    tools: [{ name: 'ask_clarification', description: 'Ask a clarifying question' }],
   },
   {
     id: 'native_custom',
@@ -79,7 +79,7 @@ describe('Tools Studio origin labels [CARD-423]', () => {
     expect(renderCatalogMarkup(filterCatalogGroups(groups, { source: 'platform' }))).not.toContain('echo_token');
     expect(renderCatalogMarkup(filterCatalogGroups(groups, { source: 'mcp' }))).not.toContain('echo_token');
     expect(renderCatalogMarkup(filterCatalogGroups(groups, { status: 'available' }))).not.toContain('echo_token');
-    expect(renderCatalogMarkup(filterCatalogGroups(groups, { status: 'available' }))).toContain('activate_skill');
+    expect(renderCatalogMarkup(filterCatalogGroups(groups, { status: 'available' }))).toContain('ask_clarification');
   });
 
   it('keeps a path as text and does not add a folder picker [REQ-423-003]', () => {
@@ -134,7 +134,7 @@ describe('CARD-511: native catalog rows show the tool check', () => {
 
   it('shows no check label for platform rows or when the native list was not loaded', async () => {
     const { buildCatalogGroups: build, renderCatalogMarkup: render } = await import(CATALOG);
-    const platform = [{ id: 'builtin', name: 'Built-in', source: 'builtin', tools: [{ name: 'activate_skill' }] }];
+    const platform = [{ id: 'builtin', name: 'Built-in', source: 'builtin', tools: [{ name: 'ask_clarification' }] }];
     expect(render(build({ namespaces: platform, nativeTools }))).not.toContain('tools-studio-check-label');
     expect(render(build({ namespaces }))).not.toContain('tools-studio-check-label');
   });

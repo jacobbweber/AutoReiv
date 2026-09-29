@@ -1,38 +1,28 @@
 """
 Unit tests for CARD-362: Demand-Paged Capability Engine & Progressive Tool Mounting.
-Grounded in ADR-0054 [REQ-CAP-PAGE-001..005].
+Grounded in ADR-0054 [REQ-CAP-PAGE-001..005]. CARD-578 / ADR-0064 removed the per-turn cap:
+every allowed tool is sent; only a job phase lock narrows.
 """
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, AgentKernel
+from src.application.kernel.agent_kernel import AgentKernel
 from src.domain.gateway.models import ToolDefinition
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
-def test_max_active_tools_per_turn_constant():
-    """Verify Rule of 7 entropy budget constant [REQ-CAP-PAGE-001]."""
-    assert MAX_ACTIVE_TOOLS_PER_TURN == 15
-
-
-def test_resolve_active_tools_enforces_entropy_cap(bind_skills):
-    """Verify _resolve_active_tools clamps visible tools to at most 8 [REQ-CAP-PAGE-001]."""
+def test_no_cap_every_allowed_tool_is_sent(bind_skills):
+    """CARD-578 (ADR-0064): 20 ticked tools are all sent; no clamp, no ranking."""
     tools = [
         ToolDefinition(name=f"tool_{i}", description=f"Tool {i}", parameters={"type": "object", "properties": {}})
         for i in range(20)
     ]
     registry = MagicMock()
     registry.get_tools_for_agent.return_value = tools
-
-    kernel = AgentKernel(
-        gateway=MagicMock(),
-        tool_registry=registry,
-        state_store=MagicMock(),
-        telemetry=MagicMock(),
-    )
+    kernel = AgentKernel(gateway=MagicMock(), tool_registry=registry, state_store=MagicMock(), telemetry=MagicMock())
     agent = AgentProfile(
         id="developer",
         name="Developer",
@@ -40,64 +30,7 @@ def test_resolve_active_tools_enforces_entropy_cap(bind_skills):
         system_prompt="Test",
         allowed_skill=bind_skills({"many": [t.name for t in tools]}),
     )
-
-    resolved = kernel._resolve_active_tools(agent, user_content="test")
-    assert len(resolved) <= MAX_ACTIVE_TOOLS_PER_TURN
-    assert len(resolved) == 15
-
-
-def test_priority_ordering_preserves_active_skill_tools_first(bind_skills):
-    """Verify active skill tools are prioritized ahead of generic tools when clamping [REQ-CAP-PAGE-001, REQ-CAP-PAGE-003]."""
-    skill_tools = [
-        ToolDefinition(name=f"wiki_{i}", description=f"Wiki Tool {i}", parameters={"type": "object", "properties": {}})
-        for i in range(5)
-    ]
-    baseline_tools = [
-        ToolDefinition(name="activate_skill", description="Activate", parameters={"type": "object", "properties": {}}),
-        ToolDefinition(name="ask_clarification", description="Clarify", parameters={"type": "object", "properties": {}}),
-        ToolDefinition(name="handoff_to_agent", description="Handoff", parameters={"type": "object", "properties": {}}),
-        ToolDefinition(name="get_session_info", description="Session", parameters={"type": "object", "properties": {}}),
-    ]
-    extra_tools = [
-        ToolDefinition(name=f"extra_{i}", description=f"Extra Tool {i}", parameters={"type": "object", "properties": {}})
-        for i in range(20)
-    ]
-
-    all_tools = skill_tools + baseline_tools + extra_tools
-    registry = MagicMock()
-    registry.get_tools_for_agent.return_value = all_tools
-
-    kernel = AgentKernel(
-        gateway=MagicMock(),
-        tool_registry=registry,
-        state_store=MagicMock(),
-        telemetry=MagicMock(),
-    )
-    agent = AgentProfile(
-        id="autoreiv",
-        name="AutoReiv",
-        description="Platform Agent",
-        system_prompt="Test",
-        allowed_skill=bind_skills({"wiki": [t.name for t in skill_tools], "extras": [t.name for t in extra_tools]}),
-    )
-
-    resolved = kernel._resolve_active_tools(
-        agent,
-        user_content="search the wiki",
-        active_skills=["wiki"],
-    )
-
-    assert len(resolved) == MAX_ACTIVE_TOOLS_PER_TURN
-    resolved_names = [t.name for t in resolved]
-
-    # All 5 active wiki skill tools must be included
-    for st in skill_tools:
-        assert st.name in resolved_names
-
-    # Baseline coordination tools fill the remaining 3 slots up to 8
-    assert "activate_skill" in resolved_names
-    assert "ask_clarification" in resolved_names
-    assert "get_session_info" in resolved_names
+    assert [t.name for t in kernel._resolve_active_tools(agent, user_content="test")] == [t.name for t in tools]
 
 
 def test_direct_mode_returns_zero_tools():
@@ -224,7 +157,7 @@ def test_phase_bound_tool_scoping_from_checkpoint(tmp_path, bind_skills):
         ToolDefinition(name="repo_file_write", description="Write code", parameters={"type": "object", "properties": {}}),
     ]
     baseline_tools = [
-        ToolDefinition(name="activate_skill", description="Activate", parameters={"type": "object", "properties": {}}),
+        ToolDefinition(name="get_session_info", description="Session", parameters={"type": "object", "properties": {}}),
         ToolDefinition(name="ask_clarification", description="Clarify", parameters={"type": "object", "properties": {}}),
     ]
 
@@ -258,7 +191,7 @@ def test_phase_bound_tool_scoping_from_checkpoint(tmp_path, bind_skills):
     assert "wiki_create_note" in resolved_names
     assert "wiki_search" in resolved_names
     # Baseline tools are mounted
-    assert "activate_skill" in resolved_names
+    assert "get_session_info" in resolved_names
     # Coding tools are NOT mounted (scoped out)
     assert "repo_file_read" not in resolved_names
 
@@ -281,7 +214,7 @@ def test_phase_transition_evicts_old_and_pages_new_tools(tmp_path, bind_skills):
         ToolDefinition(name="repo_file_read", description="Read code", parameters={"type": "object", "properties": {}}),
     ]
     baseline_tools = [
-        ToolDefinition(name="activate_skill", description="Activate", parameters={"type": "object", "properties": {}}),
+        ToolDefinition(name="get_session_info", description="Session", parameters={"type": "object", "properties": {}}),
     ]
 
     registry = MagicMock()
@@ -325,5 +258,5 @@ def test_phase_transition_evicts_old_and_pages_new_tools(tmp_path, bind_skills):
     assert "wiki_read_note" not in tools_p2
     # Coding tools are mounted!
     assert "repo_file_read" in tools_p2
-    assert "activate_skill" in tools_p2
+    assert "get_session_info" in tools_p2
 

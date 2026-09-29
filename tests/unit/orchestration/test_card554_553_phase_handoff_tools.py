@@ -80,7 +80,7 @@ def test_job_subset_narrows_only_the_agent_the_job_was_minted_for(store, job, bi
 
 def test_developer_execute_phase_mounts_its_own_tools(store, job, bind_skills):
     dev = _developer(bind_skills)
-    tools = [_tool(n) for n in ("activate_skill", "handoff_to_agent", "repo_file_read", "repo_file_list", "execute_code", "cli_exec")]
+    tools = [_tool(n) for n in ("ask_clarification", "handoff_to_agent", "repo_file_read", "repo_file_list", "execute_code", "cli_exec")]
     kernel = _kernel(store, tools)
     ids = kernel._matched_capability_ids_for_job(job.id, phase_id="ph_execute", agent=dev)
     names = [t.name for t in kernel._resolve_active_tools(dev, "read allowed_tools.py and run code", matched_capability_ids=ids)]
@@ -133,7 +133,7 @@ def test_gate_blocks_handoff_and_work_tools_in_a_planning_phase(store, bind_skil
 
 def test_kernel_knows_the_planning_phase_and_does_not_mount_work_tools(store, job, bind_skills):
     ar = _autoreiv(bind_skills)
-    tools = [_tool(n) for n in ("activate_skill", "handoff_to_agent", "lookup_agents", "write_project_file", "read_project_file")]
+    tools = [_tool(n) for n in ("ask_clarification", "handoff_to_agent", "lookup_agents", "write_project_file", "read_project_file")]
     kernel = _kernel(store, tools)
     assert kernel._is_planning_phase("ph_formulate") is True
     assert kernel._is_planning_phase("ph_execute") is False

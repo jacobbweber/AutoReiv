@@ -91,7 +91,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     clash = client.post(
         "/api/tools/native",
         json={
-            "name": "activate_skill",
+            "name": "ask_clarification",
             "description": "Must not replace a platform tool.",
             "code": ECHO_CODE,
             "requires_hitl": False,

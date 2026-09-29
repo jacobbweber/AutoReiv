@@ -16,7 +16,7 @@ import pytest
 
 from src.application.agent_skills.allowed_tools import domain_line, resolve_allowed_tools
 from src.application.agent_skills.tool_attachment import ATTACH_TOOL_PROPOSAL, apply_tool_attachment
-from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, AgentKernel
+from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.tools.native_packaging import NativeCustomToolService
 from src.domain.kernel.models import AgentProfile
@@ -108,7 +108,7 @@ async def test_accepting_widens_the_domain_line_and_the_next_turn_in_a_new_chat(
     assert "tide" in line.lower(), line  # REQ-537-001: the generated domain line names the accepted skill
     assert not REFUSAL.search(line) and "handoff_to_agent" in line and "Ask Developer" in line  # REQ-537-002
     names = _turn_tools(registry, store, fresh)
-    assert len(names) <= MAX_ACTIVE_TOOLS_PER_TURN
+    assert set(names) == set(resolve_allowed_tools(fresh)) & set(registry._tools)  # CARD-578: all at once
     assert "c537_harbor_tide" in names, names
 
 

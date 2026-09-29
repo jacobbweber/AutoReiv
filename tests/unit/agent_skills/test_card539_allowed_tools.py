@@ -111,7 +111,8 @@ def test_no_agent_id_special_case(env):
 def test_provenance_names_the_skill(env):
     allowed = resolve_allowed_tools(_agent(allowed_skill=["wiki-knowledge"]))
     assert "wiki-knowledge" in allowed.provenance["wiki_note_search"]
-    assert allowed.provenance["activate_skill"] == ("platform",)
+    assert allowed.provenance["ask_clarification"] == ("platform",)
+    assert "activate_skill" not in allowed.names  # CARD-578: removed
 
 
 def test_skill_view_available_when_any_skill_is_ticked(env):

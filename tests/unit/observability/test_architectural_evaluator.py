@@ -40,7 +40,7 @@ def test_evaluator_service_scans_sessions_and_spans(tmp_path):
         agent_id="autoreiv",
         span_type="turn",
         name="agent_turn",
-        metadata={"active_tool_count": 18, "tool_schema_chars": 5000},
+        metadata={"active_tool_count": 60, "tool_schema_chars": 5000},
     )
     mock_store.get_telemetry_spans.return_value = [mock_span]
 
@@ -69,7 +69,7 @@ def test_evaluator_service_persists_and_lists_alerts(tmp_path):
         agent_id="autoreiv",
         span_type="turn",
         name="agent_turn",
-        metadata={"active_tool_count": 18},
+        metadata={"active_tool_count": 60},
     )
     mock_store.get_telemetry_spans.return_value = [mock_span]
 
