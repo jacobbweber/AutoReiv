@@ -48,6 +48,9 @@ CLONE_SKIP_SUFFIXES = (".db-wal", ".db-shm", ".lock")
 # 2026-09-29: Nimo Ollama; qwen3.6:35b-a3b-65k is gone and qwen3-coder cannot load next to the pinned models.
 DEFAULT_VLLM_URL = "http://192.168.1.29:11434/v1"
 DEFAULT_MODEL = "qwen3.8:latest"
+# CARD-575: Ollama context size for QA calls, the same as Jacob's Developer (num_ctx 65536), so Nimo keeps one
+# load of the model instead of reloading it at the server default (262144). AUTOREIV_QA_NUM_CTX overrides; 0 = off.
+DEFAULT_NUM_CTX = 65536
 EXIT_REFUSED = 2
 EXIT_CHECKOUT_CHANGED = 3
 EXIT_MODEL_DOWN = 4
@@ -147,20 +150,46 @@ def model_target(env: Mapping[str, str]) -> tuple[str, str]:
     return url, (env.get("AUTOREIV_QA_MODEL") or DEFAULT_MODEL).strip()
 
 
-def check_model(url: str, model: str, timeout: float = 20.0) -> bool:
-    """True when the QA model answers a 5-token chat completion (200 with choices)."""
-    body = json.dumps({"model": model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 5}).encode()
-    req = urllib.request.Request(f"{url}/chat/completions", data=body, method="POST", headers={"Content-Type": "application/json"})
+def is_ollama_url(url: str) -> bool:
+    return ":11434" in (url or "")
+
+
+def qa_num_ctx(env: Mapping[str, str]) -> int:
+    """CARD-575: num_ctx for QA calls to an Ollama host; AUTOREIV_QA_NUM_CTX overrides, 0 turns it off."""
+    raw = str(env.get("AUTOREIV_QA_NUM_CTX") or "").strip()
+    if not raw:
+        return DEFAULT_NUM_CTX
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return DEFAULT_NUM_CTX
+
+
+def check_model(url: str, model: str, timeout: float = 20.0, num_ctx: int = 0) -> bool:
+    """True when the QA model answers a 5-token chat completion.
+
+    CARD-575: on an Ollama host with num_ctx set, use the native /api/chat so options.num_ctx is honoured
+    (the /v1 endpoint loads the model at the server default context).
+    """
+    if num_ctx and is_ollama_url(url):
+        host = url.rstrip("/").removesuffix("/v1")
+        payload = {"model": model, "messages": [{"role": "user", "content": "ping"}], "stream": False,
+                   "options": {"num_ctx": int(num_ctx), "num_predict": 5}}
+        endpoint, answered = f"{host}/api/chat", lambda d: bool(d.get("message"))
+    else:
+        payload = {"model": model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 5}
+        endpoint, answered = f"{url}/chat/completions", lambda d: bool(d.get("choices"))
+    req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(), method="POST", headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as res:
-            return res.status == 200 and bool(json.loads(res.read() or b"{}").get("choices"))
+            return res.status == 200 and answered(json.loads(res.read() or b"{}"))
     except (urllib.error.URLError, OSError, ValueError):
         return False
 
 
 def model_ok(env: Mapping[str, str]) -> bool:
     url, model = model_target(env)
-    ok = check_model(url, model)
+    ok = check_model(url, model, num_ctx=qa_num_ctx(env))
     print(f"[live-qa] model {model} at {url}: {'ok' if ok else 'model endpoint down'}")
     return ok
 
@@ -173,6 +202,24 @@ def provider_payload(env: Mapping[str, str]) -> dict:
         host = url.rstrip("/").removesuffix("/v1")
         return {"provider_id": "ollama", "default_provider_id": "ollama", "base_url": host, "ollama_host": host, "default_model_id": model}
     return {"provider_id": "vllm", "default_provider_id": "vllm", "base_url": url, "openai_base_url": url, "default_model_id": model}
+
+
+def context_matrix(env: Mapping[str, str], matrix: Optional[dict]) -> Optional[dict]:
+    """CARD-575: POST /api/settings/matrix body so the throwaway serve asks Ollama for the QA num_ctx.
+
+    Keeps the rest of the current matrix; sets default_context_window and the model's entry in
+    model_context_windows. None when the QA target is not an Ollama host or num_ctx is off.
+    """
+    url, model = model_target(env)
+    n = qa_num_ctx(env)
+    if not n or not is_ollama_url(url):
+        return None
+    body = dict(matrix or {})
+    windows = dict(body.get("model_context_windows") or {})
+    windows[model] = n
+    body["model_context_windows"] = windows
+    body["default_context_window"] = n
+    return body
 
 
 def list_journeys(journeys_dir: Path = CHECKOUT / RUNNER_REL.parent) -> list[str]:
@@ -324,6 +371,15 @@ def _http(method: str, url: str, body: Optional[dict] = None, timeout: float = 5
         return 0
 
 
+def _get_json(url: str, timeout: float = 10.0) -> Optional[dict]:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as res:
+            data = json.loads(res.read() or b"{}")
+            return data if isinstance(data, dict) else None
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+
+
 def healthy(port: int) -> bool:
     return _http("GET", f"http://127.0.0.1:{port}/api/health") == 200
 
@@ -389,6 +445,13 @@ def start(port: int = DEFAULT_PORT, mode: str = "throwaway", checkout: Path = CH
         print(f"[live-qa] real vLLM provider set: HTTP {status}")
         if status != 200:
             return 1
+        current = (_get_json(f"http://127.0.0.1:{port}/api/settings") or {}).get("matrix")
+        body = context_matrix(env, current if isinstance(current, dict) else None)
+        if body is not None:
+            status = _http("POST", f"http://127.0.0.1:{port}/api/settings/matrix", body, timeout=30)
+            print(f"[live-qa] Ollama context {body['default_context_window']} set: HTTP {status}")
+            if status != 200:
+                return 1
     print(f"[live-qa] up on http://127.0.0.1:{port} ({mode}, data {data_dir})")
     return 0
 
