@@ -90,10 +90,7 @@ def test_is_visible_in_chat_sdlc_pack_ids():
 
 def test_autoreiv_has_pack_tools_and_runbook():
     profile = platform_pack_profile("autoreiv")
-    assert "export_agent_pack" in list(resolve_allowed_tools(profile))
-    assert "import_agent_pack" in list(resolve_allowed_tools(profile))
-    assert "scaffold_agent_pack" in list(resolve_allowed_tools(profile))
-    assert "build-agent-pack" in profile.allowed_skill
+    assert "build-agent-pack" not in profile.allowed_skill
     assert "proposals" in profile.allowed_skill
     assert "save_agent_specification" not in list(resolve_allowed_tools(profile))
 

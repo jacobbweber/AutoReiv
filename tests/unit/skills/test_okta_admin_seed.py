@@ -26,7 +26,7 @@ def _clear_okta_env(monkeypatch) -> None:
 def test_okta_admin_is_not_a_bundled_product_seed():
     assert RETIRED_OKTA_ADMIN_PACK_ID not in BUNDLED_PACK_IDS
     assert "okta-admin" not in BUNDLED_PACK_IDS
-    assert "build-agent-pack" in BUNDLED_PACK_IDS
+    assert "build-agent-pack" not in BUNDLED_PACK_IDS
     assert "proposals" in BUNDLED_PACK_IDS
     assert "recommend-capability" not in BUNDLED_PACK_IDS
     assert "wiki" in BUNDLED_PACK_IDS
@@ -97,9 +97,9 @@ def test_proposals_seed_exists_and_bootstraps(tmp_path, monkeypatch):
     assert seed_path.is_file()
     body = seed_path.read_text(encoding="utf-8")
     assert "Capability Proposals" in body or "Recommend Capability" in body
-    assert "Do not scaffold until approved" in body
+    assert "Do not commit until approved" in body
     assert "save_agent_specification" in body
-    assert "scaffold_agent_pack" in body
+    assert "Agent Studio" in body
     assert "Hermes" not in body
     _clear_okta_env(monkeypatch)
     data = tmp_path / "data"

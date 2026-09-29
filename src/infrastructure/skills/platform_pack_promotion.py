@@ -605,7 +605,6 @@ def promote_one_platform_pack(
     from src.infrastructure.skills.platform_packs import (
         _is_user_modified,
         apply_user_modified_additive_skill_grants,
-        apply_user_modified_developer_authoring_prompt,
         compute_platform_seed_hash,
         platform_packs_root,
         refresh_live_pack_json_skill_projection,
@@ -747,7 +746,6 @@ def promote_one_platform_pack(
             except Exception:
                 logger.exception("Legacy-loader warning refresh failed for user_modified developer")
         apply_user_modified_additive_skill_grants(pack_id=pack_id, pack_data=pack_data, store=store)
-        apply_user_modified_developer_authoring_prompt(pack_id=pack_id, store=store)
         outcome = PackSyncOutcome(
             pack_id=pack_id,
             status="skipped_user_modified",

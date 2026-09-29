@@ -18,7 +18,7 @@ from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 
 ROOT = Path(__file__).resolve().parents[3]
 # A made-up "old shipped" build-agent-pack SKILL.md; its hash is patched in as shipped (CARD-568: no fixture copy).
-OLD_SHIPPED_SKILL = "---\nname: build-agent-pack\n---\n\n# Build an agent pack\n\nTools are trained in the Factory.\n"
+OLD_SHIPPED_SKILL = "---\nname: proposals\n---\n\n# Proposals\n\nTools are trained in the Factory.\n"
 
 
 def _patch_shipped(monkeypatch):
@@ -27,7 +27,7 @@ def _patch_shipped(monkeypatch):
     from src.infrastructure.skills import seed
 
     sha = hashlib.sha256(OLD_SHIPPED_SKILL.encode("utf-8")).hexdigest()
-    monkeypatch.setattr(seed, "SHIPPED_SEED_SHA256", {"build-agent-pack": frozenset({sha})})
+    monkeypatch.setattr(seed, "SHIPPED_SEED_SHA256", {"proposals": frozenset({sha})})
 
 DELETED_MODULES = (
     "src.application.agent_training_factory",
@@ -136,50 +136,43 @@ def test_9_stranded_training_gaps_reset_to_pending_on_startup(tmp_path, monkeypa
 
 
 # 10 ------------------------------------------------------------------------
-def test_10_registry_has_inspect_agent_pack_not_launch_factory_training(shared_app):
+def test_10_registry_has_inspect_agent_not_launch_factory_training(shared_app):
     app = shared_app  # read-only registry check [CARD-560]
     names = {t.name for t in app.state.tool_registry.list_tools()}
-    assert "inspect_agent_pack" in names
+    assert "inspect_agent" in names
     assert "launch_factory_training" not in names
 
 
 @pytest.fixture
-def pack_tools(tmp_path):
-    from src.application.kernel.tool_registry import ScopedToolRegistry
-    from src.application.skills.agent_pack_tools import AgentPackTools
-    from src.infrastructure.agents.registry import BuiltinAgentRegistry
+def inspect_tools():
+    from types import SimpleNamespace
 
-    registry = MagicMock(spec=BuiltinAgentRegistry)
-    profile = MagicMock()
-    profile.id = "test-agent"
-    profile.name = "Test Agent"
-    profile.description = "A test agent"
-    profile.pack_tool_names = ["read_file", "write_file"]
-    profile.allowed_skill = ["filesystem"]
-    profile.skills = [MagicMock(id="filesystem", tools=["read_file", "write_file"])]
-    registry.get_profile.side_effect = lambda ag: profile if ag == "test-agent" else None
-    registry.get_agent.side_effect = lambda ag: profile if ag == "test-agent" else None
+    from src.application.kernel.tool_registry import ScopedToolRegistry
+    from src.application.skills.agent_inspect_tools import AgentInspectTools
+
+    profile = SimpleNamespace(id="test-agent", name="Test Agent", description="A test agent", allowed_skill=["filesystem"])
+    registry = SimpleNamespace(get_agent=lambda ag: profile if ag == "test-agent" else None)
     tool_reg = ScopedToolRegistry()
-    tools = AgentPackTools(agent_registry=registry, tool_registry=tool_reg, store=None, data_dir=tmp_path / "data")
+    tools = AgentInspectTools(agent_registry=registry)
     tools.register_tools(tool_reg)
     return tools, tool_reg
 
 
 @pytest.mark.asyncio
-async def test_10b_agent_pack_tools_inspect_success(pack_tools):
-    tools, reg = pack_tools
-    assert "inspect_agent_pack" in {t.name for t in reg.list_tools()}
-    res = await tools.inspect_agent_pack(agent_id="test-agent")
+async def test_10b_inspect_agent_success(inspect_tools):
+    tools, reg = inspect_tools
+    assert "inspect_agent" in {t.name for t in reg.list_tools()}
+    res = await tools.inspect_agent(agent_id="test-agent")
     assert res["success"] is True
     assert res["name"] == "Test Agent"
-    assert {"read_file", "write_file"} <= set(res["tools"])
-    assert "filesystem" in res["skills"]
+    assert res["skills"] == ["filesystem"]
+    assert isinstance(res["tools"], list)
 
 
 @pytest.mark.asyncio
-async def test_10c_agent_pack_tools_inspect_not_found(pack_tools):
-    tools, _ = pack_tools
-    res = await tools.inspect_agent_pack(agent_id="nonexistent-agent")
+async def test_10c_inspect_agent_not_found(inspect_tools):
+    tools, _ = inspect_tools
+    res = await tools.inspect_agent(agent_id="nonexistent-agent")
     assert res["success"] is False
     assert "not found" in res["error"].lower()
 
@@ -277,7 +270,7 @@ def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_train
 
     manifest = load_platform_manifest("autoreiv")
     skill = next(s for s in manifest.skills if s.id == "agent-authoring")
-    assert set(skill.tools) == {"inspect_agent_pack", "lookup_agents", "handoff_to_agent", "propose_skill"}
+    assert set(skill.tools) == {"inspect_agent", "lookup_agents", "handoff_to_agent", "propose_skill"}
     assert "launch_factory_training" not in [t for s in manifest.skills for t in s.tools]
 
     offenders = []
@@ -323,7 +316,7 @@ def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flo
     params = inspect.signature(OrchestrationTools.handoff_to_agent).parameters
     assert "target_agent_id" in params and "task_directive" in params
     # Flow order: inspect, ask, show the brief, get a yes, then hand off.
-    steps = [body.index(s) for s in ("inspect_agent_pack", "Ask what is missing", "Show the brief", "yes", "handoff_to_agent(")]
+    steps = [body.index(s) for s in ("inspect_agent", "Ask what is missing", "Show the brief", "yes", "handoff_to_agent(")]
     assert steps == sorted(steps), steps
     assert "tell the operator" in body.lower() and "fail" in body.lower()
 
@@ -345,13 +338,13 @@ def test_13_unedited_shipped_seed_is_refreshed(tmp_path, monkeypatch):
     from src.infrastructure.skills.seed import bundled_skill_md, seed_bundled_skill_packs
 
     _patch_shipped(monkeypatch)
-    dest = tmp_path / "skills" / "build-agent-pack" / "SKILL.md"
+    dest = tmp_path / "skills" / "proposals" / "SKILL.md"
     dest.parent.mkdir(parents=True)
     dest.write_bytes(OLD_SHIPPED_SKILL.encode("utf-8").replace(b"\n", b"\r\n"))  # CRLF copy, whatever the checkout wrote
-    seed_bundled_skill_packs(tmp_path / "skills", ["build-agent-pack"])
+    seed_bundled_skill_packs(tmp_path / "skills", ["proposals"])
     now = dest.read_text(encoding="utf-8")
     assert "trained in the Factory" not in now
-    assert now.replace("\r\n", "\n") == bundled_skill_md("build-agent-pack").read_text(encoding="utf-8").replace("\r\n", "\n")
+    assert now.replace("\r\n", "\n") == bundled_skill_md("proposals").read_text(encoding="utf-8").replace("\r\n", "\n")
 
 
 def test_13b_edited_seed_is_left_alone_and_logged(tmp_path, monkeypatch):
@@ -371,17 +364,17 @@ def test_13b_edited_seed_is_left_alone_and_logged(tmp_path, monkeypatch):
     seed_logger.addHandler(handler)
     seed_logger.setLevel(logging.INFO)
 
-    dest = tmp_path / "skills" / "build-agent-pack" / "SKILL.md"
+    dest = tmp_path / "skills" / "proposals" / "SKILL.md"
     dest.parent.mkdir(parents=True)
     edited = OLD_SHIPPED_SKILL + "\nOperator note.\n"
     dest.write_text(edited, encoding="utf-8")
     try:
-        seed_bundled_skill_packs(tmp_path / "skills", ["build-agent-pack"])
+        seed_bundled_skill_packs(tmp_path / "skills", ["proposals"])
     finally:
         seed_logger.removeHandler(handler)
         seed_logger.setLevel(old_level)
     assert dest.read_text(encoding="utf-8") == edited
-    assert any("build-agent-pack" in r.getMessage() and "edited" in r.getMessage().lower() for r in records)
+    assert any("proposals" in r.getMessage() and "edited" in r.getMessage().lower() for r in records)
 
 
 # 14 ------------------------------------------------------------------------

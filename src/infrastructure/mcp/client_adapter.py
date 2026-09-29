@@ -8,10 +8,8 @@ import json
 import logging
 import os
 import subprocess
-import sys
 import uuid
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.domain.gateway.models import ToolDefinition
@@ -438,82 +436,6 @@ class MCPClientManager:
             }
             for name, adapter in self._adapters.items()
         }
-
-    async def mount_agent_pack_server(
-        self,
-        agent_id: str,
-        pack_dir: Union[str, Path],
-        timeout_seconds: float = 30.0,
-    ) -> List[ToolDefinition]:
-        """Mount an agent-scoped MCP server from packs/<agent_id>/ [CARD-176, CARD-183, REQ-DELIV-004]."""
-        p_dir = Path(pack_dir)
-        mcp_script = p_dir / "mcp" / "server.py"
-        pack_json_file = p_dir / "pack.json"
-
-        mounted_tools: List[ToolDefinition] = []
-
-        if pack_json_file.is_file():
-            try:
-                data = json.loads(pack_json_file.read_text(encoding="utf-8"))
-                # Support both mcp_servers list and single mcp_server config
-                cfg_list: List[dict] = []
-                if isinstance(data.get("mcp_servers"), list):
-                    cfg_list.extend(data["mcp_servers"])
-                if isinstance(data.get("mcp_server"), dict):
-                    single = data["mcp_server"]
-                    if not any(c.get("name") == single.get("name") for c in cfg_list):
-                        cfg_list.append(single)
-
-                for idx, server_cfg in enumerate(cfg_list):
-                    if server_cfg.get("enabled") is False:
-                        continue
-                    srv_name = server_cfg.get("name") or f"pack_{agent_id}"
-                    if idx > 0 and srv_name == f"pack_{agent_id}":
-                        srv_name = f"pack_{agent_id}_{idx}"
-
-                    transport = server_cfg.get("transport", "stdio")
-                    url = server_cfg.get("url")
-                    headers = server_cfg.get("headers")
-                    env = {**os.environ, "PYTHONPATH": str(Path.cwd()), **(server_cfg.get("env") or {})}
-
-                    cmd: Optional[List[str]] = None
-                    if transport != "sse" and not url:
-                        custom_script = p_dir / (server_cfg.get("entrypoint") or "mcp/server.py")
-                        script_to_run = custom_script if custom_script.is_file() else mcp_script
-                        if not script_to_run.is_file():
-                            continue
-                        cmd = list(server_cfg.get("command") or [sys.executable, "-u", str(script_to_run)])
-
-                    tools = await self.mount_server(
-                        name=srv_name,
-                        command=cmd,
-                        env=env,
-                        timeout_seconds=timeout_seconds,
-                        transport=transport,
-                        url=url,
-                        headers=headers,
-                    )
-                    mounted_tools.extend(tools)
-                return mounted_tools
-            except Exception as e:
-                logger.warning(f"Failed to read mcp_server config in {pack_json_file}: {e}")
-
-        # Fallback to local mcp/server.py if no pack.json or unconfigured
-        if mcp_script.is_file():
-            server_name = f"pack_{agent_id}"
-            command = [sys.executable, "-u", str(mcp_script)]
-            env = {**os.environ, "PYTHONPATH": str(Path.cwd())}
-            return await self.mount_server(
-                name=server_name,
-                command=command,
-                env=env,
-                timeout_seconds=timeout_seconds,
-            )
-        return []
-
-    async def unmount_agent_pack_server(self, agent_id: str) -> None:
-        """Unmount an agent-scoped MCP server [CARD-176]."""
-        await self.unmount_server(f"pack_{agent_id}")
 
     async def shutdown_all(self) -> None:
         """Shutdown all active MCP subprocesses."""

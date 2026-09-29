@@ -20,10 +20,6 @@ is missing the legacy-loader warning marker, boot appends only the seed warning
 block. It does not replace the file, the prompt, or any other skill body. If the
 marker or the warning heading is already present, the file is left alone.
 
-CARD-433 exception: when a user_modified developer system prompt does not mention
-``scaffold_agent_pack``, boot appends one authoring paragraph and leaves the
-existing text in place. The append is recorded once so a later deletion stays
-deleted. It does not rewrite a non-user_modified seed prompt.
 """
 
 from __future__ import annotations
@@ -93,32 +89,22 @@ USER_MODIFIED_SKILL_GRANT_SETTING = "platform_user_modified_skill_grants"
 USER_MODIFIED_ADDITIVE_SKILL_GRANTS: dict[str, dict[str, tuple[str, ...]]] = {
     "developer": {
         "native-tool-engineering": ("register_native_tool", "plan_native_folder"),
-        # CARD-429: builder HITL + pack scaffold. Does not include save_agent_specification.
+        # CARD-429: builder HITL. Pack builder tools removed [CARD-569].
         "capability-authoring": (
             "list_available_skills_and_tools",
-            "propose_agent_specification",
             "propose_skill",
             "propose_tool",
             "commit_skill_pack",
             "list_user_skill_packs",
             "skill_view",
-            "scaffold_agent_pack",
-            "export_agent_pack",
-            "import_agent_pack",
         ),
         "proposals": (
             "propose_skill",
             "propose_tool",
-            "propose_agent_specification",
             "list_available_skills_and_tools",
             "skill_view",
             "list_user_skill_packs",
             "commit_skill_pack",
-        ),
-        "build-agent-pack": (
-            "export_agent_pack",
-            "import_agent_pack",
-            "scaffold_agent_pack",
         ),
     },
 }
@@ -221,116 +207,6 @@ def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, 
         )
 
 
-# CARD-433 / ADR-0056 exception. Append-only, once per developer prompt.
-USER_MODIFIED_PROMPT_APPEND_SETTING = "platform_user_modified_prompt_appends"
-DEVELOPER_AUTHORING_PROMPT_GRANT_ID = "developer-authoring-sentence"
-SCAFFOLD_AGENT_PACK_TOOL = "scaffold_agent_pack"
-DEVELOPER_AUTHORING_PROMPT_PARAGRAPH = (
-    "Developer can propose and commit skills, propose tools, and scaffold agent packs "
-    "with the capability-authoring tools. `scaffold_agent_pack` writes the pack. "
-    "Do not use `save_agent_specification`."
-)
-
-
-def _recorded_prompt_appends(store: Any, pack_id: str) -> set[str]:
-    if store is None or not hasattr(store, "get_setting"):
-        return set()
-    raw = store.get_setting(USER_MODIFIED_PROMPT_APPEND_SETTING) or {}
-    if not isinstance(raw, dict):
-        return set()
-    recorded = raw.get(pack_id) or []
-    if not isinstance(recorded, list):
-        return set()
-    return {str(item) for item in recorded if str(item).strip()}
-
-
-def _record_prompt_append(store: Any, pack_id: str, grant_id: str) -> None:
-    if store is None or not hasattr(store, "get_setting") or not hasattr(store, "set_setting"):
-        return
-    raw = store.get_setting(USER_MODIFIED_PROMPT_APPEND_SETTING) or {}
-    if not isinstance(raw, dict):
-        raw = {}
-    current = [str(item) for item in (raw.get(pack_id) or []) if str(item).strip()]
-    if grant_id not in current:
-        current.append(grant_id)
-    raw[pack_id] = current
-    store.set_setting(USER_MODIFIED_PROMPT_APPEND_SETTING, raw)
-
-
-def _join_authoring_paragraph(prompt: str) -> str:
-    body = prompt or ""
-    paragraph = DEVELOPER_AUTHORING_PROMPT_PARAGRAPH
-    if body.endswith("\n\n"):
-        return body + paragraph
-    if body.endswith("\n"):
-        return body + "\n" + paragraph
-    if body:
-        return body + "\n\n" + paragraph
-    return paragraph
-
-
-def apply_user_modified_developer_authoring_prompt(*, pack_id: str, store: Any) -> None:
-    """Append one authoring paragraph onto a user_modified developer prompt [CARD-433].
-
-    The caller already proved ``user_modified``. Existing prompt text stays.
-    A prompt that already mentions ``scaffold_agent_pack`` is left alone and is
-    not recorded, so a later removal of that mention can still receive the
-    paragraph. After this function appends once, a later deletion stays deleted.
-    Allowlists and MCP servers are not changed.
-    """
-    if pack_id != "developer" or store is None:
-        return
-    if DEVELOPER_AUTHORING_PROMPT_GRANT_ID in _recorded_prompt_appends(store, pack_id):
-        return
-
-    raw = store.get_agent_profile(pack_id) if hasattr(store, "get_agent_profile") else None
-    override = store.get_agent_override(pack_id) if hasattr(store, "get_agent_override") else None
-    if raw is None and override is None:
-        return
-
-    if override is not None and (getattr(override, "system_prompt", None) or ""):
-        visible = override.system_prompt
-        source = "override"
-    elif raw is not None:
-        visible = getattr(raw, "system_prompt", None) or ""
-        source = "profile"
-    else:
-        return
-    if SCAFFOLD_AGENT_PACK_TOOL in visible:
-        return
-
-    updated = _join_authoring_paragraph(visible)
-    changed = False
-    if source == "override" and hasattr(store, "save_agent_override"):
-        override.system_prompt = updated
-        # CARD-449: automated grant must not set content lock
-        # override.user_modified = True
-        store.save_agent_override(override)
-        changed = True
-        if raw is not None and hasattr(store, "save_custom_agent_profile"):
-            profile_prompt = getattr(raw, "system_prompt", None) or ""
-            if profile_prompt == visible:
-                raw.system_prompt = updated
-                # CARD-449: automated grant must not set content lock
-                # raw.user_modified = True
-                store.save_custom_agent_profile(raw)
-    elif source == "profile" and raw is not None and hasattr(store, "save_custom_agent_profile"):
-        raw.system_prompt = updated
-        # CARD-449: automated grant must not set content lock
-        # raw.user_modified = True
-        store.save_custom_agent_profile(raw)
-        changed = True
-
-    if not changed:
-        return
-    _record_prompt_append(store, pack_id, DEVELOPER_AUTHORING_PROMPT_GRANT_ID)
-    logger.info(
-        "Appended authoring paragraph onto user_modified %s prompt; existing text left in place",
-        pack_id,
-    )
-
-
-# CARD-426 / ADR-0056 exception. Append-only warning on one skill file.
 NATIVE_TOOL_ENGINEERING_SKILL_ID = "native-tool-engineering"
 LEGACY_LOADER_WARNING_MARKER = "<!-- autoreiv:native-tool-legacy-loader -->"
 LEGACY_LOADER_WARNING_HEADING = "## Not the legacy pack loader"

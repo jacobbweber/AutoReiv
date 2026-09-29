@@ -7,7 +7,6 @@ import { escapeHtml } from '../../utils/formatters.js';
 import { setComposerText } from './composer.js';
 
 export const AUTOREIV_AGENT_ID = 'autoreiv';
-export const NEW_AGENT_STARTER_PROMPT = 'I am ready to create a new agent.';
 
 export function buildChatStreamPayload({
   agentId,
@@ -146,64 +145,6 @@ export const DUAL_ENGINE_IDS = Object.freeze(['autoreiv', 'direct']);
 
 export function dualEngineAgentsVisibleInChat(agents) {
   return agentsVisibleInChat(agents).filter((a) => DUAL_ENGINE_IDS.includes(a.id));
-}
-
-export async function prepareNewAgentAuthoringSession({
-  switchSelectedAgent,
-  createNewSession,
-  promptInput,
-  agentId = AUTOREIV_AGENT_ID,
-  starterPrompt = NEW_AGENT_STARTER_PROMPT,
-} = {}) {
-  if (typeof switchSelectedAgent === 'function') {
-    await switchSelectedAgent(agentId);
-  }
-  if (typeof createNewSession === 'function') {
-    await createNewSession();
-  }
-  if (promptInput) {
-    setComposerText(promptInput, starterPrompt, { focus: true });
-  }
-  return { filled: true, sent: false, prompt: starterPrompt, agentId };
-}
-
-export function renderAgentHandoffCardHtml({
-  agentId = '',
-  agentName = '',
-  folder = '',
-} = {}) {
-  const safeId = escapeHtml(agentId || '');
-  const safeName = escapeHtml(agentName || agentId || 'Specialist Agent');
-  const safeFolder = escapeHtml(folder || `packs/${agentId}`);
-
-  return `
-    <div class="agent-created-handoff-card my-3 p-4 bg-slate-900/90 border border-brand-500/40 rounded-2xl shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
-          <i data-lucide="sparkles" class="w-5 h-5"></i>
-        </div>
-        <div>
-          <h4 class="text-sm font-bold text-white flex items-center space-x-1.5">
-            <span>🎉 Agent "${safeName}" Created Successfully!</span>
-          </h4>
-          <p class="text-xs text-slate-400 font-mono">${safeFolder} &bull; Manifest &amp; storage initialized</p>
-        </div>
-      </div>
-      <p class="text-xs text-slate-300">
-        Add skills in Skill Studio, or open it in Agent Studio.
-      </p>
-      <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800">
-        <button type="button" data-action="open-skill-studio" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-          <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-          <span>Open in Skill Studio</span>
-        </button>
-        <button type="button" data-action="open-studio" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-          <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-          <span>Open in Agent Studio</span>
-        </button>
-      </div>
-    </div>
-  `.trim();
 }
 
 export async function consumeChatStream(response, {

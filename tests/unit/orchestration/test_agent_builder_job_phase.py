@@ -54,5 +54,4 @@ def test_developer_pack_holds_builder_tools():
     dev = platform_pack_profile("developer")
     assert "propose_skill" in list(resolve_allowed_tools(dev))
     assert "commit_skill_pack" in list(resolve_allowed_tools(dev))
-    assert "scaffold_agent_pack" in list(resolve_allowed_tools(dev))
     assert "save_agent_specification" not in list(resolve_allowed_tools(dev))

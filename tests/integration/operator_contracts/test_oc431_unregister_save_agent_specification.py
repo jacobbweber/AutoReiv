@@ -2,8 +2,7 @@
 
 REQ-431-001: Tools Studio catalog (GET /api/tools_studio/capabilities)
 does not list save_agent_specification after boot.
-REQ-431-002: scaffold_agent_pack stays registered and Developer can call it
-when the turn asks to scaffold an agent pack.
+REQ-431-002: (CARD-569) the pack tools are gone too; agents are made in Agent Studio.
 REQ-431-003: a fresh boot database has no pending_approvals row for that tool.
 Unregister is allowed only when that set is empty.
 REQ-431-004: agent-builder is not a live agent.
@@ -16,8 +15,6 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-
-import pytest
 
 from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.kernel.hitl_engine import HITLApprovalEngine
@@ -45,24 +42,28 @@ def _catalog_names(payload: dict) -> set[str]:
     return names
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
-def test_oc431_catalog_omits_save_and_developer_can_scaffold(operator_client):
+def test_oc431_catalog_omits_save_and_pack_tools(operator_client):
+    """CARD-569: save_agent_specification and the pack tools are gone; agents are made in Agent Studio."""
     client, store, wiki = operator_client
-    user_data = wiki.parent
-    _refuse_live(user_data)
+    _refuse_live(wiki.parent)
 
     caps = client.get("/api/tools_studio/capabilities")
     assert caps.status_code == 200
     names = _catalog_names(caps.json())
-    assert "save_agent_specification" not in names
-    assert "scaffold_agent_pack" in names
-    assert "propose_skill" in names
-    assert "propose_tool" in names
-    assert "propose_agent_specification" in names
+    for gone in (
+        "save_agent_specification",
+        "scaffold_agent_pack",
+        "export_agent_pack",
+        "import_agent_pack",
+        "inspect_agent_pack",
+        "propose_agent_specification",
+    ):
+        assert gone not in names, gone
 
     tools = client.app.state.tool_registry
     assert tools.get_tool_definition("save_agent_specification") is None
-    assert tools.get_tool_definition("scaffold_agent_pack") is not None
+    assert tools.get_tool_definition("scaffold_agent_pack") is None
+    assert tools.get_tool_definition("inspect_agent") is not None
 
     registry = client.app.state.registry
     assert registry.get_agent("agent-builder") is None
@@ -72,17 +73,7 @@ def test_oc431_catalog_omits_save_and_developer_can_scaffold(operator_client):
 
     developer = registry.get_agent("developer")
     assert developer is not None
-    assert "scaffold_agent_pack" in list(resolve_allowed_tools(developer))
     assert "save_agent_specification" not in list(resolve_allowed_tools(developer))
-
-    visible = client.app.state.kernel._resolve_active_tools(
-        developer,
-        "scaffold an agent pack named notes-clerk",
-    )
-    visible_names = {tool.name for tool in visible}
-    assert "scaffold_agent_pack" in visible_names
-    assert "save_agent_specification" not in visible_names
-
     assert "save_agent_specification" not in _DEFAULT_REQUIRE_CONFIRM
     hitl = client.app.state.kernel.hitl_engine
     assert isinstance(hitl, HITLApprovalEngine)
@@ -91,45 +82,9 @@ def test_oc431_catalog_omits_save_and_developer_can_scaffold(operator_client):
     pending = store.get_pending_approvals()
     assert [row for row in pending if row.get("tool_name") == "save_agent_specification"] == []
 
-    spec = {
-        "id": "notes-clerk",
-        "name": "Notes Clerk",
-        "description": "Writes a short pack for CARD-431.",
-        "system_prompt": "You keep short notes.",
-        "tone": "concise",
-        "purpose": "general",
-        "show_in_chat": True,
-        "skills": [
-            {
-                "id": "notes-runbook",
-                "name": "Notes Runbook",
-                "description": "How this specialist writes notes.",
-                "body": "# Notes\n\nWrite the note. Stop when it is saved.\n",
-            }
-        ],
-    }
-    built = asyncio.run(
-        tools.execute(
-            ToolCall(id="oc431-scaffold", name="scaffold_agent_pack", arguments={"spec": spec}),
-            developer,
-        )
-    )
-    assert built.success is True
-    assert built.output["success"] is True
-    assert built.output["agent_id"] == "notes-clerk"
-    pack_skill = user_data / "packs" / "notes-clerk" / "skills" / "notes-runbook" / "SKILL.md"
-    assert pack_skill.is_file()
-    assert "Write the note" in pack_skill.read_text(encoding="utf-8")
-    assert registry.get_agent("notes-clerk") is not None
-    assert registry.get_agent("agent-builder") is None
-
     missing = asyncio.run(
         tools.execute(
-            ToolCall(
-                id="oc431-save",
-                name="save_agent_specification",
-                arguments={"spec": {"id": "should-not-exist"}},
-            ),
+            ToolCall(id="oc431-save", name="save_agent_specification", arguments={"spec": {"id": "should-not-exist"}}),
             developer,
         )
     )

@@ -140,15 +140,6 @@ describe('REQ-496-003/004: capability gaps open Skill Studio or a Developer chat
 });
 
 describe('REQ-496-005: the "agent created" chat card', () => {
-  it('shows Open in Skill Studio and Open in Agent Studio, and no Factory button', async () => {
-    const { renderAgentHandoffCardHtml } = await import('../../../src/web/static/modules/studios/chat/stream.js');
-    const html = renderAgentHandoffCardHtml({ agentId: 'kube', agentName: 'Kube SRE' });
-    expect(html).toContain('data-action="open-skill-studio"');
-    expect(html).toContain('Open in Skill Studio');
-    expect(html).toContain('Open in Agent Studio');
-    expect(html).not.toMatch(/launch-factory|Factory/);
-  });
-
   it('chat delegation routes Open in Skill Studio and drops the Factory, Lab and promotion handlers', () => {
     const render = read(`${STATIC}/modules/studios/chat/render.js`);
     expect(render).toContain('[data-action="open-skill-studio"]');

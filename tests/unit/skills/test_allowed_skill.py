@@ -162,7 +162,7 @@ def test_platform_pack_override_allowed_skill_persists_across_get(tmp_path):
     assert loaded.allowed_skill == ["user-provisioning"]
     autoreiv = registry.get_agent("autoreiv")
     assert autoreiv is not None
-    assert "build-agent-pack" in autoreiv.allowed_skill
+    assert "build-agent-pack" not in autoreiv.allowed_skill
     assert "proposals" in autoreiv.allowed_skill
     assert "wiki_tasks" in autoreiv.allowed_skill
     assert "wiki" not in autoreiv.allowed_skill
@@ -204,7 +204,7 @@ async def test_agents_api_persists_allowed_skill(tmp_path):
         assert reload_resp.json()["allowed_skill"] == ["user-provisioning"]
 
         autoreiv = (await ac.get("/api/agents/autoreiv")).json()
-        assert set(autoreiv["allowed_skill"]) >= {"build-agent-pack", "proposals", "wiki_tasks"}
+        assert set(autoreiv["allowed_skill"]) >= {"proposals", "wiki_tasks"}
         assert "wiki" not in autoreiv["allowed_skill"]
 
 

@@ -9,7 +9,6 @@ import pytest
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.agent_builder_tools import AgentBuilderTools
-from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -33,7 +32,7 @@ async def test_agent_builder_tools_registration(builder_setup):
     tools = tool_reg.list_tools()
     tool_names = [t.name for t in tools]
     assert "list_available_skills_and_tools" in tool_names
-    assert "propose_agent_specification" in tool_names
+    assert "propose_agent_specification" not in tool_names
     assert "save_agent_specification" not in tool_names
     assert "propose_skill" in tool_names
     assert "propose_tool" in tool_names
@@ -55,30 +54,11 @@ async def test_list_available_skills_and_tools(builder_setup):
 
 
 @pytest.mark.asyncio
-async def test_propose_agent_specification(builder_setup):
-    skill, agent_reg, tool_reg = builder_setup
-
-    spec = await skill.propose_agent_specification(
-        role="PostgreSQL Database Administrator",
-        objective="Optimize slow queries, manage indexes, and review schema migrations.",
-        domain="database",
-    )
-
-    assert "id" in spec
-    assert "name" in spec
-    assert "system_prompt" in spec
-    assert "purpose" in spec
-    assert spec["purpose"] in [p.value for p in ModelPurpose]
-
-
-@pytest.mark.asyncio
 async def test_propose_descriptions_are_recommend_not_pack_birth(builder_setup):
     skill, agent_reg, tool_reg = builder_setup
     skill.register_tools(tool_reg)
     by_name = {t.name: t.description.lower() for t in tool_reg.list_tools()}
-    assert "do not use this to create the agent" in by_name["propose_agent_specification"]
-    assert "i am ready to create a new agent" in by_name["propose_agent_specification"]
-    assert "scaffold_agent_pack" in by_name["propose_agent_specification"]
+    assert "propose_agent_specification" not in by_name
     assert "save_agent_specification" not in by_name
     assert "recommend-capability only" in by_name["propose_tool"]
     assert "not pack birth" in by_name["propose_tool"]

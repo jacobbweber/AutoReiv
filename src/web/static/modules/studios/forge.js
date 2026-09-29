@@ -41,7 +41,7 @@ import { loadPendingProposals } from './forge/pending_proposals.js';
 
 import {
   setupScaffold,
-  startNewAgentPackFromStudio,
+  openQuickScaffoldModal,
 } from './forge/scaffold.js';
 
 import {
@@ -124,9 +124,6 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeCredentialGrantsList = $('forgeCredentialGrantsList');
   const saveAgentBtn = $('saveAgentBtn');
   const deleteAgentBtn = $('deleteAgentBtn');
-  const forgeImportPackBtn = $('forgeImportPackBtn');
-  const forgeExportPackBtn = $('forgeExportPackBtn');
-  const forgeImportPackInput = $('forgeImportPackInput');
   const forgeShowInChat = $('forgeShowInChat');
   const forgeStatusBanner = $('forgeStatusBanner');
   const linkRoutineForAgentBtn = $('linkRoutineForAgentBtn');
@@ -531,61 +528,6 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
-  // Pack export & import
-  if (forgeExportPackBtn) {
-    forgeExportPackBtn.addEventListener('click', async () => {
-      const id = (activeForgeAgent && activeForgeAgent.id) || (forgeIdInput ? forgeIdInput.value.trim() : '');
-      if (!id) {
-        showToast('Select an agent to export.', 'warning');
-        return;
-      }
-      try {
-        const res = await fetch(`/api/agents/${encodeURIComponent(id)}/pack.zip`);
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `HTTP ${res.status}`);
-        }
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${id}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        showToast(`Exported ${id}`, 'success');
-      } catch (err) {
-        showToast(`Export failed: ${err.message || err}`, 'error');
-      }
-    });
-  }
-
-  if (forgeImportPackBtn && forgeImportPackInput) {
-    forgeImportPackBtn.addEventListener('click', () => forgeImportPackInput.click());
-    forgeImportPackInput.addEventListener('change', async (event) => {
-      const file = event.target.files && event.target.files[0];
-      event.target.value = '';
-      if (!file) return;
-      try {
-        const body = new FormData();
-        body.append('file', file);
-        const res = await fetch('/api/agents/import-pack', { method: 'POST', body });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        const imported = data.agent || {};
-        showToast(`Imported ${imported.name || imported.id || 'pack'}`, 'success');
-        if (callbacks.onAgentSaved) {
-          await callbacks.onAgentSaved(imported.id);
-        }
-        await loadAgentForge();
-        if (forgeAgentSelect && imported.id) forgeAgentSelect.value = imported.id;
-      } catch (err) {
-        showToast(`Import failed: ${err.message || err}`, 'error');
-      }
-    });
-  }
-
   // Storage toggle sync
   if (forgeStorageEnabled && forgeStorageTypeContainer) {
     forgeStorageEnabled.addEventListener('change', () => {
@@ -615,13 +557,10 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
-  // New Agent button -> handoff to AutoReiv
+  // New Agent button -> blank new-agent form in Agent Studio (CARD-569)
   if (newAgentBtn) {
     newAgentBtn.addEventListener('click', () => {
-      const handled = startNewAgentPackFromStudio(callbacks);
-      if (!handled) {
-        showToast('Talk to AutoReiv to build the pack.', 'info');
-      }
+      openQuickScaffoldModal();
     });
   }
 

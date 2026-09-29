@@ -69,7 +69,6 @@ def test_developer_is_separate_platform_pack():
 def test_autoreiv_pack_dedicated_and_platform_skills():
     manifest = load_platform_manifest("autoreiv")
     assert {s.id for s in manifest.skills} == {
-        "build-agent-pack",
         "platform-health",
         "session-inspect",
         "wiki_tasks",
@@ -79,7 +78,7 @@ def test_autoreiv_pack_dedicated_and_platform_skills():
         "agent-authoring",
         "socratic-tutoring",
     }
-    assert "build-agent-pack" in manifest.allowed_skill
+    assert "build-agent-pack" not in manifest.allowed_skill
     assert "platform-health" in manifest.allowed_skill
     assert "session-inspect" in manifest.allowed_skill
     assert "wiki_tasks" in manifest.allowed_skill

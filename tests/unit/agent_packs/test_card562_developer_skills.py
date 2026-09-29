@@ -106,7 +106,7 @@ def test_developer_never_gets_an_unrestricted_shell_or_code_runner():
 
 
 def test_tool_building_is_parked_off_developer():
-    parked = {"mcp-engineering", "native-tool-engineering", "capability-authoring", "proposals", "build-agent-pack"}
+    parked = {"mcp-engineering", "native-tool-engineering", "capability-authoring", "proposals"}
     assert not parked & set(PACK["allowed_skill"])
     assert "slice 2" in PACK["system_prompt"]
 

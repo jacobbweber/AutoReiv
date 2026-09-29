@@ -84,7 +84,7 @@ def test_pack_json_skill_tools_seed_when_no_row(env):
 
 def test_repo_platform_pack_seed_covers_pack_only_skills(env):
     names = resolve_allowed_tools(_agent(agent_id="autoreiv", allowed_skill=["agent-authoring"])).names
-    assert "inspect_agent_pack" in names
+    assert "inspect_agent" in names
 
 
 def test_mcp_wildcard_binding_matches_registered_names(env):

@@ -912,12 +912,6 @@ export function initChatStudio(state, callbacks = {}) {
     newChatBtn.addEventListener('click', createNewSession);
   }
 
-  async function startNewAgentAuthoring() {
-    state.selectedAgentId = 'autoreiv';
-    await createNewSession();
-    setComposerText(promptInput, 'I am ready to create a new agent.');
-  }
-
   async function openDeveloperSession(sessionId, composerText = '') {
     const id = String(sessionId || '').trim();
     if (!id) return null;
@@ -967,7 +961,6 @@ export function initChatStudio(state, callbacks = {}) {
     renderMarkdown,
     openWorkbench,
     closeWorkbench,
-    startNewAgentAuthoring,
     openDeveloperSession,
     resumeParkedJob,
     switchEngineChannel,

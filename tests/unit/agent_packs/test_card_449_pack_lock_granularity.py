@@ -22,10 +22,7 @@ from src.infrastructure.skills.platform_pack_promotion import (
     prompt_content_hash,
     should_set_content_lock,
 )
-from src.infrastructure.skills.platform_packs import (
-    apply_user_modified_additive_skill_grants,
-    apply_user_modified_developer_authoring_prompt,
-)
+from src.infrastructure.skills.platform_packs import apply_user_modified_additive_skill_grants
 
 pytestmark = pytest.mark.guard
 
@@ -311,8 +308,6 @@ def test_automated_additive_grants_do_not_lock(tmp_path: Path, fixture_checkout)
     )
     store = _FakeStore({"fixturepack": profile})
     apply_user_modified_additive_skill_grants(pack_id="fixturepack", pack_data=seed, store=store)
-    assert profile.user_modified is False
-    apply_user_modified_developer_authoring_prompt(pack_id="fixturepack", store=store)
     assert profile.user_modified is False
 
 

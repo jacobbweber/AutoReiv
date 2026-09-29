@@ -1,19 +1,11 @@
 /**
  * Agent Studio: Quick Scaffold Submodule [CARD-197, CARD-218, CARD-398, CARD-496]
- * Manages quick agent pack presets and the scaffold modal. The self-scaffold candidate queue
+ * Manages quick agent presets and the New Agent modal (Agent Studio creates agents; CARD-569). The self-scaffold candidate queue
  * ("Agent Training Optimization") was removed in CARD-496 (ADR-0060); its backend retires in CARD-512.
  */
 
 import { $ } from '../../dom.js';
 import { showToast } from '../../ui/toast.js';
-
-export function startNewAgentPackFromStudio(callbacks = {}) {
-  if (typeof callbacks.onStartNewAgentPack === 'function') {
-    callbacks.onStartNewAgentPack();
-    return true;
-  }
-  return false;
-}
 
 export const FORGE_QUICK_PRESETS = {
   'wiki-librarian': {
@@ -149,7 +141,6 @@ export function setupScaffold({
   const forgeQuickScaffoldBtn = $('forgeQuickScaffoldBtn');
   const forgeNewAgentCloseBtn = $('forgeNewAgentCloseBtn');
   const forgeNewAgentCancelBtn = $('forgeNewAgentCancelBtn');
-  const forgeNewAgentChatInsteadBtn = $('forgeNewAgentChatInsteadBtn');
   const forgeNewAgentSubmitBtn = $('forgeNewAgentSubmitBtn');
 
   if (forgeNewAgentPresetSelect) {
@@ -186,13 +177,6 @@ export function setupScaffold({
     });
   }
 
-  if (forgeNewAgentChatInsteadBtn) {
-    forgeNewAgentChatInsteadBtn.addEventListener('click', () => {
-      closeQuickScaffoldModal();
-      startNewAgentPackFromStudio(callbacks);
-    });
-  }
-
   if (forgeNewAgentSubmitBtn) {
     forgeNewAgentSubmitBtn.addEventListener('click', async () => {
       const id = forgeNewAgentIdInput ? forgeNewAgentIdInput.value.trim() : '';
@@ -226,10 +210,10 @@ export function setupScaffold({
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || 'Failed to scaffold agent pack');
+          throw new Error(errData.detail || 'Failed to create agent');
         }
         closeQuickScaffoldModal();
-        showToast(`Agent "${name}" pack created successfully!`, 'success');
+        showToast(`Agent "${name}" created.`, 'success');
         // CARD-496 D6: stay in Agent Studio with the new agent loaded (no Factory jump).
         if (typeof onLoadAgent === 'function') {
           await onLoadAgent(id);

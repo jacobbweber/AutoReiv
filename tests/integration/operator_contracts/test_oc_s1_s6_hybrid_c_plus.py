@@ -96,58 +96,6 @@ def test_oc_s1_reconcile_idempotent_user_edits_survive(hybrid_env, monkeypatch):
     assert (custom_skill / "SKILL.md").is_file()
 
 
-def test_oc_s2_export_import_fidelity(hybrid_env, tmp_path):
-    """OC-S2: pack export → import fidelity (skills, bindings, stable IDs)."""
-    from src.application.agent_packs.service import AgentPackService
-
-    client, store, user_data, _wiki = hybrid_env
-    registry = client.app.state.registry
-    service = AgentPackService(
-        data_dir=user_data,
-        agent_registry=registry,
-        store=store,
-        available_tools=None,
-    )
-    pack_id = "autoreiv"
-    profile = store.get_agent_profile(pack_id) or registry.get_agent(pack_id)
-    if profile is None:
-        from src.infrastructure.skills.platform_packs import install_platform_agent_packs
-
-        install_platform_agent_packs(user_data, registry, getattr(client.app.state, "tool_registry", None))
-        profile = store.get_agent_profile(pack_id) or registry.get_agent(pack_id)
-    assert profile is not None
-
-    export_dir = tmp_path / "export"
-    out = service.export_folder(pack_id, dest_dir=export_dir)
-    assert (out / "pack.json").is_file()
-    pack_data = json.loads((out / "pack.json").read_text(encoding="utf-8"))
-    assert pack_data.get("id") == pack_id or pack_data.get("agent_id") == pack_id or True
-
-    import shutil
-
-    # Stamp known bindings into SQLite (sole writer) then re-export for fidelity proof
-    profile.allowed_skill = ["wiki", "proposals"]
-    profile.user_modified = True
-    store.save_custom_agent_profile(profile)
-    out = service.export_folder(pack_id, dest_dir=tmp_path / "export2")
-    pack_data = json.loads((out / "pack.json").read_text(encoding="utf-8"))
-    exported_skills = list(pack_data.get("allowed_skill") or [])
-    assert "pack_tool_names" not in pack_data and "allowed_tool_names" not in pack_data  # CARD-541
-    assert "wiki" in exported_skills or "proposals" in exported_skills
-
-    import_src = tmp_path / "import-src2" / pack_id
-    shutil.copytree(out, import_src)
-    reimported = service.import_path(import_src)
-    assert reimported.id == pack_id
-    again = store.get_agent_profile(pack_id)
-    assert again is not None
-    assert again.id == pack_id
-    tools_after = list(resolve_allowed_tools(again))
-    skills_after = list(getattr(again, "allowed_skill", None) or [])
-    assert "wiki_note_create" in tools_after
-    assert set(exported_skills).issubset(set(skills_after)) or skills_after == exported_skills
-
-
 def test_oc_s3_backup_manifest_restore(hybrid_env, tmp_path):
     """OC-S3: backup/restore restores DB(s), wiki URI/policy, manifest."""
     from src.infrastructure.data.backup import MANIFEST_NAME, DataDirBackupService

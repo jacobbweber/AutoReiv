@@ -24,7 +24,7 @@ from src.domain.kernel.models import AgentProfile, AgentTone, KernelEvent, Kerne
 from src.domain.orchestration.models import HandoffEnvelope, HandoffPacket, Job, JobStatus, Phase, PhaseStatus
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
-AUTOREIV_SUBSET = ["tool.list_available_skills_and_tools", "tool.propose_agent_specification"]
+AUTOREIV_SUBSET = ["tool.list_available_skills_and_tools", "tool.propose_skill"]
 
 
 def _tool(name: str) -> ToolDefinition:

@@ -78,15 +78,6 @@ def test_req_445_001_agents_api_payload_default_is_50():
     assert AgentProfilePayload(name="n", description="d", system_prompt="p").max_turns == 50
 
 
-@pytest.mark.asyncio
-async def test_req_445_001_agent_builder_scaffold_uses_default():
-    from src.application.skills.agent_builder_tools import AgentBuilderTools
-
-    tools = AgentBuilderTools.__new__(AgentBuilderTools)
-    spec = await tools.propose_agent_specification(role="Log Reader", objective="read logs")
-    assert spec["max_turns"] == DEFAULT_AGENT_MAX_TURNS
-
-
 def test_req_445_001_handoff_child_profile_fallback_uses_default():
     src = (REPO / "src/application/orchestration/handoff_engine.py").read_text(encoding="utf-8")
     assert 'getattr(target_profile, "max_turns", 10) or 10' not in src

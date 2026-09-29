@@ -56,12 +56,12 @@ def _put(client, agent_id, **changes):
 
 
 def test_every_allowed_or_shipped_skill_with_a_runbook_gets_a_pill(boot):
-    """D3: coding on AutoReiv and build-agent-pack on Developer are shown; no duplicates of catalog pills."""
+    """D3: coding on AutoReiv (unticked) and Developer pack skills are shown; no duplicates of catalog pills."""
     client, _store, _app = boot()
     auto = _agent(client, "autoreiv")
     dev = _agent(client, "developer")
     assert "coding" in _pill_ids(auto)
-    assert "build-agent-pack" in _pill_ids(dev)
+    assert "codebase-audit" in _pill_ids(dev)
     for agent in (auto, dev):
         ids = _pill_ids(agent)
         assert len(ids) == len(set(ids))
@@ -72,11 +72,11 @@ def test_every_allowed_or_shipped_skill_with_a_runbook_gets_a_pill(boot):
 
 def test_scalar_save_with_the_full_list_keeps_skills_and_records_nothing(boot):
     """REQ-509: Max-Turns-only save (what Studio now sends) keeps shipped skills; nothing recorded as disabled.
-    (CARD-544: AutoReiv no longer ticks coding, so build-agent-pack is the example.)"""
+    (CARD-569: build-agent-pack is gone, so proposals is the example.)"""
     client, store, _app = boot()
     _put(client, "autoreiv", max_turns=51)
-    assert "build-agent-pack" in _agent(client, "autoreiv")["allowed_skill"]
-    assert "build-agent-pack" not in _disabled(store, "autoreiv")
+    assert "proposals" in _agent(client, "autoreiv")["allowed_skill"]
+    assert "proposals" not in _disabled(store, "autoreiv")
 
 
 def test_skill_studio_could_not_show_is_never_recorded_disabled(boot):
@@ -95,23 +95,23 @@ def test_skill_studio_could_not_show_is_never_recorded_disabled(boot):
 def test_a_skill_switched_off_stays_off_after_a_second_save_and_restart(boot):
     """D2: switching a shown skill off is recorded, and a later unrelated save does not forget it."""
     client, store, _app = boot()
-    skills = [s for s in _agent(client, "autoreiv")["allowed_skill"] if s != "build-agent-pack"]
+    skills = [s for s in _agent(client, "autoreiv")["allowed_skill"] if s != "proposals"]
     _put(client, "autoreiv", allowed_skill=skills)
-    assert "build-agent-pack" in _disabled(store, "autoreiv")
+    assert "proposals" in _disabled(store, "autoreiv")
     _put(client, "autoreiv", max_turns=53)
-    assert "build-agent-pack" in _disabled(store, "autoreiv")
+    assert "proposals" in _disabled(store, "autoreiv")
     client2, _store2, _app2 = boot()
-    assert "build-agent-pack" not in _agent(client2, "autoreiv")["allowed_skill"]
+    assert "proposals" not in _agent(client2, "autoreiv")["allowed_skill"]
 
 
-def test_locked_developer_missing_build_agent_pack_is_not_auto_repaired(boot):
-    """D4 control: a locked Developer without build-agent-pack keeps its list on restart; the pill still shows."""
+def test_locked_developer_missing_codebase_audit_is_not_auto_repaired(boot):
+    """D4 control: a locked Developer without codebase-audit keeps its list on restart; the pill still shows."""
     client, store, app = boot()
     agent = _agent(client, "developer")
     _put(
         client,
         "developer",
-        allowed_skill=[s for s in agent["allowed_skill"] if s != "build-agent-pack"],
+        allowed_skill=[s for s in agent["allowed_skill"] if s != "codebase-audit"],
         system_prompt=agent["system_prompt"].strip() + "\nAlways follow SOLID and DRY principles.",
     )
     # Jacob's install already had the one-time CARD-425 grants recorded, so none re-fire here
@@ -123,5 +123,5 @@ def test_locked_developer_missing_build_agent_pack_is_not_auto_repaired(boot):
     store.set_setting(USER_MODIFIED_SKILL_GRANT_SETTING, {"developer": list(USER_MODIFIED_ADDITIVE_SKILL_GRANTS["developer"])})
     client2, store2, _app2 = boot()
     dev = _agent(client2, "developer")
-    assert "build-agent-pack" not in dev["allowed_skill"]
-    assert "build-agent-pack" in _pill_ids(dev)
+    assert "codebase-audit" not in dev["allowed_skill"]
+    assert "codebase-audit" in _pill_ids(dev)

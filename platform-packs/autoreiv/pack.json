@@ -10,16 +10,6 @@
   "model": "default",
   "skills": [
     {
-      "id": "build-agent-pack",
-      "name": "Build Agent Pack",
-      "description": "Write, import, and export one specialist Agent Pack matching the platform schema.",
-      "tools": [
-        "export_agent_pack",
-        "import_agent_pack",
-        "scaffold_agent_pack"
-      ]
-    },
-    {
       "id": "platform-health",
       "name": "Platform health",
       "description": "Host and application telemetry, database health, logs, error rates, and provider connectivity.",
@@ -89,9 +79,9 @@
     {
       "id": "agent-authoring",
       "name": "Agent Capability Intake",
-      "description": "Use when the operator asks to teach an agent something, give it a new capability, or have it learn to do something new. Open with skill_view(pack_id=\"agent-authoring\"). Inspect the agent, ask what is missing, then hand a tool or MCP need to the Developer, a skill to Skill Studio, and a new agent to build-agent-pack.",
+      "description": "Use when the operator asks to teach an agent something, give it a new capability, or have it learn to do something new. Open with skill_view(pack_id=\"agent-authoring\"). Inspect the agent, ask what is missing, then hand a tool or MCP need to the Developer, a skill to Skill Studio, and a new agent to Agent Studio.",
       "tools": [
-        "inspect_agent_pack",
+        "inspect_agent",
         "lookup_agents",
         "handoff_to_agent",
         "propose_skill"
@@ -110,7 +100,6 @@
     }
   ],
   "allowed_skill": [
-    "build-agent-pack",
     "platform-health",
     "session-inspect",
     "wiki_tasks",
