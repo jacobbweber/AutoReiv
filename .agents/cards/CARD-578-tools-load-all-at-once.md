@@ -58,8 +58,23 @@ ran if the model named it, and a bare name could run an `mcp_*` tool by suffix m
 - [x] `activate_skill` removed; `skill_view` / `list_user_skills` sent whenever the agent has skills.
 - [x] A tool not sent on that call is refused (gate and registry); bare `mcp_*` suffix names are refused.
 - [x] ADR-0064, findings, tests updated; no "activate skill" wording left in skills or prompts.
-- [ ] Live test on :8770 (below).
+- [x] Live test on :8770 (below).
 
 ## Log
 
-- 2026-09-29: implemented on the branch; ruff, pytest, vitest green.
+- 2026-09-29: implemented on the branch; ruff, pytest (2006 passed), vitest (957), preflight --fast --base qa GREEN.
+- 2026-09-29 live test, throwaway :8770, Nimo qwen3.8:latest ctx 262144, turn spans from the QA DB:
+
+  | Agent | Tools sent | Schema chars | Schema tokens | Prompt tokens |
+  |---|---:|---:|---:|---:|
+  | Developer | 25 | 11,637 | 2,778 | 3,752 |
+  | AutoReiv | 38 | 21,475 | 5,169 | 6,500 |
+  | Tutor | 32 | 20,186 | 4,878 | 6,282 |
+  | Architect | 19 | 9,051 | 2,163 | 3,036 |
+  | Toolsmith | 13 | 8,270 | 1,999 | 2,485 |
+  | Direct | 0 | 0 | 0 | 10 |
+
+  Developer turn 1 got all 25 tools on every step and, in a throwaway git project, called read_project_file then
+  patch_project_file ("Helo" -> "Hello", 1 replacement) and replied in 23.5 s. AutoReiv on "hi" got all 38 tools (the
+  wiki tools included) and replied in 25.6 s; asked to search the wiki it called wiki_note_search / wiki_note_list
+  directly with no activation step. Architect, Tutor, Toolsmith and Direct "hi" turns all succeeded. Status In Review.

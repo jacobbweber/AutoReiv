@@ -44,9 +44,10 @@ tool the agent is allowed.
 ## 3. Consequences
 
 - The model always sees the tools its runbooks name; no turn loses `skill_view` or a project tool to ranking.
-- Every call carries the full schema set. At about 110 tokens per tool, Developer (25 tools) sends about 2.7K tokens of
-  schemas and AutoReiv (38) about 4K (measured numbers are in CARD-578). On the local models this raises prefill time; the
-  lever is ticking fewer skills, not a cap.
+- Every call carries the full schema set. Measured on 2026-09-29 (CARD-578 live test, qwen3.8): Developer 25 tools =
+  2,778 schema tokens (prompt 3.75K), AutoReiv 38 = 5,169 (prompt 6.5K), Tutor 32 = 4,878, Architect 19 = 2,163,
+  Toolsmith 13 = 1,999, Direct 0. Before, the 15-tool cap sent about 1.7K schema tokens. On the local models this raises
+  prefill time; the lever is ticking fewer skills, not a cap.
 - An agent with many ticked skills (Tutor 32, AutoReiv 38) pays for all of them on "hi". Revisit with measurements if
   tool choice or latency degrades; a future change would narrow by skill, never by keyword.
 - Guard test `tests/unit/kernel/test_card578_tools_all_at_once.py` fails if the cap, ranking or `activate_skill` return, if
