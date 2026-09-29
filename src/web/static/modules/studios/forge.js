@@ -85,6 +85,31 @@ export { formatAgentSelectOption };
 /**
  * Populates agent select element with alphabetical sorted options [CARD-202].
  */
+/**
+ * CARD-573: an Agent Studio load or render that finished late must not overwrite the form the user is editing.
+ * beginRender() returns isCurrent(); a newer render makes older ones stale. userPicked() marks a user agent pick,
+ * pickedSince(mark) tells a background load that the user already picked (and may be editing) since it started.
+ */
+export function createForgeLoadGuard() {
+  let render = 0;
+  let pick = 0;
+  return {
+    beginRender() { render += 1; const seq = render; return () => seq === render; },
+    userPicked() { pick += 1; },
+    pickMark: () => pick,
+    pickedSince: (mark) => pick !== mark,
+  };
+}
+
+/** CARD-573: until an agent is shown / while one is filled in, its editable sections are inert (they start inert in index.html) and Save waits. */
+export const FORGE_AGENT_SECTIONS = 'details.forge-section[data-card="299"]';
+export function setForgeFormBusy(on, doc = typeof document !== 'undefined' ? document : null) {
+  if (!doc || typeof doc.querySelectorAll !== 'function') return;
+  doc.querySelectorAll(FORGE_AGENT_SECTIONS).forEach((el) => {
+    if (on) { el.setAttribute('inert', ''); el.setAttribute('aria-busy', 'true'); } else { el.removeAttribute('inert'); el.removeAttribute('aria-busy'); }
+  });
+}
+
 export function populateForgeAgentSelectOptions(selectEl, agents = [], selectedId = null) {
   if (!selectEl) return null;
   return fillAgentSelect(selectEl, sortStudioAgentsAlphabetically(agents), {
@@ -108,6 +133,7 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeToneSelect = $('forgeToneSelect');
   const forgeMaxTurnsInput = $('forgeMaxTurnsInput');
   const forgeRetentionDaysInput = $('forgeRetentionDaysInput');
+  const forgeAlwaysAutoRunInput = $('forgeAlwaysAutoRunInput'); // CARD-573
   const forgeProviderSelect = $('forgeProviderSelect');
   const forgeApiBaseUrlInput = $('forgeApiBaseUrlInput');
   const forgeApiKeyInput = $('forgeApiKeyInput');
@@ -139,6 +165,9 @@ export function initAgentForge(state, callbacks = {}) {
 
   // Internal coordinator state
   let activeForgeAgent = null;
+  const loadGuard = createForgeLoadGuard(); // CARD-573
+  let forgeBusy = true; // CARD-573: nothing shown until the first load renders an agent
+  let loadsInFlight = 0;
   let cachedSkillsCatalog = null;
   let cachedPlatformSkills = [];
   let cachedOperatorSkills = [];
@@ -206,6 +235,9 @@ export function initAgentForge(state, callbacks = {}) {
   }
 
   async function loadAgentForge(targetAgentId) {
+    const pickMark = loadGuard.pickMark(); // CARD-573
+    if (!activeForgeAgent) { forgeBusy = true; setForgeFormBusy(true); } // nothing shown yet: no edits on an empty form
+    loadsInFlight += 1;
     try {
       const catRes = await fetch('/api/skills/catalog');
       if (catRes.ok) {
@@ -241,17 +273,33 @@ export function initAgentForge(state, callbacks = {}) {
         || storageGet(PICKER_KEYS.agents)
         || (studioAgents[0] ? studioAgents[0].id : null);
       const targetAgent = studioAgents.find((a) => a.id === selectedId) || studioAgents[0];
-      if (targetAgent) {
+      // CARD-573: if the user picked this agent while the load ran, keep the form they may be editing.
+      const userHasIt = loadGuard.pickedSince(pickMark) && activeForgeAgent && activeForgeAgent.id === (targetAgent && targetAgent.id);
+      if (targetAgent && !userHasIt) {
         await renderAgentToForge(targetAgent);
       }
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load Agent Studio:', err);
+    } finally {
+      loadsInFlight -= 1;
+      if (!activeForgeAgent && !loadsInFlight) { forgeBusy = false; setForgeFormBusy(false); }
     }
   }
 
   async function renderAgentToForge(agent) {
+    const isCurrent = loadGuard.beginRender(); // CARD-573: a newer render wins; this one stops after its awaits
     activeForgeAgent = agent;
     if (!agent) return;
+    forgeBusy = true;
+    setForgeFormBusy(true);
+    try {
+      await fillForgeForm(agent, isCurrent);
+    } finally {
+      if (isCurrent()) { forgeBusy = false; setForgeFormBusy(false); }
+    }
+  }
+
+  async function fillForgeForm(agent, isCurrent) {
 
     if (forgeNameInput) forgeNameInput.value = agent.name || '';
     if (forgeIdInput) {
@@ -261,8 +309,10 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeDescInput) forgeDescInput.value = agent.description || '';
     if (forgeSystemPrompt) forgeSystemPrompt.value = agent.system_prompt || '';
     await loadTones(agent.tone || 'default');
+    if (!isCurrent()) return;
     if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || DEFAULT_AGENT_MAX_TURNS;
     if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
+    if (forgeAlwaysAutoRunInput) forgeAlwaysAutoRunInput.checked = agent.always_auto_run === true;
     const agentProv = agent.provider || 'default';
     if (forgeProviderSelect) forgeProviderSelect.value = agentProv;
     if (forgeApiBaseUrlInput) {
@@ -319,10 +369,12 @@ export function initAgentForge(state, callbacks = {}) {
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id, callbacks);
     loadAgentCapabilityGaps(agent.id, callbacks);
-    currentAgentMcpServers = await loadAgentMcpServers(agent.id, {
+    const mcpServers = await loadAgentMcpServers(agent.id, {
       getActiveAgent,
       onServersChanged: (servers) => { currentAgentMcpServers = servers; },
     });
+    if (!isCurrent()) return;
+    currentAgentMcpServers = mcpServers;
     loadAgentCredentialGrants(agent);
     loadArchitecturalProposals(agent.id);
     agentFileStatus.render(agent);
@@ -394,6 +446,7 @@ export function initAgentForge(state, callbacks = {}) {
   // Save Agent handler
   if (saveAgentBtn) {
     saveAgentBtn.addEventListener('click', async () => {
+      if (forgeBusy) { showToast('Agent is still loading; try Save again in a moment.', 'warning'); return; } // CARD-573
       const name = forgeNameInput ? forgeNameInput.value.trim() : '';
       let id = (activeForgeAgent && activeForgeAgent.id) || (forgeIdInput ? forgeIdInput.value.trim() : '');
       if (!name) {
@@ -445,6 +498,7 @@ export function initAgentForge(state, callbacks = {}) {
         show_in_chat: forgeShowInChat ? forgeShowInChat.checked : true,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : DEFAULT_AGENT_MAX_TURNS, 10) || DEFAULT_AGENT_MAX_TURNS,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
+        always_auto_run: Boolean(forgeAlwaysAutoRunInput && forgeAlwaysAutoRunInput.checked), // CARD-573
         storage_enabled: Boolean(forgeStorageEnabled && forgeStorageEnabled.checked),
         storage_type: forgeStorageType ? forgeStorageType.value : 'sqlite',
         memory_enabled: Boolean(forgeMemoryEnabled && forgeMemoryEnabled.checked),
@@ -544,9 +598,14 @@ export function initAgentForge(state, callbacks = {}) {
   if (forgeAgentSelect) {
     forgeAgentSelect.addEventListener('change', () => {
       const selectedId = forgeAgentSelect.value;
+      loadGuard.userPicked(); // CARD-573
       if (selectedId) storageSet(PICKER_KEYS.agents, selectedId);
       const agent = (state.agents || []).find((a) => a.id === selectedId);
       if (agent) renderAgentToForge(agent);
+      else if (selectedId) { // CARD-573: roster not loaded yet; the running load (or a new one) shows the pick
+        activeForgeAgent = null; forgeBusy = true; setForgeFormBusy(true);
+        if (!loadsInFlight) loadAgentForge(selectedId);
+      }
     });
   }
 

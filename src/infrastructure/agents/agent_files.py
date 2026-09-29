@@ -22,6 +22,7 @@ EXTRA_FIELDS = (
     "visibility",
     "fleet",
     "history_retention_days",
+    "always_auto_run",  # CARD-573 Agent Preferences
     "storage_enabled",
     "storage_type",
     "memory_enabled",

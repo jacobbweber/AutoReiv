@@ -21,7 +21,8 @@ class RoutinePayload(BaseModel):
     interval_seconds: Optional[int] = 3600
     prompt_template: str
     enabled: Optional[bool] = True
-    approval_mode: Optional[str] = "ask"
+    # CARD-573: omitted on create -> the agent's Always auto-run preference; omitted on update -> keep saved value.
+    approval_mode: Optional[str] = None
     # CARD-572: run as a standing Job (default off). None on update keeps the saved value.
     run_as_job: Optional[bool] = None
     schedule_rule: Optional[dict] = None
@@ -83,6 +84,12 @@ async def create_routine(request: Request, payload: RoutinePayload):
         else ScheduleType.CRON
     )
 
+    if payload.approval_mode is None:
+        agent = request.app.state.registry.get_agent(payload.agent_id) if hasattr(request.app.state, "registry") else None
+        approval = "run" if getattr(agent, "always_auto_run", False) is True else "ask"
+    else:
+        approval = "run" if str(payload.approval_mode).strip().lower() == "run" else "ask"
+
     routine = Routine(
         id=routine_id,
         name=payload.name,
@@ -95,7 +102,7 @@ async def create_routine(request: Request, payload: RoutinePayload):
         enabled=payload.enabled if payload.enabled is not None else True,
         last_status=RoutineStatus.IDLE,
         metadata={
-            "approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask",
+            "approval_mode": approval,
             "run_as_job": payload.run_as_job is True,
         },
     )
@@ -141,7 +148,11 @@ async def update_routine(request: Request, routine_id: str, payload: RoutinePayl
         last_status=existing.last_status,
         metadata={
             **(existing.metadata or {}),
-            "approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask",
+            "approval_mode": (
+                ("run" if str(payload.approval_mode).strip().lower() == "run" else "ask")
+                if payload.approval_mode is not None
+                else ("run" if str((existing.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask")
+            ),
             "run_as_job": (
                 payload.run_as_job is True
                 if payload.run_as_job is not None

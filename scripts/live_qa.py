@@ -12,7 +12,7 @@ Data (D1): throwaway by default (``scratch/live_qa_data``, wiped each start); ``
 ``%LOCALAPPDATA%\\AutoReiv`` into it first (never writes back; the vault key is not copied; the copy's
 ``wiki_path`` / ``data_dir`` settings are pointed at the copy). Paths are vetted with the CARD-467 guard.
 Models (REQ-532-008): a throwaway env gets the real vLLM provider (``AUTOREIV_QA_VLLM_URL`` /
-``AUTOREIV_QA_MODEL``, default nemotron-3.5-lightning at 192.168.1.218:8099). Reports (D2): the journey
+``AUTOREIV_QA_MODEL``, default qwen3.8:latest on Nimo Ollama 192.168.1.29:11434). Reports (D2): the journey
 runner writes to ``AUTOREIV_QA_REPORT_DIR`` or ``<temp>/autoreiv-qa/<card>`` (a C: path on Jarvis).
 Judge (D3): off unless ``--judge``.
 """
@@ -45,8 +45,9 @@ LOG_FILE_REL = Path("scratch") / "live_qa_serve.log"
 RUNNER_REL = Path("tests") / "e2e" / "journeys" / "run.mjs"
 CLONE_SKIP_NAMES = frozenset({".vault_key"})
 CLONE_SKIP_SUFFIXES = (".db-wal", ".db-shm", ".lock")
-DEFAULT_VLLM_URL = "http://192.168.1.218:8099/v1"
-DEFAULT_MODEL = "nemotron-3.5-lightning"
+# 2026-09-29: Nimo Ollama; qwen3.6:35b-a3b-65k is gone and qwen3-coder cannot load next to the pinned models.
+DEFAULT_VLLM_URL = "http://192.168.1.29:11434/v1"
+DEFAULT_MODEL = "qwen3.8:latest"
 EXIT_REFUSED = 2
 EXIT_CHECKOUT_CHANGED = 3
 EXIT_MODEL_DOWN = 4

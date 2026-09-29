@@ -286,6 +286,11 @@ export function initRoutinesStudio(state, callbacks = {}) {
   }
 
 
+  // CARD-573: a new routine for an agent with Always auto-run starts with Auto-run checked (saved routines keep theirs).
+  function agentAlwaysAutoRun(agentId) {
+    return (state.agents || []).some((a) => a && a.id === agentId && a.always_auto_run === true);
+  }
+
   async function openRoutineModal(routine = null, preselectedAgentId = null) {
     if (!routineModal) return;
     const targetAgentId = routine ? routine.agent_id : (preselectedAgentId || 'assistant');
@@ -333,7 +338,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routineCronInput) routineCronInput.value = '0 * * * *';
       if (routinePromptInput) routinePromptInput.value = '';
       if (routineEnabledInput) routineEnabledInput.checked = true;
-      if (routineApprovalRunInput) routineApprovalRunInput.checked = false;
+      if (routineApprovalRunInput) routineApprovalRunInput.checked = agentAlwaysAutoRun(routineAgentSelect?.value || targetAgentId);
       if (routineRunAsJobInput) routineRunAsJobInput.checked = false;
       if (routineHumanPreview) {
         syncCronExactPreview('0 * * * *');
@@ -508,6 +513,12 @@ export function initRoutinesStudio(state, callbacks = {}) {
 
   // Routine Modal Listeners
   if (newRoutineBtn) newRoutineBtn.addEventListener('click', () => openRoutineModal(null));
+  // CARD-573: changing the agent in a new-routine form follows that agent's Always auto-run.
+  routineAgentSelect?.addEventListener('change', () => {
+    if (routineIdInput && !routineIdInput.disabled && routineApprovalRunInput) {
+      routineApprovalRunInput.checked = agentAlwaysAutoRun(routineAgentSelect.value);
+    }
+  });
   if (closeRoutineModalBtn) closeRoutineModalBtn.addEventListener('click', closeRoutineModal);
   if (cancelRoutineModalBtn) cancelRoutineModalBtn.addEventListener('click', closeRoutineModal);
 

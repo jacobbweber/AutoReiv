@@ -35,6 +35,7 @@ class AgentProfilePayload(BaseModel):
     show_in_chat: Optional[bool] = True
     max_turns: Optional[int] = DEFAULT_AGENT_MAX_TURNS
     history_retention_days: Optional[int] = 30
+    always_auto_run: Optional[bool] = None  # CARD-573: None keeps the saved value
     storage_enabled: Optional[bool] = False
     storage_type: Optional[str] = "sqlite"
     memory_enabled: Optional[bool] = True
@@ -97,6 +98,7 @@ def _public_agent(
         "fleet": getattr(profile, "fleet", None),
         "max_turns": profile.max_turns,
         "history_retention_days": profile.history_retention_days,
+        "always_auto_run": bool(getattr(profile, "always_auto_run", False)),
         "storage_enabled": getattr(profile, "storage_enabled", False),
         "storage_type": getattr(profile, "storage_type", "sqlite") or "sqlite",
         "memory_enabled": getattr(profile, "memory_enabled", True),
@@ -327,6 +329,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["allowed_skill"] = existing.allowed_skill or []
     if data.get("show_in_chat") is None:
         data["show_in_chat"] = existing.show_in_chat is not False
+    if data.get("always_auto_run") is None:
+        data["always_auto_run"] = bool(getattr(existing, "always_auto_run", False))
     data.pop("allow_wiki_access", None)  # CARD-540: retired field, ignored if an old client sends it
     if data.get("allowed_credentials") is None:
         data["allowed_credentials"] = getattr(existing, "allowed_credentials", []) or []
