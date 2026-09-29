@@ -2,19 +2,20 @@
 id: CARD-573
 title: "Agent Studio: Always auto-run preference per agent"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
 proof: "Journey card-573-always-auto-run: tick Always auto-run in Agent Studio > Agent Preferences for an agent and save; a new chat with that agent opens with the Chat Auto-run box checked; unticking it sends approval_mode ask and sticks for that chat only (another new chat with the agent starts checked again); a new routine for that agent opens with its Auto-run box checked, while existing routines keep their saved value. Checks: test_card573_always_auto_run.py, vitest card_573_always_auto_run.test.js."
 branch: feat/card-573-always-auto-run (stacked on feat/card-572-explicit-job: both change the Chat composer toggles in runtime_toggles.js / chat.js on 572; 573 hooks the per-chat apply into chat/session_select.js)
 created: 2026-09-29
+completed: 2026-09-29
 related: [CARD-572, CARD-470, CARD-299]
 ---
 
 # CARD-573 Agent Studio: Always auto-run preference per agent
 
-> **Status**: In Review
+> **Status**: Done
 
 ## Why
 Jacob trusts some agents to run write, shell and code tools without asking. Today the Chat Auto-run box is one
@@ -74,3 +75,4 @@ for agents he does not trust.
 - 2026-09-29: Jacob asked for this (D1); routine behaviour D2 proposed by the parent agent. Ready; building stacked on CARD-572.
 - 2026-09-29: Built; checks green; journey PASS; In Review. Not merged or pushed.
 - 2026-09-29: Follow-ups: Agent Studio load-timing fix; QA default model qwen3.8:latest on Nimo. Journey PASS.
+- 2026-09-29: Jacob: merge to qa. Done; merged into qa.
