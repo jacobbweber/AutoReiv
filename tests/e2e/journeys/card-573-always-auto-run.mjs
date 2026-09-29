@@ -47,8 +47,13 @@ export default {
       await openApp(page, base);
       if (!(await page.locator('#forgeAgentSelect').isVisible().catch(() => false))) await page.locator('#dock-agents').click();
       await page.locator('#forgeAgentSelect').waitFor({ state: 'visible', timeout: 15000 });
+      const shipped = await getJson(request, `${base}/api/agents/${AGENT}`);
       await page.selectOption('#forgeAgentSelect', AGENT);
-      await page.waitForTimeout(1000);
+      // The form fills in after the agent loads; tick only once it shows tutor's own values.
+      const loaded = await waitFor(async () => (await page.locator('#forgeIdInput').inputValue()) === AGENT
+        && (await page.locator('#forgeToneSelect').inputValue()) === String(shipped.tone || 'default'), { timeoutMs: 20000, intervalMs: 250 });
+      if (!loaded) throw new Error('Agent Studio did not load tutor');
+      await page.waitForTimeout(500);
       const prefs = page.locator('details[data-section="preferences"]');
       if (!(await prefs.evaluate((d) => d.open))) await prefs.locator('summary').click();
       const box = page.locator('#forgeAlwaysAutoRunInput');
@@ -56,8 +61,14 @@ export default {
       if (await box.isChecked()) throw new Error('Always auto-run starts checked for tutor');
       await box.check();
       await j.screenshot('agent-studio-always-auto-run');
+      const put = page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().endsWith(`/api/agents/${AGENT}`), { timeout: 20000 });
       await page.locator('#saveAgentBtn').click();
-      await waitFor(async () => (await getJson(request, `${base}/api/agents/${AGENT}`)).always_auto_run === true, { timeoutMs: 20000, intervalMs: 1000 });
+      const res = await put;
+      const sent = JSON.parse(res.request().postData() || '{}');
+      if (res.status() !== 200 || sent.always_auto_run !== true) throw new Error(`save -> ${res.status()}, sent always_auto_run ${sent.always_auto_run}`);
+      const saved = await waitFor(async () => (await getJson(request, `${base}/api/agents/${AGENT}`)).always_auto_run === true, { timeoutMs: 20000, intervalMs: 1000 });
+      if (!saved) throw new Error('always_auto_run not saved');
+      if (!(await page.locator('#forgeAlwaysAutoRunInput').isChecked())) throw new Error('box unticked after the form reloaded');
       const other = await getJson(request, `${base}/api/agents/autoreiv`);
       const a = await getJson(request, `${base}/api/agents/${AGENT}`);
       j.note(`tutor always_auto_run ${a.always_auto_run}; autoreiv always_auto_run ${other.always_auto_run}; tutor tools ${(a.allowed_tools || []).length}`);
