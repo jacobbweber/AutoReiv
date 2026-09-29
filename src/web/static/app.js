@@ -270,12 +270,6 @@ export function initApp() {
         await forgeCtrl.loadAgentForge(agentId);
       }
     },
-    onStartNewAgentPack: async () => {
-      switchTab('chat');
-      if (chatCtrl && typeof chatCtrl.startNewAgentAuthoring === 'function') {
-        await chatCtrl.startNewAgentAuthoring();
-      }
-    },
     openSkillStudio: (agentId = null, skillId = null) => {
       if (skillCtrl && typeof skillCtrl.queueDeepLink === 'function') {
         skillCtrl.queueDeepLink(agentId, skillId);

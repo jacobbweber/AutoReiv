@@ -1,6 +1,6 @@
 """Copy-if-missing bundled user skill packs into $DATA_DIR/skills [REQ-BUILD-015].
 
-CARD-118: okta-admin is not a product seed. CARD-119 ships build-agent-pack and recommend-capability for AutoReiv.
+CARD-118: okta-admin is not a product seed. CARD-569: the pack builder seed is removed.
 CARD-497 D10: a seed the operator never edited (its hash matches a shipped version) is refreshed.
 """
 
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 RETIRED_OKTA_ADMIN_PACK_ID = "okta-admin"
 BUNDLED_PACK_IDS: tuple[str, ...] = (
-    "build-agent-pack",
     "proposals",
     "wiki",
     "sandbox",
@@ -32,18 +31,7 @@ BUNDLED_PACK_IDS: tuple[str, ...] = (
 
 # sha256 of the LF-normalized SKILL.md for every version we shipped. A dest whose hash is in this
 # set was never edited, so it may be replaced with the current seed [CARD-497 D10].
-SHIPPED_SEED_SHA256: dict[str, frozenset[str]] = {
-    "build-agent-pack": frozenset(
-        {
-            "1fb782ff0d94da608cfa8b11a7921e299f35bb44a5374591a295eef6f5253f8e",
-            "2f4054458df01f476e75520c5ad5ca3bc6d82e759831d2efd1a70c3aa99c1b5c",
-            "84d58a21c4b168db79bc1e5985de7a19974956f616ad1e443fbd73a41d227635",
-            "8c140eba4af65848e7af59e0431b3f501e2d5a458a2d3fd65b6dbdfdcffc0338",
-            "d14e78f7887538cafed973bf19c992a178e408e6458288aa04738f730b9c2e52",
-            "eea1aa102522e2ece5c97b92f27145bc4d6eb531c8c21675fc245c45d40443d6",
-        }
-    ),
-}
+SHIPPED_SEED_SHA256: dict[str, frozenset[str]] = {}
 
 
 def bundled_seed_root() -> Path:

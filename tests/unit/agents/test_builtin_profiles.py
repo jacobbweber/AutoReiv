@@ -42,10 +42,7 @@ def test_autoreiv_profile_definition():
     assert agent.id == "autoreiv"
     assert agent.name == "AutoReiv"
     assert agent.tone == AgentTone.CONCISE
-    assert "export_agent_pack" in list(resolve_allowed_tools(agent))
-    assert "import_agent_pack" in list(resolve_allowed_tools(agent))
-    assert "scaffold_agent_pack" in list(resolve_allowed_tools(agent))
-    assert "build-agent-pack" in agent.allowed_skill
+    assert "build-agent-pack" not in agent.allowed_skill
     assert "proposals" in agent.allowed_skill
     assert "platform-health" in agent.allowed_skill
     assert "session-inspect" in agent.allowed_skill
@@ -55,7 +52,8 @@ def test_autoreiv_profile_definition():
     assert "wiki-curation" in agent.allowed_skill
     assert "coordination" in agent.allowed_skill
     assert "save_agent_specification" not in list(resolve_allowed_tools(agent))
-    assert "propose_agent_specification" in list(resolve_allowed_tools(agent))
+    assert "propose_agent_specification" not in list(resolve_allowed_tools(agent))  # CARD-569
+    assert "inspect_agent" in list(resolve_allowed_tools(agent))
     assert "commit_skill_pack" in list(resolve_allowed_tools(agent))
     assert "list_available_skills_and_tools" in list(resolve_allowed_tools(agent))
     assert agent.show_in_chat is True
@@ -108,16 +106,14 @@ def test_get_builtin_profile_lookup_and_aliases():
 def test_developer_owns_builder_tools_not_legacy_save():
     dev = platform_pack_profile("developer")
     # CARD-562 (Jacob 2026-09-28): tool building is parked off Developer until M25 slice 2.
-    for sid in ("capability-authoring", "proposals", "build-agent-pack", "native-tool-engineering", "mcp-engineering"):
+    for sid in ("capability-authoring", "proposals", "native-tool-engineering", "mcp-engineering"):
         assert sid not in dev.allowed_skill
     assert "coding" not in dev.allowed_skill  # CARD-562 supersedes CARD-550 D1: active project, not the checkout
     for name in (
         "list_available_skills_and_tools",
-        "propose_agent_specification",
         "propose_skill",
         "propose_tool",
         "commit_skill_pack",
-        "scaffold_agent_pack",
     ):
         assert name not in list(resolve_allowed_tools(dev))  # CARD-562: parked until slice 2
     assert "save_agent_specification" not in list(resolve_allowed_tools(dev))

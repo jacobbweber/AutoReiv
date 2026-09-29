@@ -1,4 +1,3 @@
-import json
 
 import pytest
 
@@ -19,28 +18,6 @@ def isolated_service(tmp_path):
     registry = BuiltinAgentRegistry(state_store=store, master_tool_registry=tool_reg)
     svc = AgentPackService(data_dir=data_dir, agent_registry=registry, store=store)
     return svc, store, registry
-
-
-def test_scaffold_pack_normalizes_provider_names_to_default_model(isolated_service):
-    svc, _, _ = isolated_service
-    spec = {
-        "id": "nexus-test",
-        "name": "Nexus Test",
-        "system_prompt": "You are a test agent.",
-        "model": "ollama",  # Should be normalized to default
-        "purpose": "task_execution",
-        "skills": [
-            {
-                "id": "coding-sop",
-                "name": "Coding SOP",
-                "description": "Coding runbook",
-                "tools": [],  # Should be auto-populated with pack_tool_names
-            }
-        ],
-    }
-    folder = svc.scaffold_pack(spec)
-    pack_data = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
-    assert pack_data["model"] == "default"
 
 
 def test_kernel_resolves_agent_configured_provider_and_model(isolated_service):

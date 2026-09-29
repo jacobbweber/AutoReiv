@@ -5,12 +5,10 @@ Agent Management & Delegation Router [REQ-FORGE-003, REQ-FORGE-006, REQ-A2A-006]
 import json
 import logging
 import re
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentTone
@@ -168,21 +166,6 @@ def _public_agent(
             s.model_dump() if hasattr(s, "model_dump") else s for s in (getattr(profile, "mcp_servers", None) or [])
         ],
     }
-
-
-def _pack_service(request: Request):
-    from src.application.agent_packs.service import AgentPackService
-
-    paths = getattr(request.app.state, "data_dir_paths", None)
-    if paths is None:
-        raise HTTPException(status_code=500, detail="Data directory is not configured.")
-    tool_reg = request.app.state.tool_reg
-    return AgentPackService(
-        data_dir=paths.root,
-        agent_registry=request.app.state.registry,
-        store=request.app.state.store,
-        available_tools={t.name for t in tool_reg.list_tools()},
-    )
 
 
 router = APIRouter(tags=["Agents"])
@@ -518,41 +501,6 @@ async def delegate_agent_task(request: Request, req: HandoffEnvelope):
     orchestrator = request.app.state.orchestrator
     result = await orchestrator.dispatch_handoff(req)
     return result
-
-
-@router.get("/api/agents/{agent_id}/pack.zip")
-async def export_agent_pack_zip(request: Request, agent_id: str):
-    registry = request.app.state.registry
-    if not registry.get_agent(agent_id):
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    try:
-        zip_path = _pack_service(request).export_zip(agent_id)
-    except (KeyError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return FileResponse(
-        path=str(zip_path),
-        filename=f"{agent_id}.zip",
-        media_type="application/zip",
-    )
-
-
-@router.post("/api/agents/import-pack")
-async def import_agent_pack(request: Request, file: UploadFile = File(...)):
-    suffix = Path(file.filename or "pack.zip").suffix or ".zip"
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    tmp_path = Path(tmp.name)
-    try:
-        tmp.write(await file.read())
-        tmp.close()
-        profile = _pack_service(request).import_path(tmp_path)
-    except (KeyError, ValueError, FileNotFoundError, OSError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    finally:
-        try:
-            tmp_path.unlink(missing_ok=True)
-        except OSError:
-            pass
-    return {"status": "imported", "agent": _public_agent(profile)}
 
 
 @router.post("/api/agents/{agent_id}/history/prune")

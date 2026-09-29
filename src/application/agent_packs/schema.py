@@ -83,7 +83,6 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "proposals": (
         "propose_skill",
         "propose_tool",
-        "propose_agent_specification",
         "list_available_skills_and_tools",
         "skill_view",
         "list_user_skill_packs",
@@ -166,11 +165,6 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "repo_file_write",
         "repo_file_patch",
     ),
-    "build-agent-pack": (
-        "export_agent_pack",
-        "import_agent_pack",
-        "scaffold_agent_pack",
-    ),
     "session-inspect": (
         "get_session_transcript",
         "get_agent_sessions",
@@ -192,15 +186,11 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     ),
     "capability-authoring": (
         "list_available_skills_and_tools",
-        "propose_agent_specification",
         "propose_skill",
         "propose_tool",
         "commit_skill_pack",
         "list_user_skill_packs",
         "skill_view",
-        "scaffold_agent_pack",
-        "export_agent_pack",
-        "import_agent_pack",
     ),
 }
 

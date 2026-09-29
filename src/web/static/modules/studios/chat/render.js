@@ -6,7 +6,6 @@
 import { $, safeCreateIcons } from '../../dom.js';
 import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown } from '../../utils/formatters.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
-import { renderAgentHandoffCardHtml } from './stream.js';
 import { adoptResultMessage, adoptedBannerHtml } from './adopt_message.js';
 import { readToolEscalation } from '../tool_escalation.js';
 import { renderCardToolRow } from './card_rows.js';
@@ -625,27 +624,6 @@ export function renderMessageItem(msg, _idx, _allMessages, {
 
     // Card hand-off outcome [CARD-563] and card review rows [CARD-564]: tool-read results shown as cards.
     if (renderCardToolRow(msg, messagesContainer)) return;
-
-    // Agent Pack Creation Result [CARD-197, REQ-FACT-048]
-    if (msg.name === 'scaffold_agent_pack') {
-      let data;
-      try {
-        data = typeof msg.content === 'object' ? msg.content : JSON.parse(msg.content);
-      } catch {
-        data = {};
-      }
-      if (data.success && data.agent_id) {
-        const el = document.createElement('div');
-        el.className = 'flex justify-start w-full my-1.5';
-        el.innerHTML = renderAgentHandoffCardHtml({
-          agentId: data.agent_id,
-          agentName: data.name || data.agent_id,
-          folder: data.folder || `packs/${data.agent_id}`,
-        });
-        messagesContainer.appendChild(el);
-        return;
-      }
-    }
 
     // Generic Tool Execution Result (collapsible)
     const el = document.createElement('div');

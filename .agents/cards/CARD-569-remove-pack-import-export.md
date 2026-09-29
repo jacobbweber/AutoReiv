@@ -1,7 +1,7 @@
 ---
 id: CARD-569
 title: "Remove agent pack import/export and the pack builder"
-status: Ready
+status: In Review
 created: 2026-09-28
 branch: fix/card-569-remove-pack-import-export
 related:
@@ -47,3 +47,17 @@ pack.json and its schema, platform-pack promotion/seeding, keep-customizations, 
 - `rg 'export_agent_pack|import_agent_pack|scaffold_agent_pack|propose_agent_specification|inspect_agent_pack|pack_server|import-pack|pack\.zip' src platform-packs tests/e2e` finds nothing.
 - Resolved tools per agent: unchanged except AutoReiv, which loses exactly the removed pack builder tools (report the count).
 - Guard test passes, ruff clean, fast preflight `--base qa` GREEN, full not-slow suite with only the 3 known card354 failures, live check done.
+
+## Results
+
+- Removed: routes `GET /api/agents/{id}/pack.zip` and `POST /api/agents/import-pack`; Studio Import/Export buttons; tools `export_agent_pack`, `import_agent_pack`, `scaffold_agent_pack`, `propose_agent_specification` (module `agent_pack_tools.py`); the `build-agent-pack` seed and AutoReiv pack skill; the pack MCP server (`pack_server.py` + mount/unmount); the CARD-433 developer authoring-prompt append; `AgentPackService` export/fleet/scaffold/zip (folder install stays for boot promotion until CARD-570).
+- Replaced: `inspect_agent_pack` with a read-only `inspect_agent` (`agent_inspect_tools.py`).
+- New Agent: the AutoReiv chat handoff depended on `scaffold_agent_pack`, so New Agent now opens the existing Agent Studio new-agent form (POST /api/agents); the "Converse in Chat" button, starter prompt and handoff card are gone.
+- Tool counts (live): developer 26, direct 0, tutor 33, architect 20, autoreiv 43 -> 39 (lost export/import/scaffold pack + propose_agent_specification; inspect_agent_pack renamed inspect_agent).
+- Checks: ruff clean; fast preflight --base qa GREEN; not-slow suite 2142 passed, 3 failed (known card354); vitest 953 passed; guard `test_card569_no_pack_import_export.py`.
+- Live: serve restarted, health 200 on 127.0.0.1 and 192.168.1.99; index has no Import/Export buttons; pack.zip 404, import-pack 405.
+- Left for CARD-570: live data dir still has orphan `skills/build-agent-pack` and `packs/autoreiv/skills/build-agent-pack` (unticked; the wipe removes them); `PackMCPServerConfig` schema models; archived spec docs.
+
+## Log
+
+- 2026-09-28 22:20 ET: built on fix/card-569-remove-pack-import-export; In Review.

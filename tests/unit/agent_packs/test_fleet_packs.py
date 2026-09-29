@@ -2,7 +2,6 @@
 Unit tests for Fleet Packs, FleetManifest, and Three-Tier Skill Separation [CARD-199, REQ-FLEET-010 - REQ-FLEET-015].
 """
 
-import json
 from pathlib import Path
 
 import pytest
@@ -119,56 +118,6 @@ async def test_skills_catalog_exposes_fleet_skills_and_wiki(tmp_path, monkeypatc
         assert "lookup-network-spec" not in platform_skill_ids
         assert "lookup-host-spec" not in platform_skill_ids
         assert "manage-opentofu-hyperv" not in platform_skill_ids
-
-
-def test_agent_pack_service_imports_fleet_suite(tmp_path):
-    """Verify AgentPackService.import_path imports a fleet suite if fleet.json is provided [REQ-FLEET-015]."""
-    from src.application.agent_packs.service import AgentPackService
-    from src.infrastructure.agents.registry import BuiltinAgentRegistry
-
-    # Create synthetic fleet suite in tmp_path
-    suite_dir = tmp_path / "test-fleet"
-    suite_dir.mkdir(parents=True)
-    fleet_json = {
-        "schema_version": "1.0",
-        "id": "test-fleet",
-        "name": "Test Fleet",
-        "description": "Test fleet suite.",
-        "lead_agent_id": "test-lead",
-        "shared_skills": [],
-        "agent_ids": ["test-lead", "test-worker"],
-    }
-    (suite_dir / "fleet.json").write_text(json.dumps(fleet_json), encoding="utf-8")
-
-    agents_dir = suite_dir / "agents"
-    agents_dir.mkdir()
-    for aid in ("test-lead", "test-worker"):
-        a_dir = agents_dir / aid
-        a_dir.mkdir()
-        (a_dir / "pack.json").write_text(
-            json.dumps(
-                {
-                    "schema_version": "1.1",
-                    "id": aid,
-                    "name": aid.title(),
-                    "description": f"Test agent {aid}",
-                    "system_prompt": f"You are {aid}.",
-                    "fleet": "test-fleet",
-                }
-            ),
-            encoding="utf-8",
-        )
-
-    registry = BuiltinAgentRegistry()
-    service = AgentPackService(data_dir=tmp_path / "data", agent_registry=registry)
-
-    lead_profile = service.import_path(suite_dir)
-    assert lead_profile.id == "test-lead"
-    assert lead_profile.fleet == "test-fleet"
-
-    # Both specialists must be registered in the agent registry
-    assert registry.get_agent("test-lead") is not None
-    assert registry.get_agent("test-worker") is not None
 
 
 def test_developer_build_skill_is_tracked():

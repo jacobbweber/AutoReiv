@@ -29,7 +29,7 @@ pytestmark = pytest.mark.slow
 
 SKILL_POOL = [
     "wiki-knowledge", "wiki-inbox", "wiki-curation", "wiki_tasks", "platform-health", "session-inspect",
-    "coding", "coordination", "proposals", "worker", "sandbox", "sqlite-storage", "build-agent-pack",
+    "coding", "coordination", "proposals", "worker", "sandbox", "sqlite-storage",
     "mcp-engineering", "native-tool-engineering", "capability-authoring", "agent-authoring",
 ]
 WORDS = ["wiki", "notes", "health", "gpu", "code", "repo", "mcp", "server", "deploy", "native", "tool",

@@ -1,4 +1,4 @@
-"""Import, export, and scaffold one Agent Pack folder or zip."""
+"""Install a platform pack folder at boot. Import/export/scaffold removed [CARD-569]; the rest goes in CARD-570."""
 
 from __future__ import annotations
 
@@ -6,23 +6,14 @@ import json
 import logging
 import re
 import shutil
-import tempfile
-import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 from src.application.agent_packs.schema import (
     FORBIDDEN_PACK_KEYS,
     PACK_SCHEMA_VERSION,
-    PLATFORM_SKILL_IDS,
     REQUIRED_PLATFORM_TOOLS,
-    SKIP_PACK_SUFFIXES,
     AgentPackManifest,
-    PackMCPServerConfig,
-    PackMemoryConfig,
-    PackSkill,
-    PackStorageConfig,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
@@ -61,10 +52,6 @@ def validate_platform_skills(available_tools: Any) -> None:
 
 
 
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
 def _safe_id(value: str) -> str:
     text = (value or "").strip()
     if not text or not _SAFE_ID.match(text):
@@ -86,45 +73,6 @@ def _write_json(path: Path, payload: Any) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     tmp.replace(path)
-
-
-def _is_python_or_binary_tool(path: Path) -> bool:
-    # Files under mcp/ are part of the self-contained MCP deliverable and should not be filtered out
-    if "mcp" in path.parts:
-        return path.suffix.lower() in {".pyc", ".pyo", ".pyd", ".so", ".dll", ".db-wal", ".db-shm"}
-    name = path.name.lower()
-    return path.suffix.lower() in SKIP_PACK_SUFFIXES or name.endswith(("-wal", "-shm"))
-
-
-def _split_inline_skills(raw: Any) -> Tuple[Optional[List[Dict[str, Any]]], Optional[List[Dict[str, Any]]]]:
-    """Split authoring skills into SKILL.md bodies and nested pack.json skill objects."""
-    if not isinstance(raw, list):
-        return None, None
-    bodies: List[Dict[str, Any]] = []
-    pack_skills: List[Dict[str, Any]] = []
-    for item in raw:
-        if isinstance(item, str):
-            sid = item.strip()
-            if not sid:
-                continue
-            bodies.append({"id": sid, "name": sid})
-            pack_skills.append({"id": sid, "tools": []})
-            continue
-        if not isinstance(item, dict):
-            continue
-        sid = str(item.get("id") or item.get("name") or "").strip()
-        if not sid:
-            continue
-        bodies.append(item)
-        pack_skills.append(
-            {
-                "id": sid,
-                "name": str(item.get("name") or sid).strip(),
-                "description": str(item.get("description") or item.get("blurb") or "").strip(),
-                "tools": item.get("tools") or [],
-            }
-        )
-    return bodies, pack_skills
 
 
 class AgentPackService:
@@ -153,88 +101,6 @@ class AgentPackService:
                     return f
         return self.packs_dir / safe
 
-    def manifest_from_profile(
-        self,
-        profile: AgentProfile,
-        skill_tools: Optional[Dict[str, List[str]]] = None,
-    ) -> AgentPackManifest:
-        tone = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
-        purpose = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
-        skill_ids = list(profile.allowed_skill or [])
-        mapping = skill_tools if isinstance(skill_tools, dict) else {}
-        skills = [
-            PackSkill(id=sid, tools=list(mapping.get(sid) or []))
-            for sid in skill_ids
-            if sid not in PLATFORM_SKILL_IDS
-        ]
-        storage_enabled = getattr(profile, "storage_enabled", False)
-        storage_type = getattr(profile, "storage_type", "sqlite") or "sqlite"
-        storage = PackStorageConfig(enabled=storage_enabled, type=storage_type)
-        memory_enabled = getattr(profile, "memory_enabled", True)
-        memory_retention_days = getattr(profile, "memory_retention_days", 30)
-        pinned_memory = getattr(profile, "pinned_memory", "") or ""
-        memory = PackMemoryConfig(
-            enabled=memory_enabled,
-            retention_days=memory_retention_days,
-            pinned_memory=pinned_memory,
-        )
-        mcp_servers = [
-            PackMCPServerConfig.model_validate(s.model_dump() if hasattr(s, "model_dump") else s)
-            if not isinstance(s, PackMCPServerConfig)
-            else s
-            for s in (getattr(profile, "mcp_servers", []) or [])
-        ]
-        return AgentPackManifest(
-            schema_version=PACK_SCHEMA_VERSION,
-            id=profile.id,
-            name=profile.name,
-            description=profile.description or "",
-            system_prompt=profile.system_prompt or "",
-            tone=tone,
-            provider=getattr(profile, "provider", "default") or "default",
-            purpose=purpose,
-            avatar_icon=profile.avatar_icon or "bot",
-            model=profile.model or "default",
-            skills=skills,
-            allowed_skill=skill_ids,
-            show_in_chat=profile.show_in_chat is not False,
-            visibility=getattr(profile, "visibility", "public") or "public",
-            fleet=getattr(profile, "fleet", None),
-            storage=storage,
-            storage_enabled=storage_enabled,
-            storage_type=storage_type,
-            memory=memory,
-            memory_enabled=memory_enabled,
-            memory_retention_days=memory_retention_days,
-            pinned_memory=pinned_memory,
-            mcp_servers=mcp_servers,
-            created_at=profile.created_at,
-            updated_at=profile.updated_at,
-        )
-
-    def _stored_skill_tools(self, pack_id: str) -> Dict[str, List[str]]:
-        path = self.pack_dir(pack_id) / "pack.json"
-        if not path.is_file():
-            return {}
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return {}
-        if not isinstance(raw, dict):
-            return {}
-        mapping: Dict[str, List[str]] = {}
-        for item in raw.get("skills") or []:
-            if not isinstance(item, dict):
-                continue
-            sid = str(item.get("id") or "").strip()
-            if not sid:
-                continue
-            tools = item.get("tools") or []
-            if isinstance(tools, str):
-                tools = [tools]
-            mapping[sid] = [str(t).strip() for t in tools if str(t).strip()]
-        return mapping
-
     def _persist_pack_manifest(self, manifest: AgentPackManifest) -> None:
         dest = self.pack_dir(manifest.id)
         dest.mkdir(parents=True, exist_ok=True)
@@ -242,178 +108,14 @@ class AgentPackService:
         payload["schema_version"] = PACK_SCHEMA_VERSION
         _write_json(dest / "pack.json", payload)
 
-    def _resolve_profile(self, agent_id: str) -> AgentProfile:
-        if self.agent_registry is None:
-            raise ValueError("Agent registry is required to export a pack.")
-        profile = self.agent_registry.get_agent(agent_id)
-        if profile is None:
-            raise KeyError(f"Agent '{agent_id}' not found.")
-        return profile
-
-    def export_folder(self, agent_id: str, dest_dir: Optional[Union[str, Path]] = None) -> Path:
-        """Write a pack folder for the agent. Returns the folder path."""
-        profile = self._resolve_profile(agent_id)
-        stored_map = self._stored_skill_tools(profile.id)
-        pack_home = self.pack_dir(profile.id)
-        dest = Path(dest_dir) if dest_dir is not None else pack_home
-        if dest_dir is not None and dest.resolve() != pack_home.resolve():
-            if dest.exists():
-                shutil.rmtree(dest)
-            dest.mkdir(parents=True, exist_ok=True)
-            if (pack_home / "mcp").is_dir():
-                shutil.copytree(pack_home / "mcp", dest / "mcp", dirs_exist_ok=True)
-        else:
-            dest.mkdir(parents=True, exist_ok=True)
-
-        manifest = self.manifest_from_profile(profile, skill_tools=stored_map)
-        _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
-        self._copy_skills_out(manifest.allowed_skill, dest / "skills", source_pack_dir=pack_home)
-        return dest
-
-    def export_zip(self, agent_id: str, dest_zip: Optional[Union[str, Path]] = None) -> Path:
-        """Write a zip of the pack folder. Returns the zip path."""
-        profile = self._resolve_profile(agent_id)
-        zip_path = Path(dest_zip) if dest_zip is not None else self.packs_dir / f"{_safe_id(profile.id)}.zip"
-        zip_path.parent.mkdir(parents=True, exist_ok=True)
-        folder = self.export_folder(agent_id)
-        _zip_dir(folder, zip_path)
-        return zip_path
-
-    def export_fleet_folder(self, fleet_id: str, dest_dir: Optional[Union[str, Path]] = None) -> Path:
-        """Write a consolidated fleet suite folder. Returns the folder path."""
-        safe_fleet = _safe_id(fleet_id)
-        fleet_home = self.packs_dir / safe_fleet
-        dest = Path(dest_dir) if dest_dir is not None else fleet_home
-        dest.mkdir(parents=True, exist_ok=True)
-        if fleet_home.is_dir() and (fleet_home / "fleet.json").is_file() and dest.resolve() != fleet_home.resolve():
-            shutil.copytree(fleet_home, dest, dirs_exist_ok=True)
-        return dest
-
-    def export_fleet_zip(self, fleet_id: str, dest_zip: Optional[Union[str, Path]] = None) -> Path:
-        """Write a zip archive of the fleet suite folder. Returns the zip path."""
-        safe_fleet = _safe_id(fleet_id)
-        zip_path = Path(dest_zip) if dest_zip is not None else self.packs_dir / f"{safe_fleet}.zip"
-        zip_path.parent.mkdir(parents=True, exist_ok=True)
-        folder = self.export_fleet_folder(fleet_id)
-        _zip_dir(folder, zip_path)
-        return zip_path
-
     def import_path(self, source: Union[str, Path]) -> AgentProfile:
-        """Import a pack zip or folder. Create/update the specialist in user data."""
+        """Install a platform pack folder into the registry (boot only; removed by CARD-570)."""
         src = Path(source)
         if not src.exists():
             raise FileNotFoundError(f"Pack source not found: {src}")
-        tmp_extract: Optional[Path] = None
-        try:
-            if src.is_file():
-                tmp_extract = Path(tempfile.mkdtemp(prefix="autoreiv-pack-"))
-                folder = _extract_pack_zip(src, tmp_extract)
-            else:
-                folder = src
-            if (folder / "fleet.json").is_file():
-                return self._import_fleet_folder(folder)
-            return self._import_folder(folder)
-        finally:
-            if tmp_extract is not None:
-                shutil.rmtree(tmp_extract, ignore_errors=True)
-
-    def _import_fleet_folder(self, folder: Path) -> AgentProfile:
-        from src.application.agent_packs.schema import FleetManifest
-
-        raw_fleet = json.loads((folder / "fleet.json").read_text(encoding="utf-8"))
-        fleet_manifest = FleetManifest.model_validate(raw_fleet)
-
-        # Copy shared skills into self.skills_dir
-        shared_skills_dir = folder / "shared_skills"
-        if shared_skills_dir.is_dir():
-            self._copy_skills_in(shared_skills_dir)
-
-        # Import all agents in agents/
-        agents_dir = folder / "agents"
-        imported_profiles: dict[str, AgentProfile] = {}
-        if agents_dir.is_dir():
-            for agent_folder in sorted(agents_dir.iterdir()):
-                if agent_folder.is_dir() and (agent_folder / "pack.json").is_file():
-                    p = self._import_folder(agent_folder)
-                    imported_profiles[p.id] = p
-
-        lead_id = fleet_manifest.lead_agent_id
-        if lead_id in imported_profiles:
-            return imported_profiles[lead_id]
-        if imported_profiles:
-            return next(iter(imported_profiles.values()))
-        raise ValueError(f"No valid agents found in fleet suite '{fleet_manifest.id}'.")
-
-    def scaffold_pack(self, spec: Dict[str, Any], dest_dir: Optional[Union[str, Path]] = None) -> Path:
-        """Write a pack folder from a structured spec (identity, nested skills, tools, Show in Chat)."""
-        data = dict(spec or {})
-        KNOWN_PROVIDERS = {"ollama", "gemini", "openai", "anthropic", "lmstudio", "vllm", "openrouter", "deepseek", "groq"}
-        raw_model = str(data.get("model") or "").strip().lower()
-        if not raw_model or raw_model == "default" or raw_model in KNOWN_PROVIDERS:
-            data["model"] = "default"
-
-        inline_skills, pack_skills = _split_inline_skills(data.get("skills"))
-        if pack_skills is not None:
-            data["skills"] = pack_skills
-        manifest = AgentPackManifest.model_validate(data)
-        dest = Path(dest_dir) if dest_dir is not None else self.pack_dir(manifest.id)
-        if dest.exists():
-            shutil.rmtree(dest)
-        dest.mkdir(parents=True, exist_ok=True)
-
-        skills_root = dest / "skills"
-        skill_ids = list(manifest.allowed_skill)
-        if isinstance(inline_skills, list):
-            for item in inline_skills:
-                if isinstance(item, str):
-                    if item.strip() and item.strip() not in skill_ids:
-                        skill_ids.append(item.strip())
-                    continue
-                if not isinstance(item, dict):
-                    continue
-                skill_id = str(item.get("id") or item.get("name") or "").strip()
-                if not skill_id:
-                    continue
-                if skill_id not in skill_ids:
-                    skill_ids.append(skill_id)
-                self._write_skill_md(skills_root / skill_id / "SKILL.md", item)
-
-        for skill_id in skill_ids:
-            target = skills_root / skill_id / "SKILL.md"
-            if target.is_file():
-                continue
-            existing = self.skills_dir / skill_id / "SKILL.md"
-            if existing.is_file():
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(existing, target)
-            else:
-                self._write_skill_md(
-                    target,
-                    {
-                        "id": skill_id,
-                        "name": skill_id,
-                        "description": f"Runbook for {skill_id}.",
-                        "body": (f"# {skill_id}\n\nOrder the work, name pitfalls, and state done-when.\n"),
-                    },
-                )
-
-        existing_ids = {skill.id for skill in manifest.skills}
-        extra_skills = [
-            PackSkill(id=sid, tools=[])
-            for sid in skill_ids
-            if sid not in existing_ids and sid not in PLATFORM_SKILL_IDS
-        ]
-        if extra_skills:
-            manifest.skills = list(manifest.skills) + extra_skills
-
-        manifest.allowed_skill = skill_ids
-        manifest.schema_version = PACK_SCHEMA_VERSION
-        _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
-        return dest
-
-    def scaffold_and_import(self, spec: Dict[str, Any]) -> AgentProfile:
-        folder = self.scaffold_pack(spec)
-        return self._import_folder(folder)
+        if not src.is_dir():
+            raise ValueError(f"Pack source must be a folder: {src}")
+        return self._import_folder(src)
 
     def _import_folder(self, folder: Path) -> AgentProfile:
         pack_json = folder / "pack.json"
@@ -440,45 +142,6 @@ class AgentPackService:
         profile = self._upsert_agent(manifest)
         self._persist_pack_manifest(manifest)
         return profile
-
-    def _copy_skills_out(
-        self,
-        skill_ids: List[str],
-        dest_root: Path,
-        source_pack_dir: Optional[Path] = None,
-    ) -> None:
-        dest_root.mkdir(parents=True, exist_ok=True)
-        for skill_id in skill_ids:
-            try:
-                sid = _safe_id(skill_id)
-            except ValueError:
-                continue
-            src: Optional[Path] = None
-            if source_pack_dir is not None and (source_pack_dir / "skills" / sid / "SKILL.md").is_file():
-                src = source_pack_dir / "skills" / sid / "SKILL.md"
-            elif (self.skills_dir / sid / "SKILL.md").is_file():
-                src = self.skills_dir / sid / "SKILL.md"
-            if src is None or not src.is_file():
-                continue
-            target = dest_root / sid / "SKILL.md"
-            if src.resolve() == target.resolve():
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, target)
-
-    def _copy_skills_in(self, src_root: Path) -> None:
-        """Deprecated no-op [CARD-203]. Pack skills stay jailed inside packs/<id>/skills/."""
-        return
-
-    def _write_skill_md(self, path: Path, spec: Dict[str, Any]) -> None:
-        name = str(spec.get("name") or spec.get("id") or "skill").strip()
-        description = str(spec.get("description") or spec.get("blurb") or "").strip()
-        body = str(spec.get("body") or spec.get("instructions") or "").strip()
-        if not body:
-            body = f"# {name}\n\nOrder, pitfalls, done-when.\n"
-        text = f"---\nname: {name}\ndescription: {description}\n---\n\n{body.rstrip()}\n"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
 
     def _upsert_agent(self, manifest: AgentPackManifest) -> AgentProfile:
         if self.agent_registry is None:
@@ -613,42 +276,3 @@ class AgentPackService:
         loaded = self.agent_registry.get_agent(profile.id)
         return loaded or profile
 
-
-def _zip_dir(folder: Path, zip_path: Path) -> None:
-    tmp = zip_path.with_suffix(zip_path.suffix + ".tmp")
-    if tmp.exists():
-        tmp.unlink()
-    with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(folder.rglob("*")):
-            if not path.is_file():
-                continue
-            if _is_python_or_binary_tool(path):
-                continue
-            zf.write(path, path.relative_to(folder).as_posix())
-    tmp.replace(zip_path)
-
-
-def _extract_pack_zip(zip_path: Path, dest: Path) -> Path:
-    dest.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        for info in zf.infolist():
-            name = info.filename.replace("\\", "/")
-            if name.endswith("/") or ".." in Path(name).parts:
-                continue
-            suffix = Path(name).suffix.lower()
-            if suffix in SKIP_PACK_SUFFIXES and not (name.startswith("mcp/") or "/mcp/" in name):
-                continue
-            target = dest / name
-            if not str(target.resolve()).startswith(str(dest.resolve())):
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with zf.open(info, "r") as src, target.open("wb") as out:
-                out.write(src.read())
-    pack_json = dest / "pack.json"
-    if pack_json.is_file():
-        return dest
-    children = [p for p in dest.iterdir() if p.is_dir()]
-    for child in children:
-        if (child / "pack.json").is_file():
-            return child
-    raise ValueError("Zip does not contain pack.json.")

@@ -3,7 +3,6 @@ Unit tests for CARD-116: Memory fields on AgentProfile, AgentPackManifest,
 and database exclusion from pack zip exports.
 """
 
-import zipfile
 
 from src.application.agent_packs.schema import AgentPackManifest, PackMemoryConfig
 from src.domain.agents.guardrails import AgentProfileGuardrail
@@ -68,31 +67,3 @@ def test_agent_pack_manifest_memory_round_trip():
     assert manifest.memory_retention_days == 45
     assert manifest.pinned_memory == "Always use type annotations."
 
-
-def test_export_zip_excludes_database_files(tmp_path):
-    # Setup test pack folder with skill, pack.json, and a runtime database
-    pack_dir = tmp_path / "packs" / "test-agent"
-    pack_dir.mkdir(parents=True, exist_ok=True)
-    (pack_dir / "pack.json").write_text('{"id":"test-agent","name":"Test Agent"}', encoding="utf-8")
-
-    # Create dummy database files that must NOT be exported
-    (pack_dir / "test_agent_memory.db").write_bytes(b"SQLITE-MEMORY-BINARY")
-    (pack_dir / "test_agent_storage.db").write_bytes(b"SQLITE-STORAGE-BINARY")
-    (pack_dir / "test_agent_memory.db-wal").write_bytes(b"SQLITE-WAL")
-    (pack_dir / "test_agent_memory.db-shm").write_bytes(b"SQLITE-SHM")
-
-    # Call _zip_dir
-    from src.application.agent_packs.service import _zip_dir
-
-    zip_file = tmp_path / "test-agent.zip"
-    _zip_dir(pack_dir, zip_file)
-
-    assert zip_file.is_file()
-    with zipfile.ZipFile(zip_file, "r") as zf:
-        namelist = zf.namelist()
-        assert "pack.json" in namelist
-        # Assert databases and journals were excluded
-        assert "test_agent_memory.db" not in namelist
-        assert "test_agent_storage.db" not in namelist
-        assert "test_agent_memory.db-wal" not in namelist
-        assert "test_agent_memory.db-shm" not in namelist

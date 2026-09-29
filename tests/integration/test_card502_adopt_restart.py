@@ -34,7 +34,7 @@ def test_adopt_and_studio_tick_survive_restart():
         assert res.json()["active"] is True
         tutor = client.get("/api/agents/tutor").json()
         tutor = tutor.get("agent") or tutor
-        assert client.put("/api/agents/tutor", json={**tutor, "allowed_skill": [*tutor["allowed_skill"], "build-agent-pack"]}).status_code == 200
+        assert client.put("/api/agents/tutor", json={**tutor, "allowed_skill": [*tutor["allowed_skill"], "proposals"]}).status_code == 200
     with TestClient(_app(db, wiki)) as client:
         assert "cite-sources" in _skills(client, "autoreiv")
-        assert "build-agent-pack" in _skills(client, "tutor")
+        assert "proposals" in _skills(client, "tutor")

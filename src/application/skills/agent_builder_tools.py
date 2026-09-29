@@ -1,16 +1,14 @@
 """
 Agent Builder Tools [REQ-FORGE-005] [REQ-BUILD-001 - REQ-BUILD-014].
-Equips Developer with meta-tooling to inspect system capabilities,
-propose structured agent specifications, and park HITL drafts for skill
-and tool packs. Agent packs are written by scaffold_agent_pack.
+Equips Developer with meta-tooling to inspect system capabilities and park
+HITL drafts for skills and tools. New agents are created in Agent Studio [CARD-569].
 """
 
-import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentTone
+from src.domain.kernel.models import AgentTone
 from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
@@ -51,28 +49,6 @@ class AgentBuilderTools:
                 "properties": {},
             },
             handler=self.list_available_skills_and_tools,
-        )
-
-        registry.register_tool(
-            name="propose_agent_specification",
-            description=(
-                "HITL recommendation for a new agent pack when there is no path / you are stuck. "
-                "Do not use this to create the agent. Do not call this for 'I am ready to create a new agent.' "
-                "After Approve, write the pack with scaffold_agent_pack, not save_agent_specification."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "role": {"type": "string", "description": "The target role (e.g. 'Kubernetes SRE Lead')"},
-                    "objective": {"type": "string", "description": "Core mission and primary tasks"},
-                    "domain": {
-                        "type": "string",
-                        "description": "Domain category: 'coding', 'sysadmin', 'database', 'writing', 'security', 'general'",
-                    },
-                },
-                "required": ["role", "objective"],
-            },
-            handler=self.propose_agent_specification,
         )
 
         payload_fields = {
@@ -189,58 +165,6 @@ class AgentBuilderTools:
             ],
         }
 
-    async def propose_agent_specification(
-        self,
-        role: str,
-        objective: str,
-        domain: str = "general",
-        **kwargs,
-    ) -> Dict[str, Any]:
-        """Generate a production-ready agent profile specification."""
-        clean_role = role.strip()
-        slug_id = re.sub(r"[^a-z0-9]+", "-", clean_role.lower()).strip("-")
-
-        # Map domain to recommended purpose and avatar
-        domain_lower = domain.lower()
-        if "code" in domain_lower or "dev" in domain_lower or "data" in domain_lower or "sql" in domain_lower:
-            purpose = ModelPurpose.TASK_EXECUTION.value
-            tone = AgentTone.TECHNICAL.value
-            avatar = "terminal" if "dev" in domain_lower else "database"
-            suggested_skills = ["coding", "sandbox"]
-        elif "audit" in domain_lower or "sec" in domain_lower or "qa" in domain_lower or "critic" in domain_lower:
-            purpose = ModelPurpose.REASONING.value
-            tone = AgentTone.TECHNICAL.value
-            avatar = "shield-alert"
-            suggested_skills = ["platform-health"]
-        elif "wiki" in domain_lower or "doc" in domain_lower or "write" in domain_lower:
-            purpose = ModelPurpose.AUXILIARY.value
-            tone = AgentTone.ACADEMIC.value
-            avatar = "book-open"
-            suggested_skills = ["wiki-knowledge", "wiki-inbox"]
-        else:
-            purpose = ModelPurpose.GENERAL.value
-            tone = AgentTone.FRIENDLY.value
-            avatar = "bot"
-            suggested_skills = ["wiki_tasks"]
-
-        system_prompt = (
-            f"You are AutoReiv's {clean_role}. "
-            f"Your mission is to {objective.strip()} "
-            "Adhere to production engineering standards, verify your findings, and provide actionable responses."
-        )
-
-        return {
-            "id": slug_id,
-            "name": clean_role,
-            "description": f"{clean_role} specialized in {objective.strip()}",
-            "system_prompt": system_prompt,
-            "purpose": purpose,
-            "tone": tone,
-            "avatar_icon": avatar,
-            "model": "default",
-            "allowed_skill": suggested_skills,  # tools come from skills (CARD-539)
-            "max_turns": DEFAULT_AGENT_MAX_TURNS,
-        }
 
     def _draft_kwargs(self, **kwargs: Any) -> Dict[str, Any]:
         from src.application.kernel.tool_registry import get_tool_context

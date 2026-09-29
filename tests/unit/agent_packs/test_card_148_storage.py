@@ -3,13 +3,10 @@ Unit tests for CARD-148: Agent Pack storage manifest, pack export/import, and SQ
 """
 
 import json
-from pathlib import Path
 
 from src.application.agent_packs.schema import AgentPackManifest, PackStorageConfig
-from src.application.agent_packs.service import AgentPackService
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization
-from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
@@ -36,58 +33,6 @@ def test_agent_pack_manifest_storage_serialization():
     reloaded = AgentPackManifest.model_validate_json(raw_json)
     assert reloaded.storage.enabled is True
     assert reloaded.storage_enabled is True
-
-
-def test_manifest_from_profile_preserves_storage():
-    profile = AgentProfile(
-        id="ledger-agent",
-        name="Ledger Agent",
-        description="A ledger agent",
-        system_prompt="Manage books.",
-        storage_enabled=True,
-        storage_type="sqlite",
-    )
-    service = AgentPackService(data_dir=Path("/fake/data"))
-    manifest = service.manifest_from_profile(profile)
-    assert manifest.storage is not None
-    assert manifest.storage.enabled is True
-    assert manifest.storage.type == "sqlite"
-    assert manifest.storage_enabled is True
-
-
-def test_export_and_import_pack_preserves_storage(tmp_path):
-    # Setup state store and registry
-    db_file = tmp_path / "test_autoreiv.db"
-    store = SQLiteStateStore(db_path=str(db_file))
-
-    profile = AgentProfile(
-        id="storage-tracker",
-        name="Storage Tracker",
-        description="Tracks storage",
-        system_prompt="You track things in SQLite.",
-        storage_enabled=True,
-        storage_type="sqlite",
-    )
-    store.save_agent_profile(profile)
-
-    registry = BuiltinAgentRegistry(profiles=[], state_store=store)
-    registry.register_custom_agent(profile)
-
-    service = AgentPackService(data_dir=tmp_path, agent_registry=registry, store=store)
-
-    # Export
-    exported_folder = service.export_folder("storage-tracker")
-    manifest_path = exported_folder / "pack.json"
-    assert manifest_path.is_file()
-    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest_data.get("storage", {}).get("enabled") is True
-    assert manifest_data.get("storage", {}).get("type") == "sqlite"
-
-    # Import under fresh service / into registry
-    imported_profile = service.import_path(exported_folder)
-    assert imported_profile.id == "storage-tracker"
-    assert imported_profile.storage_enabled is True
-    assert imported_profile.storage_type == "sqlite"
 
 
 def test_sqlite_store_persists_custom_agent_storage(tmp_path):

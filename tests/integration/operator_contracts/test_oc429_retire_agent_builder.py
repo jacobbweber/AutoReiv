@@ -65,7 +65,6 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
         "propose_tool",
         "commit_skill_pack",
         "list_available_skills_and_tools",
-        "scaffold_agent_pack",
     ):
         assert tool in names, tool
     assert "save_agent_specification" not in names
@@ -169,17 +168,13 @@ def test_oc429_user_modified_developer_gains_authoring_without_prompt_rewrite(op
     skills = [
         sid
         for sid in (developer.allowed_skill or [])
-        if sid not in {"capability-authoring", "proposals", "build-agent-pack"}
+        if sid not in {"capability-authoring", "proposals"}
     ]
     drop = {
         "propose_skill",
         "propose_tool",
         "commit_skill_pack",
-        "scaffold_agent_pack",
         "list_available_skills_and_tools",
-        "propose_agent_specification",
-        "export_agent_pack",
-        "import_agent_pack",
     }
     allowed = [name for name in list(resolve_allowed_tools(developer)) if name not in drop]
     pack_tools = [name for name in list(resolve_allowed_tools(developer)) if name not in drop]
@@ -205,6 +200,5 @@ def test_oc429_user_modified_developer_gains_authoring_without_prompt_rewrite(op
     assert after.system_prompt == prompt
     assert "capability-authoring" in (after.allowed_skill or [])
     assert "propose_skill" in list(resolve_allowed_tools(after))
-    assert "scaffold_agent_pack" in list(resolve_allowed_tools(after))
     assert "save_agent_specification" not in list(resolve_allowed_tools(after))
     assert "cli_exec" in list(resolve_allowed_tools(after)) or "execute_code" in list(resolve_allowed_tools(after))

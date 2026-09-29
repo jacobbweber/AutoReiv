@@ -293,16 +293,10 @@ class BuiltinAgentRegistry:
         builder_tools = AgentBuilderTools(agent_registry=agent_registry, tool_registry=tool_registry, store=store)
         builder_tools.register_tools(tool_registry)
 
-        # 7b. Agent Pack inspect/import/export/scaffold tools -> AutoReiv [CARD-497 D6]
-        from src.application.skills.agent_pack_tools import AgentPackTools
+        # 7b. Read-only inspect_agent for the agent-authoring skill [CARD-569]
+        from src.application.skills.agent_inspect_tools import AgentInspectTools
 
-        pack_tools = AgentPackTools(
-            agent_registry=agent_registry,
-            tool_registry=tool_registry,
-            store=store,
-            data_dir=Path(skills_dir).parent if skills_dir else None,
-        )
-        pack_tools.register_tools(tool_registry)
+        AgentInspectTools(agent_registry=agent_registry).register_tools(tool_registry)
 
         # 8. Orchestration & Subagent Handoff Tools
         from src.application.orchestration.directory_service import AgentDirectoryService

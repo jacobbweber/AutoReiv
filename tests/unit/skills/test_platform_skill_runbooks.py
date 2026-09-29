@@ -9,7 +9,6 @@ def test_bundled_pack_ids_include_all_platform_skills():
     expected = {
         "wiki",
         "proposals",
-        "build-agent-pack",
         "sandbox",
         "coordination",
         "worker",

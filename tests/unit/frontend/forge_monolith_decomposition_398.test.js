@@ -59,7 +59,8 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
     expect(typeof forgeModule.loadAgentCredentialGrants).toBe('function');
 
     // Quick scaffold & presets
-    expect(typeof forgeModule.startNewAgentPackFromStudio).toBe('function');
+    expect(typeof forgeModule.openQuickScaffoldModal).toBe('function');
+    expect(forgeModule.startNewAgentPackFromStudio).toBeUndefined();
     expect(forgeModule.FORGE_QUICK_PRESETS).toBeDefined();
     expect(typeof forgeModule.buildQuickScaffoldPayload).toBe('function');
     expect(typeof forgeModule.openQuickScaffoldModal).toBe('function');
