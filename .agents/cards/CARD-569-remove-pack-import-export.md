@@ -1,7 +1,7 @@
 ---
 id: CARD-569
 title: "Remove agent pack import/export and the pack builder"
-status: In Review
+status: Done
 created: 2026-09-28
 branch: fix/card-569-remove-pack-import-export
 related:
@@ -61,3 +61,4 @@ pack.json and its schema, platform-pack promotion/seeding, keep-customizations, 
 ## Log
 
 - 2026-09-28 22:20 ET: built on fix/card-569-remove-pack-import-export; In Review.
+- 2026-09-28 22:25 ET: Jacob said merge to qa; Done.
