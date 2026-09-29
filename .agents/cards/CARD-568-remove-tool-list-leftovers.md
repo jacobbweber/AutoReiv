@@ -1,7 +1,7 @@
 ---
 id: CARD-568
 title: "Full cleanup of old tool-list leftovers (profiles, DB columns, Studio, settings, migration, UI, tests) on a fresh data dir"
-status: In Review
+status: Done
 created: 2026-09-28
 branch: fix/card-568-remove-tool-list-leftovers
 related:
@@ -20,7 +20,7 @@ log:
 
 # [CARD-568] Full cleanup of old tool-list leftovers on a fresh data dir
 
-> **Status**: In Review
+> **Status**: Done
 > **Related**: CARD-541 (packs and pack schema already clean), CARD-539 / ADR-0061 (tools come only from ticked skills)
 > **Labels**: `type:chore`, `area:agents`, `P1`
 
