@@ -21,7 +21,7 @@ const PLANNING = ['active_project_info', 'read_project_file', 'search_project', 
   'list_cards', 'read_card', 'write_card', 'set_card_status', 'hand_off_card'];
 const FORBIDDEN = ['write_project_file', 'patch_project_file', 'run_project_checks', 'git_commit', 'git_create_branch',
   'cli_exec', 'execute_code', 'handoff_to_agent', 'lookup_agents'];
-const DEV_MODEL = process.env.AUTOREIV_QA_DEVELOPER_MODEL || 'qwen3.6:35b-a3b-65k';
+const DEV_MODEL = process.env.AUTOREIV_QA_DEVELOPER_MODEL || 'qwen3.6:35b-a3b';
 const DEV_URL = process.env.AUTOREIV_QA_DEVELOPER_URL || 'http://192.168.1.29:11434';
 
 const AGENTS_MD = `# AGENTS.md - calc

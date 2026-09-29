@@ -49,17 +49,17 @@ export default {
       await page.locator('#forgeAgentSelect').waitFor({ state: 'visible', timeout: 15000 });
       const shipped = await getJson(request, `${base}/api/agents/${AGENT}`);
       await page.selectOption('#forgeAgentSelect', AGENT);
-      // The form fills in after the agent loads; tick only once it shows tutor's own values.
-      const loaded = await waitFor(async () => (await page.locator('#forgeIdInput').inputValue()) === AGENT
-        && (await page.locator('#forgeToneSelect').inputValue()) === String(shipped.tone || 'default'), { timeoutMs: 20000, intervalMs: 250 });
-      if (!loaded) throw new Error('Agent Studio did not load tutor');
-      await page.waitForTimeout(500);
+      // Tick right away (no wait for the load): the form is inert while tutor fills in, so the tick lands after it
+      // and a late load must not overwrite it (CARD-573 load-timing fix).
       const prefs = page.locator('details[data-section="preferences"]');
       if (!(await prefs.evaluate((d) => d.open))) await prefs.locator('summary').click();
       const box = page.locator('#forgeAlwaysAutoRunInput');
-      await box.scrollIntoViewIfNeeded();
-      if (await box.isChecked()) throw new Error('Always auto-run starts checked for tutor');
       await box.check();
+      const loaded = await waitFor(async () => (await page.locator('#forgeIdInput').inputValue()) === AGENT
+        && (await page.locator('#forgeToneSelect').inputValue()) === String(shipped.tone || 'default'), { timeoutMs: 20000, intervalMs: 250 });
+      if (!loaded) throw new Error('Agent Studio did not load tutor');
+      await page.waitForTimeout(1500);
+      if (!(await box.isChecked())) throw new Error('the tick was overwritten by the agent load');
       await j.screenshot('agent-studio-always-auto-run');
       const put = page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().endsWith(`/api/agents/${AGENT}`), { timeout: 20000 });
       await page.locator('#saveAgentBtn').click();

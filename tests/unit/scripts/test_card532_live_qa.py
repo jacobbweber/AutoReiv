@@ -77,11 +77,12 @@ def test_clone_refuses_overlapping_folders(tmp_path):
 
 def test_throwaway_env_gets_the_real_vllm_provider_with_env_overrides():
     body = live_qa.provider_payload({})
-    assert body["provider_id"] == "vllm" and body["default_provider_id"] == "vllm"
-    assert body["base_url"] == "http://192.168.1.218:8099/v1"
-    assert body["default_model_id"] == "nemotron-3.5-lightning"
+    assert body["provider_id"] == "ollama" and body["default_provider_id"] == "ollama"  # default: Nimo Ollama
+    assert body["base_url"] == "http://192.168.1.29:11434"
+    assert body["default_model_id"] == "qwen3.8:latest"
     other = live_qa.provider_payload({"AUTOREIV_QA_VLLM_URL": "http://x:1/v1", "AUTOREIV_QA_MODEL": "m"})
     assert other["base_url"] == "http://x:1/v1" and other["default_model_id"] == "m"
+    assert other["provider_id"] == "vllm"
 
 
 def test_runner_command_targets_the_qa_port_and_has_the_judge_off_by_default():

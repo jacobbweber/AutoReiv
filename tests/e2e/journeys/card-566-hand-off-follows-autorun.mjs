@@ -13,7 +13,7 @@ import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
 import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
 
-const DEV_MODEL = process.env.AUTOREIV_QA_DEVELOPER_MODEL || 'qwen3.6:35b-a3b-65k';
+const DEV_MODEL = process.env.AUTOREIV_QA_DEVELOPER_MODEL || 'qwen3.6:35b-a3b';
 const DEV_URL = process.env.AUTOREIV_QA_DEVELOPER_URL || 'http://192.168.1.29:11434';
 const CARD_FILE = 'CARD-3-divide-refuses-zero.md';
 
