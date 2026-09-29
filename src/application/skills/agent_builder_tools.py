@@ -62,7 +62,7 @@ class AgentBuilderTools:
                 "type": "string",
                 "description": "Destination path relative to $DATA_DIR (typically skills/<slug>/SKILL.md).",
             },
-            "pack_id": {"type": "string", "description": "Target pack id (directory slug under $DATA_DIR/skills)."},
+            "skill_id": {"type": "string", "description": "Target pack id (directory slug under $DATA_DIR/skills)."},
             "prefer_existing_agent_id": {
                 "type": "string",
                 "description": "Existing specialist to extend rather than creating a new agent.",
@@ -103,13 +103,13 @@ class AgentBuilderTools:
                         "description": "JSON stub: name, description, parameters. Not a Python handler.",
                     },
                 },
-                "required": ["what", "why", "how", "where", "pack_id", "tool_json"],
+                "required": ["what", "why", "how", "where", "skill_id", "tool_json"],
             },
             handler=self.propose_tool,
         )
 
         registry.register_tool(
-            name="commit_skill_pack",
+            name="commit_skill",
             description=(
                 "Write an approved skill/tool proposal to $DATA_DIR/skills via UserSkillCatalog. "
                 "Requires HITL status=approved. Draft/rejected fail closed. Soft sprawl warning is not a block. "
@@ -126,7 +126,7 @@ class AgentBuilderTools:
                 },
                 "required": ["proposal_id"],
             },
-            handler=self.commit_skill_pack,
+            handler=self.commit_skill,
         )
 
     async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
@@ -192,7 +192,7 @@ class AgentBuilderTools:
         why: str,
         how: str,
         where: str,
-        pack_id: Optional[str] = None,
+        skill_id: Optional[str] = None,
         prefer_existing_agent_id: Optional[str] = None,
         new_agent_id: Optional[str] = None,
         **kwargs,
@@ -207,7 +207,7 @@ class AgentBuilderTools:
                     why=why,
                     how=how,
                     where=where,
-                    pack_id=pack_id,
+                    skill_id=skill_id,
                     prefer_existing_agent_id=prefer_existing_agent_id,
                     new_agent_id=new_agent_id,
                 )
@@ -221,7 +221,7 @@ class AgentBuilderTools:
         why: str,
         how: str,
         where: str,
-        pack_id: str,
+        skill_id: str,
         tool_json: Any,
         prefer_existing_agent_id: Optional[str] = None,
         new_agent_id: Optional[str] = None,
@@ -237,7 +237,7 @@ class AgentBuilderTools:
                     why=why,
                     how=how,
                     where=where,
-                    pack_id=pack_id,
+                    skill_id=skill_id,
                     tool_json=tool_json,
                     prefer_existing_agent_id=prefer_existing_agent_id,
                     new_agent_id=new_agent_id,
@@ -251,7 +251,7 @@ class AgentBuilderTools:
 
         return UserSkillCatalog(skills_dir=self._resolved_data_dir() / "skills")
 
-    async def commit_skill_pack(
+    async def commit_skill(
         self,
         proposal_id: str,
         overwrite: bool = False,
@@ -259,7 +259,7 @@ class AgentBuilderTools:
     ) -> Dict[str, Any]:
         """Write an approved pack via UserSkillCatalog [REQ-BUILD-012]."""
         from src.application.kernel.tool_registry import get_tool_context
-        from src.application.orchestration.skill_proposals import commit_skill_pack as apply_commit
+        from src.application.orchestration.skill_proposals import commit_skill as apply_commit
 
         ctx = get_tool_context()
         try:

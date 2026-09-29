@@ -902,7 +902,7 @@ export async function enterTutorEducationMode(opts = {}) {
       const hasTutor = Array.from(agentSelect.options || []).some((o) => o.value === STUDY_TUTOR_AGENT_ID);
       if (!hasTutor) {
         toast('Tutor pack missing from Chat agent list — Study entry aborted (no plain Chat).', 'error');
-        return { ok: false, error: 'TUTOR_PACK_MISSING' };
+        return { ok: false, error: 'TUTOR_SKILL_MISSING' };
       }
       agentSelect.value = STUDY_TUTOR_AGENT_ID;
       agentSelect.dispatchEvent(new Event('change'));

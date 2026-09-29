@@ -5,7 +5,7 @@ User agentskills.io pack mount with progressive disclosure [REQ-DATA-009 - REQ-D
 import pytest
 
 from src.application.skills.dynamic_loader import DynamicSkillLoader
-from src.application.skills.user_catalog import LIST_USER_SKILL_PACKS, SKILL_VIEW
+from src.application.skills.user_catalog import LIST_USER_SKILLS, SKILL_VIEW
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import AgentProfile
@@ -56,10 +56,10 @@ Do not overwrite builtins.
 
 
 def _write_pack(skills_root, slug, content):
-    pack_dir = skills_root / slug
-    pack_dir.mkdir(parents=True)
-    (pack_dir / "SKILL.md").write_text(content, encoding="utf-8")
-    return pack_dir / "SKILL.md"
+    skill_dir = skills_root / slug
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(content, encoding="utf-8")
+    return skill_dir / "SKILL.md"
 
 
 def _bootstrap(tmp_path, skills_dir):
@@ -97,7 +97,7 @@ def test_list_skill_manifests_missing_dir_returns_empty(tmp_path):
     assert DynamicSkillLoader.list_skill_manifests(str(missing)) == []
 
 
-def test_bootstrap_lists_user_pack_and_keeps_python_builtins(tmp_path):
+def test_bootstrap_lists_user_skill_and_keeps_python_builtins(tmp_path):
     skills_root = tmp_path / "skills"
     _write_pack(skills_root, "weekly-review", SAMPLE_SKILL_MD)
 
@@ -111,7 +111,7 @@ def test_bootstrap_lists_user_pack_and_keeps_python_builtins(tmp_path):
     assert user.description.startswith("SOP for rolling")
     assert not hasattr(user, "instructions") or "instructions" not in user.model_dump()
 
-    listed = catalog.list_user_skill_packs()
+    listed = catalog.list_user_skills()
     listed_by_id = {pack["id"]: pack for pack in listed["packs"]}
     assert "weekly-review" in listed_by_id
     weekly = listed_by_id["weekly-review"]
@@ -124,7 +124,7 @@ def test_bootstrap_lists_user_pack_and_keeps_python_builtins(tmp_path):
     assert "wiki_note_create" in tool_names
     assert "cli_exec" in tool_names
     assert "handoff_to_agent" in tool_names
-    assert LIST_USER_SKILL_PACKS in tool_names
+    assert LIST_USER_SKILLS in tool_names
     assert SKILL_VIEW in tool_names
     assert "list_open_loops" not in tool_names
 
@@ -153,7 +153,7 @@ def test_skill_view_loads_body_and_declared_tools_on_demand(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_user_pack_tools_respect_forge_allowlist(tmp_path):
+async def test_user_skill_tools_respect_forge_allowlist(tmp_path):
     skills_root = tmp_path / "skills"
     _write_pack(skills_root, "weekly-review", SAMPLE_SKILL_MD)
     _registry, tool_reg = _bootstrap(tmp_path, skills_root)
@@ -166,7 +166,7 @@ async def test_user_pack_tools_respect_forge_allowlist(tmp_path):
         description="No user packs",
         system_prompt="x",
     )
-    view_call = ToolCall(id="c1", name=SKILL_VIEW, arguments={"pack_id": "weekly-review"})
+    view_call = ToolCall(id="c1", name=SKILL_VIEW, arguments={"skill_id": "weekly-review"})
     view_res = await tool_reg.execute(view_call, denied)
     assert view_res.success is False
     assert "not authorized" in (view_res.error or "").lower()
@@ -183,7 +183,7 @@ async def test_user_pack_tools_respect_forge_allowlist(tmp_path):
         system_prompt="x",
         allowed_skill=["weekly-review"],
     )
-    list_call = ToolCall(id="c3", name=LIST_USER_SKILL_PACKS, arguments={})
+    list_call = ToolCall(id="c3", name=LIST_USER_SKILLS, arguments={})
     list_res = await tool_reg.execute(list_call, allowed)
     assert list_res.success is True
     assert list_res.output["packs"][0]["name"] == "weekly-review"

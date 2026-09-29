@@ -24,7 +24,7 @@ Stages:
 ```powershell
 .venv\Scripts\python.exe .agents/skills/preflight/scripts/preflight.py --release
 ```
-Stages (every test, `slow` included): `ruff check .`, `npm run lint:frontend`, `pytest tests/unit tests/integration -n auto -m "not serial"`, `pytest -m serial` (serial pass), `honesty_smoke_pack_261.py --validate`, `npx vitest run`, `npx playwright test tests/e2e/smoke.spec.js`. `npm run preflight` runs the same. Merge qa into main only when it is GREEN; add each failure as one line to `docs/findings.md` or fix it on a card first.
+Stages (every test, `slow` included): `ruff check .`, `npm run lint:frontend`, `pytest tests/unit tests/integration -n auto -m "not serial"`, `pytest -m serial` (serial pass), `honesty_smoke_skill_261.py --validate`, `npx vitest run`, `npx playwright test tests/e2e/smoke.spec.js`. `npm run preflight` runs the same. Merge qa into main only when it is GREEN; add each failure as one line to `docs/findings.md` or fix it on a card first.
 
 ## Results
 - `PASS`, `SKIP` (nothing changed for that stage), `KNOWN` (lint errors within a count named in `KNOWN_LINT` in `preflight.py`, with the card id), `FAIL`.

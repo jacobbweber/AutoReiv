@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from src.infrastructure.content.store import REPO_PLATFORM, ContentStore
 
-PLATFORM_PACK_IDS = ("autoreiv", "developer", "tutor", "direct", "architect")
+PLATFORM_SKILL_IDS = ("autoreiv", "developer", "tutor", "direct", "architect")
 
 
 def platform_dir() -> Path:
@@ -56,7 +56,7 @@ def shipped_skill_tools() -> dict[str, tuple[str, ...]]:
 
 
 SHIPPED_SKILL_TOOLS = shipped_skill_tools()
-BUNDLED_PACK_IDS: tuple[str, ...] = tuple(sorted(SHIPPED_SKILL_TOOLS))
+BUNDLED_SKILL_IDS: tuple[str, ...] = tuple(sorted(SHIPPED_SKILL_TOOLS))
 
 
 def bundled_skill_md(skill_id: str) -> Path:
@@ -77,12 +77,12 @@ def pack_dict(agent_id: str) -> dict:
     }
 
 
-def seed_bundled_skill_packs(skills_path, pack_ids=None) -> None:
+def seed_bundled_skill_rows(skills_path, skill_ids=None) -> None:
     """Test fixture only: copy shipped skills into a skills folder (the app no longer seeds)."""
     import shutil
 
     dest_root = Path(skills_path)
-    for sid in pack_ids or BUNDLED_PACK_IDS:
+    for sid in skill_ids or BUNDLED_SKILL_IDS:
         src = REPO_PLATFORM / "skills" / sid
         if src.is_dir() and not (dest_root / sid).exists():
             shutil.copytree(src, dest_root / sid)

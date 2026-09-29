@@ -521,7 +521,7 @@ def test_propose_skill_reject_does_not_write(client, tmp_path):
         data_dir=data_dir,
         session_id="sess_ab2",
         agent_id="assistant",
-        pack_id="okta-admin",
+        skill_id="okta-admin",
         tool_json={"name": "okta_list_users", "description": "stub", "parameters": {}},
         prefer_existing_agent_id="review",
     )

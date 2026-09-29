@@ -21,7 +21,7 @@ from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.tools.native_packaging import NativeCustomToolService
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 CODE = "def run(port='', **kw):\n    return {'port': port or 'Boston', 'high_tide': '14:05'}\n"
 SCHEMA = {"type": "object", "properties": {"port": {"type": "string"}}}
@@ -112,12 +112,12 @@ async def test_accepting_widens_the_domain_line_and_the_next_turn_in_a_new_chat(
     assert "c537_harbor_tide" in names, names
 
 
-@pytest.mark.parametrize("pack_id", ["autoreiv", "developer", "tutor"])
-def test_no_platform_pack_pins_a_fixed_domain_that_would_hide_an_accepted_skill(pack_id):
+@pytest.mark.parametrize("skill_id", ["autoreiv", "developer", "tutor"])
+def test_no_platform_pack_pins_a_fixed_domain_that_would_hide_an_accepted_skill(skill_id):
     """Scavenger Pass (CARD-537): D1 holds for every agent. A hand-written "Focus strictly on ..." boundary
     contradicts an accepted skill tool; the boundary must point at the generated "Your domain" line and route."""
 
-    prompt = pack_dict(pack_id)["system_prompt"]
+    prompt = pack_dict(skill_id)["system_prompt"]
     if "[DOMAIN BOUNDARIES & REFUSALS]" not in prompt:
         return
     section = prompt.split("[DOMAIN BOUNDARIES & REFUSALS]", 1)[1].split("\n\n", 1)[0]

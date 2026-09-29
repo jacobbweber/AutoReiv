@@ -118,7 +118,7 @@ def seed_builtin_capabilities(
         for meta in user_skill_catalog.list_skill_metadata():
             sid = meta["id"]
             cid = sid if sid.startswith("skill.") else f"skill.{sid}"
-            keywords = {meta["title"].lower(), meta.get("pack_id", "").lower(), "skill", "runbook"}
+            keywords = {meta["title"].lower(), meta.get("skill_id", "").lower(), "skill", "runbook"}
             if meta.get("description"):
                 keywords.update(w.lower() for w in re.findall(r"[a-zA-Z0-9]+", meta["description"]) if len(w) > 3)
             entry = CapabilityIndexEntry(
@@ -127,12 +127,12 @@ def seed_builtin_capabilities(
                 name=meta["title"],
                 summary=meta.get("description") or "",
                 keywords=sorted(keywords),
-                roles=[meta.get("pack_id", "")] if meta.get("pack_id") else [],
+                roles=[meta.get("skill_id", "")] if meta.get("skill_id") else [],
                 trust_tier=TrustTier.TRUSTED,
                 risk_level=RiskLevel.MEDIUM,
                 requires_hitl=False,
                 source=meta.get("origin", "platform"),
-                metadata={"pack_id": meta.get("pack_id", ""), "origin": meta.get("origin", "user")},
+                metadata={"skill_id": meta.get("skill_id", ""), "origin": meta.get("origin", "user")},
             )
             pending.append(entry)
             seeded_ids.add(entry.id)
@@ -159,7 +159,7 @@ def seed_builtin_capabilities(
                 risk_level=RiskLevel.MEDIUM,
                 requires_hitl=False,
                 source="builtin",
-                metadata={"pack_id": p.id, "tools": getattr(skill, "tools", [])},
+                metadata={"skill_id": p.id, "tools": getattr(skill, "tools", [])},
             )
             pending.append(entry)
             seeded_ids.add(entry.id)

@@ -43,7 +43,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_DB_PATH", str(tmp_path / "ops.db"))
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path / "data"))
     reg = ScopedToolRegistry()
-    names = set(EXTRA_TOOLS) | set(REQUIRED_PLATFORM_TOOLS) | {"skill_view", "list_user_skill_packs"}
+    names = set(EXTRA_TOOLS) | set(REQUIRED_PLATFORM_TOOLS) | {"skill_view", "list_user_skills"}
     for skill in SKILL_POOL:
         names |= resolve_allowed_tools(_agent(allowed_skill=[skill])).names
     for name in sorted(names):

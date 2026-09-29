@@ -32,7 +32,7 @@ def _catalog_for(data_dir: Union[str, Path], catalog: Any = None) -> UserSkillCa
 
 def reflect_failed_turn(
     *,
-    pack_id: str,
+    skill_id: str,
     error_message: Optional[str] = None,
     tool_errors: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, str]:
@@ -55,17 +55,17 @@ def reflect_failed_turn(
 
     if tool_bits:
         insight = (
-            f"Tool error in pack '{pack_id}': {tool_bits[0]}. "
+            f"Tool error in pack '{skill_id}': {tool_bits[0]}. "
             "Record the failure mode in the SOP; do not treat stubs as live APIs."
         )
     elif error_message:
-        insight = f"Failed turn for pack '{pack_id}': {error_message.strip()}"
+        insight = f"Failed turn for pack '{skill_id}': {error_message.strip()}"
     else:
-        insight = f"Failed turn for pack '{pack_id}'; capture the miss as one SOP bullet."
+        insight = f"Failed turn for pack '{skill_id}'; capture the miss as one SOP bullet."
     insight = insight.replace("\r\n", " ").strip()
     if len(insight) > MAX_INSIGHT_CHARS:
         insight = insight[: MAX_INSIGHT_CHARS - 1].rstrip() + "…"
-    return {"insight": insight, "evidence": evidence, "pack_id": pack_id}
+    return {"insight": insight, "evidence": evidence, "skill_id": skill_id}
 
 
 def _python_shaped(insight: str, evidence: str, tool_errors: List[Dict[str, Any]]) -> bool:
@@ -82,7 +82,7 @@ def _python_shaped(insight: str, evidence: str, tool_errors: List[Dict[str, Any]
 
 def record_sidecar_note(
     *,
-    pack_id: str,
+    skill_id: str,
     data_dir: Union[str, Path],
     insight: str,
     evidence: Optional[str] = None,
@@ -93,7 +93,7 @@ def record_sidecar_note(
     """Append-only PLAYBOOK_NOTES sidecar. Does not modify SKILL.md [REQ-IMPROVE-006]."""
     cat = _catalog_for(data_dir, catalog)
     return cat.append_playbook_note(
-        pack_id,
+        skill_id,
         insight=insight,
         evidence=evidence,
         session_id=session_id,
@@ -105,7 +105,7 @@ def record_sidecar_note(
 def propose_notes_into_skill(
     store: Any,
     *,
-    pack_id: str,
+    skill_id: str,
     data_dir: Union[str, Path],
     session_id: str,
     agent_id: str,
@@ -114,7 +114,7 @@ def propose_notes_into_skill(
 ) -> Dict[str, Any]:
     """Promotion of sidecar notes into SKILL.md is still propose_skill HITL [REQ-IMPROVE-005]."""
     cat = _catalog_for(data_dir, catalog)
-    notes_path = cat.pack_dir(pack_id) / "PLAYBOOK_NOTES.md"
+    notes_path = cat.skill_dir(skill_id) / "PLAYBOOK_NOTES.md"
     body = ""
     if notes_path.is_file():
         body = notes_path.read_text(encoding="utf-8")
@@ -123,7 +123,7 @@ def propose_notes_into_skill(
         "Do not rewrite the whole playbook.\n\n"
         + (body.strip() or "(no sidecar notes yet)")
     )
-    snap = cat.snapshot_pack(pack_id)
+    snap = cat.snapshot_skill(skill_id)
     if not snap.get("success"):
         return {
             "success": False,
@@ -134,14 +134,14 @@ def propose_notes_into_skill(
         }
     result = propose_skill(
         store,
-        what=f"Promote ACE sidecar notes into {pack_id} SOP",
+        what=f"Promote ACE sidecar notes into {skill_id} SOP",
         why="Sidecar breadcrumbs should become a durable playbook bullet after HITL.",
         how=how,
-        where=f"skills/{pack_id}/SKILL.md",
+        where=f"skills/{skill_id}/SKILL.md",
         data_dir=data_dir,
         session_id=session_id,
         agent_id=agent_id,
-        pack_id=pack_id,
+        skill_id=skill_id,
         agent_registry=agent_registry,
         extra_payload={
             "ace_delta": True,
@@ -158,7 +158,7 @@ def propose_notes_into_skill(
 def record_failed_turn_delta(
     store: Any,
     *,
-    pack_id: str,
+    skill_id: str,
     data_dir: Union[str, Path],
     session_id: str,
     agent_id: str,
@@ -188,12 +188,12 @@ def record_failed_turn_delta(
             "disk_written": False,
             "nightly_enqueued": False,
         }
-    reflected = reflect_failed_turn(pack_id=pack_id, error_message=error_message, tool_errors=errors)
+    reflected = reflect_failed_turn(skill_id=skill_id, error_message=error_message, tool_errors=errors)
     note = (insight or reflected["insight"]).strip()
     evidence = reflected["evidence"]
     cat = _catalog_for(data_dir, catalog)
 
-    snap = cat.snapshot_pack(pack_id)
+    snap = cat.snapshot_skill(skill_id)
     if not snap.get("success"):
         return {
             "success": False,
@@ -209,7 +209,7 @@ def record_failed_turn_delta(
     mode_norm = (mode or "propose_skill").strip().lower()
     if mode_norm in {"sidecar", "notes", "playbook_notes"}:
         appended = cat.append_playbook_note(
-            pack_id,
+            skill_id,
             insight=note,
             evidence=evidence,
             session_id=session_id,
@@ -217,12 +217,12 @@ def record_failed_turn_delta(
             source=ONLINE_SOURCE,
             snapshot_first=False,
         )
-        skill_path = cat.resolve_skill_md(pack_id)
+        skill_path = cat.resolve_skill_md(skill_id)
         skill_after = skill_path.read_bytes() if skill_path.is_file() else b""
         return {
             "success": bool(appended.get("success")),
             "mode": "sidecar",
-            "pack_id": pack_id,
+            "skill_id": skill_id,
             "insight": note,
             "snapshot_id": snap.get("snapshot_id"),
             "disk_written": bool(appended.get("success")),
@@ -234,7 +234,7 @@ def record_failed_turn_delta(
             "error": appended.get("error"),
         }
 
-    where = f"skills/{pack_id}/SKILL.md"
+    where = f"skills/{skill_id}/SKILL.md"
     extra = {
         "ace_delta": True,
         "snapshot_id": snap.get("snapshot_id"),
@@ -247,7 +247,7 @@ def record_failed_turn_delta(
         tool_name = str((errors[0] or {}).get("tool_name") or "python_delta") if errors else "python_delta"
         drafted = propose_tool(
             store,
-            what=f"Python-shaped ACE delta for {pack_id} stays draft-only",
+            what=f"Python-shaped ACE delta for {skill_id} stays draft-only",
             why=note,
             how=(
                 f"{PYTHON_BUILTIN_NOTE}. Do not write a Python BuiltinSkill module under src/. "
@@ -257,7 +257,7 @@ def record_failed_turn_delta(
             data_dir=data_dir,
             session_id=session_id,
             agent_id=agent_id,
-            pack_id=pack_id,
+            skill_id=skill_id,
             tool_json={
                 "name": tool_name,
                 "description": note,
@@ -272,21 +272,21 @@ def record_failed_turn_delta(
     else:
         drafted = propose_skill(
             store,
-            what=f"Append ACE insight to {pack_id} SOP",
+            what=f"Append ACE insight to {skill_id} SOP",
             why=note,
             how=f"Patch SKILL.md SOP with one bullet; no Python.\n\n- {note}",
             where=where,
             data_dir=data_dir,
             session_id=session_id,
             agent_id=agent_id,
-            pack_id=pack_id,
+            skill_id=skill_id,
             agent_registry=agent_registry,
             extra_payload=extra,
         )
         drafted["mode"] = "propose_skill"
         drafted["python_shaped"] = False
 
-    skill_path = cat.resolve_skill_md(pack_id)
+    skill_path = cat.resolve_skill_md(skill_id)
     drafted["success"] = drafted.get("status") == "draft"
     drafted["src_written"] = False
     drafted["skill_md_written"] = False
@@ -295,5 +295,5 @@ def record_failed_turn_delta(
     drafted["nightly_enqueued"] = False
     drafted["snapshot_id"] = snap.get("snapshot_id")
     drafted["insight"] = note
-    drafted["pack_id"] = pack_id
+    drafted["skill_id"] = skill_id
     return drafted

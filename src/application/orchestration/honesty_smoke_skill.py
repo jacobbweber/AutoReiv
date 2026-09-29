@@ -362,7 +362,7 @@ def classify_scenario(
     }
 
 
-def evaluate_pack(rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+def evaluate_skill(rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
     """Aggregate scenario rows; non-zero when any row is red."""
     counts: Dict[str, int] = {}
     red_rows: List[Dict[str, Any]] = []
@@ -396,15 +396,15 @@ def evaluate_pack(rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def merge_gate_decision(pack_result: Mapping[str, Any]) -> Dict[str, Any]:
+def merge_gate_decision(skill_result: Mapping[str, Any]) -> Dict[str, Any]:
     """Standing tip merge gate: red honesty / Done-on-FAILED / silent SSE death blocks FF."""
-    red_rows = list(pack_result.get("red_rows") or [])
+    red_rows = list(skill_result.get("red_rows") or [])
     blockers = []
     for row in red_rows:
         for r in row.get("red") or []:
             if r in RED_CLASSES:
                 blockers.append({"scenario": row.get("name") or row.get("id"), "red": r})
-    allowed = not blockers and pack_result.get("ok") is True
+    allowed = not blockers and skill_result.get("ok") is True
     return {
         "allowed": allowed,
         "blockers": blockers,

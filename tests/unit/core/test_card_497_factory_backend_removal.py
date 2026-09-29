@@ -172,7 +172,7 @@ async def test_10c_inspect_agent_not_found(inspect_tools):
 
 # 12 ------------------------------------------------------------------------
 def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_training():
-    from tests.unit.agent_packs.catalog import load_platform_manifest
+    from tests.unit.agent_skills.catalog import load_platform_manifest
 
     manifest = load_platform_manifest("autoreiv")
     skill = next(s for s in manifest.skills if s.id == "agent-authoring")
@@ -202,13 +202,13 @@ def _authoring_skill_md():
 
 def test_12b_agent_authoring_is_found_for_teach_requests():
     """Live retest: 'Teach AutoReiv to ...' never opened agent-authoring (the index lists names, skill_view takes ids)."""
-    from tests.unit.agent_packs.catalog import load_platform_manifest
+    from tests.unit.agent_skills.catalog import load_platform_manifest
 
     front, _ = _authoring_skill_md()
     assert "agent-authoring" in load_platform_manifest("autoreiv").allowed_skill
     for desc in (front["description"],):
         low = desc.lower()
-        for needle in ("teach", "new capability", "learn to", 'skill_view(pack_id="agent-authoring")'):
+        for needle in ("teach", "new capability", "learn to", 'skill_view(skill_id="agent-authoring")'):
             assert needle in low, (needle, desc)
 
 
@@ -228,14 +228,14 @@ def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flo
 
 
 def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_view():
-    """Live retests 2-3: activate_skill(['agent-authoring']) fails (platform domains only); skill_view needs pack_id=."""
-    from tests.unit.agent_packs.catalog import load_platform_manifest
+    """Live retests 2-3: activate_skill(['agent-authoring']) fails (platform domains only); skill_view needs skill_id=."""
+    from tests.unit.agent_skills.catalog import load_platform_manifest
 
     prompt = load_platform_manifest("autoreiv").system_prompt
     lines = [ln for ln in prompt.splitlines() if "agent-authoring" in ln]
     assert len(lines) == 1, lines
     line = lines[0]
-    assert 'skill_view(pack_id="agent-authoring")' in line and "not activate_skill" in line
+    assert 'skill_view(skill_id="agent-authoring")' in line and "not activate_skill" in line
     assert "teach" in line.lower() and "new capability" in line.lower()
 
 

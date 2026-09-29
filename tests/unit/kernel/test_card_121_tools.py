@@ -104,13 +104,13 @@ Playbook body.
     )
     model_tools = {t.name for t in tool_reg.get_tools_for_agent(assistant)}
     assert "skill_view" in model_tools
-    assert "list_user_skill_packs" in model_tools
+    assert "list_user_skills" in model_tools
     assert "list_lab_users" not in model_tools
 
 
 def test_builtin_allowlists_unchanged_for_core():
     from src.domain.agents.profiles import BUILTIN_PROFILES
-    from tests.unit.agent_packs.catalog import platform_pack_profile
+    from tests.unit.agent_skills.catalog import platform_pack_profile
 
     autoreiv = platform_pack_profile("autoreiv")
     assert "wiki_note_read" in list(resolve_allowed_tools(autoreiv))

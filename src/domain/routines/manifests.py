@@ -72,7 +72,7 @@ SKILL_EVAL_SLEEP_PROMPT = (
     "Mine pack gaps. Replay only if metadata.replay is true. "
     "Run the Verify checker. If it passes, propose_skill the bounded delta. "
     "Do not write SKILL.md. Do not write Python under src/. "
-    "Do not archive bundled packs. Do not commit_skill_pack."
+    "Do not archive bundled packs. Do not commit_skill."
 )
 
 SKILL_EVAL_SLEEP_ROUTINE = Routine(

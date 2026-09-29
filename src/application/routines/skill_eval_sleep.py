@@ -2,7 +2,7 @@
 Nightly SkillOpt-Sleep-shaped skill eval (CARD-111) [REQ-IMPROVE-007 - REQ-IMPROVE-012] [REQ-IMPROVE-016].
 
 Harvest failed turns from live SQLite, mine pack gaps, optional replay (default off),
-in-process checker gate, then CARD-106 propose_skill draft only. Never commit_skill_pack.
+in-process checker gate, then CARD-106 propose_skill draft only. Never commit_skill.
 Never write SKILL.md. Never train weights. No skillopt pip. No second scheduler.
 
 02:00 America/New_York is the wrong default for this operator (surprise GPU load).
@@ -134,7 +134,7 @@ def harvest_failed_turns(
                 "span_id": getattr(span, "id", None),
                 "session_id": getattr(span, "session_id", None),
                 "error": getattr(span, "error_message", None),
-                "pack_id": meta.get("pack_id") or meta.get("skill_id"),
+                "skill_id": meta.get("skill_id") or meta.get("skill_id"),
                 "tool_name": meta.get("tool_name") or getattr(span, "name", None),
                 "created_at": getattr(span, "created_at", None),
             }
@@ -159,7 +159,7 @@ def harvest_failed_turns(
                             "span_id": r["id"] if hasattr(r, "keys") else r[0],
                             "session_id": r["session_id"] if hasattr(r, "keys") else r[1],
                             "error": (r["goal"] if hasattr(r, "keys") else r[4]) or "job failed",
-                            "pack_id": None,
+                            "skill_id": None,
                             "tool_name": None,
                             "created_at": r["created_at"] if hasattr(r, "keys") else r[5],
                         }
@@ -179,7 +179,7 @@ def harvest_failed_turns(
                             "span_id": r["id"] if hasattr(r, "keys") else r[0],
                             "session_id": None,
                             "error": f"phase {name} FAILED",
-                            "pack_id": None,
+                            "skill_id": None,
                             "tool_name": name,
                             "created_at": None,
                         }
@@ -211,22 +211,22 @@ def harvest_failed_turns(
     return chosen
 
 
-def mine_pack_gaps(harvested: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def mine_skill_gaps(harvested: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for row in harvested:
-        pack = str(row.get("pack_id") or "").strip() or "unknown"
+        pack = str(row.get("skill_id") or "").strip() or "unknown"
         tool = str(row.get("tool_name") or "").strip() or "turn"
         err = str(row.get("error") or "failed").strip()[:120]
         groups[f"{pack}|{tool}|{err}"].append(row)
     candidates: List[Dict[str, Any]] = []
     for key, rows in groups.items():
         pack, tool, _err = key.split("|", 2)
-        pack_id = pack
-        if pack_id == "unknown":
+        skill_id = pack
+        if skill_id == "unknown":
             continue
         head = rows[0]
         reflected = reflect_failed_turn(
-            pack_id=pack_id,
+            skill_id=skill_id,
             error_message=str(head.get("error") or ""),
             tool_errors=[{"tool_name": tool, "error": str(head.get("error") or "failed")}],
         )
@@ -235,7 +235,7 @@ def mine_pack_gaps(harvested: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             insight = insight[: MAX_INSIGHT_CHARS - 1].rstrip() + "."
         candidates.append(
             {
-                "pack_id": pack_id,
+                "skill_id": skill_id,
                 "tool_name": tool,
                 "insight": insight,
                 "evidence": reflected["evidence"],
@@ -255,8 +255,8 @@ def harvest_gate(candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
         blob = f"{cand.get('insight') or ''} {cand.get('evidence') or ''}".lower()
         if "src/" in blob.replace("\\", "/") and ".py" in blob:
             return {"status": "fail", "passed": False, "reason": "python src rewrite"}
-        if not str(cand.get("pack_id") or "").strip():
-            return {"status": "fail", "passed": False, "reason": "missing pack_id"}
+        if not str(cand.get("skill_id") or "").strip():
+            return {"status": "fail", "passed": False, "reason": "missing skill_id"}
     return {"status": "pass", "passed": True, "reason": "harvest_gate"}
 
 
@@ -351,7 +351,7 @@ def run_skill_eval_job(
             "checker": "skip",
         }
 
-    candidates = mine_pack_gaps(harvested)
+    candidates = mine_skill_gaps(harvested)
     replay_info = {"replay": do_replay, "ran": 0, "skipped": True, "reason": "replay default off"}
     if do_replay:
         cap = get_process_generation_limit() or DEFAULT_MAX_CONCURRENT_GENERATIONS
@@ -387,16 +387,16 @@ def run_skill_eval_job(
         }
 
     cand = candidates[0]
-    pack_id = str(cand["pack_id"])
+    skill_id = str(cand["skill_id"])
     if catalog is None:
         from src.application.skills.user_catalog import UserSkillCatalog
 
         catalog = UserSkillCatalog(skills_dir=data_root / "skills")
     snapshot_id = None
-    skill_path = catalog.resolve_skill_md(pack_id) if hasattr(catalog, "resolve_skill_md") else None
+    skill_path = catalog.resolve_skill_md(skill_id) if hasattr(catalog, "resolve_skill_md") else None
     skill_before = skill_path.read_bytes() if skill_path is not None and skill_path.is_file() else None
-    if skill_path is not None and skill_path.is_file() and hasattr(catalog, "snapshot_pack"):
-        snap = catalog.snapshot_pack(pack_id)
+    if skill_path is not None and skill_path.is_file() and hasattr(catalog, "snapshot_skill"):
+        snap = catalog.snapshot_skill(skill_id)
         if not snap.get("success"):
             return {
                 "success": False,
@@ -417,14 +417,14 @@ def run_skill_eval_job(
 
     drafted = propose_skill(
         store,
-        what=f"Append nightly skill-eval insight to {pack_id} SOP",
+        what=f"Append nightly skill-eval insight to {skill_id} SOP",
         why=cand["insight"],
         how=f"Patch SKILL.md SOP with one bullet; no Python.\n\n- {cand['insight']}",
-        where=f"skills/{pack_id}/SKILL.md",
+        where=f"skills/{skill_id}/SKILL.md",
         data_dir=data_root,
         session_id=session,
         agent_id=agent,
-        pack_id=pack_id,
+        skill_id=skill_id,
         extra_payload={
             "source": SOURCE,
             "auto_commit": False,
@@ -457,7 +457,7 @@ def run_skill_eval_job(
         "stream_turn_attached": False,
         "checker": "pass",
         "verification_passed": True,
-        "pack_id": pack_id,
+        "skill_id": skill_id,
         "snapshot_id": snapshot_id,
         "routine_id": ROUTINE_ID,
         "checkout_root": str(repo_root()),

@@ -56,8 +56,8 @@ CAPABILITY_AUTHORING_TOOL_NAMES = frozenset(
         "list_available_skills_and_tools",
         "propose_skill",
         "propose_tool",
-        "commit_skill_pack",
-        "list_user_skill_packs",
+        "commit_skill",
+        "list_user_skills",
         "skill_view",
     }
 )
@@ -69,7 +69,7 @@ def shipped_agent_ids() -> frozenset[str]:
     return frozenset(get_store().agents.shipped_ids())
 
 
-def is_platform_pack(agent_id: str) -> bool:
+def is_platform_skill(agent_id: str) -> bool:
     """True for a shipped agent (``platform/agents/<id>.md``). Name kept for callers."""
     return (agent_id or "").strip() in shipped_agent_ids()
 

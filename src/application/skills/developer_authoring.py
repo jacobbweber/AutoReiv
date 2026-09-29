@@ -307,7 +307,7 @@ class DeveloperAuthoringService:
 
     def get_job(self, job_id: str) -> dict[str, Any]:
         job = self._require_job(job_id)
-        packet = self._read_packet(job)
+        packet = self._read_skillet(job)
         return self._job_payload(job, packet=packet, resumed=False, include_proposals=True)
 
     def propose(self, job_id: str, patches: Any) -> dict[str, Any]:
@@ -431,7 +431,7 @@ class DeveloperAuthoringService:
         phase.assigned_agent_id = DEVELOPER_AGENT_ID
         self._store.update_phase(phase)
 
-    def _read_packet(self, job: Any) -> Optional[dict[str, Any]]:
+    def _read_skillet(self, job: Any) -> Optional[dict[str, Any]]:
         phase = self._author_phase(job.id)
         return _load_prefixed(getattr(phase, "input_packet_json", None), PACKET_FACT_PREFIX)
 

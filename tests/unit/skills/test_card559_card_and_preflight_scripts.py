@@ -44,8 +44,8 @@ def test_preflight_names_known_lint_and_treats_no_tests_as_pass(monkeypatch):
 def test_preflight_maps_changed_src_modules_to_tests():
     pf = _load(PREFLIGHT, "preflight_559b")
     tests = pf.ROOT / "tests"
-    found = pf.mapped_tests(["src/application/orchestration/honesty_smoke_pack.py", "README.md"], tests)
-    assert "tests/unit/orchestration/test_card261_honesty_smoke_pack.py" in found
+    found = pf.mapped_tests(["src/application/orchestration/honesty_smoke_skill.py", "README.md"], tests)
+    assert "tests/unit/orchestration/test_card261_honesty_smoke_skill.py" in found
     assert pf.mapped_tests(["docs/x.md"], tests) == []
 
 

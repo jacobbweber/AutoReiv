@@ -46,11 +46,11 @@ class AgentProfilePayload(BaseModel):
 
 
 def _public_agent(
-    profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None, data_dir: Optional[Path] = None,
+    profile, skill_manifest=None, tools_by_name: Optional[Dict[str, str]] = None, data_dir: Optional[Path] = None,
     registry=None,
 ) -> Dict[str, Any]:
     from src.application.agent_skills.allowed_tools import resolve_allowed_tools, skills_version
-    from src.application.agent_skills.schema import is_platform_pack, is_visible_in_chat
+    from src.application.agent_skills.schema import is_platform_skill, is_visible_in_chat
     from src.domain.kernel.models import AgentOrigin
     from src.infrastructure.content.store import get_store
 
@@ -85,7 +85,7 @@ def _public_agent(
         "allowed_tools": list(derived_tools),
         "allowed_skill": profile.allowed_skill or [],
         "skills_version": skills_version(profile),
-        "pack_skills": [],
+        "own_skills": [],
         "file_status": file_status,  # CARD-570: shipped / edited / shipped_changed
         "skill_tool_warnings": {
             sid: names
@@ -104,7 +104,7 @@ def _public_agent(
         "pinned_memory": getattr(profile, "pinned_memory", "") or "",
         "model": profile.model,
         "is_builtin": profile.is_builtin,
-        "is_platform_pack": is_platform_pack(profile.id),
+        "is_platform_skill": is_platform_skill(profile.id),
         "allowed_credentials": getattr(profile, "allowed_credentials", []) or [],
         "mcp_servers": [
             s.model_dump() if hasattr(s, "model_dump") else s for s in (getattr(profile, "mcp_servers", None) or [])
@@ -145,7 +145,7 @@ async def get_skills_catalog(request: Request):
     tools_def_list = tool_reg.list_tools()
     tools_by_name = {t.name: t.description for t in tools_def_list}
     tools_list = [{"name": t.name, "description": t.description} for t in tools_def_list]
-    skill_packs = get_hierarchical_tool_groups(tools_def_list)
+    skill_rows = get_hierarchical_tool_groups(tools_def_list)
 
     data_dir = _data_dir_root(request)
     fleet_skills: dict[str, list[dict[str, Any]]] = {}
@@ -197,12 +197,12 @@ async def get_skills_catalog(request: Request):
     return {
         "tools": tools_list,
         "tiers": [t.model_dump() for t in TOOL_GROUP_TIERS],
-        "skill_packs": skill_packs,
+        "skill_rows": skill_rows,
         "baseline_tools": baseline_tools,
         "platform_skills": platform_skills,
         "operator_skills": operator_skills,
         "fleet_skills": fleet_skills,
-        "pack_owned_skills": [],
+        "owned_skills": [],
         "purposes": [p.value for p in ModelPurpose],
         "tones": (
             [t.id for t in store.list_tones()]

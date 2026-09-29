@@ -10,7 +10,7 @@ from src.application.skills.orchestration_tools import OrchestrationTools
 from src.domain.orchestration.models import HandoffEnvelope
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 @pytest.fixture

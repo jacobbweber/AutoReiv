@@ -312,7 +312,7 @@ class ToolsDeveloperMediationService:
 
     def get_job(self, job_id: str) -> dict[str, Any]:
         job = self._require_job(job_id)
-        packet = self._read_packet(job)
+        packet = self._read_skillet(job)
         status = _status_value(getattr(job, "status", ""))
         return {
             "job_id": job.id,
@@ -514,7 +514,7 @@ class ToolsDeveloperMediationService:
             raise ToolsAuthoringError(f"Job {job_id} not found.", 404, ran=False)
         return job
 
-    def _read_packet(self, job: Any) -> Optional[dict[str, Any]]:
+    def _read_skillet(self, job: Any) -> Optional[dict[str, Any]]:
         phase = self._author_phase(job.id)
         return _load_packet(getattr(phase, "input_packet_json", None))
 

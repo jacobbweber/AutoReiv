@@ -125,7 +125,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     elif record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS:
         args = record.get("arguments") or {}
         try:
-            pack_result = apply_skill_proposal_decision(
+            skill_result = apply_skill_proposal_decision(
                 store,
                 proposal_id=args.get("proposal_id"),
                 decision=decision_norm,
@@ -133,7 +133,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
             )
         except Exception:
             logger.exception("Skill/tool/workflow proposal decision failed for %s", approval_id)
-            pack_result = {"disk_written": False, "error": "skill_proposal_decision_failed"}
+            skill_result = {"disk_written": False, "error": "skill_proposal_decision_failed"}
         kind = str(args.get("kind") or record.get("tool_name") or "proposal")
         if decision_norm in {"approved", "approve"}:
             execution = {
@@ -141,16 +141,16 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                 "tool_name": record.get("tool_name"),
                 "output": (
                     f"{kind} accepted. Draft marked approved. "
-                    "SKILL.md and src/ were not written. Agent Builder may call commit_skill_pack now."
+                    "SKILL.md and src/ were not written. Agent Builder may call commit_skill now."
                 ),
-                "skill_proposal": pack_result,
+                "skill_proposal": skill_result,
             }
         else:
             execution = {
                 "ran": False,
                 "tool_name": record.get("tool_name"),
                 "output": f"{kind} rejected. Draft discarded. No files written.",
-                "skill_proposal": pack_result,
+                "skill_proposal": skill_result,
             }
     elif decision_norm in {"approved", "approve"} and record:
         if record.get("tool_name") == "goal_plan_review":

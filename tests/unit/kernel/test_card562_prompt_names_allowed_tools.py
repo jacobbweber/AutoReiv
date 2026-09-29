@@ -13,7 +13,7 @@ from src.application.kernel.agent_kernel import project_tool_guidance
 from src.application.safety.tool_policy_gate import ToolPolicyGate, ToolPolicyVerdict
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 pytestmark = pytest.mark.guard
 

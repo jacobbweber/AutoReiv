@@ -4,7 +4,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.application.kernel.agent_kernel import AgentKernel
-from src.application.skills.user_catalog import LIST_USER_SKILL_PACKS, SKILL_VIEW, render_skill_index
+from src.application.skills.user_catalog import LIST_USER_SKILLS, SKILL_VIEW, render_skill_index
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.agents.profiles import BUILTIN_PROFILES
 from src.domain.gateway.models import ToolCall
@@ -36,9 +36,9 @@ Body token unticked-runbook-secret.
 
 
 def _write_pack(skills_root, slug, content):
-    pack_dir = skills_root / slug
-    pack_dir.mkdir(parents=True)
-    (pack_dir / "SKILL.md").write_text(content, encoding="utf-8")
+    skill_dir = skills_root / slug
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(content, encoding="utf-8")
 
 
 def _bootstrap(tmp_path, skills_dir):
@@ -88,7 +88,7 @@ def test_render_skill_index_ticked_name_blurb_not_body(tmp_path):
     assert "ticked-runbook-secret" not in block
     assert "unticked-runbook-secret" not in block
     assert "skill pack" not in block.lower()
-    assert "list_user_skill_packs" not in block
+    assert "list_user_skills" not in block
 
 
 def test_kernel_prompt_injects_ticked_not_unticked(tmp_path):
@@ -209,7 +209,7 @@ async def test_skill_view_refuses_unticked_id(tmp_path):
     registry.register_profile(agent)
 
     refused = await tool_reg.execute(
-        ToolCall(id="c1", name=SKILL_VIEW, arguments={"pack_id": "okta-admin"}),
+        ToolCall(id="c1", name=SKILL_VIEW, arguments={"skill_id": "okta-admin"}),
         agent,
     )
     assert refused.success is True
@@ -219,7 +219,7 @@ async def test_skill_view_refuses_unticked_id(tmp_path):
     assert "user-provisioning" in refused.output["error"]  # CARD-564: the refusal names the ids to use
 
     allowed = await tool_reg.execute(
-        ToolCall(id="c2", name=SKILL_VIEW, arguments={"pack_id": "user-provisioning"}),
+        ToolCall(id="c2", name=SKILL_VIEW, arguments={"skill_id": "user-provisioning"}),
         agent,
     )
     assert allowed.success is True
@@ -227,7 +227,7 @@ async def test_skill_view_refuses_unticked_id(tmp_path):
     assert "ticked-runbook-secret" in allowed.output["instructions"]
 
     listed = await tool_reg.execute(
-        ToolCall(id="c3", name=LIST_USER_SKILL_PACKS, arguments={}),
+        ToolCall(id="c3", name=LIST_USER_SKILLS, arguments={}),
         agent,
     )
     ids = {p["id"] for p in listed.output["packs"]}
@@ -247,7 +247,7 @@ async def test_skill_view_empty_allowlist_refuses_all(tmp_path):
         allowed_skill=[],
     )
     refused = await tool_reg.execute(
-        ToolCall(id="c1", name=SKILL_VIEW, arguments={"pack_id": "user-provisioning"}),
+        ToolCall(id="c1", name=SKILL_VIEW, arguments={"skill_id": "user-provisioning"}),
         agent,
     )
     # CARD-539: with no ticked skills skill_view is not even allowed.

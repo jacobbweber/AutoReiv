@@ -14,7 +14,7 @@ from src.application.kernel.agent_kernel import (
     AgentKernel,
 )
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 @pytest.fixture

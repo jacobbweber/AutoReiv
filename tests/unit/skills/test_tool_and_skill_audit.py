@@ -11,7 +11,7 @@ import pytest
 from src.application.skills.linter import CapabilityLinter
 from src.application.skills.manifest import BUILTIN_TOOL_GROUPS
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
-from tests.unit.agent_packs.catalog import SHIPPED_SKILL_TOOLS as PLATFORM_SKILL_TOOLS
+from tests.unit.agent_skills.catalog import SHIPPED_SKILL_TOOLS as PLATFORM_SKILL_TOOLS
 
 
 @pytest.fixture

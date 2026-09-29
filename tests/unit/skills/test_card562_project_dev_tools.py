@@ -17,7 +17,7 @@ from src.application.skills.git_tools import GitTools
 from src.application.skills.project_dev_tools import ProjectDevTools
 from src.domain.sdlc.agents_contract import parse_agents_md
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 PY = f'"{sys.executable}"'
 AGENTS = f"""# AGENTS.md - demo

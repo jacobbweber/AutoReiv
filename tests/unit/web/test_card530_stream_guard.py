@@ -118,7 +118,7 @@ def test_approving_a_draft_proposal_writes_one_note_and_no_tool_rows(client, tmp
         data_dir=data_dir,
         session_id=phase_session,
         agent_id="developer",
-        pack_id="weather",
+        skill_id="weather",
         tool_json={"name": "get_weather", "description": "weather", "parameters": {}},
     )
     # The running turn already holds the draft result for this call.

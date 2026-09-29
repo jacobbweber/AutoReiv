@@ -159,7 +159,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
             "list_available_skills_and_tools",
             "propose_skill",
             "propose_tool",
-            "commit_skill_pack",
+            "commit_skill",
         ],
     ),
 ]
@@ -176,11 +176,11 @@ def get_hierarchical_tool_groups(tools: List[ToolDefinition]) -> List[Dict[str, 
     result: List[Dict[str, Any]] = []
 
     for pack in BUILTIN_TOOL_GROUPS:
-        pack_tools = []
+        skill_tool_list = []
         for t_name in pack.tool_names:
             if t_name in tools_by_name:
                 t = tools_by_name[t_name]
-                pack_tools.append(
+                skill_tool_list.append(
                     {
                         "name": t.name,
                         "description": t.description,
@@ -188,7 +188,7 @@ def get_hierarchical_tool_groups(tools: List[ToolDefinition]) -> List[Dict[str, 
                 )
                 assigned_tools.add(t_name)
 
-        if pack_tools:
+        if skill_tool_list:
             result.append(
                 {
                     "id": pack.id,
@@ -198,12 +198,12 @@ def get_hierarchical_tool_groups(tools: List[ToolDefinition]) -> List[Dict[str, 
                     "icon": pack.icon,
                     "is_core": pack.is_core,
                     "core_agent_id": pack.core_agent_id,
-                    "tools": pack_tools,
+                    "tools": skill_tool_list,
                 }
             )
 
     # Group external MCP tools into dedicated per-server packs [REQ-MCP-010]
-    mcp_packs_map: Dict[str, List[Dict[str, Any]]] = {}
+    mcp_skills_map: Dict[str, List[Dict[str, Any]]] = {}
     other_unassigned: List[Dict[str, Any]] = []
 
     for name, t in tools_by_name.items():
@@ -212,11 +212,11 @@ def get_hierarchical_tool_groups(tools: List[ToolDefinition]) -> List[Dict[str, 
         if name.startswith("mcp_"):
             parts = name[4:].split("_", 1)
             server_name = parts[0] if len(parts) > 1 else parts[0]
-            mcp_packs_map.setdefault(server_name, []).append({"name": t.name, "description": t.description})
+            mcp_skills_map.setdefault(server_name, []).append({"name": t.name, "description": t.description})
         else:
             other_unassigned.append({"name": t.name, "description": t.description})
 
-    for srv_name, srv_tools in mcp_packs_map.items():
+    for srv_name, srv_tools in mcp_skills_map.items():
         result.append(
             {
                 "id": f"mcp_{srv_name}",

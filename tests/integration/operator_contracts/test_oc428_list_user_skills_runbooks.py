@@ -1,8 +1,8 @@
-"""CARD-428 operator contract: list_user_skill_packs names allowlisted pack runbooks.
+"""CARD-428 operator contract: list_user_skills names allowlisted pack runbooks.
 
 REQ-428-001: an allowlisted skill whose live body is
 packs/<agent>/skills/<id>/SKILL.md, and which is absent from $DATA_DIR/skills/,
-appears in list_user_skill_packs for that agent as name and description only.
+appears in list_user_skills for that agent as name and description only.
 REQ-428-002: that call does not copy the runbook into $DATA_DIR/skills/, and an
 agent whose allowlist omits the id does not see it.
 
@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from src.application.kernel.agent_kernel import AgentKernel
-from src.application.skills.user_catalog import LIST_USER_SKILL_PACKS, render_skill_index
+from src.application.skills.user_catalog import LIST_USER_SKILLS, render_skill_index
 from src.domain.gateway.models import ToolCall
 
 NATIVE_SKILL = "native-tool-engineering"
@@ -60,14 +60,14 @@ def _files(root: Path) -> dict[str, str]:
 def _listed(tools, agent):
     return asyncio.run(
         tools.execute(
-            ToolCall(id="oc428", name=LIST_USER_SKILL_PACKS, arguments={}),
+            ToolCall(id="oc428", name=LIST_USER_SKILLS, arguments={}),
             agent,
         )
     )
 
 
 @pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
-def test_oc428_list_user_skill_packs_includes_allowlisted_pack_runbook_only(operator_client):
+def test_oc428_list_user_skills_includes_allowlisted_pack_runbook_only(operator_client):
     """REQ-428-001 and REQ-428-002. Pack runbook is listed by name. No operator-store copy."""
     client, _store, wiki = operator_client
     registry = client.app.state.registry
@@ -103,7 +103,7 @@ def test_oc428_list_user_skill_packs_includes_allowlisted_pack_runbook_only(oper
     assert opened.success is True, opened.error
     body = opened.output or {}
     packs = {row["id"]: row for row in body.get("packs") or []}
-    assert NATIVE_SKILL in packs, "REQ-428-001 FAIL: allowlisted pack runbook missing from list_user_skill_packs"
+    assert NATIVE_SKILL in packs, "REQ-428-001 FAIL: allowlisted pack runbook missing from list_user_skills"
     entry = packs[NATIVE_SKILL]
     assert entry["name"] == NAME
     assert entry["description"] == DESCRIPTION
@@ -114,11 +114,11 @@ def test_oc428_list_user_skill_packs_includes_allowlisted_pack_runbook_only(oper
 
     turn_tools = kernel._resolve_active_tools(
         developer,
-        user_content="Call list_user_skill_packs and show the catalog.",
+        user_content="Call list_user_skills and show the catalog.",
     )
     turn_names = [getattr(tool, "name", "") for tool in turn_tools]
-    assert LIST_USER_SKILL_PACKS in turn_names, (
-        "REQ-428-001 FAIL: developer chat turn cannot call list_user_skill_packs"
+    assert LIST_USER_SKILLS in turn_names, (
+        "REQ-428-001 FAIL: developer chat turn cannot call list_user_skills"
     )
 
     without = developer.model_copy(

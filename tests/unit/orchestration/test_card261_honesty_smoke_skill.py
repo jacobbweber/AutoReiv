@@ -1,13 +1,13 @@
 """CARD-261: standing honesty/smoke pack classifiers freeze stress table."""
 from __future__ import annotations
 
-from src.application.orchestration.honesty_smoke_pack import (
+from src.application.orchestration.honesty_smoke_skill import (
     RED_CLASSES,
     STRESS_CLASSES,
     classify_scenario,
     detect_done_on_failed,
     detect_silent_sse_death,
-    evaluate_pack,
+    evaluate_skill,
     merge_gate_decision,
 )
 
@@ -161,7 +161,7 @@ def test_kill_resume_checkpoint_green():
     assert result["is_red"] is False
 
 
-def test_evaluate_pack_and_merge_gate_blocks_red():
+def test_evaluate_skill_and_merge_gate_blocks_red():
     rows = [
         {"id": 1, "name": "pass_cos", "classification": "pass", "red": [], "is_red": False},
         {"id": 2, "name": "timeout", "classification": "timeout", "red": [], "is_red": False},
@@ -176,7 +176,7 @@ def test_evaluate_pack_and_merge_gate_blocks_red():
             "is_red": False,
         },
     ]
-    good = evaluate_pack(rows)
+    good = evaluate_skill(rows)
     assert good["ok"] is True
     assert good["exit_code"] == 0
     assert merge_gate_decision(good)["allowed"] is True
@@ -191,7 +191,7 @@ def test_evaluate_pack_and_merge_gate_blocks_red():
             "is_red": True,
         }
     ]
-    bad = evaluate_pack(bad_rows)
+    bad = evaluate_skill(bad_rows)
     assert bad["ok"] is False
     assert bad["exit_code"] == 1
     decision = merge_gate_decision(bad)

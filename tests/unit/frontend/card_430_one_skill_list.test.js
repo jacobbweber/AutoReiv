@@ -70,7 +70,7 @@ describe('Agent Studio one skill list [CARD-430]', () => {
   it('does not copy skill files between homes [REQ-430-003]', () => {
     expect(runbook).not.toContain('copytree');
     expect(runbook).not.toContain('writeFile');
-    expect(runbook).not.toContain('/api/skills/user-packs');
+    expect(runbook).not.toContain('/api/skills/user-skills');
     const list = assignedSkillListHtml({
       packSkills: [{ id: 'sdlc-engineering', name: 'SDLC' }],
     });

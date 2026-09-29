@@ -1,5 +1,5 @@
 """
-commit_skill_pack writes approved proposals via UserSkillCatalog [REQ-BUILD-012 - REQ-BUILD-014].
+commit_skill writes approved proposals via UserSkillCatalog [REQ-BUILD-012 - REQ-BUILD-014].
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.tool_registry import ScopedToolRegistry, _tool_context
 from src.application.orchestration.skill_proposals import (
     apply_skill_proposal_decision,
-    commit_skill_pack,
+    commit_skill,
     propose_skill,
     propose_tool,
 )
@@ -22,7 +22,7 @@ from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ def test_approve_then_commit_writes_skill_md(setup):
     dest = setup["skills_dir"] / "homelab-backup" / "SKILL.md"
     assert not dest.exists()
 
-    result = commit_skill_pack(
+    result = commit_skill(
         setup["store"],
         proposal_id=created["proposal_id"],
         data_dir=setup["data_dir"],
@@ -98,7 +98,7 @@ def test_approve_then_commit_writes_skill_md(setup):
     body = dest.read_text(encoding="utf-8")
     assert "name: homelab-backup" in body
     assert "Homelab backup playbook" in body or "Operator needs" in body
-    opened = setup["catalog"].read_pack("homelab-backup")
+    opened = setup["catalog"].read_skill("homelab-backup")
     assert opened["success"] is True
     assert opened["manifest"]["id"] == "homelab-backup"
     _src_untouched(setup)
@@ -117,13 +117,13 @@ def test_draft_and_rejected_fail_closed(setup):
         prefer_existing_agent_id="review",
     )
     with pytest.raises(ValueError, match="approved"):
-        commit_skill_pack(
+        commit_skill(
             setup["store"],
             proposal_id=drafted["proposal_id"],
             data_dir=setup["data_dir"],
             catalog=setup["catalog"],
         )
-    parked = commit_skill_pack(
+    parked = commit_skill(
         setup["store"],
         proposal_id=drafted["proposal_id"],
         data_dir=setup["data_dir"],
@@ -151,7 +151,7 @@ def test_draft_and_rejected_fail_closed(setup):
         decision="rejected",
     )
     with pytest.raises(ValueError, match="Rejected"):
-        commit_skill_pack(
+        commit_skill(
             setup["store"],
             proposal_id=rejected["proposal_id"],
             data_dir=setup["data_dir"],
@@ -171,7 +171,7 @@ def test_commit_tool_merges_json_stub_not_python(setup):
         data_dir=setup["data_dir"],
         session_id="sess_ab",
         agent_id="agent-builder",
-        pack_id="lab-dir",
+        skill_id="lab-dir",
         tool_json={
             "name": "lab_list_users",
             "description": "Stub: list lab users.",
@@ -181,7 +181,7 @@ def test_commit_tool_merges_json_stub_not_python(setup):
         prefer_existing_agent_id="review",
     )
     _approve(setup, created)
-    result = commit_skill_pack(
+    result = commit_skill(
         setup["store"],
         proposal_id=created["proposal_id"],
         data_dir=setup["data_dir"],
@@ -193,7 +193,7 @@ def test_commit_tool_merges_json_stub_not_python(setup):
     body = dest.read_text(encoding="utf-8")
     assert "lab_list_users" in body
     assert "src.application.skills" not in body
-    opened = setup["catalog"].read_pack("lab-dir")
+    opened = setup["catalog"].read_skill("lab-dir")
     names = [t["name"] for t in opened["tools"]]
     assert "lab_list_users" in names
     _src_untouched(setup)
@@ -218,14 +218,14 @@ def test_commit_surfaces_soft_sprawl_warning(setup):
         data_dir=setup["data_dir"],
         session_id="sess_ab",
         agent_id="agent-builder",
-        pack_id="sprawl-demo",
+        skill_id="sprawl-demo",
         tool_json={"name": "extra_tool", "description": "stub", "parameters": {}},
         prefer_existing_agent_id="coding",
         agent_registry=setup["registry"],
     )
     assert created["sprawl_warning"]
     _approve(setup, created)
-    result = commit_skill_pack(
+    result = commit_skill(
         setup["store"],
         proposal_id=created["proposal_id"],
         data_dir=setup["data_dir"],
@@ -253,7 +253,7 @@ async def test_agent_builder_tool_commits_after_approve(setup):
             proposal_id=created["proposal_id"],
             decision="approved",
         )
-        result = await setup["skill"].commit_skill_pack(proposal_id=created["proposal_id"])
+        result = await setup["skill"].commit_skill(proposal_id=created["proposal_id"])
     finally:
         _tool_context.reset(token)
     assert result["disk_written"] is True

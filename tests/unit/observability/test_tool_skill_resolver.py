@@ -42,9 +42,9 @@ def test_resolve_builtin_platform_tools(temp_data_dir: Path):
 
 
 def test_resolve_custom_pack_skill(temp_data_dir: Path):
-    pack_dir = temp_data_dir / "skills" / "git-ops"
-    pack_dir.mkdir(parents=True)
-    (pack_dir / "SKILL.md").write_text(
+    skill_dir = temp_data_dir / "skills" / "git-ops"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
         "---\nname: git-ops\ndescription: Git actions\ntools:\n  - git_status\n  - git_commit\n---\n# Git SOP\n\n## Common Pitfalls & Forbidden Paths\n- Never force push.\n",
         encoding="utf-8",
     )

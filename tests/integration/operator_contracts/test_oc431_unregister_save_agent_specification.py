@@ -42,7 +42,7 @@ def _catalog_names(payload: dict) -> set[str]:
     return names
 
 
-def test_oc431_catalog_omits_save_and_pack_tools(operator_client):
+def test_oc431_catalog_omits_save_and_skill_tool_list(operator_client):
     """CARD-569: save_agent_specification and the pack tools are gone; agents are made in Agent Studio."""
     client, store, wiki = operator_client
     _refuse_live(wiki.parent)

@@ -11,7 +11,7 @@ from src.application.agent_skills.allowed_tools import domain_line, resolve_allo
 from src.application.orchestration.job_phase_orchestrator import resolve_specialist_agent_for_capabilities
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 PACK = pack_dict("autoreiv")
 CODING_CAPS = ["tool.repo_file_read", "tool.repo_file_write", "skill.coding"]
@@ -74,7 +74,7 @@ def test_code_execute_phase_stays_on_an_agent_that_ticks_coding(tmp_path):
 def test_a_self_match_on_the_chat_agent_does_not_keep_code_work_off_developer():
     # Live QA (CARD-544): the resolver also matched agent.autoreiv (role bonus) for a code ask in an AutoReiv chat,
     # and that self-match returned autoreiv before the coding check ran.
-    live_ids = ["tool.commit_skill_pack", "tool.repo_file_write", "tool.execute_code", "agent.autoreiv", "tool.write_project_file"]
+    live_ids = ["tool.commit_skill", "tool.repo_file_write", "tool.execute_code", "agent.autoreiv", "tool.write_project_file"]
     assert resolve_specialist_agent_for_capabilities(live_ids, "autoreiv") == "developer"
     # A match naming another agent is still a specialist pick.
     assert resolve_specialist_agent_for_capabilities(["agent.homelab", "tool.repo_file_write"], "autoreiv") == "homelab"

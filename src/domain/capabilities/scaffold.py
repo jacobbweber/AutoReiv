@@ -35,7 +35,7 @@ class ScaffoldRecord(BaseModel):
     kind: CapabilityKind
     name: str = Field(..., min_length=1)
     summary: str = ""
-    pack_id: str = Field(..., min_length=1)
+    skill_id: str = Field(..., min_length=1)
     capability_id: str = Field(..., min_length=1)
     phase: ScaffoldPhase = ScaffoldPhase.DRAFT
     trust_tier: TrustTier = TrustTier.CANDIDATE

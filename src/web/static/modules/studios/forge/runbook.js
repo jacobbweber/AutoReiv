@@ -165,7 +165,7 @@ export function renderAssignedSkills({
 } = {}) {
   const forgeSkillsGrid = $('forgeSkillsGrid');
   if (!forgeSkillsGrid) return;
-  const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
+  const packSkills = (activeForgeAgent && activeForgeAgent.own_skills) || [];
   forgeSkillsGrid.innerHTML = assignedSkillListHtml({
     platformSkills: cachedPlatformSkills,
     operatorSkills: cachedOperatorSkills,
@@ -240,7 +240,7 @@ export async function loadPlatformSkills({
         operatorSkills = catData.operator_skills || [];
       }
     }
-    const archRes = await fetch('/api/skills/archived-packs');
+    const archRes = await fetch('/api/skills/archived-skills');
     if (archRes.ok) {
       const archData = await archRes.json();
       archivedSkills = archData.packs || [];

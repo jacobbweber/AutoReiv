@@ -119,7 +119,7 @@ def open_forge_candidate_from_education_gap(
             match_count=len(seed),
             suggested_kind="skill",
             suggested_name="education-wiki-notes-index",
-            suggested_pack_id="education-wiki-notes-index",
+            suggested_skill_id="education-wiki-notes-index",
         )
 
     opened = apply_mid_job_scaffold_on_gap(
@@ -129,7 +129,7 @@ def open_forge_candidate_from_education_gap(
         gap=gap,
         kind="skill",
         name="education-wiki-notes-index",
-        pack_id="education-wiki-notes-index",
+        skill_id="education-wiki-notes-index",
         summary="Education wiki notes index (candidate)",
         content=(
             "# Education Wiki Notes Index\n\n"
@@ -238,7 +238,7 @@ def run_self_scaffold_queue_e2e(
     Optional baseline trusted pack so rollback has a prior snapshot to restore.
     """
     _ensure_trusted_health_probe(spine)
-    pack_id = "education-wiki-notes-index"
+    skill_id = "education-wiki-notes-index"
     prior_body = "# Prior Trusted Education Index\n\nList notes only.\n"
     new_body = (
         "# Education Wiki Notes Index\n\n"
@@ -246,11 +246,11 @@ def run_self_scaffold_queue_e2e(
     )
 
     if with_rollback_baseline:
-        spine.catalog.save_pack(pack_id, pack_id, "prior trusted", prior_body)
+        spine.catalog.save_skill(skill_id, skill_id, "prior trusted", prior_body)
         baseline = spine.draft(
             kind="skill",
-            name=pack_id,
-            pack_id=pack_id,
+            name=skill_id,
+            skill_id=skill_id,
             summary="prior trusted",
             content=prior_body,
             skip_disk_write=True,
@@ -264,8 +264,8 @@ def run_self_scaffold_queue_e2e(
         orchestrator, spine=spine, session_id=session_id
     )
     # Overwrite pack content to the candidate body (draft already wrote).
-    spine.catalog.save_pack(
-        pack_id, pack_id, "Education wiki notes index (candidate)", new_body
+    spine.catalog.save_skill(
+        skill_id, skill_id, "Education wiki notes index (candidate)", new_body
     )
 
     approved = sandbox_version_hitl_approve(
@@ -288,11 +288,11 @@ def run_self_scaffold_queue_e2e(
         skills_dir = getattr(spine.catalog, "skills_dir", None)
         content = ""
         if skills_dir is not None:
-            skill_md = skills_dir / pack_id / "SKILL.md"
+            skill_md = skills_dir / skill_id / "SKILL.md"
             if skill_md.exists():
                 content = skill_md.read_text(encoding="utf-8")
         if not content:
-            body = spine.catalog.read_pack(pack_id)
+            body = spine.catalog.read_skill(skill_id)
             if isinstance(body, dict):
                 content = str(body.get("instructions") or "")
         restored_prior = "Prior Trusted" in content and "Candidate skill" not in content

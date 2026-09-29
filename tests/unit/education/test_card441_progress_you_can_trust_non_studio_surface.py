@@ -17,7 +17,7 @@ from src.application.education.progress_summary import (
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 PROGRESS_TOOL_NAMES = (
     "education_progress_summary",
@@ -181,7 +181,7 @@ def test_tutor_pack_progress_summary_skill_names_tools():
     pack = pack_dict("tutor")
     by_id = {s["id"]: s for s in pack["skills"]}
     progress_tools = set(by_id["progress-summary"]["tools"])
-    pack_tools = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
+    skill_tool_list = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
 
     for name in (
         "education_progress_summary",
@@ -190,7 +190,7 @@ def test_tutor_pack_progress_summary_skill_names_tools():
         "education_mastery_due",
     ):
         assert name in progress_tools, name
-        assert name in pack_tools, name
+        assert name in skill_tool_list, name
 
     skill_md = Path("platform/skills/progress-summary/SKILL.md").read_text(
         encoding="utf-8"

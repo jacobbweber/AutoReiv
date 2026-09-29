@@ -13,7 +13,7 @@ from pathlib import Path
 from src.application.skills.education_tools import EducationTools
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 DEFAULT_MAX_TURNS = AgentProfile.model_fields["max_turns"].default
 # CARD-445 raised the agent default to 50; CARD-444 still proves the skill fits the old tight

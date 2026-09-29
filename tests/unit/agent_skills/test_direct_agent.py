@@ -1,10 +1,10 @@
 """Unit tests for CARD-337: Platform Direct Agent [REQ-TEL-001]."""
 
 from src.application.agent_skills.schema import is_visible_in_chat
-from tests.unit.agent_packs.catalog import load_platform_manifest
+from tests.unit.agent_skills.catalog import load_platform_manifest
 
 
-def test_direct_pack_manifest_zero_tools_zero_skills():
+def test_direct_skill_manifest_zero_tools_zero_skills():
     """[REQ-TEL-001] Direct agent manifest must have zero tools, zero skills, and show_in_chat=True."""
     manifest = load_platform_manifest("direct")
     assert manifest.id == "direct"

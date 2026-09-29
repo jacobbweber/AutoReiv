@@ -110,9 +110,9 @@ def resolve_allowed_tools(agent: Any) -> AllowedTools:
             if provenance.get(tool) != (PLATFORM,):
                 provenance[tool] = provenance.get(tool, ()) + (sid,)
     if ticks:
-        from src.application.skills.user_catalog import LIST_USER_SKILL_PACKS, SKILL_VIEW
+        from src.application.skills.user_catalog import LIST_USER_SKILLS, SKILL_VIEW
 
-        for tool in (SKILL_VIEW, LIST_USER_SKILL_PACKS):
+        for tool in (SKILL_VIEW, LIST_USER_SKILLS):
             provenance.setdefault(tool, (PLATFORM,))
     ordered = tuple(t for t in provenance if not t.endswith("*"))
     patterns = tuple(t for t in provenance if t.endswith("*"))
@@ -182,7 +182,7 @@ def _skill_meta(sid: str, agent_id: Optional[str] = None, pack: Optional[dict] =
     return dict(loaded.meta) if loaded else {}
 
 
-def pack_skill_entries(agent_id: Optional[str]) -> dict[str, dict[str, Any]]:
+def skill_entries(agent_id: Optional[str]) -> dict[str, dict[str, Any]]:
     """Kept name for callers: {skill id: frontmatter} for the agent's ticked skills."""
     store = _store()
     loaded = store.agents.load(agent_id) if agent_id else None

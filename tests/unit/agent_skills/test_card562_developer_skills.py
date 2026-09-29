@@ -12,7 +12,7 @@ from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.skills.linter import MAX_TOOLS_PER_SKILL
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 PACK = pack_dict("developer")
 BACKUP = Path("migrations") / "card-562-developer-skills.json"
@@ -96,7 +96,7 @@ UNRESTRICTED_RUNNERS = {
 
 def test_developer_never_gets_an_unrestricted_shell_or_code_runner():
     """CARD-562 guard: Developer's resolved tools never include a shell/code runner (only AGENTS.md checks)."""
-    from tests.unit.agent_packs.catalog import platform_pack_profile
+    from tests.unit.agent_skills.catalog import platform_pack_profile
 
     dev = platform_pack_profile("developer")
     names = set(resolve_allowed_tools(dev))

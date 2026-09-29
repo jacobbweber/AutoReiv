@@ -13,7 +13,7 @@ from pathlib import Path
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 DUE_REVIEW_TOOL_NAMES = (
     "education_mastery_due",
@@ -198,7 +198,7 @@ def test_tutor_pack_due_review_skill_names_tools():
     pack = pack_dict("tutor")
     by_id = {s["id"]: s for s in pack["skills"]}
     due_tools = set(by_id["due-review"]["tools"])
-    pack_tools = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
+    skill_tool_list = {t for s in pack["skills"] for t in s.get("tools") or []}  # CARD-541: no flat list
 
     for name in (
         "education_due_review_list",
@@ -209,7 +209,7 @@ def test_tutor_pack_due_review_skill_names_tools():
         "education_flashcard_grade",
     ):
         assert name in due_tools, name
-        assert name in pack_tools, name
+        assert name in skill_tool_list, name
 
     skill_md = Path("platform/skills/due-review/SKILL.md").read_text(encoding="utf-8")
     assert "education_due_review_list" in skill_md

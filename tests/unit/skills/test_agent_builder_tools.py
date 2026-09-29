@@ -37,7 +37,7 @@ async def test_agent_builder_tools_registration(builder_setup):
     assert "propose_skill" in tool_names
     assert "propose_tool" in tool_names
     assert "propose_workflow" not in tool_names
-    assert "commit_skill_pack" in tool_names
+    assert "commit_skill" in tool_names
 
 
 @pytest.mark.asyncio

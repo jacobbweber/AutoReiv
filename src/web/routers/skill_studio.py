@@ -268,7 +268,7 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    skill_file = Path(persisted["pack_skill_path"] or persisted["skill_store_path"])
+    skill_file = Path(persisted["user_skill_path"] or persisted["skill_store_path"])
     display_name = (persisted.get("frontmatter") or {}).get("name") or clean_skill_id.replace("-", " ").replace("_", " ").title()
 
     if clean_agent_id:

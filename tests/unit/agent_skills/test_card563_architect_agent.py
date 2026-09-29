@@ -5,7 +5,7 @@ from __future__ import annotations
 from src.application.agent_skills.allowed_tools import domain_line, resolve_allowed_tools
 from src.application.safety.tool_policy_gate import ToolPolicyGate, ToolPolicyVerdict
 from src.domain.gateway.models import ToolCall
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 PLANNING = {
     "active_project_info", "read_project_file", "search_project", "list_project_dir", "read_steering",

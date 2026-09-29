@@ -13,8 +13,8 @@ import pytest
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
-from tests.unit.agent_packs.catalog import SHIPPED_SKILL_TOOLS as DYNAMIC_SKILL_TOOLS
-from tests.unit.agent_packs.catalog import SHIPPED_SKILL_TOOLS as PLATFORM_SKILL_TOOLS
+from tests.unit.agent_skills.catalog import SHIPPED_SKILL_TOOLS as DYNAMIC_SKILL_TOOLS
+from tests.unit.agent_skills.catalog import SHIPPED_SKILL_TOOLS as PLATFORM_SKILL_TOOLS
 
 
 @pytest.fixture

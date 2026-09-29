@@ -9,16 +9,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.unit.agent_packs.catalog import SHIPPED_SKILL_TOOLS as DYNAMIC_SKILL_TOOLS
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import SHIPPED_SKILL_TOOLS as DYNAMIC_SKILL_TOOLS
+from tests.unit.agent_skills.catalog import pack_dict
 
 
 def test_autoreiv_pack_excludes_cli_exec():
     pack_data = pack_dict("autoreiv")  # CARD-570: platform/agents/autoreiv.md + its skills
 
     # 1. pack_tool_names must not contain cli_exec
-    pack_tools = pack_data.get("pack_tool_names", [])
-    assert "cli_exec" not in pack_tools, "cli_exec must not be in autoreiv pack_tool_names"
+    skill_tool_list = pack_data.get("pack_tool_names", [])
+    assert "cli_exec" not in skill_tool_list, "cli_exec must not be in autoreiv pack_tool_names"
 
     # 2. None of autoreiv's skill definitions may include cli_exec
     for skill in pack_data.get("skills", []):

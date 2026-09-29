@@ -21,7 +21,7 @@ from src.application.education.wiki_curation import (
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.education_tools import EducationTools
 from src.application.skills.wiki_tools import WikiTools
-from tests.unit.agent_packs.catalog import pack_dict
+from tests.unit.agent_skills.catalog import pack_dict
 
 CURATION_TOOL_NAMES = (
     "education_wiki_template_catalog",

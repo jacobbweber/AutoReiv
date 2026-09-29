@@ -177,7 +177,7 @@ class AgentKernel:
         self.react_state: Optional[ReactState] = None
         self.data_dir = data_dir
         self.user_skill_catalog = user_skill_catalog
-        self.ace_pack_id: Optional[str] = None
+        self.ace_skill_id: Optional[str] = None
         self._ace_tool_errors: List[Dict[str, Any]] = []
         self.capability_gap_repo = CapabilityGapRepository(state_store)
 
@@ -231,8 +231,8 @@ class AgentKernel:
             tool_res.error = scrubber.scrub(str(tool_res.error))
         return tool_res
 
-    def _resolve_ace_pack_id(self) -> Optional[str]:
-        explicit = (self.ace_pack_id or "").strip()
+    def _resolve_ace_skill_id(self) -> Optional[str]:
+        explicit = (self.ace_skill_id or "").strip()
         if explicit:
             return explicit
         names = [str(item.get("tool_name") or "") for item in self._ace_tool_errors]
@@ -279,13 +279,13 @@ class AgentKernel:
         try:
             from src.application.orchestration.ace_online import record_failed_turn_delta
 
-            pack_id = self._resolve_ace_pack_id()
+            skill_id = self._resolve_ace_skill_id()
             data_dir = self._resolve_ace_data_dir()
-            if not pack_id or not data_dir:
+            if not skill_id or not data_dir:
                 return
             record_failed_turn_delta(
                 self.state_store,
-                pack_id=pack_id,
+                skill_id=skill_id,
                 data_dir=data_dir,
                 session_id=session_id,
                 agent_id=agent_id,
@@ -896,7 +896,7 @@ class AgentKernel:
                         return (0, 0, name)
 
                 # Naming the catalog tool keeps it inside the turn cap [CARD-428].
-                if name == "list_user_skill_packs" and "list_user_skill_packs" in text_l:
+                if name == "list_user_skills" and "list_user_skills" in text_l:
                     return (0, 0, name)
 
                 # Builder HITL stays off the default eight until the turn asks for it [CARD-429].

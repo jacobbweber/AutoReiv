@@ -11,7 +11,7 @@ from src.domain.agents.profiles import (
     get_builtin_profile,
 )
 from src.domain.kernel.models import AgentTone
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 def test_developer_is_separate_pack_and_not_in_autoreiv():
@@ -54,7 +54,7 @@ def test_autoreiv_profile_definition():
     assert "save_agent_specification" not in list(resolve_allowed_tools(agent))
     assert "propose_agent_specification" not in list(resolve_allowed_tools(agent))  # CARD-569
     assert "inspect_agent" in list(resolve_allowed_tools(agent))
-    assert "commit_skill_pack" in list(resolve_allowed_tools(agent))
+    assert "commit_skill" in list(resolve_allowed_tools(agent))
     assert "list_available_skills_and_tools" in list(resolve_allowed_tools(agent))
     assert agent.show_in_chat is True
     assert "inspect_system_health" in list(resolve_allowed_tools(agent))
@@ -71,7 +71,7 @@ def test_autoreiv_profile_definition():
     assert "get_weekly_summary" not in list(resolve_allowed_tools(agent))
     assert "handoff_to_agent" in list(resolve_allowed_tools(agent))
     assert "propose_followup" in list(resolve_allowed_tools(agent))
-    assert "list_user_skill_packs" in list(resolve_allowed_tools(agent))
+    assert "list_user_skills" in list(resolve_allowed_tools(agent))
     assert "skill_view" in list(resolve_allowed_tools(agent))
     assert "propose_skill" in list(resolve_allowed_tools(agent))
     assert "propose_tool" in list(resolve_allowed_tools(agent))
@@ -113,7 +113,7 @@ def test_developer_owns_builder_tools_not_legacy_save():
         "list_available_skills_and_tools",
         "propose_skill",
         "propose_tool",
-        "commit_skill_pack",
+        "commit_skill",
     ):
         assert name not in list(resolve_allowed_tools(dev))  # CARD-562: parked until slice 2
     assert "save_agent_specification" not in list(resolve_allowed_tools(dev))

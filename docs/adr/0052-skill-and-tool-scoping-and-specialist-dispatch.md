@@ -63,5 +63,5 @@ We establish four architectural pillars:
 
 ## Compliance & Verification
 
-- Validated via `pytest tests/unit/agent_packs/`, `pytest tests/unit/kernel/`, and `pytest tests/unit/orchestration/`.
+- Validated via `pytest tests/unit/agent_skills/`, `pytest tests/unit/kernel/`, and `pytest tests/unit/orchestration/`.
 - Verified live on Jarvis (`http://192.168.1.99:8000`) with empirical token counts in Observe Studio.

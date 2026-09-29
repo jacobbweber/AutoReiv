@@ -3,8 +3,8 @@ propose_skill / propose_tool / propose_workflow HITL drafts [REQ-BUILD-001 - REQ
 
 Creates a proposals row (kind skill|tool|workflow, status draft) and a pending_approvals
 park. Does not write SKILL.md, Python under src/, or job-template YAML.
-Approve marks approved without UserSkillCatalog.save_pack. Reject marks rejected.
-Disk commit of packs is commit_skill_pack after HITL Approve (CARD-107).
+Approve marks approved without UserSkillCatalog.save_skill. Reject marks rejected.
+Disk commit of packs is commit_skill after HITL Approve (CARD-107).
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from src.domain.orchestration.models import Proposal, ProposalKind, ProposalStat
 PROPOSE_SKILL_TOOL = "propose_skill"
 PROPOSE_TOOL_TOOL = "propose_tool"
 PROPOSE_WORKFLOW_TOOL = "propose_workflow"
-COMMIT_SKILL_PACK_TOOL = "commit_skill_pack"
+COMMIT_SKILL_TOOL = "commit_skill"
 SKILL_PROPOSAL_TOOLS = frozenset(
     {PROPOSE_SKILL_TOOL, PROPOSE_TOOL_TOOL, PROPOSE_WORKFLOW_TOOL}
 )
@@ -86,8 +86,8 @@ def jail_where(where: str, data_dir: Union[str, Path]) -> str:
     return resolved.relative_to(data_root).as_posix()
 
 
-def _pack_id_from_where(rel_where: str, pack_id: Optional[str]) -> Optional[str]:
-    explicit = (pack_id or "").strip() or None
+def _skill_id_from_where(rel_where: str, skill_id: Optional[str]) -> Optional[str]:
+    explicit = (skill_id or "").strip() or None
     if explicit:
         return explicit
     parts = Path(rel_where).parts
@@ -185,7 +185,7 @@ def propose_pack_draft(
     data_dir: Union[str, Path],
     session_id: str,
     agent_id: str,
-    pack_id: Optional[str] = None,
+    skill_id: Optional[str] = None,
     tool_json: Any = None,
     prefer_existing_agent_id: Optional[str] = None,
     new_agent_id: Optional[str] = None,
@@ -221,7 +221,7 @@ def propose_pack_draft(
         if not str(parsed_tool.get("name") or "").strip():
             raise ValueError("tool_json.name is required.")
 
-    target_pack = _pack_id_from_where(jailed, pack_id)
+    target_skill = _skill_id_from_where(jailed, skill_id)
     python_note = None
     if kind == ProposalKind.TOOL and _looks_like_python_builtin(jailed, how_text, parsed_tool):
         python_note = PYTHON_BUILTIN_NOTE
@@ -241,7 +241,7 @@ def propose_pack_draft(
         "kind": kind.value,
         "sprawl_warning": warning,
         "prefer_existing_agent_id": (prefer_existing_agent_id or "").strip() or None,
-        "target_pack_id": target_pack,
+        "target_skill_id": target_skill,
         "requested_by_agent_id": agent,
         "requested_by_session_id": session,
     }
@@ -281,7 +281,7 @@ def propose_pack_draft(
         "how": how_text,
         "where": jailed,
         "sprawl_warning": warning,
-        "target_pack_id": target_pack,
+        "target_skill_id": target_skill,
         "auto_run": False,
     }
     if python_note:
@@ -314,7 +314,7 @@ def propose_pack_draft(
         "how": how_text,
         "where": jailed,
         "sprawl_warning": warning,
-        "target_pack_id": target_pack,
+        "target_skill_id": target_skill,
         "requested_by_agent_id": agent,
         "requested_by_session_id": session,
         "auto_run": False,
@@ -336,7 +336,7 @@ def propose_skill(
     data_dir: Union[str, Path],
     session_id: str,
     agent_id: str,
-    pack_id: Optional[str] = None,
+    skill_id: Optional[str] = None,
     prefer_existing_agent_id: Optional[str] = None,
     new_agent_id: Optional[str] = None,
     requested_by_job_id: Optional[str] = None,
@@ -353,7 +353,7 @@ def propose_skill(
         data_dir=data_dir,
         session_id=session_id,
         agent_id=agent_id,
-        pack_id=pack_id,
+        skill_id=skill_id,
         prefer_existing_agent_id=prefer_existing_agent_id,
         new_agent_id=new_agent_id,
         requested_by_job_id=requested_by_job_id,
@@ -372,7 +372,7 @@ def propose_tool(
     data_dir: Union[str, Path],
     session_id: str,
     agent_id: str,
-    pack_id: str,
+    skill_id: str,
     tool_json: Any,
     prefer_existing_agent_id: Optional[str] = None,
     new_agent_id: Optional[str] = None,
@@ -390,7 +390,7 @@ def propose_tool(
         data_dir=data_dir,
         session_id=session_id,
         agent_id=agent_id,
-        pack_id=pack_id,
+        skill_id=skill_id,
         tool_json=tool_json,
         prefer_existing_agent_id=prefer_existing_agent_id,
         new_agent_id=new_agent_id,
@@ -408,7 +408,7 @@ def apply_skill_proposal_decision(
     reason: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Approve: proposal approved, disk unchanged, no save_pack, no Job auto-run.
+    Approve: proposal approved, disk unchanged, no save_skill, no Job auto-run.
     Reject: proposal rejected, disk unchanged.
     Idempotent on already-decided proposals.
     """
@@ -481,7 +481,7 @@ def _catalog_for(data_dir: Union[str, Path], catalog: Any = None) -> Any:
     return UserSkillCatalog(skills_dir=Path(data_dir) / "skills")
 
 
-def commit_skill_pack(
+def commit_skill(
     store: Any,
     *,
     proposal_id: str,
@@ -492,7 +492,7 @@ def commit_skill_pack(
     approval_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Write an approved skill|tool|workflow proposal through UserSkillCatalog.save_pack.
+    Write an approved skill|tool|workflow proposal through UserSkillCatalog.save_skill.
     Draft / rejected fail closed. Never writes Python under src/.
     Soft sprawl warning is returned, not a hard gate [REQ-BUILD-012] [REQ-BUILD-013].
     If approval_mode=ask and the proposal is still draft, park (no write).
@@ -521,13 +521,13 @@ def commit_skill_pack(
                 "parked": True,
                 "error": "Approve the HITL draft first. Pack was not written.",
             }
-        raise ValueError("commit_skill_pack requires status=approved. Approve the HITL draft first.")
+        raise ValueError("commit_skill requires status=approved. Approve the HITL draft first.")
 
     payload = _payload_dict(proposal)
     jailed = jail_where(str(payload.get("where") or ""), data_dir)
-    pack_id = payload.get("target_pack_id") or _pack_id_from_where(jailed, None)
-    if not pack_id:
-        raise ValueError("target_pack_id is required to commit.")
+    skill_id = payload.get("target_skill_id") or _skill_id_from_where(jailed, None)
+    if not skill_id:
+        raise ValueError("target_skill_id is required to commit.")
 
     cat = _catalog_for(data_dir, catalog)
     warning = payload.get("sprawl_warning") or sprawl_warning_text(
@@ -537,15 +537,15 @@ def commit_skill_pack(
         kind=proposal.kind,
     )
 
-    existing = cat.read_pack(pack_id)
+    existing = cat.read_skill(skill_id)
     dest_exists = bool(existing.get("success"))
-    what = str(payload.get("what") or pack_id)
+    what = str(payload.get("what") or skill_id)
     why = str(payload.get("why") or what or "User skill pack.")
     how = str(payload.get("how") or "")
 
     snapshot_id = payload.get("snapshot_id")
     if dest_exists:
-        snap = cat.snapshot_pack(pack_id)
+        snap = cat.snapshot_skill(skill_id)
         if not snap.get("success"):
             return {
                 "success": False,
@@ -555,7 +555,7 @@ def commit_skill_pack(
                 "disk_written": False,
                 "src_written": False,
                 "sprawl_warning": warning,
-                "pack_id": pack_id,
+                "skill_id": skill_id,
                 "error": snap.get("error") or "Snapshot failed; pack was not written.",
             }
         snapshot_id = snap.get("snapshot_id")
@@ -570,12 +570,12 @@ def commit_skill_pack(
                 "disk_written": False,
                 "src_written": False,
                 "sprawl_warning": warning,
-                "pack_id": pack_id,
+                "skill_id": skill_id,
                 "path": (existing.get("manifest") or {}).get("path"),
-                "error": f"Pack '{pack_id}' already exists. Pass overwrite=true to replace.",
+                "error": f"Pack '{skill_id}' already exists. Pass overwrite=true to replace.",
             }
         if dest_exists and payload.get("ace_delta"):
-            name = (existing.get("manifest") or {}).get("name") or pack_id
+            name = (existing.get("manifest") or {}).get("name") or skill_id
             description = (existing.get("manifest") or {}).get("description") or why
             existing_instructions = existing.get("instructions") or ""
             learning_bullet = f"- {why}"
@@ -587,18 +587,18 @@ def commit_skill_pack(
             else:
                 instructions = existing_instructions
         else:
-            name = pack_id
+            name = skill_id
             description = why
             instructions = how
             if what and not instructions.lstrip().startswith("#"):
                 instructions = f"# {what}\n\n{instructions}".strip()
-        saved = cat.save_pack(pack_id, name, description, instructions)
+        saved = cat.save_skill(skill_id, name, description, instructions)
     elif proposal.kind == ProposalKind.TOOL:
         tool_json = payload.get("tool_json") or {}
         fence = _json_tool_fence(tool_json)
         tool_name = str((tool_json or {}).get("name") or "").strip()
         if dest_exists:
-            name = (existing.get("manifest") or {}).get("name") or pack_id
+            name = (existing.get("manifest") or {}).get("name") or skill_id
             description = (existing.get("manifest") or {}).get("description") or why
             instructions = existing.get("instructions") or ""
             existing_names = {t.get("name") for t in (existing.get("tools") or [])}
@@ -607,25 +607,25 @@ def commit_skill_pack(
                     instructions = instructions.rstrip() + "\n\n" + fence + "\n"
                 else:
                     instructions = instructions.rstrip() + "\n\n## Declared tools (stubs)\n\n" + fence + "\n"
-            saved = cat.save_pack(pack_id, name, description, instructions)
+            saved = cat.save_skill(skill_id, name, description, instructions)
         else:
             instructions = (how.rstrip() + "\n\n## Declared tools (stubs)\n\n" + fence + "\n") if how.strip() else (
                 "## Declared tools (stubs)\n\n" + fence + "\n"
             )
-            saved = cat.save_pack(pack_id, pack_id, why, instructions)
+            saved = cat.save_skill(skill_id, skill_id, why, instructions)
     else:
         sop = how.strip()
         if dest_exists:
-            name = (existing.get("manifest") or {}).get("name") or pack_id
+            name = (existing.get("manifest") or {}).get("name") or skill_id
             description = (existing.get("manifest") or {}).get("description") or why
             instructions = existing.get("instructions") or ""
             if sop and sop not in instructions:
                 instructions = instructions.rstrip() + "\n\n## Workflow SOP\n\n" + sop + "\n"
-            saved = cat.save_pack(pack_id, name, description, instructions)
+            saved = cat.save_skill(skill_id, name, description, instructions)
         else:
-            heading = what or pack_id
+            heading = what or skill_id
             instructions = f"# {heading}\n\n{sop}".strip()
-            saved = cat.save_pack(pack_id, pack_id, why, instructions)
+            saved = cat.save_skill(skill_id, skill_id, why, instructions)
 
     if not saved.get("success"):
         return {
@@ -636,8 +636,8 @@ def commit_skill_pack(
             "disk_written": False,
             "src_written": False,
             "sprawl_warning": warning,
-            "pack_id": pack_id,
-            "error": saved.get("error") or "UserSkillCatalog.save_pack failed.",
+            "skill_id": skill_id,
+            "error": saved.get("error") or "UserSkillCatalog.save_skill failed.",
         }
 
     path = (saved.get("manifest") or {}).get("path")
@@ -649,7 +649,7 @@ def commit_skill_pack(
         "disk_written": True,
         "src_written": False,
         "path": path,
-        "pack_id": pack_id,
+        "skill_id": skill_id,
         "where": jailed,
         "sprawl_warning": warning,
         "python_builtin_note": payload.get("python_builtin_note"),

@@ -180,7 +180,7 @@ async def test_distill_turn_detects_missing_native_tool_and_escalates(test_env):
     assert len(result["tool_escalation"]["starter_objectives"]) >= 2
 
 
-def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):
+def test_adopt_skill_persists_to_user_skill_and_updates_manifest(test_env):
     """[REQ-SKIL-013] One-click adoption writes SKILL.md and registers in pack.json.
 
     CARD-502: adopt goes through the agent save path, so it needs the agent registry.

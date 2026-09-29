@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.unit.agent_packs.catalog import REPO_PLATFORM, load_platform_manifest, pack_dict
+from tests.unit.agent_skills.catalog import REPO_PLATFORM, load_platform_manifest, pack_dict
 
 SKILLS_ROOT = REPO_PLATFORM / "skills"
 

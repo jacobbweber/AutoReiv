@@ -12,7 +12,7 @@ from src.domain.gateway.models import ChatMessage, CompletionRequest, Completion
 from src.domain.kernel.models import AgentProfile
 from src.domain.memory.models import Session
 from src.domain.settings.models import ModelPurpose
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 def test_builtin_profiles_have_purposes():

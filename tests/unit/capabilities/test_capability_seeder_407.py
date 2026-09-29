@@ -105,7 +105,7 @@ def test_seed_builtin_capabilities_populates_trusted_entries(repo):
             "id": "wiki-curation",
             "title": "Wiki Curation",
             "description": "Curate inbox notes",
-            "pack_id": "librarian",
+            "skill_id": "librarian",
             "origin": "platform",
         }
     ]

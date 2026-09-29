@@ -33,7 +33,7 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(forgeJs).not.toContain('renderFleetSkills');
     expect(forgeJs).not.toContain('packOwnedIds');
     expect(forgeJs).not.toContain('Also ticked');
-    expect(forgeJs).not.toContain('ungrouped_pack_tools');
+    expect(forgeJs).not.toContain('ungrouped_skill_tool_list');
   });
 
   it('renders required platform tools with REQUIRED badge and disabled input [CARD-330]', () => {

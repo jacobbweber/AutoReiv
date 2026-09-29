@@ -189,7 +189,7 @@ async def test_builtin_agent_provider_override_persists(app):
         get_resp = await ac.get("/api/agents/autoreiv")
         assert get_resp.status_code == 200
         asst = get_resp.json()
-        assert asst["is_platform_pack"] is True
+        assert asst["is_platform_skill"] is True
         assert asst["provider"] == "default"
 
         update_payload = {

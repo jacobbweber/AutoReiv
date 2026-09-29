@@ -2,7 +2,7 @@
 
 from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.agent_skills.schema import CHAT_HIDDEN_BY_ID, is_visible_in_chat
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 def test_autoreiv_pack_profile_delegates_developer_capabilities():

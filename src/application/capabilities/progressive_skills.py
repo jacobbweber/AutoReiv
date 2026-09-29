@@ -96,7 +96,7 @@ def entry_to_resolve_view(entry: CapabilityIndexEntry) -> Dict[str, Any]:
     return data
 
 
-def pack_id_from_skill_capability_id(skill_id: str) -> str:
+def runbook_id_from_skill_capability_id(skill_id: str) -> str:
     """Map capability id `skill.<pack>` → pack id for UserSkillCatalog."""
     raw = (skill_id or "").strip().replace("\\", "/")
     if raw.startswith("skill."):
@@ -106,19 +106,19 @@ def pack_id_from_skill_capability_id(skill_id: str) -> str:
 
 def load_one_skill_body(catalog: Any, skill_id: str) -> Dict[str, Any]:
     """Load exactly one SKILL.md body via UserSkillCatalog / DynamicSkillLoader."""
-    pack_id = pack_id_from_skill_capability_id(skill_id)
+    runbook_id = runbook_id_from_skill_capability_id(skill_id)
     if catalog is None:
         return {
             "success": False,
             "error": "skill_catalog is not configured",
             "skill_id": skill_id,
-            "pack_id": pack_id,
+            "runbook_id": runbook_id,
         }
 
     loaded: Optional[Dict[str, Any]] = None
     load_body = getattr(catalog, "load_body", None)
     if callable(load_body):
-        loaded = load_body(pack_id)
+        loaded = load_body(runbook_id)
 
     if not loaded or not loaded.get("success"):
         from src.application.skills.dynamic_loader import DynamicSkillLoader
@@ -127,20 +127,20 @@ def load_one_skill_body(catalog: Any, skill_id: str) -> Dict[str, Any]:
         resolve_md = getattr(catalog, "resolve_skill_md", None)
         if callable(resolve_md):
             try:
-                path = resolve_md(pack_id)
+                path = resolve_md(runbook_id)
             except Exception:
                 path = None
         if path is None or not Path(path).is_file():
-            resolve_scoped = getattr(catalog, "resolve_pack_scoped_skill_md", None)
+            resolve_scoped = getattr(catalog, "resolve_skill_scoped_skill_md", None)
             if callable(resolve_scoped):
-                path = resolve_scoped(pack_id)
+                path = resolve_scoped(runbook_id)
         if path is not None and Path(path).is_file():
             parsed = DynamicSkillLoader.load_skill_from_markdown(str(path))
             if parsed:
                 loaded = {
                     "success": True,
-                    "id": pack_id,
-                    "name": parsed.get("name", pack_id),
+                    "id": runbook_id,
+                    "name": parsed.get("name", runbook_id),
                     "description": parsed.get("description", ""),
                     "path": parsed.get("path", str(path)),
                     "instructions": parsed.get("instructions", ""),
@@ -153,17 +153,17 @@ def load_one_skill_body(catalog: Any, skill_id: str) -> Dict[str, Any]:
     if not loaded or not loaded.get("success"):
         return {
             "success": False,
-            "error": (loaded or {}).get("error") or f"Failed to load SKILL.md for '{pack_id}'",
+            "error": (loaded or {}).get("error") or f"Failed to load SKILL.md for '{runbook_id}'",
             "skill_id": skill_id,
-            "pack_id": pack_id,
+            "runbook_id": runbook_id,
             "body_loaded": False,
         }
 
     return {
         "success": True,
         "skill_id": skill_id,
-        "pack_id": pack_id,
-        "title": loaded.get("name") or pack_id,
+        "runbook_id": runbook_id,
+        "title": loaded.get("name") or runbook_id,
         "description": loaded.get("description") or "",
         "path": loaded.get("path"),
         "body": loaded.get("instructions") or "",

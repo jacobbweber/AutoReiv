@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from src.application.orchestration.honesty_smoke_pack import (
+from src.application.orchestration.honesty_smoke_skill import (
     STRESS_CLASSES,
     classify_scenario,
-    evaluate_pack,
+    evaluate_skill,
     merge_gate_decision,
 )
 
@@ -63,7 +63,7 @@ def test_req_faud_268_honesty_and_pass_classify():
         {"id": "tool", "name": "tool", "classification": "tool", "red": [], "is_red": False},
         {"id": "p", "name": "pass", "classification": "pass", "red": [], "is_red": False},
     ]
-    pack = evaluate_pack(rows)
+    pack = evaluate_skill(rows)
     assert pack["ok"] is True
     gate = merge_gate_decision(pack)
     assert gate["allowed"] is True

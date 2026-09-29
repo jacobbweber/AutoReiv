@@ -58,7 +58,7 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
     for tool in (
         "propose_skill",
         "propose_tool",
-        "commit_skill_pack",
+        "commit_skill",
         "list_available_skills_and_tools",
     ):
         assert tool in names, tool

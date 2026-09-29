@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from src.domain.gateway.models import ToolDefinition
-from src.domain.skills.user_pack import UserSkillManifest
+from src.domain.skills.user_skill import UserSkillManifest
 
 logger = logging.getLogger(__name__)
 
@@ -107,15 +107,15 @@ class DynamicSkillLoader:
                 logger.warning("Skipping %s: agentskills.io frontmatter description is required", skill_file)
                 continue
             try:
-                pack_id = skill_file.parent.relative_to(root).as_posix()
+                skill_id = skill_file.parent.relative_to(root).as_posix()
             except ValueError:
-                pack_id = skill_file.parent.name
-            if pack_id in (".", ""):
-                pack_id = skill_file.parent.name or name.strip()
+                skill_id = skill_file.parent.name
+            if skill_id in (".", ""):
+                skill_id = skill_file.parent.name or name.strip()
 
             manifests.append(
                 UserSkillManifest(
-                    id=pack_id,
+                    id=skill_id,
                     name=name.strip(),
                     description=description.strip(),
                     path=str(skill_file),

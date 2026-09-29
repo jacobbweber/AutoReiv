@@ -404,7 +404,7 @@ CREATE TABLE IF NOT EXISTS scaffold_spine (
     kind TEXT NOT NULL,
     name TEXT NOT NULL,
     summary TEXT NOT NULL DEFAULT '',
-    pack_id TEXT NOT NULL,
+    skill_id TEXT NOT NULL,
     capability_id TEXT NOT NULL,
     phase TEXT NOT NULL DEFAULT 'draft',
     trust_tier TEXT NOT NULL DEFAULT 'candidate',
@@ -422,7 +422,7 @@ CREATE TABLE IF NOT EXISTS scaffold_spine (
 
 CREATE INDEX IF NOT EXISTS idx_scaffold_phase ON scaffold_spine(phase);
 CREATE INDEX IF NOT EXISTS idx_scaffold_trust ON scaffold_spine(trust_tier);
-CREATE INDEX IF NOT EXISTS idx_scaffold_pack ON scaffold_spine(pack_id);
+CREATE INDEX IF NOT EXISTS idx_scaffold_skill ON scaffold_spine(skill_id);
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SCAFFOLD_SPINE_SQL

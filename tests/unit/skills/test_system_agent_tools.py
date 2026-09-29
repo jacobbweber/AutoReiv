@@ -10,7 +10,7 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from tests.unit.agent_packs.catalog import platform_pack_profile
+from tests.unit.agent_skills.catalog import platform_pack_profile
 
 SYSTEM_AGENT_PROFILE = platform_pack_profile("autoreiv")
 
@@ -117,7 +117,7 @@ def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
     developer_names = {t.name for t in developer_tools}
     assert "execute_code" not in developer_names  # CARD-562: no shell/code runner on Developer
     assert "run_project_checks" in developer_names
-    assert "commit_skill_pack" not in developer_names  # CARD-562: tool building parked until slice 2
+    assert "commit_skill" not in developer_names  # CARD-562: tool building parked until slice 2
     assert "scaffold_agent_pack" not in developer_names
     assert "save_agent_specification" not in developer_names
 

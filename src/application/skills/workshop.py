@@ -237,7 +237,7 @@ def persist_workshop_skill(
         "tier": view["tier"],
         "safety": view["safety"],
         "skill_store_path": str(store_file),
-        "pack_skill_path": None,
+        "user_skill_path": None,
         "binding_store": "skill_md",
     }
 

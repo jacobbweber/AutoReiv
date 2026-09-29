@@ -37,7 +37,7 @@ def env(tmp_path):
     skills_dir = data_dir / "skills"
     skills_dir.mkdir(parents=True)
     catalog = UserSkillCatalog(skills_dir=skills_dir)
-    catalog.save_pack("okta-admin", "okta-admin", "Homelab Okta admin playbook.", "List users. Stub reset.")
+    catalog.save_skill("okta-admin", "okta-admin", "Homelab Okta admin playbook.", "List users. Stub reset.")
     skill_path = skills_dir / "okta-admin" / "SKILL.md"
     return {
         "tmp": tmp_path,
@@ -59,7 +59,7 @@ def _src_untouched(env) -> None:
         assert after.get(path) == mtime
 
 
-def _failed_turn(store, *, created_at=None, pack_id="okta-admin"):
+def _failed_turn(store, *, created_at=None, skill_id="okta-admin"):
     store.save_telemetry_span(
         TelemetrySpan(
             id="span_fail_1",
@@ -69,7 +69,7 @@ def _failed_turn(store, *, created_at=None, pack_id="okta-admin"):
             name="turn",
             success=False,
             error_message="okta_reset_or_unlock returned playbook stub",
-            metadata={"pack_id": pack_id, "tool_name": "okta_reset_or_unlock"},
+            metadata={"skill_id": skill_id, "tool_name": "okta_reset_or_unlock"},
             created_at=created_at or datetime.now(timezone.utc),
         )
     )

@@ -1,6 +1,6 @@
 ---
 name: Agent Capability Intake
-description: Use when the operator asks to teach an agent something, give it a new capability, or have it learn to do something new. Open with skill_view(pack_id="agent-authoring"). Inspect the agent, ask what is missing, then hand a tool or MCP need to the Developer, a skill to Skill Studio, and a new agent to Agent Studio.
+description: Use when the operator asks to teach an agent something, give it a new capability, or have it learn to do something new. Open with skill_view(skill_id="agent-authoring"). Inspect the agent, ask what is missing, then hand a tool or MCP need to the Developer, a skill to Skill Studio, and a new agent to Agent Studio.
 tools:
 - inspect_agent
 - lookup_agents

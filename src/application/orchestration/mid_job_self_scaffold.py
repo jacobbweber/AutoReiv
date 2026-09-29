@@ -26,7 +26,7 @@ from src.domain.capabilities.scaffold import ScaffoldPhase
 
 logger = logging.getLogger(__name__)
 
-_PACK_SLUG_RE = re.compile(r"[^a-z0-9]+")
+_SKILL_SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class MidJobCapabilityGap:
     match_count: int = 0
     suggested_kind: str = "skill"
     suggested_name: str = ""
-    suggested_pack_id: str = ""
+    suggested_skill_id: str = ""
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -49,12 +49,12 @@ class MidJobCapabilityGap:
             "match_count": self.match_count,
             "suggested_kind": self.suggested_kind,
             "suggested_name": self.suggested_name,
-            "suggested_pack_id": self.suggested_pack_id,
+            "suggested_skill_id": self.suggested_skill_id,
         }
 
 
 def _slug(text: str) -> str:
-    s = _PACK_SLUG_RE.sub("-", (text or "").strip().lower()).strip("-")
+    s = _SKILL_SLUG_RE.sub("-", (text or "").strip().lower()).strip("-")
     return (s or "scaffold-candidate")[:48]
 
 
@@ -93,7 +93,7 @@ def detect_mid_job_capability_gap(
         match_count=assessment.match_count,
         suggested_kind=kind,
         suggested_name=name,
-        suggested_pack_id=pack,
+        suggested_skill_id=pack,
     )
 
 
@@ -144,7 +144,7 @@ def apply_mid_job_scaffold_on_gap(
     gap: MidJobCapabilityGap,
     kind: str | None = None,
     name: str | None = None,
-    pack_id: str | None = None,
+    skill_id: str | None = None,
     summary: str = "",
     content: str = "",
     park: bool = True,
@@ -169,7 +169,7 @@ def apply_mid_job_scaffold_on_gap(
 
     k = (kind or gap.suggested_kind or "skill").strip().lower()
     nm = (name or gap.suggested_name or "scaffold-candidate").strip()
-    pid = (pack_id or gap.suggested_pack_id or _slug(nm)).strip()
+    pid = (skill_id or gap.suggested_skill_id or _slug(nm)).strip()
     summ = (summary or f"Mid-job candidate for gap: {gap.reason}").strip()
     body = content or f"# {nm}\n\nCandidate scaffold for: {gap.reason}\n"
 
@@ -187,7 +187,7 @@ def apply_mid_job_scaffold_on_gap(
     rec = spine.draft(
         kind=k,
         name=nm,
-        pack_id=pid,
+        skill_id=pid,
         summary=summ,
         content=body,
         keywords=[nm, pid, "scaffold", "candidate", "mid_job", *list(gap.missing_families)],

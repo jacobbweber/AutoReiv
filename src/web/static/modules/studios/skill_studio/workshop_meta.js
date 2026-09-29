@@ -38,7 +38,7 @@ export function applyLoadedSkillView(data = {}, skillId = '') {
 }
 
 /**
- * Plan a Skill Studio delete against the existing user-pack endpoint.
+ * Plan a Skill Studio delete against the existing user-skill endpoint.
  * Refuses unless the loaded skill is deletable and the operator confirmed.
  * Never sends confirm_seed.
  */
@@ -51,7 +51,7 @@ export function skillDeleteRequest(skillId, { confirmed = false, deletable = fal
   return {
     allowed: true,
     method: 'DELETE',
-    url: `/api/skills/user-packs/${encoded}?confirm=true`,
+    url: `/api/skills/user-skills/${encoded}?confirm=true`,
   };
 }
 
