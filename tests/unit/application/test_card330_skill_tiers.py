@@ -30,7 +30,6 @@ def test_required_platform_skills_automatically_granted():
         description='A test agent',
         system_prompt='test',
         allowed_skill=[],
-        pack_tool_names=[],
     )
     scoped = resolve_scoped_tools(agent)
     for tool in REQUIRED_PLATFORM_TOOLS:
@@ -52,7 +51,6 @@ def test_optional_platform_skills_toggleable():
         description='Plain',
         system_prompt='test',
         allowed_skill=[],
-        pack_tool_names=[],
     )
     scoped_without = resolve_scoped_tools(agent_without)
     assert 'execute_code' not in scoped_without
@@ -63,7 +61,6 @@ def test_optional_platform_skills_toggleable():
         description='Coder',
         system_prompt='test',
         allowed_skill=['sandbox'],
-        pack_tool_names=[],
     )
     scoped_with = resolve_scoped_tools(agent_with_sandbox)
     assert 'execute_code' in scoped_with
@@ -76,7 +73,6 @@ def test_pack_skills_strictly_isolated():
         description='A',
         system_prompt='test',
         allowed_skill=[],
-        pack_tool_names=['special_tool_a'],
     )
     agent_b = AgentProfile(
         id='agent_b',
@@ -84,7 +80,6 @@ def test_pack_skills_strictly_isolated():
         description='B',
         system_prompt='test',
         allowed_skill=[],
-        pack_tool_names=['special_tool_b'],
     )
     scoped_a = resolve_scoped_tools(agent_a)
     scoped_b = resolve_scoped_tools(agent_b)
@@ -118,7 +113,6 @@ def test_tool_registry_scoping_prevents_prompt_bloat():
         description='Worker',
         system_prompt='test',
         allowed_skill=['sandbox'],
-        pack_tool_names=['pack_exclusive_tool'],
     )
 
     tools_for_agent = registry.get_tools_for_agent(agent)

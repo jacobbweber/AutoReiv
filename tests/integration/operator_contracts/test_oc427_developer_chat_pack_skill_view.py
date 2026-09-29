@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.skills.user_catalog import SKILL_VIEW, render_skill_index
 from src.domain.gateway.models import ToolCall
@@ -67,9 +68,7 @@ def _mark_developer(registry, store, prompt: str) -> None:
         AgentCustomization(
             agent_id="developer",
             system_prompt=prompt,
-            allowed_tool_names=list(developer.allowed_tool_names or []),
             allowed_skill=list(developer.allowed_skill or []),
-            pack_tool_names=list(developer.pack_tool_names or []),
             mcp_servers=list(getattr(existing, "mcp_servers", None) or getattr(developer, "mcp_servers", None) or []),
             user_modified=True,
         )
@@ -107,7 +106,7 @@ def test_oc427_developer_chat_opens_pack_skill_with_warning_and_does_not_copy(op
     developer = registry.get_agent("developer")
     assert developer is not None
     assert NATIVE_SKILL in (developer.allowed_skill or [])
-    tools_before = list(developer.allowed_tool_names or [])
+    tools_before = list(resolve_allowed_tools(developer))
 
     live.write_text(OLDER_SKILL, encoding="utf-8")
     unrelated.parent.mkdir(parents=True, exist_ok=True)
@@ -167,7 +166,7 @@ def test_oc427_developer_chat_opens_pack_skill_with_warning_and_does_not_copy(op
 
     assert not operator_copy.exists(), "REQ-427-002 FAIL: pack runbook was copied into $DATA_DIR/skills/"
     assert not (operator_copy / "SKILL.md").exists()
-    assert list(developer.allowed_tool_names or []) == tools_before
+    assert list(resolve_allowed_tools(developer)) == tools_before
     assert developer.system_prompt == prompt
     assert store.get_agent_profile("developer").system_prompt == prompt
     override = store.get_agent_override("developer")

@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.domain.kernel.models import AgentProfile
 from src.domain.routines.manifests import SKILL_EVAL_SLEEP_ROUTINE
 from src.domain.settings.models import AgentCustomization
@@ -58,7 +59,7 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
 
     developer = registry.get_agent("developer")
     assert developer is not None
-    names = set(developer.allowed_tool_names or [])
+    names = set(resolve_allowed_tools(developer))
     for tool in (
         "propose_skill",
         "propose_tool",
@@ -180,8 +181,8 @@ def test_oc429_user_modified_developer_gains_authoring_without_prompt_rewrite(op
         "export_agent_pack",
         "import_agent_pack",
     }
-    allowed = [name for name in (developer.allowed_tool_names or []) if name not in drop]
-    pack_tools = [name for name in (developer.pack_tool_names or []) if name not in drop]
+    allowed = [name for name in list(resolve_allowed_tools(developer)) if name not in drop]
+    pack_tools = [name for name in list(resolve_allowed_tools(developer)) if name not in drop]
     developer.system_prompt = prompt
     developer.allowed_skill = list(skills)
     developer.allowed_tool_names = list(allowed)
@@ -193,9 +194,7 @@ def test_oc429_user_modified_developer_gains_authoring_without_prompt_rewrite(op
         AgentCustomization(
             agent_id="developer",
             system_prompt=prompt,
-            allowed_tool_names=list(allowed),
             allowed_skill=list(skills),
-            pack_tool_names=list(pack_tools),
             user_modified=True,
         )
     )
@@ -205,7 +204,7 @@ def test_oc429_user_modified_developer_gains_authoring_without_prompt_rewrite(op
     assert after is not None
     assert after.system_prompt == prompt
     assert "capability-authoring" in (after.allowed_skill or [])
-    assert "propose_skill" in (after.allowed_tool_names or [])
-    assert "scaffold_agent_pack" in (after.allowed_tool_names or [])
-    assert "save_agent_specification" not in (after.allowed_tool_names or [])
-    assert "cli_exec" in (after.allowed_tool_names or []) or "execute_code" in (after.allowed_tool_names or [])
+    assert "propose_skill" in list(resolve_allowed_tools(after))
+    assert "scaffold_agent_pack" in list(resolve_allowed_tools(after))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(after))
+    assert "cli_exec" in list(resolve_allowed_tools(after)) or "execute_code" in list(resolve_allowed_tools(after))

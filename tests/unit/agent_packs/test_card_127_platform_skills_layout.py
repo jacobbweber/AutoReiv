@@ -1,6 +1,7 @@
 """CARD-127: Platform skills and agent pack studio layout."""
 
 from src.application.agent_packs.allowed_tools import platform_seed_tools as tools_for_platform_skills
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.schema import (
     PLATFORM_SKILL_IDS,
     PLATFORM_SKILL_METADATA,
@@ -62,7 +63,7 @@ def test_developer_is_separate_platform_pack():
 
     autoreiv_manifest = load_platform_manifest("autoreiv")
     assert "sdlc-engineering" not in {s.id for s in autoreiv_manifest.skills}
-    assert "cli_exec" not in autoreiv_manifest.pack_tool_names
+    assert "cli_exec" not in list(resolve_allowed_tools(autoreiv_manifest))
 
 
 def test_autoreiv_pack_dedicated_and_platform_skills():
@@ -87,9 +88,9 @@ def test_autoreiv_pack_dedicated_and_platform_skills():
     assert "wiki-curation" in manifest.allowed_skill
     assert "coordination" in manifest.allowed_skill
     assert "proposals" in manifest.allowed_skill
-    assert "system_info" in manifest.pack_tool_names
-    assert "inspect_system_health" in manifest.pack_tool_names
-    assert "handoff_to_agent" in manifest.pack_tool_names
-    assert "propose_skill" in manifest.pack_tool_names
-    assert "wiki_note_create" in manifest.pack_tool_names
-    assert "get_or_create_weekly_note" not in manifest.pack_tool_names
+    assert "system_info" in [t for s in manifest.skills for t in s.tools]
+    assert "inspect_system_health" in [t for s in manifest.skills for t in s.tools]
+    assert "handoff_to_agent" in [t for s in manifest.skills for t in s.tools]
+    assert "propose_skill" in [t for s in manifest.skills for t in s.tools]
+    assert "wiki_note_create" in [t for s in manifest.skills for t in s.tools]
+    assert "get_or_create_weekly_note" not in [t for s in manifest.skills for t in s.tools]

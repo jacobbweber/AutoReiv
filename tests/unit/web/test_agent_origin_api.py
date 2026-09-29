@@ -31,7 +31,7 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
 
         assert "agent-builder" not in agent_map
         dev = agent_map["developer"]
-        assert "run_project_checks" in (dev.get("allowed_tool_names") or dev.get("allowed_tools") or [])  # CARD-562
+        assert "run_project_checks" in (dev.get("allowed_tools") or [])  # CARD-562
 
         # 2. Create agent pack and verify origin is "pack"
         custom_payload = {
@@ -39,7 +39,6 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
             "name": "Operator Assistant",
             "description": "Custom agent",
             "system_prompt": "You are a custom operator assistant for daily tasks.",
-            "allowed_tool_names": [],
         }
         create_resp = await ac.post("/api/agents", json=custom_payload)
         assert create_resp.status_code == 200

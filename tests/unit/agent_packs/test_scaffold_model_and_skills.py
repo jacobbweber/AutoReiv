@@ -29,7 +29,6 @@ def test_scaffold_pack_normalizes_provider_names_to_default_model(isolated_servi
         "system_prompt": "You are a test agent.",
         "model": "ollama",  # Should be normalized to default
         "purpose": "task_execution",
-        "pack_tool_names": ["cli_exec", "system_info"],
         "skills": [
             {
                 "id": "coding-sop",
@@ -42,7 +41,6 @@ def test_scaffold_pack_normalizes_provider_names_to_default_model(isolated_servi
     folder = svc.scaffold_pack(spec)
     pack_data = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
     assert pack_data["model"] == "default"
-    assert pack_data["skills"][0]["tools"] == ["cli_exec", "system_info"]
 
 
 def test_kernel_resolves_agent_configured_provider_and_model(isolated_service):

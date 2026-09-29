@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.schema import (
     PACK_SCHEMA_VERSION,
     AgentPackManifest,
@@ -33,7 +34,7 @@ def test_pack_manifest_roundtrip():
     loaded = AgentPackManifest.model_validate(dumped)
     assert loaded.id == "eu-c-specialist"
     assert loaded.allowed_skill == ["user-provisioning"]
-    assert loaded.pack_tool_names == ["system_info"]  # read-only union of skill tools (CARD-541)
+    assert [t for s in loaded.skills for t in s.tools] == ["system_info"]  # read-only union of skill tools (CARD-541)
     assert "pack_tool_names" not in dumped and "allowed_tool_names" not in dumped
     assert loaded.show_in_chat is False
     assert "input_packet_json" not in dumped
@@ -49,7 +50,6 @@ def test_show_in_chat_defaults_true_on_profile():
         system_prompt="You are a custom specialist.",
     )
     assert profile.show_in_chat is True
-    assert profile.pack_tool_names == []
 
 
 def test_builtins_show_in_chat_agent_builder_hidden():
@@ -90,12 +90,12 @@ def test_is_visible_in_chat_sdlc_pack_ids():
 
 def test_autoreiv_has_pack_tools_and_runbook():
     profile = platform_pack_profile("autoreiv")
-    assert "export_agent_pack" in profile.allowed_tool_names
-    assert "import_agent_pack" in profile.allowed_tool_names
-    assert "scaffold_agent_pack" in profile.allowed_tool_names
+    assert "export_agent_pack" in list(resolve_allowed_tools(profile))
+    assert "import_agent_pack" in list(resolve_allowed_tools(profile))
+    assert "scaffold_agent_pack" in list(resolve_allowed_tools(profile))
     assert "build-agent-pack" in profile.allowed_skill
     assert "proposals" in profile.allowed_skill
-    assert "save_agent_specification" not in profile.allowed_tool_names
+    assert "save_agent_specification" not in list(resolve_allowed_tools(profile))
 
 
 def test_pack_schema_version_is_1_1():
@@ -116,45 +116,12 @@ def test_nested_skills_derive_compat_lists():
         }
     )
     assert manifest.allowed_skill == ["user-provisioning", "endpoint-audit"]
-    assert manifest.pack_tool_names == ["system_info", "wiki_note_read"]
+    assert [t for s in manifest.skills for t in s.tools] == ["system_info", "wiki_note_read"]
     assert manifest.skills[0].tools == ["system_info"]
     assert manifest.skills[1].tools == ["wiki_note_read"]
     dumped = manifest.model_dump(mode="json")
     assert dumped["skills"][0]["tools"] == ["system_info"]
     assert dumped["skills"][1]["tools"] == ["wiki_note_read"]
-
-
-def test_legacy_1_0_sibling_lists_still_validate():
-    manifest = AgentPackManifest.model_validate(
-        {
-            "schema_version": "1.0",
-            "id": "legacy-bot",
-            "name": "Legacy Bot",
-            "allowed_skill": ["user-provisioning"],
-            "pack_tool_names": ["system_info"],
-        }
-    )
-    assert manifest.allowed_skill == ["user-provisioning"]
-    assert manifest.pack_tool_names == []  # CARD-541: the flat list is ignored with a note
-    assert manifest.ignored_tool_lists == ["pack_tool_names"]
-    assert manifest.skills[0].id == "user-provisioning"
-    assert manifest.skills[0].tools == []
-
-
-def test_leftover_top_level_tools_are_ignored_not_merged():
-    """CARD-541: a flat pack_tool_names next to nested skills is ignored (was merged before)."""
-    manifest = AgentPackManifest.model_validate(
-        {
-            "id": "mixed-bot",
-            "name": "Mixed Bot",
-            "skills": [{"id": "alpha", "tools": ["system_info"]}],
-            "pack_tool_names": ["wiki_note_read"],
-        }
-    )
-    assert manifest.pack_tool_names == ["system_info"]
-    assert manifest.skills[0].tools == ["system_info"]
-    assert manifest.ignored_tool_lists == ["pack_tool_names"]
-    assert "pack_tool_names" not in manifest.model_dump(mode="json")
 
 
 def test_extra_allowed_skill_is_not_pack_owned():

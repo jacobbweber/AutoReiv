@@ -110,7 +110,7 @@ class AgentProfileGuardrail:
             raise AgentValidationError("history_retention_days must be >= 0 (0 means never delete).")
 
         # 7. Validate Allowed Tools against Catalog (Defensive anti-hallucination check)
-        raw_tools = payload.get("allowed_tools") or payload.get("allowed_tool_names") or []
+        raw_tools = payload.get("allowed_tools") or []
         allowed_tools = [str(t).strip() for t in raw_tools if str(t).strip()]
 
         if available_tools is not None:
@@ -122,9 +122,6 @@ class AgentProfileGuardrail:
         if raw_skills is None:
             raw_skills = payload.get("allowed_skills") or []
         allowed_skill = [str(s).strip() for s in raw_skills if str(s).strip()]
-
-        raw_pack_tools = payload.get("pack_tool_names") or []
-        pack_tool_names = [str(t).strip() for t in raw_pack_tools if str(t).strip()]
 
         if "show_in_chat" not in payload or payload.get("show_in_chat") is None:
             show_in_chat = True
@@ -252,9 +249,7 @@ class AgentProfileGuardrail:
             tone=tone,
             avatar_icon=avatar_icon,
             model=model_override,
-            allowed_tool_names=allowed_tools,
             allowed_skill=allowed_skill,
-            pack_tool_names=pack_tool_names,
             show_in_chat=show_in_chat,
             visibility=visibility,
             fleet=fleet,

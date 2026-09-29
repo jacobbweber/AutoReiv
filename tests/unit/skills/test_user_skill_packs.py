@@ -165,7 +165,6 @@ async def test_user_pack_tools_respect_forge_allowlist(tmp_path):
         name="No packs",
         description="No user packs",
         system_prompt="x",
-        allowed_tool_names=["wiki_note_create"],
     )
     view_call = ToolCall(id="c1", name=SKILL_VIEW, arguments={"pack_id": "weekly-review"})
     view_res = await tool_reg.execute(view_call, denied)
@@ -182,7 +181,6 @@ async def test_user_pack_tools_respect_forge_allowlist(tmp_path):
         name="Assistant like",
         description="Has disclosure tools",
         system_prompt="x",
-        allowed_tool_names=[LIST_USER_SKILL_PACKS, SKILL_VIEW],
         allowed_skill=["weekly-review"],
     )
     list_call = ToolCall(id="c3", name=LIST_USER_SKILL_PACKS, arguments={})

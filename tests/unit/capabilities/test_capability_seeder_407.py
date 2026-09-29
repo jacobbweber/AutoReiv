@@ -61,7 +61,6 @@ class DummyProfile:
         id: str,
         name: str,
         description: str,
-        pack_tool_names: list[str],
         skills: list[DummySkill],
         allowed_skill: list[str] | None = None,
     ):
@@ -69,7 +68,6 @@ class DummyProfile:
         self.id = id
         self.name = name
         self.description = description
-        self.pack_tool_names = pack_tool_names
         self.skills = skills
 
 
@@ -96,7 +94,6 @@ def test_seed_builtin_capabilities_populates_trusted_entries(repo):
         id="autoreiv",
         name="AutoReiv",
         description="Autonomous platform assistant",
-        pack_tool_names=["inspect_system_health", "wiki_note_create"],
         skills=[skill_health],
         allowed_skill=["platform-health"],
     )

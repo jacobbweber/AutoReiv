@@ -334,7 +334,6 @@ async def test_kernel_failed_turn_parks_one_draft(env):
         description="t",
         system_prompt="x",
         tone=AgentTone.FRIENDLY,
-        allowed_tool_names=[],
     )
     session = env["store"].create_session(agent_id=profile.id, title="ace fail")
     skill_before = env["skill_path"].read_bytes()
@@ -385,7 +384,6 @@ async def test_kernel_success_does_not_write_skill_md(env):
         description="t",
         system_prompt="x",
         tone=AgentTone.FRIENDLY,
-        allowed_tool_names=[],
     )
     session = env["store"].create_session(agent_id=profile.id, title="ace ok")
     skill_before = env["skill_path"].read_bytes()

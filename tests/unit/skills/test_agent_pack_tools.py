@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.skills.agent_pack_tools import AgentPackTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
@@ -33,7 +34,6 @@ async def test_autoreiv_pack_tools_scaffold_export_import(tmp_path):
         "system_prompt": "You are a pack-imported specialist.",
         "tone": "concise",
         "purpose": "general",
-        "pack_tool_names": ["system_info"],
         "show_in_chat": True,
         "skills": [
             {
@@ -60,12 +60,10 @@ async def test_autoreiv_pack_tools_scaffold_export_import(tmp_path):
     profile = registry.get_agent("pack-bot")
     assert profile is not None
     assert profile.show_in_chat is True
-    assert "system_info" in profile.pack_tool_names
-    assert "system_info" in profile.allowed_tool_names
     assert "pack-runbook" in profile.allowed_skill
     direct = registry.get_agent("direct")
-    assert "export_agent_pack" not in direct.allowed_tool_names
-    assert "scaffold_agent_pack" not in direct.allowed_tool_names
+    assert "export_agent_pack" not in list(resolve_allowed_tools(direct))
+    assert "scaffold_agent_pack" not in list(resolve_allowed_tools(direct))
 
 
 def test_pack_tool_descriptions_distinguish_write_from_folder(tmp_path):

@@ -90,7 +90,6 @@ async def test_child_stream_turn_does_not_apply_32k_run_turn_cap(store):
         description="coder",
         system_prompt="You write code.",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=[],
         max_turns=5,
     )
     agents = BuiltinAgentRegistry(profiles=[profile], state_store=store)

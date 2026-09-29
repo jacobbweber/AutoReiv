@@ -55,7 +55,6 @@ async def test_agent_forge_crud_api(app):
             "tone": "technical",
             "avatar_icon": "shield-alert",
             "model": "default",
-            "allowed_tool_names": ["system_info", "verify_telemetry_consistency"],
             "max_turns": 10,
         }
         create_resp = await ac.post("/api/agents", json=new_agent)
@@ -79,7 +78,6 @@ async def test_agent_forge_crud_api(app):
             "tone": "technical",
             "avatar_icon": "shield",
             "model": "default",
-            "allowed_tool_names": ["system_info"],
             "max_turns": 15,
         }
         put_resp = await ac.put("/api/agents/security-auditor", json=update_payload)
@@ -127,7 +125,6 @@ async def test_custom_agent_purpose_persists(app):
                 "tone": worker.get("tone") or "default",
                 "avatar_icon": worker.get("avatar_icon") or "bot",
                 "model": worker.get("model") or "default",
-                "allowed_tool_names": worker.get("allowed_tool_names") or [],
                 "max_turns": worker.get("max_turns") or 10,
             },
         )
@@ -151,7 +148,6 @@ async def test_custom_agent_provider_persists(app):
             "model": "deepseek-coder",
             "tone": "technical",
             "avatar_icon": "bot",
-            "allowed_tool_names": [],
             "max_turns": 10,
         }
         create_resp = await ac.post("/api/agents", json=new_agent)
@@ -173,7 +169,6 @@ async def test_custom_agent_provider_persists(app):
             "model": "gpt-4o-mini",
             "tone": "technical",
             "avatar_icon": "bot",
-            "allowed_tool_names": [],
             "max_turns": 10,
         }
         put_resp = await ac.put("/api/agents/deepseek-specialist", json=update_payload)
@@ -205,7 +200,6 @@ async def test_builtin_agent_provider_override_persists(app):
             "model": "claude-3-5-sonnet",
             "tone": asst.get("tone") or "default",
             "avatar_icon": asst.get("avatar_icon") or "bot",
-            "allowed_tool_names": asst.get("allowed_tool_names") or [],
             "max_turns": asst.get("max_turns") or 10,
         }
         put_resp = await ac.put("/api/agents/autoreiv", json=update_payload)

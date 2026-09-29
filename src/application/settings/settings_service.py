@@ -72,7 +72,6 @@ class SettingsService:
                 existing=existing,
                 new_prompt=getattr(customization, "system_prompt", None),
                 new_skills=list(getattr(customization, "allowed_skill", None) or []) or None,
-                new_tools=list(getattr(customization, "allowed_tool_names", None) or []) or None,
                 store=self.state_store,
                 pack_id=customization.agent_id,
                 stock_skills=list(getattr(existing, "allowed_skill", None) or []),
@@ -113,8 +112,6 @@ class SettingsService:
             updates["system_prompt"] = override.system_prompt
         if override.model is not None:
             updates["model"] = override.model
-        if override.allowed_tool_names is not None:
-            updates["allowed_tool_names"] = override.allowed_tool_names
         if override.allowed_skill is not None:
             updates["allowed_skill"] = override.allowed_skill
         if override.max_turns is not None:

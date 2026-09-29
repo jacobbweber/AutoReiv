@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.service import AgentPackService
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
@@ -184,16 +185,14 @@ class AgentPackTools:
 
         # Extract tools and skills from profile
         tools_list: list[str] = []
-        if getattr(profile, "pack_tool_names", None):
-            tools_list.extend(profile.pack_tool_names)
         if getattr(profile, "skills", None):
             for s in profile.skills:
                 if hasattr(s, "tools") and s.tools:
                     tools_list.extend(s.tools)
                 elif isinstance(s, dict) and "tools" in s:
                     tools_list.extend(s["tools"])
-        if not tools_list and getattr(profile, "allowed_tool_names", None):
-            tools_list.extend(profile.allowed_tool_names)
+        if not tools_list and not getattr(profile, "skills", None):
+            tools_list.extend(resolve_allowed_tools(profile))
 
         skills_list: list[str] = []
         if getattr(profile, "skills", None):
@@ -239,7 +238,7 @@ class AgentPackTools:
                 "agent_id": profile.id,
                 "name": profile.name,
                 "show_in_chat": profile.show_in_chat,
-                "pack_tool_names": list(profile.pack_tool_names or []),
+                "tools": sorted(resolve_allowed_tools(profile)),
                 "allowed_skill": list(profile.allowed_skill or []),
             }
         except (KeyError, ValueError, FileNotFoundError, OSError) as exc:
@@ -259,7 +258,7 @@ class AgentPackTools:
                 "name": profile.name,
                 "folder": str(folder),
                 "show_in_chat": profile.show_in_chat,
-                "pack_tool_names": list(profile.pack_tool_names or []),
+                "tools": sorted(resolve_allowed_tools(profile)),
                 "allowed_skill": list(profile.allowed_skill or []),
             }
         except (KeyError, ValueError, FileNotFoundError, OSError) as exc:

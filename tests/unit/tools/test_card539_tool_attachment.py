@@ -31,7 +31,7 @@ class _Agents:
         self.store = store
         self.base = AgentProfile(
             id="autoreiv", name="AutoReiv", description="d", system_prompt="p",
-            allowed_skill=["wiki-knowledge"], allowed_tool_names=["recall_agent_memory"], is_builtin=True,
+            allowed_skill=["wiki-knowledge"], is_builtin=True,
         )
 
     def get_agent(self, agent_id):
@@ -41,8 +41,6 @@ class _Agents:
         prof = self.base.model_copy()
         if ov and ov.allowed_skill is not None:
             prof.allowed_skill = list(ov.allowed_skill)
-        if ov and ov.allowed_tool_names is not None:
-            prof.allowed_tool_names = list(ov.allowed_tool_names)
         return prof
 
 

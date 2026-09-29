@@ -12,8 +12,6 @@ import { closeModal, openModal, setupModal } from '../../ui/modal.js';
 const FIELD_WORDS = {
   system_prompt: 'system prompt',
   allowed_skill: 'skill list',
-  pack_tool_names: 'tool list',
-  allowed_tool_names: 'tool list',
   max_turns: 'max turns',
   model: 'model',
 };
@@ -25,7 +23,6 @@ export const RESET_REPLACED = [
   'System prompt (instructions)',
   'Skill files that ship with this agent (retired platform skills are removed)',
   'Which skills are on (skills you turned off come back on)',
-  'Platform tool list',
 ];
 
 /** Kept on reset: max turns/model are preserved; promotion never touches the rest. */
@@ -155,7 +152,7 @@ export function renderBackupsListMarkup(backups) {
 export function restoreDialogMessage(backup) {
   const t = formatBackupTime(backup && backup.backed_up_at);
   return (
-    `Restore the instructions, skill list, tool list, max turns, and model saved on ${t.label}? ` +
+    `Restore the instructions, skill list, max turns, and model saved on ${t.label}? ` +
     'Skill files on disk are not changed. The agent will count as customized, so platform updates will skip it ' +
     'until you reset it again. If "Keep my agent customizations" is off in Settings, the next platform update ' +
     'resets it anyway (a backup is saved first).'

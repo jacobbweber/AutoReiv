@@ -101,9 +101,7 @@ def _mark_developer(registry, store, prompt: str) -> None:
         AgentCustomization(
             agent_id="developer",
             system_prompt=prompt,
-            allowed_tool_names=list(developer.allowed_tool_names or []),
             allowed_skill=list(developer.allowed_skill or []),
-            pack_tool_names=list(developer.pack_tool_names or []),
             mcp_servers=list(getattr(existing, "mcp_servers", None) or getattr(developer, "mcp_servers", None) or []),
             user_modified=True,
         )

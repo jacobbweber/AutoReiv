@@ -46,8 +46,6 @@ def test_read_document_file_is_a_required_platform_tool_d3(env):
 def test_legacy_tool_lists_grant_nothing(env):
     agent = _agent(
         allowed_skill=["wiki-knowledge"],
-        allowed_tool_names=["get_weather", "execute_code"],
-        pack_tool_names=["cli_exec"],
     )
     names = resolve_allowed_tools(agent).names
     assert not {"get_weather", "execute_code", "cli_exec"} & names

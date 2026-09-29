@@ -33,7 +33,6 @@ def test_sqlite_custom_agent_crud(temp_store):
         tone=AgentTone.TECHNICAL,
         avatar_icon="shield",
         model="default",
-        allowed_tool_names=["system_info", "cli_exec"],
         max_turns=12,
         is_builtin=False,
     )
@@ -49,7 +48,6 @@ def test_sqlite_custom_agent_crud(temp_store):
     assert fetched.purpose == ModelPurpose.TASK_EXECUTION
     assert fetched.tone == AgentTone.TECHNICAL
     assert fetched.avatar_icon == "shield"
-    assert fetched.allowed_tool_names == ["system_info", "cli_exec"]
     assert fetched.max_turns == 12
     assert fetched.is_builtin is False
 

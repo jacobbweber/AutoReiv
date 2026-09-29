@@ -855,7 +855,6 @@ async def customize_agent(request: Request, agent_id: str, custom: AgentCustomiz
             existing=existing,
             new_prompt=getattr(custom, "system_prompt", None),
             new_skills=list(getattr(custom, "allowed_skill", None) or []) or None,
-            new_tools=list(getattr(custom, "allowed_tool_names", None) or []) or None,
             store=store,
             pack_id=agent_id,
             stock_skills=list(getattr(existing, "allowed_skill", None) or []),

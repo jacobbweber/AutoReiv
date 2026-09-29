@@ -88,8 +88,6 @@ def _write_pack(root: Path, pack_id: str, *, prompt: str, skills: list[str], ski
         "system_prompt": prompt,
         "allowed_skill": list(skills),
         "skills": [{"id": s, "name": s, "description": s, "tools": ["wiki_note_read"]} for s in skills],
-        "pack_tool_names": ["wiki_note_read"],
-        "allowed_tool_names": ["wiki_note_read"],
         "model": "default",
         "show_in_chat": True,
     }
@@ -107,8 +105,6 @@ def _profile(pack_id: str, *, prompt: str, skills: list[str], user_modified: boo
         tone=AgentTone.DEFAULT,
         purpose=ModelPurpose.TASK_EXECUTION,
         allowed_skill=list(skills),
-        pack_tool_names=["wiki_note_read"],
-        allowed_tool_names=["wiki_note_read"],
         user_modified=user_modified,
         seed_content_hash=seed_hash,
         seed_version="1",
@@ -146,7 +142,6 @@ def test_clean_promotion_copies_stale_appdata_and_resyncs_profile(tmp_path: Path
                 "system_prompt": "STALE",
                 "allowed_skill": ["skill-a"],
                 "skills": [{"id": "skill-a", "name": "a", "description": "", "tools": []}],
-                "pack_tool_names": ["wiki_note_read"],
                 "memory": {"enabled": True, "pinned_memory": "keep"},
             }
         ),
@@ -207,7 +202,6 @@ def test_stale_destination_repair_removes_platform_retired_skill(tmp_path: Path,
                     {"id": "skill-a", "name": "a", "description": "", "tools": []},
                     {"id": "skill-b", "name": "b", "description": "", "tools": []},
                 ],
-                "pack_tool_names": ["wiki_note_read"],
             }
         ),
         encoding="utf-8",
@@ -251,7 +245,6 @@ def test_user_modified_refusal_is_deterministic(tmp_path: Path, fixture_checkout
                 "system_prompt": "OPERATOR PROMPT",
                 "allowed_skill": ["skill-a"],
                 "skills": [{"id": "skill-a", "name": "a", "description": "", "tools": []}],
-                "pack_tool_names": ["wiki_note_read"],
             }
         ),
         encoding="utf-8",
@@ -307,7 +300,6 @@ def test_stored_profile_resync_preserves_max_turns_and_model(tmp_path: Path, fix
                 "system_prompt": "SHIPPED PROMPT V1",
                 "allowed_skill": ["skill-a"],
                 "skills": [{"id": "skill-a", "name": "a", "description": "", "tools": []}],
-                "pack_tool_names": ["wiki_note_read"],
             }
         ),
         encoding="utf-8",
@@ -353,7 +345,6 @@ def test_operator_edited_prompt_skips_prompt_field_only(tmp_path: Path, fixture_
                 "system_prompt": "OPERATOR EDITED PROMPT",
                 "allowed_skill": ["skill-a"],
                 "skills": [{"id": "skill-a", "name": "a", "description": "", "tools": []}],
-                "pack_tool_names": ["wiki_note_read"],
             }
         ),
         encoding="utf-8",
@@ -402,7 +393,6 @@ def test_install_platform_agent_packs_delegates_and_persists_report(tmp_path: Pa
                 "system_prompt": "STALE",
                 "allowed_skill": ["skill-a"],
                 "skills": [{"id": "skill-a", "name": "a", "description": "", "tools": []}],
-                "pack_tool_names": ["wiki_note_read"],
             }
         ),
         encoding="utf-8",

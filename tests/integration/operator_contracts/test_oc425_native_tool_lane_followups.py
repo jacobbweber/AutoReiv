@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization, MCPServerConfig
@@ -61,13 +62,13 @@ def test_oc425_user_modified_developer_gains_native_skill_without_clobber(operat
     assert developer is not None
     prompt = f"{PROMPT_MARK}\n{developer.system_prompt}"
     allowed = [
-        name for name in (developer.allowed_tool_names or []) if name not in NATIVE_TOOLS and name != REMOVED_TOOL
+        name for name in list(resolve_allowed_tools(developer)) if name not in NATIVE_TOOLS and name != REMOVED_TOOL
     ]
     assert REMOVED_TOOL not in allowed
     allowed.append(KEPT_TOOL)
     skills = [sid for sid in (developer.allowed_skill or []) if sid != NATIVE_SKILL]
     skills.append("operator-custom-skill")
-    pack_tools = [name for name in (developer.pack_tool_names or []) if name not in NATIVE_TOOLS]
+    pack_tools = [name for name in list(resolve_allowed_tools(developer)) if name not in NATIVE_TOOLS]
     mcp = [MCPServerConfig(name=MCP_NAME, command=["python", "-c", "pass"], enabled=True)]
 
     developer.system_prompt = prompt
@@ -82,9 +83,7 @@ def test_oc425_user_modified_developer_gains_native_skill_without_clobber(operat
         AgentCustomization(
             agent_id="developer",
             system_prompt=prompt,
-            allowed_tool_names=list(allowed),
             allowed_skill=list(skills),
-            pack_tool_names=list(pack_tools),
             mcp_servers=list(mcp),
             user_modified=True,
         )
@@ -99,30 +98,30 @@ def test_oc425_user_modified_developer_gains_native_skill_without_clobber(operat
     assert NATIVE_SKILL in (after.allowed_skill or [])
     assert "operator-custom-skill" in (after.allowed_skill or [])
     for name in NATIVE_TOOLS:
-        assert name in (after.allowed_tool_names or [])
-        assert name in (after.pack_tool_names or [])
+        assert name in list(resolve_allowed_tools(after))
+        assert name in list(resolve_allowed_tools(after))
         assert name in tools
-    assert KEPT_TOOL in (after.allowed_tool_names or [])
-    assert REMOVED_TOOL not in (after.allowed_tool_names or []), "REQ-425-001 FAIL: unrelated removed tool was restored"
+    assert KEPT_TOOL in list(resolve_allowed_tools(after))
+    assert REMOVED_TOOL not in list(resolve_allowed_tools(after)), "REQ-425-001 FAIL: unrelated removed tool was restored"
     assert MCP_NAME in _names(after.mcp_servers)
     assert bool(after.user_modified) is True
     assert (after.allowed_skill or []).count(NATIVE_SKILL) == 1
-    assert (after.allowed_tool_names or []).count("register_native_tool") == 1
+    assert list(resolve_allowed_tools(after)).count("register_native_tool") == 1
 
     stored = store.get_agent_profile("developer")
     assert stored is not None
     assert stored.system_prompt == prompt
     assert NATIVE_SKILL in (stored.allowed_skill or [])
-    assert KEPT_TOOL in (stored.allowed_tool_names or [])
-    assert REMOVED_TOOL not in (stored.allowed_tool_names or [])
+    assert KEPT_TOOL in list(resolve_allowed_tools(stored))
+    assert REMOVED_TOOL not in list(resolve_allowed_tools(stored))
     assert MCP_NAME in _names(stored.mcp_servers)
 
     override = store.get_agent_override("developer")
     assert override is not None
     assert override.system_prompt == prompt
     assert NATIVE_SKILL in (override.allowed_skill or [])
-    assert KEPT_TOOL in (override.allowed_tool_names or [])
-    assert REMOVED_TOOL not in (override.allowed_tool_names or [])
+    assert KEPT_TOOL in list(resolve_allowed_tools(override))
+    assert REMOVED_TOOL not in list(resolve_allowed_tools(override))
     assert MCP_NAME in _names(override.mcp_servers)
     assert bool(override.user_modified) is True
 
@@ -130,21 +129,21 @@ def test_oc425_user_modified_developer_gains_native_skill_without_clobber(operat
     again = registry.get_agent("developer")
     assert again is not None
     assert (again.allowed_skill or []).count(NATIVE_SKILL) == 1
-    assert (again.allowed_tool_names or []).count("register_native_tool") == 1
+    assert list(resolve_allowed_tools(again)).count("register_native_tool") == 1
     assert again.system_prompt == prompt
 
     # Grant is once. A later removal stays removed [ADR-0056].
     raw = store.get_agent_profile("developer")
     assert raw is not None
     raw.allowed_skill = [sid for sid in (raw.allowed_skill or []) if sid != NATIVE_SKILL]
-    raw.allowed_tool_names = [name for name in (raw.allowed_tool_names or []) if name not in NATIVE_TOOLS]
-    raw.pack_tool_names = [name for name in (raw.pack_tool_names or []) if name not in NATIVE_TOOLS]
+    raw.allowed_tool_names = [name for name in list(resolve_allowed_tools(raw)) if name not in NATIVE_TOOLS]
+    raw.pack_tool_names = [name for name in list(resolve_allowed_tools(raw)) if name not in NATIVE_TOOLS]
     raw.system_prompt = prompt
     raw.user_modified = True
     store.save_custom_agent_profile(raw)
     override.allowed_skill = list(raw.allowed_skill)
-    override.allowed_tool_names = list(raw.allowed_tool_names)
-    override.pack_tool_names = list(raw.pack_tool_names)
+    override.allowed_tool_names = list(list(resolve_allowed_tools(raw)))
+    override.pack_tool_names = list(list(resolve_allowed_tools(raw)))
     override.system_prompt = prompt
     override.user_modified = True
     store.save_agent_override(override)
@@ -155,10 +154,10 @@ def test_oc425_user_modified_developer_gains_native_skill_without_clobber(operat
     assert NATIVE_SKILL not in (final.allowed_skill or []), (
         "REQ-425-001 FAIL: removed native-tool-engineering was re-added after the grant"
     )
-    assert "register_native_tool" not in (final.allowed_tool_names or [])
-    assert "plan_native_folder" not in (final.allowed_tool_names or [])
+    assert "register_native_tool" not in list(resolve_allowed_tools(final))
+    assert "plan_native_folder" not in list(resolve_allowed_tools(final))
     assert final.system_prompt == prompt
-    assert KEPT_TOOL in (final.allowed_tool_names or [])
+    assert KEPT_TOOL in list(resolve_allowed_tools(final))
     assert MCP_NAME in _names(final.mcp_servers)
 
 

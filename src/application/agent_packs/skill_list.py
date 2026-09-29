@@ -36,9 +36,7 @@ def customization_from_profile(profile: Any, agent_id: str) -> AgentCustomizatio
         system_prompt=profile.system_prompt,
         model=profile.model,
         purpose=_enum_text(profile.purpose),
-        allowed_tool_names=profile.allowed_tool_names,
         allowed_skill=profile.allowed_skill,
-        pack_tool_names=profile.pack_tool_names,
         show_in_chat=profile.show_in_chat,
         max_turns=profile.max_turns,
         history_retention_days=profile.history_retention_days,
@@ -131,7 +129,6 @@ def persist_agent_profile(
                 existing=existing,
                 new_prompt=profile.system_prompt,
                 new_skills=live_skills,
-                new_tools=list(profile.allowed_tool_names or []),
                 store=store,
                 pack_id=agent_id,
             )

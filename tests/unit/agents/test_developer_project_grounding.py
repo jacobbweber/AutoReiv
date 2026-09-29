@@ -168,7 +168,6 @@ def test_non_project_agent_excludes_active_project_from_prompt():
             name="Tutor",
             description="Socratic Tutor",
             system_prompt="You are a patient Socratic tutor.",
-            allowed_tool_names=["read_wiki_document", "search_wiki"],
         )
 
         assembled = kernel._build_effective_system_message(tutor_agent).content

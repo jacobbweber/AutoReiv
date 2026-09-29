@@ -138,7 +138,6 @@ async def test_reflexion_skips_when_no_verifier_or_critic():
         name="Assistant",
         description="Wiki",
         system_prompt="Help",
-        allowed_tool_names=[],
     )
     result = await engine.run_reflexion_turn(
         agent=agent,
@@ -170,7 +169,6 @@ async def test_builtin_critic_passes_on_valid_json():
         name="Assistant",
         description="Wiki",
         system_prompt="Help",
-        allowed_tool_names=[],
     )
     result = await engine.run_reflexion_turn(
         agent=agent,
@@ -200,7 +198,6 @@ async def test_builtin_critic_fails_closed_on_invalid_json():
         name="Assistant",
         description="Wiki",
         system_prompt="Help",
-        allowed_tool_names=[],
     )
     result = await engine.run_reflexion_turn(
         agent=agent,
@@ -228,7 +225,6 @@ async def test_builtin_critic_fails_closed_on_empty_output():
         name="Assistant",
         description="Wiki",
         system_prompt="Help",
-        allowed_tool_names=[],
     )
     result = await engine.run_reflexion_turn(
         agent=agent,
@@ -273,7 +269,6 @@ async def test_builtin_critic_refines_when_critic_rejects():
         name="Assistant",
         description="Wiki",
         system_prompt="Help",
-        allowed_tool_names=[],
     )
     result = await engine.run_reflexion_turn(
         agent=agent,
@@ -322,7 +317,6 @@ async def test_on_progress_emits_attempt_and_critique():
         name="Assistant",
         description="Wiki",
         system_prompt="Help",
-        allowed_tool_names=[],
     )
     result = await engine.run_reflexion_turn(
         agent=agent,

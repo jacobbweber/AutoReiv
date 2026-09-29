@@ -14,8 +14,20 @@ from unittest.mock import MagicMock
 import pytest
 from starlette.testclient import TestClient
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+
 ROOT = Path(__file__).resolve().parents[3]
-FIXTURES = ROOT / "tests" / "fixtures" / "card497"
+# A made-up "old shipped" build-agent-pack SKILL.md; its hash is patched in as shipped (CARD-568: no fixture copy).
+OLD_SHIPPED_SKILL = "---\nname: build-agent-pack\n---\n\n# Build an agent pack\n\nTools are trained in the Factory.\n"
+
+
+def _patch_shipped(monkeypatch):
+    import hashlib
+
+    from src.infrastructure.skills import seed
+
+    sha = hashlib.sha256(OLD_SHIPPED_SKILL.encode("utf-8")).hexdigest()
+    monkeypatch.setattr(seed, "SHIPPED_SEED_SHA256", {"build-agent-pack": frozenset({sha})})
 
 DELETED_MODULES = (
     "src.application.agent_training_factory",
@@ -192,8 +204,6 @@ def test_11_retired_tools_strip_launch_factory_training_from_user_modified_pack(
                 "system_prompt": "SHIPPED",
                 "allowed_skill": ["skill-a"],
                 "skills": [{"id": "skill-a", "name": "a", "description": "a", "tools": ["wiki_note_read"]}],
-                "pack_tool_names": ["wiki_note_read"],
-                "allowed_tool_names": ["wiki_note_read"],
                 "model": "default",
             }
         ),
@@ -208,8 +218,6 @@ def test_11_retired_tools_strip_launch_factory_training_from_user_modified_pack(
         tone=AgentTone.DEFAULT,
         purpose=ModelPurpose.TASK_EXECUTION,
         allowed_skill=["skill-a"],
-        pack_tool_names=["wiki_note_read", "launch_factory_training"],
-        allowed_tool_names=["wiki_note_read", "launch_factory_training"],
         user_modified=True,
         seed_content_hash="deadbeef",
         seed_version="1",
@@ -259,7 +267,7 @@ def test_11_retired_tools_strip_launch_factory_training_from_user_modified_pack(
     report = promote_platform_packs(tmp_path / "data", _Registry(store), None, checkout_root=checkout, pack_ids=["fixturepack"])
     assert report.results[0].status == "skipped_user_modified"
     stored = store.profiles["fixturepack"]
-    assert "launch_factory_training" not in (stored.allowed_tool_names or [])
+    assert "launch_factory_training" not in list(resolve_allowed_tools(stored))
     assert stored.system_prompt == "OPERATOR PROMPT"
 
 
@@ -270,7 +278,7 @@ def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_train
     manifest = load_platform_manifest("autoreiv")
     skill = next(s for s in manifest.skills if s.id == "agent-authoring")
     assert set(skill.tools) == {"inspect_agent_pack", "lookup_agents", "handoff_to_agent", "propose_skill"}
-    assert "launch_factory_training" not in manifest.pack_tool_names
+    assert "launch_factory_training" not in [t for s in manifest.skills for t in s.tools]
 
     offenders = []
     for base in (ROOT / "platform-packs", ROOT / "src/infrastructure/skills/seeds"):
@@ -333,21 +341,23 @@ def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_
 
 
 # 13 ------------------------------------------------------------------------
-def test_13_unedited_shipped_seed_is_refreshed(tmp_path):
+def test_13_unedited_shipped_seed_is_refreshed(tmp_path, monkeypatch):
     from src.infrastructure.skills.seed import bundled_skill_md, seed_bundled_skill_packs
 
+    _patch_shipped(monkeypatch)
     dest = tmp_path / "skills" / "build-agent-pack" / "SKILL.md"
     dest.parent.mkdir(parents=True)
-    old = (FIXTURES / "build-agent-pack.shipped-1f6a64cf.SKILL.md").read_bytes()
-    dest.write_bytes(old.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))  # CRLF copy, whatever the checkout wrote
+    dest.write_bytes(OLD_SHIPPED_SKILL.encode("utf-8").replace(b"\n", b"\r\n"))  # CRLF copy, whatever the checkout wrote
     seed_bundled_skill_packs(tmp_path / "skills", ["build-agent-pack"])
     now = dest.read_text(encoding="utf-8")
     assert "trained in the Factory" not in now
     assert now.replace("\r\n", "\n") == bundled_skill_md("build-agent-pack").read_text(encoding="utf-8").replace("\r\n", "\n")
 
 
-def test_13b_edited_seed_is_left_alone_and_logged(tmp_path):
+def test_13b_edited_seed_is_left_alone_and_logged(tmp_path, monkeypatch):
     from src.infrastructure.skills.seed import seed_bundled_skill_packs
+
+    _patch_shipped(monkeypatch)
 
     records: list[logging.LogRecord] = []
 
@@ -363,7 +373,7 @@ def test_13b_edited_seed_is_left_alone_and_logged(tmp_path):
 
     dest = tmp_path / "skills" / "build-agent-pack" / "SKILL.md"
     dest.parent.mkdir(parents=True)
-    edited = (FIXTURES / "build-agent-pack.shipped-1f6a64cf.SKILL.md").read_text(encoding="utf-8") + "\nOperator note.\n"
+    edited = OLD_SHIPPED_SKILL + "\nOperator note.\n"
     dest.write_text(edited, encoding="utf-8")
     try:
         seed_bundled_skill_packs(tmp_path / "skills", ["build-agent-pack"])

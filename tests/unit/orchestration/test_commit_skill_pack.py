@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.kernel.tool_registry import ScopedToolRegistry, _tool_context
 from src.application.orchestration.skill_proposals import (
     apply_skill_proposal_decision,
@@ -269,9 +270,8 @@ async def test_coding_cannot_execute_propose_skill(setup):
         name="Coding",
         description="Implements one card.",
         system_prompt="You implement one card.",
-        allowed_tool_names=["execute_code", "write_project_file"],
     )
-    assert "propose_skill" not in coding_like.allowed_tool_names
+    assert "propose_skill" not in list(resolve_allowed_tools(coding_like))
     result = await registry.execute(
         ToolCall(id="tc1", name="propose_skill", arguments={"what": "x", "why": "y", "how": "z", "where": "skills/x/SKILL.md"}),
         coding_like,
@@ -281,5 +281,5 @@ async def test_coding_cannot_execute_propose_skill(setup):
     assert "not authorized" in (result.error or "")
     assert setup["store"].get_pending_approvals(session_id="sess_code") == []
     developer = platform_pack_profile("developer")
-    assert "propose_skill" in developer.allowed_tool_names
-    assert "save_agent_specification" not in developer.allowed_tool_names
+    assert "propose_skill" in list(resolve_allowed_tools(developer))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(developer))

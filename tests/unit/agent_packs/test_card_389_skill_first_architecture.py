@@ -148,7 +148,6 @@ def test_req_389_004_conversational_agent_zero_skills_mounts_only_baseline():
         "id": "conversational-counselor",
         "name": "Conversational Counselor",
         "allowed_skill": [],
-        "pack_tool_names": [],
     }
 
     # CARD-539: no ticked skills -> only required baseline tools are allowed
@@ -173,7 +172,6 @@ def test_req_389_005_negative_assertion_naked_tools_cannot_be_bound():
         "id": "isolated-analyst",
         "name": "Isolated Analyst",
         "allowed_skill": ["wiki"],
-        "pack_tool_names": [],
     }
 
     # sqlite-storage tools are NOT present when only wiki is active
@@ -186,8 +184,6 @@ def test_req_389_005_negative_assertion_naked_tools_cannot_be_bound():
         "id": "isolated-analyst",
         "name": "Isolated Analyst",
         "allowed_skill": [],
-        "pack_tool_names": [],
-        "allowed_tool_names": ["query_agent_database", "bash", "execute_sql"],
     }
     scoped_naked = resolve_allowed_tools(test_agent_with_naked).names
     assert "bash" not in scoped_naked

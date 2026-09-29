@@ -8,6 +8,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.schema import (
     CHAT_HIDDEN_BY_ID,
     CHAT_SHOWN_BY_ID,
@@ -80,7 +81,7 @@ def test_req_388_004_skills_and_purposes():
 
     dev_profile = platform_pack_profile("developer")
     assert "implement-change" in dev_profile.allowed_skill
-    assert "cli_exec" not in dev_profile.allowed_tool_names  # CARD-562: no shell/code runner on Developer
+    assert "cli_exec" not in list(resolve_allowed_tools(dev_profile))  # CARD-562: no shell/code runner on Developer
 
     tutor = load_platform_manifest("tutor")
     assert tutor.purpose == "reasoning"
@@ -88,7 +89,7 @@ def test_req_388_004_skills_and_purposes():
 
     tutor_profile = platform_pack_profile("tutor")
     assert "socratic-tutoring" in tutor_profile.allowed_skill
-    assert "wiki_note_read" in tutor_profile.allowed_tool_names
+    assert "wiki_note_read" in list(resolve_allowed_tools(tutor_profile))
 
 
 def test_req_388_006_negative_assertions_no_aliasing_no_retirement(tmp_path: Path):

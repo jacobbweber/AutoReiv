@@ -145,7 +145,7 @@ def test_custom_agent_adopt_is_listed(boot):
     app.state.registry.register_custom_agent(AgentProfile(
         id="c502-helper", name="Helper", description="fixture", system_prompt="You help.",
         origin=AgentOrigin.CUSTOM, tone=AgentTone.DEFAULT, purpose=ModelPurpose.TASK_EXECUTION,
-        allowed_skill=[], allowed_tool_names=[], show_in_chat=True,
+        allowed_skill=[], show_in_chat=True,
     ))
     res = _adopt(client, agent_id="c502-helper")
     assert res.status_code == 200, res.text

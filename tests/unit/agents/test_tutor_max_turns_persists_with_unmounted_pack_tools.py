@@ -18,7 +18,7 @@ def test_tutor_put_max_turns_persists_when_education_tools_missing_from_catalog(
         before = client.get("/api/agents/tutor")
         assert before.status_code == 200, before.text
         payload = before.json()
-        assert "education_quiz_extract" in (payload.get("allowed_tool_names") or [])
+        assert "education_quiz_extract" in (payload.get("allowed_tools") or [])
 
         # Unmount education tools from the live catalog (stale-worker simulation).
         tool_reg: ScopedToolRegistry = client.app.state.tool_reg
@@ -40,9 +40,9 @@ def test_tutor_put_max_turns_persists_when_education_tools_missing_from_catalog(
         # CARD-539: tool lists in a Save are ignored (tools come from ticked skills), never granted.
         payload["max_turns"] = 50
         payload.pop("expected_skills_version", None)
-        payload["allowed_tool_names"] = list(payload.get("allowed_tool_names") or []) + [
+        payload["allowed_tools"] = list(payload.get("allowed_tools") or []) + [
             "definitely_not_a_real_tool_zz"
         ]
         ignored = client.put("/api/agents/tutor", json=payload)
         assert ignored.status_code == 200, ignored.text
-        assert "definitely_not_a_real_tool_zz" not in (ignored.json()["agent"].get("allowed_tool_names") or [])
+        assert "definitely_not_a_real_tool_zz" not in (ignored.json()["agent"].get("allowed_tools") or [])

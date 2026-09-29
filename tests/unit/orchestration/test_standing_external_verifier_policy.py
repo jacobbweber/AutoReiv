@@ -144,7 +144,6 @@ async def test_req_verify_ext_003_run_verified_turn_skips_without_named_checker(
         name="Assistant",
         description="d",
         system_prompt="s",
-        allowed_tool_names=[],
     )
     result = await kernel.run_verified_turn(
         agent=agent,

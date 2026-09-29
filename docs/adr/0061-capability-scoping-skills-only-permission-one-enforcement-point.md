@@ -57,3 +57,4 @@ Result: humans cannot see or control what an agent can do, the model is offered 
 - Always-on rule `.agents/rules/capability-scoping.md`.
 - CARD-539 guard tests: an architecture test fails if any module other than `resolve_allowed_tools` computes an allowed-tools set; property tests that selection is always a subset of allowed; `activate_skill` on an unticked skill fails; no `autoreiv` special case; an accepted skill survives a Studio Save.
 - Live QA journeys (`scripts/live_qa.py`): CARD-520 proposal, accept, then answer; out-of-domain handoff instead of refusal.
+- CARD-568: the flat lists are gone everywhere (`allowed_tool_names` / `pack_tool_names` fields, the `allowed_tools_json` / `pack_tools_json` columns, the Studio API fields and `capability_migration`). The data dir was wiped instead of migrated. A pack.json that still has a flat list is rejected on import. Guard: `tests/unit/agent_packs/test_card568_no_tool_lists.py`.

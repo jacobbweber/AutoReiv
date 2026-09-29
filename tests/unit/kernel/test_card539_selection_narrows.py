@@ -62,8 +62,6 @@ def _random_agent(rng):
     return _agent(
         agent_id=rng.choice(["autoreiv", "developer", "custom-x"]),
         allowed_skill=rng.sample(SKILL_POOL, rng.randint(0, 6)),
-        allowed_tool_names=rng.sample(EXTRA_TOOLS, rng.randint(0, 4)),
-        pack_tool_names=rng.sample(EXTRA_TOOLS, rng.randint(0, 3)),
         storage_enabled=rng.random() < 0.5,
         mcp_servers=[{"name": "srv"}] if rng.random() < 0.5 else [],
     )

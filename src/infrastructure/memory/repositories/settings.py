@@ -107,17 +107,9 @@ class SettingsRepositoryMixin:
 
     def save_agent_override(self, customization: AgentCustomization) -> None:
         now_str = datetime.now(timezone.utc).isoformat()
-        tools_json = (
-            json.dumps(customization.allowed_tool_names) if customization.allowed_tool_names is not None else None
-        )
         skills_json = (
             json.dumps(customization.allowed_skill)
             if getattr(customization, "allowed_skill", None) is not None
-            else None
-        )
-        pack_tools_json = (
-            json.dumps(customization.pack_tool_names)
-            if getattr(customization, "pack_tool_names", None) is not None
             else None
         )
         mcp_servers_json = (
@@ -139,11 +131,11 @@ class SettingsRepositoryMixin:
                 """
                 INSERT INTO agent_overrides (
                     agent_id, name, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
-                    allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                    allowed_skills_json, show_in_chat, max_turns, history_retention_days,
                     storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                     allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     name = excluded.name,
                     origin = excluded.origin,
@@ -155,9 +147,7 @@ class SettingsRepositoryMixin:
                     system_prompt = excluded.system_prompt,
                     model = excluded.model,
                     purpose = excluded.purpose,
-                    allowed_tools_json = excluded.allowed_tools_json,
                     allowed_skills_json = excluded.allowed_skills_json,
-                    pack_tools_json = excluded.pack_tools_json,
                     show_in_chat = excluded.show_in_chat,
                     max_turns = excluded.max_turns,
                     history_retention_days = excluded.history_retention_days,
@@ -184,9 +174,7 @@ class SettingsRepositoryMixin:
                     customization.system_prompt,
                     customization.model,
                     customization.purpose,
-                    tools_json,
                     skills_json,
-                    pack_tools_json,
                     show_in_chat,
                     customization.max_turns,
                     customization.history_retention_days,
@@ -225,7 +213,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT agent_id, name, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
-                       allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                       allowed_skills_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json,
                        user_modified, seed_version, seed_content_hash
@@ -238,13 +226,9 @@ class SettingsRepositoryMixin:
                 return None
             name = r["name"] if "name" in r.keys() else None
             origin_val = r["origin"] if "origin" in r.keys() and r["origin"] else "custom"
-            tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
             skills = None
             if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
                 skills = json.loads(r["allowed_skills_json"])
-            pack_tools = None
-            if "pack_tools_json" in r.keys() and r["pack_tools_json"]:
-                pack_tools = json.loads(r["pack_tools_json"])
             show_in_chat = None
             if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                 show_in_chat = bool(r["show_in_chat"])
@@ -310,9 +294,7 @@ class SettingsRepositoryMixin:
                 system_prompt=r["system_prompt"],
                 model=r["model"],
                 purpose=purpose,
-                allowed_tool_names=tools,
                 allowed_skill=skills,
-                pack_tool_names=pack_tools,
                 show_in_chat=show_in_chat,
                 max_turns=r["max_turns"],
                 history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
@@ -366,7 +348,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT agent_id, name, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
-                       allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                       allowed_skills_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
                 FROM agent_overrides
@@ -377,13 +359,9 @@ class SettingsRepositoryMixin:
             for r in rows:
                 name = r["name"] if "name" in r.keys() else None
                 origin_val = r["origin"] if "origin" in r.keys() and r["origin"] else "custom"
-                tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
                 skills = None
                 if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
                     skills = json.loads(r["allowed_skills_json"])
-                pack_tools = None
-                if "pack_tools_json" in r.keys() and r["pack_tools_json"]:
-                    pack_tools = json.loads(r["pack_tools_json"])
                 show_in_chat = None
                 if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                     show_in_chat = bool(r["show_in_chat"])
@@ -445,9 +423,7 @@ class SettingsRepositoryMixin:
                         system_prompt=r["system_prompt"],
                         model=r["model"],
                         purpose=purpose,
-                        allowed_tool_names=tools,
                         allowed_skill=skills,
-                        pack_tool_names=pack_tools,
                         show_in_chat=show_in_chat,
                         max_turns=r["max_turns"],
                         history_retention_days=r["history_retention_days"]
@@ -482,9 +458,7 @@ class SettingsRepositoryMixin:
 
     def save_agent_profile(self, profile: AgentProfile) -> None:
         now_str = datetime.now(timezone.utc).isoformat()
-        tools_json = json.dumps(profile.allowed_tool_names) if profile.allowed_tool_names is not None else None
         skills_json = json.dumps(profile.allowed_skill) if profile.allowed_skill is not None else None
-        pack_tools_json = json.dumps(profile.pack_tool_names) if profile.pack_tool_names is not None else None
         mcp_servers_json = (
             json.dumps([s.model_dump() if hasattr(s, "model_dump") else s for s in profile.mcp_servers])
             if getattr(profile, "mcp_servers", None) is not None
@@ -514,11 +488,11 @@ class SettingsRepositoryMixin:
                 """
                 INSERT INTO custom_agents (
                     id, name, description, system_prompt, origin, provider, api_base_url, api_key, context_window, purpose, tone,
-                    avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
+                    avatar_icon, model, allowed_skills_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                     is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                     allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -532,9 +506,7 @@ class SettingsRepositoryMixin:
                     tone = excluded.tone,
                     avatar_icon = excluded.avatar_icon,
                     model = excluded.model,
-                    allowed_tools_json = excluded.allowed_tools_json,
                     allowed_skills_json = excluded.allowed_skills_json,
-                    pack_tools_json = excluded.pack_tools_json,
                     show_in_chat = excluded.show_in_chat,
                     visibility = excluded.visibility,
                     fleet = excluded.fleet,
@@ -566,9 +538,7 @@ class SettingsRepositoryMixin:
                     tone_str,
                     profile.avatar_icon or "bot",
                     profile.model or "default",
-                    tools_json,
                     skills_json,
-                    pack_tools_json,
                     show_in_chat,
                     visibility_str,
                     fleet_str,
@@ -613,7 +583,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT id, name, description, system_prompt, origin, provider, api_base_url, api_key, context_window, purpose, tone,
-                       avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
+                       avatar_icon, model, allowed_skills_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at,
                        user_modified, seed_version, seed_content_hash
@@ -633,13 +603,9 @@ class SettingsRepositoryMixin:
                     origin_val = AgentOrigin.SYSTEM
                 else:
                     origin_val = AgentOrigin.PACK
-            tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
             skills = []
             if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
                 skills = json.loads(r["allowed_skills_json"]) or []
-            pack_tools = []
-            if "pack_tools_json" in r.keys() and r["pack_tools_json"]:
-                pack_tools = json.loads(r["pack_tools_json"]) or []
             show_in_chat = True
             if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                 show_in_chat = bool(r["show_in_chat"])
@@ -718,9 +684,7 @@ class SettingsRepositoryMixin:
                 tone=tone_val,
                 avatar_icon=r["avatar_icon"] or "bot",
                 model=r["model"] or "default",
-                allowed_tool_names=tools,
                 allowed_skill=skills,
-                pack_tool_names=pack_tools,
                 show_in_chat=show_in_chat,
                 visibility=visibility_val,
                 fleet=fleet_val,
@@ -756,7 +720,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT id, name, description, system_prompt, origin, provider, api_base_url, api_key, context_window, purpose, tone,
-                       avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
+                       avatar_icon, model, allowed_skills_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 FROM custom_agents
@@ -775,13 +739,9 @@ class SettingsRepositoryMixin:
                         origin_val = AgentOrigin.SYSTEM
                     else:
                         origin_val = AgentOrigin.PACK
-                tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
                 skills = []
                 if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
                     skills = json.loads(r["allowed_skills_json"]) or []
-                pack_tools = []
-                if "pack_tools_json" in r.keys() and r["pack_tools_json"]:
-                    pack_tools = json.loads(r["pack_tools_json"]) or []
                 show_in_chat = True
                 if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                     show_in_chat = bool(r["show_in_chat"])
@@ -860,9 +820,7 @@ class SettingsRepositoryMixin:
                         tone=tone_val,
                         avatar_icon=r["avatar_icon"] or "bot",
                         model=r["model"] or "default",
-                        allowed_tool_names=tools,
                         allowed_skill=skills,
-                        pack_tool_names=pack_tools,
                         show_in_chat=show_in_chat,
                         visibility=visibility_val,
                         fleet=fleet_val,

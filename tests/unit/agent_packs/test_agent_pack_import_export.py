@@ -48,8 +48,6 @@ def test_export_import_roundtrip_strips_instance_facts(tmp_path):
         description="Endpoint specialist",
         system_prompt="You help with endpoint tasks.",
         allowed_skill=["user-provisioning"],
-        pack_tool_names=["system_info"],
-        allowed_tool_names=["system_info", "wiki_note_read"],
         show_in_chat=False,
     )
     registry.register_custom_agent(profile)
@@ -67,7 +65,6 @@ def test_export_import_roundtrip_strips_instance_facts(tmp_path):
     assert pack["id"] == "eu-c-specialist"
     assert pack["show_in_chat"] is False
     assert "pack_tool_names" not in pack and "allowed_tool_names" not in pack  # CARD-541
-    assert pack["skills"][0]["tools"] == ["system_info"]
     assert pack["allowed_skill"] == ["user-provisioning"]
     assert "input_packet_json" not in pack
     assert (folder / "skills" / "user-provisioning" / "SKILL.md").is_file()
@@ -83,9 +80,6 @@ def test_export_import_roundtrip_strips_instance_facts(tmp_path):
     imported = service.import_path(zip_path)
     assert imported.id == "eu-c-specialist"
     assert imported.show_in_chat is False
-    assert "system_info" in imported.pack_tool_names
-    assert "system_info" in imported.allowed_tool_names
-    assert "wiki_note_read" in imported.allowed_tool_names
     assert imported.allowed_skill == ["user-provisioning"]
     listed = {p.id: p for p in registry.list_agents()}
     assert listed["eu-c-specialist"].show_in_chat is False
@@ -134,8 +128,6 @@ def test_nested_skills_import_unions_tools(tmp_path):
     )
     imported = service.import_path(folder)
     assert imported.allowed_skill == ["user-provisioning", "endpoint-audit"]
-    assert imported.pack_tool_names == ["system_info"]
-    assert "system_info" in imported.allowed_tool_names
     stored = json.loads((data_dir / "packs" / "nested-bot" / "pack.json").read_text(encoding="utf-8"))
     assert stored["skills"][0]["tools"] == ["system_info"]
     assert stored["skills"][1]["tools"] == []
@@ -147,42 +139,6 @@ def test_nested_skills_import_unions_tools(tmp_path):
     assert by_id["user-provisioning"]["tools"] == ["system_info"]
     assert by_id["endpoint-audit"]["tools"] == []
     assert "pack_tool_names" not in dumped
-
-
-def test_legacy_1_0_pack_still_imports(tmp_path):
-    data_dir, registry, tool_reg = _bootstrap(tmp_path)
-    folder = data_dir / "incoming" / "legacy-bot"
-    folder.mkdir(parents=True)
-    (folder / "pack.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "1.0",
-                "id": "legacy-bot",
-                "name": "Legacy Bot",
-                "description": "Flat specialist",
-                "system_prompt": "You follow a 1.0 pack.",
-                "allowed_skill": ["user-provisioning"],
-                "pack_tool_names": ["system_info"],
-                "show_in_chat": False,
-            }
-        ),
-        encoding="utf-8",
-    )
-    skill_dir = folder / "skills" / "user-provisioning"
-    skill_dir.mkdir(parents=True)
-    (skill_dir / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
-
-    service = AgentPackService(
-        data_dir=data_dir,
-        agent_registry=registry,
-        store=registry.state_store,
-        available_tools={t.name for t in tool_reg.list_tools()},
-    )
-    imported = service.import_path(folder)
-    assert imported.allowed_skill == ["user-provisioning"]
-    assert imported.pack_tool_names == []  # CARD-541: the flat list is ignored with a note
-    assert service.last_import_notes and "pack_tool_names" in service.last_import_notes[0]
-    assert imported.show_in_chat is False
 
 
 def test_scaffold_writes_nested_skills(tmp_path):
@@ -223,39 +179,7 @@ def test_scaffold_writes_nested_skills(tmp_path):
     assert not list(folder.rglob("*.py"))
 
     profile = service.import_path(folder)
-    assert "system_info" in profile.pack_tool_names
     assert "user-provisioning" in profile.allowed_skill
-
-
-def test_export_without_skill_map_puts_tools_on_the_primary_skill(tmp_path):
-    """CARD-541: no flat list; the profile's pack tools go on the primary skill."""
-    data_dir, registry, tool_reg = _bootstrap(tmp_path)
-    skills = data_dir / "skills" / "user-provisioning"
-    skills.mkdir(parents=True)
-    (skills / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
-    profile = AgentProfile(
-        id="flat-bot",
-        name="Flat Bot",
-        description="No stored map",
-        system_prompt="You are flat.",
-        allowed_skill=["user-provisioning"],
-        pack_tool_names=["system_info"],
-        allowed_tool_names=["system_info"],
-        show_in_chat=True,
-    )
-    registry.register_custom_agent(profile)
-    service = AgentPackService(
-        data_dir=data_dir,
-        agent_registry=registry,
-        store=registry.state_store,
-        available_tools={t.name for t in tool_reg.list_tools()},
-    )
-    folder = service.export_folder("flat-bot")
-    pack = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
-    assert pack["skills"][0]["id"] == "user-provisioning"
-    assert pack["skills"][0]["tools"] == ["system_info"]
-    assert "pack_tool_names" not in pack
-    assert pack["allowed_skill"] == ["user-provisioning"]
 
 
 def test_export_import_with_mcp_package_preserves_mcp_files_and_servers(tmp_path):
@@ -270,8 +194,6 @@ def test_export_import_with_mcp_package_preserves_mcp_files_and_servers(tmp_path
         description="Agent with remote MCP server",
         system_prompt="Manage remote service.",
         allowed_skill=["user-provisioning"],
-        pack_tool_names=[],
-        allowed_tool_names=[],
         show_in_chat=True,
         mcp_servers=[
             {
@@ -326,4 +248,3 @@ def test_export_import_with_mcp_package_preserves_mcp_files_and_servers(tmp_path
     imported_pack_dir = service2.pack_dir("mcp-agent")
     assert (imported_pack_dir / "mcp" / "server.py").is_file()
     assert (imported_pack_dir / "mcp" / "Dockerfile").is_file()
-

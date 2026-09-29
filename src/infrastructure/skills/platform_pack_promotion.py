@@ -9,9 +9,8 @@ Rules:
 - Non-user_modified packs: refresh AppData ``pack.json`` + ``skills/*/SKILL.md``
   from ``platform-packs/<id>/``, remove stock skills retired from the platform
   seed (never prune operator-only skill dirs), and resync pack-owned SQLite
-  fields (system_prompt when still at shipped baseline, allowed_skill,
-  pack_tool_names / allowed_tool_names). Preserve operator fields: max_turns,
-  model, and unrelated tool ticks.
+  fields (system_prompt when still at shipped baseline, allowed_skill). Tools come
+  only from ticked skills. Preserve operator fields: max_turns and model.
 - Generic for every platform pack id; no skill-name special cases.
 """
 
@@ -253,7 +252,6 @@ def should_set_content_lock(
     existing: Any,
     new_prompt: str | None,
     new_skills: list[str] | None,
-    new_tools: list[str] | None,
     store: Any,
     pack_id: str,
     stock_skills: list[str] | None = None,
@@ -359,8 +357,6 @@ def backup_pack_content(store: Any, profile: Any, *, reason: str = "") -> dict[s
         "backed_up_at": datetime.now(timezone.utc).isoformat(),
         "system_prompt": getattr(profile, "system_prompt", None) or "",
         "allowed_skill": list(getattr(profile, "allowed_skill", None) or []),
-        "pack_tool_names": list(getattr(profile, "pack_tool_names", None) or []),
-        "allowed_tool_names": list(getattr(profile, "allowed_tool_names", None) or []),
         "max_turns": getattr(profile, "max_turns", None),
         "model": getattr(profile, "model", None),
         "user_modified": bool(getattr(profile, "user_modified", False)),
@@ -396,8 +392,6 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
         raise KeyError(f"backup '{backup_id}' not found for {pack_id}")
     profile.system_prompt = match.get("system_prompt") or ""
     profile.allowed_skill = list(match.get("allowed_skill") or [])
-    profile.pack_tool_names = list(match.get("pack_tool_names") or [])
-    profile.allowed_tool_names = list(match.get("allowed_tool_names") or [])
     if match.get("max_turns") is not None:
         profile.max_turns = match["max_turns"]
     if match.get("model") is not None:
@@ -411,8 +405,6 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
         if ov is not None:
             ov.system_prompt = profile.system_prompt
             ov.allowed_skill = list(profile.allowed_skill)
-            ov.pack_tool_names = list(profile.pack_tool_names)
-            ov.allowed_tool_names = list(profile.allowed_tool_names)
             if match.get("max_turns") is not None:
                 ov.max_turns = match["max_turns"]
             if match.get("model") is not None:
@@ -422,19 +414,6 @@ def restore_pack_content_backup(store: Any, profile: Any, backup_id: str) -> dic
     if store is not None and hasattr(store, "mark_agent_user_modified"):
         store.mark_agent_user_modified(str(pack_id), modified=True)
     return match
-
-
-def _seed_tools_removed(profile: Any, seed: dict[str, Any]) -> bool:
-    """True when the profile lacks a tool the shipped pack grants (operator removed it)."""
-    from src.application.agent_packs.allowed_tools import platform_seed_tools
-    from src.infrastructure.skills.platform_packs import RETIRED_TOOL_NAMES, seed_pack_tools
-
-    pack_tools = seed_pack_tools(seed)
-    seed_tools = pack_tools + [
-        t for t in platform_seed_tools(seed.get("allowed_skill") or []) if t not in pack_tools
-    ]
-    live = set(getattr(profile, "allowed_tool_names", None) or [])
-    return any(t not in live for t in seed_tools if t not in RETIRED_TOOL_NAMES)
 
 
 def migrate_false_content_locks(
@@ -484,10 +463,6 @@ def migrate_false_content_locks(
                     "reason": "prompt diverged from shipped baseline",
                 }
             )
-            continue
-        if _seed_tools_removed(profile, seed):
-            # CARD-505: an operator tool removal is a real edit; unlocking would re-add the tool
-            results.append({"pack_id": pack_id, "action": "kept_locked", "reason": "tool allowlist edited"})
             continue
         # Unlock: settings-only (or CARD-505 spacing-only) false lock
         stored = getattr(profile, "system_prompt", None) or ""
@@ -625,11 +600,9 @@ def promote_one_platform_pack(
     ``force_reset=None`` follows the global keep-customizations setting (CARD-449).
     ``True`` forces the platform version for this pack (Reset to platform defaults, CARD-450).
     """
-    from src.application.agent_packs.allowed_tools import platform_seed_tools
     from src.application.agent_packs.service import AgentPackService
     from src.domain.kernel.models import AgentOrigin
     from src.infrastructure.skills.platform_packs import (
-        RETIRED_TOOL_NAMES,
         _is_user_modified,
         apply_user_modified_additive_skill_grants,
         apply_user_modified_developer_authoring_prompt,
@@ -637,7 +610,6 @@ def promote_one_platform_pack(
         platform_packs_root,
         refresh_live_pack_json_skill_projection,
         refresh_user_modified_native_tool_engineering_warning,
-        seed_pack_tools,
     )
 
     root = Path(data_dir)
@@ -670,9 +642,6 @@ def promote_one_platform_pack(
     pack_data = _read_json(src / "pack.json") or {}
     new_prompt = pack_data.get("system_prompt") or ""
     new_allowed_skill = list(pack_data.get("allowed_skill") or [])
-    new_pack_tools = seed_pack_tools(pack_data)  # CARD-541: from the nested skills
-    platform_tools = platform_seed_tools(new_allowed_skill)
-    merged_tools = list(new_pack_tools) + [t for t in platform_tools if t not in new_pack_tools]
     seed_hash = compute_platform_seed_hash(pack_data, src)
     seed_version = str(pack_data.get("version") or pack_data.get("seed_version") or "1")
 
@@ -727,9 +696,7 @@ def promote_one_platform_pack(
         if store and hasattr(store, "save_custom_agent_profile"):
             store.save_custom_agent_profile(existing)
 
-    user_pack_tools: list[str] = []
     live_pack = _read_json(dest / "pack.json") or {}
-    user_pack_tools = list(live_pack.get("allowed_tool_names") or [])
 
     stored_hash = getattr(existing, "seed_content_hash", None)
     user_mod = _is_user_modified(existing, store)
@@ -766,16 +733,7 @@ def promote_one_platform_pack(
                 "Upstream seed update available for %s (user_modified=true); skipping overwrite",
                 pack_id,
             )
-        # Retire permanently removed tools only; copy missing skill bodies only
-        current_tools = list(getattr(existing, "allowed_tool_names", None) or [])
-        filtered = [t for t in current_tools if t not in RETIRED_TOOL_NAMES]
-        if filtered != current_tools:
-            keep_max, keep_model = _preserve_operator_scalars(existing)
-            existing.allowed_tool_names = filtered
-            existing.user_modified = True
-            _restore_operator_scalars(existing, keep_max, keep_model)
-            if store and hasattr(store, "save_custom_agent_profile"):
-                store.save_custom_agent_profile(existing)
+        # Copy missing skill bodies only
         src_skills = src / "skills"
         dest_skills = dest / "skills"
         if src_skills.is_dir():
@@ -833,14 +791,9 @@ def promote_one_platform_pack(
     if not stored_hash:
         live_prompt = getattr(existing, "system_prompt", None) or ""
         live_skills = [s for s in (getattr(existing, "allowed_skill", None) or []) if s not in operator_added]
-        live_tools = [
-            t for t in (getattr(existing, "allowed_tool_names", None) or []) if t not in RETIRED_TOOL_NAMES
-        ]
-        seed_tools = [t for t in merged_tools if t not in RETIRED_TOOL_NAMES]
         diverged = (
             normalize_prompt(live_prompt) != normalize_prompt(new_prompt)
             or live_skills != new_allowed_skill
-            or set(live_tools) != set(seed_tools)
         )
         if diverged:
             keep_max, keep_model = _preserve_operator_scalars(existing)
@@ -888,12 +841,6 @@ def promote_one_platform_pack(
             pack_id,
         )
 
-    final_tools = list(merged_tools)
-    for tname in user_pack_tools:
-        if tname not in final_tools:
-            final_tools.append(tname)
-    final_tools = [t for t in final_tools if t not in RETIRED_TOOL_NAMES]
-
     disabled = get_operator_disabled_skills(store, pack_id)
     merged_skills = merge_skills_respecting_disabled(
         seed_skills=list(new_allowed_skill),
@@ -903,8 +850,6 @@ def promote_one_platform_pack(
     )
     merged_skills += [s for s in operator_added if s not in merged_skills and s not in disabled]
     existing.allowed_skill = merged_skills
-    existing.pack_tool_names = new_pack_tools
-    existing.allowed_tool_names = final_tools
     existing.seed_content_hash = seed_hash
     existing.seed_version = seed_version
     existing.user_modified = False
@@ -919,8 +864,6 @@ def promote_one_platform_pack(
         if ov is not None and not bool(getattr(ov, "user_modified", False)):
             if "system_prompt" not in skipped_fields:
                 ov.system_prompt = applied_prompt
-            ov.allowed_tool_names = final_tools
-            ov.pack_tool_names = new_pack_tools
             ov.allowed_skill = merged_skills
             ov.seed_content_hash = seed_hash
             ov.seed_version = seed_version

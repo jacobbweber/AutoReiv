@@ -102,8 +102,6 @@ def _write_pack(root: Path, pack_id: str, *, prompt: str, skills: list[str], ski
         "system_prompt": prompt,
         "allowed_skill": list(skills),
         "skills": [{"id": s, "name": s, "description": s, "tools": ["wiki_note_read"]} for s in skills],
-        "pack_tool_names": ["wiki_note_read"],
-        "allowed_tool_names": ["wiki_note_read"],
         "model": "default",
         "show_in_chat": True,
     }
@@ -121,8 +119,6 @@ def _profile(pack_id: str, *, prompt: str, skills: list[str], user_modified: boo
         tone=AgentTone.DEFAULT,
         purpose=ModelPurpose.TASK_EXECUTION,
         allowed_skill=list(skills),
-        pack_tool_names=["wiki_note_read"],
-        allowed_tool_names=["wiki_note_read"],
         user_modified=user_modified,
         seed_content_hash=seed_hash,
         seed_version="1",
@@ -159,8 +155,6 @@ def _seed_dest(data_dir: Path, prompt: str = "SHIPPED PROMPT V1", skills: list[s
                 "system_prompt": prompt,
                 "allowed_skill": list(skills),
                 "skills": [{"id": s, "name": s, "description": "", "tools": ["wiki_note_read"]} for s in skills],
-                "pack_tool_names": ["wiki_note_read"],
-                "allowed_tool_names": ["wiki_note_read"],
             }
         ),
         encoding="utf-8",
@@ -201,7 +195,6 @@ def test_settings_only_change_still_promotes(tmp_path: Path, fixture_checkout):
             existing=profile,
             new_prompt="SHIPPED PROMPT V1",
             new_skills=["skill-a", "skill-b"],
-            new_tools=["wiki_note_read"],
             store=store,
             pack_id="fixturepack",
         )
@@ -289,7 +282,6 @@ def test_disabled_skill_stays_off_while_new_skill_added(tmp_path: Path, fixture_
             existing=profile,
             new_prompt="SHIPPED PROMPT V1",
             new_skills=["skill-a"],
-            new_tools=["wiki_note_read"],
             store=store,
             pack_id="fixturepack",
             stock_skills=["skill-a", "skill-b"],

@@ -74,8 +74,6 @@ def _stale_tutor_profile() -> AgentProfile:
         tone=AgentTone.ACADEMIC,
         purpose=ModelPurpose.REASONING,
         allowed_skill=["socratic-tutoring"],
-        pack_tool_names=["wiki_note_read"],
-        allowed_tool_names=["wiki_note_read"],
         user_modified=False,
         seed_content_hash="deadbeef",
         seed_version="1",
@@ -90,7 +88,6 @@ def test_refresh_live_pack_json_skill_projection_merges_without_wiping_extras(tm
         "id": "tutor",
         "skills": [{"id": "socratic-tutoring", "name": "Old", "description": "", "tools": []}],
         "allowed_skill": ["socratic-tutoring"],
-        "pack_tool_names": ["wiki_note_read"],
         "system_prompt": "old",
         "memory": {"enabled": True, "pinned_memory": "keep-me"},
         "allow_wiki_access": True,
@@ -99,7 +96,6 @@ def test_refresh_live_pack_json_skill_projection_merges_without_wiping_extras(tm
     seed = {
         "skills": [{"id": "quiz-turn", "name": "Quiz", "description": "q", "tools": ["wiki_note_read"]}],
         "allowed_skill": ["socratic-tutoring", "quiz-turn"],
-        "pack_tool_names": ["wiki_note_read", "wiki_note_search"],
         "system_prompt": "new Learning OS prompt",
     }
     assert refresh_live_pack_json_skill_projection(dest, seed) is True
@@ -128,7 +124,6 @@ def test_hash_gated_tutor_seed_applies_learning_os_skills(tmp_path: Path, monkey
                 "name": "Tutor",
                 "skills": [{"id": "socratic-tutoring", "name": "S", "description": "", "tools": []}],
                 "allowed_skill": ["socratic-tutoring"],
-                "pack_tool_names": ["wiki_note_read"],
                 "system_prompt": "old",
                 "memory": {"enabled": True},
             }
