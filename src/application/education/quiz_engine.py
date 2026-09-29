@@ -15,6 +15,14 @@ _QA_INLINE_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
+# CARD-583: the shipped education-quiz template writes items as
+# "- **Prompt:** ..." followed by "- **Expected Binary Answer:** ..." (bold optional).
+_QA_TEMPLATE_RE = re.compile(
+    r"^[-\*]\s*\**Prompt\**:\**\s*(?P<q>[^\n]+?)\s*\n[ \t]*[-\*]\s*\**Expected(?:\s+Binary)?\s+Answer\**:\**\s*(?P<a>[^\n]+?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+_PLACEHOLDER_RE = re.compile(r"^\[[^\]]*\]$")
+
 
 def _normalize_answer(text: str) -> str:
     s = (text or "").strip().casefold()
@@ -59,14 +67,14 @@ def extract_quiz_items_from_note(
     items: List[Dict[str, Any]] = []
     seen: set[str] = set()
 
-    for rx in (_QA_INLINE_RE, _QA_BULLET_RE):
+    for rx in (_QA_INLINE_RE, _QA_BULLET_RE, _QA_TEMPLATE_RE):
         for match in rx.finditer(quiz_section):
             q = (match.group("q") or "").strip()
             a = (match.group("a") or "").strip()
             # Collapse multiline answers to single line for storage
             a = re.sub(r"\s+", " ", a).strip()
             q = re.sub(r"\s+", " ", q).strip()
-            if not q or not a:
+            if not q or not a or _PLACEHOLDER_RE.match(q) or _PLACEHOLDER_RE.match(a):
                 continue
             iid = _item_id_for(wiki_path, q)
             if iid in seen:
