@@ -1,7 +1,8 @@
 ---
 id: CARD-498
 title: "Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables"
-status: In Review
+status: Done
+completed: 2026-09-29
 created: 2026-09-25
 branch: qa
 related:
@@ -19,7 +20,7 @@ milestone: M21
 
 # [CARD-498] Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables
 
-> **Status**: In Review with CARD-577. Built in CARD-577: startup exports any rows in factory_jobs/factory_graphs/factory_packets/factory_eval_runs/scaffold_spine to backups/factory-retire-<ts>.json, then drops the tables (D1-D2 resolved as clean removal; Jacob is dev-only, DB backed up first, all tables were empty).
+> **Status**: Done (in CARD-577). Built in CARD-577: startup exports any rows in factory_jobs/factory_graphs/factory_packets/factory_eval_runs/scaffold_spine to backups/factory-retire-<ts>.json, then drops the tables (D1-D2 resolved as clean removal; Jacob is dev-only, DB backed up first, all tables were empty).
 > **Created**: 2026-09-25
 > **Series**: CARD-495 → CARD-496 → CARD-497 → **CARD-498**
 > **Labels**: `type:migration`, `area:factory`, `area:data`, `P2`
@@ -101,3 +102,4 @@ Never run against live AppData.
 
 ## Log
 - 2026-09-29: Built in CARD-577: startup exports any rows in factory_jobs/factory_graphs/factory_packets/factory_eval_runs/scaffold_spine to backups/factory-retire-<ts>.json, then drops the tables (D1-D2 resolved as clean removal; Jacob is dev-only, DB backed up first, all tables were empty).
+- 2026-09-29: Done with CARD-577 (merged into qa).

@@ -1,7 +1,8 @@
 ---
 id: CARD-577
 title: "Cleanup: finish Factory retirement (ADR-0060), one agent-save path, stale wording, obsolete cards"
-status: In Review
+status: Done
+completed: 2026-09-29
 created: 2026-09-29
 branch: chore/card-577-cleanup
 related:
@@ -22,7 +23,7 @@ milestone: M22
 
 # [CARD-577] Cleanup: finish Factory retirement, one agent-save path, stale wording, obsolete cards
 
-> **Status**: In Review
+> **Status**: Done
 > **Labels**: `type:chore`, `area:cleanup`, `P2`
 
 ## Why
@@ -49,3 +50,4 @@ Item 3 of the 2026-09-29 triage: a cleanup pass with no product decision. Jacob 
 
 ## Log
 - 2026-09-29: Jacob approved item 3 of the triage as CARD-577 (cleanup, no product decision). Built on `chore/card-577-cleanup`; not merged or pushed.
+- 2026-09-29: Jacob: merge to qa. Done; merged into qa.

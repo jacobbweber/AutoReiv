@@ -1,7 +1,8 @@
 ---
 id: CARD-512
 title: "Agent Studio's \"Agent Training Optimization\" queue is always empty; retire the scaffold spine"
-status: In Review
+status: Done
+completed: 2026-09-29
 created: 2026-09-25
 branch: qa
 related:
@@ -19,7 +20,7 @@ milestone: M21
 
 # [CARD-512] Retire the always-empty "Agent Training Optimization" queue (scaffold spine)
 
-> **Status**: In Review with CARD-577. Built in CARD-577: scaffold spine, /api/capabilities/scaffold/* and smoke routes, mid-job self-scaffold and its table removed.
+> **Status**: Done (in CARD-577). Built in CARD-577: scaffold spine, /api/capabilities/scaffold/* and smoke routes, mid-job self-scaffold and its table removed.
 > **Related**: CARD-495 audit F16 and decision D8, CARD-496 (removes the panel), CARD-498 (data drop)
 > **Labels**: `type:cleanup`, `area:agents`, `P3`
 
@@ -55,3 +56,4 @@ Agent Studio shows an "Agent Training Optimization" panel with a candidate queue
 
 ## Log
 - 2026-09-29: Built in CARD-577: scaffold spine, /api/capabilities/scaffold/* and smoke routes, mid-job self-scaffold and its table removed.
+- 2026-09-29: Done with CARD-577 (merged into qa).
