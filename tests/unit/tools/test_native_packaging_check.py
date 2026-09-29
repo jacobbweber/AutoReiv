@@ -11,7 +11,6 @@ from src.application.skills.native_tool_engineering import NativeToolEngineering
 from src.application.tools.native_packaging import (
     NativeCustomToolService,
     NativeToolCheckFailed,
-    NativeToolError,
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -94,15 +93,45 @@ async def test_14b_high_risk_registers_checked_without_call(env):
     assert body["check"]["skip_reason"] == "high risk: sample call skipped"
 
 
-async def test_14c_skip_needs_a_reason(env):
+class _CountingRunner:
+    def __init__(self):
+        self.calls = 0
+
+    async def __call__(self, args, **kwargs):
+        self.calls += 1
+        raise AssertionError("the sandbox runner must not be called for flagged code")
+
+
+async def test_14c_skip_flag_is_ignored_pure_code_still_runs(env):
+    """CARD-571: a model-passed skip flag has no effect; pure code gets its trial run."""
     _store, _registry, service = env
-    with pytest.raises(NativeToolError) as caught:
-        await service.register(_raw("c511_skip", GOOD, sample_call="skip"))
-    assert caught.value.status_code == 400
-    assert "skip_reason" in str(caught.value)
     body = await service.register(_raw("c511_skip", GOOD, sample_call="skip", skip_reason="sends email", target_agent_id=""))
-    assert body["check"]["status"] == "checked_without_call"
-    assert body["check"]["skip_reason"] == "sends email"
+    assert body["check"]["status"] == "passed"
+    assert body["check"]["skip_reason"] is None
+
+
+@pytest.mark.parametrize(
+    "code, access",
+    [
+        ("import urllib.request\n\ndef run(**kw):\n    return 1\n", "network"),
+        ("def run(**kw):\n    return open('x.txt').read()\n", "files"),
+        ("import subprocess\n\ndef run(**kw):\n    return 1\n", "programs"),
+        ("def run(**kw):\n    return __import__('os').getcwd()\n", "hidden_imports"),
+    ],
+)
+async def test_14d_saving_flagged_code_never_invokes_the_sandbox_runner(env, code, access):
+    """CARD-571 guard: flagged code is saved as Not run, whatever the caller passes."""
+    from src.application.tools.tool_check import ToolCheckService
+
+    _store, _registry, service = env
+    runner = _CountingRunner()
+    service.checker = ToolCheckService(runner=runner)
+    body = await service.register(_raw("c571_flag", code, sample_call="run", target_agent_id=""))
+    assert runner.calls == 0
+    assert body["check"]["status"] == "not_run_review"
+    assert access in body["check"]["access"]
+    assert "Not run: uses" in body["message"] and "review before enabling" in body["message"]
+    assert body["approval"] != "enabled"
 
 
 async def test_15_only_enabled_approved_tools_remount(env):

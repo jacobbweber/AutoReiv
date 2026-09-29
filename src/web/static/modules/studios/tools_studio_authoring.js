@@ -151,6 +151,7 @@ export function formatToolCheckLines(checks) {
       const tool = String(check.tool || 'tool');
       if (check.status === 'passed') return `Checked: ${tool}`;
       if (check.status === 'checked_without_call') return `Checked without a sample call: ${String(check.skip_reason || '').trim()}`.trim();
+      if (check.status === 'not_run_review') return `Not run: ${String(check.skip_reason || '').trim()}, review before enabling.`;
       if (check.status === 'could_not_run') return `The check could not run for ${tool}.`;
       return `Not registered: ${tool} failed the ${String(check.stage || 'tool').replace(/_/g, ' ')} check.`;
     });

@@ -66,6 +66,57 @@ def test_no_agent_tool_can_enable_a_tool_or_skip_the_check():
     assert not re.search(r"files\.(enable|save|disable)\(", att)
 
 
+def test_no_model_controlled_skip_flag_on_the_native_lane():
+    """CARD-571: whether saved code runs is decided by the access scan, not by anything the model passes."""
+    import inspect
+
+    from src.application.skills.native_tool_engineering import NativeToolEngineeringTools
+    from src.application.tools.tool_check import ToolCheckService
+    from src.web.routers.native_tools import NativeToolRegisterRequest
+
+    params = inspect.signature(ToolCheckService.check_native).parameters
+    assert "sample_call" not in params and "skip_reason" not in params
+    reg = inspect.signature(NativeToolEngineeringTools.register_native_tool).parameters
+    assert "sample_call" not in reg and "skip_reason" not in reg
+    assert not {"sample_call", "skip_reason"} & set(NativeToolRegisterRequest.model_fields)
+    src = (ROOT / "src/application/skills/native_tool_engineering.py").read_text(encoding="utf-8")
+    assert "sample_call" not in src and "skip_reason" not in src
+    skill = (ROOT / "platform/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
+    assert 'sample_call: "skip"' not in skill and "not run at all" in skill
+
+
+async def test_flagged_code_never_reaches_the_sandbox_runner_but_pure_code_does():
+    """CARD-571 guard at the checker: network/files/programs/dynamic imports skip every sandbox run."""
+    from src.application.tools.tool_check import ToolCheckService
+
+    class Counting:
+        def __init__(self):
+            self.calls = 0
+
+        async def __call__(self, args, **kwargs):
+            self.calls += 1
+            from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
+
+            return await SandboxedSubprocessWorker.run_sandboxed(args, **kwargs)
+
+    flagged = {
+        "network": "import socket\n\ndef run(**kw):\n    return 1\n",
+        "files": "from pathlib import Path\n\ndef run(**kw):\n    return Path('a').read_text()\n",
+        "programs": "import os\n\ndef run(**kw):\n    return os.system('echo hi')\n",
+        "hidden_imports": "import importlib\n\ndef run(**kw):\n    return importlib.import_module('json').dumps(1)\n",
+    }
+    for access, code in flagged.items():
+        runner = Counting()
+        result = await ToolCheckService(runner=runner).check_native(name="c571_g", code=code, parameters={}, risk_level="low")
+        assert runner.calls == 0, access
+        assert result.status == "not_run_review" and result.ok is True, access
+        assert result.access, access
+        assert result.operator_message().startswith("Not run: uses ") and "review before enabling" in result.operator_message()
+    runner = Counting()
+    pure = await ToolCheckService(runner=runner).check_native(name="c571_p", code=CODE, parameters={}, risk_level="low")
+    assert pure.status == "passed" and runner.calls == 2  # import + one sample call
+
+
 def test_detect_access_names_network_files_and_programs():
     assert detect_access(CODE) == []
     assert detect_access("import urllib.request\ndef run(**k):\n    return 1\n") == ["network"]
@@ -92,7 +143,7 @@ def test_ask_developer_talk_opens_a_toolsmith_chat_with_the_target_agent():
     out = svc.open_chat("create", {"tool_name": "x_tool", "behavior": "does x", "target_agent_id": "tutor"})
     assert out["agent_id"] == "toolsmith" and made["agent_id"] == "toolsmith"
     assert 'target_agent_id "tutor"' in out["prompt"]
-    assert "not blocked" in out["prompt"]
+    assert "never run" in out["prompt"] and "review before enabling" in out["prompt"]
 
 
 @pytest.fixture

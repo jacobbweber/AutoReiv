@@ -65,7 +65,7 @@ export function capabilityGapRowHtml(gap = {}) {
           <span class="text-xs font-semibold text-amber-300 font-mono">${label}</span>
           <div class="flex flex-wrap items-center gap-1.5">
             <button type="button" class="btn-gap-open-skill-studio ${btn} bg-brand-600 hover:bg-brand-500 text-white" data-gap-id="${id}" title="Write a skill for this gap in Skill Studio">Open in Skill Studio</button>
-            <button type="button" class="btn-gap-ask-developer ${btn} bg-indigo-600 hover:bg-indigo-500 text-white" data-gap-id="${id}" title="Ask Developer to build a tool for this gap">Ask Developer</button>
+            <button type="button" class="btn-gap-ask-developer ${btn} bg-indigo-600 hover:bg-indigo-500 text-white" data-gap-id="${id}" title="Ask Toolsmith to build a tool for this gap">Ask Developer</button>
             <button type="button" class="btn-dismiss-gap ${btn} bg-slate-800 hover:bg-slate-700 text-slate-400 font-medium" data-gap-id="${id}">Dismiss</button>
           </div>
         </div>

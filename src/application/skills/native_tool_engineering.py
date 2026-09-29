@@ -44,8 +44,6 @@ class NativeToolEngineeringTools:
         target_agent_id: Optional[str] = None,
         target_skill_id: Optional[str] = None,
         sample_arguments: Optional[dict] = None,
-        sample_call: str = "run",
-        skip_reason: Optional[str] = None,
     ) -> dict[str, Any]:
         """Register one native AutoReiv tool after one sandbox run [CARD-511]. Does not attach an MCP server."""
         try:
@@ -60,8 +58,6 @@ class NativeToolEngineeringTools:
                     "target_agent_id": target_agent_id or "",
                     "target_skill_id": target_skill_id or "",
                     "sample_arguments": sample_arguments,
-                    "sample_call": sample_call,
-                    "skip_reason": skip_reason,
                 }
             )
         except NativeToolCheckFailed as exc:
@@ -133,12 +129,6 @@ class NativeToolEngineeringTools:
                         "type": "object",
                         "description": "Harmless input for the one check call. Omit to build it from parameters.",
                     },
-                    "sample_call": {
-                        "type": "string",
-                        "enum": ["run", "skip"],
-                        "description": "skip only when the call needs secrets, the network or has side effects; give skip_reason.",
-                    },
-                    "skip_reason": {"type": "string", "description": "Why the sample call is skipped (shown to the operator)."},
                 },
                 "required": ["name", "description", "code"],
             },

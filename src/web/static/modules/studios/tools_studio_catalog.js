@@ -77,11 +77,15 @@ export function nativeCheckLabel(check) {
     const reason = String(check.skip_reason || '').trim();
     return reason ? `Checked without a sample call: ${reason}` : 'Checked without a sample call';
   }
+  if (check.status === 'not_run_review') {
+    const reason = String(check.skip_reason || '').trim();
+    return reason ? `Not run: ${reason}, review before enabling` : 'Not run: review before enabling';
+  }
   return 'Not checked';
 }
 
 function nativeCheckKey(check) {
-  if (check && typeof check === 'object' && (check.status === 'passed' || check.status === 'checked_without_call')) {
+  if (check && typeof check === 'object' && (check.status === 'passed' || check.status === 'checked_without_call' || check.status === 'not_run_review')) {
     return check.status;
   }
   return 'not_checked';

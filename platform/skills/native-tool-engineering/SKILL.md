@@ -41,11 +41,9 @@ Use this when Jacob asks for a **native** runtime tool: Python saved in the data
 Saving runs the check first:
 
 1. **Static**: the code parses, defines `run(**kwargs)`, and has no path traversal. `eval`/`exec` and bare `except` are warnings.
-2. **Access**: the check names what the code can reach (the network, files on this computer, other programs, modules imported by name). This is shown to Jacob as a warning before enabling. It is not blocked.
-3. **Import** in a temporary folder (10 s) without calling `run`.
-4. **One sample call** (20 s). Pass harmless `sample_arguments`; without them the check builds the minimum from `parameters`.
-
-The temporary folder is **not isolation**: network and file access really happen during the sample call. For a tool that needs an API key, the network or has side effects, pass `sample_call: "skip"` with a `skip_reason`. `risk_level: high` always skips the call.
+2. **Access**: the check names what the code can reach (the network, files on this computer, other programs, modules imported by name). This is shown to Jacob as a warning before enabling. It is not blocked at runtime.
+3. **Code with any access is not run at all**, not even imported. It is saved with the result `Not run: uses <access>, review before enabling.` The tool decides this; nothing you pass changes it.
+4. **Pure code only**: import in a temporary folder (10 s) without calling `run`, then **one sample call** (20 s). Pass harmless `sample_arguments`; without them the check builds the minimum from `parameters`. `risk_level: high` skips the sample call.
 
 If the result starts **`Not registered:`**, nothing was saved. Explain the error in plain words, fix the code and call `register_native_tool` again.
 

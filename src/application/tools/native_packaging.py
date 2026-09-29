@@ -447,20 +447,13 @@ class NativeCustomToolService:
 
 
 def _check_options(raw: Mapping[str, Any]) -> dict[str, Any]:
-    """Sample input and skip choice for the tool check [CARD-511 D4-D6]."""
-    sample_call = str(raw.get("sample_call") or "run").strip().lower()
-    if sample_call not in {"run", "skip"}:
-        raise NativeToolError("sample_call must be run or skip")
-    skip_reason = str(raw.get("skip_reason") or "").strip()
-    if sample_call == "skip" and not skip_reason:
-        raise NativeToolError("skip_reason is required when sample_call is skip (for example: needs an API key)")
+    """Sample input for the tool check [CARD-511 D4-D6]. Whether code runs is decided by the
+    access scan in the checker, never by the caller [CARD-571]."""
     sample_arguments = raw.get("sample_arguments")
     if sample_arguments is not None and not isinstance(sample_arguments, Mapping):
         raise NativeToolError("sample_arguments must be an object")
     return {
         "sample_arguments": dict(sample_arguments) if isinstance(sample_arguments, Mapping) else None,
-        "sample_call": sample_call,
-        "skip_reason": skip_reason or None,
     }
 
 

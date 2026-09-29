@@ -28,8 +28,6 @@ class NativeToolRegisterRequest(BaseModel):
     target_skill_id: str = ""
     # CARD-511 tool check: sample input, or skip the sample call with a reason.
     sample_arguments: Optional[dict[str, Any]] = None
-    sample_call: str = "run"
-    skip_reason: str = ""
 
 
 class NativeToolInvokeRequest(BaseModel):
