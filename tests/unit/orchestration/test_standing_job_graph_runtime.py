@@ -11,11 +11,6 @@ import tempfile
 import pytest
 
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
-from src.application.orchestration.standing_job_graph import (
-    StandingRoute,
-    is_multi_step_outcome,
-    route_standing_chat,
-)
 from src.domain.orchestration.models import HandoffPacket, JobStatus, PhaseStatus
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -39,29 +34,12 @@ def orchestrator(temp_db_path):
     return JobPhaseOrchestrator(SQLiteStateStore(db_path=temp_db_path))
 
 
-def test_req_jobgraph_001a_standing_routing_multi_step_vs_short():
-    """Standing routing is explicit: multi-step -> job graph; short -> ReAct [REQ-JOBGRAPH-001a]."""
-    multi = (
-        "First research the homelab inventory, then draft a rollout plan, "
-        "finally verify health checks pass."
-    )
-    assert is_multi_step_outcome(multi) is True
-    assert route_standing_chat(multi) == StandingRoute.MULTI_STEP_JOB_GRAPH
-
-    short = "What time is it"
-    assert is_multi_step_outcome(short) is False
-    assert route_standing_chat(short) == StandingRoute.SHORT_REACT
-
-    numbered = "1. Scan hosts\n2. Patch critical CVEs\n3. Re-run health probe"
-    assert route_standing_chat(numbered) == StandingRoute.MULTI_STEP_JOB_GRAPH
-
-
 def test_req_jobgraph_001a_no_replacement_mode_flag_in_router_signature():
-    """Do not reintroduce mode theatre via a new request flag [REQ-JOBGRAPH-001a]."""
+    """CARD-572 replaced REQ-JOBGRAPH-001a: run_as_job is the one job flag; no other mode flags."""
     from src.web.routers.chat import ChatStreamRequest
 
     fields = set(ChatStreamRequest.model_fields.keys())
-    # Legacy goal_mode may remain deprecated; no NEW standing/mode flag.
+    assert "run_as_job" in fields and "goal_mode" not in fields
     for banned in (
         "standing_mode",
         "job_graph_mode",

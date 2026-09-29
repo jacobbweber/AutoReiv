@@ -23,11 +23,9 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 
 ## M24 Chat, jobs and tool reliability
 - 2026-09-27 | jobs | reopening a chat whose job failed shows Failed without the reason and names the last queued phase (folded from CARD-536) | CARD-561 triage | src/web/static/modules/studios/chat*
-- 2026-09-28 | chat routing | product question: chat still decides job vs normal turn by keywords (deliverable verbs, wiki writes, done-when, first/then/finally or numbered steps), so ordinary asks can still become a two-phase Job; decide whether to replace keyword routing with an explicit 'run as a job' action in Chat (would change how standing Jobs start, CARD-230/271) | from CARD-565 | src/application/orchestration/outcome_intake.py, standing_job_graph.py, src/web/static/modules/studios/chat*
 - 2026-09-28 | settings | reply limits (reply_limits.max_tokens / max_seconds, CARD-567) are API-only (/api/settings/reply-limits); add a Settings field | from CARD-567 | src/web/static/modules/studios/settings*, src/web/routers/settings.py
 
 ## M25 Self-development
-- 2026-09-28 | chat routing | a chat message with goal words such as "acceptance criteria" is routed into the two-phase job graph (Formulate, then Execute in separate sessions) instead of a plain turn; "Review CARD-3 against its acceptance criteria" to Architect did that and the review tools ran in phase sessions | from CARD-564 (fixed for criteria mentions by CARD-565) | src/application/orchestration/outcome_intake.py (_GOAL_DELIVERABLE), standing_job_graph.py
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
 - 2026-09-27 | developer | Developer reply can end with "Reply failed: The model returned an empty reply" right after registering a tool (folded from CARD-538) | CARD-561 triage | src/application/kernel/agent_kernel.py
 - 2026-09-27 | jobs | Developer job strip shows Job failed next to a DONE phase while an attach proposal waits (folded from CARD-547) | CARD-561 triage | src/web/static/modules/studios/chat*

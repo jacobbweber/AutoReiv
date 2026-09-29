@@ -13,19 +13,18 @@ export function buildChatStreamPayload({
   sessionId,
   content = '',
   resume = false,
-  goalMode = false,
+  runAsJob = false,
   selfVerify = false,
   approvalAutoRun = false,
   attachments = [],
 }) {
   const isResume = Boolean(resume);
-  void goalMode;
   const payload = {
     agent_id: agentId,
     session_id: sessionId,
     content: isResume ? '' : content,
     resume: isResume,
-    goal_mode: false,
+    run_as_job: isResume ? false : runAsJob === true, // CARD-572: the only way a message becomes a Job
     self_verify: isResume ? false : !!selfVerify,
     approval_mode: approvalAutoRun ? 'run' : 'ask',
   };

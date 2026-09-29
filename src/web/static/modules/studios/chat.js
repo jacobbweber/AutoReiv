@@ -25,7 +25,7 @@ export * from './chat/session_select.js'; // CARD-485 (hydrateJobPhaseStateFromJ
 
 import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD-470
 
-import { setupRuntimeModeToggles } from './chat/runtime_toggles.js'; // CARD-470
+import { setupRuntimeModeToggles, setupRunAsJobToggle, setRunAsJob, takeRunAsJob } from './chat/runtime_toggles.js'; // CARD-470, CARD-572
 import { setupChatScroll } from './chat/scroll.js';
 import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
 import { createSessionSelect } from './chat/session_select.js'; // CARD-485
@@ -321,6 +321,7 @@ export function initChatStudio(state, callbacks = {}) {
   const ownStream = createOwnStreamTracker(state, { sendBtn, stopBtn, messagesContainer }); // CARD-488: detached on switch
   const verifyToggle = $('verifyToggle');
   const approvalToggle = $('approvalToggle');
+  const runAsJobEls = { runAsJobToggle: $('runAsJobToggle'), runAsJobBadge: $('runAsJobBadge') }; // CARD-572
   const goalBadge = $('goalBadge');
   const jobPhaseStatusStrip = $('jobPhaseStatusStrip');
 
@@ -662,6 +663,7 @@ export function initChatStudio(state, callbacks = {}) {
   // Composer paperclip + Enter-to-send on the real template IDs [CARD-469]
   wireComposer(state, { chatForm, promptInput, showToastFn: showToast, onBeforeAttach: () => { closeChatOptionsDrawer(); return ensureSession(); } });
   setupRuntimeModeToggles(state, { approvalToggle, verifyToggle, approvalBadge: $('approvalBadge'), verifyBadge: $('verifyBadge') }); // CARD-470
+  setupRunAsJobToggle(state, runAsJobEls); // CARD-572
 
   // Teach Agent Modal [CARD-352, REQ-SKIL-011]
   const teachAgentModalCtrl = setupTeachAgentModal(state, {}, {
@@ -772,12 +774,15 @@ export function initChatStudio(state, callbacks = {}) {
     let accumulatedReasoning = '';
     const outcome = trackStreamOutcome();
 
+    // CARD-572: Run as a job applies to this one send, then the box unticks.
+    const runAsJob = options.isResume ? false : takeRunAsJob(state, runAsJobEls);
     try {
       const payload = buildChatStreamPayload({
         agentId: state.selectedAgentId,
         sessionId: state.activeSessionId,
         content: userPrompt,
         resume: options.isResume,
+        runAsJob,
         selfVerify: verifyToggle ? verifyToggle.checked : false,
         approvalAutoRun: !!approvalToggle?.checked, // CARD-470: checked = run, unchecked = ask
         attachments: [...(state.stagedAttachments || [])],
@@ -791,6 +796,7 @@ export function initChatStudio(state, callbacks = {}) {
       });
 
       // CARD-530 REQ-530-003: a 409 turn_running is a gentle notice (chat/turn_running.js), not a failure.
+      if (response.status === 409 && runAsJob) setRunAsJob(state, true, runAsJobEls); // refused send keeps the box
       if (response.status === 409) return handleTurnRunning({ state, streamBubble, isResume: options.isResume, userPrompt, restoreComposer: (t) => promptInput && setComposerText(promptInput, t), showToast, loadMessages });
       if (!response.ok) throw new Error(`Stream error: HTTP ${response.status}`);
 

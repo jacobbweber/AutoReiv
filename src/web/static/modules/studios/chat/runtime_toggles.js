@@ -57,3 +57,33 @@ export function setupRuntimeModeToggles(
     showChip(verifyBadge, state.verifyEnabled);
   });
 }
+
+/**
+ * CARD-572 D1A: the Run as a job box. Never remembered, off on load, unticks itself after each send.
+ * It is the only way a chat message becomes a standing Job (no keyword routing).
+ */
+export function setupRunAsJobToggle(state, { runAsJobToggle, runAsJobBadge } = {}) {
+  if (runAsJobToggle) runAsJobToggle.checked = false;
+  state.runAsJob = false;
+  showChip(runAsJobBadge, false);
+  runAsJobToggle?.addEventListener('change', (e) => {
+    state.runAsJob = Boolean(e.target.checked);
+    showChip(runAsJobBadge, state.runAsJob);
+  });
+}
+
+/** Set the Run as a job box (restore after a refused send). */
+export function setRunAsJob(state, on, { runAsJobToggle, runAsJobBadge } = {}) {
+  const value = Boolean(on);
+  if (runAsJobToggle) runAsJobToggle.checked = value;
+  state.runAsJob = value;
+  showChip(runAsJobBadge, value);
+}
+
+/** Read the box for one send and clear it [CARD-572 D1A]. */
+export function takeRunAsJob(state, els = {}) {
+  const toggle = els.runAsJobToggle;
+  const on = Boolean(toggle ? toggle.checked : state.runAsJob);
+  setRunAsJob(state, false, els);
+  return on;
+}

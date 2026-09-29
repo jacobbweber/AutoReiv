@@ -298,7 +298,6 @@ def test_chat_stream_auto_summarizes_session_title(client, store):
         "session_id": session_id,
         "content": "Can you explain how database migration locks work in SQLite?",
         "resume": False,
-        "goal_mode": False,
         "self_verify": False,
     }
     with client.stream("POST", "/api/chat/stream", json=stream_payload) as response:

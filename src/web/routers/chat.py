@@ -45,12 +45,10 @@ from src.application.orchestration.research_before_plan import (
     research_already_prepared,
 )
 from src.application.orchestration.standing_job_graph import (
-    StandingRoute,
     format_phase_llm_exhausted_reason,
     is_phase_llm_retryable,
     resolve_standing_phase_llm_retries,
     resolve_standing_phase_llm_timeout,
-    route_standing_chat,
 )
 from src.application.orchestration.wiki_thin_grounding import (
     ACTION_GROUNDED_ONLY,
@@ -1507,8 +1505,8 @@ class ChatStreamRequest(BaseModel):
     session_id: str
     content: Optional[str] = None
     resume: bool = False
-    # Deprecated authority [CARD-215]: ignored for routing. Standing heuristic decides.
-    goal_mode: bool = False
+    # CARD-572: the Chat "Run as a job" box. Only this starts a standing Job; message text is never scanned.
+    run_as_job: bool = False
     self_verify: bool = False
     approval_mode: str = "ask"
     verify_checker: Optional[str] = None
@@ -1971,8 +1969,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             store.update_session_title(req.session_id, new_title)
 
             # Standing Job-Graph Runtime [CARD-215 / CARD-220 / REQ-JOBGRAPH-001..002]:
-            # multi-step -> JobPhaseOrchestrator.create_job_from_catalog_resolve (catalog C);
-            # short turns -> plain AgentKernel ReAct. goal_mode is ignored as authority.
+            # CARD-572: run_as_job (Chat "Run as a job" box) -> JobPhaseOrchestrator.create_job_from_catalog_resolve;
+            # everything else -> plain AgentKernel ReAct.
 
             if resume:
                 review = last_goal_review_resume(store, req.session_id)
@@ -2226,11 +2224,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         await _forward_kernel_event(queue, event, profile)
                 return
 
-            standing = route_standing_chat(effective_content)
-            # Anti-theatre [CARD-220 / CARD-236]: outcome-shaped Chat uses catalog resolve
-            # standing runtime (not plan_engine-only / Observability-panel theatre).
-            # Short turns stay ReAct. Never silent-ReAct an outcome ask (jobs=[] theatre).
-            if (not resume) and standing == StandingRoute.MULTI_STEP_JOB_GRAPH:
+            # CARD-572: a standing Job starts only when Jacob ticked Run as a job (no keyword routing).
+            if (not resume) and req.run_as_job:
                 # CARD-251: do not mint an orphan while a parked HITL Job owns this session.
                 open_parked = latest_open_job_for_session(store, req.session_id) if store else None
                 if open_parked is not None:

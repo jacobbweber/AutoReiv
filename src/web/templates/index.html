@@ -446,6 +446,13 @@
                         <span class="font-medium">Auto-run</span>
                       </label>
 
+                      <!-- Run as a job Chip [CARD-572]: the only way a chat message becomes a standing Job; resets after each send -->
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs text-slate-200 cursor-pointer select-none transition" title="Send the next message as a job: AutoReiv plans it, then runs it in phases. Unticks itself after sending.">
+                        <input type="checkbox" id="runAsJobToggle" data-testid="run-as-job-toggle" class="rounded bg-[#08090c] border-white/[0.08] text-violet-500 focus:ring-violet-500/20 w-3.5 h-3.5 cursor-pointer">
+                        <i data-lucide="list-checks" class="w-3.5 h-3.5 text-violet-400 group-hover:scale-105 transition"></i>
+                        <span class="font-medium">Run as a job</span>
+                      </label>
+
                     </div>
                   </div>
 
@@ -559,6 +566,9 @@
                         </span>
                         <span id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-700/80 text-amber-300 font-mono whitespace-nowrap" title="Auto-run is on: write, shell and code tools run without asking">
                           Auto-run ON
+                        </span>
+                        <span id="runAsJobBadge" data-testid="run-as-job-badge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-violet-950/80 border border-violet-700/80 text-violet-300 font-mono whitespace-nowrap" title="The next message runs as a job">
+                          Run as a job
                         </span>
                         <span id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono whitespace-nowrap">
                           🎯 Multi-phase job
@@ -4764,6 +4774,10 @@
             <input type="checkbox" id="routineApprovalRunInput" class="rounded border-white/[0.08] bg-[#141721] text-sky-500 focus:ring-sky-500">
             <label for="routineApprovalRunInput" class="text-xs text-slate-300 select-none">Auto-run tools (no approval). Default is ask, fail-closed.</label>
           </div>
+          <div class="flex items-center space-x-2 pt-1">
+            <input type="checkbox" id="routineRunAsJobInput" data-testid="routine-run-as-job" class="rounded border-white/[0.08] bg-[#141721] text-violet-500 focus:ring-violet-500">
+            <label for="routineRunAsJobInput" class="text-xs text-slate-300 select-none">Run as a job (plan, then run, in phases). Off: one normal turn.</label>
+          </div>
         </div>
 
         <!-- Pinned Footer (flex-shrink-0) -->
@@ -4835,7 +4849,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.92"></script>
+  <script type="module" src="/static/app.js?v=2.0.93"></script>
 </body>
 </html>
 

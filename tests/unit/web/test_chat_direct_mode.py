@@ -156,6 +156,7 @@ def test_autoreiv_core_still_executes_job_orchestrator(client, store):
         "agent_id": "autoreiv",
         "session_id": sess_id,
         "content": "First check system diagnostics, then summarize CPU usage",
+        "run_as_job": True,  # CARD-572: only the explicit flag starts a Job
     }
 
     with client.stream("POST", "/api/chat/stream", json=payload) as response:

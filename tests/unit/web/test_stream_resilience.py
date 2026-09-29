@@ -77,6 +77,7 @@ async def test_background_shielded_standing_job_execution():
         'agent_id': 'assistant',
         'session_id': 'test_sess_1',
         'content': 'Create wiki note for test goal\nDone-when: note created',
+        'run_as_job': True,  # CARD-572
         'self_verify': False,
     }
 
@@ -136,7 +137,6 @@ async def test_chat_stream_resume_does_not_append_user():
         "session_id": "sess_resume",
         "content": "",
         "resume": True,
-        "goal_mode": False,
         "self_verify": False,
     }
     events = []
