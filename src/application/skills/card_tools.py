@@ -111,6 +111,30 @@ def apply_card_title(content: str, title: str, new: bool) -> str:
     return text
 
 
+_OWN_ID_FRONTMATTER = re.compile(r"(?im)^id:\s*[\"']?(CARD-\d+)\b")
+_OWN_ID_HEADING = re.compile(r"^#+\s*\[?(CARD-\d+)\b", re.IGNORECASE)
+
+
+def own_card_id(content: str) -> str:
+    """The card's own id: frontmatter ``id:`` or its first heading, never a card it mentions [CARD-581].
+
+    ``extract_card_id(\"\", content)`` returns the first CARD-N anywhere, so a new card that says
+    "Out of scope: add() (CARD-1)" was treated as an edit of CARD-1.
+    """
+    text = (content or "").replace("\r\n", "\n")
+    if text.lstrip().startswith("---"):
+        start = text.index("---")
+        end = text.find("\n---", start + 3)
+        m = _OWN_ID_FRONTMATTER.search(text[start : end if end != -1 else len(text)])
+        if m:
+            return m.group(1).upper()
+    for line in text.splitlines():
+        if line.strip().startswith("#"):
+            m = _OWN_ID_HEADING.match(line.strip())
+            return m.group(1).upper() if m else ""
+    return ""
+
+
 def stamp_new_card(content: str, card_id: str, status: Optional[str] = None) -> str:
     """Set the frontmatter id (and optionally status) and the heading id of a new card."""
     text = content.replace("\r\n", "\n")
@@ -293,7 +317,7 @@ class CardTools:
                 if cand.is_file():
                     return cand
         for cid in (card_id, extract_card_id(Path(filename).name if filename else "", "") if filename else "",
-                    extract_card_id("", content)):
+                    own_card_id(content)):
             if cid:
                 try:
                     return self._find_card_path(root, card_id=cid)
@@ -320,10 +344,10 @@ class CardTools:
         if path is None:
             # CARD-562: new cards get the next CARD-N id and a CARD-N-slug.md filename; Developer's are Proposed.
             developer = self._actor() == "developer"
-            wanted = (card_id or extract_card_id(Path(filename).name if filename else "", content) or "").upper()
+            wanted = (card_id or extract_card_id(Path(filename).name if filename else "") or own_card_id(content) or "").upper()
             assigned = wanted if (wanted and not developer) else self._next_card_id(root)
             forced = "Proposed" if developer else self._architect_new_status(content)
-            if forced or extract_card_id("", content) != assigned:
+            if forced or own_card_id(content) != assigned:
                 content = stamp_new_card(content, assigned, forced or None)
             keep_name = filename and not developer and extract_card_id(Path(filename).name) == assigned
             name = Path(filename).name if keep_name else f"{assigned}-{_slug(extract_card_title(content, assigned))}.md"
