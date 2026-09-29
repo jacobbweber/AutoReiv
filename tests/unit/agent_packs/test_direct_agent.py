@@ -23,7 +23,7 @@ def test_direct_pack_manifest_zero_tools_zero_skills():
     assert is_visible_in_chat(manifest) is True
 
     # Zero tools mounted
-    assert manifest.pack_tool_names == []
+    assert [t for s in manifest.skills for t in s.tools] == []
     # Zero skills mounted
     assert manifest.skills == []
     assert manifest.allowed_skill == []

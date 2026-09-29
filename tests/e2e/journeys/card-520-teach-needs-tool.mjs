@@ -14,7 +14,7 @@ const ATTACH = 'attach_tool_to_skill';
 
 async function grantedTools(request, base) {
   const a = await getJson(request, `${base}/api/agents/autoreiv`);
-  return new Set([...(a.allowed_tool_names || []), ...(a.pack_tool_names || [])].map(String));
+  return new Set((a.allowed_tools || []).map((t) => String(t && t.name ? t.name : t)));
 }
 
 async function attachProposals(request, base) {

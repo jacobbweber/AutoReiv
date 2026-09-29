@@ -25,7 +25,6 @@ def test_resolve_active_tools_enforces_rule_of_7_ceiling():
         name="Assistant",
         description="Test",
         system_prompt="Test",
-        allowed_tool_names=[t.name for t in tools],
         max_active_tools=6,
     )
     resolved = kernel._resolve_active_tools(agent, user_content="unrelated query")

@@ -6,7 +6,7 @@ never overwrite when ``user_modified``; never prune operator skill dirs (retired
 ``pack.json`` is an export projection, not a boot source of truth.
 
 CARD-436: when a non-user_modified hash-gated seed apply runs, also refresh the live
-``pack.json`` skill projection (skills / allowed_skill / pack_tool_names / system_prompt)
+``pack.json`` skill projection (skills / allowed_skill / system_prompt)
 so Agent Studio ``pack_skills`` matches SQLite without a manual AppData copy.
 
 
@@ -70,8 +70,6 @@ def compute_platform_seed_hash(pack_data: dict, src_pack_dir: Optional[Path] = N
     payload = {
         "system_prompt": pack_data.get("system_prompt") or "",
         "allowed_skill": list(pack_data.get("allowed_skill") or []),
-        "pack_tool_names": list(pack_data.get("pack_tool_names") or []),
-        "allowed_tool_names": list(pack_data.get("allowed_tool_names") or []),
         "skills": list(pack_data.get("skills") or []),
     }
     skill_bodies: dict[str, str] = {}
@@ -137,21 +135,14 @@ def _append_missing(current: list[str] | None, extras: Iterable[str]) -> tuple[l
     return merged, changed
 
 
-def _patch_allowlist(obj: Any, skill_ids: list[str], tool_names: list[str], *, only_present_fields: bool) -> bool:
-    """Append skill ids and tool names. Never assigns prompt or MCP servers."""
-    changed = False
-    for field, extras in (
-        ("allowed_skill", skill_ids),
-        ("allowed_tool_names", tool_names),
-        ("pack_tool_names", tool_names),
-    ):
-        current = getattr(obj, field, None)
-        if only_present_fields and current is None:
-            continue
-        merged, field_changed = _append_missing(list(current or []), extras)
-        if field_changed:
-            setattr(obj, field, merged)
-            changed = True
+def _patch_allowlist(obj: Any, skill_ids: list[str], *, only_present_fields: bool) -> bool:
+    """Append skill ids (their tools follow from the skills). Never assigns prompt or MCP servers."""
+    current = getattr(obj, "allowed_skill", None)
+    if only_present_fields and current is None:
+        return False
+    merged, changed = _append_missing(list(current or []), skill_ids)
+    if changed:
+        obj.allowed_skill = merged
     return changed
 
 
@@ -201,11 +192,6 @@ def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, 
         return
 
     skill_ids = [skill_id for skill_id, _tool_names in pending]
-    tool_names: list[str] = []
-    for _skill_id, names in pending:
-        for name in names:
-            if name not in tool_names:
-                tool_names.append(name)
 
     raw = store.get_agent_profile(pack_id) if hasattr(store, "get_agent_profile") else None
     override = store.get_agent_override(pack_id) if hasattr(store, "get_agent_override") else None
@@ -214,13 +200,13 @@ def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, 
 
     changed = False
     if raw is not None and hasattr(store, "save_custom_agent_profile"):
-        if _patch_allowlist(raw, skill_ids, tool_names, only_present_fields=False):
+        if _patch_allowlist(raw, skill_ids, only_present_fields=False):
             # CARD-449: automated grant must not set content lock
             # raw.user_modified = True
             store.save_custom_agent_profile(raw)
             changed = True
     if override is not None and hasattr(store, "save_agent_override"):
-        if _patch_allowlist(override, skill_ids, tool_names, only_present_fields=True):
+        if _patch_allowlist(override, skill_ids, only_present_fields=True):
             # CARD-449: automated grant must not set content lock
             # override.user_modified = True
             store.save_agent_override(override)
@@ -229,9 +215,8 @@ def apply_user_modified_additive_skill_grants(*, pack_id: str, pack_data: dict, 
     _record_skill_grants(store, pack_id, skill_ids)
     if changed:
         logger.info(
-            "Appended skill %s and tools %s onto user_modified %s allowlist; prompt and other entries left in place",
+            "Appended skill %s onto user_modified %s allowlist; prompt and other entries left in place",
             skill_ids,
-            tool_names,
             pack_id,
         )
 
@@ -599,21 +584,6 @@ def sync_checkout_example_user_packs(
 
 
 
-def seed_pack_tools(pack_data: dict) -> list[str]:
-    """CARD-541: the shipped pack's tools = union of its nested skills' tools (legacy flat list tolerated)."""
-    names: list[str] = []
-    for skill in pack_data.get("skills") or []:
-        for tool in (skill.get("tools") if isinstance(skill, dict) else None) or []:
-            text = str(tool or "").strip()
-            if text and text not in names:
-                names.append(text)
-    for tool in pack_data.get("pack_tool_names") or []:
-        text = str(tool or "").strip()
-        if text and text not in names:
-            names.append(text)
-    return names
-
-
 def refresh_live_pack_json_skill_projection(dest_pack: Path, pack_data: dict) -> bool:
     """Merge seed skill projection into live pack.json without wiping local extras.
 
@@ -635,7 +605,6 @@ def refresh_live_pack_json_skill_projection(dest_pack: Path, pack_data: dict) ->
     for key in (
         "skills",
         "allowed_skill",
-        "pack_tool_names",
         "system_prompt",
         "description",
         "name",
@@ -650,10 +619,6 @@ def refresh_live_pack_json_skill_projection(dest_pack: Path, pack_data: dict) ->
             continue
         if live.get(key) != pack_data.get(key):
             live[key] = pack_data.get(key)
-            changed = True
-    for key in ("pack_tool_names", "allowed_tool_names"):  # CARD-541: shipped packs carry no flat tool lists
-        if key in live and key not in pack_data:
-            live.pop(key)
             changed = True
     if not changed:
         return False

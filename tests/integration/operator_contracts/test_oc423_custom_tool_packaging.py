@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.domain.gateway.models import ToolDefinition
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter
 
@@ -305,8 +306,8 @@ def test_oc423_developer_skills_describe_both_lanes(operator_client):
     assert "native-tool-engineering" in (developer.allowed_skill or [])
     assert "register_native_tool" in client.app.state.tool_registry
     assert "plan_native_folder" in client.app.state.tool_registry
-    assert "register_native_tool" in (developer.pack_tool_names or []) or "register_native_tool" in (
-        developer.allowed_tool_names or []
+    assert "register_native_tool" in list(resolve_allowed_tools(developer)) or "register_native_tool" in (
+        list(resolve_allowed_tools(developer)) or []
     )
 
 

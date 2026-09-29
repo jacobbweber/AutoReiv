@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 PACK_SCHEMA_VERSION = "1.1"
 
@@ -420,14 +420,14 @@ class PackMCPServerConfig(BaseModel):
     env: Optional[dict[str, str]] = None
 
 
-LEGACY_TOOL_LIST_KEYS = ("pack_tool_names", "allowed_tool_names")
+# CARD-568: flat tool lists were removed; a pack.json that still has one is rejected on import.
+REJECTED_TOOL_LIST_KEYS = ("pack_tool_names", "allowed_tool_names")
 
 
 class AgentPackManifest(BaseModel):
     """pack.json for one specialist: identity, nested skills (each with its tools), Show in Chat.
 
-    CARD-541: no flat tool lists. A legacy ``pack_tool_names`` / ``allowed_tool_names`` on import is ignored and
-    reported in ``ignored_tool_lists``; ``pack_tool_names`` is a read-only union of the nested skill tools.
+    Tools live only in each skill's ``tools``; a flat tool list is rejected (CARD-568).
     """
 
     schema_version: str = PACK_SCHEMA_VERSION
@@ -458,37 +458,18 @@ class AgentPackManifest(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
-    _ignored_tool_lists: List[str] = PrivateAttr(default_factory=list)
-
-    @model_validator(mode="wrap")
+    @model_validator(mode="before")
     @classmethod
-    def drop_legacy_tool_lists(cls, data: Any, handler: Any) -> "AgentPackManifest":
-        """CARD-541: flat tool lists grant nothing (tools come from ticked skills); ignore them with a note."""
-        ignored: List[str] = []
+    def reject_flat_tool_lists(cls, data: Any) -> Any:
+        """A flat tool list is not supported: tools go in each skill's ``tools`` (CARD-568)."""
         if isinstance(data, dict):
-            data = dict(data)
-            for key in LEGACY_TOOL_LIST_KEYS:
-                if key in data:
-                    if data.pop(key):
-                        ignored.append(key)
-        model = handler(data)
-        if ignored:
-            model._ignored_tool_lists = ignored
-        return model
-
-    @property
-    def pack_tool_names(self) -> List[str]:
-        """Read-only: the union of the nested skills' tools, in order (never stored in pack.json)."""
-        names: List[str] = []
-        for skill in self.skills:
-            for tool in skill.tools:
-                if tool not in names:
-                    names.append(tool)
-        return names
-
-    @property
-    def ignored_tool_lists(self) -> List[str]:
-        return list(self._ignored_tool_lists)
+            found = [key for key in REJECTED_TOOL_LIST_KEYS if key in data]
+            if found:
+                raise ValueError(
+                    f"pack.json has {', '.join(found)}: flat tool lists are not supported. "
+                    "Put each tool in its skill's tools list."
+                )
+        return data
 
     @field_validator("id")
     @classmethod

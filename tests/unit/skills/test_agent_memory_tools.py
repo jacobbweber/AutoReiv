@@ -28,7 +28,6 @@ async def test_agent_memory_tools_registration_and_execution(tmp_path):
         description="Platform developer",
         system_prompt="You are developer.",
         memory_enabled=True,
-        allowed_tool_names=["read_project_file", "recall_agent_memory", "memorize_fact"],
     )
 
     authorized = registry.get_tools_for_agent(agent)

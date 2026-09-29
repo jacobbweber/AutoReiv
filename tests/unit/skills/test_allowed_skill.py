@@ -181,7 +181,6 @@ async def test_agents_api_persists_allowed_skill(tmp_path):
                 "name": "Okta Admin",
                 "description": "Identity admin agent",
                 "system_prompt": "You help with identity admin tasks.",
-                "allowed_tool_names": ["system_info"],
                 "allowed_skill": ["user-provisioning"],
             },
         )
@@ -196,7 +195,6 @@ async def test_agents_api_persists_allowed_skill(tmp_path):
                 "name": "Direct Mode",
                 "description": "Raw model passthrough",
                 "system_prompt": "You are Direct Mode.",
-                "allowed_tool_names": [],
                 "allowed_skill": ["user-provisioning"],
             },
         )
@@ -222,7 +220,6 @@ async def test_skill_view_refuses_unticked_id(tmp_path):
         name="Assistant like",
         description="Has disclosure tools",
         system_prompt="You are the assistant.",
-        allowed_tool_names=[LIST_USER_SKILL_PACKS, SKILL_VIEW],
         allowed_skill=["user-provisioning"],
     )
     registry.register_profile(agent)

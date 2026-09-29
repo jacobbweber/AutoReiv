@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.domain.settings.models import AgentCustomization
 from src.infrastructure.skills.platform_packs import (
     USER_MODIFIED_ADDITIVE_SKILL_GRANTS,
@@ -50,17 +51,15 @@ def _save_developer_prompt(store, developer, prompt: str) -> None:
         AgentCustomization(
             agent_id="developer",
             system_prompt=prompt,
-            allowed_tool_names=list(developer.allowed_tool_names or []),
             allowed_skill=list(developer.allowed_skill or []),
-            pack_tool_names=list(developer.pack_tool_names or []),
             user_modified=True,
         )
     )
 
 
 def _assert_save_agent_specification_absent(agent, tools) -> None:
-    assert "save_agent_specification" not in (agent.allowed_tool_names or [])
-    assert "save_agent_specification" not in (agent.pack_tool_names or [])
+    assert "save_agent_specification" not in list(resolve_allowed_tools(agent))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(agent))
     assert "save_agent_specification" not in tools
     for names in USER_MODIFIED_ADDITIVE_SKILL_GRANTS["developer"].values():
         assert "save_agent_specification" not in names
@@ -86,8 +85,8 @@ def test_oc433_appends_authoring_paragraph_once_and_deletion_sticks(operator_cli
     assert after.system_prompt.startswith(KEPT_TEXT)
     assert after.system_prompt.count(AUTHORING_PARAGRAPH) == 1
     assert "scaffold_agent_pack" in after.system_prompt
-    assert "propose_skill" in (after.allowed_tool_names or [])
-    assert "scaffold_agent_pack" in (after.allowed_tool_names or [])
+    assert "propose_skill" in list(resolve_allowed_tools(after))
+    assert "scaffold_agent_pack" in list(resolve_allowed_tools(after))
     _assert_save_agent_specification_absent(after, tools)
     assert bool(after.user_modified) is True
 
@@ -112,8 +111,8 @@ def test_oc433_appends_authoring_paragraph_once_and_deletion_sticks(operator_cli
     assert final is not None
     assert final.system_prompt == KEPT_TEXT, "REQ-433-002 FAIL: deleted authoring paragraph was appended again"
     assert AUTHORING_PARAGRAPH not in (final.system_prompt or "")
-    assert "propose_skill" in (final.allowed_tool_names or [])
-    assert "scaffold_agent_pack" in (final.allowed_tool_names or [])
+    assert "propose_skill" in list(resolve_allowed_tools(final))
+    assert "scaffold_agent_pack" in list(resolve_allowed_tools(final))
     _assert_save_agent_specification_absent(final, tools)
     final_profile = store.get_agent_profile("developer")
     assert final_profile is not None

@@ -258,7 +258,6 @@ async def test_local_agent_turn_never_calls_hosted_mcp_endpoint(app_and_client):
         name="Developer",
         description="Lead Software Engineer",
         system_prompt="You are a developer.",
-        allowed_tool_names=["read_wiki_document"],
     )
 
     step1 = ChatMessage(

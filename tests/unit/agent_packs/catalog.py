@@ -18,16 +18,11 @@ def load_platform_manifest(pack_id: str) -> AgentPackManifest:
 
 
 def platform_pack_profile(pack_id: str):
-    """AgentProfile from a platform pack, including ticked Platform skill tools."""
-    from src.application.agent_packs.allowed_tools import platform_seed_tools
+    """AgentProfile from a platform pack (tools follow from its ticked skills)."""
     from src.domain.kernel.models import AgentProfile, AgentTone
     from src.domain.settings.models import ModelPurpose
 
     manifest = load_platform_manifest(pack_id)
-    tools = list(manifest.pack_tool_names)
-    for name in platform_seed_tools(manifest.allowed_skill):
-        if name not in tools:
-            tools.append(name)
     try:
         purpose = ModelPurpose(manifest.purpose)
     except ValueError:
@@ -45,9 +40,7 @@ def platform_pack_profile(pack_id: str):
         tone=tone,
         avatar_icon=manifest.avatar_icon,
         model=manifest.model,
-        allowed_tool_names=tools,
         allowed_skill=list(manifest.allowed_skill),
-        pack_tool_names=list(manifest.pack_tool_names),
         show_in_chat=manifest.show_in_chat,
         is_builtin=False,
     )

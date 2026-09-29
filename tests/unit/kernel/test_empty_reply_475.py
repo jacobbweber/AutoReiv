@@ -84,7 +84,6 @@ def _profile() -> AgentProfile:
         name="General Assistant",
         description="Daily assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=[],
     )
 
 

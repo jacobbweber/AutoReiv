@@ -40,8 +40,6 @@ def test_env(tmp_path):
         "description": "General assistant",
         "skills": [],
         "allowed_skill": ["wiki"],
-        "pack_tool_names": [],
-        "allowed_tool_names": ["wiki_note_create"],
     }
     (agent_dir / "pack.json").write_text(json.dumps(pack_json), encoding="utf-8")
 
@@ -196,7 +194,7 @@ def test_adopt_skill_persists_to_user_pack_and_updates_manifest(test_env):
     registry.register_custom_agent(AgentProfile(
         id="autoreiv", name="AutoReiv", description="fixture", system_prompt="You help.",
         origin=AgentOrigin.PACK, tone=AgentTone.DEFAULT, purpose=ModelPurpose.TASK_EXECUTION,
-        allowed_skill=[], allowed_tool_names=[], show_in_chat=True,
+        allowed_skill=[], show_in_chat=True,
     ))
     service = SkillDistillationService(
         store=store, gateway=MockGateway(), data_dir=data_dir, agent_registry=registry

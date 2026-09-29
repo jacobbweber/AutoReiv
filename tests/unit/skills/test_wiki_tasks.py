@@ -12,6 +12,7 @@ Enforces:
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.schema import PLATFORM_SKILL_TOOLS
 from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
@@ -81,7 +82,7 @@ def test_pruned_weekly_tools_permanently_eliminated(temp_wiki_root):
     autoreiv_agent = registry.get_agent("autoreiv")
     assert autoreiv_agent is not None
     for tool_name in PRUNED_WEEKLY_TOOLS:
-        assert tool_name not in autoreiv_agent.allowed_tool_names, (
+        assert tool_name not in list(resolve_allowed_tools(autoreiv_agent)), (
             f"{tool_name} must NOT be in autoreiv allowed tools"
         )
 

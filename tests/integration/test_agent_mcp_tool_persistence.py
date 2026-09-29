@@ -28,12 +28,9 @@ def test_mcp_tool_reaches_agent_via_ticked_skill_and_survives_reboot(tmp_path: P
         base = {"name": agent_data["name"], "system_prompt": agent_data["system_prompt"]}
 
         # A tool list in the payload grants nothing.
-        put = tc.put(
-            "/api/agents/autoreiv",
-            json={**base, "allowed_tool_names": list(agent_data.get("allowed_tool_names") or []) + [custom_mcp_tool]},
-        )
+        put = tc.put("/api/agents/autoreiv", json={**base, "allowed_tools": [custom_mcp_tool]})
         assert put.status_code == 200, put.text
-        assert custom_mcp_tool not in tc.get("/api/agents/autoreiv").json()["allowed_tool_names"]
+        assert custom_mcp_tool not in tc.get("/api/agents/autoreiv").json()["allowed_tools"]
 
         # Attaching the server (as the migration and an accepted proposal do) creates a real skill binding
         # mcp_blender_* and ticks it.
@@ -47,7 +44,7 @@ def test_mcp_tool_reaches_agent_via_ticked_skill_and_survives_reboot(tmp_path: P
         )
         got = tc.get("/api/agents/autoreiv").json()
         assert "mcp-blender" in got["allowed_skill"]
-        assert "mcp_blender_*" in got["allowed_tool_names"]
+        assert "mcp_blender_*" in got["allowed_tools"]
 
         install_platform_agent_packs(
             data_dir=data_dir,
@@ -56,7 +53,7 @@ def test_mcp_tool_reaches_agent_via_ticked_skill_and_survives_reboot(tmp_path: P
         )
         after = tc.get("/api/agents/autoreiv").json()
         assert "mcp-blender" in after["allowed_skill"], "the tick was wiped after a simulated reboot"
-        assert "mcp_blender_*" in after["allowed_tool_names"]
+        assert "mcp_blender_*" in after["allowed_tools"]
 
         # A later Studio Save with the current version keeps the tick.
         save = tc.put("/api/agents/autoreiv", json={**base, "allowed_skill": after["allowed_skill"],

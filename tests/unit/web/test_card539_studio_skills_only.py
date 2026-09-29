@@ -39,14 +39,14 @@ def test_put_ignores_legacy_tool_lists_and_get_shows_derived_tools(boot):
     client, _store, app = boot
     agent = _agent(client, "autoreiv")
     assert agent["skills_version"]
-    payload = {**agent, "allowed_tool_names": ["execute_code", "get_weather"], "pack_tool_names": ["execute_code"],
+    payload = {**agent,
                "expected_skills_version": agent["skills_version"]}
     res = client.put("/api/agents/autoreiv", json=payload)
     assert res.status_code == 200, res.text
     after = _agent(client, "autoreiv")
     profile = app.state.registry.get_agent("autoreiv")
-    assert "get_weather" not in after["allowed_tool_names"]
-    assert set(after["allowed_tool_names"]) == set(resolve_allowed_tools(profile).names)
+    assert "get_weather" not in after["allowed_tools"]
+    assert set(after["allowed_tools"]) == set(resolve_allowed_tools(profile).names)
 
 
 def test_stale_skills_save_is_refused(boot):

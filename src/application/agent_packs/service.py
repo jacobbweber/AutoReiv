@@ -23,7 +23,6 @@ from src.application.agent_packs.schema import (
     PackMemoryConfig,
     PackSkill,
     PackStorageConfig,
-    _normalize_str_list,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
@@ -145,7 +144,6 @@ class AgentPackService:
         self.skills_dir = self.data_dir / "skills"
         self.agents_dir = self.data_dir / "agents"
         self.packs_dir = self.data_dir / "packs"
-        self.last_import_notes: List[str] = []
 
     def pack_dir(self, pack_id: str) -> Path:
         safe = _safe_id(pack_id)
@@ -169,11 +167,6 @@ class AgentPackService:
             for sid in skill_ids
             if sid not in PLATFORM_SKILL_IDS
         ]
-        # CARD-541: no flat tool list in pack.json; with no stored skill map, the profile's pack tools go on the
-        # primary skill so they survive the round trip (same rule as scaffold).
-        legacy_tools = [str(t).strip() for t in (profile.pack_tool_names or []) if str(t).strip()]
-        if legacy_tools and skills and all(not s.tools for s in skills):
-            skills[0].tools = list(dict.fromkeys(legacy_tools))
         storage_enabled = getattr(profile, "storage_enabled", False)
         storage_type = getattr(profile, "storage_type", "sqlite") or "sqlite"
         storage = PackStorageConfig(enabled=storage_enabled, type=storage_type)
@@ -359,8 +352,6 @@ class AgentPackService:
         if not raw_model or raw_model == "default" or raw_model in KNOWN_PROVIDERS:
             data["model"] = "default"
 
-        # CARD-541: a flat tool list in an authoring spec binds to the primary skill below; pack.json never stores it.
-        flat_tools = _normalize_str_list(data.get("pack_tool_names"))
         inline_skills, pack_skills = _split_inline_skills(data.get("skills"))
         if pack_skills is not None:
             data["skills"] = pack_skills
@@ -415,12 +406,6 @@ class AgentPackService:
         if extra_skills:
             manifest.skills = list(manifest.skills) + extra_skills
 
-        # Auto-bind a flat spec tool list to the primary skill if no skill has tools defined
-        if flat_tools and manifest.skills:
-            all_skills_empty = all(not skill.tools for skill in manifest.skills)
-            if all_skills_empty:
-                manifest.skills[0].tools = list(flat_tools)
-
         manifest.allowed_skill = skill_ids
         manifest.schema_version = PACK_SCHEMA_VERSION
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
@@ -440,12 +425,6 @@ class AgentPackService:
         raw = _strip_forbidden(raw)
         manifest = AgentPackManifest.model_validate(raw)
         manifest.schema_version = PACK_SCHEMA_VERSION
-        self.last_import_notes = [
-            f"Ignored {key} in {manifest.id}/pack.json: tools come from the pack's skills (CARD-541)."
-            for key in manifest.ignored_tool_lists
-        ]
-        for note in self.last_import_notes:
-            logger.warning(note)
 
         # Pack skills remain strictly isolated under packs/<agent_id>/skills/ [CARD-203].
         # Never copy agent-specific skills into the platform skills_dir ($DATA_DIR/skills/).
@@ -505,10 +484,6 @@ class AgentPackService:
         if self.agent_registry is None:
             raise ValueError("Agent registry is required to import a pack.")
         existing = self.agent_registry.get_agent(manifest.id)
-        pack_tools = list(manifest.pack_tool_names or [])
-        from src.application.agent_packs.allowed_tools import platform_seed_tools
-
-        platform_tools = platform_seed_tools(manifest.allowed_skill or [])
         storage_enabled = (
             manifest.storage.enabled
             if manifest.storage is not None
@@ -542,10 +517,6 @@ class AgentPackService:
             pack_mcp = [manifest.mcp_server.model_dump() if hasattr(manifest.mcp_server, "model_dump") else manifest.mcp_server]
 
         if existing is not None:
-            allowed_tools = list(existing.allowed_tool_names or [])
-            for name in pack_tools + platform_tools:
-                if name not in allowed_tools and (self.available_tools is None or name in self.available_tools):
-                    allowed_tools.append(name)
             existing_mcp = [
                 s.model_dump() if hasattr(s, "model_dump") else s
                 for s in (getattr(existing, "mcp_servers", []) or [])
@@ -564,9 +535,7 @@ class AgentPackService:
                 "tone": manifest.tone,
                 "avatar_icon": manifest.avatar_icon,
                 "model": manifest.model,
-                "allowed_tool_names": allowed_tools,
                 "allowed_skill": list(manifest.allowed_skill or existing.allowed_skill or []),
-                "pack_tool_names": pack_tools,
                 "show_in_chat": manifest.show_in_chat,
                 "visibility": getattr(manifest, "visibility", "public") or "public",
                 "fleet": getattr(manifest, "fleet", None),
@@ -581,11 +550,6 @@ class AgentPackService:
                 "mcp_servers": merged_mcp,
             }
         else:
-            known_pack_tools = [
-                name
-                for name in pack_tools + platform_tools
-                if self.available_tools is None or name in self.available_tools
-            ]
             data = {
                 "id": manifest.id,
                 "name": manifest.name,
@@ -597,9 +561,7 @@ class AgentPackService:
                 "tone": manifest.tone,
                 "avatar_icon": manifest.avatar_icon,
                 "model": manifest.model,
-                "allowed_tool_names": known_pack_tools,
                 "allowed_skill": list(manifest.allowed_skill or []),
-                "pack_tool_names": pack_tools,
                 "show_in_chat": manifest.show_in_chat,
                 "visibility": getattr(manifest, "visibility", "public") or "public",
                 "fleet": getattr(manifest, "fleet", None),
@@ -628,9 +590,7 @@ class AgentPackService:
                     system_prompt=profile.system_prompt,
                     model=profile.model,
                     purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
-                    allowed_tool_names=profile.allowed_tool_names,
                     allowed_skill=profile.allowed_skill,
-                    pack_tool_names=profile.pack_tool_names,
                     show_in_chat=profile.show_in_chat,
                     max_turns=profile.max_turns,
                     history_retention_days=profile.history_retention_days,

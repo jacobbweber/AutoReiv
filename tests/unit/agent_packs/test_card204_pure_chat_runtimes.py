@@ -96,7 +96,6 @@ async def test_chat_goal_and_verify_operate_without_platform_skills():
         name="Clean Agent",
         description="Agent without planning or verification tools",
         system_prompt="You are a clean agent.",
-        allowed_tool_names=[],
         skills=[],
     )
 

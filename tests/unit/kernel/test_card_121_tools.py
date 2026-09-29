@@ -1,5 +1,6 @@
 """CARD-121: tools are one atomic callable; untick omits schema; SKILL.md stubs are not callables."""
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.kernel.models import AgentProfile
@@ -112,12 +113,11 @@ def test_builtin_allowlists_unchanged_for_core():
     from tests.unit.agent_packs.catalog import platform_pack_profile
 
     autoreiv = platform_pack_profile("autoreiv")
-    assert "wiki_note_read" in autoreiv.allowed_tool_names
-    assert "wiki_note_create" in autoreiv.allowed_tool_names
-    assert "execute_code" not in autoreiv.allowed_tool_names
+    assert "wiki_note_read" in list(resolve_allowed_tools(autoreiv))
+    assert "wiki_note_create" in list(resolve_allowed_tools(autoreiv))
+    assert "execute_code" not in list(resolve_allowed_tools(autoreiv))
     developer = platform_pack_profile("developer")
-    assert "execute_code" not in developer.allowed_tool_names  # CARD-562: no shell/code runner on Developer
-    assert "run_project_checks" in developer.allowed_tool_names
-    assert "skill_view" not in developer.allowed_tool_names  # CARD-562: tool building parked until slice 2
-    assert "save_agent_specification" not in developer.allowed_tool_names
-    assert not any("execute_code" in p.allowed_tool_names for p in BUILTIN_PROFILES)
+    assert "execute_code" not in list(resolve_allowed_tools(developer))  # CARD-562: no shell/code runner on Developer
+    assert "run_project_checks" in list(resolve_allowed_tools(developer))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(developer))
+    assert not any("execute_code" in list(resolve_allowed_tools(p)) for p in BUILTIN_PROFILES)

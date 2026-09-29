@@ -85,7 +85,6 @@ def isolated_engine_setup(tmp_path):
         description="Specialist in diagnostics",
         system_prompt="You are a diagnostics expert.",
         tone=AgentTone.TECHNICAL,
-        allowed_tool_names=["system_info"],
         max_turns=5,
     )
 

@@ -34,8 +34,8 @@ PERMISSION_DIRS = (
     "application/tools/",
     "application/skills/",
 )
-# Pack export keeps the legacy field in interchange files; the migration reads it once.
-LEGACY_OK = {"application/skills/agent_pack_tools.py", "application/agent_packs/capability_migration.py"}
+# CARD-568: the flat lists are gone everywhere; no exceptions.
+LEGACY_OK: set[str] = set()
 
 SPECIAL_CASE_FILES = {
     "application/kernel/tool_registry.py",

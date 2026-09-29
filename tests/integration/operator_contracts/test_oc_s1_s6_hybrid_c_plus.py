@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
+
 
 def _refuse_live(user_data: Path) -> None:
     local_app = os.environ.get("LOCALAPPDATA") or ""
@@ -70,12 +72,9 @@ def test_oc_s1_reconcile_idempotent_user_edits_survive(hybrid_env, monkeypatch):
     profile = store.get_agent_profile(pack_id) or registry.get_agent(pack_id)
     assert profile is not None
 
-    # Operator removes a tool and marks user_modified
-    original_tools = list(getattr(profile, "allowed_tool_names", None) or [])
-    assert original_tools, "expected seeded tools"
-    removed = original_tools[0]
-    kept = original_tools[1:]
-    profile.allowed_tool_names = kept
+    # Operator edits the prompt (a real content edit) and marks user_modified
+    operator_prompt = "Operator prompt: keep me."
+    profile.system_prompt = operator_prompt
     profile.user_modified = True
     store.save_custom_agent_profile(profile)
     store.mark_agent_user_modified(pack_id, modified=True)
@@ -92,9 +91,7 @@ def test_oc_s1_reconcile_idempotent_user_edits_survive(hybrid_env, monkeypatch):
     after = store.get_agent_profile(pack_id)
     assert after is not None
     assert bool(getattr(after, "user_modified", False)) is True
-    tools_after = list(getattr(after, "allowed_tool_names", None) or [])
-    assert removed not in tools_after, "OC-S1 FAIL: removed tool was re-added by seed"
-    assert set(tools_after) == set(kept) or removed not in tools_after
+    assert after.system_prompt == operator_prompt, "OC-S1 FAIL: operator prompt was overwritten by seed"
     assert custom_skill.is_dir(), "OC-S1 FAIL: operator skill dir was pruned"
     assert (custom_skill / "SKILL.md").is_file()
 
@@ -129,7 +126,6 @@ def test_oc_s2_export_import_fidelity(hybrid_env, tmp_path):
     import shutil
 
     # Stamp known bindings into SQLite (sole writer) then re-export for fidelity proof
-    profile.allowed_tool_names = ["wiki_note_create", "wiki_note_read"]
     profile.allowed_skill = ["wiki", "proposals"]
     profile.user_modified = True
     store.save_custom_agent_profile(profile)
@@ -146,7 +142,7 @@ def test_oc_s2_export_import_fidelity(hybrid_env, tmp_path):
     again = store.get_agent_profile(pack_id)
     assert again is not None
     assert again.id == pack_id
-    tools_after = list(getattr(again, "allowed_tool_names", None) or [])
+    tools_after = list(resolve_allowed_tools(again))
     skills_after = list(getattr(again, "allowed_skill", None) or [])
     assert "wiki_note_create" in tools_after
     assert set(exported_skills).issubset(set(skills_after)) or skills_after == exported_skills
@@ -212,7 +208,7 @@ def test_oc_s4_migration_preserves_refs(hybrid_env):
     install_platform_agent_packs(user_data, registry, getattr(client.app.state, "tool_registry", None))
     before = {
         a.id: {
-            "tools": list(getattr(a, "allowed_tool_names", None) or []),
+            "tools": list(resolve_allowed_tools(a)),
             "skills": list(getattr(a, "allowed_skill", None) or []),
         }
         for a in (store.list_custom_agent_profiles() if hasattr(store, "list_custom_agent_profiles") else [])
@@ -227,7 +223,7 @@ def test_oc_s4_migration_preserves_refs(hybrid_env):
         p = store.get_agent_profile(aid)
         assert p is not None
         # No empty wipe
-        assert list(getattr(p, "allowed_tool_names", None) or []) or snap["tools"] == []
+        assert list(resolve_allowed_tools(p)) or snap["tools"] == []
         for skill in snap["skills"]:
             # skill id still listed (bindings preserved)
             assert skill in (getattr(p, "allowed_skill", None) or [])

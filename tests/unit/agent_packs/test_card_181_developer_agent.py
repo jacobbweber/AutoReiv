@@ -1,5 +1,6 @@
 """Unit tests for Developer Agent capability consolidation [CARD-181, CARD-366, REQ-CONSOL-001]."""
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.schema import (
     CHAT_HIDDEN_BY_ID,
     PLATFORM_PACK_IDS,
@@ -27,8 +28,8 @@ def test_developer_pack_is_restored_as_platform_pack():
     profile = platform_pack_profile("developer")
     assert profile.id == "developer"
     assert profile.show_in_chat is True
-    assert "cli_exec" not in profile.allowed_tool_names  # CARD-562: no shell/code runner on Developer
-    assert "write_project_file" in profile.allowed_tool_names
+    assert "cli_exec" not in list(resolve_allowed_tools(profile))  # CARD-562: no shell/code runner on Developer
+    assert "write_project_file" in list(resolve_allowed_tools(profile))
     assert "implement-change" in profile.allowed_skill
 
 
@@ -60,9 +61,9 @@ def test_autoreiv_pack_profile_delegates_developer_capabilities():
     profile = platform_pack_profile("autoreiv")
     assert profile.id == "autoreiv"
     assert profile.show_in_chat is True
-    assert "cli_exec" not in profile.allowed_tool_names
+    assert "cli_exec" not in list(resolve_allowed_tools(profile))
     assert "sdlc-engineering" not in profile.allowed_skill
-    assert "handoff_to_agent" in profile.allowed_tool_names
+    assert "handoff_to_agent" in list(resolve_allowed_tools(profile))
 
 
 

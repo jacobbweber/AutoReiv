@@ -25,7 +25,6 @@ def test_guardrail_valid_profile_passes():
 
     profile = AgentProfileGuardrail.validate(valid_data, available_tools=available_tools)
     assert profile.id == "k8s-devops-sre"
-    assert profile.allowed_tool_names == ["cli_exec", "system_info"]
     assert profile.max_turns == 15
 
 

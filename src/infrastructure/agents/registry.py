@@ -132,12 +132,8 @@ class BuiltinAgentRegistry:
                         profile.purpose = ModelPurpose(override.purpose)
                     except ValueError:
                         pass
-                if override.allowed_tool_names is not None:
-                    profile.allowed_tool_names = override.allowed_tool_names
                 if override.allowed_skill is not None:
                     profile.allowed_skill = override.allowed_skill
-                if override.pack_tool_names is not None:
-                    profile.pack_tool_names = override.pack_tool_names
                 if override.show_in_chat is not None:
                     profile.show_in_chat = override.show_in_chat
                 if override.max_turns:

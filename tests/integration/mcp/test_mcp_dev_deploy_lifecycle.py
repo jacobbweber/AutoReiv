@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.skills.mcp_engineering_tools import MCPEngineeringTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ToolDefinition
@@ -123,7 +124,7 @@ async def test_mcp_dev_deploy_lifecycle_end_to_end(tmp_path):
     dev = registry.get_agent("developer")
     assert dev is not None
     # Developer pack has mcp-engineering in allowed_skill
-    assert "mcp-engineering" in dev.allowed_skill or "mcp-engineering" in (dev.pack_tool_names or [])
+    assert "mcp-engineering" in dev.allowed_skill or "mcp-engineering" in list(resolve_allowed_tools(dev))
 
 
 class _PassingChecker:

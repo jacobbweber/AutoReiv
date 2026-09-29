@@ -84,7 +84,6 @@ describe('platform update badge [REQ-450-001/002/007]', () => {
 
   it('humanizes known fields and falls back to spaced words', () => {
     expect(humanizePackField('system_prompt')).toBe('system prompt');
-    expect(humanizePackField('pack_tool_names')).toBe('tool list');
     expect(humanizePackField('some_new_field')).toBe('some new field');
   });
 });
@@ -142,7 +141,7 @@ describe('backups list [REQ-450-008/009]', () => {
   it('restore dialog says what comes back and what does not', () => {
     const msg = restoreDialogMessage(backups[0]);
     expect(msg).toContain(formatBackupTime(backups[0].backed_up_at).label);
-    expect(msg).toMatch(/instructions, skill list, tool list, max turns, and model/);
+    expect(msg).toMatch(/instructions, skill list, max turns, and model/);
     expect(msg).toMatch(/Skill files on disk are not changed/);
     expect(msg).toMatch(/platform updates will skip/i);
     expect(msg).toMatch(/Keep my agent customizations/);

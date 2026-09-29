@@ -1,5 +1,6 @@
 """CARD-126: Platform Agent Packs, wiki skill stub, seed-if-missing."""
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.agent_packs.schema import (
     PLATFORM_PACK_IDS,
     WIKI_TOOL_NAMES,
@@ -82,10 +83,10 @@ def test_autoreiv_pack_weekly_tasks_and_skills():
         "rollover_weekly_tasks",
         "get_weekly_summary",
     ):
-        assert pruned_tool not in manifest.pack_tool_names
-    assert "save_agent_specification" not in manifest.pack_tool_names
+        assert pruned_tool not in [t for s in manifest.skills for t in s.tools]
+    assert "save_agent_specification" not in [t for s in manifest.skills for t in s.tools]
     profile = platform_pack_profile("autoreiv")
-    assert "wiki_note_read" in profile.allowed_tool_names
+    assert "wiki_note_read" in list(resolve_allowed_tools(profile))
     assert "wiki_tasks" in profile.allowed_skill
     assert "wiki-knowledge" in profile.allowed_skill
     assert "proposals" in profile.allowed_skill
@@ -137,8 +138,8 @@ def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     assert not (data_dir / "packs" / "conductor" / "pack.json").is_file()
     assert "wiki_tasks" in autoreiv.allowed_skill
     assert "wiki-knowledge" in autoreiv.allowed_skill
-    assert "wiki_note_read" in autoreiv.allowed_tool_names
-    assert "save_agent_specification" not in autoreiv.allowed_tool_names
+    assert "wiki_note_read" in list(resolve_allowed_tools(autoreiv))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(autoreiv))
 
 
 def test_seed_if_missing_does_not_clobber(tmp_path):

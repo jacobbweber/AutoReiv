@@ -5,6 +5,7 @@ The planner no longer switches prompts by agent id.
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.kernel.plan_engine import PlanAndExecuteEngine
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.domain.agents.profiles import get_builtin_profile
@@ -51,7 +52,7 @@ def test_planner_uses_one_prompt_for_every_agent():
 @pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_developer_pack_holds_builder_tools():
     dev = platform_pack_profile("developer")
-    assert "propose_skill" in dev.allowed_tool_names
-    assert "commit_skill_pack" in dev.allowed_tool_names
-    assert "scaffold_agent_pack" in dev.allowed_tool_names
-    assert "save_agent_specification" not in dev.allowed_tool_names
+    assert "propose_skill" in list(resolve_allowed_tools(dev))
+    assert "commit_skill_pack" in list(resolve_allowed_tools(dev))
+    assert "scaffold_agent_pack" in list(resolve_allowed_tools(dev))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(dev))

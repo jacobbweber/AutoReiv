@@ -45,7 +45,6 @@ def test_discover_custom_agent(directory_service, tmp_path):
         system_prompt="You specialize in PostgreSQL query tuning, indexes, and database migrations.",
         tone=AgentTone.TECHNICAL,
         purpose=ModelPurpose.TASK_EXECUTION,
-        allowed_tool_names=["execute_sql", "explain_query"],
         max_turns=10,
         is_builtin=False,
     )

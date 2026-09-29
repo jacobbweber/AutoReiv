@@ -34,9 +34,7 @@ class AgentProfilePayload(BaseModel):
     tone: Optional[str] = "default"
     avatar_icon: Optional[str] = "bot"
     model: Optional[str] = "default"
-    allowed_tool_names: Optional[List[str]] = None
     allowed_skill: Optional[List[str]] = None
-    pack_tool_names: Optional[List[str]] = None
     show_in_chat: Optional[bool] = True
     max_turns: Optional[int] = DEFAULT_AGENT_MAX_TURNS
     history_retention_days: Optional[int] = 30
@@ -148,10 +146,8 @@ def _public_agent(
         "avatar_icon": profile.avatar_icon,
         # CARD-539: tools are derived from ticked skills (read-only); skills_version guards stale saves.
         "allowed_tools": list(derived_tools),
-        "allowed_tool_names": list(derived_tools),
         "allowed_skill": profile.allowed_skill or [],
         "skills_version": skills_version(profile),
-        "pack_tool_names": profile.pack_tool_names or [],
         "pack_skills": pack_bits["pack_skills"],
         "ungrouped_pack_tools": pack_bits["ungrouped_pack_tools"],
         "show_in_chat": show_in_chat,
@@ -358,8 +354,6 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
     data = payload.model_dump(exclude={"expected_skills_version"})
     data["id"] = agent_id
     data["origin"] = "custom"
-    data["allowed_tool_names"] = []  # CARD-539: tools come from ticked skills only
-    data["pack_tool_names"] = []
 
     try:
         profile = AgentProfileGuardrail.validate(data, available_tools=available_tools)
@@ -413,17 +407,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         )
 
     available_tools = {t.name for t in tool_reg.list_tools()}
-    # CARD-438 hotfix: Studio Save re-sends skill-derived pack tools. Grandfather
-    # tools already authorized on this agent so scalar edits (max_turns) are not
-    # blocked with 422 when those tools are temporarily absent from the live
-    # catalog (stale worker / mount lag). Brand-new unknown tool names still 422.
-    available_tools |= {str(t).strip() for t in (existing.allowed_tool_names or []) if str(t).strip()}
-    available_tools |= {str(t).strip() for t in (existing.pack_tool_names or []) if str(t).strip()}
     data = payload.model_dump(exclude={"expected_skills_version"})
     data["id"] = agent_id
-    # CARD-539: tool lists are derived from skills; payload tool lists are ignored.
-    data["allowed_tool_names"] = existing.allowed_tool_names
-    data["pack_tool_names"] = existing.pack_tool_names or []
     if not data.get("name"):
         data["name"] = existing.name
     if not data.get("system_prompt"):

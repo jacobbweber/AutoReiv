@@ -116,7 +116,7 @@ export default {
       const dev = await getJson(request, `${base}/api/agents/developer`);
       const body = {
         name: dev.name, description: dev.description, system_prompt: dev.system_prompt, purpose: dev.purpose, tone: dev.tone,
-        avatar_icon: dev.avatar_icon, allowed_skill: dev.allowed_skill, pack_tool_names: dev.pack_tool_names,
+        avatar_icon: dev.avatar_icon, allowed_skill: dev.allowed_skill,
         show_in_chat: dev.show_in_chat, max_turns: dev.max_turns, expected_skills_version: dev.skills_version,
         provider: 'ollama', api_base_url: DEV_URL, model: DEV_MODEL,
       };

@@ -40,8 +40,6 @@ def test_env(tmp_path):
         "description": "General assistant",
         "skills": [],
         "allowed_skill": ["wiki"],
-        "pack_tool_names": [],
-        "allowed_tool_names": ["wiki_note_create"],
     }
     (agent_dir / "pack.json").write_text(json.dumps(pack_json), encoding="utf-8")
 

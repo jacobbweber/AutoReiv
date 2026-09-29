@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+from src.application.agent_packs.allowed_tools import resolve_allowed_tools
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.safety.tool_policy_gate import _DEFAULT_REQUIRE_CONFIRM
 from src.domain.gateway.models import ToolCall
@@ -71,8 +72,8 @@ def test_oc431_catalog_omits_save_and_developer_can_scaffold(operator_client):
 
     developer = registry.get_agent("developer")
     assert developer is not None
-    assert "scaffold_agent_pack" in (developer.allowed_tool_names or [])
-    assert "save_agent_specification" not in (developer.allowed_tool_names or [])
+    assert "scaffold_agent_pack" in list(resolve_allowed_tools(developer))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(developer))
 
     visible = client.app.state.kernel._resolve_active_tools(
         developer,

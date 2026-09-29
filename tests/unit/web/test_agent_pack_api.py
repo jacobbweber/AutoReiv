@@ -23,7 +23,7 @@ async def test_agents_api_show_in_chat_default_and_hide(tmp_path, monkeypatch):
         by_id = {row["id"]: row for row in listed.json()}
         assert by_id["direct"]["show_in_chat"] is True
         assert by_id["autoreiv"]["show_in_chat"] is True
-        assert "pack_tool_names" in by_id["autoreiv"]
+        assert "pack_tool_names" not in by_id["autoreiv"]
 
         created = await ac.post(
             "/api/agents",
@@ -33,8 +33,6 @@ async def test_agents_api_show_in_chat_default_and_hide(tmp_path, monkeypatch):
                 "description": "Behind the scenes",
                 "system_prompt": "You are a hidden specialist.",
                 "show_in_chat": False,
-                "pack_tool_names": ["system_info"],
-                "allowed_tool_names": ["system_info"],
             },
         )
         assert created.status_code == 200
@@ -42,7 +40,7 @@ async def test_agents_api_show_in_chat_default_and_hide(tmp_path, monkeypatch):
         assert got.status_code == 200
         body = got.json()
         assert body["show_in_chat"] is False
-        assert body["pack_tool_names"] == []  # CARD-539: tool lists in payloads are ignored
+        assert "pack_tool_names" not in body  # CARD-568: agents carry no flat tool list
 
         listed2 = {row["id"]: row for row in (await ac.get("/api/agents")).json()}
         assert listed2["hidden-bot"]["show_in_chat"] is False

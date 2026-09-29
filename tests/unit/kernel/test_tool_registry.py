@@ -110,7 +110,7 @@ async def test_tool_execution_denied_unauthorized(registry):
         name="Guest",
         description="Guest with no tools",
         system_prompt="Guest",
-        allowed_tool_names=[],  # No tools allowed
+        # No tools allowed
     )
     call = ToolCall(id="call_3", name="calculator", arguments={"a": 1, "b": 2})
     result = await registry.execute(call, profile)
