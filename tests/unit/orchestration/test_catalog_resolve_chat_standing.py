@@ -11,10 +11,6 @@ import pytest
 
 from src.application.capabilities.resolver import CapabilityCatalogResolver
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
-from src.application.orchestration.standing_job_graph import (
-    StandingRoute,
-    route_standing_chat,
-)
 from src.domain.capabilities.models import (
     CapabilityIndexEntry,
     CapabilityKind,
@@ -102,8 +98,6 @@ def test_req_catjob_chat_standing_creates_rhe_via_catalog(orch, resolver, store)
         "First research the wiki notes, then handoff to the assistant, "
         "finally execute a health verify."
     )
-    assert route_standing_chat(multi) == StandingRoute.MULTI_STEP_JOB_GRAPH
-
     job = orch.create_job_from_catalog_resolve(
         intent=multi,
         session_id="sess_chat_standing",
@@ -121,10 +115,6 @@ def test_req_catjob_chat_standing_creates_rhe_via_catalog(orch, resolver, store)
     matched = orch.matched_capability_ids_for_job(job.id)
     assert "tool.wiki_note_search" in matched
     assert all(p.status == PhaseStatus.QUEUED for p in phases)
-
-def test_req_catjob_short_turn_stays_plain_react_routing():
-    """Short turns remain SHORT_REACT (plain ReAct), not catalog Job/Phase."""
-    assert route_standing_chat("What time is it") == StandingRoute.SHORT_REACT
 
 def test_req_catjob_app_wires_capability_resolver_into_orchestrator():
     """App factory must pass capability_resolver so Chat catalog path is live."""

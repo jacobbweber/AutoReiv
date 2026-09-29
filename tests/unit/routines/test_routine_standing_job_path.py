@@ -16,10 +16,6 @@ from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.gateway.ports import LLMProviderPort
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
-from src.application.orchestration.standing_job_graph import (
-    StandingRoute,
-    route_standing_chat,
-)
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.scheduler import RoutineScheduler
 from src.application.telemetry.collector import TelemetryCollector
@@ -169,13 +165,12 @@ def test_req_routstand_002_executor_source_uses_catalog_resolve():
 async def test_req_routstand_002_multi_step_creates_rhe_job(store, executor, resolver, orch):
     """Multi-step routine fire -> catalog R/H/E + matched IDs + durable job_id [REQ-ROUTSTAND-002]."""
     _seed(resolver)
-    assert route_standing_chat(MULTI_STEP_PROMPT) == StandingRoute.MULTI_STEP_JOB_GRAPH
-
     r = Routine(
         id="r-standing-multi",
         name="Standing Multi",
         agent_id="autoreiv",
         prompt=MULTI_STEP_PROMPT,
+        metadata={"run_as_job": True},  # CARD-572: the routine setting, not the prompt
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
     )
@@ -209,6 +204,7 @@ async def test_req_routstand_004_kill_mid_phase_resume_same_job_id(store, execut
         name="Standing Resume",
         agent_id="autoreiv",
         prompt=MULTI_STEP_PROMPT,
+        metadata={"run_as_job": True},  # CARD-572: the routine setting, not the prompt
         schedule_type=ScheduleType.CRON,
         cron_expression="0 * * * *",
     )
@@ -246,7 +242,6 @@ async def test_req_routstand_004_kill_mid_phase_resume_same_job_id(store, execut
 async def test_req_routstand_005_short_prompt_stays_plain_react(store, executor):
     """Short routine prompts stay SHORT_REACT / plain kernel path [REQ-ROUTSTAND-005]."""
     short = "Check health now"
-    assert route_standing_chat(short) == StandingRoute.SHORT_REACT
     r = Routine(
         id="r-standing-short",
         name="Short",
@@ -294,6 +289,7 @@ async def test_standing_phase_llm_timeout_fails_job_not_orphan(store, executor, 
         name="Standing Timeout",
         agent_id="autoreiv",
         prompt=MULTI_STEP_PROMPT,
+        metadata={"run_as_job": True},  # CARD-572: the routine setting, not the prompt
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
     )
@@ -347,6 +343,7 @@ async def test_standing_phase_llm_retries_then_succeeds(store, executor, resolve
         name="Standing Retry Ok",
         agent_id="autoreiv",
         prompt=MULTI_STEP_PROMPT,
+        metadata={"run_as_job": True},  # CARD-572: the routine setting, not the prompt
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
     )
@@ -362,3 +359,21 @@ async def test_standing_phase_llm_retries_then_succeeds(store, executor, resolve
     assert not any(p.status == PhaseStatus.FAILED for p in phases)
     assert not any(p.status == PhaseStatus.RUNNING for p in phases)
 
+
+@pytest.mark.asyncio
+async def test_card572_step_words_without_the_setting_stay_one_turn(store, executor, resolver):
+    """CARD-572 D2A: the prompt is never scanned; without Run as a job the routine is one plain turn."""
+    _seed(resolver)
+    r = Routine(
+        id="r-572-words",
+        name="Words only",
+        agent_id="autoreiv",
+        prompt=MULTI_STEP_PROMPT,
+        schedule_type=ScheduleType.INTERVAL,
+        interval_seconds=3600,
+    )
+    store.save_routine(r)
+    run = await executor.execute_routine(r)
+    assert run.status == RoutineStatus.SUCCESS
+    assert not getattr(run, "job_id", None)
+    assert not (store.get_routine(r.id).metadata or {}).get("last_standing_job_id")

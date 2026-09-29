@@ -19,12 +19,7 @@ from src.application.observability.standing_journey import build_standing_journe
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.orchestration.outcome_intake import (
     derive_success_rule,
-    is_outcome_shaped,
     is_testable_success_rule,
-)
-from src.application.orchestration.standing_job_graph import (
-    StandingRoute,
-    route_standing_chat,
 )
 from src.domain.capabilities.models import CapabilityIndexEntry, CapabilityKind
 from src.domain.gateway.models import ChatMessage, Role
@@ -98,26 +93,6 @@ def _seed_wiki(resolver: CapabilityCatalogResolver) -> None:
 # --- REQ-JOBMINT-001 --------------------------------------------------------
 
 
-def test_req_jobmint_001_cos_ask2_wiki_is_outcome_shaped():
-    """CoS #2 Wiki + done-when must classify as outcome-shaped [REQ-JOBMINT-001]."""
-    assert is_outcome_shaped(COS_ASK_2_WIKI) is True
-    assert route_standing_chat(COS_ASK_2_WIKI) == StandingRoute.MULTI_STEP_JOB_GRAPH
-
-
-def test_req_jobmint_001_wiki_write_variants_route_to_job_graph():
-    """Wiki-write deliverables (create/write/save note) mint Jobs, not ReAct-only."""
-    variants = [
-        COS_ASK_2_WIKI,
-        "Write a wiki note titled What is a Job in AutoReiv and save it.",
-        "Please create a Wiki note explaining what a Job is in AutoReiv.",
-        "Author a short wiki note about Jobs; done when the note exists.",
-        "Save a new wiki note that documents the standing Job spine.",
-    ]
-    for ask in variants:
-        assert is_outcome_shaped(ask) is True, f"expected outcome-shaped: {ask!r}"
-        assert route_standing_chat(ask) == StandingRoute.MULTI_STEP_JOB_GRAPH, ask
-
-
 def test_req_jobmint_001_done_when_hyphen_extracts_testable_rule():
     """Hyphenated done-when: must yield a testable success_rule [REQ-JOBMINT-001]."""
     rule = derive_success_rule(COS_ASK_2_WIKI)
@@ -176,14 +151,6 @@ def test_req_jobmint_002_journey_spans_for_minted_job(orch, resolver, store):
 
 
 # --- REQ-JOBMINT-003 --------------------------------------------------------
-
-
-def test_req_jobmint_003_short_chitchat_stays_plain_react_no_job(orch, store):
-    """Short chitchat stays ReAct — no Job mint [REQ-JOBMINT-003]."""
-    chitchat = "Hey — what’s the weather metaphor for a control plane in one sentence?"
-    assert is_outcome_shaped(chitchat) is False
-    assert route_standing_chat(chitchat) == StandingRoute.SHORT_REACT
-    assert store.list_jobs_for_session("sess_jobmint_chitchat") == []
 
 
 # --- REQ-JOBMINT-004 / Chat stream path -------------------------------------
@@ -265,7 +232,7 @@ async def test_req_jobmint_001_004_chat_stream_wiki_ask_mints_job(jobmint_app):
                 "agent_id": "assistant",
                 "session_id": "sess_jobmint_stream",
                 "content": COS_ASK_2_WIKI,
-                "goal_mode": False,
+                "run_as_job": True,  # CARD-572: Jacob ticked Run as a job
             },
         )
         assert resp.status_code == 200
@@ -310,7 +277,7 @@ def test_req_jobmint_001_chat_source_fail_closed_no_silent_react_bypass():
     a Wiki write with jobs=[].
     """
     src = inspect.getsource(chat_mod.chat_stream)
-    assert "route_standing_chat" in src
+    assert "req.run_as_job" in src  # CARD-572: explicit flag, no keyword routing
     assert "create_job_from_catalog_resolve" in src
     # Fail-closed marker for outcome mint when orch unavailable.
     assert (
@@ -320,3 +287,47 @@ def test_req_jobmint_001_chat_source_fail_closed_no_silent_react_bypass():
         or "fail-closed" in src.lower()
         or "fail_closed_outcome" in src
     )
+
+
+# --- CARD-572: trigger words alone never start a Job -------------------------
+
+TRIGGER_WORD_ASKS = [
+    COS_ASK_2_WIKI,
+    "First check the service logs, then tell me what broke and finally suggest a fix.",
+    "1. Scan hosts\n2. Patch critical CVEs\n3. Re-run the health probe",
+    "Build a durable health-check deliverable that proves the wiki API returns HTTP 200.",
+    "Please create a Wiki note explaining what a Job is in AutoReiv; done when the note exists.",
+    "Build X. Acceptance criteria: the note exists and the test passes.",
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ask", TRIGGER_WORD_ASKS)
+async def test_card572_trigger_words_without_the_box_stay_a_normal_turn(jobmint_app, ask):
+    transport = ASGITransport(app=jobmint_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/api/chat/stream",
+            json={"agent_id": "assistant", "session_id": "sess_jobmint_chitchat_stream", "content": ask},
+        )
+        assert resp.status_code == 200
+        assert "event: job_created" not in resp.text
+    assert jobmint_app.state.store.list_jobs_for_session("sess_jobmint_chitchat_stream") == []
+
+
+@pytest.mark.asyncio
+async def test_card572_run_as_job_starts_a_job_even_for_a_short_ask(jobmint_app):
+    transport = ASGITransport(app=jobmint_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/api/chat/stream",
+            json={
+                "agent_id": "assistant",
+                "session_id": "sess_jobmint_stream",
+                "content": "Summarize the wiki note on Jobs.",
+                "run_as_job": True,
+            },
+        )
+        assert resp.status_code == 200
+        assert "event: job_created" in resp.text
+    assert len(jobmint_app.state.store.list_jobs_for_session("sess_jobmint_stream")) == 1

@@ -73,8 +73,8 @@ def standing_app():
 
 
 @pytest.mark.asyncio
-async def test_req_jobgraph_001_multi_step_without_goal_mode(standing_app):
-    """Multi-step Chat creates/advances Job+Phase without goal_mode=true [REQ-JOBGRAPH-001]."""
+async def test_req_jobgraph_001_run_as_job_creates_job(standing_app):
+    """Run as a job creates/advances Job+Phase [REQ-JOBGRAPH-001, CARD-572]."""
     transport = ASGITransport(app=standing_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.post(
@@ -83,7 +83,7 @@ async def test_req_jobgraph_001_multi_step_without_goal_mode(standing_app):
                 "agent_id": "assistant",
                 "session_id": "sess_standing_multi",
                 "content": MULTI_STEP,
-                "goal_mode": False,
+                "run_as_job": True,  # CARD-572
             },
         )
         assert resp.status_code == 200
@@ -172,6 +172,7 @@ async def test_req_jobgraph_002_ui_goal_toggle_removed():
     js = Path("src/web/static/modules/studios/chat.js").read_text(encoding="utf-8")
     assert 'id="goalToggle"' not in html
     assert "Switch to Goal & Self-Verify" not in html
-    assert "goal_mode:" not in js or "goal_mode: false" in js or "goal_mode:false" in js
+    stream_js = Path("src/web/static/modules/studios/chat/stream.js").read_text(encoding="utf-8")
+    assert "goal_mode" not in js and "goal_mode" not in stream_js  # CARD-572: dead flag removed
     # Must not send live goalMode from UI state as authority.
     assert "goalMode: !!state.goalEnabled" not in js

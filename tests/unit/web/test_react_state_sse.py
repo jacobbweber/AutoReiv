@@ -72,7 +72,6 @@ def test_chat_stream_forwards_react_state_event():
         "agent_id": "assistant",
         "session_id": "sess_react",
         "content": "hello",
-        "goal_mode": False,
         "self_verify": False,
     }
     events = []

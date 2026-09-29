@@ -17,14 +17,9 @@ from src.application.orchestration.outcome_intake import (
     OutcomeIntakeError,
     assert_intake_ready_for_phase1,
     derive_success_rule,
-    is_outcome_shaped,
     is_testable_success_rule,
     is_vibes_only_success_rule,
     matched_ids_authority,
-)
-from src.application.orchestration.standing_job_graph import (
-    StandingRoute,
-    route_standing_chat,
 )
 from src.domain.capabilities.models import (
     CapabilityIndexEntry,
@@ -106,15 +101,12 @@ def _seed(resolver: CapabilityCatalogResolver) -> None:
 
 
 def test_req_intake_001_outcome_shaped_creates_durable_job(orch, resolver, store):
-    """Outcome-shaped ask → durable Job on standing path; no goal_mode toggle."""
+    """An ask sent as a job -> durable Job on the standing path (CARD-572: the caller decides, not the words)."""
     _seed(resolver)
     ask = (
         "Deliver a wiki research brief, then hand off to the assistant, "
         "finally verify health returns 200 for the notes API."
     )
-    assert is_outcome_shaped(ask) is True
-    assert route_standing_chat(ask) == StandingRoute.MULTI_STEP_JOB_GRAPH
-
     job = orch.create_job_from_catalog_resolve(
         intent=ask,
         session_id="sess_intake_001",
@@ -128,23 +120,6 @@ def test_req_intake_001_outcome_shaped_creates_durable_job(orch, resolver, store
     phases = store.list_phases_for_job(job.id)
     assert len(phases) >= 1
     assert all(p.status == PhaseStatus.QUEUED for p in phases)
-
-
-def test_req_intake_001_goal_deliverable_language_routes_to_job_graph():
-    """Goal/deliverable language (not only first/then) is outcome-shaped [REQ-INTAKE-001]."""
-    goalish = (
-        "Build a durable health-check deliverable that proves the wiki API "
-        "returns HTTP 200 and the notes index exists on disk."
-    )
-    assert is_outcome_shaped(goalish) is True
-    assert route_standing_chat(goalish) == StandingRoute.MULTI_STEP_JOB_GRAPH
-
-
-def test_req_intake_001_short_chitchat_stays_plain_react():
-    """Short tool turns stay plain ReAct (215 rule) [REQ-INTAKE-001]."""
-    assert is_outcome_shaped("What time is it") is False
-    assert route_standing_chat("What time is it") == StandingRoute.SHORT_REACT
-    assert route_standing_chat("thanks") == StandingRoute.SHORT_REACT
 
 
 # --- REQ-INTAKE-002 ---------------------------------------------------------

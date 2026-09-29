@@ -8,8 +8,6 @@ from __future__ import annotations
 import re
 from typing import Sequence
 
-from src.application.orchestration.standing_job_graph import is_multi_step_outcome
-
 # Vibes-only phrases that must never become a standing success_rule.
 _VIBES_ONLY = re.compile(
     r"^\s*(?:"
@@ -37,26 +35,6 @@ _TESTABLE_MARKERS = re.compile(
     r")",
     re.IGNORECASE,
 )
-
-# Goal / deliverable language (beyond first/then multi-step).
-# CARD-236: wiki/note write deliverables + hyphenated done-when always mint Jobs.
-_GOAL_DELIVERABLE = re.compile(
-    r"(?:"
-    r"\b(?:deliver|delivery|deliverable)\b|"
-    r"\b(?:build|create|produce|ship|implement|author|write|save|draft|add)\b.+\b(?:that|which|so\s+that|until|when)\b|"
-    r"\b(?:create|write|author|save|draft|add)\b.+\b(?:wiki|note)s?\b|"
-    r"\b(?:wiki|note)s?\b.+\b(?:create|write|author|save|draft)\b|"
-    r"\bdone[\s-]+when\b|"
-    r"\bsuccess\s+when\b|"
-    # CARD-565: stated criteria ("acceptance criteria: ...") are a stop rule; a reference to a card's criteria is not.
-    r"\bsuccess\s+(?:criteria|rule|condition)\s*[:\-]|"
-    r"\bprove(?:s|n)?\b.+\b(?:exists|passes|returns|200)\b|"
-    r"\bhealth\b.+\b200\b|"
-    r"\bacceptance\s+criteria\s*[:\-]"
-    r")",
-    re.IGNORECASE,
-)
-
 
 class OutcomeIntakeError(ValueError):
     """Fail-closed intake / phase-1 gate error [REQ-INTAKE-002, REQ-INTAKE-004]."""
@@ -87,20 +65,6 @@ def is_testable_success_rule(rule: str | None) -> bool:
     # Structured "done when …" style we synthesize is always testable enough.
     if trimmed.lower().startswith("done when"):
         return len(trimmed) >= 16
-    return False
-
-
-def is_outcome_shaped(text: str | None) -> bool:
-    """Outcome-shaped = multi-step OR goal/deliverable language (not short chitchat)."""
-    if not text or not isinstance(text, str):
-        return False
-    trimmed = text.strip()
-    if len(trimmed) < 25:
-        return False
-    if is_multi_step_outcome(trimmed):
-        return True
-    if len(trimmed) >= 40 and _GOAL_DELIVERABLE.search(trimmed):
-        return True
     return False
 
 

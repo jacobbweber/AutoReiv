@@ -1,6 +1,6 @@
 """
 Integration tests for Standing Job-Graph Runtime & Reflexion Streaming.
-CARD-215 retires per-prompt goal_mode authority [REQ-JOBGRAPH-001..003].
+CARD-215 retired goal_mode; CARD-572: only run_as_job starts a standing Job.
 Legacy CARD-099 verify honest-skip coverage retained.
 """
 
@@ -76,7 +76,7 @@ def stream_app():
 
 @pytest.mark.asyncio
 async def test_chat_stream_standing_multi_step_events(stream_app):
-    """Standing multi-step formulates+executes without goal_mode or plan-review [REQ-JOBGRAPH-001]."""
+    """Run as a job formulates+executes without plan-review [REQ-JOBGRAPH-001, CARD-572]."""
     transport = ASGITransport(app=stream_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.post(
@@ -85,7 +85,7 @@ async def test_chat_stream_standing_multi_step_events(stream_app):
                 "agent_id": "assistant",
                 "session_id": "test_sess_stream_goal",
                 "content": MULTI_STEP,
-                "goal_mode": False,
+                "run_as_job": True,  # CARD-572
                 "self_verify": False,
             },
         )
@@ -110,7 +110,6 @@ async def test_chat_stream_reflexion_events(stream_app):
                 "agent_id": "assistant",
                 "session_id": "test_sess_stream_verify",
                 "content": "Scan files and generate report",
-                "goal_mode": False,
                 "self_verify": True,
             },
         )
@@ -128,8 +127,8 @@ async def test_chat_stream_reflexion_events(stream_app):
 
 
 @pytest.mark.asyncio
-async def test_chat_stream_goal_mode_flag_ignored_for_short(stream_app):
-    """goal_mode is not authority; short prompts stay plain ReAct [REQ-JOBGRAPH-001a, 002]."""
+async def test_chat_stream_without_run_as_job_stays_plain_react(stream_app):
+    """Without Run as a job a message is a plain ReAct turn [CARD-572]."""
     transport = ASGITransport(app=stream_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.post(
@@ -138,7 +137,6 @@ async def test_chat_stream_goal_mode_flag_ignored_for_short(stream_app):
                 "agent_id": "assistant",
                 "session_id": "test_sess_stream_goal",
                 "content": "What time is it",
-                "goal_mode": True,
                 "self_verify": False,
             },
         )
@@ -160,7 +158,6 @@ async def test_chat_stream_self_verify_keeps_critiques_off_transcript(stream_app
                 "agent_id": "assistant",
                 "session_id": "test_sess_stream_verify",
                 "content": "What time is it",
-                "goal_mode": False,
                 "self_verify": True,
             },
         )
@@ -196,7 +193,6 @@ async def test_chat_stream_reflexion_named_checker_events(stream_app):
                 "agent_id": "assistant",
                 "session_id": "test_sess_stream_checker",
                 "content": "Verify system audit",
-                "goal_mode": False,
                 "self_verify": True,
                 "verify_checker": "assert_system_audit",
             },
@@ -248,6 +244,7 @@ async def test_standing_multi_step_persists_and_executes_phases(stream_app):
                 "agent_id": "assistant",
                 "session_id": "test_sess_goal_persist",
                 "content": MULTI_STEP,
+                "run_as_job": True,  # CARD-572
             },
         )
         assert first.status_code == 200

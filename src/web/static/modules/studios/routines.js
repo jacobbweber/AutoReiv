@@ -96,6 +96,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
   const routinePromptInput = $('routinePromptInput');
   const routineEnabledInput = $('routineEnabledInput');
   const routineApprovalRunInput = $('routineApprovalRunInput');
+  const routineRunAsJobInput = $('routineRunAsJobInput'); // CARD-572
   const saveRoutineBtn = $('saveRoutineBtn');
   const routinesFilterSearch = $('routinesFilterSearch');
   const routinesFilterAgent = $('routinesFilterAgent');
@@ -311,6 +312,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routinePromptInput) routinePromptInput.value = routine.prompt || '';
       if (routineEnabledInput) routineEnabledInput.checked = routine.enabled !== false;
       if (routineApprovalRunInput) routineApprovalRunInput.checked = routine.approval_mode === 'run';
+      if (routineRunAsJobInput) routineRunAsJobInput.checked = routine.run_as_job === true;
       if (routineHumanPreview) {
         syncCronExactPreview(routine.cron_expression || routineCronInput?.value || '');
         if (routine.human_schedule && routineHumanPreview) {
@@ -332,6 +334,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routinePromptInput) routinePromptInput.value = '';
       if (routineEnabledInput) routineEnabledInput.checked = true;
       if (routineApprovalRunInput) routineApprovalRunInput.checked = false;
+      if (routineRunAsJobInput) routineRunAsJobInput.checked = false;
       if (routineHumanPreview) {
         syncCronExactPreview('0 * * * *');
       }
@@ -534,6 +537,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       const prompt_template = (routinePromptInput?.value || '').trim();
       const enabled = routineEnabledInput ? routineEnabledInput.checked : true;
       const approval_mode = routineApprovalRunInput && routineApprovalRunInput.checked ? 'run' : 'ask';
+      const run_as_job = Boolean(routineRunAsJobInput && routineRunAsJobInput.checked);
 
       if (!name || !prompt_template) {
         showToast('Please provide a Routine Name and Mission Prompt.', 'warning');
@@ -548,6 +552,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
         prompt_template,
         enabled,
         approval_mode,
+        run_as_job,
         schedule_rule,
       };
       if (id) payload.id = id;

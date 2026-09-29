@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.domain.routines.models import Routine, RoutineStatus, ScheduleType
+from src.domain.routines.models import Routine, RoutineStatus, ScheduleType, routine_runs_as_job
 
 
 class RoutinePayload(BaseModel):
@@ -22,6 +22,8 @@ class RoutinePayload(BaseModel):
     prompt_template: str
     enabled: Optional[bool] = True
     approval_mode: Optional[str] = "ask"
+    # CARD-572: run as a standing Job (default off). None on update keeps the saved value.
+    run_as_job: Optional[bool] = None
     schedule_rule: Optional[dict] = None
 
 
@@ -63,6 +65,7 @@ async def list_routines(request: Request, agent_id: Optional[str] = None):
                 "next_run_at": r.next_run_at.isoformat() if r.next_run_at else None,
                 "last_status": r.last_status.value if hasattr(r.last_status, "value") else str(r.last_status),
                 "approval_mode": "run" if str((r.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask",
+                "run_as_job": routine_runs_as_job(r),
                 "schedule_rule": (r.metadata or {}).get("schedule_rule"),
             }
         )
@@ -91,7 +94,10 @@ async def create_routine(request: Request, payload: RoutinePayload):
         cron_expression=payload.cron_expr or ("" if sched_type == ScheduleType.STRUCTURED else "0 * * * *"),
         enabled=payload.enabled if payload.enabled is not None else True,
         last_status=RoutineStatus.IDLE,
-        metadata={"approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask"},
+        metadata={
+            "approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask",
+            "run_as_job": payload.run_as_job is True,
+        },
     )
     if payload.schedule_rule and isinstance(payload.schedule_rule, dict):
         routine.metadata["schedule_rule"] = payload.schedule_rule
@@ -136,6 +142,11 @@ async def update_routine(request: Request, routine_id: str, payload: RoutinePayl
         metadata={
             **(existing.metadata or {}),
             "approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask",
+            "run_as_job": (
+                payload.run_as_job is True
+                if payload.run_as_job is not None
+                else (existing.metadata or {}).get("run_as_job") is True
+            ),
         },
     )
     if payload.schedule_rule and isinstance(payload.schedule_rule, dict):

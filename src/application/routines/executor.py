@@ -32,10 +32,8 @@ from src.application.orchestration.research_before_plan import (
 )
 from src.application.orchestration.standing_job_graph import (
     STANDING_PHASE_LLM_TIMEOUT_SECONDS,
-    StandingRoute,
     await_phase_llm_with_retry,
     format_phase_llm_exhausted_reason,
-    route_standing_chat,
 )
 from src.application.orchestration.working_set_context import (
     build_phase_working_set,
@@ -62,7 +60,7 @@ from src.application.skills.skill_curator import (
 )
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.orchestration.models import PhaseStatus
-from src.domain.routines.models import Routine, RoutineRun, RoutineStatus
+from src.domain.routines.models import Routine, RoutineRun, RoutineStatus, routine_runs_as_job
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -432,12 +430,13 @@ class RoutineExecutor:
             mode = "run" if str((routine.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask"
             standing_job_id: Optional[str] = None
             orch = self.job_orchestrator
-            standing = route_standing_chat(routine.prompt)
+            # CARD-572: the routine's own "Run as a job" setting decides; the prompt is never scanned.
+            run_as_job = routine_runs_as_job(routine)
 
-            # Standing path [CARD-222]: multi-step -> create_job_from_catalog_resolve (same as Chat).
+            # Standing path [CARD-222]: create_job_from_catalog_resolve (same as Chat).
             if (
                 orch is not None
-                and standing == StandingRoute.MULTI_STEP_JOB_GRAPH
+                and run_as_job
                 and hasattr(orch, "create_job_from_catalog_resolve")
             ):
                 job = orch.create_job_from_catalog_resolve(
@@ -485,7 +484,7 @@ class RoutineExecutor:
                 self.state_store.record_routine_run(run)
                 return run
 
-            # Short turns: plain ReAct (same standing SHORT_REACT decision as Chat).
+            # Not a job: one plain ReAct turn (same as Chat without Run as a job).
             assistant_msg = await self.kernel.run_turn(
                 agent=agent,
                 session_id=session.id,

@@ -968,6 +968,7 @@ export function initEducationStudio(state, callbacks = {}) {
             agentId: state.selectedAgentId || 'assistant',
             sessionId,
             content: ask,
+            runAsJob: true, // CARD-572: Education Ask mints a standing Job explicitly
             selfVerify: !!state.verifyEnabled,
             approvalAutoRun: state.approvalAutoRun,
           }),
@@ -1897,6 +1898,7 @@ flowchart TD
           content: data.ask,
           sessionId,
           agentId,
+          runAsJob: true, // CARD-572: the pressure ask is a standing Job by design
         });
         const streamRes = await fetch('/api/chat/stream', {
           method: 'POST',

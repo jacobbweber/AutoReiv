@@ -266,12 +266,13 @@ describe('Chat HITL resume stream payload [REQ-HITL-033]', () => {
       sessionId: 'sess_1',
       content: 'should not be sent',
       resume: true,
-      goalMode: true,
+      runAsJob: true,
       selfVerify: true,
     });
     expect(body.resume).toBe(true);
     expect(body.content).toBe('');
-    expect(body.goal_mode).toBe(false);
+    expect(body.run_as_job).toBe(false); // CARD-572: a resume never starts a job
+    expect(body.goal_mode).toBeUndefined();
     expect(body.self_verify).toBe(false);
     expect(body.workflow_id).toBeUndefined();
     expect(body.session_id).toBe('sess_1');
@@ -386,11 +387,11 @@ describe('CARD-180 workflow picker retirement', () => {
       agentId: 'assistant',
       sessionId: 'sess_2',
       content: 'Onboard Bob',
-      goalMode: true, // ignored [CARD-215]
     });
     expect(body.workflow_id).toBeUndefined();
     expect(body.content).toBe('Onboard Bob');
-    expect(body.goal_mode).toBe(false);
+    expect(body.goal_mode).toBeUndefined();
+    expect(body.run_as_job).toBe(false);
   });
 
   it('chat HTML has no workflowPicker or saveAsWorkflowBtn controls', () => {

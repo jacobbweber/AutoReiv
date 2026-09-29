@@ -47,6 +47,11 @@ class Routine(BaseModel):
     updated_at: datetime = Field(default_factory=utc_now)
 
 
+def routine_runs_as_job(routine: "Routine") -> bool:
+    """CARD-572: a routine runs as a standing Job only when its Run as a job setting is on (default off)."""
+    return (routine.metadata or {}).get("run_as_job") is True
+
+
 class RoutineRun(BaseModel):
     id: str = Field(description="Unique run execution identifier")
     routine_id: str = Field(description="Associated routine ID")
