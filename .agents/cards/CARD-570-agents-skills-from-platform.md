@@ -1,8 +1,9 @@
 ---
 id: CARD-570
 title: "Agents and skills load from platform/ with user copies in the data dir (remove agent packs)"
-status: In Review
+status: Done
 created: 2026-09-28
+completed: 2026-09-28
 branch: fix/card-570-agents-skills-from-platform
 related:
   - CARD-569
@@ -19,7 +20,7 @@ proof: "guard test tests/unit/agents/test_card570_no_packs.py plus loader/overri
 
 # [CARD-570] Agents and skills load from platform/ with user copies in the data dir
 
-> **Status**: Ready
+> **Status**: Done
 > **Related**: CARD-569 (pack import/export and pack builder removed first), CARD-568, CARD-539 / ADR-0061
 > **Labels**: `type:refactor`, `area:agents`, `P1`
 
@@ -90,3 +91,4 @@ An agent is defined in up to four places today (pack.json copied into AppData an
 
 - 2026-09-28: Built per agreed design; wipe + fresh start done; moved to In Review.
 - 2026-09-28: Round 2: runtime tools with Jacob-only enable + hash, agent tool grants as proposals, pack renames + wording guard, card354 fixture, settings restored; still In Review.
+- 2026-09-28 23:50 ET: Jacob said merge to qa; Done.
