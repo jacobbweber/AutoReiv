@@ -20,6 +20,7 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 ## M24 Chat, jobs and tool reliability
 - 2026-09-27 | jobs | reopening a chat whose job failed shows Failed without the reason and names the last queued phase (folded from CARD-536) | CARD-561 triage | src/web/static/modules/studios/chat*
 - 2026-09-29 | hitl | /api/hitl/decide saves the approved tool's result row in both the phase session and the parent chat session (left over when CARD-557 closed) | from CARD-577 | src/web/routers/hitl.py
+- 2026-09-29 | security | owner-only routes (runtime tool enable/disable, and other owner actions) accept requests from any website origin: the app is unauthenticated and CORS allows any origin (allow_origins=["*"]), so a page open in Jacob's browser could call them. Jacob parked the Origin check 2026-09-29 | from CARD-578 | src/web/app.py, src/web/routers/native_tools.py
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js

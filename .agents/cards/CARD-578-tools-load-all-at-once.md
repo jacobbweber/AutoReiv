@@ -1,7 +1,8 @@
 ---
 id: CARD-578
 title: "Tools load all at once"
-status: In Review
+status: Done
+completed: 2026-09-29
 created: 2026-09-29
 branch: feat/card-578-tools-load-all-at-once
 related:
@@ -20,7 +21,7 @@ milestone: M24
 
 # [CARD-578] Tools load all at once
 
-> **Status**: In Review
+> **Status**: Done
 > **Labels**: `type:feat`, `area:kernel`, `P1`
 
 ## Why
@@ -78,3 +79,4 @@ ran if the model named it, and a bare name could run an `mcp_*` tool by suffix m
   patch_project_file ("Helo" -> "Hello", 1 replacement) and replied in 23.5 s. AutoReiv on "hi" got all 38 tools (the
   wiki tools included) and replied in 25.6 s; asked to search the wiki it called wiki_note_search / wiki_note_list
   directly with no activation step. Architect, Tutor, Toolsmith and Direct "hi" turns all succeeded. Status In Review.
+- 2026-09-29: Jacob: merge to qa. Done; merged into qa.
