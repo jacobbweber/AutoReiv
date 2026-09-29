@@ -135,3 +135,44 @@ def test_api_studio_edit_use_shipped_hide_and_reserved(tmp_path, monkeypatch):
         assert client.post("/api/agents/architect/unhide").status_code == 200
         assert "architect" in {a["id"] for a in client.get("/api/agents").json()}
     configure(None)
+
+
+def test_api_skill_use_shipped_hide_unhide_and_unknown_tool_warning(tmp_path, monkeypatch):
+    from src.web.app import create_app
+
+    data = tmp_path / "data"
+    odd = data / "skills" / "odd-skill"
+    odd.mkdir(parents=True)
+    (odd / "SKILL.md").write_text(
+        "---\nname: Odd\ndescription: d\ntools:\n  - wiki_note_read\n  - no_such_tool_570\n---\nbody\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data))
+    monkeypatch.setenv("AUTOREIV_DB_PATH", str(data / "database" / "autoreiv.db"))
+    reset_store()
+    with TestClient(create_app()) as client:
+        health = client.get("/api/health").json()
+        assert health["skill_tool_warnings"] == {"odd-skill": ["no_such_tool_570"]}
+        from src.application.agent_skills.allowed_tools import resolve_allowed_tools
+        from src.domain.kernel.models import AgentProfile
+
+        names = resolve_allowed_tools(AgentProfile(id="x", name="X", description="d", system_prompt="p",
+                                                   allowed_skill=["odd-skill"])).names
+        assert "wiki_note_read" in names and "no_such_tool_570" not in names
+
+        store = client.app.state.registry.content
+        store.set_skill_tools("wiki-knowledge", ["wiki_note_read"])
+        view = client.get("/api/skill_studio/skills/wiki-knowledge").json()
+        assert view["status"]["edited"] is True
+        assert client.post("/api/skill_studio/skills/wiki-knowledge/use-shipped").status_code == 200
+        assert client.get("/api/skill_studio/skills/wiki-knowledge").json()["status"]["source"] == "shipped"
+
+        assert client.post("/api/skill_studio/skills/wiki-inbox/hide").status_code == 200
+        assert client.get("/api/skill_studio/hidden-skills").json()["hidden"] == ["wiki-inbox"]
+        rows = {s["id"]: s for s in client.get("/api/skill_studio/skills").json()["skills"]}
+        assert rows["wiki-inbox"].get("hidden") is True  # openable, so it can be unhidden
+        assert "wiki-inbox" not in {s["id"] for s in client.get("/api/skills/catalog").json()["platform_skills"]}
+        assert client.post("/api/skill_studio/skills/odd-skill/hide").status_code == 400  # not shipped
+        assert client.post("/api/skill_studio/skills/wiki-inbox/unhide").status_code == 200
+        assert client.get("/api/skill_studio/hidden-skills").json()["hidden"] == []
+    configure(None)

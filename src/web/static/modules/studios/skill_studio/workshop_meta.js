@@ -164,6 +164,7 @@ export function createSkillWorkshop({
       const resp = await fetch(`/api/skill_studio/skills/${encoded}${query ? `?${query}` : ''}`);
       const data = await resp.json().catch(() => ({}));
       const view = applyLoadedSkillView(data, skillId);
+      view.fileStatus = data.status || null; // CARD-570: shipped / edited / hidden
       if (!resp.ok || view.notFound) throw new Error(view.detail || data.detail || `HTTP ${resp.status}`);
       setIdentityLocked(true);
       if (factorySkillNameInput) factorySkillNameInput.value = view.name;

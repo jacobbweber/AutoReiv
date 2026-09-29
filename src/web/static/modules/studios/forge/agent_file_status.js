@@ -7,6 +7,12 @@
 import { $ } from '../../dom.js';
 import { showToast } from '../../ui/toast.js';
 
+export function skillWarningText(warnings) {
+  const entries = Object.entries(warnings || {}).filter(([, names]) => Array.isArray(names) && names.length);
+  if (!entries.length) return '';
+  return `Unknown tools (they grant nothing): ${entries.map(([sid, names]) => `${sid}: ${names.join(', ')}`).join('; ')}`;
+}
+
 export function agentFileStatusText(status) {
   if (!status || !status.shipped) return '';
   if (!status.edited) return 'Shipped agent. Saving here keeps your own copy of it.';
@@ -22,7 +28,8 @@ export function setupAgentFileStatus({ onAgentRefreshed = null, fetchImpl = null
     const box = $('forgeAgentFileStatus');
     if (!box) return;
     const status = (agent && agent.file_status) || null;
-    const text = agentFileStatusText(status);
+    const warn = skillWarningText(agent && agent.skill_tool_warnings);
+    const text = [agentFileStatusText(status), warn].filter(Boolean).join(' ');
     box.classList.toggle('hidden', !text);
     const textEl = $('forgeAgentFileText');
     if (textEl) textEl.textContent = text;

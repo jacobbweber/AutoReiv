@@ -1,7 +1,7 @@
 /**
  * Skill Studio — skill lifecycle and tool scoping [CARD-418].
- * Pick/create, metadata, SKILL.md and the tool catalog. Save writes the skill store and
- * SQLite bindings (CARD-411). The Factory is retired (ADR-0060, CARD-496); the save, skills and
+ * Pick/create, metadata, SKILL.md and the tool catalog. Save writes the skill's user copy in the
+ * data dir; its tools list is the binding (CARD-570). The Factory is retired (ADR-0060, CARD-496); the save, skills and
  * capabilities routes are /api/skill_studio/* and /api/tools_studio/capabilities (CARD-497).
  * Element ids keep their factory* prefix (ADR-0060 D5).
  */
@@ -11,6 +11,7 @@ import { showToast } from '../ui/toast.js';
 import { toSnakeCase } from '../utils/slug.js';
 import { createSkillWorkshop, skillDeleteRequest } from './skill_studio/workshop_meta.js';
 import { createSkillScopeUI } from './skill_studio/skill_scope.js';
+import { mountSkillFileStatus } from './skill_studio/skill_file_status.js';
 
 export const SKILL_STUDIO_TAB = 'skill-studio';
 export const SKILL_STUDIO_LABEL = 'Skill Studio';
@@ -110,6 +111,16 @@ export function initSkillStudio(_state, callbacks = {}) {
     }),
   });
   const { workshopFields, syncFrontmatter, loadExistingSkill: loadWorkshopSkill } = workshop;
+  let currentSkillId = '';
+  const fileStatus = mountSkillFileStatus({
+    host: $('skillStudioFileStatus'),
+    toast: showToast,
+    onChanged: async () => {
+      await skillScope.refreshEditableSkillOptions('');
+      if (currentSkillId) await loadExistingSkill(currentSkillId, pinAgentId);
+    },
+  });
+  fileStatus.refreshHidden();
 
   const skillScope = createSkillScopeUI({
     getAssignedSkills: () => assignedSkills,
@@ -187,8 +198,12 @@ export function initSkillStudio(_state, callbacks = {}) {
     if (view && view.ok) {
       skillScope.selectSkillInPicker(skillId);
       syncDeleteButton(view.deletable);
+      currentSkillId = skillId;
+      fileStatus.render(view.fileStatus, skillId);
       return view;
     }
+    currentSkillId = '';
+    fileStatus.render(null, '');
     syncDeleteButton(false);
     return null;
   }

@@ -87,6 +87,11 @@ def _public_agent(
         "skills_version": skills_version(profile),
         "pack_skills": [],
         "file_status": file_status,  # CARD-570: shipped / edited / shipped_changed
+        "skill_tool_warnings": {
+            sid: names
+            for sid, names in (getattr(registry, "skill_tool_warnings", None) or {}).items()
+            if sid in (profile.allowed_skill or [])
+        },
         "show_in_chat": show_in_chat,
         "visibility": getattr(profile, "visibility", None) or ("internal" if not show_in_chat else "public"),
         "fleet": getattr(profile, "fleet", None),

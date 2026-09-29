@@ -352,6 +352,44 @@ async def get_workshop_skill(skill_id: str, request: Request, agent_id: Optional
     return loaded
 
 
+@router.post("/api/skill_studio/skills/{skill_id}/use-shipped")
+async def use_shipped_skill(skill_id: str) -> Dict[str, Any]:
+    """Delete the user copy of a shipped skill; the shipped SKILL.md applies again [CARD-570]."""
+    from src.infrastructure.content.store import get_store
+
+    if not get_store().skills.use_shipped(skill_id):
+        raise HTTPException(status_code=404, detail=f"'{skill_id}' has no edited copy of a shipped skill.")
+    return {"status": "shipped", "skill_id": skill_id}
+
+
+@router.post("/api/skill_studio/skills/{skill_id}/hide")
+async def hide_shipped_skill(skill_id: str) -> Dict[str, Any]:
+    """Hide a shipped skill (persisted in skills/.hidden.json); a hidden skill grants no tools [CARD-570]."""
+    from src.infrastructure.content.store import get_store
+
+    store = get_store()
+    if not store.skills.shipped_path(skill_id).is_file():
+        raise HTTPException(status_code=400, detail=f"'{skill_id}' is not a shipped skill; delete it instead.")
+    store.skills.delete(skill_id)
+    return {"status": "hidden", "skill_id": skill_id}
+
+
+@router.post("/api/skill_studio/skills/{skill_id}/unhide")
+async def unhide_shipped_skill(skill_id: str) -> Dict[str, Any]:
+    from src.infrastructure.content.store import get_store
+
+    if not get_store().skills.unhide(skill_id):
+        raise HTTPException(status_code=404, detail=f"'{skill_id}' is not hidden.")
+    return {"status": "shown", "skill_id": skill_id}
+
+
+@router.get("/api/skill_studio/hidden-skills")
+async def list_hidden_skills() -> Dict[str, Any]:
+    from src.infrastructure.content.store import get_store
+
+    return {"hidden": sorted(get_store().skills.hidden())}
+
+
 def _workshop_data_root(request: Request):
     paths = getattr(request.app.state, "data_dir_paths", None)
     root = getattr(paths, "root", None) if paths is not None else None

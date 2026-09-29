@@ -179,13 +179,12 @@ deploy/windows/          run_autoreiv.ps1
 data/                    created at runtime (db + wiki)
 steering/                product / tech / structure notes
 docs/                    specs, ADRs, RTM
-platform-packs/          always-installed Platform Agent Packs (Assistant, AutoReiv)
-agent-packs/             optional specialist catalog (not loaded on startup)
+platform/                shipped agents (agents/<id>.md) and skills (skills/<id>/SKILL.md), read in place
 tests/                   pytest, vitest, Playwright smoke
 ```
 
 ---
 
-## Agent Packs
+## Agents and skills
 
-Assistant and AutoReiv ship in [`platform-packs/`](platform-packs/) and always install into `$DATA_DIR/packs/` on launch if missing. Optional specialists live in [`agent-packs/`](agent-packs/) (Agent Studio Import, or AutoReiv `import_agent_pack`). The app does not scan `agent-packs/` on startup. See [`docs/agent-packs.md`](docs/agent-packs.md).
+Shipped agents (AutoReiv, Developer, Tutor, Architect, Direct) and skills live in [`platform/`](platform/) and are read in place. Editing one in Agent Studio or Skill Studio saves your own copy in the data dir (`agents/<id>.md`, `skills/<id>/SKILL.md`), which wins; **Use shipped version** deletes it. Deleting a shipped agent or skill hides it (Unhide brings it back). See [ADR-0062](docs/adr/0062-agents-and-skills-are-files-no-packs.md).

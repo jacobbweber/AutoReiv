@@ -8,6 +8,8 @@
 > **Related Cards**: [CARD-539](../cards/CARD-539-capability-scoping-one-allowed-tools-function.md) (implementation), [CARD-537](../cards/CARD-537-autoreiv-ignores-newly-granted-tool.md), [CARD-529](../cards/CARD-529-developer-modify-tool-loops-and-fails.md), CARD-520, CARD-511  
 > **Amends**: [ADR-0052](./0052-skill-and-tool-scoping-and-specialist-dispatch.md) section 3 (Layer 1 / Layer 2 only narrow inside ticked skills) and section 4 (dispatch routes to the covering agent); [ADR-0054](./0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) (agents specialize by domain; Rule of 7 is a selection clamp inside the allowed set); [ADR-0056](./0056-durable-runtime-registry-hybrid-c-plus.md) 4.2 item 5 (SQLite skill bindings are the only skill-to-tool source; additive grants are skill ticks); [ADR-0057](./0057-three-studios-and-developer-mediated-authoring.md) 4.2 (agent-to-skill pills and skill-to-tool bindings are the only scoping edges); [ADR-0060](./0060-retire-the-agent-training-factory.md) 4.1 (a Developer-built tool reaches an agent only as an accepted skill attachment)
 
+> **Note (2026-09-28, CARD-570 / [ADR-0062](./0062-agents-and-skills-are-files-no-packs.md))**: skill-to-tool bindings now come from the winning `SKILL.md` `tools:` list (shipped `platform/skills` or the data-dir user copy). SQLite `skill_tool_bindings`, pack.json skill lists and seeds are gone; `resolve_allowed_tools` is still the only decider.
+
 ---
 
 ## 1. Context

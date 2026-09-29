@@ -23,8 +23,8 @@
 
 ## Named Tutor Learning OS skills
 
-Pack: `platform-packs/tutor/pack.json`  
-Skill bodies: `platform-packs/tutor/skills/<id>/SKILL.md`
+Agent: `platform/agents/tutor.md`  
+Skill bodies: `platform/skills/<id>/SKILL.md`
 
 | Skill id | Intent | Durable APIs / modules | Agent tools today | Successor |
 |---|---|---|---|---|

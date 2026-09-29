@@ -120,9 +120,12 @@ def list_workshop_skills(data_root: Path) -> list[dict[str, str]]:
     """Skills the workshop loader can open: user copies/user skills, then shipped platform skills."""
     root = Path(data_root)
     found: dict[str, dict[str, str]] = {}
+    hidden = get_store().skills.hidden()
     for item in get_store().skills.list(include_hidden=True):
         source = "store" if item.source == "user" else "platform"
         found[item.id] = _row_for_skill_file(item.path, item.id, source, root)
+        if item.id in hidden:
+            found[item.id]["hidden"] = True  # still openable in Skill Studio so it can be unhidden
     skills_root = root / "skills"
     if skills_root.is_dir():
         for skill_file in sorted(skills_root.glob("**/SKILL.md")):
@@ -173,7 +176,7 @@ def load_workshop_skill(
     view["binding_source"] = "frontmatter"
     loaded = get_store().skills.load(clean, include_hidden=True)
     if loaded is not None:
-        view["status"] = loaded.status()
+        view["status"] = {**loaded.status(), "hidden": clean in get_store().skills.hidden()}
     view["skill_id"] = clean
     view["path"] = str(path)
     view["markdown_content"] = raw
