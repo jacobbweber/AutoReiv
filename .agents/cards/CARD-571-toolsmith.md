@@ -1,7 +1,7 @@
 ---
 id: CARD-571
 title: "Toolsmith: restore runtime tool building and Ask Developer on the CARD-570 setup"
-status: Ready
+status: In Review
 created: 2026-09-29
 branch: feat/card-571-toolsmith
 related:
@@ -21,7 +21,7 @@ proof: "unit tests for the builder agent's tool list (no shell, no code runner, 
 
 # [CARD-571] Toolsmith: restore runtime tool building and Ask Developer
 
-> **Status**: Ready
+> **Status**: In Review
 > **Related**: CARD-570 (tools are files with approval hash and Jacob-only enable), CARD-562 (parked tool building off Developer), CARD-539 (attach_tool_to_skill proposals, Ask Developer from chat), CARD-520 (Observability Ask Developer), CARD-511 (tool check before save)
 > **Labels**: `type:feature`, `area:tools`, `P2`
 
@@ -79,6 +79,20 @@ Out of scope: MCP server building and Docker deploys (`mcp-engineering`), agents
 - The end-to-end flow in `proof:` passes live; changing a tool's code stops it until re-approved.
 - Checks: ruff clean, fast preflight `--base qa` GREEN, full not-slow suite 0 failed.
 
+## Results (2026-09-29, In Review)
+
+- Commits on `feat/card-571-toolsmith`: 4cda972b (card Ready), d63d7b43 (build), 8141dcd5 (unused imports), fa1a2b75 (live journey + Tools Studio wording), plus this card update. Not merged, not pushed.
+- **Toolsmith** (`platform/agents/toolsmith.md`, skill `native-tool-engineering` v2): register_native_tool, view_native_tool (new, read-only: code, check, approval state), plan_native_folder, list_available_skills_and_tools, plus the platform set every agent gets. No shell, code runner, enable, commit_skill or propose_*. Resolved tools 14, skills 1.
+- **Ask Developer**: `developer_mediation.py` targets `toolsmith`; the paused message and parked-skill check are gone. Every button (chat reply, Teach, gap backlog, Tools Studio Talk/Submit, Observability) opens a Toolsmith chat carrying `target_agent_id`; `openDeveloperSession` takes the agent from the Talk reply. Developer's prompt says tool building is Toolsmith's job. Tools Studio buttons read "Talk to Toolsmith" / "Submit to Toolsmith".
+- **Access warning (D4)**: the tool check records `access` (network, files, programs, hidden_imports) from the code; register replies and Tools Studio show "This tool can use ... AutoReiv does not block that ...". Nothing is blocked and no isolation is claimed (skill and tool texts say the temp folder is not isolation).
+- **Enable = accept (D5)**: `POST /api/tools/native/{name}/enable` also accepts the tool's pending attach proposals (`accept_attach_proposals`); Tools Studio says "Enabling also gives it to: <agent> (skill <id>)" and has Show code (`GET /api/tools/native/{name}`). **Gap 1**: accepting an attach for a runtime tool that is not enabled returns 409 and stays pending (`runtime_tool_not_enabled`, also enforced inside `apply_tool_attachment`).
+- **Guard tests** `tests/unit/agents/test_card571_toolsmith.py`: Toolsmith's exact tool set; enable/accept only from the Tools Studio route; the only runtime-tool save is in `register` after the check; access detection; Talk opens Toolsmith; Gap 1 409; enable accepts in one step. Restored 5 native tool-building tests skipped since CARD-562 (oc422 x2, oc423 x2, card_497); oc423 now proves 409 before enable, then enable -> attach accepted -> Developer has the tool. Other capability-authoring/MCP skips re-labelled honestly (finding updated). vitest: attach text.
+- Checks: ruff clean; fast preflight `--base qa` GREEN; not-slow suite 2031 passed / 13 skipped / 0 failed; vitest 941 pass.
+- Live journey `tests/e2e/journeys/card-571-toolsmith-builds-a-tool.mjs` (throwaway env on :8770, real model): PASS. Tutor gap > Ask Developer opened a Toolsmith chat; Toolsmith saved `count_words_571` (check passed, no access, disabled, pending attach for tutor); accept before enable -> 409; Tools Studio showed Enable, Show code and "Enabling also gives it to: tutor"; Enable -> enabled, attach accepted, Tutor has the tool.
+- Live on :8000 (branch): health ok on 127.0.0.1 and 192.168.1.99; counts developer 26/11, direct 0/0, tutor 33/7, architect 20/5, autoreiv 39/11, toolsmith 14/1; a network-using tool registered via API showed the warning and was deleted; Talk returns agent toolsmith.
+- Test steps for Jacob: Agents > Tutor > Capability gaps > Ask Developer (or Tools Studio > Talk to Toolsmith); let Toolsmith save the tool; Tools Studio > Runtime-built tools: Show code, check any warning, Enable; confirm the agent now lists the tool.
+- Known limits: the tool check's sample call runs Toolsmith's code once before Jacob reads it (existing CARD-511 behaviour; Toolsmith is told to skip the call for network/side effects). `handoff_to_agent` is in the platform set every agent gets, including Toolsmith. Skill Studio authoring (`developer_authoring.py`) still names Developer; out of scope.
+
 ## Research notes (2026-09-29)
 
 - Before CARD-562 (`eece8249`), Developer had `native-tool-engineering`, `mcp-engineering`, `capability-authoring` (with `scaffold_agent_pack`, `export/import_agent_pack`), `proposals`, `build-agent-pack`, and `execute_code` / `cli_exec` in its tool list. Its prompt told it to use them for Ask Developer. The pack tools were removed in CARD-569.
@@ -88,3 +102,4 @@ Out of scope: MCP server building and Docker deploys (`mcp-engineering`), agents
 
 - 2026-09-29: Drafted from read-only research; decisions D1-D6 pending.
 - 2026-09-29: Jacob chose all six recommendations; Ready.
+- 2026-09-29: Built on feat/card-571-toolsmith; checks green; live journey PASS; In Review.
