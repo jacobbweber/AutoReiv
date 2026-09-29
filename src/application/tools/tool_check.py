@@ -46,7 +46,10 @@ STATUS_PASSED = "passed"
 STATUS_FAILED = "failed"
 STATUS_SKIPPED_CALL = "checked_without_call"
 STATUS_COULD_NOT_RUN = "could_not_run"
-OK_STATUSES = frozenset({STATUS_PASSED, STATUS_SKIPPED_CALL})
+# CARD-571: code that reaches the network, files, other programs or imports by name is never run by the
+# save check (not even import); it is saved for Jacob to read before enabling.
+STATUS_NOT_RUN_REVIEW = "not_run_review"
+OK_STATUSES = frozenset({STATUS_PASSED, STATUS_SKIPPED_CALL, STATUS_NOT_RUN_REVIEW})
 HIGH_RISK_SKIP_REASON = "high risk: sample call skipped"
 
 # Credentials the tool registry exports for the calling agent never reach the check.
@@ -117,6 +120,81 @@ def detect_path_safety_violation(tool_code: str) -> Optional[str]:
     return None
 
 
+# CARD-571 D4: built tools may use the network, files or other programs. The check only names that
+# access so Tools Studio can warn before Jacob enables the tool; nothing here blocks it.
+_NETWORK_MODULES = frozenset({
+    "socket", "ssl", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib", "smtplib", "poplib",
+    "imaplib", "telnetlib", "websocket", "websockets", "paramiko", "xmlrpc",
+})
+_FILE_MODULES = frozenset({"pathlib", "shutil", "glob", "tempfile", "fileinput", "sqlite3", "zipfile", "tarfile"})
+_PROGRAM_MODULES = frozenset({"subprocess", "pty", "multiprocessing"})
+_OS_FILE_CALLS = frozenset({
+    "remove", "unlink", "rename", "replace", "listdir", "scandir", "walk", "makedirs", "mkdir", "rmdir",
+    "removedirs", "chmod", "open",
+})
+_OS_PROGRAM_PREFIXES = ("system", "popen", "startfile", "exec", "spawn", "posix_spawn", "fork", "kill")
+ACCESS_LABELS = {
+    "network": "the network",
+    "files": "files on this computer",
+    "programs": "other programs",
+    "hidden_imports": "modules imported by name (cannot be checked)",
+}
+
+
+def detect_access(code: str) -> list[str]:
+    """What a native tool can reach: network, files, programs, hidden_imports. Empty for pure helpers."""
+    try:
+        tree = ast.parse(code or "")
+    except SyntaxError:
+        return []
+    found: set[str] = set()
+
+    def _module(name: str) -> None:
+        root = (name or "").split(".")[0]
+        if root in _NETWORK_MODULES:
+            found.add("network")
+        if root in _FILE_MODULES:
+            found.add("files")
+        if root in _PROGRAM_MODULES:
+            found.add("programs")
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                _module(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            _module(node.module or "")
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name):
+                if func.id == "open":
+                    found.add("files")
+                elif func.id == "__import__":
+                    found.add("hidden_imports")
+            elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+                owner, attr = func.value.id, func.attr
+                if owner == "os" and attr in _OS_FILE_CALLS:
+                    found.add("files")
+                if owner == "os" and attr.startswith(_OS_PROGRAM_PREFIXES):
+                    found.add("programs")
+                if owner == "importlib" and attr == "import_module":
+                    found.add("hidden_imports")
+                if owner == "io" and attr == "open":
+                    found.add("files")
+    return [key for key in ACCESS_LABELS if key in found]
+
+
+def access_warning(access: list[str]) -> str:
+    """Plain sentence for Tools Studio and the register reply; empty when the tool reaches nothing."""
+    labels = [ACCESS_LABELS[a] for a in access if a in ACCESS_LABELS]
+    if not labels:
+        return ""
+    return (
+        "This tool can use " + ", ".join(labels) + ". AutoReiv does not block that: once enabled it runs "
+        "with your Windows user's access. Read the code before enabling."
+    )
+
+
 @dataclass
 class ToolCheckResult:
     """Outcome of one check. Stored on the tool row, the MCP record and the job journey."""
@@ -128,6 +206,7 @@ class ToolCheckResult:
     error: Optional[str] = None
     stages: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
+    access: list = field(default_factory=list)  # CARD-571 D4: network / files / programs
     sample_arguments: Optional[dict] = None
     sample_tool: Optional[str] = None
     skip_reason: Optional[str] = None
@@ -145,6 +224,8 @@ class ToolCheckResult:
             return f"Checked: {self.tool} ran once in the sandbox."
         if self.status == STATUS_SKIPPED_CALL:
             return f"Checked without a sample call: {self.skip_reason or 'skipped'}."
+        if self.status == STATUS_NOT_RUN_REVIEW:
+            return f"Not run: {self.skip_reason or 'uses outside access'}, review before enabling."
         if self.status == STATUS_COULD_NOT_RUN:
             reason = (self.error or "the sandbox did not start").strip().rstrip(".")
             return f"The check could not run: {reason}. Nothing was registered; try again."
@@ -255,6 +336,10 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+class _NotRunForReview(Exception):
+    """Flagged native code: stop before any sandbox run; the result is already filled in."""
+
+
 class _Outcome(Exception):
     def __init__(self, status: str, stage: str, error: str):
         super().__init__(error)
@@ -291,18 +376,25 @@ class ToolCheckService:
         parameters: Any,
         risk_level: str = "medium",
         sample_arguments: Optional[Mapping[str, Any]] = None,
-        sample_call: str = "run",
-        skip_reason: Optional[str] = None,
     ) -> ToolCheckResult:
-        skip, reason = _skip_decision(risk_level, sample_call, skip_reason)
+        # CARD-571: no model-controlled skip. High risk still skips the sample call (import runs).
+        skip, reason = _skip_decision(risk_level, "run", None)
         started = time.perf_counter()
         result = ToolCheckResult(tool=str(name), lane="native", status=STATUS_PASSED, skip_reason=reason if skip else None)
         try:
             error, warnings = _static_native(str(code or ""))
             result.warnings = warnings
+            result.access = detect_access(str(code or ""))
             if error:
                 raise _Outcome(STATUS_FAILED, "static", error)
             result.stages.append({"name": "static", "ok": True})
+            if result.access:
+                # Flagged code is never executed here, whatever the caller passes.
+                labels = ", ".join(ACCESS_LABELS[a] for a in result.access if a in ACCESS_LABELS)
+                result.status = STATUS_NOT_RUN_REVIEW
+                result.skip_reason = f"uses {labels}"
+                result.stages.append({"name": "not_run", "ok": True, "skipped": result.skip_reason})
+                raise _NotRunForReview()
 
             args: dict[str, Any] = {}
             if not skip:
@@ -340,6 +432,8 @@ class ToolCheckService:
                 if not isinstance(parsed, dict) or not parsed.get("ok"):
                     raise _Outcome(STATUS_FAILED, "sample_call", "run() did not return a result")
                 result.stages.append({"name": "sample_call", "ok": True})
+        except _NotRunForReview:
+            pass
         except _Outcome as outcome:
             _mark(result, outcome)
         result.duration_ms = int((time.perf_counter() - started) * 1000)

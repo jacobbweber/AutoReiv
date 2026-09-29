@@ -12,8 +12,6 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.domain.gateway.models import ToolDefinition
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter
@@ -29,7 +27,6 @@ def _namespaces(client):
     return response.json()["namespaces"]
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     """REQ-423-001, REQ-423-003, REQ-423-005."""
     client, store, wiki = operator_client
@@ -129,14 +126,20 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
         json={"agent_id": "developer", "arguments": {"token": "early"}, "approval_mode": "run"},
     )
     assert refused.status_code == 409, refused.text
+    assert body["origin_label"] == "Native custom"
+    # CARD-539: registering proposes; CARD-571 Gap 1: accepting before the tool is enabled is refused.
+    assert body["proposal"]["status"] == "pending"
+    early = client.post(f"/api/approvals/{body['proposal']['approval_id']}/decision", json={"decision": "APPROVED"})
+    assert early.status_code == 409, early.text
+    listed_pending = client.get("/api/tools/native").json()["tools"][0]["pending_attach"]
+    assert [p["agent_id"] for p in listed_pending] == ["developer"]
+    # CARD-571 D5: enabling approves the code and accepts the attach proposal in one step.
     enabled = client.post("/api/tools/native/echo_token/enable")
     assert enabled.status_code == 200, enabled.text
     assert enabled.json()["mounted"] is True and enabled.json()["approval"] == "enabled"
-    assert body["origin_label"] == "Native custom"
-    # CARD-539: registering proposes; Developer can call it once the proposal is accepted.
-    assert body["proposal"]["status"] == "pending"
-    accepted = client.post(f"/api/approvals/{body['proposal']['approval_id']}/decision", json={"decision": "APPROVED"})
-    assert accepted.status_code == 200, accepted.text
+    assert [a["approval_id"] for a in enabled.json()["accepted_attach"]] == [body["proposal"]["approval_id"]]
+    assert store.get_approval(body["proposal"]["approval_id"])["status"] == "approved"
+    assert "echo_token" in set(client.get("/api/agents/developer").json().get("allowed_tools") or [])
     assert store.get_setting("mcp_servers") == before_mcp
 
     listed = client.get("/api/tools/native")
@@ -294,9 +297,8 @@ def test_oc423_mcp_lane_groups_under_the_attached_server(operator_client):
     assert client.get("/api/tools/native").json()["tools"] == []
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_oc423_developer_skills_describe_both_lanes(operator_client):
-    """REQ-423-004. Skills live on the developer pack, not under .agents/."""
+    """REQ-423-004. Tool building is Toolsmith's shipped skill (CARD-571), not under .agents/."""
     client, _store, _wiki = operator_client
     native_skill = (ROOT / "platform/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
     mcp_skill = (ROOT / "platform/skills/mcp-engineering/SKILL.md").read_text(encoding="utf-8")
@@ -310,14 +312,15 @@ def test_oc423_developer_skills_describe_both_lanes(operator_client):
     assert "Settings" in mcp_skill
     assert not (ROOT / ".agents/skills/native-tool-engineering").exists()
 
+    toolsmith = client.app.state.registry.get_agent("toolsmith")
+    assert toolsmith is not None
+    assert "native-tool-engineering" in (toolsmith.allowed_skill or [])
     developer = client.app.state.registry.get_agent("developer")
-    assert developer is not None
-    assert "native-tool-engineering" in (developer.allowed_skill or [])
+    assert "native-tool-engineering" not in (developer.allowed_skill or [])
     assert "register_native_tool" in client.app.state.tool_registry
     assert "plan_native_folder" in client.app.state.tool_registry
-    assert "register_native_tool" in list(resolve_allowed_tools(developer)) or "register_native_tool" in (
-        list(resolve_allowed_tools(developer)) or []
-    )
+    assert "register_native_tool" in set(resolve_allowed_tools(toolsmith))
+    assert "register_native_tool" not in set(resolve_allowed_tools(developer))
 
 
 def test_oc511_route_refuses_broken_native_tools_and_lists_checks(operator_client):

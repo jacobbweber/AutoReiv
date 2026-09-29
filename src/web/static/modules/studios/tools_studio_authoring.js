@@ -1,12 +1,12 @@
 /**
  * Tools Studio intent form helpers [CARD-422].
- * Talk opens a developer chat. Submit runs a developer turn.
+ * Talk opens a Toolsmith chat (CARD-571: every Ask Developer button). Submit runs a Toolsmith turn.
  * A queued or empty mediation result is not success.
  */
 
 import { readableError } from '../utils/formatters.js';
 
-export const DEVELOPER_AGENT_ID = 'developer';
+export const TOOLSMITH_AGENT_ID = 'toolsmith';
 export const TOOLS_AUTHORING_JOBS_URL = '/api/tools_studio/authoring/jobs';
 export const TOOLS_AUTHORING_TALK_URL = '/api/tools_studio/authoring/talk';
 export const PACKET_SCHEMA = 'tools_studio_authoring_packet';
@@ -53,26 +53,26 @@ export function intentValidationError(draft) {
 
 export function interpretAuthoringTalk(data, draft = {}) {
   if (!data || data.opened_job || data.job_id) {
-    throw new Error('Talk must open a developer chat without starting a job.');
+    throw new Error('Talk must open a Toolsmith chat without starting a job.');
   }
   const sessionId = String(data.session_id || '').trim();
-  if (!sessionId) throw new Error('Developer chat session was empty.');
-  if (data.agent_id && data.agent_id !== DEVELOPER_AGENT_ID) {
-    throw new Error('Talk must open the developer agent.');
+  if (!sessionId) throw new Error('Toolsmith chat session was empty.');
+  if (data.agent_id && data.agent_id !== TOOLSMITH_AGENT_ID) {
+    throw new Error('Talk must open the Toolsmith agent.');
   }
   const prompt = String(data.prompt || '');
-  if (!prompt.trim()) throw new Error('Developer chat is missing the tool intent.');
+  if (!prompt.trim()) throw new Error('Toolsmith chat is missing the tool intent.');
   const behavior = String((draft && draft.behavior) || '').trim();
   const toolName = String((draft && draft.tool_name) || '').trim();
   if (behavior && !prompt.includes(behavior)) {
-    throw new Error('Developer chat is missing the tool intent.');
+    throw new Error('Toolsmith chat is missing the tool intent.');
   }
   if (toolName && !prompt.includes(toolName)) {
-    throw new Error('Developer chat is missing the tool name.');
+    throw new Error('Toolsmith chat is missing the tool name.');
   }
   return {
     sessionId,
-    agentId: DEVELOPER_AGENT_ID,
+    agentId: TOOLSMITH_AGENT_ID,
     prompt,
     openedJob: false,
     jobId: null,
@@ -81,7 +81,7 @@ export function interpretAuthoringTalk(data, draft = {}) {
 
 /**
  * One Ask Developer path for the gap backlog, Teach and Observability [CARD-520 REQ-520-011].
- * Posts Talk with the draft, then opens the real Developer chat (streams at once, CARD-497).
+ * Posts Talk with the draft, then opens the real Toolsmith chat (streams at once, CARD-497).
  * Throws a readable Error; callers own the toast and any fallback.
  */
 export async function askDeveloperWithDraft(draft, {
@@ -101,9 +101,9 @@ export async function askDeveloperWithDraft(draft, {
     const chat = getChatCtrl();
     if (chat && typeof chat.openDeveloperSession === 'function') open = (...a) => chat.openDeveloperSession(...a);
   }
-  if (!open) throw new Error('Developer chat is unavailable here.');
+  if (!open) throw new Error('Toolsmith chat is unavailable here.');
   if (typeof switchTab === 'function') switchTab('chat');
-  await open(plan.sessionId, plan.prompt);
+  await open(plan.sessionId, plan.prompt, plan.agentId);
   return plan;
 }
 
@@ -113,17 +113,17 @@ export function interpretAuthoringSubmit(data) {
   const sessionId = String((data && data.session_id) || '').trim();
   const ran = Boolean(data && data.ran === true && data.queued_only !== true && data.mediation === 'developer_turn');
   if (!jobId || !sessionId || !ran || !status || status === 'queued' || status === 'failed' || status === 'cancelled') {
-    throw new Error('Developer mediation did not run.');
+    throw new Error('Toolsmith did not run.');
   }
   if (data.persisted_tool || data.packaging_applied) {
     throw new Error('Tools Studio must not apply tool packaging from this form.');
   }
   const reply = String(data.reply || '').trim();
-  if (!reply) throw new Error('Developer mediation returned an empty reply.');
+  if (!reply) throw new Error('Toolsmith returned an empty reply.');
   return {
     jobId,
     sessionId,
-    agentId: data.agent_id || DEVELOPER_AGENT_ID,
+    agentId: data.agent_id || TOOLSMITH_AGENT_ID,
     status,
     reply,
     prompt: String(data.prompt || ''),
@@ -151,6 +151,7 @@ export function formatToolCheckLines(checks) {
       const tool = String(check.tool || 'tool');
       if (check.status === 'passed') return `Checked: ${tool}`;
       if (check.status === 'checked_without_call') return `Checked without a sample call: ${String(check.skip_reason || '').trim()}`.trim();
+      if (check.status === 'not_run_review') return `Not run: ${String(check.skip_reason || '').trim()}, review before enabling.`;
       if (check.status === 'could_not_run') return `The check could not run for ${tool}.`;
       return `Not registered: ${tool} failed the ${String(check.stage || 'tool').replace(/_/g, ' ')} check.`;
     });

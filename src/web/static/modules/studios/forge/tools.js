@@ -65,7 +65,7 @@ export function capabilityGapRowHtml(gap = {}) {
           <span class="text-xs font-semibold text-amber-300 font-mono">${label}</span>
           <div class="flex flex-wrap items-center gap-1.5">
             <button type="button" class="btn-gap-open-skill-studio ${btn} bg-brand-600 hover:bg-brand-500 text-white" data-gap-id="${id}" title="Write a skill for this gap in Skill Studio">Open in Skill Studio</button>
-            <button type="button" class="btn-gap-ask-developer ${btn} bg-indigo-600 hover:bg-indigo-500 text-white" data-gap-id="${id}" title="Ask Developer to build a tool for this gap">Ask Developer</button>
+            <button type="button" class="btn-gap-ask-developer ${btn} bg-indigo-600 hover:bg-indigo-500 text-white" data-gap-id="${id}" title="Ask Toolsmith to build a tool for this gap">Ask Developer</button>
             <button type="button" class="btn-dismiss-gap ${btn} bg-slate-800 hover:bg-slate-700 text-slate-400 font-medium" data-gap-id="${id}">Dismiss</button>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function buildGapDeveloperDraft(gap = {}, agentId = '') {
 }
 
 /**
- * Ask Developer: open a Developer chat with the gap attached; Tools Studio if that fails.
+ * Ask Developer: open a Toolsmith chat with the gap attached; Tools Studio if that fails.
  * Same path as Teach (chat/teach_modal.js) and Tools Studio Talk [CARD-472, CARD-496].
  */
 export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callbacks = {}, toastFn = showToast } = {}) {
@@ -112,7 +112,7 @@ export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callb
     });
     return true;
   } catch (err) {
-    toastFn(`Could not open a Developer chat: ${err.message || err}. Opening Tools Studio.`, 'error');
+    toastFn(`Could not open a Toolsmith chat: ${err.message || err}. Opening Tools Studio.`, 'error');
     if (typeof callbacks.openToolsStudio === 'function') callbacks.openToolsStudio(agentId);
     return false;
   }

@@ -49,7 +49,7 @@ def test_planner_uses_one_prompt_for_every_agent():
     assert "Do not emit a graph" in pe._PLANNER_SYSTEM
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
+@pytest.mark.skip(reason="Capability authoring / MCP building is on no agent (CARD-571 Toolsmith builds native tools only)")
 def test_developer_pack_holds_builder_tools():
     dev = platform_pack_profile("developer")
     assert "propose_skill" in list(resolve_allowed_tools(dev))

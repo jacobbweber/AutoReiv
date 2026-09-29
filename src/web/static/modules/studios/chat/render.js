@@ -299,7 +299,7 @@ export function renderSkillProposalCard(proposal, {
             </button>`}
             ${needsTool
               ? `
-              <button type="button" class="btn-escalate-developer px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook needs a tool the agent doesn't have — ask the Developer to build it">
+              <button type="button" class="btn-escalate-developer px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-sm flex items-center space-x-1.5" title="Runbook needs a tool the agent doesn't have — ask Toolsmith to build it">
                 <span>🚀</span>
                 <span>Ask Developer to build this tool</span>
               </button>
@@ -412,7 +412,7 @@ export function offersAskDeveloper(role, content) {
 
 export function askDeveloperButtonHtml(reply) {
   return `
-      <button type="button" class="msg-ask-developer-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 transition shadow-sm" data-reply="${escapeHtml(reply)}" title="Ask the Developer to build this capability">
+      <button type="button" class="msg-ask-developer-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 transition shadow-sm" data-reply="${escapeHtml(reply)}" title="Ask Toolsmith to build this capability">
         <i data-lucide="hammer" class="w-3 h-3"></i>
         <span>Ask Developer</span>
       </button>`;

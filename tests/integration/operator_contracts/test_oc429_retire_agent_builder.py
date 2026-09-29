@@ -28,7 +28,7 @@ def _refuse_live(user_data: Path) -> None:
     assert ud != live and not ud.startswith(live + "/"), f"operator contracts must not use live user-data: {user_data}"
 
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
+@pytest.mark.skip(reason="Capability authoring / MCP building is on no agent (CARD-571 Toolsmith builds native tools only)")
 def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator_client):
     client, store, wiki = operator_client
     _refuse_live(wiki.parent)

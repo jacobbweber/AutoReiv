@@ -328,7 +328,6 @@ def test_17_existing_factory_rows_survive_startup(tmp_path, monkeypatch):
     conn.close()
     assert rows == [("fjob_old", "running")]
 
-@pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
 def test_12e_talk_opens_an_empty_developer_session_so_the_client_sends_a_real_turn():
     """REQ-497-016: /talk must not pre-save the intent as a user message; the browser sends it via /api/chat/stream."""
     from src.application.tools.developer_mediation import ToolsDeveloperMediationService

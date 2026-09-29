@@ -1,8 +1,8 @@
 /**
  * Tools Studio — catalog browse, MCP attach, and tool intent [CARD-421, CARD-422].
- * Create, modify, and delete intents go through the form and the developer.
- * There is no code editor. Packaging preference is a note for the developer.
- * Native and MCP lanes are built by the developer, not by this form.
+ * Create, modify, and delete intents go through the form and Toolsmith (CARD-571).
+ * There is no code editor. Packaging preference is a note for Toolsmith.
+ * Toolsmith builds native tools only; existing MCP servers are attached in this studio.
  * Platform attach uses /api/settings/mcp*. Agent attach uses /api/agents/{id}/mcp*.
  * MCP hosting stays in Settings.
  */
@@ -309,7 +309,7 @@ export function initToolsStudio(_state, callbacks = {}) {
     if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
     const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
     if (chat && typeof chat.openDeveloperSession === 'function') {
-      await chat.openDeveloperSession(plan.sessionId, plan.prompt);
+      await chat.openDeveloperSession(plan.sessionId, plan.prompt, plan.agentId);
       return;
     }
     const promptInput = $('promptInput');
@@ -337,9 +337,9 @@ export function initToolsStudio(_state, callbacks = {}) {
     try {
       const data = await postJson(TOOLS_AUTHORING_TALK_URL, { intent: draft.intent, draft });
       const plan = interpretAuthoringTalk(data, draft);
-      showAuthoringStatus('ok', `<div>Opened developer chat <span class="font-mono">${escapeHtml(plan.sessionId)}</span> with this tool intent.</div>`);
+      showAuthoringStatus('ok', `<div>Opened Toolsmith chat <span class="font-mono">${escapeHtml(plan.sessionId)}</span> with this tool intent.</div>`);
       await openDeveloperChat(plan);
-      showToast('Opened a new developer chat with this tool intent.', 'success');
+      showToast('Opened a new Toolsmith chat with this tool intent.', 'success');
     } catch (err) {
       showAuthoringStatus('error', `<div>${escapeHtml(err.message || String(err))}</div>`);
       showToast(err.message || String(err), 'error');
@@ -364,7 +364,7 @@ export function initToolsStudio(_state, callbacks = {}) {
     }
     if (authoringBusy) return;
     authoringBusy = true;
-    showAuthoringStatus('info', '<div>Asking the developer to run this tool intent…</div>');
+    showAuthoringStatus('info', '<div>Asking Toolsmith to run this tool intent…</div>');
     try {
       const res = await fetch(TOOLS_AUTHORING_JOBS_URL, {
         method: 'POST',
@@ -374,14 +374,14 @@ export function initToolsStudio(_state, callbacks = {}) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(authoringErrorMessage(data, res.status));
       const plan = interpretAuthoringSubmit(data);
-      const openBtn = `<button type="button" id="toolsStudioOpenDeveloperChatBtn" data-testid="tools-studio-open-developer-chat" class="px-2.5 py-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white text-[11px] font-semibold">Open developer chat</button>`;
+      const openBtn = `<button type="button" id="toolsStudioOpenDeveloperChatBtn" data-testid="tools-studio-open-developer-chat" class="px-2.5 py-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white text-[11px] font-semibold">Open Toolsmith chat</button>`;
       showAuthoringStatus(
         'ok',
-        `<div>Developer job <span class="font-mono">${escapeHtml(plan.jobId)}</span> is ${escapeHtml(plan.status)}. Packaging was not applied.</div><div class="whitespace-pre-wrap text-slate-100">${escapeHtml(plan.reply)}</div>${formatToolCheckLines(plan.toolChecks).map((line) => `<div data-testid="tools-studio-tool-check" class="text-[11px] font-mono text-amber-200 whitespace-pre-wrap">${escapeHtml(line)}</div>`).join('')}${openBtn}`,
+        `<div>Toolsmith job <span class="font-mono">${escapeHtml(plan.jobId)}</span> is ${escapeHtml(plan.status)}. Packaging was not applied.</div><div class="whitespace-pre-wrap text-slate-100">${escapeHtml(plan.reply)}</div>${formatToolCheckLines(plan.toolChecks).map((line) => `<div data-testid="tools-studio-tool-check" class="text-[11px] font-mono text-amber-200 whitespace-pre-wrap">${escapeHtml(line)}</div>`).join('')}${openBtn}`,
       );
       const open = $('toolsStudioOpenDeveloperChatBtn');
       if (open) open.addEventListener('click', () => { openDeveloperChat(plan).catch((err) => showToast(err.message || String(err), 'error')); });
-      showToast(`Developer job ${plan.jobId} is ${plan.status}.`, 'success');
+      showToast(`Toolsmith job ${plan.jobId} is ${plan.status}.`, 'success');
     } catch (err) {
       showAuthoringStatus('error', `<div>${escapeHtml(err.message || String(err))}</div>`);
       showToast(err.message || String(err), 'error');

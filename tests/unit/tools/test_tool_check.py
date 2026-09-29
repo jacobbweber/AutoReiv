@@ -130,16 +130,11 @@ async def test_9_high_risk_and_requested_skip_do_not_make_the_call():
     assert "args.json" not in spy.calls[0]["files"]
     assert high.operator_message() == "Checked without a sample call: high risk: sample call skipped."
 
-    spy2 = _SpyRunner()
-    asked = await ToolCheckService(runner=spy2).check_native(
-        name="c511_key", code=GOOD, parameters=SCHEMA, risk_level="low", sample_call="skip", skip_reason="needs an API key"
-    )
-    assert asked.status == "checked_without_call"
-    assert asked.skip_reason == "needs an API key"
-    assert len(spy2.calls) == 1
-
-    with pytest.raises(ValueError, match="skip_reason"):
-        await ToolCheckService().check_native(name="c511_x", code=GOOD, parameters=SCHEMA, risk_level="low", sample_call="skip")
+    # CARD-571: the caller can no longer ask to skip; the access scan decides.
+    with pytest.raises(TypeError):
+        await ToolCheckService().check_native(  # type: ignore[call-arg]
+            name="c511_x", code=GOOD, parameters=SCHEMA, risk_level="low", sample_call="skip", skip_reason="x"
+        )
 
 
 def test_10_sample_arguments_are_built_from_the_schema():
@@ -221,8 +216,9 @@ def test_14_developer_guidance_mentions_the_check():
     mcp_skill = (ROOT / "platform/skills/mcp-engineering/SKILL.md").read_text(encoding="utf-8")
     for text in (native_skill, mcp_skill):
         assert "sample_arguments" in text
-        assert "sample_call" in text
         assert "Not registered" in text
+    assert "sample_call" in mcp_skill  # MCP lane keeps its skip flag
+    assert 'sample_call: "skip"' not in native_skill and "not run at all" in native_skill  # CARD-571
 
     from src.application.tools.developer_mediation import build_packet, format_developer_prompt
 

@@ -49,9 +49,9 @@ describe('Tools Studio intent form [CARD-422]', () => {
     expect(toolsView).toContain('id="toolsStudioBehaviorInput"');
     expect(toolsView).toContain('What the tool should do');
     expect(toolsView).toContain('id="toolsStudioTalkBtn"');
-    expect(toolsView).toContain('Talk to developer');
+    expect(toolsView).toContain('Talk to Toolsmith');
     expect(toolsView).toContain('id="toolsStudioSubmitBtn"');
-    expect(toolsView).toContain('Submit to developer');
+    expect(toolsView).toContain('Submit to Toolsmith');
     expect(toolsView).toContain('id="toolsStudioPackagingSelect"');
     expect(toolsView).toContain('note only');
     expect(toolsView).not.toContain('id="toolsStudioCodeInput"');
@@ -76,7 +76,7 @@ describe('Tools Studio intent form [CARD-422]', () => {
     expect(studio).toContain("fillIntent('delete'");
     expect(studio).not.toContain('skill_tool_bindings');
     expect(chat).toContain('openDeveloperSession');
-    expect(chat).toContain("state.selectedAgentId = 'developer'");
+    expect(chat).toContain("async function openDeveloperSession(sessionId, composerText = '', agentId = 'toolsmith')");
     const markup = renderCatalogMarkup([
       {
         id: 'builtin',
@@ -97,19 +97,19 @@ describe('Tools Studio mediation result interpretation [CARD-422]', () => {
   it('Talk requires a developer session that already contains the form [REQ-422-001]', () => {
     const plan = interpretAuthoringTalk({
       session_id: 'sess-1',
-      agent_id: 'developer',
+      agent_id: 'toolsmith',
       prompt: `Tool name: ${draft.tool_name}\nWhat it should do: ${draft.behavior}`,
       opened_job: false,
       job_id: null,
     }, draft);
     expect(plan.sessionId).toBe('sess-1');
-    expect(plan.agentId).toBe('developer');
+    expect(plan.agentId).toBe('toolsmith');
     expect(plan.openedJob).toBe(false);
     expect(plan.prompt).toContain(draft.behavior);
 
     expect(() => interpretAuthoringTalk({
       session_id: 'sess-1',
-      agent_id: 'developer',
+      agent_id: 'toolsmith',
       prompt: 'empty of the form',
       opened_job: false,
     }, draft)).toThrow(/missing the tool intent/);
@@ -161,7 +161,7 @@ describe('Tools Studio mediation result interpretation [CARD-422]', () => {
     const plan = interpretAuthoringSubmit({
       job_id: 'job_1',
       session_id: 'sess-1',
-      agent_id: 'developer',
+      agent_id: 'toolsmith',
       status: 'done',
       ran: true,
       queued_only: false,

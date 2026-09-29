@@ -1,10 +1,12 @@
 ---
 name: Native AutoReiv Tool Engineering
-description: Build a native AutoReiv custom tool or plan one tool per script from a chat path, without an MCP server.
+description: Build or change a native AutoReiv runtime tool (saved disabled until Jacob enables it), or plan one tool per script from a chat path.
 tools:
 - register_native_tool
+- view_native_tool
 - plan_native_folder
-version: 1.0.0
+- list_available_skills_and_tools
+version: 2.0.0
 tier: platform
 safety:
   read_only: false
@@ -12,60 +14,44 @@ safety:
   untrusted_input_allowed: false
 verification:
   kind: assertion
-  rule: The tool is stored as a native custom tool, runs through the sandbox and ToolPolicyGate, and does not require an MCP server.
+  rule: The tool is saved in data tools/<name>/ after the tool check, stays disabled until Jacob enables it in Tools Studio, and reaches an agent only through an attach proposal.
 ---
 
 # Native AutoReiv Tool Engineering
 
-Use this runbook when the operator wants a **native** custom tool: registered and executed inside AutoReiv, with no MCP server. Platform tools are already native. This skill is for tools the operator asks the developer to add.
+Use this when Jacob asks for a **native** runtime tool: Python saved in the data dir (`tools/<name>/tool.py` + `tool.json`) and run by AutoReiv, with no MCP server. Building MCP servers is not part of this skill; if the brief asks for MCP, say so and offer a native tool instead.
 
-MCP-backed tools are the other lane. Use `mcp-engineering` for those. Do not force an MCP server onto a small local helper.
+## Rules the tools enforce
 
-## Two lanes
+- `register_native_tool` saves the tool **disabled**. Only Jacob enables it, in Tools Studio > Runtime-built tools, after reading the code. Enabling approves the code hash.
+- Saving new code for an existing tool puts it back to **Approve new code**; it stops working until Jacob approves again.
+- `target_agent_id` (optionally `target_skill_id`) files a pending proposal to attach the tool to that agent's skill. Enabling the tool also accepts that proposal. Nothing grants the tool before that.
+- You cannot enable tools, approve code, grant tools or edit skills. There is no shell or code runner; the tool check is the only place code runs.
 
-1. **Native** — `register_native_tool`. The tool is saved in the data dir (`tools/<name>/tool.py` + `tool.json`). It is mounted on the AutoReiv tool registry only after Jacob enables it in Tools Studio (that approves the code hash; changed code needs approval again), and run in the same subprocess sandbox as `execute_code`. ToolPolicyGate and the agent allowlist still apply. HITL defaults on.
-2. **MCP** — `mcp-engineering`, then attach with the existing platform or agent MCP save. Tools Studio groups those tools under the server name. MCP hosting stays in Settings.
+## Build a tool
 
-The Tools Studio packaging dropdown is a **note** on the developer brief. It does not write the tool. You do, after the operator can see the job.
+1. Call `list_available_skills_and_tools` and check no existing tool already does the job.
+2. To change an existing runtime tool, call `view_native_tool` first and keep its name.
+3. Write Python that defines a module-level `run(**kwargs)` and returns a JSON-friendly value. Keep it small. Names are lowercase identifiers; `mcp_` names are rejected.
+4. Call `register_native_tool` with `name`, `description`, `code`, a JSON Schema `parameters` object and, when an agent needs it, `target_agent_id`. `requires_hitl` defaults to true, so ToolPolicyGate asks Jacob before each call; `risk_level: high` always asks.
+5. Report what was saved, the check result, any access warning, and that Jacob enables it in Tools Studio.
 
-## Register a native tool
+## The tool check
 
-1. Agree the tool name, what `run` returns, and which agents may call it.
-2. Write Python that defines `run(**kwargs)` and returns a JSON-friendly value. Do not shell out to the host.
-3. Call `register_native_tool` with `name`, `description`, `code`, a JSON Schema `parameters` object, `requires_hitl`, and optionally `target_agent_id` / `target_skill_id`.
-4. Names are lowercase identifiers. Names starting with `mcp_` are rejected. That prefix is the MCP lane.
-5. `risk_level: high` always requires HITL, even if you pass `requires_hitl: false`.
-6. `target_agent_id` (and `target_skill_id`) creates a proposal to add the tool to that agent's skill; Jacob accepts it. You cannot enable the tool or grant it yourself. Tell the operator to enable it in Tools Studio.
-7. Confirm `GET /api/tools/native` lists it with origin **Native custom**, and `mcp_servers` did not gain a server.
+Saving runs the check first:
 
-## Registration runs the tool once [CARD-511]
+1. **Static**: the code parses, defines `run(**kwargs)`, and has no path traversal. `eval`/`exec` and bare `except` are warnings.
+2. **Access**: the check names what the code can reach (the network, files on this computer, other programs, modules imported by name). This is shown to Jacob as a warning before enabling. It is not blocked at runtime.
+3. **Code with any access is not run at all**, not even imported. It is saved with the result `Not run: uses <access>, review before enabling.` The tool decides this; nothing you pass changes it.
+4. **Pure code only**: import in a temporary folder (10 s) without calling `run`, then **one sample call** (20 s). Pass harmless `sample_arguments`; without them the check builds the minimum from `parameters`. `risk_level: high` skips the sample call.
 
-`register_native_tool` checks the tool before it saves anything:
-
-1. **Static**: the code parses, defines a module-level `run(**kwargs)`, and has no path traversal. `eval`/`exec` and bare `except` are warnings only.
-2. **Import**: the module runs in the sandbox (10 s) without calling `run`.
-3. **One sample call** (20 s) through the same runner that invoke uses. The result must be JSON. Pass harmless `sample_arguments` (a dry-run or read-only input); without them the check builds the minimum from `parameters`.
-
-The sandbox is a temp folder with secret-looking environment variables removed. It does **not** block the network or protect files, so the sample call really runs. For a tool that needs an API key, the network, or has side effects, pass `sample_call: "skip"` with a `skip_reason`. `risk_level: high` always skips the call. Import still runs, and the operator sees "Checked without a sample call: <reason>".
-
-If the result starts **`Not registered:`**, nothing was saved, mounted or granted. Tell the operator the error in plain words, fix the code, and call `register_native_tool` again. A good tool shows **Checked** in Tools Studio. Tools registered before this check show **Not checked**.
-
-Default `requires_hitl` is true. The call parks for operator approval until approval mode is run. That is the safety layer for this lane. MCP is not a substitute for it.
+If the result starts **`Not registered:`**, nothing was saved. Explain the error in plain words, fix the code and call `register_native_tool` again.
 
 ## A folder of scripts is chat context
 
-When the operator pastes a filesystem path and asks for one tool per script or playbook:
-
-1. Treat the path as text in this conversation. Tools Studio has no folder picker and no script-folder factory.
-2. Call `plan_native_folder` with that directory. It returns one suggested name per `.py`, `.sh`, or `.ps1` file and registers nothing.
-3. Read each script, then either:
-   - wrap it as a native `run(**kwargs)` and call `register_native_tool`, or
-   - wrap it as an MCP tool with `mcp-engineering` if the operator's packaging note says `mcp`.
-4. Do not invent a Tools Studio control for this.
+When Jacob pastes a path and asks for one tool per script, treat it as chat context (Tools Studio has no folder picker) and call `plan_native_folder` with it (it lists suggested names and saves nothing), read what you need from the conversation, and register each tool the same way.
 
 ## Done-when
 
-- The tool is listed as native custom, or the MCP server is attached and its tools show under that server name.
-- An agent on the allowlist can call a native tool with no MCP attach.
-- A HITL tool does not run until the operator confirms.
-- The form packet still has `packaging_applied: false`.
+- The tool is saved and listed in Tools Studio as Not enabled (or Approve new code), with its check result and any access warning.
+- If a target agent was named, a pending attach proposal exists for it.
