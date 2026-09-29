@@ -1,7 +1,7 @@
 ---
 id: CARD-570
 title: "Agents and skills load from platform/ with user copies in the data dir (remove agent packs)"
-status: Ready
+status: In Review
 created: 2026-09-28
 branch: fix/card-570-agents-skills-from-platform
 related:
@@ -64,3 +64,18 @@ An agent is defined in up to four places today (pack.json copied into AppData an
 - DB has no agent/skill definition tables; memory DBs live in `agents/<id>/memory.db`.
 - Runtime tools live in data `tools/` with approval hash and Jacob-only enable.
 - Checks: ruff clean, fast preflight `--base qa` GREEN, full not-slow suite per CARD-560; backup verified, wipe and fresh start done, counts compared; live check in Agent Studio (edit an agent, see "Edited", Use shipped version; hide and unhide a skill).
+
+## Results (2026-09-28, In Review)
+
+- Commits on `fix/card-570-agents-skills-from-platform`: a180e5c4, 6dc623db, 87f96b30 (+ this card update). vs qa: 243 files, +2351 / -12897 lines.
+- Shipped agents (`platform/agents/*.md`, 5) and skills (`platform/skills/*/SKILL.md`, 44) are read in place; user copies in data `agents/` / `skills/` win by id (`based_on` hash for "shipped changed"); `.hidden.json` hides shipped items; shipped ids are reserved. Packs, seeds, reconciler, skill_bindings, keep-customizations, platform-defaults UI removed; `agent_overrides` / `custom_agents` / `skill_tool_bindings` tables dropped; memory at `agents/<id>/memory.db`.
+- ADR-0062 (note in ADR-0061); rules "no old-format readers before 1.0" and "a skill is a job" in `.agents/rules/boundaries.md`. Guards: `test_card570_no_packs.py`, `test_card539_single_allowed_tools.py` (adapted); loader tests `test_card570_agent_skill_files.py`; vitest `card570_file_status.test.js`.
+- Checks: ruff clean; not-slow suite 2012 passed / 18 skipped / 3 failed (known test_card354 2/4/5 severity); vitest 940 pass; fast preflight `--base qa` RED only because the changed `test_card354_developer_simulations.py` (skill paths updated) brings its 3 known failures into "changed tests"; all other stages green.
+- Wipe: backup `C:\Users\jacob\AppData\Local\AutoReiv-backup-20260928-2304` (81 files / 1,504,221 bytes, matches source); data dir wiped (wiki included); fresh start from branch; vllm provider (base URL, default model qwen3.8-27b-fp8), purpose matrix and 5 vision overrides restored. No stored credentials existed. Per-agent model/provider were all `default`.
+- Counts after fresh start (tools/skills): developer 26/11, direct 0/0, tutor 33/7, architect 20/5, autoreiv 39/11 — match.
+- Live: edit tutor -> user copy wins (`source: user, edited`); Use shipped version -> removed; delete architect -> hidden across restart, unhide restores; custom agent id `developer`/`architect` -> 409; data skill naming `c570_no_such_tool` -> health warning, tool not granted; skill hide/unhide works.
+- Not done (follow-up): runtime tools in data `tools/` with approval hash + Jacob-only enable; Skill/Agent Studio tool additions as proposals (still direct writes); rename `user-packs` routes / `list_user_skill_packs`; `requires_tools` -> `tools` in UI; rename `tests/unit/agent_packs` folder.
+
+## Log
+
+- 2026-09-28: Built per agreed design; wipe + fresh start done; moved to In Review.
