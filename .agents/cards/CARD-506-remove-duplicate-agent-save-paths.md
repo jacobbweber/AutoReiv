@@ -1,7 +1,7 @@
 ---
 id: CARD-506
 title: "Remove the unused duplicate agent-save paths (POST /api/settings/agents/{id}, SettingsService.save_agent_customization)"
-status: Ready
+status: In Review
 created: 2026-09-25
 branch: qa
 related:
@@ -17,7 +17,7 @@ milestone: M22
 
 # [CARD-506] Remove the unused duplicate agent-save paths
 
-> **Status**: Ready
+> **Status**: In Review with CARD-577. Built in CARD-577: the lock copies and SettingsService methods were already gone (CARD-570); CARD-577 removed the last duplicate route, POST /api/settings/agents/{id}. Agent Studio saves only through PUT /api/agents/{id} (model, provider, context_window included).
 > **Created**: 2026-09-25 (found while tracing CARD-502)
 > **Related**: CARD-449 (content lock rules), CARD-502 (shared skill-list save)
 > **Labels**: `type:chore`, `area:agents`, `P3`
@@ -65,3 +65,6 @@ milestone: M22
 
 1. Agent Studio: change a tool tick and Max Turns on AutoReiv, Save, reload: both kept.
 2. Change only Max Turns on Tutor, Save, restart serve: Tutor shows no customized badge.
+
+## Log
+- 2026-09-29: Built in CARD-577: the lock copies and SettingsService methods were already gone (CARD-570); CARD-577 removed the last duplicate route, POST /api/settings/agents/{id}. Agent Studio saves only through PUT /api/agents/{id} (model, provider, context_window included).

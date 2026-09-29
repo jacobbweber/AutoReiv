@@ -1,7 +1,8 @@
 ---
 id: CARD-521
 title: "Bundled seed skills in the data dir are copied once and never updated, so shipped fixes never reach existing installs"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-26
 branch: qa
 related:
@@ -18,7 +19,7 @@ milestone: M22
 
 # [CARD-521] Bundled seed skills never receive shipped updates
 
-> **Status**: Ready (found while refining CARD-497, 2026-09-26 ~9:50 AM ET, qa `51b6402b`). Not recommended as next: it does not damage data or block current work, and CARD-497 D10 handles the one stale file that matters now (`build-agent-pack`) with a hash-matched rewrite.
+> **Status**: Done (closed in CARD-577). Obsolete: the bundled root seed skills and seed_bundled_skill_packs are gone (0 refs in src).
 > **Related**: CARD-497 (D10), CARD-426 (the same one-off rewrite for `native-tool-engineering`), ADR-0056 (platform pack refresh)
 > **Labels**: `type:bug`, `area:skills`, `P3`
 
@@ -37,3 +38,6 @@ Record the hash of each seed as shipped (a small manifest written next to the co
 ## Done when
 
 A shipped seed change reaches unedited installs on the next start; edited seeds are never overwritten; tests cover unedited, edited and missing copies.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: the bundled root seed skills and seed_bundled_skill_packs are gone (0 refs in src).

@@ -1,7 +1,7 @@
 ---
 id: CARD-512
 title: "Agent Studio's \"Agent Training Optimization\" queue is always empty; retire the scaffold spine"
-status: Ready
+status: In Review
 created: 2026-09-25
 branch: qa
 related:
@@ -19,7 +19,7 @@ milestone: M21
 
 # [CARD-512] Retire the always-empty "Agent Training Optimization" queue (scaffold spine)
 
-> **Status**: Ready (found in the CARD-495 audit, 2026-09-25 ET; retire rather than fold into Tools Studio accepted as ADR-0060 D8). Not next: build after CARD-497 and before CARD-498.
+> **Status**: In Review with CARD-577. Built in CARD-577: scaffold spine, /api/capabilities/scaffold/* and smoke routes, mid-job self-scaffold and its table removed.
 > **Related**: CARD-495 audit F16 and decision D8, CARD-496 (removes the panel), CARD-498 (data drop)
 > **Labels**: `type:cleanup`, `area:agents`, `P3`
 
@@ -52,3 +52,6 @@ Agent Studio shows an "Agent Training Optimization" panel with a candidate queue
 ## Note from the CARD-497 refinement (2026-09-26)
 
 - `src/application/orchestration/self_scaffold_queue_e2e.py` (CARD-255, 335 lines) has no caller under `src/`; only `tests/unit/orchestration/test_self_scaffold_queue_e2e_255.py` imports it. It belongs to the scaffold-spine family, so it is left for this card to retire or keep with the spine. It imports `mid_job_self_scaffold.py`, which the Job pipeline still uses (`job_phase_orchestrator.py`), so keep that one.
+
+## Log
+- 2026-09-29: Built in CARD-577: scaffold spine, /api/capabilities/scaffold/* and smoke routes, mid-job self-scaffold and its table removed.

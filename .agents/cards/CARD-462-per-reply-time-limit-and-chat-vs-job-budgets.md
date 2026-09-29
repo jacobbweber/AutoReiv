@@ -1,6 +1,6 @@
 ---
 id: CARD-462
-title: "Per-reply time limit and separate turn budgets for chat vs standing Jobs"
+title: "Separate turn and time budgets for standing Jobs vs chat (per-reply limit done in CARD-567)"
 status: Ready
 created: 2026-09-24
 branch: qa
@@ -21,7 +21,7 @@ milestone: M24
 
 # [CARD-462] Per-reply time limit and separate turn budgets for chat vs standing Jobs
 
-> **Status**: Ready (needs Jacob's numbers - see "Open decisions" - before **build**)
+> **Status**: Ready (shrunk in CARD-577; needs Jacob's numbers for Open decisions 2, 3 and 5 before **build**). The per-reply time limit shipped in CARD-567. Remaining: a standing-Job run limit, real phase max_turns (no hidden 10), handoff envelope defaults and the child cap.
 > **Created**: 2026-09-24
 > **Observed during**: CARD-445 discussion - Jacob asked for ideas beyond a turn count: a time limit per reply, and different budgets for interactive chat vs standing Jobs.
 > **ADR Reference**: none
@@ -71,7 +71,7 @@ milestone: M24
 
 ### Beat 3: What will change
 
-1. **Per-reply time limit (chat).** A wall-clock limit per reply, checked at each loop pass and before each tool call. When it passes, end through CARD-461's helper with reason `time_limit` ("I ran out of time for one reply..."). An in-flight model call or tool is not killed mid-way; the check happens between steps. Global setting in Settings, default per Open decision 1.
+1. *(Done in CARD-567: global reply limits, max_tokens / max_seconds, for every model call.)* **Per-reply time limit (chat).** A wall-clock limit per reply, checked at each loop pass and before each tool call. When it passes, end through CARD-461's helper with reason `time_limit` ("I ran out of time for one reply..."). An in-flight model call or tool is not killed mid-way; the check happens between steps. Global setting in Settings, default per Open decision 1.
 2. **Per-run time limit (standing Jobs).** The same check for phase runs, with its own setting (Open decision 2). The existing per-call `STANDING_PHASE_LLM_TIMEOUT_SECONDS` stays as-is.
 3. **Real job budgets.** Kernel accepts an optional per-run `max_turns` override. When a standing Job phase runs, use the phase's `max_turns` if set, else the agent's. Phase fields become `Optional[int] = None` meaning "inherit the agent's budget" (no hidden 10). Existing phase rows with 10 are treated per Open decision 3.
 4. **Handoff envelope 10 / 60s and the 10..15 child clamp:** the envelope `max_turns` default becomes None (inherit child profile); decide whether `_MAX_CHILD_TURNS = 15` stays as a deliberate delegation cap or goes (Open decision 5); `timeout_seconds` is either wired to the same time-limit check or removed (decide at build from actual usage).
@@ -87,12 +87,12 @@ milestone: M24
 
 ## 2. Acceptance criteria (EARS)
 
-- **[REQ-462-001]** WHILE a chat reply is running, WHEN its elapsed time exceeds the configured per-reply limit, THE SYSTEM SHALL finish the current step, start no further model or tool step, and end through the graceful ending path with reason `time_limit`.
+- *(Done in CARD-567)* **[REQ-462-001]** WHILE a chat reply is running, WHEN its elapsed time exceeds the configured per-reply limit, THE SYSTEM SHALL finish the current step, start no further model or tool step, and end through the graceful ending path with reason `time_limit`.
 - **[REQ-462-002]** WHILE a standing Job phase run is in progress, WHEN its elapsed time exceeds the configured job run limit, THE SYSTEM SHALL end it the same way and record the phase as not completed.
 - **[REQ-462-003]** WHEN a standing Job phase has a `max_turns` value, THE SYSTEM SHALL use it as that run's turn budget instead of the agent's.
 - **[REQ-462-004]** WHEN a phase or handoff has no `max_turns`, THE SYSTEM SHALL use the agent's `max_turns`.
 - **[REQ-462-005]** THE SYSTEM SHALL NOT carry a literal default of 10 for phase or handoff budgets.
-- **[REQ-462-006]** THE SYSTEM SHALL let the operator view and change both time limits in Settings.
+- **[REQ-462-006]** THE SYSTEM SHALL let the operator view and change the job run time limit in Settings (the chat limit is in Settings since CARD-567).
 
 ### Tests (write first at build)
 
@@ -104,6 +104,8 @@ milestone: M24
 ---
 
 ## 3. Human Verification Runbook (under 2 minutes)
+
+*(Steps below were for the per-reply limit, done in CARD-567; rewrite for job budgets at build.)*
 
 1. Pull qa, restart with the serve-hygiene skill.
 2. Settings -> set the chat per-reply time limit to **15 seconds**.
@@ -117,10 +119,10 @@ milestone: M24
 
 ## 4. Open decisions for Jacob
 
-1. **Chat per-reply time limit:** proposed **10 minutes**, global. (Or per agent?)
+1. *(Done in CARD-567.)* **Chat per-reply time limit:** proposed **10 minutes**, global. (Or per agent?)
 2. **Standing Job run time limit:** proposed **30 minutes** per phase run.
 3. **Job turn budget:** should standing Jobs just use the agent's budget (simplest), or get their own default (e.g. 100)? And should existing phase rows stored with 10 be treated as "inherit" (proposed) or kept at 10?
-4. **Split?** Keep as one card, or split time limit and job budgets.
+4. *(Resolved: the time limit shipped separately in CARD-567.)* **Split?** Keep as one card, or split time limit and job budgets.
 5. **Delegated child cap:** keep the 15-turn cap for handoff children (proposed: keep, as a runaway guard for delegation), or let children use their own profile budget (50)?
 
 ---
@@ -137,3 +139,6 @@ milestone: M24
 - Lock the numbers: say **continue** with the values.
 - Start implementation: say **build**.
 - After the runbook passes: say **merge to qa**.
+
+## Log
+- 2026-09-29: Shrunk in CARD-577: per-reply time limit done in CARD-567; remaining scope is job/phase and handoff budgets.

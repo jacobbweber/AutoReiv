@@ -1,7 +1,8 @@
 ---
 id: CARD-457
 title: "Studio platform badge should reflect a lock set by Save, not only the last sync"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-24
 branch: qa
 related:
@@ -18,7 +19,7 @@ milestone: M22
 
 # [CARD-457] Studio platform badge should reflect a lock set by Save, not only the last sync
 
-> **Status**: Ready
+> **Status**: Done (closed in CARD-577). Obsolete: removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).
 > **Created**: 2026-09-24
 > **Observed during**: CARD-450 build on Jarvis (`feat/card-450-studio-platform-pack-reset`)
 > **Labels**: `type:ux`, `area:packs`, `area:studio`, `P3`
@@ -64,3 +65,6 @@ A saved prompt edit that silently opts the agent out of platform updates, with n
 - **[REQ-457-001]** WHEN an operator saves a content edit on a platform agent, THE Agent Studio badge SHALL show the skipped state without a restart or manual sync.
 - ~~[REQ-457-003]~~ Moved into CARD-450 as REQ-450-011 (keep-customizations-off notice shipped there).
 - **[REQ-457-002]** WHEN a save changes only max turns or model, THE SYSTEM SHALL NOT show a badge.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).

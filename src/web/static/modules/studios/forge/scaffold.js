@@ -1,7 +1,7 @@
 /**
- * Agent Studio: Quick Scaffold Submodule [CARD-197, CARD-218, CARD-398, CARD-496]
+ * Agent Studio: New Agent modal [CARD-197, CARD-398, CARD-569]
  * Manages quick agent presets and the New Agent modal (Agent Studio creates agents; CARD-569). The self-scaffold candidate queue
- * ("Agent Training Optimization") was removed in CARD-496 (ADR-0060); its backend retires in CARD-512.
+ * ("Agent Training Optimization") was removed in CARD-496 (ADR-0060); its backend is gone (CARD-577).
  */
 
 import { $ } from '../../dom.js';
@@ -138,7 +138,6 @@ export function setupScaffold({
   const forgeNewAgentAvatarSelect = $('forgeNewAgentAvatarSelect');
   const forgeNewAgentToneSelect = $('forgeNewAgentToneSelect');
   const forgeNewAgentPurposeSelect = $('forgeNewAgentPurposeSelect');
-  const forgeQuickScaffoldBtn = $('forgeQuickScaffoldBtn');
   const forgeNewAgentCloseBtn = $('forgeNewAgentCloseBtn');
   const forgeNewAgentCancelBtn = $('forgeNewAgentCancelBtn');
   const forgeNewAgentSubmitBtn = $('forgeNewAgentSubmitBtn');
@@ -156,12 +155,6 @@ export function setupScaffold({
         if (forgeNewAgentToneSelect) forgeNewAgentToneSelect.value = preset.tone;
         if (forgeNewAgentPurposeSelect) forgeNewAgentPurposeSelect.value = preset.purpose;
       }
-    });
-  }
-
-  if (forgeQuickScaffoldBtn) {
-    forgeQuickScaffoldBtn.addEventListener('click', () => {
-      openQuickScaffoldModal();
     });
   }
 

@@ -1,7 +1,8 @@
 ---
 id: CARD-499
 title: "chat/render.js (836) and chat.js (1,012) are over the CARD-397 line caps"
-status: Parked
+status: Done
+completed: 2026-09-29
 created: 2026-09-25
 branch: qa
 parent: CARD-456
@@ -20,7 +21,7 @@ milestone: Horizon
 
 # [CARD-499] chat/render.js (836) and chat.js (1,012) are over the CARD-397 line caps
 
-> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
+> **Status**: Done (closed in CARD-577). Obsolete: chat.js is 998 lines (cap 1,000) and chat/render.js 753 (cap 800), both under the CARD-397 caps.
 > **Created**: 2026-09-25
 > **Parent**: CARD-456 (item 1: `chat_monolith_decomposition_397` pre-existing failures)
 > **Related**: CARD-397, CARD-496 (removes about 90 Factory lines from `render.js`)
@@ -63,3 +64,6 @@ The existing cap test is the red test. Run the full Vitest and smoke suites.
 ## 4. Runbook
 
 Chat works as before (send, Workbench, Teach, HITL). Vitest shows `chat_monolith_decomposition_397` green.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: chat.js is 998 lines (cap 1,000) and chat/render.js 753 (cap 800), both under the CARD-397 caps.

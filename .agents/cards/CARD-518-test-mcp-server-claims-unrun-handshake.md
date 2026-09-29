@@ -1,7 +1,8 @@
 ---
 id: CARD-518
 title: "Developer's test_mcp_server claims a JSON-RPC handshake it never runs"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-26
 branch: qa
 related:
@@ -18,7 +19,7 @@ milestone: M25
 
 # [CARD-518] Developer's `test_mcp_server` claims a handshake it never runs
 
-> **Status**: Ready (found while refining CARD-511, 2026-09-26 ~1:20 AM ET, qa `6f066514`). Not next: after CARD-511, registration itself runs the server once, so a broken server can no longer go live through `register_mcp_service`. This only makes Developer's pre-check misleading. The queue is CARD-511, CARD-497, CARD-512, CARD-498, then Education Studio.
+> **Status**: Done (closed in CARD-577). Obsolete: the mcp-engineering skill (test_mcp_server) is bound to no agent since CARD-562.
 > **Related**: CARD-511 (real MCP check in `tool_check.py`), CARD-394 (origin)
 > **Labels**: `type:bug`, `area:mcp`, `area:agents`, `P3`
 
@@ -33,3 +34,6 @@ Make `test_mcp_server` call CARD-511's MCP check without saving anything (start,
 ## Done when
 
 `test_mcp_server` either really starts the server or clearly says it did not; tests cover a server that cannot start.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: the mcp-engineering skill (test_mcp_server) is bound to no agent since CARD-562.

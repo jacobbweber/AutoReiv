@@ -1,7 +1,7 @@
 ---
 id: CARD-498
 title: "Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables"
-status: Ready
+status: In Review
 created: 2026-09-25
 branch: qa
 related:
@@ -19,7 +19,7 @@ milestone: M21
 
 # [CARD-498] Retire the Agent Training Factory (4/4): export Factory data on startup, then drop the tables
 
-> **Status**: Ready (after CARD-497 and CARD-512, per ADR-0060 4.5). Card decisions D1-D2 below are still to confirm at `build`
+> **Status**: In Review with CARD-577. Built in CARD-577: startup exports any rows in factory_jobs/factory_graphs/factory_packets/factory_eval_runs/scaffold_spine to backups/factory-retire-<ts>.json, then drops the tables (D1-D2 resolved as clean removal; Jacob is dev-only, DB backed up first, all tables were empty).
 > **Created**: 2026-09-25
 > **Series**: CARD-495 → CARD-496 → CARD-497 → **CARD-498**
 > **Labels**: `type:migration`, `area:factory`, `area:data`, `P2`
@@ -98,3 +98,6 @@ Never run against live AppData.
 - `factory_phase_instructions` exists only where `prompt_registry.py` ran; that file is deleted in CARD-497. Export and drop it **if present**, and test both cases.
 - CARD-497 (D1) adds 308 redirects from the five old Skill Studio paths under `/api/agent_training_factory/`; remove them here.
 - Jacob's DB (read-only check, 2026-09-26): 0 rows in `factory_jobs`, `factory_graphs`, `factory_packets`, `factory_eval_runs` and `scaffold_spine`; no `factory_phase_instructions` table.
+
+## Log
+- 2026-09-29: Built in CARD-577: startup exports any rows in factory_jobs/factory_graphs/factory_packets/factory_eval_runs/scaffold_spine to backups/factory-retire-<ts>.json, then drops the tables (D1-D2 resolved as clean removal; Jacob is dev-only, DB backed up first, all tables were empty).

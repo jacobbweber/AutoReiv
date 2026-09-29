@@ -271,7 +271,7 @@ export function setupRunbookEditor({
   getActiveAgentId = null,
   openSkillStudio = null,
 } = {}) {
-  const studioOpenFactoryBtn = $('studioOpenFactoryBtn');
+  const studioOpenSkillStudioBtn = $('studioOpenSkillStudioBtn');
 
   function openSkillStudioWindow(agentId, skillId) {
     if (typeof openSkillStudio === 'function') {
@@ -285,8 +285,8 @@ export function setupRunbookEditor({
     showToast('Skill Studio is not ready yet', 'error');
   }
 
-  if (studioOpenFactoryBtn) {
-    studioOpenFactoryBtn.addEventListener('click', () => {
+  if (studioOpenSkillStudioBtn) {
+    studioOpenSkillStudioBtn.addEventListener('click', () => {
       const agentId = typeof getActiveAgentId === 'function' ? (getActiveAgentId() || '') : '';
       openSkillStudioWindow(agentId, null);
     });

@@ -305,74 +305,7 @@ CREATE INDEX IF NOT EXISTS idx_remote_hosts_label ON remote_hosts(label);
 """
 )
 
-FACTORY_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS factory_jobs (
-    id TEXT PRIMARY KEY,
-    target_agent_id TEXT NOT NULL,
-    session_id TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'queued',
-    seed_intent TEXT NOT NULL,
-    objectives_json TEXT DEFAULT '[]',
-    target_host TEXT,
-    environment_manifest_json TEXT,
-    active_graph_id TEXT NOT NULL DEFAULT 'graph_standard_factory_v1',
-    current_node_id TEXT NOT NULL DEFAULT 'socratic_handshake',
-    budget_max_cycles INTEGER DEFAULT 25,
-    cycles_consumed INTEGER DEFAULT 0,
-    verify_rinse_count INTEGER DEFAULT 0,
-    max_verify_rinses INTEGER DEFAULT 3,
-    outer_rinse_count INTEGER DEFAULT 0,
-    max_outer_rinses INTEGER DEFAULT 2,
-    failure_class TEXT,
-    scenario_matrix_json TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_factory_jobs_status ON factory_jobs(status);
-CREATE INDEX IF NOT EXISTS idx_factory_jobs_agent ON factory_jobs(target_agent_id);
-
-CREATE TABLE IF NOT EXISTS factory_graphs (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    version INTEGER DEFAULT 1,
-    nodes_json TEXT NOT NULL,
-    edges_json TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS factory_packets (
-    id TEXT PRIMARY KEY,
-    job_id TEXT NOT NULL REFERENCES factory_jobs(id) ON DELETE CASCADE,
-    packet_type TEXT NOT NULL,
-    sender_role TEXT NOT NULL,
-    recipient_role TEXT NOT NULL,
-    node_id TEXT NOT NULL,
-    payload_json TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_factory_packets_job ON factory_packets(job_id, created_at);
-
-CREATE TABLE IF NOT EXISTS factory_eval_runs (
-    id TEXT PRIMARY KEY,
-    job_id TEXT NOT NULL REFERENCES factory_jobs(id) ON DELETE CASCADE,
-    tool_name TEXT NOT NULL,
-    stage_1_functional BOOLEAN NOT NULL DEFAULT 0,
-    stage_2_safety BOOLEAN NOT NULL DEFAULT 0,
-    stage_3_idempotency BOOLEAN NOT NULL DEFAULT 0,
-    stage_4_critic BOOLEAN NOT NULL DEFAULT 0,
-    stdout_log TEXT,
-    stderr_log TEXT,
-    critic_notes TEXT,
-    duration_ms REAL NOT NULL,
-    overall_passed BOOLEAN NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_factory_eval_job ON factory_eval_runs(job_id, tool_name);
-"""
-
+# CARD-577: the factory_* tables (Agent Training Factory, ADR-0060) are retired; connection.py drops them.
 
 CAPABILITY_CATALOG_SQL = """
 CREATE TABLE IF NOT EXISTS capability_index (
@@ -396,36 +329,9 @@ CREATE INDEX IF NOT EXISTS idx_capability_trust ON capability_index(trust_tier);
 CREATE INDEX IF NOT EXISTS idx_capability_name ON capability_index(name);
 """
 
-INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + FACTORY_SCHEMA_SQL + CAPABILITY_CATALOG_SQL
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + CAPABILITY_CATALOG_SQL
 
-SCAFFOLD_SPINE_SQL = """
-CREATE TABLE IF NOT EXISTS scaffold_spine (
-    id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL,
-    name TEXT NOT NULL,
-    summary TEXT NOT NULL DEFAULT '',
-    skill_id TEXT NOT NULL,
-    capability_id TEXT NOT NULL,
-    phase TEXT NOT NULL DEFAULT 'draft',
-    trust_tier TEXT NOT NULL DEFAULT 'candidate',
-    sandboxed INTEGER NOT NULL DEFAULT 0,
-    sandbox_evidence TEXT NOT NULL DEFAULT '',
-    snapshot_id TEXT,
-    prior_trusted_snapshot_id TEXT,
-    proposal_id TEXT,
-    content TEXT NOT NULL DEFAULT '',
-    rolled_back INTEGER NOT NULL DEFAULT 0,
-    metadata_json TEXT NOT NULL DEFAULT '{}',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_scaffold_phase ON scaffold_spine(phase);
-CREATE INDEX IF NOT EXISTS idx_scaffold_trust ON scaffold_spine(trust_tier);
-CREATE INDEX IF NOT EXISTS idx_scaffold_skill ON scaffold_spine(skill_id);
-"""
-
-INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SCAFFOLD_SPINE_SQL
+# CARD-577: scaffold_spine (self-scaffold spine, CARD-218) is retired; connection.py drops it.
 
 JOB_PHASE_CHECKPOINTS_SQL = """
 CREATE TABLE IF NOT EXISTS job_phase_checkpoints (

@@ -1,9 +1,8 @@
 /**
- * Skill Studio assigned skills + existing-skill picker [CARD-411 UX, moved from studios/factory/ in CARD-496].
+ * Skill Studio existing-skill picker [CARD-411 UX, moved from studios/factory/ in CARD-496].
+ * CARD-577: the assigned-skills strip is gone; Agent Studio's skill pills (CARD-419) show and toggle assigned skills.
  * Assigned list is agent↔skill scoping only — not a write path into the runbook form.
  */
-
-import { escapeHtml, safeCreateIcons } from '../../dom.js';
 
 export function indexListedSkills(listed = [], assignedIds = []) {
   const assigned = new Set((assignedIds || []).map((id) => String(id || '').trim()).filter(Boolean));
@@ -63,25 +62,11 @@ export function mergeEditableSkillOptions({
   });
 }
 
-/**
- * Assigned-skills strip is display-only [CARD-419].
- * On/off lives on Agent Studio pills. This link opens Skill Studio and does not toggle the allowlist.
- */
-export function factoryAssignedSkillChrome(skillId) {
-  const id = String(skillId || '').trim();
-  return {
-    skillId: id,
-    interactiveToggle: false,
-    linkLabel: 'Open in Skill Studio',
-  };
-}
-
 export function createSkillScopeUI({
   getAssignedSkills,
   getAgentId,
   onLoadSkill,
   onNewSkill,
-  onOpenInSkillStudio = null,
   elements,
 }) {
   let editableOptions = [];
@@ -95,57 +80,6 @@ export function createSkillScopeUI({
     const { factoryWorkshopSkillBadge } = els();
     if (!factoryWorkshopSkillBadge) return;
     factoryWorkshopSkillBadge.textContent = label || 'New skill';
-  }
-
-  function renderAssignedSkills() {
-    const { factoryCurrentSkillsList, factoryAssignedSkillsCount } = els();
-    const assignedSkills = getAssignedSkills() || [];
-    if (factoryAssignedSkillsCount) {
-      factoryAssignedSkillsCount.textContent = `${assignedSkills.length} Assigned`;
-    }
-    if (!factoryCurrentSkillsList) return;
-
-    if (!assignedSkills.length) {
-      factoryCurrentSkillsList.innerHTML = '<span class="text-[11px] text-slate-500 italic">No skills assigned yet.</span>';
-      return;
-    }
-
-    factoryCurrentSkillsList.innerHTML = '';
-    assignedSkills.forEach((sid) => {
-      const chrome = factoryAssignedSkillChrome(sid);
-      const row = document.createElement('span');
-      row.className = 'inline-flex items-center gap-1';
-      row.dataset.testid = 'factory-assigned-skill';
-
-      const pill = document.createElement('span');
-      pill.className = 'inline-flex items-center space-x-1.5 px-2 py-1 rounded-lg text-xs font-mono bg-[#13161f] border border-white/[0.08] text-emerald-300';
-      pill.dataset.skillId = chrome.skillId;
-      pill.setAttribute('role', 'status');
-      pill.title = 'Pinned to this agent. Turn on or off in Agent Studio.';
-      pill.innerHTML = `
-        <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
-        <span>${escapeHtml(chrome.skillId)}</span>
-      `;
-
-      const openBtn = document.createElement('button');
-      openBtn.type = 'button';
-      openBtn.className = 'factory-assigned-open-studio px-1.5 py-1 rounded text-[10px] font-semibold text-sky-300 hover:text-white hover:bg-slate-800 transition';
-      openBtn.dataset.skillId = chrome.skillId;
-      openBtn.dataset.testid = 'factory-assigned-open-studio';
-      openBtn.textContent = chrome.linkLabel;
-      openBtn.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!chrome.interactiveToggle && typeof onOpenInSkillStudio === 'function') {
-          onOpenInSkillStudio(chrome.skillId);
-        }
-      });
-
-      row.appendChild(pill);
-      row.appendChild(openBtn);
-      factoryCurrentSkillsList.appendChild(row);
-    });
-    safeCreateIcons({ root: factoryCurrentSkillsList });
   }
 
   function renderExistingSkillPicker(selectedId = null) {
@@ -266,7 +200,6 @@ export function createSkillScopeUI({
 
   return {
     bindEvents,
-    renderAssignedSkills,
     refreshEditableSkillOptions,
     selectSkillInPicker,
     clearPickerSelection,

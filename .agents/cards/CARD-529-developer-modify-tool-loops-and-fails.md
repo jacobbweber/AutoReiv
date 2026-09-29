@@ -1,6 +1,6 @@
 ---
 id: CARD-529
-title: "Developer cannot read an existing custom tool's code, and a stopped phase hides why (partly superseded by CARD-539)"
+title: "A job phase stopped by a repeat-cycle or policy block says only \"phase failed\" in chat (items 1, 2, 4 done elsewhere)"
 status: Ready
 created: 2026-09-26
 branch: qa
@@ -23,7 +23,7 @@ milestone: M25
 
 > **Partly superseded (2026-09-26)** by [CARD-539](CARD-539-capability-scoping-one-allowed-tools-function.md) / [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md): change items 2 (tools offered outside the allowlist) and 4 (keyword-family catalog routing) moved there. This card keeps items 1 and 3, which are separate concerns (Developer tooling and honest stop reasons). Build after CARD-539.
 
-> **Status**: Ready (found in CARD-520 live test round 1, step 4, 2026-09-26 ~1:52 PM ET, serve `83b93ef5`). Does not block CARD-520: Ask Developer opened the chat, sent at once and marked the card, which is CARD-520's contract. P2 because every Observability tool escalation and Tools Studio "modify" uses this path.
+> **Status**: Ready (shrunk in CARD-577). Item 1 is done: Toolsmith reads a custom tool with view_native_tool (CARD-571); items 2 and 4 went to CARD-539. Remaining: item 3, the chat reply still says "phase failed" (web/routers/chat.py) instead of the stop reason.
 > **Related**: CARD-520 (Ask Developer from Observability), CARD-422 (Tools Studio Talk), CARD-523 (tool-argument robustness and honest failures), CARD-527 (built-in tools)
 > **Labels**: `type:bug`, `area:developer`, `area:tools`, `P2`
 
@@ -44,3 +44,6 @@ milestone: M25
 ## Done when
 
 A modify request for an existing custom tool reads its code and proposes a change; a modify request for a missing tool says it does not exist; a cycle or policy stop shows its reason in the chat. Replay: seed `scratch\c520_seed_serve.py`, Ask Developer on the card, or a `scripts/live_qa.py` journey.
+
+## Log
+- 2026-09-29: Shrunk in CARD-577 to item 3 (honest stop reason); item 1 done by CARD-571 (view_native_tool).

@@ -1,7 +1,8 @@
 ---
 id: CARD-535
 title: "After approving a propose_* draft once the reply has ended, the Developer does not continue"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-26
 branch: qa
 related:
@@ -18,7 +19,7 @@ milestone: M24
 
 # [CARD-535] Approving a draft does not make the Developer continue
 
-> **Status**: Ready (found while building CARD-530, 2026-09-26 ~5:15 PM ET, branch `feat/card-530-approve-mid-stream`). P2: the work stalls until the operator types something.
+> **Status**: Done (closed in CARD-577). Obsolete: Developer has no propose_* tools since CARD-562 and Toolsmith builds tools directly (register_native_tool), so the approve-then-continue flow this card describes no longer exists.
 > **Related**: CARD-530 (D1: approving a `propose_*` draft only records the decision), CARD-472
 > **Labels**: `type:bug`, `area:chat`, `area:hitl`, `P2`
 
@@ -35,3 +36,6 @@ When a `propose_*` draft is approved and the chat is idle, offer a "Continue" ac
 ## Done when
 
 Approving a draft after the reply has ended lets the Developer carry on (one click at most), with no second stream while a reply is live and no duplicate draft cards.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: Developer has no propose_* tools since CARD-562 and Toolsmith builds tools directly (register_native_tool), so the approve-then-continue flow this card describes no longer exists.

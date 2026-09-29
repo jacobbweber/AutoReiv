@@ -1,7 +1,8 @@
 ---
 id: CARD-459
 title: "Serve bootstraps twice; second platform-pack run overwrites the boot report"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-24
 branch: qa
 related:
@@ -19,7 +20,7 @@ milestone: M22
 
 # [CARD-459] Serve bootstraps twice; second platform-pack run overwrites the boot report
 
-> **Status**: Ready
+> **Status**: Done (closed in CARD-577). Obsolete: removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).
 > **Created**: 2026-09-24
 > **Observed during**: CARD-450 live test on Jarvis (6:32 PM ET restart)
 > **Labels**: `type:bug`, `area:packs`, `area:serve`, `P2`
@@ -64,3 +65,6 @@ Double boot work, and a boot report that hides force resets.
 
 - **[REQ-459-001]** WHEN serve starts, THE SYSTEM SHALL run platform-pack promotion exactly once.
 - **[REQ-459-002]** WHEN a boot force-resets a pack, THE sync-status report after startup SHALL show `force_reset` for that pack.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).

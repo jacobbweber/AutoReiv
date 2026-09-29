@@ -2,7 +2,7 @@
  * Agent Studio Coordinator Module [REQ-FE-001, CARD-119, CARD-127, CARD-148, CARD-153, CARD-162, CARD-202, CARD-350, CARD-389, CARD-398]
  * Orchestrates agent inspection, editing, saving, deletion, and coordinates focused Agent Studio submodules:
  * - proposals.js: Architectural governance proposals inbox, category badges, remedy execution, synthesis
- * - scaffold.js: Quick presets and the quick scaffold modal
+ * - scaffold.js: Quick presets and the New Agent modal
  * - tools.js: OS baseline tools, capability gaps backlog, remote MCP server management, credential grants
  * - runbook.js: Skill toggle rows and Open in Skill Studio [CARD-411, CARD-418, CARD-419]
  * - skill_pills.js: Agent↔skill toggle pills; on/off writes allowed_skill only [CARD-419]

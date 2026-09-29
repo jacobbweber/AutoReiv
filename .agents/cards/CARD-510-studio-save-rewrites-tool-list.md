@@ -1,7 +1,8 @@
 ---
 id: CARD-510
 title: "An Agent Studio Save rewrites the agent's tool list from pills (AutoReiv loses wiki_graph and read_document_file; memory tools get added)"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-25
 updated: 2026-09-25
 branch: qa
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-510] An Agent Studio Save rewrites the agent's tool list from pills
 
-> **Status**: Ready (found in the CARD-509 build repro, 2026-09-25 ~10:50 PM ET; existed before CARD-509). Not next: queue is CARD-509, Factory retirement CARD-495..498, then Education Studio.
+> **Status**: Done (closed in CARD-577). Obsolete: CARD-568 removed flat tool lists; Agent Studio Save sends skills only (allowed_tool_names has 0 refs in src).
 > **Related**: CARD-438 (grandfathered tools on Save), CARD-449 (content lock), CARD-509 (skill list on Save)
 > **Labels**: `type:bug`, `area:agents`, `P2`
 
@@ -41,3 +42,6 @@ For an unlocked platform agent the next restart puts the seed tools back, so it 
 
 - Decide the rule first: a Save should change tools only when the operator changed something that owns tools (a skill pill, the Storage or Memory checkbox). Otherwise send the loaded tool list unchanged, or have the server keep tools it did not show.
 - Tests first: Vitest for the payload (a scalar-only Save sends the loaded tools); unit test that a scalar PUT leaves `allowed_tool_names` unchanged; smoke desktop and phone.
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: CARD-568 removed flat tool lists; Agent Studio Save sends skills only (allowed_tool_names has 0 refs in src).

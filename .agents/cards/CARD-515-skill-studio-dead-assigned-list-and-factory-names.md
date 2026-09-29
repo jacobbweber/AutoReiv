@@ -1,7 +1,7 @@
 ---
 id: CARD-515
 title: "Skill Studio still renders an assigned-skills list into the removed Factory brief; Factory-named leftovers in Agent Studio"
-status: Ready
+status: In Review
 created: 2026-09-26
 branch: qa
 related:
@@ -19,7 +19,7 @@ milestone: M21
 
 # [CARD-515] Skill Studio renders into the removed Factory brief; Factory-named leftovers
 
-> **Status**: Ready (found in the CARD-496 build Scavenger Pass, 2026-09-26 ~12:35 AM ET, branch `feat/card-496-retire-factory-ui`). Not next: dead code and names only, no data risk, nothing on screen is wrong. The queue is Factory retirement CARD-496, CARD-511, CARD-497, CARD-512, CARD-498, then Education Studio.
+> **Status**: In Review with CARD-577. Built in CARD-577: dead assigned-skills render and factoryAssignedSkillChrome removed; ids renamed to studioOpenSkillStudioBtn / forge-open-skill-studio.
 > **Related**: CARD-496 (removed `#view-factory`), CARD-419 (assigned-skill chrome), CARD-497 (backend rename of `factory_escalation`)
 > **Labels**: `type:cleanup`, `area:skills`, `area:frontend`, `P3`
 
@@ -39,3 +39,6 @@ milestone: M21
 ## Done when
 
 No frontend code writes into elements that do not exist; no Agent Studio id or test id says Factory; the Skill Studio editor ids and routes are unchanged; Vitest and smoke pass.
+
+## Log
+- 2026-09-29: Built in CARD-577: dead assigned-skills render and factoryAssignedSkillChrome removed; ids renamed to studioOpenSkillStudioBtn / forge-open-skill-studio.

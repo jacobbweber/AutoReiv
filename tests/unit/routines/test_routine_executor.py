@@ -141,7 +141,7 @@ async def test_execute_routine_missing_agent_fails_gracefully(store, executor):
 
 
 
-@pytest.mark.skip(reason="CARD-562: Developer no longer has cli_exec; re-point this HITL park test to another high-risk tool (finding)")
+# CARD-577: re-pointed from cli_exec (removed from Developer in CARD-562) to write_project_file (default REQUIRE_CONFIRM).
 @pytest.mark.asyncio
 async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_path):
     from src.application.kernel.hitl_engine import HITLApprovalEngine
@@ -156,7 +156,13 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
                 message=ChatMessage(
                     role=Role.ASSISTANT,
                     content="",
-                    tool_calls=[ToolCall(id="c1", name="cli_exec", arguments={"command": "dir"})],
+                    tool_calls=[
+                        ToolCall(
+                            id="c1",
+                            name="write_project_file",
+                            arguments={"path": "notes.txt", "content": "hi"},
+                        )
+                    ],
                 ),
                 finish_reason="tool_calls",
             )
@@ -195,7 +201,7 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
         id="r-park-chat",
         name="Park Chat",
         agent_id="developer",
-        prompt="Run dir",
+        prompt="Write notes.txt",
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
     )
@@ -208,5 +214,5 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
     assert pending
     assert pending[0]["agent_id"] == "developer"
     assert pending[0]["routine_id"] == "r-park-chat"
-    assert pending[0]["tool_name"] == "cli_exec"
+    assert pending[0]["tool_name"] == "write_project_file"
     assert pending[0]["session_id"]

@@ -18,9 +18,9 @@ AutoReiv is a versatile, local-first hybrid autonomous AI agent control plane an
 
 ---
 
-## 3. The 7 Integrated Web Studios
+## 3. The Web Studios
 
-AutoReiv is structured into 7 purpose-built studios accessible via a responsive SPA interface:
+AutoReiv has 11 studios in one responsive SPA: Chat, Routines, Observability, Agent Studio, Settings, Skill Studio, Tools Studio, Education, Projects, Prompts and Wiki. The main ones:
 
 1. **Chat Studio (`chat.js`)**:
    - Multi-session persistent chat interface with token streaming.
@@ -49,7 +49,11 @@ AutoReiv is structured into 7 purpose-built studios accessible via a responsive 
    - Hardware Fit Calculator evaluating local RAM/VRAM suitability.
    - Model Purpose Matrix routing tasks to optimal local or cloud models.
 
-6. **System documentation (no Docs Studio ship)**:
+6. **Skill Studio, Tools Studio, Education, Projects, Prompts, Wiki**:
+   - Skill Studio: write and lint skills; authoring jobs go to Toolsmith. Tools Studio: runtime-built tools (enable/disable, show code) and the tool catalog.
+   - Education: Tutor-first learning (ADR-0059). Projects: the active project for Architect and Developer. Prompts: saved prompts. Wiki: the vault and notes.
+
+7. **System documentation (no Docs Studio ship)**:
    - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, education, forge (Agent Studio), observability, projects, prompts, routines, settings, skill-studio, tools-studio, wiki). The Agent Training Factory is retired ([ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md)); its leftover screen was removed in CARD-496.
    - Architecture/ADR truth lives under `docs/adr`, `docs/architecture`, and `steering/*`; operators browse the repo / Projects surfaces rather than a dedicated Docs Studio canvas.
    - Historical CARD-018/019 "documentation browser" intent remains **not** a separate `docs.js` studio — do not treat product copy as claiming one.

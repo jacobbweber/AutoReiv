@@ -1,7 +1,8 @@
 ---
 id: CARD-468
 title: "Agent display name drifts between AppData pack.json and the DB agent record"
-status: Ready
+status: Done
+completed: 2026-09-29
 created: 2026-09-24
 branch: qa
 related:
@@ -20,7 +21,7 @@ milestone: M22
 
 # [CARD-468] Agent display name drifts between AppData pack.json and the DB agent record
 
-> **Status**: Ready
+> **Status**: Done (closed in CARD-577). Obsolete: agent files replaced pack.json (CARD-570); removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).
 > **Created**: 2026-09-24
 > **Observed during**: CARD-467 - live `%LOCALAPPDATA%\AutoReiv\packs\developer\pack.json` said `"name": "Super Developer"` while the DB (`custom_agents` and `agent_overrides`, updated 2026-09-24 7:01 PM ET) and `GET /api/agents/developer` said `Developer`. CARD-455's failing test read the pack.json name because a fresh test DB rebuilt the profile from the file.
 > **Related**: CARD-467 (test isolation that exposed it), CARD-455 (absorbed), CARD-449 (content lock), CARD-443 (promotion; SQLite is the sole profile writer)
@@ -93,3 +94,6 @@ An agent has one name. If I rename it in Agent Studio (or it is renamed any othe
 ## 4. Constraints
 
 - Never rewrite AppData files during tests (CARD-467 isolation applies).
+
+## Log
+- 2026-09-29: Closed in CARD-577. Obsolete: agent files replaced pack.json (CARD-570); removed with the platform packs (platform-packs/, pack.json, platform sync and the badge/lock code are gone; 0 refs in src).

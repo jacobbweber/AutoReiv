@@ -2,20 +2,34 @@
 Thread-Safe SQLite Connection & Migration Manager [REQ-KERNEL-004].
 """
 
+import json
+import logging
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from src.infrastructure.memory.schema import (
     CAPABILITY_CATALOG_SQL,
-    FACTORY_SCHEMA_SQL,
     INIT_SCHEMA_SQL,
     JOB_A2A_LINKS_SQL,
     JOB_PHASE_CHECKPOINTS_SQL,
     JOBS_PHASES_SQL,
     PROPOSALS_SQL,
-    SCAFFOLD_SPINE_SQL,
     STANDING_JOURNEY_EVENTS_SQL,
+)
+
+logger = logging.getLogger(__name__)
+
+# CARD-577 (ADR-0060, CARD-498/512): retired tables. On startup any rows are exported to
+# <data>/backups/factory-retire-<timestamp>.json, then the tables are dropped. An export failure skips the drop.
+RETIRED_TABLES = (
+    "factory_packets",
+    "factory_eval_runs",
+    "factory_graphs",
+    "factory_jobs",
+    "factory_phase_instructions",
+    "scaffold_spine",
 )
 
 
@@ -61,6 +75,7 @@ class SQLiteConnectionManager:
 
             self._migrate_if_missing(conn)
             conn.executescript(INIT_SCHEMA_SQL)
+            self._drop_retired_tables(conn)
             conn.commit()
             if hasattr(self, "seed_builtin_prompts"):
                 try:
@@ -70,6 +85,38 @@ class SQLiteConnectionManager:
         finally:
             if self._mem_conn is None:
                 conn.close()
+
+    def _drop_retired_tables(self, conn: sqlite3.Connection) -> None:
+        """Export rows of retired tables (if any) to a backup file, then drop them [CARD-577]."""
+        existing = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()}
+        present = [t for t in RETIRED_TABLES if t in existing]
+        if not present:
+            return
+        dump = {}
+        for table in present:
+            rows = conn.execute(f'SELECT * FROM "{table}"').fetchall()
+            if rows:
+                cols = [d[0] for d in conn.execute(f'SELECT * FROM "{table}" LIMIT 0').description]
+                dump[table] = [dict(zip(cols, tuple(r))) for r in rows]
+        if dump:
+            if self.db_path == ":memory:":
+                return  # nothing to write a backup next to; keep the rows
+            try:
+                backups = Path(self.db_path).resolve().parent.parent / "backups"
+                backups.mkdir(parents=True, exist_ok=True)
+                out = backups / f"factory-retire-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+                out.write_text(json.dumps(dump, default=str, indent=1), encoding="utf-8")
+                logger.info("Retired tables exported to %s: %s", out, {k: len(v) for k, v in dump.items()})
+            except Exception as exc:  # noqa: BLE001 - never block startup; keep the tables
+                logger.warning("Retired-table export failed; tables kept: %s", exc)
+                return
+        conn.execute("PRAGMA foreign_keys = OFF;")
+        try:
+            for table in present:
+                conn.execute(f'DROP TABLE IF EXISTS "{table}"')
+            conn.commit()
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON;")
 
     def _migrate_if_missing(self, conn: sqlite3.Connection) -> None:
         """Add new tables/columns on a live DB without wiping data [REQ-ORCH-031]."""
@@ -81,13 +128,6 @@ class SQLiteConnectionManager:
             ("telemetry_spans", "model", "TEXT"),
             ("telemetry_spans", "ttft_ms", "REAL"),
             ("telemetry_spans", "status", "TEXT DEFAULT 'ok'"),
-            ("factory_jobs", "objectives_json", "TEXT DEFAULT '[]'"),
-            ("factory_jobs", "verify_rinse_count", "INTEGER DEFAULT 0"),
-            ("factory_jobs", "max_verify_rinses", "INTEGER DEFAULT 3"),
-            ("factory_jobs", "outer_rinse_count", "INTEGER DEFAULT 0"),
-            ("factory_jobs", "max_outer_rinses", "INTEGER DEFAULT 2"),
-            ("factory_jobs", "failure_class", "TEXT"),
-            ("factory_jobs", "scenario_matrix_json", "TEXT"),
             ("routine_runs", "job_id", "TEXT"),
             ("jobs", "success_rule", "TEXT NOT NULL DEFAULT ''"),
             ("messages", "reasoning", "TEXT"),
@@ -104,8 +144,6 @@ class SQLiteConnectionManager:
             conn.executescript(PROPOSALS_SQL)
         if "capability_index" not in existing:
             conn.executescript(CAPABILITY_CATALOG_SQL)
-        if "scaffold_spine" not in existing:
-            conn.executescript(SCAFFOLD_SPINE_SQL)
         if "tool_policy_decisions" not in existing:
             from src.infrastructure.memory.schema import TOOL_POLICY_DECISIONS_SQL
 
@@ -196,8 +234,6 @@ class SQLiteConnectionManager:
                 );
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_remote_hosts_label ON remote_hosts(label);")
-        if "factory_jobs" not in existing:
-            conn.executescript(FACTORY_SCHEMA_SQL)
         if "agent_capability_gaps" not in existing:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS agent_capability_gaps (
