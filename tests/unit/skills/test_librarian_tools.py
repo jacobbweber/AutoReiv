@@ -161,12 +161,12 @@ def test_organize_wiki_note_from_inbox(skill):
         new_title="AutoReiv Control Plane Architecture",
     )
     assert org_res["success"] is True
-    assert org_res["target_path"] == "notes/information_technology/ai_engineering/raw_chat_export.md"
+    assert org_res["target_path"] == "01_Notes/information_technology/ai_engineering/raw_chat_export.md"
     assert org_res["domain"] == "information_technology"
     assert org_res["topic"] == "ai_engineering"
 
     # 3. Read back from new location
-    read_back = skill.read_wiki_note("notes/information_technology/ai_engineering/raw_chat_export.md")
+    read_back = skill.read_wiki_note("01_Notes/information_technology/ai_engineering/raw_chat_export.md")
     assert read_back["success"] is True
     assert read_back["frontmatter"]["title"] == "AutoReiv Control Plane Architecture"
     assert read_back["frontmatter"]["domain"] == "information_technology"

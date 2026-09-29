@@ -1448,7 +1448,7 @@ class WikiStore:
         new_title: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Move a note (e.g. from inbox/ to notes/<domain>/<topic>/) and hydrate frontmatter.
+        Move a note (e.g. from 00_Inbox/ to 01_Notes/<domain>/<topic>/, or notes/ in a legacy vault) and hydrate frontmatter.
         """
         source_file = self._resolve_safe_path(source_path)
         if not source_file or not source_file.is_file():
@@ -1462,7 +1462,9 @@ class WikiStore:
         safe_topic = _SLUG_CLEAN_PATTERN.sub("_", (target_topic or "general").lower()).strip("_")
         slug = source_file.stem
 
-        target_rel = f"notes/{safe_domain}/{safe_topic}/{slug}.md"
+        # CARD-582: same folder rule as graduation; notes/ is the legacy tree curation migrates away from.
+        target_folder = "01_Notes" if (self.root_dir / "01_Notes").exists() else "notes"
+        target_rel = f"{target_folder}/{safe_domain}/{safe_topic}/{slug}.md"
         target_file = self._resolve_safe_path(target_rel)
         if target_file is None:
             return {"success": False, "error": "Invalid destination path."}
