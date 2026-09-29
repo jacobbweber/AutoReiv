@@ -42,7 +42,10 @@ Item 3 of the 2026-09-29 triage: a cleanup pass with no product decision. Jacob 
 
 ## Results (2026-09-29)
 
-RESULTS_PLACEHOLDER
+- ruff clean; full not-slow pytest 2014 passed, 12 skipped; vitest 957 passed; eslint only the old `callbacks` warning in `forge/scaffold.js`.
+- Fast preflight `--base qa`: GREEN (62 s; guard 188, changed 52, mapped 502 passed).
+- Live smoke on a throwaway :8770 from the committed branch: `/api/capabilities/scaffold/candidates` 404, `/api/capabilities/registry` 200, `/api/agent_training_factory/skills` 404, `POST /api/settings/agents/developer` 404. In Agent Studio, a Developer Save with model `qwen3-coder:latest` and context window 131072 returned 200, the values persisted, and they were still there after a reload. Skill Studio loaded 44 skills. A new authoring job has `template_id` `skill_studio_toolsmith_authoring` with agent `toolsmith`. No Factory UI remnants, no calls to retired routes, no page errors.
+- Tool-mount probe (read-only, for Jacob's question): Developer's turn 1 mounts 15 of 26 tools. The 10 pinned project/card tools plus 5 baseline tools; skill_view is not mounted. Findings line updated.
 
 ## Log
 - 2026-09-29: Jacob approved item 3 of the triage as CARD-577 (cleanup, no product decision). Built on `chore/card-577-cleanup`; not merged or pushed.
