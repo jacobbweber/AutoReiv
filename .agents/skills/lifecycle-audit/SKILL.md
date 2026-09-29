@@ -25,15 +25,14 @@ description: >-
 1. Apply a specific state change via the UI or REST API (e.g. enable an MCP tool on an agent).
 2. Inspect the database and filesystem to verify the write occurred in user data:
    - Check SQLite: `python -c "import sqlite3; ..."`
-   - Check JSON pack file in `$LOCALAPPDATA\AutoReiv\packs\<agent_id>\pack.json`.
+   - Check the agent file in `$LOCALAPPDATA\AutoReiv\agents\<agent_id>.md`.
 
 ### Step 2: Identify Boot Reconciliation Logic
 
-Search for code executed during application startup (`lifespan` in `src/web/app.py` or `src/infrastructure/skills/platform_packs.py`):
+Search for code executed during application startup (`lifespan` in `src/web/app.py`):
 
 ```bash
-# Locate startup pack sync logic
-git grep -n "install_platform_agent_packs" src/
+# Locate startup sync logic
 git grep -n "lifespan" src/web/
 ```
 

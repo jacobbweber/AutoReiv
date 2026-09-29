@@ -6,7 +6,7 @@ description: >-
 
 # Boundary Audit (Working-Tree Hygiene & Path Resolver Check)
 
-> **For Jacob (Plain Language)**: AutoReiv's code repository should only contain source code and documentation—never your actual personal chat databases, custom agent packs, or wiki notes. Those belong exclusively in your Windows AppData folder (`%LOCALAPPDATA%\AutoReiv\`). This audit checks both the repo files and the Python code to ensure no code writes directly into the project folder.
+> **For Jacob (Plain Language)**: AutoReiv's code repository should only contain source code and documentation—never your actual personal chat databases, custom agents, or wiki notes. Those belong exclusively in your Windows AppData folder (`%LOCALAPPDATA%\AutoReiv\`). This audit checks both the repo files and the Python code to ensure no code writes directly into the project folder.
 
 ---
 

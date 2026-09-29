@@ -51,7 +51,7 @@ const draft = {
   source_context: '',
 };
 
-describe('Skill Studio developer authoring [CARD-420]', () => {
+describe('Skill Studio authoring by Toolsmith [CARD-420, CARD-574]', () => {
   const html = read('src/web/templates/index.html');
   const skillView = sliceView(html, 'view-skill-studio', 'artifactModal');
   const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
@@ -70,7 +70,7 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(packet.version).toBe(1);
     expect(packet.studio).toBe('skill');
     expect(packet.intent).toBe('build');
-    expect(packet.agent_id).toBe('developer');
+    expect(packet.agent_id).toBe('toolsmith'); // CARD-574
     expect(packet.draft.skill_id).toBe('wiki_digest');
     expect(packet.lint.cheap).toBe(true);
     expect(packet.lint.blockers[0].code).toBe('TOOL-UNKNOWN');
@@ -91,7 +91,7 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(lint.url).not.toBe(SILENT_RUNBOOK_URL);
   });
 
-  it('Build posts a visible developer job and cheap lint does not [REQ-420-001, REQ-420-002, REQ-420-004]', async () => {
+  it('Build posts a visible Toolsmith job and cheap lint does not [REQ-420-001, REQ-420-002, REQ-420-004]', async () => {
     const calls = [];
     const fetchFn = async (url, opts) => {
       calls.push({ url, body: JSON.parse(opts.body) });
@@ -105,7 +105,7 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
         ok: true,
         json: async () => ({
           job_id: 'job_420visible',
-          agent_id: 'developer',
+          agent_id: 'toolsmith',
           resumed: false,
           visible: true,
           llm_rewrite: false,
@@ -113,7 +113,7 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
           watch: {
             primary: 'observe',
             observe: { studio: 'observe', job_id: 'job_420visible' },
-            chat: { studio: 'chat', job_id: 'job_420visible', agent_id: 'developer' },
+            chat: { studio: 'chat', job_id: 'job_420visible', agent_id: 'toolsmith' },
           },
         }),
       };
@@ -130,12 +130,12 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
     expect(calls[1].body.intent).toBe('build');
     expect(calls[1].body.draft.skill_id).toBe('wiki_digest');
     expect(job.jobId).toBe('job_420visible');
-    expect(job.agentId).toBe('developer');
+    expect(job.agentId).toBe('toolsmith');
     expect(job.llmRewrite).toBe(false);
     expect(job.persistedSkill).toBe(false);
     expect(job.watch.primary).toBe('observe');
     expect(planAuthoringWatch(job.jobId).observe.jobId).toBe('job_420visible');
-    expect(planAuthoringWatch(job.jobId).chat.agentId).toBe('developer');
+    expect(planAuthoringWatch(job.jobId).chat.agentId).toBe('toolsmith');
     expect(planAuthoringWatch('')).toBeNull();
   });
 
@@ -268,6 +268,6 @@ describe('Skill Studio developer authoring [CARD-420]', () => {
       ok: true,
       json: async () => ({ opened_job: true, job_id: 'job_silent', llm_rewrite: true, blockers: [] }),
     });
-    await expect(runCheapLint(draft, { fetchFn })).rejects.toThrow(/must not open a developer job/);
+    await expect(runCheapLint(draft, { fetchFn })).rejects.toThrow(/must not open a Toolsmith job/);
   });
 });

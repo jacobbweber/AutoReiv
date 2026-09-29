@@ -1879,6 +1879,29 @@
             </table>
           </div>
         </div>
+
+        <!-- CARD-574: reply limits (CARD-567) -->
+        <div id="settingsReplyLimitsCard" data-testid="settings-reply-limits" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="timer" class="w-4 h-4 text-amber-400"></i>
+            <span>Reply limits</span>
+          </h3>
+          <p class="text-xs text-slate-400">Every model reply stops at these limits instead of running on. Empty or 0 uses the default (16384 tokens, 600 seconds). The token limit is also capped at a quarter of the model's context window.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-300 block mb-1">Max tokens per reply</span>
+              <input id="replyLimitMaxTokensInput" type="number" min="0" step="1" placeholder="16384" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-300 block mb-1">Max seconds per reply</span>
+              <input id="replyLimitMaxSecondsInput" type="number" min="0" step="1" placeholder="600" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+            </label>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="button" id="replyLimitsSaveBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save reply limits</button>
+            <span id="replyLimitsStatus" class="text-[11px] text-slate-400"></span>
+          </div>
+        </div>
           </div>
         </details>
 
@@ -4854,7 +4877,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.95"></script>
+  <script type="module" src="/static/app.js?v=2.0.96"></script>
 </body>
 </html>
 

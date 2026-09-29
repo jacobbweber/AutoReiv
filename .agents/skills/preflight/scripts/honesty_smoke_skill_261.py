@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""CARD-261 standing honesty / stress smoke pack (tip merge gate).
+"""CARD-261 standing honesty / stress smoke check (tip merge gate).
 
 Classifies: timeout | gate | tool | honesty | kill_resume | pass
 Exits non-zero on red: Done-on-FAILED / honesty theatre / silent SSE death.
@@ -11,8 +11,8 @@ Modes:
   --live-full  also refresh CARD-258-style coverage (slower)
 
 Usage:
-  python notes/scripts/honesty_smoke_skill_261.py --validate
-  python notes/scripts/honesty_smoke_skill_261.py --live
+  python .agents/skills/preflight/scripts/honesty_smoke_skill_261.py --validate
+  python .agents/skills/preflight/scripts/honesty_smoke_skill_261.py --live
 """
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ from src.application.orchestration.honesty_smoke_skill import (  # noqa: E402
 BASE = "http://127.0.0.1:8000"
 DB = Path.home() / "AppData/Local/AutoReiv/database/autoreiv.db"
 LIVE_OUT = ROOT / "notes" / "marathon-card261-live-smoke.json"
-FIXTURE_OUT = ROOT / "notes" / "honesty-smoke-pack-261-fixtures.json"
+FIXTURE_OUT = ROOT / "notes" / "honesty-smoke-261-fixtures.json"
 ET = timezone(timedelta(hours=-4))
 STREAM_TIMEOUT = 1200.0
 
@@ -179,7 +179,7 @@ def frozen_fixtures() -> list[dict[str, Any]]:
             "id": "fx_red_done_on_failed",
             "name": "red_done_on_failed",
             "expect_red": True,
-            "include_in_gate_pack": False,
+            "include_in_gate": False,
             "events": [
                 {
                     "event": "turn_done",
@@ -196,7 +196,7 @@ def frozen_fixtures() -> list[dict[str, Any]]:
             "id": "fx_red_silent_sse",
             "name": "red_silent_sse_death",
             "expect_red": True,
-            "include_in_gate_pack": False,
+            "include_in_gate": False,
             "events": [{"event": "token", "data": {"text": "partial"}}],
             "job": {"status": "cancelled", "id": "job_sse"},
             "abort_payload": {"status": "aborted", "checkpointed": False, "resumable": False},
@@ -235,10 +235,10 @@ def classify_fixture(fx: dict[str, Any]) -> dict[str, Any]:
 
 def run_validate() -> dict[str, Any]:
     fixtures = frozen_fixtures()
-    rows = [classify_fixture(fx) for fx in fixtures if fx.get("include_in_gate_pack", True)]
+    rows = [classify_fixture(fx) for fx in fixtures if fx.get("include_in_gate", True)]
     red_checks = [classify_fixture(fx) for fx in fixtures if fx.get("expect_red")]
-    pack = evaluate_skill(rows)
-    gate = merge_gate_decision(pack)
+    gate_eval = evaluate_skill(rows)
+    gate = merge_gate_decision(gate_eval)
 
     # Fixture self-check: expect_class matches; red fixtures must be is_red
     struct_errors: list[str] = []
@@ -253,14 +253,14 @@ def run_validate() -> dict[str, Any]:
             struct_errors.append(f"{row['id']}: expected red, got clean")
 
     # Prove red fixtures would block FF
-    red_pack = evaluate_skill(red_checks)
-    if red_pack["ok"]:
-        struct_errors.append("red fixture pack unexpectedly ok")
-    red_gate = merge_gate_decision(red_pack)
+    red_eval = evaluate_skill(red_checks)
+    if red_eval["ok"]:
+        struct_errors.append("red fixtures unexpectedly ok")
+    red_gate = merge_gate_decision(red_eval)
     if red_gate["allowed"]:
         struct_errors.append("red fixture merge gate unexpectedly allowed")
 
-    ok = pack["ok"] and gate["allowed"] and not struct_errors and not pack["missing_required_classes"]
+    ok = gate_eval["ok"] and gate["allowed"] and not struct_errors and not gate_eval["missing_required_classes"]
     payload = {
         "card": "CARD-261",
         "mode": "validate",
@@ -269,8 +269,8 @@ def run_validate() -> dict[str, Any]:
         "stress_classes": list(STRESS_CLASSES),
         "scenarios": rows,
         "red_negative_scenarios": red_checks,
-        "counts_by_class": pack["counts_by_class"],
-        "missing_required_classes": pack["missing_required_classes"],
+        "counts_by_class": gate_eval["counts_by_class"],
+        "missing_required_classes": gate_eval["missing_required_classes"],
         "merge_gate": gate,
         "struct_errors": struct_errors,
         "ok": ok,
@@ -725,7 +725,7 @@ def run_live(*, full: bool = False) -> dict[str, Any]:
     # Ensure all classes present for standing table (fixture fill if live couldn't force)
     present = {r["classification"] for r in rows}
     for fx in frozen_fixtures():
-        if not fx.get("include_in_gate_pack", True):
+        if not fx.get("include_in_gate", True):
             continue
         exp = fx.get("expect_class")
         if exp and exp not in present:
@@ -747,11 +747,11 @@ def run_live(*, full: bool = False) -> dict[str, Any]:
             )
         )
 
-    pack = evaluate_skill(rows)
-    gate = merge_gate_decision(pack)
+    gate_eval = evaluate_skill(rows)
+    gate = merge_gate_decision(gate_eval)
     # Live red check: any Done-on-FAILED / silent SSE on live rows
     live_red = [r for r in rows if r.get("is_red")]
-    ok = pack["ok"] and gate["allowed"] and not live_red
+    ok = gate_eval["ok"] and gate["allowed"] and not live_red
 
     # Summary table
     summary = []
@@ -780,10 +780,10 @@ def run_live(*, full: bool = False) -> dict[str, Any]:
         "stress_classes": list(STRESS_CLASSES),
         "scenarios": rows,
         "summary_table": summary,
-        "counts_by_class": pack["counts_by_class"],
-        "missing_required_classes": pack["missing_required_classes"],
+        "counts_by_class": gate_eval["counts_by_class"],
+        "missing_required_classes": gate_eval["missing_required_classes"],
         "merge_gate": gate,
-        "red_rows": pack["red_rows"],
+        "red_rows": gate_eval["red_rows"],
         "ok": ok,
         "pass": ok,
         "exit_code": 0 if ok else 1,
@@ -794,16 +794,16 @@ def run_live(*, full: bool = False) -> dict[str, Any]:
     }
     LIVE_OUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print("wrote", LIVE_OUT)
-    print("counts", pack["counts_by_class"])
+    print("counts", gate_eval["counts_by_class"])
     print("merge_gate", gate)
     return payload
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="CARD-261 honesty smoke pack / tip merge gate")
+    parser = argparse.ArgumentParser(description="CARD-261 honesty smoke check / tip merge gate")
     g = parser.add_mutually_exclusive_group(required=True)
     g.add_argument("--validate", action="store_true", help="CI/preflight frozen fixtures")
-    g.add_argument("--live", action="store_true", help="Live Jarvisâ†’Ollama pack")
+    g.add_argument("--live", action="store_true", help="Live Jarvisâ†’Ollama gate_eval")
     g.add_argument("--live-full", action="store_true", help="Live + long formulate")
     args = parser.parse_args(argv)
 

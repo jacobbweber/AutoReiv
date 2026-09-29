@@ -60,14 +60,14 @@ describe('REQ-520-006: Teach card uses data-tool-escalation, with a fallback for
     expect(el.innerHTML).not.toContain('data-factory-escalation');
   });
 
-  it('readToolEscalation reads the new key, then the old key', async () => {
+  it('readToolEscalation reads only the tool_escalation key (CARD-574: no old-name fallback)', async () => {
     const { readToolEscalation, escalationFromCard } = await import('../../../src/web/static/modules/studios/tool_escalation.js');
     expect(readToolEscalation({ tool_escalation: { seed_intent: 'n' } }).seed_intent).toBe('n');
-    expect(readToolEscalation({ [OLD]: { seed_intent: 'o' } }).seed_intent).toBe('o');
+    expect(readToolEscalation({ [OLD]: { seed_intent: 'o' } })).toEqual({});
     expect(readToolEscalation({})).toEqual({});
     const attrs = { ['data-' + 'factory-escalation']: JSON.stringify({ suggested_tool_name: 'old_tool' }) };
     const oldCard = { getAttribute: (k) => attrs[k] ?? null };
-    expect(escalationFromCard(oldCard).suggested_tool_name).toBe('old_tool');
+    expect(escalationFromCard(oldCard)).toEqual({});
     const newCard = { getAttribute: (k) => (k === 'data-tool-escalation' ? JSON.stringify({ suggested_tool_name: 'new_tool' }) : null) };
     expect(escalationFromCard(newCard).suggested_tool_name).toBe('new_tool');
   });
@@ -78,9 +78,9 @@ describe('REQ-520-007/009: Observability friction cards', () => {
   beforeEach(() => { list = fakeList(); withDocument({ frictionRecommendationsList: list }); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('a tool escalation (new or old name) shows Needs a tool, Ask Developer and Dismiss, never Apply', async () => {
+  it('a tool escalation shows Needs a tool, Ask Developer and Dismiss, never Apply', async () => {
     const { renderFrictionRecommendations } = await import('../../../src/web/static/modules/studios/observability.js');
-    for (const kind of ['tool_escalation', OLD]) {
+    for (const kind of ['tool_escalation']) {
       renderFrictionRecommendations([{ ...ESC, remedy_kind: kind }]);
       expect(list.innerHTML).toContain('Needs a tool');
       expect(list.innerHTML).toContain('ask-developer-friction-btn');

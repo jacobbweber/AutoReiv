@@ -1,4 +1,4 @@
-"""CARD-420 operator contract: Skill Studio Build/Review mints a visible developer job.
+"""CARD-420 operator contract: Skill Studio Build/Review mints a visible Toolsmith job (CARD-574).
 
 REQ-420-001..005. Temp user-data only [ADR-0055].
 Accept records a decision on the standing job and does not write any skill tools list.
@@ -46,7 +46,7 @@ def _count(store, table: str) -> int:
             conn.close()
 
 
-def test_oc420_lint_does_not_mint_job_and_build_is_visible_developer_job(operator_client):
+def test_oc420_lint_does_not_mint_job_and_build_is_visible_toolsmith_job(operator_client):
     """REQ-420-001, REQ-420-002, REQ-420-004, REQ-420-005."""
     client, store, _wiki = operator_client
     jobs_before = _count(store, "jobs")
@@ -82,7 +82,7 @@ def test_oc420_lint_does_not_mint_job_and_build_is_visible_developer_job(operato
     body = created.json()
     job_id = body["job_id"]
     assert job_id.startswith("job_")
-    assert body["agent_id"] == "developer"
+    assert body["agent_id"] == "toolsmith"
     assert body["resumed"] is False
     assert body["visible"] is True
     assert body["llm_rewrite"] is False
@@ -101,19 +101,19 @@ def test_oc420_lint_does_not_mint_job_and_build_is_visible_developer_job(operato
     assert watch["observe"]["job_id"] == job_id
     assert watch["chat"]["studio"] == "chat"
     assert watch["chat"]["job_id"] == job_id
-    assert watch["chat"]["agent_id"] == "developer"
+    assert watch["chat"]["agent_id"] == "toolsmith"
 
     observed = client.get(f"/api/observe/jobs/{job_id}")
     assert observed.status_code == 200, observed.text
     journey = observed.json()
     job_event = next(item for item in journey["timeline"] if item.get("kind") == "job")
-    assert job_event["agent_id"] == "developer"
+    assert job_event["agent_id"] == "toolsmith"
     assert job_event["job_id"] == job_id
     packet_event = next(item for item in journey["timeline"] if item.get("kind") == "skill_studio_authoring_packet")
     assert packet_event["payload"]["skill_id"] == "wiki_digest"
     assert packet_event["payload"]["intent"] == "build"
     phase_event = next(item for item in journey["timeline"] if item.get("kind") == "phase")
-    assert phase_event["assigned_agent_id"] == "developer"
+    assert phase_event["assigned_agent_id"] == "toolsmith"
 
     resumed = client.post(
         "/api/skill_studio/authoring/jobs",
@@ -141,7 +141,7 @@ def test_oc420_lint_does_not_mint_job_and_build_is_visible_developer_job(operato
     fetched = client.get(f"/api/skill_studio/authoring/jobs/{job_id}")
     assert fetched.status_code == 200, fetched.text
     detail = fetched.json()
-    assert detail["agent_id"] == "developer"
+    assert detail["agent_id"] == "toolsmith"
     assert detail["packet"]["schema"] == "skill_studio_authoring_packet"
     assert detail["proposals"]["patches"] == [{"field": "description", "value": "Shorter trigger text"}]
     assert detail["proposals"]["decision"] is None

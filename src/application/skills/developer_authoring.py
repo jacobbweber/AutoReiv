@@ -1,7 +1,7 @@
-"""Skill Studio developer-mediated authoring [CARD-420 / ADR-0057].
+"""Skill Studio authoring, done by Toolsmith [CARD-420 / ADR-0057, CARD-574].
 
 Build and Review submit a versioned form packet onto a visible standing job
-owned by the developer agent. Cheap lint stays in-form and does not mint a job.
+owned by Toolsmith. Cheap lint stays in-form and does not mint a job.
 Accept and Reject are recorded on that job. Skill bodies and tool bindings
 stay on the existing Skill Studio save path.
 """
@@ -22,7 +22,8 @@ PACKET_SCHEMA = "skill_studio_authoring_packet"
 PACKET_VERSION = 1
 PROPOSAL_SCHEMA = "skill_studio_authoring_proposal"
 TEMPLATE_ID = "skill_studio_developer_authoring"
-DEVELOPER_AGENT_ID = "developer"
+# CARD-574: Skill Studio authoring jobs go to Toolsmith, like every Ask Developer button (CARD-571).
+TOOLSMITH_AGENT_ID = "toolsmith"
 PACKET_EVENT_KIND = "skill_studio_authoring_packet"
 PROPOSAL_EVENT_KIND = "skill_studio_authoring_proposal"
 DECISION_EVENT_KIND = "skill_studio_authoring_decision"
@@ -160,7 +161,7 @@ def build_packet(intent: str, draft: Mapping[str, Any], blockers: list[dict[str,
         "version": PACKET_VERSION,
         "studio": "skill",
         "intent": clean_intent,
-        "agent_id": DEVELOPER_AGENT_ID,
+        "agent_id": TOOLSMITH_AGENT_ID,
         "draft": normalized,
         "lint": {"cheap": True, "blockers": blockers},
         "llm_rewrite": False,
@@ -217,7 +218,7 @@ def watch_path(job_id: str) -> dict[str, Any]:
         "chat": {
             "studio": "chat",
             "job_id": job_id,
-            "agent_id": DEVELOPER_AGENT_ID,
+            "agent_id": TOOLSMITH_AGENT_ID,
         },
     }
 
@@ -291,14 +292,14 @@ class DeveloperAuthoringService:
                 "studio": "skill",
                 "intent": packet["intent"],
                 "skill_id": packet["draft"]["skill_id"],
-                "agent_id": DEVELOPER_AGENT_ID,
+                "agent_id": TOOLSMITH_AGENT_ID,
                 "blocker_count": len(blockers),
                 "resumed": resumed,
                 "packet": packet,
             },
         )
         logger.info(
-            "Skill Studio %s %s developer job %s",
+            "Skill Studio %s %s Toolsmith job %s",
             "resumed" if resumed else "opened",
             packet["intent"],
             job.id,
@@ -332,7 +333,7 @@ class DeveloperAuthoringService:
         )
         return {
             "job_id": job.id,
-            "agent_id": DEVELOPER_AGENT_ID,
+            "agent_id": TOOLSMITH_AGENT_ID,
             "proposals": proposal,
             "persisted_skill": False,
             "llm_rewrite": False,
@@ -376,12 +377,12 @@ class DeveloperAuthoringService:
         return self._orchestrator.create_job_with_phases(
             goal=f"Skill Studio {intent}: {skill_id}",
             session_id=session_id_for_skill(skill_id),
-            agent_id=DEVELOPER_AGENT_ID,
+            agent_id=TOOLSMITH_AGENT_ID,
             phase_specs=[
                 PhaseSpec(
                     name="Author",
                     success_rule=_SUCCESS_RULE,
-                    assigned_agent_id=DEVELOPER_AGENT_ID,
+                    assigned_agent_id=TOOLSMITH_AGENT_ID,
                     verify_checker=None,
                     max_turns=8,
                 )
@@ -412,7 +413,7 @@ class DeveloperAuthoringService:
             raise AuthoringError(f"Job {job_id} not found.", status_code=404) from exc
         if job is None or getattr(job, "template_id", None) != TEMPLATE_ID:
             raise AuthoringError(f"Job {job_id} not found.", status_code=404)
-        if getattr(job, "agent_id", None) != DEVELOPER_AGENT_ID:
+        if getattr(job, "agent_id", None) != TOOLSMITH_AGENT_ID:
             raise AuthoringError(f"Job {job_id} not found.", status_code=404)
         return job
 
@@ -428,7 +429,7 @@ class DeveloperAuthoringService:
             f"Skill Studio {packet['intent']}: {packet['draft']['skill_id']}",
             _prefixed_json(PACKET_FACT_PREFIX, packet),
         )
-        phase.assigned_agent_id = DEVELOPER_AGENT_ID
+        phase.assigned_agent_id = TOOLSMITH_AGENT_ID
         self._store.update_phase(phase)
 
     def _read_skillet(self, job: Any) -> Optional[dict[str, Any]]:
@@ -454,7 +455,7 @@ class DeveloperAuthoringService:
     ) -> dict[str, Any]:
         body = {
             "job_id": job.id,
-            "agent_id": DEVELOPER_AGENT_ID,
+            "agent_id": TOOLSMITH_AGENT_ID,
             "status": _status_value(getattr(job, "status", "")),
             "template_id": TEMPLATE_ID,
             "resumed": resumed,
