@@ -102,3 +102,21 @@ async def invoke_native_tool(name: str, payload: NativeToolInvokeRequest, reques
         )
     except NativeToolError as exc:
         raise _http(exc) from exc
+
+
+# CARD-570: Jacob's Tools Studio buttons. No agent tool calls these; an agent can register
+# (save) a tool, but only this route approves its code hash and enables it.
+@router.post("/{name}/enable")
+def enable_native_tool(name: str, request: Request) -> dict[str, Any]:
+    try:
+        return _service(request).enable_by_operator(name)
+    except NativeToolError as exc:
+        raise _http(exc) from exc
+
+
+@router.post("/{name}/disable")
+def disable_native_tool(name: str, request: Request) -> dict[str, Any]:
+    try:
+        return _service(request).disable_by_operator(name)
+    except NativeToolError as exc:
+        raise _http(exc) from exc

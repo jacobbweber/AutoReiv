@@ -23,6 +23,7 @@ from src.domain.orchestration.models import ProposalKind, ProposalStatus
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.observability import router as observability_router
 
+
 @pytest.fixture
 def sim_environment(tmp_path: Path):
     """

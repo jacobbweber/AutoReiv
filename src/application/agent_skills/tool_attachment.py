@@ -64,6 +64,38 @@ def propose_tool_attachment(
     )
 
 
+def make_skill_write_guard(state_store: Any):
+    """Skill-write guard for the content store [CARD-570, ADR-0061].
+
+    A write made inside an agent's tool call (Skill Studio assistant, workshop, adopt, distillation
+    or any future path) cannot add tools to a skill: each added tool becomes a pending
+    attach-tool-to-skill proposal and the file is saved without it. Jacob's own Studio saves (HTTP,
+    no tool call in flight) save directly: he is the approver, so a proposal would only ask him to
+    approve himself. The proposal accept path runs from Jacob's approval decision, also outside a
+    tool call, so accepting writes the tool.
+    """
+
+    def guard(skill_id: str, added: list[str]) -> bool:
+        from src.application.kernel.tool_registry import get_tool_context
+
+        ctx = get_tool_context()
+        agent_id = str(ctx.get("agent_id") or "").strip()
+        if not agent_id:
+            return False
+        for tool in added:
+            propose_tool_attachment(
+                state_store,
+                tool=tool,
+                agent_id=agent_id,
+                session_id=str(ctx.get("session_id") or "") or None,
+                skill_id=skill_id,
+                description=f"{agent_id} asked to add {tool} to skill {skill_id}.",
+            )
+        return True
+
+    return guard
+
+
 def tick_skill(store: Any, agent_registry: Any, agent_id: str, skill_id: str, data_dir: Optional[Path] = None) -> bool:
     """Tick skill_id on the agent through the shared Studio/Adopt save path, so the tick survives a
     restart's platform promotion (CARD-502). Returns True when it was added."""

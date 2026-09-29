@@ -73,6 +73,7 @@ async def _register_and_propose(store, service):
         "code": CODE, "parameters": SCHEMA, "requires_hitl": False, "risk_level": "low",
         "target_agent_id": "autoreiv", "sample_arguments": {"port": "Boston"},
     })
+    service.enable_by_operator("c537_harbor_tide")  # CARD-570: Jacob enables the runtime tool
     pending = [p for p in store.get_pending_approvals(agent_id="autoreiv") if p["tool_name"] == ATTACH_TOOL_PROPOSAL]
     assert len(pending) == 1
     return pending[0]

@@ -114,7 +114,7 @@ class SkillDistillationService:
         data_dir: Optional[Union[str, Path]] = None,
     ) -> Dict[str, Any]:
         """
-        Write the runbook to packs/<agent_id>/skills/<skill_id>/SKILL.md and switch the skill on
+        Write the runbook to the data dir skills/<skill_id>/SKILL.md and switch the skill on
         through the shared agent save path [CARD-502].
         """
         clean_agent = (target_agent_id or "").strip()
@@ -147,9 +147,17 @@ class SkillDistillationService:
                 "Rename the lesson and try again."
             )
 
-        skill_dir = root / "skills" / clean_skill  # CARD-570: one flat user skills folder
-        skill_dir.mkdir(parents=True, exist_ok=True)
-        (skill_dir / "SKILL.md").write_text(runbook_markdown, encoding="utf-8")
+        # CARD-570: one flat user skills folder, written through the content store so an agent writer
+        # cannot add tools (they become proposals); Jacob's Adopt saves directly.
+        from src.infrastructure.content.store import split_frontmatter
+
+        meta, body = split_frontmatter(runbook_markdown)
+        if content.data_root is not None and Path(content.data_root).resolve() == root.resolve():
+            content.skills.save(clean_skill, meta, body)
+        else:
+            skill_dir = root / "skills" / clean_skill
+            skill_dir.mkdir(parents=True, exist_ok=True)
+            (skill_dir / "SKILL.md").write_text(runbook_markdown, encoding="utf-8")
 
         skill_title, skill_desc = self._parse_frontmatter(runbook_markdown, clean_skill)
         # CARD-502 REQ-502-001: same save path as Agent Studio so the skill survives restart

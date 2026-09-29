@@ -412,10 +412,12 @@ class BuiltinAgentRegistry:
         agent_registry.user_skill_catalog = catalog
 
         # 14. Validate skill tools: an unknown tool id is a warning and grants nothing [CARD-570]
-        from src.infrastructure.content.store import set_tool_registry
+        from src.application.agent_skills.tool_attachment import make_skill_write_guard
+        from src.infrastructure.content.store import set_skill_write_guard, set_tool_registry
 
         known = {t.name for t in tool_registry.list_tools()}
         set_tool_registry(tool_registry)
+        set_skill_write_guard(make_skill_write_guard(store))  # agents cannot grant tools [CARD-570]
         agent_registry.skill_tool_warnings = agent_registry._content.validate_tools(known)
         for sid, names in agent_registry.skill_tool_warnings.items():
             logger.warning("Skill %s names unknown tools %s; they grant nothing.", sid, names)

@@ -212,6 +212,8 @@ class _Kind:
             if user.is_file():
                 raise ReservedIdError(f"A {self.kind} named '{clean}' already exists.")
         clean_meta = {k: v for k, v in dict(meta).items() if k not in ("based_on", "id")}
+        if self.kind == "skill" and _SKILL_WRITE_GUARD is not None:
+            clean_meta = _hold_tool_additions(self, clean, clean_meta)
         if shipped:
             clean_meta["based_on"] = self.shipped_hash(clean)
         user.parent.mkdir(parents=True, exist_ok=True)
@@ -301,6 +303,23 @@ class ContentStore:
         return bad
 
 
+def _hold_tool_additions(kind: "_Kind", skill_id: str, meta: dict[str, Any]) -> dict[str, Any]:
+    """Tools a write adds to a skill are held back when the guard says the writer is an agent.
+
+    The guard (installed at boot, see ``tool_attachment.make_skill_write_guard``) turns each held
+    tool into a pending proposal for Jacob. A hidden skill counts as granting nothing.
+    """
+    new = [str(t) for t in (meta.get("tools") or []) if str(t).strip()]
+    current = kind.load(skill_id)
+    old = set(current.tools) if current else set()
+    added = [t for t in new if t not in old]
+    if not added or _SKILL_WRITE_GUARD is None or not _SKILL_WRITE_GUARD(skill_id, added):
+        return meta
+    held = dict(meta)
+    held["tools"] = [t for t in new if t not in added]
+    return held
+
+
 def _known(tool: str, names: set[str]) -> bool:
     if tool.endswith("*"):
         return True  # wildcard bindings such as mcp_files_* match mounted MCP tools at run time
@@ -309,6 +328,13 @@ def _known(tool: str, names: set[str]) -> bool:
 
 _STORE: Optional[ContentStore] = None
 _TOOL_REGISTRY: Any = None
+_SKILL_WRITE_GUARD: Any = None
+
+
+def set_skill_write_guard(guard: Any) -> None:
+    """``guard(skill_id, added_tools) -> bool``: True holds the additions (agent writer) [CARD-570]."""
+    global _SKILL_WRITE_GUARD
+    _SKILL_WRITE_GUARD = guard
 
 
 def configure(data_root: Optional[Path], platform_root: Optional[Path] = None) -> ContentStore:
@@ -348,6 +374,7 @@ def get_store() -> ContentStore:
 
 
 def reset_store() -> None:
-    global _STORE, _TOOL_REGISTRY
+    global _STORE, _TOOL_REGISTRY, _SKILL_WRITE_GUARD
     _STORE = None
     _TOOL_REGISTRY = None
+    _SKILL_WRITE_GUARD = None

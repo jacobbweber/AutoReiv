@@ -122,7 +122,16 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     assert body["packaging"] == "native"
     assert body["mcp_required"] is False
     assert body["persisted"] is True
-    assert body["mounted"] is True
+    assert body["mounted"] is False  # CARD-570: saved; not mounted until Jacob enables it
+    assert body["approval"] == "disabled"
+    refused = client.post(
+        "/api/tools/native/echo_token/invoke",
+        json={"agent_id": "developer", "arguments": {"token": "early"}, "approval_mode": "run"},
+    )
+    assert refused.status_code == 409, refused.text
+    enabled = client.post("/api/tools/native/echo_token/enable")
+    assert enabled.status_code == 200, enabled.text
+    assert enabled.json()["mounted"] is True and enabled.json()["approval"] == "enabled"
     assert body["origin_label"] == "Native custom"
     # CARD-539: registering proposes; Developer can call it once the proposal is accepted.
     assert body["proposal"]["status"] == "pending"
@@ -135,8 +144,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     rows = listed.json()["tools"]
     assert [row["name"] for row in rows] == ["echo_token"]
     assert rows[0]["has_code"] is True
-    stored = store.get_setting("native_custom_tools")
-    assert stored[0]["code"] == ECHO_CODE
+    assert app.state.native_custom_tools.get("echo_token")["code"] == ECHO_CODE
     assert "echo_token" not in (store.get_setting("tool_policy") or {}).get("require_confirm_tools", [])
 
     denied = client.post(
@@ -195,6 +203,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     )
     assert risky.status_code == 200, risky.text
     assert risky.json()["requires_hitl"] is True
+    assert client.post("/api/tools/native/risky_note/enable").status_code == 200
     client.post(f"/api/approvals/{risky.json()['proposal']['approval_id']}/decision", json={"decision": "APPROVED"})
     assert "risky_note" in store.get_setting("tool_policy")["require_confirm_tools"]
 
@@ -282,7 +291,7 @@ def test_oc423_mcp_lane_groups_under_the_attached_server(operator_client):
     assert mcp_ns["server_name"] == "desk"
     assert mcp_ns["origin_label"] == "MCP · desk"
     assert any(tool["name"] == "mcp_desk_ping" and tool["origin"] == "mcp" for tool in mcp_ns["tools"])
-    assert store.get_setting("native_custom_tools") in (None, [])
+    assert client.get("/api/tools/native").json()["tools"] == []
 
 
 @pytest.mark.skip(reason="CARD-562: tool building parked off Developer until M25 slice 2 (restore then)")
@@ -330,7 +339,7 @@ def test_oc511_route_refuses_broken_native_tools_and_lists_checks(operator_clien
         assert detail["check"]["stage"] == stage
         assert needle in detail["check"]["error"]
     assert client.get("/api/tools/native").json()["tools"] == []
-    assert store.get_setting("native_custom_tools") in (None, [])
+    assert client.get("/api/tools/native").json()["tools"] == []
 
     good = client.post(
         "/api/tools/native",
@@ -347,9 +356,5 @@ def test_oc511_route_refuses_broken_native_tools_and_lists_checks(operator_clien
     assert good.json()["check"]["status"] == "passed"
     assert good.json()["check"]["sample_arguments"] == {"token": "probe"}
 
-    rows = store.get_setting("native_custom_tools")
-    rows.append({"name": "c511_old", "description": "old", "code": ECHO_CODE, "parameters": {}, "requires_hitl": False, "risk_level": "low"})
-    store.set_setting("native_custom_tools", rows)
     listed = {row["name"]: row for row in client.get("/api/tools/native").json()["tools"]}
     assert listed["c511_good"]["check"]["status"] == "passed"
-    assert listed["c511_old"]["check"] is None
