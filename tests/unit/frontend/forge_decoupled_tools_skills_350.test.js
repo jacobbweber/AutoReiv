@@ -50,7 +50,7 @@ describe('CARD-389: Agent Forge Uniform Skill-First Architecture', () => {
     expect(forgeJs).toContain('renderBaselineTools');
     expect(forgeJs).not.toContain('renderAllowedTools');
     expect(forgeJs).not.toContain('applyToolChecks');
-    expect(forgeJs).toContain('activate_skill');
+    expect(forgeJs).not.toContain('activate_skill'); // CARD-578: removed
     expect(forgeJs).toContain('ask_clarification');
     expect(forgeJs).toContain('handoff_to_agent');
     expect(forgeJs).toContain('lookup_agents');

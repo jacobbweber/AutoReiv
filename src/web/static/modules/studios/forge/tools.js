@@ -42,7 +42,6 @@ export function renderBaselineTools(gridEl = null) {
   const grid = gridEl || $('forgeBaselineGrid');
   if (!grid) return;
   const requiredPrimitives = [
-    { name: 'activate_skill', description: 'Activate a procedural skill runbook into the current session context.' },
     { name: 'ask_clarification', description: 'Ask the human operator a clarifying question when requirements are ambiguous.' },
     { name: 'handoff_to_agent', description: 'Handoff the conversation or task to another agent specialist.' },
     { name: 'lookup_agents', description: 'Query available agents and their capabilities.' },

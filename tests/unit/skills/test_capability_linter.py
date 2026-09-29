@@ -89,12 +89,13 @@ verification:
     assert "maximum allowed is 15" in cap_001[0].message
 
 
-def test_skill_tool_cap_matches_the_runtime_per_turn_clamp():
-    """CARD-454: a skill may declare exactly as many tools as the kernel mounts per turn."""
-    from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN
+def test_skill_tool_cap_is_an_authoring_limit_not_a_runtime_clamp():
+    """CARD-454 per-skill cap stays 15. CARD-578 (ADR-0064): the kernel has no per-turn clamp."""
+    import src.application.kernel.agent_kernel as kernel_mod
     from src.application.skills.linter import MAX_TOOLS_PER_SKILL
 
-    assert MAX_TOOLS_PER_SKILL == MAX_ACTIVE_TOOLS_PER_TURN == 15
+    assert MAX_TOOLS_PER_SKILL == 15
+    assert not hasattr(kernel_mod, "MAX_ACTIVE_TOOLS_PER_TURN")
 
 
 def test_compiler_rejects_missing_verification_cap_002():

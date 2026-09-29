@@ -4,6 +4,7 @@
 > **Date**: 2026-09-18  
 > **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): agents are domain specialists (skills by task), not only blast-radius principals; the Rule of 7 is a per-turn selection clamp applied inside the allowed set from `resolve_allowed_tools`  
 > **Amended**: 2026-09-28 by CARD-562: the per-skill tool cap (linter CAP-001 `MAX_TOOLS_PER_SKILL`) and the runtime per-turn clamp (`MAX_ACTIVE_TOOLS_PER_TURN`) rise from 8 to 15 together (a guard test keeps them equal). 15 is a judgment cap chosen by Jacob, not a measured limit; revisit it if tool-selection quality drops on the local models.  
+> **Superseded in part**: 2026-09-29 by [ADR-0064](./0064-tools-load-all-at-once.md): the per-turn tool clamp and demand-paged tool mounting are gone; every allowed tool is sent on every call. The per-skill cap (CAP-001, 15) stays as an authoring guideline only.  
 > **Deciders**: Jacob (Visionary & Product Owner), Antigravity (Principal SDLC Engineer)  
 > **Consulted**: AutoReiv Core Architecture  
 > **Supersedes / Retires**: [CARD-340](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-340-multi-agent-group-chat-and-peer-to-peer-collaborative-conversation.md) (Multi-Agent Group Chat Roundtable Anti-Pattern)  

@@ -70,7 +70,7 @@ def test_end_to_end_dogfood_architectural_governance(dogfood_client):
     # 1. SEED HIGH-ENTROPY TELEMETRY SPANS & SESSIONS
     # =========================================================================
 
-    # 1a. Tool Bloat Span (> 15 tools mounted in a turn, CARD-562) [REQ-ARCH-001]
+    # 1a. Tool Bloat Span (> 50 tools sent in a turn, advisory since CARD-578) [REQ-ARCH-001]
     bloat_span = TelemetrySpan(
         id="span-bloat-001",
         session_id="sess-bloat-100",
@@ -78,8 +78,8 @@ def test_end_to_end_dogfood_architectural_governance(dogfood_client):
         span_type="turn",
         name="turn_execution",
         metadata={
-            "active_tool_count": 18,
-            "max_active_tools": 15,
+            "active_tool_count": 60,
+            "max_active_tools": 50,
             "mounted_tools": [
                 "cli_exec",
                 "read_file",

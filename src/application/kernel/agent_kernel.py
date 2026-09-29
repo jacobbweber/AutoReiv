@@ -7,7 +7,7 @@ import json
 import logging
 import time
 import uuid
-from typing import Any, AsyncIterator, Dict, List, Optional, Sequence, Set
+from typing import Any, AsyncIterator, Collection, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import (
@@ -63,15 +63,8 @@ logger = logging.getLogger(__name__)
 # Nimo now serves qwen3.8 at its full 262144 (OLLAMA_CONTEXT_LENGTH). The reply stays capped by max_tokens.
 NESTED_COMPLETE_MAX_TOKENS = 8192
 
-# ADR-0054 / CARD-362: Demand-Paged Capability Engine constants
-MAX_ACTIVE_TOOLS_PER_TURN: int = 15  # judgment cap, not measured (ADR-0054 amended by CARD-562)
-# CARD-562: always mounted (within the cap) for agents allowed them; they refuse cleanly when no project is selected.
-PROJECT_CORE_TOOLS: frozenset[str] = frozenset({"active_project_info", "read_project_file", "search_project", "list_project_dir"})
-# CARD-566 (found live): the card-work tools stay mounted too, so a hand-off brief ("Work card CARD-3 to In Review")
-# never loses git_commit / git_create_branch to word-overlap ranking (Developer then said it had no git_commit).
-CARD_WORK_TOOLS: frozenset[str] = frozenset(
-    {"read_card", "git_create_branch", "patch_project_file", "run_project_checks", "git_commit", "set_card_status"}
-)
+# CARD-578 (ADR-0064): no per-turn tool cap, ranking or pinning. Every allowed tool is sent on every model call.
+
 # CARD-562: the Active Selected Project prompt names only tools this agent may call (it once told Developer to use cli_exec).
 _PROJECT_GUIDANCE_TOOLS: tuple[str, ...] = (
     "read_project_file",
@@ -93,45 +86,6 @@ def project_tool_guidance(allowed_tools: "set[str] | frozenset[str]") -> str:
     elif "cli_exec" in allowed_tools:
         parts.append("Use cli_exec to run tests and scripts within this directory.")
     return " ".join(parts)
-
-
-BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
-    {
-        "activate_skill",
-        "ask_clarification",
-        "handoff_to_agent",
-        "get_session_info",
-        "lookup_agents",
-        "skill_view",
-    }
-)
-
-
-# Filler words never rank a tool (live QA, CARD-539: "What is the weather" lost get_weather to "the"/"what").
-_RANK_FILLER_WORDS: frozenset[str] = frozenset(
-    "the and for you your are was what whats how who why when where which with this that these those from "
-    "into about can could would should please tell show give get got now right today like any all has have "
-    "its it's our out use using some there their them then than just also not".split()
-)
-
-
-def _capability_authoring_requested(text: str) -> bool:
-    """True when this turn is asking Developer to scaffold or propose a capability [CARD-429]."""
-    raw = (text or "").lower()
-    if "capability-authoring" in raw:
-        return True
-    if "propose" in raw and "skill" in raw:
-        return True
-    if "commit" in raw and "skill" in raw:
-        return True
-    if "scaffold" in raw and "agent" in raw:
-        return True
-    from src.application.agent_skills.schema import CAPABILITY_AUTHORING_TOOL_NAMES
-
-    for tool in CAPABILITY_AUTHORING_TOOL_NAMES:
-        if tool in raw or tool.replace("_", " ") in raw:
-            return True
-    return False
 
 
 def parse_nested_park_payload(content: str):
@@ -209,7 +163,7 @@ class AgentKernel:
         session_id: Optional[str] = None,
         approval_mode: Optional[str] = None,
         job_id: Optional[str] = None,
-        active_skills: Optional[Sequence[str]] = None,
+        offered: Optional[Collection[str]] = None,
     ) -> ToolResult:
         tool_res = await self.tool_registry.execute(
             tool_call,
@@ -218,7 +172,7 @@ class AgentKernel:
             approval_mode=approval_mode,
             job_id=job_id,
             state_store=self.state_store,
-            active_skills=active_skills,
+            offered=offered,
         )
         scrubber = self._get_scrubber()
         if tool_res.output is not None:
@@ -417,9 +371,11 @@ class AgentKernel:
         matched_capability_ids: Optional[list] = None,
         job_id: Optional[str] = None,
         planning_phase: bool = False,
+        offered: Optional[Collection[str]] = None,
     ) -> Optional[ToolResult]:
         """
         Tool policy gate [CARD-221]: ALLOW / REQUIRE_CONFIRM / BLOCK before executor.
+        CARD-578: a tool that was not in the tools sent on this call is refused before any policy or approval.
         Registry listing ≠ authorization. Extends HITL + DangerousCommandFilter.
         """
         gate = self.tool_policy_gate
@@ -431,6 +387,14 @@ class AgentKernel:
                 output=None,
                 success=False,
                 error="tool_policy_blocked:ToolPolicyGate missing",
+            )
+        if offered is not None and tc.name not in offered:
+            return ToolResult(
+                call_id=tc.id,
+                tool_name=tc.name,
+                output=None,
+                success=False,
+                error=f"tool_not_offered:Tool '{tc.name}' was not in the tools sent on this call, so it is not authorized here.",
             )
         registry_names = set()
         try:
@@ -726,93 +690,18 @@ class AgentKernel:
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
-    def _get_discovered_mcp_domains(self) -> List[str]:
-        """Return unique MCP server names discovered from registered tools [CARD-377]."""
-        domains: set[str] = set()
-        if hasattr(self, "tool_registry") and hasattr(self.tool_registry, "_tools"):
-            for t_name in self.tool_registry._tools:
-                if t_name.startswith("mcp_"):
-                    parts = t_name.split("_")
-                    if len(parts) >= 3:
-                        domains.add(parts[1].lower())
-        return sorted(domains)
-
-    @classmethod
-    def _match_intent_skills(
-        cls,
-        user_content: Optional[str],
-        agent: Optional[AgentProfile] = None,
-        extra_domains: Optional[Sequence[str]] = None,
-    ) -> List[str]:
-        """
-        Layer 1 Fast-Path Intent Matcher [CARD-339, ADR-0052, CARD-377].
-        0ms keyword triggers name intent domains; with an agent they map onto its ticked skills only
-        (CARD-539). The result only ranks tools inside the allowed set.
-        """
-        if not user_content:
-            return []
-        text = str(user_content).lower()
-        matched: List[str] = []
-        import re
-
-        # Wiki knowledge base intent
-        if re.search(r"\b(wiki|knowledge\s*base|notes?|documentation)\b", text):
-            matched.append("wiki")
-
-        # Diagnostics & homelab health intent
-        if re.search(
-            r"\b(diagnostics?|health|system\s*status|metrics?|telemetry|ollama|gpu|cpu|ram|memory\s*usage|disk\s*space)\b",
-            text,
-        ):
-            matched.append("diagnostics")
-
-        # Tasks, routines, jobs intent
-        if re.search(r"\b(tasks?|routines?|jobs?|cron|schedule|scheduled)\b", text):
-            matched.append("wiki_tasks")
-
-        # Coding, repository, files intent
-        if re.search(
-            r"\b(code|coding|git|repo|repository|commit|diff|patch|refactor|tests?|pytest|script)\b", text
-        ) or re.search(r"\b(read|write|edit)\s+(file|code|script)\b", text):
-            matched.append("coding")
-
-        # MCP server engineering intent [CARD-394]
-        if re.search(r"\b(mcp|fastmcp|mcp-engineering)\b", text) and any(
-            w in text for w in ("scaffold", "server", "deploy", "register", "test", "container", "service")
-        ):
-            matched.append("mcp-engineering")
-
-        # Native custom tool lane [CARD-423]
-        if re.search(r"\b(native-tool-engineering|register_native_tool|plan_native_folder)\b", text) or (
-            "native" in text and "tool" in text
-        ):
-            matched.append("native-tool-engineering")
-
-        # External MCP server domains [CARD-377]
-        for domain in extra_domains or []:
-            clean_dom = str(domain).strip().lower()
-            if clean_dom and re.search(rf"\b{re.escape(clean_dom)}\b", text):
-                if clean_dom not in matched:
-                    matched.append(clean_dom)
-
-        if agent is None:
-            return matched
-        from src.application.agent_skills.allowed_tools import ticked_skills_for_domains
-
-        return ticked_skills_for_domains(agent, matched)
-
     def _resolve_active_tools(
         self,
         agent: AgentProfile,
         user_content: Optional[str] = None,
         matched_capability_ids: Optional[list] = None,
-        active_skills: Optional[Sequence[str]] = None,
         planning_phase: Optional[bool] = None,
     ) -> List[Any]:
         """
-        Pick this turn's tools from the agent's allowed set (ADR-0061). Every step only narrows:
-        the matched capability subset (required platform tools stay), then the per-turn clamp
-        (MAX_ACTIVE_TOOLS_PER_TURN) where the project core tools, then active ticked skills, rank first. An empty intersection mounts required tools only.
+        This call's tools: every tool the agent is allowed (ticked skills + base tools), all at once
+        (CARD-578, ADR-0064). No cap, ranking or keyword matching. Only policy narrows: a Formulate
+        phase does not get work tools (CARD-554), and a job locked to matched capabilities mounts
+        only those (plus the required platform tools), the same set ToolPolicyGate enforces.
         """
         if getattr(agent, "id", None) == "direct":
             return []
@@ -825,10 +714,11 @@ class AgentKernel:
         ids = matched_capability_ids
         if ids is None:
             ids = getattr(self, "_turn_matched_capability_ids", None)
-
-        derived = [str(cid).strip()[len("skill.") :] for cid in ids or [] if str(cid).strip().startswith("skill.")]
-        phase_skills = {s for s in derived if s in ticks}
-        active_skills = [s for s in dict.fromkeys(list(active_skills or []) + derived) if s in ticks]
+        phase_skills = {
+            str(cid).strip()[len("skill.") :]
+            for cid in ids or []
+            if str(cid).strip().startswith("skill.") and str(cid).strip()[len("skill.") :] in ticks
+        }
 
         tools = list(self.tool_registry.get_tools_for_agent(agent))
         if planning_phase is None:
@@ -860,74 +750,6 @@ class AgentKernel:
                     tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
         except Exception:
             pass
-
-        # CARD-362 / ADR-0054 / CARD-377: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 15, CARD-562)
-        if len(tools) > MAX_ACTIVE_TOOLS_PER_TURN:
-            active_skill_set = {str(s).strip().lower() for s in (active_skills or [])}
-            import re
-            user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) - _RANK_FILLER_WORDS
-
-            from src.application.agent_skills.schema import CAPABILITY_AUTHORING_TOOL_NAMES
-            from src.application.tools.native_packaging import AUTHORING_TOOL_NAMES, load_native_tool_names
-
-            native_names = load_native_tool_names(self.state_store)
-            text_l = (user_content or "").lower()
-
-            def _tool_priority(t: Any) -> tuple[int, int, str]:
-                name = getattr(t, "name", "")
-                desc = (getattr(t, "description", "") or "").lower()
-                name_words = set(re.findall(r"\b[a-z]{3,}\b", name.lower()))
-                desc_words = set(re.findall(r"\b[a-z]{3,}\b", desc))
-                overlap = 2 * len(name_words & user_tokens) + len((desc_words - name_words) & user_tokens)
-
-                # Named native custom tools and the authoring tools stay visible [CARD-423].
-                if name and name.lower() in text_l and (name in native_names or name in AUTHORING_TOOL_NAMES):
-                    return (0, -overlap, name)
-
-                # Opening a named allowlisted runbook keeps skill_view inside the turn cap [CARD-427].
-                if name == "skill_view":
-                    allowed_ids = {
-                        str(sid).strip().lower()
-                        for sid in (getattr(agent, "allowed_skill", None) or [])
-                        if str(sid).strip()
-                    }
-                    if any(sid in text_l for sid in allowed_ids):
-                        return (0, 0, name)
-
-                # Naming the catalog tool keeps it inside the turn cap [CARD-428].
-                if name == "list_user_skills" and "list_user_skills" in text_l:
-                    return (0, 0, name)
-
-                # Builder HITL stays off the default eight until the turn asks for it [CARD-429].
-                if name in CAPABILITY_AUTHORING_TOOL_NAMES:
-                    if _capability_authoring_requested(text_l):
-                        named = name in text_l or name.replace("_", " ") in text_l
-                        return (0, 0 if named else 1, name)
-                    return (3, 0, name)
-
-                # CARD-562: an agent that works a project always sees its read/search/info tools,
-                # ahead of word-overlap ranking (round 4: Developer lost read_project_file).
-                if name in PROJECT_CORE_TOOLS:
-                    return (0, -1000, name)
-                if name in CARD_WORK_TOOLS:
-                    return (0, -900, name)
-
-                # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_ and declared tool sets)
-                is_active = bool(active_skill_set & {s.lower() for s in allowed.skills_for(name)})
-                if is_active:
-                    boost = 1 if any(k in name for k in ("execute", "info", "list", "get", "status")) else 0
-                    score = -(overlap * 2 + boost)
-                    return (0, score, name)
-
-                # Priority 1: Core baseline coordination primitives
-                if name in BASELINE_COORDINATION_TOOLS:
-                    return (1, 0, name)
-                # Priority 2: Other generic / unactivated tools (ranked by query overlap)
-                return (2, -overlap, name)
-
-            tools.sort(key=_tool_priority)
-            tools = tools[:MAX_ACTIVE_TOOLS_PER_TURN]
-
         return tools
 
     async def run_turn(
@@ -961,16 +783,13 @@ class AgentKernel:
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
-        turn_active_skills: Set[str] = set(
-            self._match_intent_skills(user_content, agent=agent, extra_domains=self._get_discovered_mcp_domains())
-        )
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(
             agent,
             user_content,
             matched_capability_ids=self._turn_matched_capability_ids,
-            active_skills=list(turn_active_skills),
         )
+        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
@@ -1204,7 +1023,6 @@ class AgentKernel:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
 
-            skills_changed = False
             for tc in assistant_msg.tool_calls:
                 gated = self._gate_tool_call(
                     tc,
@@ -1215,6 +1033,7 @@ class AgentKernel:
                     matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id"), agent=agent),
                     job_id=react_ctx.get("job_id"),
                     planning_phase=self._is_planning_phase(react_ctx.get("phase_id")),
+                    offered=offered_names,
                 )
                 if gated is not None:
                     tool_res = gated
@@ -1225,18 +1044,9 @@ class AgentKernel:
                         session_id=session_id,
                         approval_mode=approval_mode,
                         job_id=react_ctx.get("job_id"),
-                        active_skills=list(turn_active_skills),
+                        offered=offered_names,
                     )
 
-                if tc.name == "activate_skill" and tool_res.success:
-                    out = tool_res.output if isinstance(tool_res.output, dict) else {}
-                    new_skills = out.get("activated_skills", [])  # ticked skills only (CARD-539)
-                    if isinstance(new_skills, list):
-                        for s in new_skills:
-                            s_clean = str(s).strip().lower()
-                            if s_clean and s_clean not in turn_active_skills:
-                                turn_active_skills.add(s_clean)
-                                skills_changed = True
 
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
@@ -1290,13 +1100,6 @@ class AgentKernel:
                     self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
                     return parked_msg
 
-            if skills_changed:
-                active_tools = self._resolve_active_tools(
-                    agent,
-                    user_content,
-                    matched_capability_ids=self._turn_matched_capability_ids,
-                    active_skills=list(turn_active_skills),
-                )
             last_turn_end = time.perf_counter()
 
         self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
@@ -1353,16 +1156,13 @@ class AgentKernel:
                 for ev in replay:
                     yield ev
                 return
-        turn_active_skills: Set[str] = set(
-            self._match_intent_skills(user_content, agent=agent, extra_domains=self._get_discovered_mcp_domains())
-        )
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(
             agent,
             user_content,
             matched_capability_ids=self._turn_matched_capability_ids,
-            active_skills=list(turn_active_skills),
         )
+        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
@@ -1674,7 +1474,6 @@ class AgentKernel:
                 yield calling_ev
 
             # Execute tool calls
-            skills_changed = False
             for tc in collected_tool_calls:
                 is_handoff_tool = tc.name in ("handoff_to_agent", "hand_off_card")
                 if is_handoff_tool:
@@ -1710,6 +1509,7 @@ class AgentKernel:
                     matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id"), agent=agent),
                     job_id=react_ctx.get("job_id"),
                     planning_phase=self._is_planning_phase(react_ctx.get("phase_id")),
+                    offered=offered_names,
                 )
                 if gated is not None:
                     tool_res = gated
@@ -1733,7 +1533,7 @@ class AgentKernel:
                         session_id=session_id,
                         approval_mode=approval_mode,
                         job_id=react_ctx.get("job_id"),
-                        active_skills=list(turn_active_skills),
+                        offered=offered_names,
                     )
                     nested = tool_res.output if isinstance(tool_res.output, dict) else None
                     if nested and nested.get("status") == "approval_required" and nested.get("approval_id"):
@@ -1749,15 +1549,6 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
 
-                if tc.name == "activate_skill" and tool_res.success:
-                    out = tool_res.output if isinstance(tool_res.output, dict) else {}
-                    new_skills = out.get("activated_skills", [])  # ticked skills only (CARD-539)
-                    if isinstance(new_skills, list):
-                        for s in new_skills:
-                            s_clean = str(s).strip().lower()
-                            if s_clean and s_clean not in turn_active_skills:
-                                turn_active_skills.add(s_clean)
-                                skills_changed = True
 
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
@@ -1849,13 +1640,6 @@ class AgentKernel:
                     )
                     return
 
-            if skills_changed:
-                active_tools = self._resolve_active_tools(
-                    agent,
-                    user_content,
-                    matched_capability_ids=self._turn_matched_capability_ids,
-                    active_skills=list(turn_active_skills),
-                )
             last_turn_end = time.perf_counter()
 
         # If turn limit reached

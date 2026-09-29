@@ -1,7 +1,6 @@
 """
 Platform Primitive Tools [CARD-339, ADR-0052].
 Lean baseline primitives mounted on all standard turns:
-- activate_skill(skills: list[str])
 - ask_clarification(question: str)
 - get_session_info()
 """
@@ -9,7 +8,7 @@ Lean baseline primitives mounted on all standard turns:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry, get_tool_context
 
@@ -22,48 +21,6 @@ class PlatformPrimitiveTools:
     def __init__(self, state_store: Optional[Any] = None, tool_registry: Optional[ScopedToolRegistry] = None) -> None:
         self.state_store = state_store
         self.tool_registry = tool_registry
-
-    def activate_skill(self, skills: List[str]) -> Dict[str, Any]:
-        """
-        Load the tools of one or more skills ticked for this agent for the current turn.
-        Skills that are not ticked are refused and mount nothing (CARD-539, ADR-0061).
-        """
-        from src.application.agent_skills.allowed_tools import skill_tools
-
-        ctx = get_tool_context() or {}
-        agent_id = ctx.get("agent_id")
-        ticks = {str(s).strip().lower(): str(s).strip() for s in ctx.get("allowed_skill") or [] if str(s).strip()}
-        requested = [str(s).strip() for s in skills or [] if str(s).strip()]
-        valid = [ticks[s.lower()] for s in requested if s.lower() in ticks]
-        refused = [s for s in requested if s.lower() not in ticks]
-        bound = skill_tools(valid, agent_id)
-        names = [t.name for t in self.tool_registry.list_tools()] if self.tool_registry is not None else []
-        activated_tools = list(
-            dict.fromkeys(
-                n
-                for sid in valid
-                for t in bound.get(sid) or []
-                for n in ([x for x in names if x.startswith(t[:-1])] if t.endswith("*") else [t])
-            )
-        )
-
-        parts = []
-        if valid:
-            parts.append(f"Activated skills: {', '.join(valid)}. Tools available for subsequent steps: {', '.join(activated_tools)}.")
-        if refused:
-            parts.append(
-                f"These skills are not ticked for this agent: {', '.join(refused)}. Nothing was loaded for them; "
-                "hand off to an agent that has the skill, or suggest Ask Developer."
-            )
-        return {
-            "status": "activated" if valid else "refused",
-            "activated_skills": valid,
-            "activated_tools": activated_tools,
-            "refused_skills": refused,
-            "session_id": ctx.get("session_id"),
-            "agent_id": agent_id,
-            "message": " ".join(parts) or "No skills named.",
-        }
 
     def ask_clarification(self, question: str) -> Dict[str, Any]:
         """
@@ -116,23 +73,6 @@ class PlatformPrimitiveTools:
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register the platform primitives into the ScopedToolRegistry."""
         self.tool_registry = registry
-        registry.register_tool(
-            name="activate_skill",
-            description="Load the tools of skills ticked for you (listed under Your domain) for the current turn. Unticked skills are refused.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "skills": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of platform skill names to activate, e.g. ['wiki'] or ['diagnostics'].",
-                    },
-                },
-                "required": ["skills"],
-            },
-            handler=self.activate_skill,
-        )
-
         registry.register_tool(
             name="ask_clarification",
             description="Ask the operator a clarifying question when intent, scope, or parameters are ambiguous.",

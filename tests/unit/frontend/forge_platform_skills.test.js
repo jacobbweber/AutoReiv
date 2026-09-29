@@ -57,11 +57,10 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(forgeJs).toContain('OS BASELINE');
   });
 
-  it('shows seven required tools and says Direct mounts none [CARD-429]', () => {
+  it('shows six required tools and says Direct mounts none [CARD-429, CARD-578]', () => {
     const html = read('src/web/templates/index.html');
     const toolsJs = read('src/web/static/modules/studios/forge/tools.js');
     for (const name of [
-      'activate_skill',
       'ask_clarification',
       'handoff_to_agent',
       'lookup_agents',
@@ -71,6 +70,7 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     ]) {
       expect(toolsJs).toContain(name);
     }
+    expect(toolsJs).not.toContain('activate_skill');
     expect(html).toContain('Direct mounts none');
     expect(html).not.toContain('enforced for every agent');
     expect(toolsJs).not.toContain('for all agents');

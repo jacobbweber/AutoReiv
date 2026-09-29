@@ -20,13 +20,6 @@ WITHHELD_PLATFORM_TOOLS: dict[str, frozenset[str]] = {"architect": frozenset({"h
 # Checkers the platform itself runs after a turn (reflexion / phase verification). Never offered to a model.
 PLATFORM_VERIFIER_TOOLS = frozenset({"verify_telemetry_consistency", "assert_json_schema", "validate_metric_bounds"})
 PLATFORM = "platform"
-# CARD-562: code work in the active project matches the coding intent as well as the checkout repo_file_* tools.
-DOMAIN_EXTRA_TOOLS = {
-    "coding": frozenset(
-        {"read_project_file", "write_project_file", "patch_project_file", "search_project", "run_project_checks"}
-    ),
-}
-
 
 @dataclass(frozen=True)
 class AllowedTools:
@@ -117,30 +110,6 @@ def resolve_allowed_tools(agent: Any) -> AllowedTools:
     ordered = tuple(t for t in provenance if not t.endswith("*"))
     patterns = tuple(t for t in provenance if t.endswith("*"))
     return AllowedTools(ordered=ordered, provenance=provenance, patterns=patterns)
-
-
-def ticked_skills_for_domains(agent: Any, domains: Iterable[str]) -> list[str]:
-    """Map intent domains (wiki, coding, an MCP server name...) onto the agent's ticked skills only.
-
-    A ticked skill matches a domain when it is that domain, or binds a tool the domain's seed binds,
-    or binds that MCP server's tools. Nothing outside the ticks is ever returned (REQ-539-003).
-    """
-    wanted = [str(d).strip().lower() for d in domains if str(d).strip()]
-    if not wanted:
-        return []
-    ticks = ticked_skills(agent)
-    bound = skill_tools(ticks, str(_field(agent, "id") or ""))
-    domain_tools = _store().skill_tools(wanted)
-    out: list[str] = []
-    for sid in ticks:
-        tools = set(bound.get(sid) or [])
-        for dom in wanted:
-            seed = set(domain_tools.get(dom) or []) | DOMAIN_EXTRA_TOOLS.get(dom, frozenset())
-            mcp = f"mcp_{dom.replace('-', '_')}_"
-            if sid.lower() == dom or tools & seed or any(t.startswith(mcp) for t in tools):
-                out.append(sid)
-                break
-    return out
 
 
 def skill_that_binds(tool: str, agent_id: Optional[str] = None) -> Optional[str]:

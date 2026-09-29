@@ -78,11 +78,10 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     expect(list).not.toContain('$DATA_DIR');
   });
 
-  it('keeps the seven baseline chips and the Direct caption [REQ-430-004]', () => {
+  it('keeps the six baseline chips and the Direct caption [REQ-430-004, CARD-578]', () => {
     expect(html).toContain('id="forgeBaselineGrid"');
     expect(html).toContain('Direct mounts none');
     for (const name of [
-      'activate_skill',
       'ask_clarification',
       'handoff_to_agent',
       'lookup_agents',
@@ -92,6 +91,7 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     ]) {
       expect(toolsJs).toContain(name);
     }
+    expect(toolsJs).not.toContain('activate_skill');
     expect(html).toContain('id="forgeMcpServersCard"');
     expect(html).toContain('id="forgeCredentialGrantsCard"');
   });

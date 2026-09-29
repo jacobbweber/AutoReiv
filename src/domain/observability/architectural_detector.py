@@ -60,7 +60,7 @@ class ArchitecturalThresholdDetector:
 
     def __init__(
         self,
-        max_active_tools: int = 15,  # = kernel MAX_ACTIVE_TOOLS_PER_TURN (CARD-562)
+        max_active_tools: int = 50,  # advisory only; no runtime cap since CARD-578 (ADR-0064), = AgentDefinition limit
         max_schema_chars: int = 4000,
         max_autonomous_turns: int = 5,
         untrusted_tools: Optional[Set[str]] = None,
@@ -127,11 +127,11 @@ class ArchitecturalThresholdDetector:
                     session_id=session_id,
                     evidence=(
                         f"Turn mounted {active_tool_count} tools, exceeding the "
-                        f"Rule of 7 budget ({self.max_active_tools})."
+                        f"advisory tool budget ({self.max_active_tools})."
                     ),
                     remediation_proposal=(
-                        "Decompose agent skill into modular SOPs or rely on demand-paged "
-                        "tool mounting to preserve the Rule of 7 entropy budget."
+                        "Untick skills the agent does not use or split the agent: every ticked "
+                        "skill's tools are sent on every model call (ADR-0064)."
                     ),
                     occurred_at=occurred_at,
                     metadata={"active_tool_count": active_tool_count, "span_id": span_dict.get("span_id") or span_dict.get("id")},
@@ -157,8 +157,8 @@ class ArchitecturalThresholdDetector:
                         f"(> {self.max_schema_chars} limit), imposing heavy latency and KV-cache tax."
                     ),
                     remediation_proposal=(
-                        "Adopt compact capability index and demand-paged tool schemas to restore "
-                        "lean sub-second Time to First Token."
+                        "Untick unused skills and trim tool descriptions to restore "
+                        "lean sub-second Time to First Token (all ticked tools are sent, ADR-0064)."
                     ),
                     occurred_at=occurred_at,
                     metadata={"tool_schema_chars": tool_schema_chars, "span_id": span_dict.get("span_id") or span_dict.get("id")},

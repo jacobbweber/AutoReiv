@@ -50,7 +50,6 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
 
 _DEFAULT_SAFE: frozenset[str] = frozenset(
     {
-        "activate_skill",
         "ask_clarification",
         "get_session_info",
         "lookup_agents",

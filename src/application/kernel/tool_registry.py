@@ -9,7 +9,7 @@ import re
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Collection, Dict, List, Optional
 
 from src.domain.gateway.models import ToolCall, ToolDefinition
 from src.domain.kernel.models import AgentProfile, ToolResult
@@ -156,11 +156,8 @@ class ScopedToolRegistry:
         """Check whether a tool name is registered."""
         return name in self._tools
 
-    def get_tools_for_agent(self, agent: AgentProfile, active_skills: Optional[Sequence[str]] = None) -> List[ToolDefinition]:
-        """Registered tools the agent may call: exactly resolve_allowed_tools (ADR-0061).
-
-        ``active_skills`` is accepted for old callers and ignored; selection narrows later.
-        """
+    def get_tools_for_agent(self, agent: AgentProfile) -> List[ToolDefinition]:
+        """Registered tools the agent may call: exactly resolve_allowed_tools (ADR-0061); all are sent (ADR-0064)."""
         from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 
         allowed = resolve_allowed_tools(agent)
@@ -174,10 +171,15 @@ class ScopedToolRegistry:
         approval_mode: Optional[str] = None,
         job_id: Optional[str] = None,
         state_store: Optional[Any] = None,
-        active_skills: Optional[Sequence[str]] = None,
+        offered: Optional[Collection[str]] = None,
     ) -> ToolResult:
         """
         Execute a tool call after verifying RBAC permissions against the agent profile.
+
+        ``offered``: the tool names sent to the model on the call that produced this tool call. When given,
+        a tool outside it is refused even if the agent is allowed it (CARD-578). Platform-side runs (an
+        approved HITL resume, routines replaying an approved call) pass None and are checked against the
+        allowed set only.
         """
         mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
         store = state_store or self.state_store
@@ -203,12 +205,11 @@ class ScopedToolRegistry:
                 "approval_mode": mode,
                 "job_id": job_id,
                 "allowed_skill": list(getattr(agent, "allowed_skill", None) or []),
-                "active_skills": list(active_skills or []),
                 "credentials": resolved_creds,
             }
         )
         try:
-            return await self._execute_inner(tool_call, agent)
+            return await self._execute_inner(tool_call, agent, offered=offered)
         finally:
             for k in env_vars_set:
                 os.environ.pop(k, None)
@@ -222,7 +223,9 @@ class ScopedToolRegistry:
         only = AllowedTools(ordered=(name,), provenance={name: ("platform",)}) if name else AllowedTools()
         return await self._execute_inner(tool_call, agent, allowed=only)
 
-    async def _execute_inner(self, tool_call: ToolCall, agent: AgentProfile, allowed: Any = None) -> ToolResult:
+    async def _execute_inner(
+        self, tool_call: ToolCall, agent: AgentProfile, allowed: Any = None, offered: Optional[Collection[str]] = None
+    ) -> ToolResult:
         start_time = time.perf_counter()
 
         # 1. Verify RBAC authorization: the one allowed-tools function (ADR-0061)
@@ -231,42 +234,39 @@ class ScopedToolRegistry:
         if allowed is None:
             allowed = resolve_allowed_tools(agent)
 
-        # Flexible matching for MCP tools (bare name vs scoped name)
+        # Exact names only: no bare-name suffix match to mcp_* tools (CARD-578).
         target_name = tool_call.name
         if target_name not in allowed:
-            matched = False
-            for a in allowed.ordered:
-                if (a.startswith("mcp_") and a.endswith(f"_{target_name}")) or (target_name.startswith("mcp_") and target_name.endswith(f"_{a}")):
-                    matched = True
-                    break
-            if not matched:
-                elapsed_ms = (time.perf_counter() - start_time) * 1000
-                return ToolResult(
-                    call_id=tool_call.id,
-                    tool_name=tool_call.name,
-                    output=None,
-                    success=False,
-                    error=f"Tool '{tool_call.name}' is not authorized for agent '{agent.id}'.",
-                    duration_ms=elapsed_ms,
-                )
+            return ToolResult(
+                call_id=tool_call.id,
+                tool_name=tool_call.name,
+                output=None,
+                success=False,
+                error=f"Tool '{tool_call.name}' is not authorized for agent '{agent.id}'.",
+                duration_ms=(time.perf_counter() - start_time) * 1000,
+            )
+        # CARD-578: only a tool that was sent on this model call may run.
+        if offered is not None and target_name not in offered:
+            return ToolResult(
+                call_id=tool_call.id,
+                tool_name=tool_call.name,
+                output=None,
+                success=False,
+                error=f"tool_not_offered:Tool '{tool_call.name}' was not in the tools sent on this call, so it is not authorized here.",
+                duration_ms=(time.perf_counter() - start_time) * 1000,
+            )
 
         # 2. Verify tool existence
         registration = self._tools.get(target_name)
         if not registration:
-            for t_name, reg in self._tools.items():
-                if t_name.startswith("mcp_") and t_name.endswith(f"_{target_name}"):
-                    registration = reg
-                    break
-            if not registration:
-                elapsed_ms = (time.perf_counter() - start_time) * 1000
-                return ToolResult(
-                    call_id=tool_call.id,
-                    tool_name=tool_call.name,
-                    output=None,
-                    success=False,
-                    error=f"Tool '{tool_call.name}' not found in system registry.",
-                    duration_ms=elapsed_ms,
-                )
+            return ToolResult(
+                call_id=tool_call.id,
+                tool_name=tool_call.name,
+                output=None,
+                success=False,
+                error=f"Tool '{tool_call.name}' not found in system registry.",
+                duration_ms=(time.perf_counter() - start_time) * 1000,
+            )
 
         # 3. Execute tool handler
         try:
