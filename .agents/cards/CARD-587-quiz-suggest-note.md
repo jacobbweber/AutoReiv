@@ -45,8 +45,9 @@ fix the plain-note case.
 - [x] Plain note with definitions -> `<note>-quiz.md` created, items saved, source bytes unchanged.
 - [x] Prose note -> `needs_questions`, nothing written; agent questions are saved, merged without duplicates, gradeable.
 - [x] Notes with their own quiz section unchanged.
-- [ ] Live on the throwaway :8770 with the Tutor (see Log).
+- [x] Live on the throwaway :8770 with the Tutor (see Log).
 
 ## Log
 
 - 2026-09-29: built on the branch with tests (`tests/unit/education/test_card587_quiz_suggest_note.py`).
+- 2026-09-29 (live, throwaway :8770, combined branch): Tutor (qwen3.8 on Nimo, Spark was down) ran tu-02 "Quiz me on the Kubernetes basics note": `education_quiz_extract` created `01_Notes/kubernetes-basics-quiz.md` with 5 questions (link back to the source), the source note hash is unchanged (E39D01E2...), `education_quiz_next` asked a question, tu-03 graded the answer into mastery.
