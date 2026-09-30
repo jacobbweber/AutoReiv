@@ -15,8 +15,9 @@ DEFAULT_MAX_SECONDS = 1200  # CARD-585: 20 min, counted from the model's first t
 SETTING_KEY = "reply_limits"
 MIN_TOKENS = 1024
 # CARD-586: helper calls (memory, detection, planning, Teach) ask for a few hundred tokens; a thinking model spends that
-# before it answers, so non-streaming calls get at least this much room.
-HELPER_MIN_TOKENS = 4096
+# before it answers, so non-streaming calls get at least this much room. CARD-591: 4096 cut 4 of 22 nemotron helper
+# calls (finish_reason length) on 2026-09-30, so 16384 (still at most a quarter of the window).
+HELPER_MIN_TOKENS = 16384
 
 
 class ReplyLimitStop(Exception):

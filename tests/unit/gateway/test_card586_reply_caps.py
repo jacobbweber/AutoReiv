@@ -79,6 +79,6 @@ async def test_a_broken_resolver_falls_back_to_the_default():
 async def test_small_helper_caps_get_room_to_think_but_chat_limits_are_kept():
     gw, llm = _gw()
     await gw.complete(_req(max_tokens=250))  # capability detector
-    await gw.complete(_req(max_tokens=8000))
+    await gw.complete(_req(max_tokens=20000))
     await _drain(gw, _req(max_tokens=200))  # a chat reply with the user's own Settings limit
-    assert [r.max_tokens for r in llm.requests] == [HELPER_MIN_TOKENS, 8000, 200]
+    assert [r.max_tokens for r in llm.requests] == [HELPER_MIN_TOKENS, 20000, 200]
