@@ -36,8 +36,9 @@ cut at 4096 while still thinking. Jacob prefers generous, bounded limits.
 ## Acceptance
 
 - [x] Helper calls below 16384 get 16384 (or a quarter of a smaller window); larger helper limits and chat limits kept.
-- [ ] Live: no `length` finishes for helper calls in a nemotron battery (see Log).
+- [x] Live: no `length` finishes for helper calls in a nemotron battery (see Log).
 
 ## Log
 
 - 2026-09-30: built on the branch with tests.
+- 2026-09-30 (live, throwaway :8770 on qa + 589/590/591, nemotron): 37 vLLM requests: 31 at 32768, 6 helper calls at 16384, 0 finish_reason `length` (qa run: 4 of 22 helpers cut at 4096).
