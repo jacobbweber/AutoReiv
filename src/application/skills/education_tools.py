@@ -66,9 +66,20 @@ class EducationTools:
         topic: Optional[str] = None,
         persist: bool = True,
         agent_id: Optional[str] = None,
+        questions: Optional[List[Dict[str, Any]]] = None,
+        quiz_path: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Extract Q/A quiz items from a Wiki note; optionally upsert into mastery ledger."""
-        from src.application.education.quiz_engine import extract_quiz_items_from_note
+        """Extract quiz items from a Wiki note; optionally upsert into mastery ledger.
+
+        CARD-587: a plain note (no quiz items) gets suggested questions from its definition lines, or the agent's own
+        ``questions``; both are saved in a separate quiz note (``<note>-quiz.md``). The source note is never edited.
+        """
+        from src.application.education.quiz_engine import (
+            extract_quiz_items_from_note,
+            quiz_note_path_for,
+            render_quiz_note,
+            suggest_quiz_items_from_note,
+        )
 
         path = (wiki_path or "").strip()
         if not path:
@@ -92,6 +103,58 @@ class EducationTools:
         content = note.get("content") or note.get("body") or ""
         title = (topic or "").strip() or note.get("title") or path
         items = extract_quiz_items_from_note(content, wiki_path=path, topic=title)
+        quiz_note: Optional[str] = None
+        suggested = False
+        authored = self._clean_questions(questions)
+        if authored or not items:
+            # CARD-587: questions go to a separate quiz note; the source note is never edited.
+            if not authored:
+                authored = suggest_quiz_items_from_note(content)
+                suggested = bool(authored)
+            if not authored:
+                return {
+                    "success": True,
+                    "wiki_path": path,
+                    "items": [],
+                    "count": 0,
+                    "durable": False,
+                    "needs_questions": True,
+                    "source_edited": False,
+                    "quiz_note_path": quiz_note_path_for(path),
+                    "hint": (
+                        "This note has no quiz items and no definition lines to turn into questions. Read it, write "
+                        "3-7 short-answer questions (the grade is an exact match, so answers should be a word or short "
+                        "phrase), and call education_quiz_extract again with questions=[{prompt, answer}]. They are saved "
+                        f"in {quiz_note_path_for(path)}; do not edit the source note."
+                    ),
+                }
+            qpath = (quiz_path or "").strip().replace("\\", "/") or quiz_note_path_for(path)
+            if qpath.strip("/") == path.strip("/"):
+                return {"success": False, "error": "quiz_path must be a separate note, not the source note.", "durable": False}
+            existing: List[Dict[str, str]] = []
+            try:
+                prior = store.read_note(qpath)
+                if isinstance(prior, dict) and prior.get("success") is not False:
+                    prior_body = prior.get("content") or prior.get("body") or ""
+                    existing = [
+                        {"prompt": it["prompt"], "answer": it["expected_answer"]}
+                        for it in extract_quiz_items_from_note(prior_body, wiki_path=qpath, topic=title)
+                    ]
+            except Exception:  # noqa: BLE001 - no quiz note yet
+                existing = []
+            known = {q["prompt"].casefold() for q in existing}
+            merged = existing + [q for q in authored if q["prompt"].casefold() not in known]
+            body = render_quiz_note(title=title, source_path=path, items=merged)
+            saved = store.write_note(
+                qpath,
+                body,
+                update_frontmatter={"title": f"Quiz: {title}", "template": "education-quiz", "tags": ["education", "quiz"]},
+            )
+            if not isinstance(saved, dict) or not saved.get("success"):
+                err = saved.get("error") if isinstance(saved, dict) else "write failed"
+                return {"success": False, "error": f"Could not save the quiz note {qpath}: {err}", "durable": False}
+            quiz_note = qpath
+            items = items + extract_quiz_items_from_note(body, wiki_path=qpath, topic=title)
         persisted: List[Dict[str, Any]] = []
         agent = self._resolve_agent_id(agent_id)
         if persist and items:
@@ -126,9 +189,25 @@ class EducationTools:
                 "persisted": persisted,
                 "count": len(items),
                 "durable": bool(persisted),
+                "quiz_note_path": quiz_note,
+                "suggested": suggested,
+                "source_edited": False,
                 "http_contract": "POST /api/education/quiz/extract",
             }
         )
+
+    @staticmethod
+    def _clean_questions(questions: Any) -> List[Dict[str, str]]:
+        """CARD-587: agent-written questions as [{prompt, answer}] (also accepts question/expected_answer keys)."""
+        out: List[Dict[str, str]] = []
+        for q in questions or []:
+            if not isinstance(q, dict):
+                continue
+            prompt = str(q.get("prompt") or q.get("question") or "").strip()
+            answer = str(q.get("answer") or q.get("expected_answer") or "").strip()
+            if prompt and answer:
+                out.append({"prompt": " ".join(prompt.split()), "answer": " ".join(answer.split())})
+        return out
 
     def education_quiz_next(
         self,
@@ -792,8 +871,10 @@ class EducationTools:
         registry.register_tool(
             name="education_quiz_extract",
             description=(
-                "Extract Q/A quiz items from a Wiki note (## Quiz section) and optionally "
-                "persist them into the education_mastery ledger (POST /api/education/quiz/extract)."
+                "Extract quiz items from a Wiki note and persist them into the education_mastery ledger. "
+                "A note without quiz items gets suggested questions (from its definition lines) or your own "
+                "questions=[{prompt, answer}], saved in a separate quiz note (<note>-quiz.md); the source note is "
+                "never edited. Answers are graded by exact match, so keep them to a word or short phrase."
             ),
             parameters={
                 "type": "object",
@@ -813,6 +894,19 @@ class EducationTools:
                     "agent_id": {
                         "type": "string",
                         "description": "Optional agent id for memory.db (defaults to caller / tutor).",
+                    },
+                    "questions": {
+                        "type": "array",
+                        "description": "Optional questions you wrote, saved in the separate quiz note.",
+                        "items": {
+                            "type": "object",
+                            "properties": {"prompt": {"type": "string"}, "answer": {"type": "string"}},
+                            "required": ["prompt", "answer"],
+                        },
+                    },
+                    "quiz_path": {
+                        "type": "string",
+                        "description": "Optional Wiki path for the quiz note (default <note>-quiz.md next to it).",
                     },
                 },
                 "required": ["wiki_path"],

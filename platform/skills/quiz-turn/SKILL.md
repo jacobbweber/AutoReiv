@@ -9,7 +9,7 @@ tools:
 - wiki_note_search
 - wiki_note_list
 - wiki_template_list
-version: 1.1.0
+version: 1.2.0
 tier: platform
 safety:
   read_only: false
@@ -26,7 +26,7 @@ Execute a single retrieval quiz turn with durable grading.
 
 ## Turn shape (Tutor education mode)
 
-1. **Select item** — call `education_quiz_next` (optional `topic`). If empty, `education_quiz_extract` from a Wiki note (`education-quiz` template / `## Quiz` section) with `persist=true`.
+1. **Select item** — call `education_quiz_next` (optional `topic`). If empty, `education_quiz_extract` from a Wiki note with `persist=true`. A plain note (no quiz section) gets suggested questions saved in a separate quiz note (`<note>-quiz.md`); if it returns `needs_questions`, write 3-7 short-answer questions and call it again with `questions=[{prompt, answer}]`. Never edit the source note to add a quiz.
 2. **Prompt learner** — present `prompt` in chat (Socratic method OK inside this skill).
 3. **Grade** — when the learner answers, call `education_quiz_grade` with `item_id` + `answer`.
 4. **Report honestly** — only claim pass/miss / `next_due` from the tool return. If `success` is false, tell the operator the grade did **not** persist (no bubble theatre).
