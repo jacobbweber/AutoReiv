@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-523: handoff_to_agent accepts agent_id/task; {raw: json} arguments are unwrapped; skill_view takes skill_name/id/name/skills; the skill index shows ids; a child that hits its step limit is reported incomplete with its real turn count.
 - CARD-461: a reply that runs out of steps ends with a short no-tools summary and 'Say keep going to continue', not 'Execution terminated: Max turn budget'.
 - CARD-551 (+460): an identical tool call right after itself returns the earlier result instead of running again; a loop stop answers with one no-tools call instead of 'Execution terminated'; the churn rule is gone.
 - CARD-552: read_document_file reads only inside the data/attachments folder, wiki vault, selected project and scratch; other paths are refused with a pointer to repo_file_read / read_project_file; db, key and .env files are never read.

@@ -1,7 +1,8 @@
 ---
 id: CARD-523
 title: "Tool-argument robustness: handoff_to_agent TypeError on agent_id/task, activate_skill string lists and runbook ids, blocked coding tools, and replies that hide a failed tool call"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-26
 branch: qa
 related:
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-523] Tool-argument robustness and honest failure reporting
 
-> **Status**: Ready (found in CARD-497 live tests on serve with vLLM `nemotron-3.5-lightning`, 2026-09-26 10:50 AM - 11:20 AM ET). P2: a real Developer handoff was silently lost and the operator got generic advice instead.
+> **Status**: Done (merged into qa 2026-09-30)
 > **Related**: CARD-497 (agent-authoring now names the exact arguments and AutoReiv routes teach requests to `skill_view('agent-authoring')`; this card fixes the tools themselves), CARD-427 (skill index / skill_view), CARD-376 (skill audit)
 > **Labels**: `type:bug`, `area:kernel`, `area:orchestration`, `P2`
 
@@ -57,3 +58,21 @@ Session `f67162a7-3462-40c4-ad73-882086a77af2` (Jacob, "Teach AutoReiv to read I
 
 - 2026-09-29: battery triage: items 2 (activate_skill parts) and 4 are obsolete since CARD-578 removed activate_skill; handoff_to_agent still rejects agent_id/task (no alias), rest still open
 - 2026-09-29: battery triage: item 3 seen again: AutoReiv (Spark) called skill_view('weekly-work-logs') from the skill's display name; the refusal listed the ids and it recovered with 'wiki_tasks'
+
+## Outcome (2026-09-30)
+
+- Item 1: `handoff_to_agent` accepts `agent_id` and `task` (aliases of `target_agent_id` / `task_directive`). Other
+  unknown keywords already get CARD-562's "Unknown: x. Accepted parameters: ..." message.
+- Item 5 (raw): the tool registry unwraps `{"raw": "<json object>"}` into the real arguments for any tool that does not
+  itself take `raw` (fixes `ask_clarification({"raw": ...})`).
+- Item 2: `skill_view` accepts `skill_name`, `id`, `name` and `skills` (first item; a list sent as a string works);
+  a call with no id gets a plain error.
+- Item 3: the skill index shows `Name (id: <id>)` when the name differs from the id.
+- Item 6: a hand-off whose child hit its step limit (CARD-461 footer/fallback) is `incomplete`, reported as
+  `=== Subagent Handoff Incomplete (<agent>) === Status: incomplete (stopped at its step limit)`; `Turns Used` is the
+  child's real step count (was always 1).
+- Items 2 (activate_skill) and 4: obsolete (CARD-578 removed activate_skill).
+- Not done here: item 5 (ask_clarification ends the turn) and item 7 (append a note when the final reply hides a failed
+  tool call) - both change reply behavior; left for a follow-up card.
+- Tests: `tests/unit/orchestration/test_card523_tool_argument_robustness.py`.
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

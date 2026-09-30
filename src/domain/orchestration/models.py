@@ -57,7 +57,7 @@ class HandoffResult(BaseModel):
     correlation_id: str = Field(description="Trace correlation identifier from the envelope")
     sender_agent_id: str = Field(description="Original calling agent ID")
     recipient_agent_id: str = Field(description="Target specialist agent ID")
-    status: Literal["completed", "failed", "rejected", "timed_out", "approval_required"] = Field(
+    status: Literal["completed", "incomplete", "failed", "rejected", "timed_out", "approval_required"] = Field(
         description="Execution lifecycle termination status"
     )
     summary: str = Field(description="Synthesized conclusion and output produced by the specialist")

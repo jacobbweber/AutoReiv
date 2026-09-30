@@ -41,6 +41,24 @@ TRACKED_SKILL_FILES = (SKILL_MD_NAME, PLAYBOOK_NOTES_MD, NOTES_JSONL)
 LAST_USED_NAME = ".last_used"
 
 
+def _first_skill(skills: Any) -> str:
+    """First id from a list, or from a list sent as a JSON/Python string ("['a', 'b']")."""
+    if isinstance(skills, str):
+        text = skills.strip()
+        if text.startswith("["):
+            try:
+                import ast
+
+                skills = ast.literal_eval(text)
+            except (ValueError, SyntaxError):
+                return text.strip("[]'\" ")
+        else:
+            return text
+    if isinstance(skills, (list, tuple)) and skills:
+        return str(skills[0]).strip()
+    return ""
+
+
 def render_skill_index(allowed_skill, catalog=None, agent_id=None) -> str:
     """Name + blurb for ticked runbooks only. Empty allowlist injects nothing.
 
@@ -70,10 +88,12 @@ def render_skill_index(allowed_skill, catalog=None, agent_id=None) -> str:
             if entry is None:
                 continue
             name, blurb = entry
+        # CARD-523: show the id next to the name so skill_view gets the id.
+        label = name if name == skill_id else f"{name} (id: {skill_id})"
         if blurb:
-            lines.append(f"- {name}: {blurb}")
+            lines.append(f"- {label}: {blurb}")
         else:
-            lines.append(f"- {name}")
+            lines.append(f"- {label}")
     if not lines:
         return ""
     header = (
@@ -338,8 +358,19 @@ class UserSkillCatalog:
                 )
         return {"skills": skill_rows}
 
-    def skill_view(self, skill_id: str) -> Dict[str, Any]:
-        """Tool handler: load SKILL.md body for one allowed runbook."""
+    def skill_view(
+        self,
+        skill_id: str = "",
+        skill_name: Optional[str] = None,
+        id: Optional[str] = None,  # noqa: A002 - models send it
+        name: Optional[str] = None,
+        skills: Any = None,
+    ) -> Dict[str, Any]:
+        """Tool handler: load SKILL.md body for one allowed runbook.
+        CARD-523: skill_name / id / name / skills (first item, list or list-as-string) are aliases of skill_id."""
+        skill_id = skill_id or skill_name or id or name or _first_skill(skills)
+        if not skill_id:
+            return {"success": False, "error": "skill_view needs skill_id (one id from the skill list)."}
         allowed = self._allowed_skill_ids_for_current_agent()
         if allowed is not None and skill_id not in allowed:
             # CARD-564: models often pass the skill's display name ("Review Developer's Work"); map it to its id.

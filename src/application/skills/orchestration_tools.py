@@ -238,9 +238,12 @@ class OrchestrationTools:
         done_when: Optional[str] = None,
         budget: Optional[Dict[str, Any]] = None,
         batch: Optional[List[Dict[str, Any]]] = None,
+        agent_id: Optional[str] = None,
+        task: Optional[str] = None,
     ) -> Any:
         """
         Execute an isolated delegation handoff to target agent.
+        CARD-523: agent_id / task are accepted as aliases of target_agent_id / task_directive.
         Child receives a HandoffPacket only [REQ-ORCH-036]. Batch > cap errors [REQ-ORCH-038].
         """
         from src.application.kernel.tool_registry import get_tool_context
@@ -260,8 +263,8 @@ class OrchestrationTools:
                 outputs.append(await self.handoff_to_agent(**item))
             return outputs
 
-        target = target_agent_id or target_agent
-        directive = task_directive or task_intent or goal
+        target = target_agent_id or target_agent or agent_id
+        directive = task_directive or task_intent or task or goal
         if not target:
             return (
                 "=== Subagent Handoff Failed ===\n"
@@ -356,6 +359,13 @@ class OrchestrationTools:
                 f"=== Subagent Handoff Completed ({result.recipient_agent_id}) ===\n"
                 f"Status: {result.status} | Turns Used: {result.turns_used}{link_line}\n"
                 f"Conclusion:\n{result.summary}"
+            )
+        elif result.status == "incomplete":
+            # CARD-523: the child ran out of steps; never report that as completed.
+            return (
+                f"=== Subagent Handoff Incomplete ({result.recipient_agent_id}) ===\n"
+                f"Status: incomplete (stopped at its step limit) | Turns Used: {result.turns_used}\n"
+                f"What it reported:\n{result.summary}"
             )
         elif result.status == "rejected":
             return (

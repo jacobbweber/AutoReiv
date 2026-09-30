@@ -229,7 +229,7 @@ class CardHandoffTools:
                 "recipient_agent_id": result.recipient_agent_id,
                 "developer_session_id": child_id,
             }
-        if result.status in ("rejected", "failed", "timed_out"):
+        if result.status in ("rejected", "failed", "timed_out", "incomplete"):
             return (
                 f"=== Hand-off {result.status}: {cid} ===\n{result.error_message or 'Developer did not finish.'}\n"
                 + card_outcome(root, cid, self._card_tools, child_id)

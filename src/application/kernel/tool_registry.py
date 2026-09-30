@@ -4,6 +4,7 @@ Scoped Tool Registry with Role-Based Access Control (RBAC) [REQ-KERNEL-002].
 
 import asyncio
 import inspect
+import json
 import re
 import time
 from contextvars import ContextVar
@@ -35,6 +36,22 @@ def credential_env_from_context() -> Dict[str, str]:
     """CARD-519: the calling agent's own credentials as env overrides for one subprocess (never os.environ)."""
     creds = (_tool_context.get() or {}).get("credentials") or {}
     return {credential_env_key(cid): secret for cid, secret in creds.items() if secret}
+
+
+def unwrap_raw_arguments(handler: Any, args: Dict[str, Any]) -> Dict[str, Any]:
+    """CARD-523: {"raw": "{...}"} (the model's JSON arguments wrapped as one string) becomes the real arguments."""
+    if not isinstance(args, dict) or set(args) != {"raw"} or not isinstance(args.get("raw"), str):
+        return args
+    try:
+        if "raw" in inspect.signature(handler).parameters:
+            return args
+    except (TypeError, ValueError):
+        return args
+    try:
+        parsed = json.loads(args["raw"])
+    except ValueError:
+        return args
+    return parsed if isinstance(parsed, dict) else args
 
 
 def argument_mismatch_error(tool_name: str, handler: Any, schema: Optional[Dict[str, Any]], args: Dict[str, Any]) -> Optional[str]:
@@ -279,7 +296,7 @@ class ScopedToolRegistry:
         # 3. Execute tool handler
         try:
             handler = registration.handler
-            args = tool_call.arguments or {}
+            args = unwrap_raw_arguments(handler, tool_call.arguments or {})
             mismatch = argument_mismatch_error(
                 tool_call.name, handler, getattr(registration.definition, "parameters", None), args
             )

@@ -113,7 +113,7 @@ class SupervisorOrchestrator:
             if payload.get("status") == "completed":
                 payload["status"] = "success"
                 payload.setdefault("output", payload.get("summary") or "")
-            elif payload.get("status") in ("failed", "rejected", "timed_out"):
+            elif payload.get("status") in ("failed", "rejected", "timed_out", "incomplete"):
                 payload.setdefault("error", payload.get("error_message") or payload.get("status"))
             return payload
 
