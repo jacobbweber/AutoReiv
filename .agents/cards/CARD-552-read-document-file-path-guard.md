@@ -1,7 +1,8 @@
 ---
 id: CARD-552
 title: "read_document_file reads any path on disk (no path guard)"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-27
 branch: qa
 related:
@@ -17,7 +18,7 @@ milestone: M24
 
 # [CARD-552] read_document_file has no path guard
 
-> **Status**: Ready (filed from CARD-550 live QA, 2026-09-27 ET).
+> **Status**: Done (merged into qa 2026-09-30)
 > **Related**: CARD-539 (D3 made it a required platform tool), CARD-550
 > **Labels**: `type:bug`, `area:tools`, `P2`
 
@@ -32,3 +33,12 @@ Limit `read_document_file` to allowed roots: uploads, the wiki vault, the active
 ## Done when
 
 The unit test passes. A live QA ask to read a checkout `.py` file through AutoReiv no longer gets the file contents from `read_document_file`.
+
+## Outcome (2026-09-30)
+
+- `read_document_file` resolves the path against allowed roots, read at call time: the data folder (attachments live
+  there), the wiki vault, the selected project and the OS scratch folder. Relative paths are tried under each root.
+- Anything else (including `..` escapes) is refused with a message that names `repo_file_read` (Developer) and
+  `read_project_file`. Database, key/cert and `.env` files are refused even inside a root.
+- Tests: `tests/unit/skills/test_card552_document_path_guard.py`; extractor test passes its root.
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

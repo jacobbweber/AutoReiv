@@ -306,9 +306,24 @@ class BuiltinAgentRegistry:
         sandbox_tools.register_tools(tool_registry)
 
         # 10b. Document Reading & Extraction Tools [CARD-145]
+        from src.application.sdlc.paths import default_scratch_root
         from src.application.skills.document_tools import DocumentTools
 
-        document_tools = DocumentTools()
+        def _document_roots():
+            # CARD-552: attachments/data folder, wiki vault, selected project, scratch - never the whole disk
+            data_dir = data_root
+            if data_dir is None:
+                try:
+                    data_dir = DataDirResolver().resolve().root
+                except Exception:
+                    data_dir = None
+            try:
+                project = projects_service.selected_root()
+            except Exception:
+                project = None
+            return [data_dir, wiki_tools.wiki_root, project, default_scratch_root()]
+
+        document_tools = DocumentTools(root_provider=_document_roots)
         document_tools.register_tools(tool_registry)
 
         # 11. Spec-driven SDLC cards / specs / steering
