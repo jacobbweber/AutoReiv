@@ -151,14 +151,14 @@ async def test_supervisor_orchestrator_resolves_sysadmin_alias():
     mock_registry.get_profile.assert_called_with("autoreiv")
 
 
-def test_handoff_envelope_default_max_turns_is_10():
+def test_handoff_envelope_default_max_turns_is_50():
     env = HandoffEnvelope(
         sender_agent_id="conductor",
         recipient_agent_id="coding",
         session_id="sess_card090",
         task_intent="Implement CARD-001",
     )
-    assert env.max_turns == 10
+    assert env.max_turns == 50  # CARD-462
 
 
 def test_handoff_packet_render_excludes_parent_history():

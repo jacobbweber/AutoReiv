@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS  # CARD-462: no hidden 10
+
 
 class CompactAgentCard(BaseModel):
     """
@@ -40,7 +42,10 @@ class HandoffEnvelope(BaseModel):
     )
     correlation_id: str = Field(default_factory=lambda: uuid.uuid4().hex, description="Trace correlation identifier")
     depth: int = Field(default=1, description="Delegation recursion depth tier")
-    max_turns: int = Field(default=10, description="Maximum execution turns permitted for child session")
+    max_turns: int = Field(
+        default=DEFAULT_AGENT_MAX_TURNS,
+        description="Informational; the child runs with its own agent max_turns (CARD-462)",
+    )
     timeout_seconds: float = Field(default=60.0, description="Execution timeout in seconds")
     approval_mode: str = Field(default="ask", description="Parent HITL policy: ask or run [REQ-HITL-028]")
     packet: Optional["HandoffPacket"] = Field(
@@ -177,11 +182,11 @@ class HandoffPacket(BaseModel):
                 try:
                     clean["budget"] = {"max_turns": int(budget_raw)}
                 except ValueError:
-                    clean["budget"] = {"max_turns": 10}
+                    clean["budget"] = {"max_turns": DEFAULT_AGENT_MAX_TURNS}
             elif isinstance(budget_raw, dict):
                 clean["budget"] = dict(budget_raw)
                 if "max_turns" not in clean["budget"]:
-                    clean["budget"]["max_turns"] = 10
+                    clean["budget"]["max_turns"] = DEFAULT_AGENT_MAX_TURNS
 
         return clean
 
@@ -209,7 +214,7 @@ class HandoffPacket(BaseModel):
         cls,
         task_intent: str,
         context_payload: Optional[Dict[str, Any]] = None,
-        max_turns: int = 10,
+        max_turns: int = DEFAULT_AGENT_MAX_TURNS,
     ) -> "HandoffPacket":
         """Map task_intent + context_payload into a complete packet. Never copies parent history."""
         payload = dict(context_payload or {})
@@ -301,7 +306,7 @@ class Phase(BaseModel):
     input_packet_json: Optional[str] = None
     output_packet_json: Optional[str] = None
     parent_phase_id: Optional[str] = None
-    max_turns: int = 10
+    max_turns: int = DEFAULT_AGENT_MAX_TURNS  # CARD-462: the phase runs with its agent's max_turns
     react_state: Optional[ReactState] = None
 
     @field_validator("status", mode="before")
@@ -407,7 +412,7 @@ class PhaseSpec(BaseModel):
     success_rule: str = ""
     assigned_agent_id: Optional[str] = None
     verify_checker: Optional[str] = None
-    max_turns: int = 10
+    max_turns: int = DEFAULT_AGENT_MAX_TURNS  # CARD-462: the phase runs with its agent's max_turns
     parent_phase_id: Optional[str] = None
 
 

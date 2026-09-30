@@ -135,7 +135,7 @@ async def test_handoff_delegates_to_stream_turn(isolated_engine_setup):
     assert kernel.stream_turn_called is True
     assert kernel.run_turn_called is False
     assert kernel.passed_agent.id == "specialist-agent"
-    assert kernel.passed_agent.max_turns == 10
+    assert kernel.passed_agent.max_turns == 5  # CARD-462: the specialist's own max_turns
     assert "sess_root_001_child_" in kernel.passed_session_id
     assert "Handoff Packet" in kernel.passed_user_content
     assert "Goal: Diagnose system load" in kernel.passed_user_content
@@ -447,7 +447,7 @@ async def test_resume_nested_child_rebubbles_second_park(isolated_engine_setup):
 
 
 @pytest.mark.asyncio
-async def test_handoff_applies_at_least_10_child_turns(isolated_engine_setup):
+async def test_handoff_child_runs_with_its_own_max_turns(isolated_engine_setup):
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
@@ -460,10 +460,10 @@ async def test_handoff_applies_at_least_10_child_turns(isolated_engine_setup):
         task_intent="Implement the card",
         depth=1,
     )
-    assert envelope.max_turns == 10
+    assert envelope.max_turns == 50
     result = await engine.execute_handoff(envelope)
     assert result.status == "completed"
-    assert kernel.max_turns == 10
+    assert kernel.max_turns == 5  # CARD-462: no 10..15 clamp; the profile says 5
     assert result.success is True
 
 

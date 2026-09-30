@@ -20,10 +20,6 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 logger = logging.getLogger(__name__)
 
 CHILD_SESSION_MARKER = "_child_"
-_MIN_CHILD_TURNS = 10
-_MAX_CHILD_TURNS = 15
-# CARD-563: a card hand-off (hand_off_card) runs a whole card; slice-1 runs needed about 15 tool calls.
-_MAX_CARD_HANDOFF_TURNS = 40
 # Parent tools whose TOOL row a resumed child writes back to [REQ-HITL-036]; hand_off_card is CARD-563.
 PARENT_HANDOFF_TOOLS = ("handoff_to_agent", "hand_off_card")
 _PROVIDER_FAILURE_MARKERS = (
@@ -41,12 +37,13 @@ def looks_like_provider_failure(text: str) -> bool:
     return any(marker in blob for marker in _PROVIDER_FAILURE_MARKERS)
 
 
-def bound_child_max_turns(envelope_max_turns: int, profile_max_turns: int, cap: int = _MAX_CHILD_TURNS) -> int:
-    """Child turn budget: at least 10 (or the profile), never above the cap (15; 40 for a card hand-off)."""
-    return min(
-        max(int(envelope_max_turns or 0), int(profile_max_turns or 0), _MIN_CHILD_TURNS),
-        cap,
-    )
+def bound_child_max_turns(envelope_max_turns: int, profile_max_turns: int) -> int:
+    """CARD-462 (Jacob): a hand-off child runs with its own agent's max_turns (default 50); no 10..15 clamp."""
+    try:
+        turns = int(profile_max_turns or 0)
+    except (TypeError, ValueError):
+        turns = 0
+    return turns if turns > 0 else DEFAULT_AGENT_MAX_TURNS
 
 
 def child_session_id_for(envelope: Any) -> str:
@@ -385,12 +382,11 @@ class HandoffIsolationEngine:
                 error_message="Execution kernel unavailable for handoff execution.",
             )
 
-        # 6. Bound Turns - at least 10 (or the specialist profile), cap 15.
+        # 6. Turn budget - the specialist's own max_turns (CARD-462).
         bounded_profile = target_profile.model_copy()
         bounded_profile.max_turns = bound_child_max_turns(
             envelope.max_turns,
             getattr(target_profile, "max_turns", DEFAULT_AGENT_MAX_TURNS) or DEFAULT_AGENT_MAX_TURNS,
-            cap=_MAX_CARD_HANDOFF_TURNS if payload.get("card_handoff") else _MAX_CHILD_TURNS,
         )
 
         if on_event:

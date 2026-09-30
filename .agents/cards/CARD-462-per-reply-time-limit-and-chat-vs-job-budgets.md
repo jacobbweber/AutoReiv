@@ -1,7 +1,7 @@
 ---
 id: CARD-462
 title: "Separate turn and time budgets for standing Jobs vs chat (per-reply limit done in CARD-567)"
-status: Ready
+status: Done
 created: 2026-09-24
 branch: qa
 adr: none
@@ -140,5 +140,18 @@ milestone: M24
 - Start implementation: say **build**.
 - After the runbook passes: say **merge to qa**.
 
+## Decision (Jacob, 2026-09-30)
+- Approved the class-b recommendation: phase `max_turns` = the agent's own `max_turns` (50). No separate job default, no hidden 10, no 10..15 child clamp. Then close.
+- Job run time limit (Open decision 2) is covered by CARD-592 `phase_seconds`; not duplicated here.
+
+## Outcome (2026-09-30)
+- `Phase` / `PhaseSpec` / `from_legacy_envelope` / budget fallbacks default to `DEFAULT_AGENT_MAX_TURNS` (50) instead of 10; `job_phase_orchestrator` builds specs with 50; `phases.max_turns` schema DEFAULT 10 -> 50 for new databases.
+- `HandoffEnvelope.max_turns` default 10 -> 50 (informational). `handoff_engine.bound_child_max_turns` now returns the child profile's own `max_turns` (or 50); `_MIN_CHILD_TURNS` / `_MAX_CHILD_TURNS` / `_MAX_CARD_HANDOFF_TURNS` removed, so a delegated Developer at 50 runs with 50 (was clamped to 15).
+- `hand_off_card` no longer forces 40 turns on the envelope / packet budget.
+- The kernel still loops `range(agent.max_turns)`; with every default equal to the agent's budget there is no decorative 10 left. Existing phase rows stored with 10 are not read by the kernel, so they behave as "inherit".
+- Tests: `test_handoff_envelope.py` (default 50), `test_handoff_engine_kernel.py::test_handoff_child_runs_with_its_own_max_turns`, `test_card563_hand_off_card.py` (envelope 50).
+- Not done (dropped by the decision): per-phase override path in the kernel, Settings field for a job time limit (CARD-592).
+
 ## Log
 - 2026-09-29: Shrunk in CARD-577: per-reply time limit done in CARD-567; remaining scope is job/phase and handoff budgets.
+- 2026-09-30: Jacob approved (class-b): phases and handoff children use the agent's max_turns (50). Built and closed.
