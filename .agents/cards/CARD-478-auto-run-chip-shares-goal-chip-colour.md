@@ -67,3 +67,6 @@ Two chips that look the same.
 ## Human Verification Runbook (1 minute)
 1. Pull qa, restart the serve, Ctrl+F5.
 2. Chat Studio: turn **Auto-run** on. The chip reads "Auto-run ON" in teal; start a multi-phase goal and the goal chip is still amber.
+
+## Live check
+- 2026-09-30 ~3:05 PM ET, throwaway :8770 (clone data, branch merged into a temp live branch): Auto-run toggle on -> `#approvalBadge` visible with `bg-teal-950/80 border-teal-600/80 text-teal-300`. Screenshots: `scratch/ui0930/478-auto-run-chip.png`, `478-auto-run-chip-page.png` (Jarvis).
