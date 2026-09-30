@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-590: `promote_artifact_to_wiki` files the note in 00_Inbox/ (One-Door Policy) instead of the vault root or a model-invented top-level folder; paths under a vault folder are kept. Found in the 2026-09-30 battery.
 - CARD-589: `wiki_note_list` category (notes, inbox, resources) matches the numbered vault folders (01_Notes/, 00_Inbox/, 02_Resources/) and the legacy ones; it listed nothing before. Found in the 2026-09-30 battery.
 - CARD-588: provider read timeout defaults to 900 s (env GATEWAY_DEFAULT_TIMEOUT_SECONDS) so a model load does not kill the request; timeout errors name the cause instead of an empty reason.
 - CARD-587: Tutor quiz extraction suggests questions (or takes the agent's) into a separate `<note>-quiz.md` note and never edits the source note; plain prose notes return needs_questions instead of 0 items.
