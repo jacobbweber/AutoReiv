@@ -19,7 +19,7 @@ DEFAULT_MAX_TURNS = AgentProfile.model_fields["max_turns"].default
 # CARD-445 raised the agent default to 50; CARD-444 still proves the skill fits the old tight
 # budget of 10, so a bigger default can never hide a regression in flashcard-turn efficiency.
 CARD444_EFFICIENCY_CEILING = 10
-BUDGET_TERMINATOR_PREFIX = "Execution terminated: Max turn budget of"
+BUDGET_TERMINATOR_PREFIX = "-step limit for one reply"
 FLASH_SKILL = Path("platform/skills/flashcard-turn/SKILL.md")
 
 FORBIDDEN_MID_TURN = (

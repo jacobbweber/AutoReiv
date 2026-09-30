@@ -185,7 +185,7 @@ async def test_run_turn_budget_exhaust_sets_failed(store, collector, registry):
         session_id=session.id,
         user_content="ping",
     )
-    assert "Max turn budget" in (msg.content or "")
+    assert "1-step limit" in (msg.content or "")
     assert kernel.react_state == ReactState.FAILED
 
 
