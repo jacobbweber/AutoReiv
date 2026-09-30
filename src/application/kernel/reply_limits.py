@@ -10,10 +10,13 @@ from __future__ import annotations
 import os
 from typing import Any, Optional, Tuple
 
-DEFAULT_MAX_TOKENS = 16384
+DEFAULT_MAX_TOKENS = 32768  # CARD-586: generous (thinking counts toward it), never unbounded
 DEFAULT_MAX_SECONDS = 600
 SETTING_KEY = "reply_limits"
 MIN_TOKENS = 1024
+# CARD-586: helper calls (memory, detection, planning, Teach) ask for a few hundred tokens; a thinking model spends that
+# before it answers, so non-streaming calls get at least this much room.
+HELPER_MIN_TOKENS = 4096
 
 
 class ReplyLimitStop(Exception):

@@ -61,7 +61,6 @@ logger = logging.getLogger(__name__)
 # CARD-576: nested run_turn (routines, plans, resumes) uses the agent's own context window, like stream_turn.
 # The old 32k cap (CARD-001 stall at 131072) made Ollama reload the model at another size on every nested run;
 # Nimo now serves qwen3.8 at its full 262144 (OLLAMA_CONTEXT_LENGTH). The reply stays capped by max_tokens.
-NESTED_COMPLETE_MAX_TOKENS = 8192
 
 # CARD-578 (ADR-0064): no per-turn tool cap, ranking or pinning. Every allowed tool is sent on every model call.
 
@@ -837,7 +836,8 @@ class AgentKernel:
                 messages=compacted_messages,
                 tools=active_tools or None,
                 num_ctx=nested_ctx,
-                max_tokens=NESTED_COMPLETE_MAX_TOKENS,
+                # CARD-586: child turns get the same generous reply cap as chat replies (was a fixed 8192)
+                max_tokens=reply_token_limit(resolve_reply_limits(self.state_store)[0], nested_ctx),
             )
             prep_end = time.perf_counter()
             harness_prep_ms = (prep_end - turn_start) * 1000

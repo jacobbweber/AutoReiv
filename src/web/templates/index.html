@@ -1886,11 +1886,11 @@
             <i data-lucide="timer" class="w-4 h-4 text-amber-400"></i>
             <span>Reply limits</span>
           </h3>
-          <p class="text-xs text-slate-400">Every model reply stops at these limits instead of running on. Empty or 0 uses the default (16384 tokens, 600 seconds). The token limit is also capped at a quarter of the model's context window.</p>
+          <p class="text-xs text-slate-400">Every model reply stops at these limits instead of running on. Empty or 0 uses the default (32768 tokens, 600 seconds). The token limit includes the model's thinking, applies to every model call (helper calls get at least 4096 tokens so a thinking model can answer), and is capped at a quarter of the model's context window.</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label class="block">
               <span class="text-xs font-semibold text-slate-300 block mb-1">Max tokens per reply</span>
-              <input id="replyLimitMaxTokensInput" type="number" min="0" step="1" placeholder="16384" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+              <input id="replyLimitMaxTokensInput" type="number" min="0" step="1" placeholder="32768" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
             </label>
             <label class="block">
               <span class="text-xs font-semibold text-slate-300 block mb-1">Max seconds per reply</span>

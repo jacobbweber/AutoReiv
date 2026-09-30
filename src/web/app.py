@@ -247,6 +247,10 @@ def create_app(
     except Exception:
         gateway.set_max_concurrent_generations(1)
         configure_process_generation_limit(1)
+    # CARD-586: calls without their own max_tokens use Settings > Reply limits (never unbounded)
+    from src.application.kernel.reply_limits import resolve_reply_limits
+
+    gateway.set_reply_cap_resolver(lambda: resolve_reply_limits(store)[0])
     obs_service = ObservabilityDashboardService(state_store=store)
 
     kernel = AgentKernel(
