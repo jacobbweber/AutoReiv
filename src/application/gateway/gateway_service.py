@@ -70,7 +70,7 @@ class MultiProviderGateway:
                 cap = DEFAULT_MAX_TOKENS
             cap = reply_token_limit(max(1, cap), request.num_ctx)
         elif helper and cap < HELPER_MIN_TOKENS:
-            cap = HELPER_MIN_TOKENS
+            cap = max(cap, reply_token_limit(HELPER_MIN_TOKENS, request.num_ctx))
         if cap == request.max_tokens:
             return request
         return request.model_copy(update={"max_tokens": cap})
