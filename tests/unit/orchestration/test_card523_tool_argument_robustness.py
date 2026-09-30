@@ -188,7 +188,7 @@ def test_first_skill(value, expected):
     "kw",
     [
         {"skill_name": "wiki_tasks"},
-        {"pack_id": "wiki_tasks"},
+        {"id": "wiki_tasks"},
         {"name": "wiki_tasks"},
         {"skills": "['wiki_tasks']"},
         {"skill_id": "wiki_tasks"},

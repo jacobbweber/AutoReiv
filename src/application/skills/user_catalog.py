@@ -362,13 +362,13 @@ class UserSkillCatalog:
         self,
         skill_id: str = "",
         skill_name: Optional[str] = None,
-        pack_id: Optional[str] = None,
+        id: Optional[str] = None,  # noqa: A002 - models send it
         name: Optional[str] = None,
         skills: Any = None,
     ) -> Dict[str, Any]:
         """Tool handler: load SKILL.md body for one allowed runbook.
-        CARD-523: skill_name / pack_id / name / skills (first item, list or list-as-string) are aliases of skill_id."""
-        skill_id = skill_id or skill_name or pack_id or name or _first_skill(skills)
+        CARD-523: skill_name / id / name / skills (first item, list or list-as-string) are aliases of skill_id."""
+        skill_id = skill_id or skill_name or id or name or _first_skill(skills)
         if not skill_id:
             return {"success": False, "error": "skill_view needs skill_id (one id from the skill list)."}
         allowed = self._allowed_skill_ids_for_current_agent()

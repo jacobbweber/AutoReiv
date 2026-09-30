@@ -64,7 +64,7 @@ Session `f67162a7-3462-40c4-ad73-882086a77af2` (Jacob, "Teach AutoReiv to read I
   unknown keywords already get CARD-562's "Unknown: x. Accepted parameters: ..." message.
 - Item 5 (raw): the tool registry unwraps `{"raw": "<json object>"}` into the real arguments for any tool that does not
   itself take `raw` (fixes `ask_clarification({"raw": ...})`).
-- Item 2: `skill_view` accepts `skill_name`, `pack_id`, `name` and `skills` (first item; a list sent as a string works);
+- Item 2: `skill_view` accepts `skill_name`, `id`, `name` and `skills` (first item; a list sent as a string works);
   a call with no id gets a plain error.
 - Item 3: the skill index shows `Name (id: <id>)` when the name differs from the id.
 - Item 6: a hand-off whose child hit its step limit (CARD-461 footer/fallback) is `incomplete`, reported as
