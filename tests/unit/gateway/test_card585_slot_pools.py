@@ -4,7 +4,7 @@ model's first token (default 1200 s); a stopped reply closes the provider stream
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncIterator, List
+from typing import AsyncIterator
 
 import pytest
 
