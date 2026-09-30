@@ -505,6 +505,23 @@ except ImportError:
     pass
 
 
+_CATEGORY_FOLDERS = {
+    "inbox": ("00_inbox/", "inbox/"),
+    "notes": ("01_notes/", "notes/"),
+    "resources": ("02_resources/", "resources/"),
+    "archive": ("03_archive/", "archive/"),
+}
+
+
+def _category_prefixes(category: str) -> tuple:
+    """CARD-589: folder prefixes (lower case) for a list category: 'notes' -> 01_Notes/ or legacy notes/."""
+    cat = category.lower().strip().strip("/")
+    for name, folders in _CATEGORY_FOLDERS.items():
+        if cat == name or cat + "/" in folders:
+            return folders
+    return (cat,)
+
+
 class WikiStore:
     """
     Core local-first document storage and indexing engine.
@@ -1530,10 +1547,11 @@ class WikiStore:
             if rel.startswith("."):
                 continue
 
-            # Category filter (e.g. inbox, notes, resources)
+            # Category filter (e.g. inbox, notes, resources). CARD-589: the tool enum names the category, the scaffolded
+            # vault numbers the folder (00_Inbox/, 01_Notes/, 02_Resources/); both and the legacy folders match.
             if category:
-                cat_lower = category.lower().strip()
-                if not rel.lower().startswith(cat_lower):
+                prefixes = _category_prefixes(category)
+                if not any(rel.lower().startswith(pfx) for pfx in prefixes):
                     continue
 
             raw_text = file_path.read_text(encoding="utf-8", errors="replace")
