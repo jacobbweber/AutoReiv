@@ -36,10 +36,11 @@ overview then listed it as a stray top-level file. The tool wrote `<wiki_slug>.m
 ## Acceptance
 
 - [x] Bare or invented-folder slug -> `00_Inbox/<name>.md`, nothing at the root; vault-folder paths kept.
-- [ ] Live: ar-11 promotion lands in 00_Inbox/ (see Log).
+- [x] Live: ar-11 promotion lands in 00_Inbox/ (see Log).
 
 ## Log
 
 - 2026-09-30: built on the branch with tests.
 - 2026-09-30: live rerun: AutoReiv passed `reports/fixture-scan` and got a new top-level `reports/` folder, so
   invented folders now go to the inbox as well.
+- 2026-09-30 (live, throwaway :8770 on qa + 589/590/591, nemotron): ar-11 scan -> artifact -> promote landed at `00_Inbox/fixtures.md`; nothing at the root.
