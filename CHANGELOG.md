@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-585: separate generation slot pools per provider plus a background pool; the reply time limit counts from the first token and defaults to 1200 s; stop/timeout closes the provider stream.
 - CARD-584: model plan - one model per machine: Spark nemotron-3.5-lightning is the platform default (AutoReiv, Tutor, Toolsmith, Direct); Architect and Developer on Nimo qwen3.8:latest 262144; `scripts/apply_model_plan.py` with `--check` against model swaps.
 - **CARD-583 fix: quiz extraction reads the education-quiz template**: `education_quiz_extract` only parsed `- Q: / A:` bullets, so a quiz written from the shipped `education-quiz` template (`- **Prompt:**` / `- **Expected Binary Answer:**`) gave 0 items and the Tutor had to upsert mastery items by hand; it now reads those pairs too and skips unfilled placeholders. Found in the 2026-09-29 battery test. Tests `test_card583_quiz_template_items.py` ([CARD-583]).
 - **CARD-582 fix: wiki_note_organize files notes into 01_Notes/**: it hard-coded the legacy `notes/` tree, so organizing an inbox note in a scaffolded vault created a stray top-level `notes/` folder; now it uses `01_Notes/` when present (same rule as graduation). Found in the 2026-09-29 battery test. Tests `test_card582_organize_into_01_notes.py` ([CARD-582]).

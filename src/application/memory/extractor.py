@@ -252,6 +252,7 @@ class MemoryExtractorService:
                     messages=[ChatMessage(role=Role.USER, content=prompt)],
                     temperature=0.0,
                     max_tokens=600,
+                    background=True,  # CARD-585
                 )
                 resp = await self.llm_service.complete(req)
                 raw_response = getattr(resp, "text", None) or (

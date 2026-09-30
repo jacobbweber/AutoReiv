@@ -292,6 +292,7 @@ class SkillDistillationService:
                 ],
                 temperature=0.2,
                 max_tokens=800,
+                background=True,  # CARD-585
             )
             resp = await asyncio.wait_for(self.gateway.complete(req), timeout=4.5)
             raw_text = getattr(resp, "text", None) or (

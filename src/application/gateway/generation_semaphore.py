@@ -1,5 +1,5 @@
 """
-Process-global Ollama generation semaphore [REQ-ORCH-038].
+Generation slot limits [REQ-ORCH-038]; one pool per provider endpoint plus a background pool [CARD-585].
 
 Policy:
 - Extra generations QUEUE behind the semaphore (serial handoffs work).
@@ -11,11 +11,14 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
-from typing import Deque, Optional
+from typing import Any, Deque, Dict, Optional
+from urllib.parse import urlsplit
 
 DEFAULT_MAX_CONCURRENT_GENERATIONS = 1
 MIN_MAX_CONCURRENT_GENERATIONS = 1
 MAX_MAX_CONCURRENT_GENERATIONS = 3
+BACKGROUND_POOL = "background"
+BACKGROUND_MAX_CONCURRENT_GENERATIONS = 1
 
 
 class HandoffBatchExceedsCapError(ValueError):
@@ -140,3 +143,71 @@ class GenerationSemaphore:
     async def __aexit__(self, exc_type, exc, tb) -> bool:
         self._release()
         return False
+
+
+def provider_pool_key(provider: Any) -> str:
+    """CARD-585: the slot pool a provider uses: its endpoint (host:port), else its provider id.
+
+    Two adapters that point at the same server (the default vLLM provider and an agent override on the same
+    gateway) share one pool; Spark and Nimo get separate pools.
+    """
+    base = str(getattr(provider, "base_url", "") or "").strip()
+    if base:
+        parts = urlsplit(base if "://" in base else f"http://{base}")
+        host = (parts.hostname or "").lower()
+        if host in ("localhost", "::1", "0.0.0.0"):
+            host = "127.0.0.1"
+        if host:
+            try:
+                port = parts.port
+            except ValueError:
+                port = None
+            port = port or (443 if parts.scheme == "https" else 80)
+            return f"{host}:{port}"
+    return f"provider:{getattr(provider, 'provider_id', None) or 'unknown'}"
+
+
+class GenerationPools:
+    """CARD-585: one slot pool per provider endpoint plus one pool for background calls.
+
+    Before this, one process-wide pool covered every provider, so slow Spark turns held the slots and a Developer turn
+    on Nimo waited minutes before its model was even called. Each provider pool gets the Settings cap
+    (max_concurrent_generations, 1-3); background calls (memory extraction, capability detection, Teach and Studio
+    helpers) use their own small pool so they never hold a chat reply's slot.
+    """
+
+    def __init__(
+        self,
+        max_concurrent: int = DEFAULT_MAX_CONCURRENT_GENERATIONS,
+        background_max: int = BACKGROUND_MAX_CONCURRENT_GENERATIONS,
+    ):
+        self._max = clamp_max_concurrent_generations(max_concurrent)
+        self._pools: Dict[str, GenerationSemaphore] = {}
+        self._background = GenerationSemaphore(background_max)
+
+    @property
+    def max_concurrent(self) -> int:
+        return self._max
+
+    @property
+    def background(self) -> GenerationSemaphore:
+        return self._background
+
+    def set_max_concurrent(self, max_concurrent: int) -> int:
+        self._max = clamp_max_concurrent_generations(max_concurrent)
+        for pool in self._pools.values():
+            pool.set_max_concurrent(self._max)
+        return self._max
+
+    def pool(self, key: str) -> GenerationSemaphore:
+        sem = self._pools.get(key)
+        if sem is None:
+            sem = GenerationSemaphore(self._max)
+            self._pools[key] = sem
+        return sem
+
+    def snapshot(self) -> Dict[str, Dict[str, int]]:
+        out = {k: {"max": s.max_concurrent, "in_use": s.in_use, "waiting": s.waiting} for k, s in self._pools.items()}
+        bg = self._background
+        out[BACKGROUND_POOL] = {"max": bg.max_concurrent, "in_use": bg.in_use, "waiting": bg.waiting}
+        return out

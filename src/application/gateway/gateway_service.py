@@ -12,7 +12,9 @@ from src.application.gateway.attachment_images import notice_payload, prepare_im
 from src.application.gateway.demuxer import ReasoningDemuxer
 from src.application.gateway.generation_semaphore import (
     DEFAULT_MAX_CONCURRENT_GENERATIONS,
+    GenerationPools,
     GenerationSemaphore,
+    provider_pool_key,
 )
 from src.application.gateway.model_capabilities import ModelCapabilityResolver, is_multimodal_rejection
 from src.application.gateway.ports import LLMProviderPort
@@ -42,12 +44,12 @@ class MultiProviderGateway:
         self,
         default_provider_id: Optional[str] = None,
         max_concurrent_generations: int = DEFAULT_MAX_CONCURRENT_GENERATIONS,
-        generation_semaphore: Optional[GenerationSemaphore] = None,
     ):
         self._providers: Dict[str, LLMProviderPort] = {}
         self.default_provider_id = default_provider_id
         self.default_model_id: Optional[str] = None
-        self._generation_semaphore = generation_semaphore or GenerationSemaphore(max_concurrent_generations)
+        # CARD-585: one slot pool per provider endpoint plus one for background calls
+        self._generation_pools = GenerationPools(max_concurrent_generations)
         self._capability_resolver: Optional[ModelCapabilityResolver] = None
 
     def set_capability_resolver(self, resolver: ModelCapabilityResolver) -> None:
@@ -68,12 +70,26 @@ class MultiProviderGateway:
 
     @property
     def max_concurrent_generations(self) -> int:
-        return self._generation_semaphore.max_concurrent
+        return self._generation_pools.max_concurrent
 
     def set_max_concurrent_generations(self, value: int) -> int:
-        """Resize this gateway's generation semaphore [REQ-ORCH-038]. Extra work queues."""
-        self._generation_semaphore.set_max_concurrent(value)
-        return self._generation_semaphore.max_concurrent
+        """Resize every provider slot pool [REQ-ORCH-038, CARD-585]. Extra work queues."""
+        return self._generation_pools.set_max_concurrent(value)
+
+    @property
+    def generation_pools(self) -> GenerationPools:
+        return self._generation_pools
+
+    def generation_slot_for(self, request: CompletionRequest) -> GenerationSemaphore:
+        """CARD-585: background calls use the background pool; others use their provider's pool."""
+        if getattr(request, "background", False):
+            return self._generation_pools.background
+        try:
+            provider, _ = self.resolve_provider(request.model)
+            key = provider_pool_key(provider)
+        except Exception:
+            key = "provider:unknown"
+        return self._generation_pools.pool(key)
 
     def register_provider(self, provider: LLMProviderPort) -> None:
         """Register a provider adapter instance."""
@@ -163,7 +179,7 @@ class MultiProviderGateway:
         """
         Execute completion with automatic fallback on connection or server failures.
         """
-        async with self._generation_semaphore:
+        async with self.generation_slot_for(request):
             return await self._complete_unlocked(
                 request, fallback_models=fallback_models, max_retries=max_retries
             )
@@ -220,7 +236,7 @@ class MultiProviderGateway:
         Execute streaming with candidate fallback on immediate connection failures
         and optional reasoning token demuxing.
         """
-        async with self._generation_semaphore:
+        async with self.generation_slot_for(request):
             inner = self._stream_unlocked(
                 request, fallback_models=fallback_models, demux_reasoning=demux_reasoning
             )

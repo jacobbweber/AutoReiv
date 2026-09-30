@@ -11,7 +11,7 @@ import os
 from typing import Any, Optional, Tuple
 
 DEFAULT_MAX_TOKENS = 16384
-DEFAULT_MAX_SECONDS = 600
+DEFAULT_MAX_SECONDS = 1200  # CARD-585: 20 min, counted from the model's first token
 SETTING_KEY = "reply_limits"
 MIN_TOKENS = 1024
 
@@ -73,6 +73,7 @@ def token_limit_message(max_tokens: int, answered: bool) -> str:
 
 def time_limit_message(max_seconds: int) -> str:
     return (
-        f"Stopped: the model was still generating after the time limit of {max_seconds} s for one reply. "
+        f"Stopped: the model was still generating after the time limit of {max_seconds} s for one reply "
+        "(counted from its first token). "
         "Try again, ask for a smaller step, or raise the limit (Settings: reply_limits.max_seconds)."
     )
