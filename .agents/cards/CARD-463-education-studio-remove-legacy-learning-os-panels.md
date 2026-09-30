@@ -18,13 +18,13 @@ labels:
   - area:education
   - area:frontend
   - P1
-needs_decision: "Education cleanup: answer the product questions in section 4 (which legacy panels go)"
+needs_decision: none
 milestone: M23
 ---
 
 # [CARD-463] Education Studio cleanup: remove the legacy Learning OS panels, keep operator bar + players
 
-> **Status**: Ready (product questions in section 4 should be answered at **continue**, before **build**)
+> **Status**: Ready - approved for **build** by Jacob 2026-09-30 (class-b); not started yet.
 > **Created**: 2026-09-24
 > **Observed during**: Jacob review of Education Studio on Jarvis (screenshot shared in chat, described below).
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) - Studio stays and is the operator + players surface. This card removes the old panel farm that ADR-0059 option 2 rejected; it does **not** retire the Studio.
@@ -189,3 +189,11 @@ Jacob: the original "engineering look" Learning OS UI never added value (it move
 - Answer the questions: say **continue** with answers.
 - Start the cleanup: say **build**.
 - After the runbook passes: say **merge to qa**.
+
+## Decision (Jacob, 2026-09-30)
+- Approved the class-b recommendation: **remove all legacy Learning OS panels**; keep the operator bar and the players (and move `#educationTopicInput` into the operator bar).
+- Section 4 read as the recommendations: (1) drop the study-session job launcher, Pair Tutor replaces it; (2) the retention routine runs only through Tutor; (3) the Lumina "Send to course" button is left for a follow-up card; (4) nothing from the course pipeline / rank / portfolio is surfaced; (5) caller-less endpoints go in a separate backend-prune card; (6) CARD-400 becomes Superseded when this merges.
+- UI/product card: build, live-check on a throwaway serve with screenshots, then leave **In Review** for Jacob's **merge to qa**.
+
+## Log
+- 2026-09-30: Jacob approved (class-b): remove all legacy panels, keep operator bar + players. Not started in the 2026-09-30 session (time-box); next after CARD-479/482/489 review.

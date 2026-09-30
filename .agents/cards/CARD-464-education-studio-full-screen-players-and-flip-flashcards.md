@@ -14,13 +14,13 @@ labels:
   - area:education
   - area:frontend
   - P2
-needs_decision: "Education expansion scope: full-screen players and flip-style flashcards"
+needs_decision: none
 milestone: M23
 ---
 
 # [CARD-464] Education Studio expansion: full-screen players and flip-style flashcards
 
-> **Status**: Ready
+> **Status**: Ready - approved for **build** by Jacob 2026-09-30 (class-b); starts after CARD-463; not started yet.
 > **Created**: 2026-09-24
 > **Observed during**: Jacob review of Education Studio on Jarvis - after the legacy panels go (CARD-463), the players should own the screen and flashcards should look like real cards.
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)
@@ -125,3 +125,10 @@ milestone: M23
 - Refine layout: say **continue**.
 - Start implementation: say **build**.
 - After the runbook passes: say **merge to qa**.
+
+## Decision (Jacob, 2026-09-30)
+- Approved the class-b recommendation: **full-screen players** (Flashcard / Quiz / Test take the space CARD-463 frees) and **flip-style flashcards** (front -> tap/click/Space flips -> grade).
+- Build after CARD-463; CARD-435 is updated to follow. UI/product card: live-check with screenshots, leave **In Review** for Jacob's **merge to qa**.
+
+## Log
+- 2026-09-30: Jacob approved (class-b): full-screen players + flip flashcards, after CARD-463. Not started yet.

@@ -12,7 +12,7 @@ labels:
   - domain:education
   - area:tutor
   - P0
-needs_decision: "Education direction: lock the north-star forks, then scaffold the successor build cards (design phase)"
+needs_decision: none
 milestone: M23
 ---
 
@@ -244,3 +244,9 @@ Related Ready (not in Studio spine): [CARD-443](./CARD-443-platform-tutor-pack-a
 
 Say **`build`** on **CARD-447** to start Studio implementation. No product code from this parent alone.
 
+## Decision (Jacob, 2026-09-30)
+- Education direction follows CARD-463 and CARD-464 (Jacob, class-b approval): Education Studio = **operator bar + full-screen players** with **flip flashcards**; every legacy Learning OS panel (Study Launcher, course chrome, lab sections, Education Jobs list) goes. Tutor chat stays the conversation surface; the Learning OS APIs stay.
+- Successor order for the Studio wave: CARD-463 (remove legacy panels) -> CARD-464 (full-screen players + flip flashcards) -> backend prune card for the caller-less endpoints.
+
+## Log
+- 2026-09-30: updated to follow CARD-463/464 (Jacob class-b approval).
