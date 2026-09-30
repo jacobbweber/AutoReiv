@@ -92,6 +92,80 @@ def extract_quiz_items_from_note(
     return items
 
 
+# CARD-587: definition lines in a plain note ("- **Term**: meaning", "Term: meaning", "Term - meaning").
+_DEF_BOLD_RE = re.compile(r"^\s*(?:[-\*]\s+)?\*\*(?P<term>[^*\n]{1,60}?)\*\*\s*(?::|\s[-\u2013\u2014]\s)\s*(?P<d>[^\n]{8,300})$")
+_DEF_PLAIN_RE = re.compile(r"^\s*[-\*]\s+(?P<term>[^:\n*`]{1,50}?)\s*(?::|\s[-\u2013\u2014]\s)\s*(?P<d>[^\n]{8,300})$")
+MAX_SUGGESTED_ITEMS = 10
+
+
+def _strip_frontmatter(text: str) -> str:
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            return text[end + 4 :]
+    return text
+
+
+def suggest_quiz_items_from_note(content: str, *, limit: int = MAX_SUGGESTED_ITEMS) -> List[Dict[str, str]]:
+    """CARD-587: suggest recall questions from a plain note's definition lines.
+
+    The grader is exact (normalized) string equality, so each question asks for the short term and the answer is the
+    term itself: "Which term matches: <meaning>?" -> "<term>". Returns [] for prose without definitions; the agent
+    then writes its own questions (education_quiz_extract questions=[...]).
+    """
+    out: List[Dict[str, str]] = []
+    seen: set[str] = set()
+    for line in _strip_frontmatter(content or "").splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        m = _DEF_BOLD_RE.match(line) or _DEF_PLAIN_RE.match(line)
+        if not m:
+            continue
+        term = m.group("term").strip().strip("`*_ ").rstrip(":")
+        meaning = re.sub(r"\s+", " ", m.group("d")).strip().rstrip(".")
+        if not term or len(term.split()) > 6 or len(meaning.split()) < 3 or re.match(r"^(https?|Q|A)$", term, re.I):
+            continue
+        if _PLACEHOLDER_RE.match(term) or term.casefold() in seen:
+            continue
+        seen.add(term.casefold())
+        out.append({"prompt": f"Which term matches this description: {meaning}?", "answer": term})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def quiz_note_path_for(source_path: str) -> str:
+    """CARD-587: the separate quiz note next to its source (``01_Notes/k8s/basics.md`` -> ``01_Notes/k8s/basics-quiz.md``)."""
+    src = (source_path or "").replace("\\", "/").strip().strip("/")
+    stem, dot, ext = src.rpartition(".")
+    if not dot or "/" in ext:
+        stem, ext = src, "md"
+    return f"{stem}-quiz.{ext or 'md'}"
+
+
+def render_quiz_note(*, title: str, source_path: str, items: List[Dict[str, str]]) -> str:
+    """CARD-587: quiz note body in the shipped education-quiz template format (what extraction reads)."""
+    lines = [
+        f"# Quiz: {title}",
+        "",
+        f"> **Topic:** {title}",
+        f"> **Source note:** [[{source_path}]] (not edited; questions live here)",
+        "> **Pedagogy Phase:** Retrieval Practice (Active Recall)",
+        "",
+        "---",
+        "",
+        "## 1. Active Recall Questions",
+    ]
+    for n, it in enumerate(items, start=1):
+        lines += [
+            f"### Item {n}",
+            f"- **Prompt:** {it['prompt']}",
+            f"- **Expected Binary Answer:** {it['answer']}",
+            "",
+        ]
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def build_review_job_intent(item: Dict[str, Any]) -> str:
     """Outcome-shaped standing ask for a due Education review Job."""
     topic = item.get("topic") or "Education"
