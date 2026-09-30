@@ -149,9 +149,9 @@ def test_reply_limits_api_reads_saves_and_clears(store, monkeypatch):
     app.include_router(router)
     app.state.store = store
     client = TestClient(app)
-    assert client.get("/api/settings/reply-limits").json()["max_tokens"] == 16384
+    assert client.get("/api/settings/reply-limits").json()["max_tokens"] == 32768  # CARD-586 default
     got = client.put("/api/settings/reply-limits", json={"max_tokens": 200, "max_seconds": 5}).json()
     assert (got["max_tokens"], got["max_seconds"]) == (200, 5)
     got = client.put("/api/settings/reply-limits", json={"max_tokens": None}).json()
-    assert (got["max_tokens"], got["max_seconds"]) == (16384, 5)
+    assert (got["max_tokens"], got["max_seconds"]) == (32768, 5)
     assert client.put("/api/settings/reply-limits", json={"max_seconds": "abc"}).status_code == 400

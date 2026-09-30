@@ -923,7 +923,7 @@ async def test_run_turn_uses_the_agents_own_context_window(store, collector, reg
     assert llm.requests, "complete() was not called"
     req = llm.requests[0]
     assert req.num_ctx == 131072
-    assert req.max_tokens == 8192
+    assert req.max_tokens == 32768  # CARD-586: the reply limit (default 32768, under a quarter of 131072)
 
 
 @pytest.mark.asyncio

@@ -6,7 +6,7 @@ Orchestrates multi-provider routing, fallback chains, and stream demuxing.
 import asyncio
 import logging
 import random
-from typing import AsyncIterator, Dict, List, Optional, Tuple
+from typing import AsyncIterator, Callable, Dict, List, Optional, Tuple
 
 from src.application.gateway.attachment_images import notice_payload, prepare_image_turn
 from src.application.gateway.demuxer import ReasoningDemuxer
@@ -51,6 +51,29 @@ class MultiProviderGateway:
         # CARD-585: one slot pool per provider endpoint plus one for background calls
         self._generation_pools = GenerationPools(max_concurrent_generations)
         self._capability_resolver: Optional[ModelCapabilityResolver] = None
+        self._reply_cap_resolver: Optional[Callable[[], int]] = None
+
+    def set_reply_cap_resolver(self, resolver: Callable[[], int]) -> None:
+        """CARD-586: where a request without max_tokens gets its cap (Settings > Reply limits max tokens)."""
+        self._reply_cap_resolver = resolver
+
+    def _with_reply_cap(self, request: CompletionRequest, *, helper: bool) -> CompletionRequest:
+        """CARD-586: every model call carries a max-token limit. Without one, vLLM generates up to the rest of the
+        context window and Ollama without end. Non-streaming helper calls also get room to think (HELPER_MIN_TOKENS)."""
+        from src.application.kernel.reply_limits import DEFAULT_MAX_TOKENS, HELPER_MIN_TOKENS, reply_token_limit
+
+        cap = request.max_tokens
+        if not cap:
+            try:
+                cap = int(self._reply_cap_resolver()) if self._reply_cap_resolver else DEFAULT_MAX_TOKENS
+            except Exception:
+                cap = DEFAULT_MAX_TOKENS
+            cap = reply_token_limit(max(1, cap), request.num_ctx)
+        elif helper and cap < HELPER_MIN_TOKENS:
+            cap = HELPER_MIN_TOKENS
+        if cap == request.max_tokens:
+            return request
+        return request.model_copy(update={"max_tokens": cap})
 
     def set_capability_resolver(self, resolver: ModelCapabilityResolver) -> None:
         """Which models can view images [CARD-475]. The app wires one backed by Settings."""
@@ -190,6 +213,7 @@ class MultiProviderGateway:
         fallback_models: Optional[List[str]] = None,
         max_retries: int = 1,
     ) -> CompletionResponse:
+        request = self._with_reply_cap(request, helper=True)
         candidates = [request.model] + (fallback_models or [])
         failures: Dict[str, str] = {}
 
@@ -254,6 +278,7 @@ class MultiProviderGateway:
         fallback_models: Optional[List[str]] = None,
         demux_reasoning: bool = True,
     ) -> AsyncIterator[StreamChunk]:
+        request = self._with_reply_cap(request, helper=False)
         candidates = [request.model] + (fallback_models or [])
         failures: Dict[str, str] = {}
         active_stream = None

@@ -1,7 +1,7 @@
 /**
  * CARD-574: Settings > Models: reply limits (CARD-567) for every streaming model reply.
  * Reads and saves GET/PUT /api/settings/reply-limits. An empty or 0 field clears the saved value
- * (back to env AUTOREIV_MAX_REPLY_TOKENS / AUTOREIV_MAX_REPLY_SECONDS, then the defaults 16384 / 1200).
+ * (back to env AUTOREIV_MAX_REPLY_TOKENS / AUTOREIV_MAX_REPLY_SECONDS, then the defaults 32768 / 1200).
  * CARD-585: the seconds count from the model's first token.
  */
 
