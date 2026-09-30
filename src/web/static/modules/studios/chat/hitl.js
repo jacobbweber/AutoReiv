@@ -222,6 +222,8 @@ export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, ba
   if (resumeChat === false) return false; // CARD-530: a propose_* draft never parked the turn
   if (backendResumed) return false;
   if (nestedStatus === 'approval_required') return false;
+  // CARD-593: still working in the background, or the server lost it (restart): nothing to resume yet.
+  if (nestedStatus === 'running' || nestedStatus === 'lost') return false;
   const approvalSid = String(approvalSessionId || '').trim();
   const openSid = String(openSessionId || '').trim();
   if (!approvalSid || !openSid) {
@@ -322,7 +324,9 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
     }
     const ran = Boolean(body.execution && body.execution.ran);
     if (statusEl) {
-      if (decision === 'APPROVED') {
+      if (body.nested && body.nested.status === 'running') {
+        statusEl.textContent = backgroundStatusText(body.nested, decision);
+      } else if (decision === 'APPROVED') {
         statusEl.textContent = ran ? 'Approved. Tool ran.' : 'Approved.';
       } else {
         statusEl.textContent = 'Rejected. Tool did not run.';
@@ -389,6 +393,53 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
   }
 }
 
+/** CARD-593: plain words for a background hand-off / child resume state. */
+export function backgroundStatusText(nested, decision = 'APPROVED') {
+  const status = nested && nested.status;
+  const verb = decision === 'APPROVED' ? 'Approved' : 'Rejected';
+  if (status === 'running') {
+    return `${verb}. Working in the background; you can leave this page. This card updates when it finishes.`;
+  }
+  if (status === 'completed') return `${verb}. The hand-off finished.`;
+  if (status === 'approval_required') return `${verb}. The hand-off needs another approval.`;
+  if (status === 'failed') {
+    const why = nested && nested.summary ? `: ${String(nested.summary).slice(0, 200)}` : '.';
+    return `${verb}. The hand-off failed${why}`;
+  }
+  if (status === 'lost') return `${verb}. The server restarted before the hand-off finished; check the chat.`;
+  return `${verb}.`;
+}
+
+/**
+ * CARD-593: poll GET /api/approvals/{id}/resume until the background work ends. Network errors (a phone
+ * waking up, Wi-Fi switching) are retried; a 404 means the server restarted and returns { status: 'lost' }.
+ */
+export async function pollBackgroundResume(approvalId, {
+  intervalMs = 3000,
+  timeoutMs = 6 * 60 * 60 * 1000,
+  fetchImpl = (...args) => fetch(...args),
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+  onUpdate = null,
+} = {}) {
+  const started = Date.now();
+  const url = `/api/approvals/${encodeURIComponent(approvalId)}/resume`;
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const res = await fetchImpl(url, { cache: 'no-store' });
+      if (res.status === 404) return { status: 'lost' };
+      if (res.ok) {
+        const body = await res.json();
+        if (onUpdate) onUpdate(body);
+        if (body && body.status && body.status !== 'running') return body;
+      }
+    } catch {
+      // offline for a moment; keep polling
+    }
+    await sleep(intervalMs);
+  }
+  return { status: 'running' };
+}
+
 /** CARD-251: Forge Approve response resumes same job_id (no orphan / soft-delete). */
 export function forgeApproveResumesSameJob(payload) {
   const p = payload || {};
@@ -435,12 +486,21 @@ export function wireHitlCardButtons(cardEl, { approvalId, approvalSessionId, sta
   cardEl.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const openSid = (state && state.activeSessionId) || '';
-      const result = await submitHitlDecision(approvalId, btn.getAttribute('data-hitl-decision'), cardEl, openSid);
+      const decision = btn.getAttribute('data-hitl-decision');
+      const result = await submitHitlDecision(approvalId, decision, cardEl, openSid);
+      let nested = result.body && result.body.nested ? result.body.nested : null;
+      if (result.ok && nested && nested.status === 'running') {
+        // CARD-593: the hand-off works in the background; wait for it here without holding a request open.
+        if (onDone) await onDone();
+        nested = await pollBackgroundResume(approvalId);
+        const statusEl = cardEl.querySelector('.hitl-card-status');
+        if (statusEl) statusEl.textContent = backgroundStatusText(nested, decision);
+      }
       const wantsResume = result.ok && onResumeTurn && shouldResumeChatAfterHitl({
         approvalSessionId: approvalSessionId || openSid,
         openSessionId: openSid,
         backendResumed: Boolean(result.body && result.body.resumed),
-        nestedStatus: result.body && result.body.nested ? result.body.nested.status : null,
+        nestedStatus: nested ? nested.status : null,
         resumeChat: result.body ? result.body.resume_chat : undefined,
       });
       if (wantsResume && state && state.isStreaming) {

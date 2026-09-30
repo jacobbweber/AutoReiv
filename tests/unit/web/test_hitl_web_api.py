@@ -44,6 +44,20 @@ def client(tmp_path):
         yield tc, store
 
 
+def _wait_resume(tc, approval_id, timeout=10.0):
+    """CARD-593: the child's resume runs in the background; poll until it ends."""
+    import time
+
+    deadline = time.time() + timeout
+    body = {}
+    while time.time() < deadline:
+        body = tc.get(f"/api/approvals/{approval_id}/resume").json()
+        if body.get("status") != "running":
+            return body
+        time.sleep(0.05)
+    return body
+
+
 def test_get_and_resolve_pending_approvals_api(client):
     tc, store = client
     # Create a pending approval in store
@@ -142,6 +156,8 @@ def test_nested_decide_resumes_child_and_unblocks_parent(client):
     assert res.status_code == 200
     body = res.json()
     assert body["status"] == "approved"
+    assert body["nested"]["status"] == "running"
+    resumed = _wait_resume(tc, appr_id)
     assert captured.get("session_id") == child_id
     assert captured.get("resume") is True
     assert captured.get("user_content") is None
@@ -156,7 +172,7 @@ def test_nested_decide_resumes_child_and_unblocks_parent(client):
     handoff_tools = [m for m in parent_tools if m.name == "handoff_to_agent"]
     assert handoff_tools
     assert "Adapters listed." in handoff_tools[-1].content
-    assert body.get("nested", {}).get("status") == "completed"
+    assert resumed.get("status") == "completed"
 
 
 def test_nested_reject_resumes_child_with_denial(client):
@@ -199,6 +215,7 @@ def test_nested_reject_resumes_child_with_denial(client):
         json={"decision": "REJECTED", "session_id": parent_id},
     )
     assert res.status_code == 200
+    _wait_resume(tc, appr_id)
     assert captured.get("resume") is True
     assert captured.get("session_id") == child_id
     child_tools = [m for m in store.get_messages(child_id) if m.role == Role.TOOL]

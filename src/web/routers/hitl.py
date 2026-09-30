@@ -14,7 +14,9 @@ from src.application.agent_skills.tool_attachment import (
     apply_tool_attachment,
     runtime_tool_not_enabled,
 )
+from src.application.orchestration.background_resume import background_resumes, handoff_outcome
 from src.application.orchestration.followup import PROPOSE_FOLLOWUP_TOOL, apply_followup_decision
+from src.application.orchestration.handoff_engine import PARENT_HANDOFF_TOOLS
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.orchestration.skill_proposals import (
     SKILL_PROPOSAL_TOOLS,
@@ -98,6 +100,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
         raise HTTPException(status_code=404, detail="Approval not found or already resolved")
 
     execution = None
+    background_call = None  # CARD-593: (tool_reg, tool_call, profile) of an approved hand-off, run in the background
     decision_norm = (req.decision or "").strip().lower()
     # CARD-530 REQ-530-006: propose_* drafts never park the turn; their tool call already has its result.
     draft_proposal = bool(record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS | {ATTACH_TOOL_PROPOSAL})
@@ -184,14 +187,24 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                     name=record["tool_name"],
                     arguments=raw_args,
                 )
-                tool_res = await tool_reg.execute(tc, profile, session_id=record.get("session_id"))
-                execution = {
-                    "ran": tool_res.success,
-                    "tool_name": record["tool_name"],
-                    "output": tool_res.output,
-                    "error": tool_res.error,
-                    "tool_call_id": orig_call_id,
-                }
+                if tc.name in PARENT_HANDOFF_TOOLS:
+                    # CARD-593: a hand-off runs the other agent's whole turn (minutes); never inside this request.
+                    background_call = (tool_reg, tc, profile)
+                    execution = {
+                        "ran": None,
+                        "background": True,
+                        "tool_name": record["tool_name"],
+                        "tool_call_id": orig_call_id,
+                    }
+                else:
+                    tool_res = await tool_reg.execute(tc, profile, session_id=record.get("session_id"))
+                    execution = {
+                        "ran": tool_res.success,
+                        "tool_name": record["tool_name"],
+                        "output": tool_res.output,
+                        "error": tool_res.error,
+                        "tool_call_id": orig_call_id,
+                    }
             else:
                 execution = {
                     "ran": False,
@@ -200,76 +213,103 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                     "tool_call_id": orig_call_id,
                 }
 
-
     approval_session = str((record or {}).get("session_id") or "").strip()
     display_session = (req.session_id or "").strip() or approval_session
-    if execution and execution.get("output") is not None:
-        raw = execution["output"]
-        content = raw if isinstance(raw, str) else json.dumps(raw, indent=2, default=str)
-    elif execution and execution.get("error"):
-        content = str(execution["error"])
-    elif decision_norm in {"rejected", "reject"}:
-        content = "Rejected. Tool did not run."
-    else:
-        content = "Approval recorded."
-
-    raw_args_meta = dict((record or {}).get("arguments") or {})
-    orig_call_id = (execution or {}).get("tool_call_id") or raw_args_meta.get("_tool_call_id") or f"resume_{approval_id}"
-    tool_name = str((execution or {}).get("tool_name") or (record or {}).get("tool_name") or "tool")
     agent_id = str((record or {}).get("agent_id") or "autoreiv")
-    tool_msg = ChatMessage(
-        role=Role.TOOL,
-        content=str(content),
-        name=tool_name,
-        tool_call_id=orig_call_id,
-    )
     routine_id = str((record or {}).get("routine_id") or "").strip()
-    persist_sessions = []
-    if approval_session:
-        persist_sessions.append(approval_session)
-    if display_session and display_session not in persist_sessions and not routine_id:
-        persist_sessions.append(display_session)
-    if draft_proposal:
-        # One decision note where the operator looks; no TOOL rows (the running turn already has the draft result).
-        args_meta = dict((record or {}).get("arguments") or {})
-        what = str(args_meta.get("what") or "").strip()
-        verb = "Approved" if decision_norm in {"approved", "approve"} else "Rejected"
-        note = f"{verb}: {tool_name}" + (f" ({what})" if what else "") + f". {content}"
-        note_session = display_session or approval_session
-        if note_session:
-            try:
-                store.save_message(
-                    session_id=note_session,
-                    agent_id=agent_id,
-                    message=ChatMessage(role=Role.ASSISTANT, content=note, name="hitl_decision"),
-                )
-            except Exception:
-                logger.exception("Failed to persist HITL decision note for %s on %s", approval_id, note_session)
+
+    def persist_outcome(execution):
+        """Save the decision's TOOL row(s) (or the draft note) where the turn and the operator look."""
+        if execution and execution.get("output") is not None:
+            raw = execution["output"]
+            content = raw if isinstance(raw, str) else json.dumps(raw, indent=2, default=str)
+        elif execution and execution.get("error"):
+            content = str(execution["error"])
+        elif decision_norm in {"rejected", "reject"}:
+            content = "Rejected. Tool did not run."
+        else:
+            content = "Approval recorded."
+
+        raw_args_meta = dict((record or {}).get("arguments") or {})
+        orig_call_id = (execution or {}).get("tool_call_id") or raw_args_meta.get("_tool_call_id") or f"resume_{approval_id}"
+        tool_name = str((execution or {}).get("tool_name") or (record or {}).get("tool_name") or "tool")
+        agent_id = str((record or {}).get("agent_id") or "autoreiv")
+        tool_msg = ChatMessage(
+            role=Role.TOOL,
+            content=str(content),
+            name=tool_name,
+            tool_call_id=orig_call_id,
+        )
+        routine_id = str((record or {}).get("routine_id") or "").strip()
         persist_sessions = []
-    for sid in persist_sessions:
-        try:
-            store.save_message(session_id=sid, agent_id=agent_id, message=tool_msg)
-        except Exception:
-            logger.exception("Failed to persist HITL decision output for %s on %s", approval_id, sid)
+        if approval_session:
+            persist_sessions.append(approval_session)
+        if display_session and display_session not in persist_sessions and not routine_id:
+            persist_sessions.append(display_session)
+        if draft_proposal:
+            # One decision note where the operator looks; no TOOL rows (the running turn already has the draft result).
+            args_meta = dict((record or {}).get("arguments") or {})
+            what = str(args_meta.get("what") or "").strip()
+            verb = "Approved" if decision_norm in {"approved", "approve"} else "Rejected"
+            note = f"{verb}: {tool_name}" + (f" ({what})" if what else "") + f". {content}"
+            note_session = display_session or approval_session
+            if note_session:
+                try:
+                    store.save_message(
+                        session_id=note_session,
+                        agent_id=agent_id,
+                        message=ChatMessage(role=Role.ASSISTANT, content=note, name="hitl_decision"),
+                    )
+                except Exception:
+                    logger.exception("Failed to persist HITL decision note for %s on %s", approval_id, note_session)
+            persist_sessions = []
+        for sid in persist_sessions:
+            try:
+                store.save_message(session_id=sid, agent_id=agent_id, message=tool_msg)
+            except Exception:
+                logger.exception("Failed to persist HITL decision output for %s on %s", approval_id, sid)
+
+    if background_call is None:
+        persist_outcome(execution)
 
     nested = None
+    engine = None
     if approval_session and "_child_" in approval_session:
         registry = getattr(request.app.state, "registry", None)
         engine = getattr(registry, "handoff_engine", None) if registry else None
         kernel = getattr(request.app.state, "kernel", None)
-        if engine is not None:
-            if kernel is not None:
-                engine.kernel = kernel
-            parent_id = display_session if display_session and display_session != approval_session else None
-            try:
-                nested = await engine.resume_nested_child(
+        if engine is not None and kernel is not None:
+            engine.kernel = kernel
+    if background_call is not None or engine is not None:
+        # CARD-593: the hand-off run and the child's resume happen in the background; the UI polls
+        # GET /api/approvals/{id}/resume (phone-safe: nothing waits on this request).
+        parent_id = display_session if display_session and display_session != approval_session else None
+
+        async def after_approval():
+            outcome = None
+            if background_call is not None:
+                reg, call, prof = background_call
+                tool_res = await reg.execute(call, prof, session_id=(record or {}).get("session_id"))
+                persist_outcome(
+                    {
+                        "ran": tool_res.success,
+                        "tool_name": call.name,
+                        "output": tool_res.output,
+                        "error": tool_res.error,
+                        "tool_call_id": call.id,
+                    }
+                )
+                outcome = handoff_outcome(tool_res)
+            if engine is not None:
+                outcome = await engine.resume_nested_child(
                     child_session_id=approval_session,
                     parent_session_id=parent_id,
                     approval_mode="ask",
                     agent_id=agent_id,
                 )
-            except Exception:
-                logger.exception("Nested child HITL resume failed for %s", approval_id)
+            return outcome
+
+        nested = background_resumes(request.app.state).start(approval_id, after_approval)
 
     routine_resume = None
     same_open_session = bool(display_session) and display_session == approval_session
@@ -306,6 +346,18 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
         "resumed": bool(routine_resume and routine_resume.get("ran")),
         "routine_resume": routine_resume,
     }
+
+
+@router.get("/api/approvals/{approval_id}/resume")
+async def get_background_resume(request: Request, approval_id: str):
+    """CARD-593: status of the work an approval started: running, completed, failed or approval_required."""
+    entry = background_resumes(request.app.state).get(approval_id)
+    if entry is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No background work for this approval (it finished long ago or the server restarted).",
+        )
+    return entry
 
 
 @router.get("/api/hitl/pending")
