@@ -33,6 +33,7 @@ from src.domain.gateway.models import (
     ToolDefinition,
 )
 from src.domain.settings.models import ModelDescriptor
+from src.infrastructure.gateway.timeouts import provider_read_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
         api_key: Optional[str] = None,
         base_url: str = "https://api.openai.com/v1",
         client: Optional[httpx.AsyncClient] = None,
-        timeout: float = 200.0,
+        timeout: Optional[float] = None,
         provider_id: str = "openai",
     ):
         self.provider_id = provider_id
@@ -75,7 +76,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
         if not raw_url.startswith(("http://", "https://")):
             raw_url = f"https://{raw_url}"
         self.base_url = raw_url.rstrip("/")
-        self.timeout = timeout
+        self.timeout = timeout or provider_read_timeout()  # CARD-588
         self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
 

@@ -10,6 +10,7 @@ from src.application.gateway.gateway_service import MultiProviderGateway
 from src.infrastructure.gateway.anthropic_adapter import AnthropicProviderAdapter
 from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
 from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
+from src.infrastructure.gateway.timeouts import DEFAULT_PROVIDER_READ_TIMEOUT
 
 
 class GatewayProviderFactory:
@@ -26,7 +27,7 @@ class GatewayProviderFactory:
         """
         cfg = config if config is not None else os.environ
 
-        timeout_sec = float(cfg.get("GATEWAY_DEFAULT_TIMEOUT_SECONDS", 200.0))
+        timeout_sec = float(cfg.get("GATEWAY_DEFAULT_TIMEOUT_SECONDS", DEFAULT_PROVIDER_READ_TIMEOUT))  # CARD-588
         gateway = MultiProviderGateway()
 
         # 1. Ollama Local Provider (default enabled)

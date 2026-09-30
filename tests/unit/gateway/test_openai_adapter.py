@@ -260,11 +260,11 @@ def test_openai_format_messages_sanitizes_duplicate_and_orphaned_tool_calls():
         assert tm["name"] and len(tm["name"]) > 0
 
 
-def test_openai_adapter_default_timeout_200s():
-    """[REQ-GW-004-TIMEOUT] Default timeout must be 200.0s for cold starts and model swaps."""
+def test_openai_adapter_default_timeout_900s():
+    """[REQ-GW-004-TIMEOUT] Default read timeout is 900 s for cold starts and model swaps (CARD-588)."""
     adapter = OpenAIProviderAdapter(api_key="test-key")
-    assert adapter.timeout == 200.0
+    assert adapter.timeout == 900.0
     client = adapter._get_client()
-    assert client.timeout.read == 200.0
+    assert client.timeout.read == 900.0
     assert client.timeout.connect == 15.0
 

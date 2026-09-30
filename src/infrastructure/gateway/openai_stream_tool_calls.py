@@ -99,6 +99,8 @@ async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest
 
     import httpx
 
+    from src.infrastructure.gateway.timeouts import describe_http_error
+
     payload = adapter._build_payload(request, stream=True)
     url = f"{adapter.base_url}/chat/completions"
     max_retries = 3
@@ -197,7 +199,7 @@ async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest
             raise
         except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
             raise ProviderUnavailableError(
-                f"Streaming connection failed to OpenAI at {adapter.base_url}: {e}",
+                f"Streaming connection failed to OpenAI at {adapter.base_url}: {describe_http_error(e, adapter.timeout)}",
                 provider_id=adapter.provider_id,
             ) from e
         except GatewayError:
