@@ -195,6 +195,7 @@ class CapabilityDetector:
         import asyncio
         import json
 
+        from src.application.kernel.reply_limits import helper_call_seconds
         from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
 
         system_msg = (
@@ -220,7 +221,7 @@ class CapabilityDetector:
                 max_tokens=250,
                 background=True,  # CARD-585
             )
-            resp = await asyncio.wait_for(gateway.complete(req), timeout=4.0)
+            resp = await asyncio.wait_for(gateway.complete(req), timeout=helper_call_seconds())  # CARD-592: was 4 s
             text = resp.text.strip()
             json_match = re.search(r"\{[\s\S]*\}", text)
             if json_match:

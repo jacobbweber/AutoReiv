@@ -15,9 +15,10 @@ import os
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional, TypeVar
 
-# Longer than the 120s kill that failed Formulate under qwen KV fill.
-# Operator env (STANDING_PHASE_LLM_TIMEOUT_SECONDS) still wins at call time.
-STANDING_PHASE_LLM_TIMEOUT_SECONDS = 300.0
+# Longer than the 120s kill that failed Formulate under qwen KV fill. CARD-592: 6 h (was 300 s); local models fill the
+# KV cache, think for a long time and queue behind other chats. Resolution at call time: Settings > Reply limits
+# (phase_seconds) > env STANDING_PHASE_LLM_TIMEOUT_SECONDS > this constant.
+STANDING_PHASE_LLM_TIMEOUT_SECONDS = 21600.0
 # 1-2 retries after the first attempt (Architect lock). 2 = quality over speed.
 STANDING_PHASE_LLM_RETRIES = 2
 
@@ -76,7 +77,12 @@ def load_repo_dotenv(start: Optional[Path] = None, override: bool = False) -> Op
 
 
 def resolve_standing_phase_llm_timeout() -> float:
-    """Call-time timeout (seconds). Env wins; else module constant (monkeypatchable)."""
+    """Call-time timeout (seconds). Saved setting, then env, then module constant (monkeypatchable)."""
+    from src.application.kernel.reply_limits import saved_timeout
+
+    saved = saved_timeout("phase_seconds")
+    if saved:
+        return float(saved)
     load_repo_dotenv()
     raw = os.environ.get("STANDING_PHASE_LLM_TIMEOUT_SECONDS")
     if raw not in (None, ""):

@@ -260,8 +260,8 @@ class Job(BaseModel):
     id: str
     goal: str
     status: JobStatus = JobStatus.QUEUED
-    budget_max_phases: int = 16
-    budget_max_handoffs: int = 4
+    budget_max_phases: int = 256  # CARD-592: very large (was 16)
+    budget_max_handoffs: int = 64  # CARD-592: very large (was 4)
     budget_max_ollama_slots: int = 1
     current_phase_id: Optional[str] = None
     template_id: Optional[str] = None

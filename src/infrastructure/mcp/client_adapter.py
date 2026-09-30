@@ -16,6 +16,8 @@ from src.domain.gateway.models import ToolDefinition
 
 logger = logging.getLogger(__name__)
 
+DISCOVERY_TIMEOUT_SECONDS = 30.0
+
 
 class MCPClientAdapter:
     """Standard Model Context Protocol client over stdio subprocess.
@@ -29,7 +31,7 @@ class MCPClientAdapter:
         server_name: str,
         command: Optional[List[str]] = None,
         env: Optional[Dict[str, str]] = None,
-        timeout_seconds: float = 30.0,
+        timeout_seconds: float = 600.0,  # CARD-592: tool calls may run long (was 30 s)
         transport: str = "stdio",
         url: Optional[str] = None,
         headers: Optional[Dict[str, str]] = None,
@@ -244,9 +246,13 @@ class MCPClientAdapter:
                 return ""
         return ""
 
+    def _discovery_timeout(self) -> float:
+        """CARD-592: tools/list is discovery, so it stays short even though tool calls may run long."""
+        return min(float(self.timeout_seconds), DISCOVERY_TIMEOUT_SECONDS)
+
     async def list_tools_raw(self) -> List[Dict[str, Any]]:
         """tools/list as the server sent it. Raises instead of returning [] [CARD-511]."""
-        res = await asyncio.wait_for(self._send_jsonrpc("tools/list"), timeout=self.timeout_seconds)
+        res = await asyncio.wait_for(self._send_jsonrpc("tools/list"), timeout=self._discovery_timeout())
         tools = res.get("tools") if isinstance(res, dict) else None
         if not isinstance(tools, list):
             raise RuntimeError("tools/list did not return a tools array")
@@ -257,7 +263,7 @@ class MCPClientAdapter:
         try:
             res = await asyncio.wait_for(
                 self._send_jsonrpc("tools/list"),
-                timeout=self.timeout_seconds,
+                timeout=self._discovery_timeout(),
             )
         except Exception as exc:
             self.last_error = f"{type(exc).__name__}: {exc}"
@@ -369,7 +375,7 @@ class MCPClientManager:
         name: str,
         command: Optional[List[str]] = None,
         env: Optional[Dict[str, str]] = None,
-        timeout_seconds: float = 30.0,
+        timeout_seconds: float = 600.0,  # CARD-592: tool calls may run long (was 30 s)
         transport: str = "stdio",
         url: Optional[str] = None,
         headers: Optional[Dict[str, str]] = None,

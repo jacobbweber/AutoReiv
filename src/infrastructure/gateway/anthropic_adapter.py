@@ -31,7 +31,7 @@ from src.domain.gateway.models import (
 )
 from src.domain.settings.models import ModelDescriptor
 from src.infrastructure.gateway.openai_adapter import is_permanent_quota_exhaustion
-from src.infrastructure.gateway.timeouts import describe_http_error, provider_read_timeout
+from src.infrastructure.gateway.timeouts import describe_http_error, http_timeout, provider_read_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +55,18 @@ class AnthropicProviderAdapter(LLMProviderPort):
         if not raw_url.startswith(("http://", "https://")):
             raw_url = f"https://{raw_url}"
         self.base_url = raw_url.rstrip("/")
-        self.timeout = timeout or provider_read_timeout()  # CARD-588
+        self._timeout = timeout  # CARD-588/592: None = follow the setting
         self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
+
+    @property
+    def timeout(self) -> float:
+        """CARD-592: provider silence allowed, read per request so a saved setting applies without a restart."""
+        return self._timeout or provider_read_timeout()
+
+    @timeout.setter
+    def timeout(self, value: Optional[float]) -> None:
+        self._timeout = value
 
     def _get_headers(self) -> Dict[str, str]:
         headers = {
@@ -72,7 +81,7 @@ class AnthropicProviderAdapter(LLMProviderPort):
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
-                timeout=httpx.Timeout(connect=15.0, read=self.timeout, write=15.0, pool=15.0),
+                timeout=http_timeout(self.timeout),
                 limits=self.limits,
             )
         return self._client
@@ -193,7 +202,7 @@ class AnthropicProviderAdapter(LLMProviderPort):
         for attempt in range(max_retries + 1):
             try:
                 client = self._get_client()
-                resp = await client.post(url, headers=self._get_headers(), json=payload)
+                resp = await client.post(url, headers=self._get_headers(), json=payload, timeout=http_timeout(self.timeout))
                 if resp.status_code != 200:
                     self._handle_error_status(resp.status_code, resp.text)
 
@@ -261,7 +270,9 @@ class AnthropicProviderAdapter(LLMProviderPort):
         for attempt in range(max_retries + 1):
             try:
                 client = self._get_client()
-                async with client.stream("POST", url, headers=self._get_headers(), json=payload) as response:
+                async with client.stream(
+                    "POST", url, headers=self._get_headers(), json=payload, timeout=http_timeout(self.timeout)
+                ) as response:
                     if response.status_code != 200:
                         err_body = await response.aread()
                         self._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))

@@ -429,7 +429,7 @@ class RepoCheckoutTools:
                 cwd=str(root),
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=300,  # CARD-592: large checkouts (was 30 s)
             )
             if res.returncode != 0:
                 res = subprocess.run(
@@ -437,7 +437,7 @@ class RepoCheckoutTools:
                     cwd=str(root),
                     capture_output=True,
                     text=True,
-                    timeout=30,
+                    timeout=300,  # CARD-592: large checkouts (was 30 s)
                 )
             if res.returncode == 0:
                 return {
@@ -474,7 +474,7 @@ class RepoCheckoutTools:
                 cwd=str(root),
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=300,  # CARD-592: large checkouts (was 30 s)
             )
             return {
                 "success": res.returncode == 0,

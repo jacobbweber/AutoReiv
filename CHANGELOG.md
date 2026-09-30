@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-592: every timeout relaxed for local models (reply 7200 s, provider silence 1800 s, phase 21600 s, helper 1800 s, all in Settings > Reply limits; chat stream keepalive; long tool/job defaults; probes stay short).
 - CARD-591: background helper calls get at least 16384 tokens (was 4096, which cut 4 of 22 nemotron helper calls mid-thought), capped at a quarter of the context window. Found in the 2026-09-30 battery.
 - CARD-590: `promote_artifact_to_wiki` files the note in 00_Inbox/ (One-Door Policy) instead of the vault root or a model-invented top-level folder; paths under a vault folder are kept. Found in the 2026-09-30 battery.
 - CARD-589: `wiki_note_list` category (notes, inbox, resources) matches the numbered vault folders (01_Notes/, 00_Inbox/, 02_Resources/) and the legacy ones; it listed nothing before. Found in the 2026-09-30 battery.

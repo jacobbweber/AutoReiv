@@ -82,6 +82,27 @@ GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
 
 logger = logging.getLogger(__name__)
 
+SSE_KEEPALIVE_SECONDS = 15.0  # CARD-592: chat stream heartbeat
+SSE_KEEPALIVE = ": keepalive\n\n"
+
+
+async def sse_with_keepalive(queue: "asyncio.Queue[Optional[str]]", interval: Optional[float] = None) -> AsyncGenerator[str, None]:
+    """Yield queued SSE items until None; while nothing arrives, an SSE comment every ``interval`` seconds.
+
+    CARD-592: the model may think, a tool or an approval may run for many minutes, so proxies and browsers never see
+    an idle connection. Clients skip lines that are not "data:".
+    """
+    wait = interval if interval is not None else SSE_KEEPALIVE_SECONDS
+    while True:
+        try:
+            item = await asyncio.wait_for(queue.get(), timeout=wait)
+        except asyncio.TimeoutError:
+            yield SSE_KEEPALIVE
+            continue
+        if item is None:
+            return
+        yield item
+
 # Active background generation tasks by session_id [REQ-RESIL-003, CARD-114 Finding 4]
 _active_stream_tasks: Dict[str, asyncio.Task] = {}
 _active_stream_agents: Dict[str, str] = {}
@@ -2512,10 +2533,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
-            while True:
-                item = await queue.get()
-                if item is None:
-                    break
+            async for item in sse_with_keepalive(queue):
                 yield item
         except (asyncio.CancelledError, GeneratorExit):
             # Client disconnected from SSE stream (phone locked, tab slept, app switched).

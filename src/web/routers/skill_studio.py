@@ -199,7 +199,6 @@ description: {clean_trigger}
         system=system_prompt,
         user=user_prompt,
         fallback=fallback_runbook,
-        timeout=60.0,
     )
 
     if not generated or not generated.strip().startswith("---"):

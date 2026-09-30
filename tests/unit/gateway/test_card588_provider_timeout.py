@@ -1,5 +1,5 @@
-"""CARD-588: providers may stay silent long enough for a swap gateway to load a model (900 s default); a timeout error
-names what happened instead of an empty reason."""
+"""CARD-588: providers may stay silent long enough for a swap gateway to load a model (CARD-592: 1800 s default); a
+timeout error names what happened instead of an empty reason."""
 
 from __future__ import annotations
 
@@ -19,13 +19,18 @@ from src.infrastructure.gateway.timeouts import (
 )
 
 
-def test_default_read_timeout_survives_a_model_swap(monkeypatch):
+@pytest.fixture(autouse=True)
+def _no_env(monkeypatch):
     monkeypatch.delenv("GATEWAY_DEFAULT_TIMEOUT_SECONDS", raising=False)
-    assert DEFAULT_PROVIDER_READ_TIMEOUT == 900.0
+    monkeypatch.delenv("AUTOREIV_PROVIDER_IDLE_SECONDS", raising=False)
+
+
+def test_default_read_timeout_survives_a_model_swap(monkeypatch):
+    assert DEFAULT_PROVIDER_READ_TIMEOUT == 1800.0
     for adapter in (OpenAIProviderAdapter(base_url="http://192.168.1.218:8099/v1", provider_id="vllm"),
                     OllamaProviderAdapter(base_url="http://192.168.1.29:11434"),
                     AnthropicProviderAdapter(api_key="x")):
-        assert adapter.timeout == 900.0
+        assert adapter.timeout == 1800.0
     assert OpenAIProviderAdapter(timeout=30.0).timeout == 30.0
 
 
@@ -34,12 +39,12 @@ def test_env_override(monkeypatch):
     assert provider_read_timeout() == 1200.0
     assert OpenAIProviderAdapter().timeout == 1200.0
     monkeypatch.setenv("GATEWAY_DEFAULT_TIMEOUT_SECONDS", "junk")
-    assert provider_read_timeout() == 900.0
+    assert provider_read_timeout() == 1800.0
 
 
-def test_factory_default_is_900(monkeypatch):
+def test_factory_default_is_1800(monkeypatch):
     gw = GatewayProviderFactory.create_gateway({"OLLAMA_HOST": "http://127.0.0.1:11434"})
-    assert gw.get_provider("ollama").timeout == 900.0
+    assert gw.get_provider("ollama").timeout == 1800.0
 
 
 def test_describe_never_empty():

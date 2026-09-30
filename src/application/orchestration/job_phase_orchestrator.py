@@ -190,8 +190,8 @@ class JobPhaseOrchestrator:
         success_rule: str = "",
         verify_checker: Optional[str] = None,
         template_id: Optional[str] = None,
-        budget_max_phases: int = 16,
-        budget_max_handoffs: int = 4,
+        budget_max_phases: int = 256,  # CARD-592 (was 16)
+        budget_max_handoffs: int = 64,  # CARD-592 (was 4)
         budget_max_ollama_slots: int = 1,
         max_turns: int = 10,
     ) -> Job:
@@ -217,8 +217,8 @@ class JobPhaseOrchestrator:
         phase_specs: Sequence[Union[PhaseSpec, Mapping[str, Any]]],
         *,
         template_id: Optional[str] = None,
-        budget_max_phases: int = 16,
-        budget_max_handoffs: int = 4,
+        budget_max_phases: int = 256,  # CARD-592 (was 16)
+        budget_max_handoffs: int = 64,  # CARD-592 (was 4)
         budget_max_ollama_slots: int = 1,
         success_rule: str = "",
     ) -> Job:

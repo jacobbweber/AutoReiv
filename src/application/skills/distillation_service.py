@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from src.application.kernel.reply_limits import helper_call_seconds
 from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
 from src.domain.observability.models import TOOL_ESCALATION
 
@@ -294,7 +295,9 @@ class SkillDistillationService:
                 max_tokens=800,
                 background=True,  # CARD-585
             )
-            resp = await asyncio.wait_for(self.gateway.complete(req), timeout=4.5)
+            resp = await asyncio.wait_for(
+                self.gateway.complete(req), timeout=helper_call_seconds()
+            )  # CARD-592: was 4.5 s
             raw_text = getattr(resp, "text", None) or (
                 resp.message.content if getattr(resp, "message", None) else str(resp)
             )

@@ -82,7 +82,7 @@ class SandboxedSubprocessWorker:
     async def run_sandboxed(
         cls,
         args: List[str],
-        timeout_seconds: float = 30.0,
+        timeout_seconds: float = 600.0,  # CARD-592: was 30 s
         env_overrides: Optional[Dict[str, str]] = None,
         files: Optional[Dict[str, str]] = None,
         read_outputs: Optional[List[str]] = None,
@@ -250,7 +250,7 @@ class SandboxedSubprocessWorker:
     async def run_python_code(
         cls,
         code: str,
-        timeout_seconds: float = 30.0,
+        timeout_seconds: float = 600.0,  # CARD-592: was 30 s
         files: Optional[Dict[str, str]] = None,
         read_outputs: Optional[List[str]] = None,
         env_overrides: Optional[Dict[str, str]] = None,

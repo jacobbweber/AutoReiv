@@ -15,6 +15,7 @@ from src.domain.gateway.errors import (
 )
 from src.domain.gateway.models import CompletionRequest, StreamChunk, ToolCall
 from src.infrastructure.gateway.openai_adapter import is_permanent_quota_exhaustion
+from src.infrastructure.gateway.timeouts import http_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,9 @@ async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest
     for attempt in range(max_retries + 1):
         try:
             client = adapter._get_client()
-            async with client.stream("POST", url, headers=adapter._get_headers(), json=payload) as response:
+            async with client.stream(
+                "POST", url, headers=adapter._get_headers(), json=payload, timeout=http_timeout(adapter.timeout)
+            ) as response:
                 if response.status_code != 200:
                     err_body = await response.aread()
                     adapter._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))

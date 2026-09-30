@@ -1886,7 +1886,7 @@
             <i data-lucide="timer" class="w-4 h-4 text-amber-400"></i>
             <span>Reply limits</span>
           </h3>
-          <p class="text-xs text-slate-400">Every model reply stops at these limits instead of running on. Empty or 0 uses the default (32768 tokens, 1200 seconds). The token limit includes the model's thinking, applies to every model call (helper calls get at least 4096 tokens so a thinking model can answer), and is capped at a quarter of the model's context window. The seconds count from the model's first token, so waiting for a free slot or for the model to load does not count.</p>
+          <p class="text-xs text-slate-400">Every model reply stops at these limits instead of running on. Empty or 0 uses the default (32768 tokens, 7200 seconds). The token limit includes the model's thinking, applies to every model call (helper calls get at least 16384 tokens so a thinking model can answer), and is capped at a quarter of the model's context window. The seconds count from the model's first token, so waiting for a free slot or for the model to load does not count.</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label class="block">
               <span class="text-xs font-semibold text-slate-300 block mb-1">Max tokens per reply</span>
@@ -1894,7 +1894,23 @@
             </label>
             <label class="block">
               <span class="text-xs font-semibold text-slate-300 block mb-1">Max seconds per reply</span>
-              <input id="replyLimitMaxSecondsInput" type="number" min="0" step="1" placeholder="1200" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+              <input id="replyLimitMaxSecondsInput" type="number" min="0" step="1" placeholder="7200" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+            </label>
+          </div>
+          <!-- CARD-592: model-call waits -->
+          <p class="text-xs text-slate-400">Waits for slow local models (loading, filling the context, long thinking, queueing behind other chats). Empty or 0 uses the default. Provider silence is how long a model server may send nothing, before its first word or between words (default 1800). A job phase or developer turn may take up to 21600 seconds; a helper call (gap analysis, distillation, Skill Studio drafts) up to 1800.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-300 block mb-1">Provider silence (seconds)</span>
+              <input id="replyLimitProviderIdleInput" type="number" min="0" step="1" placeholder="1800" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-300 block mb-1">Job phase / developer turn (seconds)</span>
+              <input id="replyLimitPhaseSecondsInput" type="number" min="0" step="1" placeholder="21600" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+            </label>
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-300 block mb-1">Helper call (seconds)</span>
+              <input id="replyLimitHelperSecondsInput" type="number" min="0" step="1" placeholder="1800" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
             </label>
           </div>
           <div class="flex items-center gap-3">

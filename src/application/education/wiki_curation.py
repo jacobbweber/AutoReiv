@@ -26,7 +26,7 @@ SKILL_ID = "education-wiki-curation"
 HTTP_CONTRACT = "POST /api/education/wiki/curate"
 DEFAULT_EDUCATION_TEMPLATE = "education-concept"
 RAW_SOURCE_TEMPLATE = "zettelkasten-atomic"
-FETCH_TIMEOUT_SEC = 12
+FETCH_TIMEOUT_SEC = 60  # CARD-592: slow sites (was 12 s)
 MAX_BODY_CHARS = 24_000
 USER_AGENT = "AutoReiv-EducationWikiCuration/1.0 (+CARD-440)"
 
