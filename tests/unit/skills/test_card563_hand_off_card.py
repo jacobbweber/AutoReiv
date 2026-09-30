@@ -101,7 +101,7 @@ def test_success_runs_developer_with_fixed_directive_and_reports_from_git(setup)
     env = setup.engine.envelopes[0]
     assert env.recipient_agent_id == "developer" and env.packet.goal == card_directive("CARD-2")
     assert env.packet.facts == ["card_id: CARD-2"] and env.context_payload["card_handoff"] == "CARD-2"
-    assert env.max_turns == 40
+    assert env.max_turns == 50  # CARD-462: informational; Developer runs with its own max_turns
     assert "Card status: In Review" in out
     assert "Branch: card/2-c2 (base main)" in out
     assert "fix: divide refuses zero" in out and "docs(card): CARD-2 In Review" in out

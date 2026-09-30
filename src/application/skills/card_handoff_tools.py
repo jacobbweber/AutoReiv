@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.sdlc.paths import ProjectPathError
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS
 
 HAND_OFF_TOOL = "hand_off_card"
 DEVELOPER_ID = "developer"
@@ -202,7 +203,7 @@ class CardHandoffTools:
             facts=[f"card_id: {cid}"] + (["status: Returned (read the latest ## Review round)"] if returned else []),
             constraints=constraints,
             done_when=f"{cid} is In Review (set_card_status), or you stop and say why.",
-            budget={"max_turns": 40},
+            budget={"max_turns": DEFAULT_AGENT_MAX_TURNS},  # informational; Developer runs with its own max_turns
         )
         envelope = HandoffEnvelope(
             sender_agent_id=ARCHITECT_ID,
@@ -212,7 +213,6 @@ class CardHandoffTools:
             context_payload={CARD_HANDOFF_PAYLOAD_KEY: cid, "child_session_title": f"{cid}: " + ("rework after review" if returned else "handed off by Architect")},
             approval_mode="run" if str(ctx.get("approval_mode") or "").lower() == "run" else "ask",
             depth=infer_handoff_depth(session_id),
-            max_turns=40,
             packet=packet,
         )
         from src.application.orchestration.handoff_engine import child_session_id_for

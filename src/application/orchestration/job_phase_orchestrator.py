@@ -34,6 +34,7 @@ from src.application.orchestration.research_before_plan import (
     run_standing_research,
 )
 from src.domain.agents.profiles import DEFAULT_PLATFORM_AGENT_ID, canonical_agent_id
+from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS
 from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import (
     HandoffPacket,
@@ -193,7 +194,7 @@ class JobPhaseOrchestrator:
         budget_max_phases: int = 256,  # CARD-592 (was 16)
         budget_max_handoffs: int = 64,  # CARD-592 (was 4)
         budget_max_ollama_slots: int = 1,
-        max_turns: int = 10,
+        max_turns: int = DEFAULT_AGENT_MAX_TURNS,
     ) -> Job:
         """Default chat shape: one Job, one Phase, both queued [REQ-ORCH-035 shape only]."""
         return self.create_job_with_phases(

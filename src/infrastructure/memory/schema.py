@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS phases (
     input_packet_json TEXT,
     output_packet_json TEXT,
     parent_phase_id TEXT,
-    max_turns INTEGER NOT NULL DEFAULT 10,
+    max_turns INTEGER NOT NULL DEFAULT 50,
     react_state TEXT,
     UNIQUE(job_id, "index")
 );
