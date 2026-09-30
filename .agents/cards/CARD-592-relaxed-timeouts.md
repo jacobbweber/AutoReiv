@@ -65,4 +65,14 @@ CARD-585/588 and adapter default tests.
 
 ## Evidence
 
-SMOKE_PLACEHOLDER
+- pytest full: 2196 passed, 12 skipped; 1 failure only in the worktree (`test_fleet_coordinator` reads the gitignored
+  `notes/homelab` that exists only in the main checkout; passes there). ruff clean. Preflight fast GREEN (vitest 960).
+- Live smoke 2026-09-30 on a throwaway :8770 built from this branch (nemotron on Spark, Developer on Nimo qwen3.8), chat
+  client with a 60 s socket read timeout and approval POSTs with no client timeout (like a browser):
+  - Two hand-offs (Autoreiv -> Developer, approval mode ask): 14 approvals, all answered; the two longest decisions ran the
+    child's turn inline for **66.3 s** (write_card) and **64.3 s** (set_card_status) and returned 200 - longer than the
+    60 s that used to cut the battery driver.
+  - A resumed stream ran about 5 min with 4 keepalive comments; the longest silence on the wire was 15.0 s, so the
+    60 s read timeout never fired. No stream errors.
+  - Reply limits API on the throwaway: max_seconds 7200, provider_idle_seconds 1800, phase_seconds 21600,
+    helper_seconds 1800.
