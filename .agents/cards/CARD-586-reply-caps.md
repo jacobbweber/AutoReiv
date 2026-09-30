@@ -53,3 +53,4 @@ the first token).
 ## Log
 
 - 2026-09-29: built on the branch with tests (`tests/unit/gateway/test_card586_reply_caps.py`).
+- 2026-09-29 (live, throwaway :8770, combined branch): battery ran with the caps (123 turns, no reply cut short by the limit). The vLLM `request_params_max_tokens` check could not be done: Spark vLLM was down for the whole round; Ollama does not expose request params. Live acceptance stays open.
