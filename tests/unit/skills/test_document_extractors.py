@@ -86,9 +86,9 @@ def test_read_document_file_tool(tmp_path):
     csv_file = tmp_path / "stats.csv"
     csv_file.write_text("Year,Users\n2025,500\n2026,2000\n", encoding="utf-8")
 
-    out = read_document_file(str(csv_file))
+    out = read_document_file(str(csv_file), root_provider=lambda: [tmp_path])
     assert "2025" in out
     assert "2000" in out
 
-    missing_out = read_document_file(str(tmp_path / "does_not_exist.pdf"))
+    missing_out = read_document_file(str(tmp_path / "does_not_exist.pdf"), root_provider=lambda: [tmp_path])
     assert "Error:" in missing_out
