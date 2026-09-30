@@ -16,6 +16,9 @@ from src.domain.memory.models import SessionArtifact
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
+_VAULT_FOLDERS = {"00_inbox", "01_notes", "02_resources", "03_archive"}
+
+
 class BatchWorkerTools:
     """
     Executes massive context tasks (repository scans, multi-file audits, log reviews)
@@ -233,12 +236,15 @@ class BatchWorkerTools:
         }
 
     def _promotion_path(self, wiki_slug: str) -> str:
-        """CARD-590: a bare slug lands in the inbox (One-Door Policy; the curator graduates it), not the vault root.
-        A slug with a folder (``reports/audit``) is kept as given."""
+        """CARD-590: a promoted note lands in the inbox (One-Door Policy; the curator graduates it), not at the vault root
+        or in a new top-level folder. A path already under a vault folder (00_Inbox/, 01_Notes/, 02_Resources/,
+        03_Archive/) is kept; anything else (``fixture-scan``, ``reports/audit``) becomes ``00_Inbox/<name>.md``."""
         rel = str(wiki_slug or "promoted-artifact").replace("\\", "/").strip().strip("/")
         if not rel.lower().endswith(".md"):
             rel = f"{rel}.md"
-        return rel if "/" in rel else f"00_Inbox/{rel}"
+        if rel.split("/", 1)[0].lower() in _VAULT_FOLDERS and "/" in rel:
+            return rel
+        return f"00_Inbox/{rel.rsplit('/', 1)[-1]}"
 
     def promote_artifact_to_wiki(
         self,

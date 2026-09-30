@@ -27,16 +27,19 @@ overview then listed it as a stray top-level file. The tool wrote `<wiki_slug>.m
 
 ## Change
 
-- `worker_tools.py`: `_promotion_path()`: a bare slug goes to `00_Inbox/<slug>.md` (One-Door Policy; the curator
-  graduates it to 01_Notes); a slug with a folder is kept (`reports/audit` -> `reports/audit.md`), backslashes
-  normalized.
+- `worker_tools.py`: `_promotion_path()`: the note goes to `00_Inbox/<name>.md` (One-Door Policy; the curator
+  graduates it to 01_Notes). A path already under a vault folder (`00_Inbox/`, `01_Notes/`, `02_Resources/`,
+  `03_Archive/`) is kept; a model-invented folder (`reports/fixture-scan`, seen live on the rerun) is dropped to the
+  inbox too. Backslashes normalized. `test_worker_tools.py` now reads the promoted note from `00_Inbox/`.
 - Tests: `tests/unit/skills/test_card590_promote_artifact_inbox.py`.
 
 ## Acceptance
 
-- [x] Bare slug -> `00_Inbox/<slug>.md`, nothing at the root; folder slugs kept.
+- [x] Bare or invented-folder slug -> `00_Inbox/<name>.md`, nothing at the root; vault-folder paths kept.
 - [ ] Live: ar-11 promotion lands in 00_Inbox/ (see Log).
 
 ## Log
 
 - 2026-09-30: built on the branch with tests.
+- 2026-09-30: live rerun: AutoReiv passed `reports/fixture-scan` and got a new top-level `reports/` folder, so
+  invented folders now go to the inbox as well.

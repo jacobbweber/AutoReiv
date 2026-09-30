@@ -51,4 +51,5 @@ def test_promotion_path_normalizes():
     tools = BatchWorkerTools(state_store=None, wiki_tools=None, workspace_root=".")
     assert tools._promotion_path("scan") == "00_Inbox/scan.md"
     assert tools._promotion_path("scan.md") == "00_Inbox/scan.md"
-    assert tools._promotion_path("reports\\audit") == "reports/audit.md"
+    assert tools._promotion_path("reports\\audit") == "00_Inbox/audit.md"  # model-invented folder (seen live)
+    assert tools._promotion_path("01_Notes/k8s/scan") == "01_Notes/k8s/scan.md"

@@ -114,7 +114,7 @@ async def test_promote_artifact_to_wiki(worker_tools, store, wiki_tools):
     assert "path" in promo_res
 
     # Verify note in Wiki Vault
-    note = wiki_tools.read_wiki_note("reports/security-audit.md")
+    note = wiki_tools.read_wiki_note("00_Inbox/security-audit.md")  # CARD-590: lands in the inbox
     assert note["success"] is True
     assert note["frontmatter"]["title"] == "Security Audit Report"
     assert note["frontmatter"]["topic"] == "audits"
