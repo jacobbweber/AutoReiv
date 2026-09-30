@@ -36,8 +36,9 @@ its folders (`00_Inbox/`, `01_Notes/`, `02_Resources/`), so every category liste
 ## Acceptance
 
 - [x] `category=notes|inbox|resources` lists the numbered folders; folder names and legacy folders still match.
-- [ ] Live: `wiki_note_list(category="notes")` lists 01_Notes in the throwaway (see Log).
+- [x] Live: `wiki_note_list(category="notes")` lists 01_Notes in the throwaway (see Log).
 
 ## Log
 
 - 2026-09-30: built on the branch with tests.
+- 2026-09-30 (live, throwaway :8770 on qa + 589/590/591, nemotron): ar-07 `wiki_note_list(category="notes")` returned the 01_Notes notes (was `[]` on qa).
