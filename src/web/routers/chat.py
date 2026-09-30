@@ -2238,6 +2238,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     approval_mode=req.approval_mode or "ask",
                     resume=resume,
                 ):
+                    partial.observe(event)  # CARD-489: Direct replies keep their words on Stop too
                     if event.event_type == KernelEventType.TURN_END:
                         await queue.put(_sse("turn_done", {"content": event.content, "direct_mode": True}))
                     elif event.event_type == KernelEventType.REACT_STATE:

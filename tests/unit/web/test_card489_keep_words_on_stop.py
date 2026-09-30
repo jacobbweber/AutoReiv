@@ -61,6 +61,7 @@ def test_chat_worker_saves_the_partial_on_cancel():
     src = Path("src/web/routers/chat.py").read_text(encoding="utf-8")
     assert "partial = PartialReply()" in src
     assert re.search(r"partial\.observe\(event\)\s*\n\s*await _forward_kernel_event", src)
+    assert src.count("partial.observe(event)") >= 2  # plain turns and the Direct fast path (live QA 2026-09-30)
     cancel = src.split("except asyncio.CancelledError:\n            logger.info(\"Chat stream worker cancelled", 1)[1][:700]
     assert "stopped_message(partial.text())" in cancel
     assert "store.save_message(" in cancel
