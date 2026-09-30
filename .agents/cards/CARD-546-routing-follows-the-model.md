@@ -34,6 +34,18 @@ Make the fallback structural instead of worded. For example, show Ask Developer 
 
 The routing journey passes 5 of 5 runs on desktop and phone with the real model.
 
+## Re-measure (Jacob class-b, 2026-09-30, ~2:05-2:55 PM ET)
+
+Throwaway :8770, clone of real data, qa `de12b988`-era code, AutoReiv on `default` = **nemotron-3.5-lightning** (262k), approval mode ask. Prompt: the journey's due-review ask ("Start my flashcard due review for today: show me the first card that is due and grade my answer."). Driver `scratch/live_546_tutor.py`, results `scratch/live_546_results_*.json`.
+
+| Batch | Handed to Tutor | Notes |
+|---|---|---|
+| A: 10 runs, one env | **1/10** | Run 1 handed off. From run 3 on, AutoReiv answered from memory facts saved after run 1 (`user.flashcard_review_due_today: false`, no tools) - the runs are not independent, so this batch overstates the miss rate. |
+| B: 10 runs, fresh clone before each | **2/10** | Runs 4 and 7 handed off (lookup_agents -> inspect_agent -> handoff_to_agent -> Tutor). The 8 misses never called `lookup_agents`; they searched the wiki / system health and replied "no flashcards found" (one said it could not reach the education tools). No loop stops, no refusal wording. |
+
+**Finding:** routing is worse than the 6/10 of 2026-09-26 and depends on the model choosing `lookup_agents` first. Once it does, the handoff follows every time (2/2). This supports the structural fix in "Change": a router check before the turn for requests that match none of AutoReiv's ticked skills (or offer the Tutor button whenever education tools are named but not ticked). Also: post-turn memory extraction can freeze a wrong "state" fact after one run - worth a separate look.
+
 ## Log
 
 - 2026-09-29: battery triage: still valid; Ask Developer buttons now open Toolsmith (CARD-571); routing in the battery followed the prompt (Developer and Toolsmith handed off correctly on Spark/Nimo)
+- 2026-09-30: re-measured on nemotron per Jacob's class-b approval: Tutor handoff 2/10 (fresh env each run), 1/10 (shared env, memory-contaminated). Still Ready; the structural router fix is the next step.
