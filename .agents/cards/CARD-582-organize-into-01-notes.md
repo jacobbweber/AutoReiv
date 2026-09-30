@@ -45,3 +45,4 @@ curation (CARD-173/406) migrates the legacy `notes/` tree away. The reply then r
 
 - 2026-09-29: fixed on the branch with tests.
 - 2026-09-29: preflight --fast --base qa GREEN. Jacob: merge to qa (battery brief allows merging small fixes). Done; merged into qa.
+- 2026-09-29: battery triage: live on the throwaway after the merge: AutoReiv's weekly note went 00_Inbox/week_40_2026_w40.md -> 01_Notes/weekly/worklog/week_40_2026_w40.md; no notes/ folder

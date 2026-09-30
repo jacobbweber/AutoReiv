@@ -1,7 +1,7 @@
 ---
 id: CARD-531
 title: "A network-only sample-call skip lets a broken native tool register, and the Developer calls it 'ready for use'"
-status: Ready
+status: Superseded
 created: 2026-09-26
 branch: qa
 related:
@@ -19,7 +19,7 @@ milestone: M25
 
 # [CARD-531] Registered without a test run: `get_weather` returns HTTP 400
 
-> **Status**: Ready (found in CARD-520 live test round 2, step 7, 2026-09-26 ~2:33 PM ET, serve `93a1d4fe`). Does not block CARD-520.
+> **Status**: Superseded (2026-09-29 battery triage: superseded by CARD-571: network-using tool code is never run at save, is saved as 'Not run: uses network, review before enabling', the model skip flag is gone, the Developer no longer registers tools, and Jacob enables each tool after reading its code)
 > **Related**: CARD-511 (register runs the tool once; skip allowed for secrets, network or side effects), CARD-523 (honest tool failures)
 > **Labels**: `type:bug`, `area:developer`, `area:tools`, `P2`
 
@@ -38,3 +38,7 @@ milestone: M25
 ## Done when
 
 Re-registering the same `get_weather` code fails the sample call with the 400 (or passes once fixed); a skipped run is labelled; the Developer reply states grants and run status. Replay: Teach "weather in Boston" -> Ask Developer.
+
+## Log
+
+- 2026-09-29: battery triage: superseded by CARD-571: network-using tool code is never run at save, is saved as 'Not run: uses network, review before enabling', the model skip flag is gone, the Developer no longer registers tools, and Jacob enables each tool after reading its code
