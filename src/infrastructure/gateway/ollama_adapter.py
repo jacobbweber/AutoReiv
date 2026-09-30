@@ -27,6 +27,7 @@ from src.domain.gateway.models import (
     ToolDefinition,
 )
 from src.domain.settings.models import ModelDescriptor
+from src.infrastructure.gateway.timeouts import describe_http_error, provider_read_timeout
 
 
 class OllamaProviderAdapter(LLMProviderPort):
@@ -38,7 +39,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         self,
         base_url: str = "http://127.0.0.1:11434",
         client: Optional[httpx.AsyncClient] = None,
-        timeout: float = 600.0,
+        timeout: Optional[float] = None,
         provider_id: str = "ollama",
     ):
 
@@ -50,7 +51,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         if raw_url in ("http://127.0.0.1", "http://localhost"):
             raw_url = f"{raw_url}:11434"
         self.base_url = raw_url.rstrip("/")
-        self.timeout = timeout
+        self.timeout = timeout or provider_read_timeout()  # CARD-588
         self.default_model = "llama3.2:latest"
         self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
@@ -275,7 +276,7 @@ class OllamaProviderAdapter(LLMProviderPort):
             ) from e
         except (httpx.ConnectError, httpx.NetworkError) as e:
             raise ProviderUnavailableError(
-                f"Streaming connection failed to Ollama at {self.base_url}: {e}",
+                f"Streaming connection failed to Ollama at {self.base_url}: {describe_http_error(e, self.timeout)}",
                 provider_id=self.provider_id,
             ) from e
         except GatewayError:

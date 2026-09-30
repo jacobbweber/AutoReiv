@@ -31,6 +31,7 @@ from src.domain.gateway.models import (
 )
 from src.domain.settings.models import ModelDescriptor
 from src.infrastructure.gateway.openai_adapter import is_permanent_quota_exhaustion
+from src.infrastructure.gateway.timeouts import describe_http_error, provider_read_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class AnthropicProviderAdapter(LLMProviderPort):
         api_key: Optional[str] = None,
         base_url: str = "https://api.anthropic.com/v1",
         client: Optional[httpx.AsyncClient] = None,
-        timeout: float = 200.0,
+        timeout: Optional[float] = None,
         provider_id: str = "anthropic",
     ):
         self.provider_id = provider_id
@@ -54,7 +55,7 @@ class AnthropicProviderAdapter(LLMProviderPort):
         if not raw_url.startswith(("http://", "https://")):
             raw_url = f"https://{raw_url}"
         self.base_url = raw_url.rstrip("/")
-        self.timeout = timeout
+        self.timeout = timeout or provider_read_timeout()  # CARD-588
         self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
 
@@ -347,7 +348,7 @@ class AnthropicProviderAdapter(LLMProviderPort):
                 raise
             except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
                 raise ProviderUnavailableError(
-                    f"Streaming connection failed to Anthropic at {self.base_url}: {e}",
+                    f"Streaming connection failed to Anthropic at {self.base_url}: {describe_http_error(e, self.timeout)}",
                     provider_id=self.provider_id,
                 ) from e
             except Exception as e:

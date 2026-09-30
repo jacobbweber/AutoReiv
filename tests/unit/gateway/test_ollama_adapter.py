@@ -185,7 +185,7 @@ async def test_ollama_connect_timeout_is_30s():
     try:
         client = adapter._get_client()
         assert client.timeout.connect == 30.0
-        assert client.timeout.read == 600.0
+        assert client.timeout.read == 900.0
         assert client.timeout.pool == 30.0
     finally:
         await adapter.close()
