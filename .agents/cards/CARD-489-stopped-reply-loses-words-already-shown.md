@@ -80,3 +80,6 @@ Ask for a long answer, stop after a few lines, and reload: the lines are still t
 1. Pull qa, restart the serve, Ctrl+F5.
 2. Chat Studio: ask for a long answer ("Write 40 numbered tips about ..."), press **Stop** after a few lines.
 3. The lines stay, ending with *(Stopped)*. Reload: still there. Say "continue": the reply picks up from there.
+
+## Live check
+- 2026-09-30 ~3:00 PM ET, throwaway :8770 (clone data, Direct on nemotron): first run saved nothing because the Direct fast path has its own loop; fixed (`partial.observe` there too, test updated). Rerun: Stop after 60 tokens -> rows `user, assistant`; the assistant row holds tips 1-8 and ends with `_(Stopped)_`; visible as (Stopped) after reload on desktop and phone. Screenshots: `scratch/ui0930/489-stopped-desktop.png` / `-phone.png` (Jarvis).
