@@ -52,8 +52,9 @@ the reply limit starts at the model's first token and is raised to 1200 s; abort
 - [x] Slot wait and a slow start before the first token do not count toward the time limit; after the first token the
       limit still stops the reply and closes the stream.
 - [x] Default reply time limit 1200 s.
-- [ ] Live on the throwaway :8770 (see Log).
+- [x] Live on the throwaway :8770 (see Log).
 
 ## Log
 
 - 2026-09-29: built on the branch with tests (`tests/unit/gateway/test_card585_slot_pools.py`).
+- 2026-09-29 (live, throwaway :8770, combined branch): Developer on Nimo started replies in 3-5 s while every Spark call was stuck (gateway swap/outage), so provider pools are separate live. Architect + Developer + 4 Spark agents moved to Nimo shared the Nimo pool (cap 3) for ~2 h with no deadlocks; 122/123 turns ok. Closing a stream through :8099 dropped vLLM running requests to 0 (earlier check).
