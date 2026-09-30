@@ -1,7 +1,8 @@
 ---
 id: CARD-288
 title: "Horizon \u2014 Training Factory tool-fix suggest path"
-status: Parked
+status: Superseded
+completed: 2026-09-30
 created: 2026-09-13
 adr: none
 labels:
@@ -13,7 +14,7 @@ labels:
 
 # [CARD-288] Horizon — Training Factory tool-fix suggest path
 
-> **Status**: Parked
+> **Status**: Superseded (stale, closed 2026-09-30)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `training-factory`
@@ -55,3 +56,7 @@ labels:
 - Parent: CARD-275. Skip re-carding 268–274.
 - Surface/IA work must not fork Job / HITL / Observe spines.
 - Track D remains parked until Jacob unlocks.
+
+## Closed (2026-09-30)
+
+Stale (Jacob approved closing, 2026-09-30): Training Factory is gone (CARD-497 removed the factory backend); gaps now go to Skill Studio / a Developer chat (CARD-496).

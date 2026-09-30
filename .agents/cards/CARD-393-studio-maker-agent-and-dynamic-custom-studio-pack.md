@@ -1,7 +1,8 @@
 ---
 id: CARD-393
 title: "Studio Maker Agent and Dynamic Custom Studio Pack"
-status: Parked
+status: Superseded
+completed: 2026-09-30
 created: 2026-09-20
 adr: 0054
 labels:
@@ -14,7 +15,7 @@ labels:
 
 # [CARD-393] Studio Maker Agent and Dynamic Custom Studio Pack
 
-> **Status**: Parked  
+> **Status**: Superseded (stale, closed 2026-09-30)
 > **Created**: 2026-09-20  
 > **ADR Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
 > **Labels**: `type:feature`, `domain:studios`, `domain:agents`, `area:frontend`, `area:packs`  
@@ -83,3 +84,7 @@ This card introduces the **Studio Maker** platform agent (`platform-packs/studio
 - Integration test: `tests/integration/studios/test_studio_maker_lifecycle.py`.
 - Linting: `ruff check .` and `npm run lint:frontend` with 0 errors.
 - Preflight: `python .agents/skills/preflight/scripts/preflight.py`.
+
+## Closed (2026-09-30)
+
+Stale (Jacob approved closing, 2026-09-30): Packs are gone (CARD-570); a Studio Maker pack is not how studios work any more. Reopen as a new card if wanted.

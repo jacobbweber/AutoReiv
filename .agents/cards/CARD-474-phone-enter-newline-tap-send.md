@@ -1,7 +1,8 @@
 ---
 id: CARD-474
 title: "Phone keyboard Enter inserts a newline in Chat; tap Send to send"
-status: Ready
+status: Superseded
+completed: 2026-09-30
 created: 2026-09-24
 branch: qa
 related:
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-474] Phone keyboard Enter inserts a newline in Chat; tap Send to send
 
-> **Status**: Ready
+> **Status**: Superseded by CARD-469 (closed 2026-09-30)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning, decision D1. Jacob chose to restore the pre-split rule (Enter sends everywhere). This card records the phone-newline option that was offered and not chosen.
 > **Related**: CARD-469 (Enter-to-send restored), CARD-465 (composer sizing)
@@ -69,3 +70,7 @@ Accidental half-finished sends from the phone keyboard.
 ## 3. Runbook
 
 On the phone, type two lines using the keyboard's return key, then tap Send. One message with two lines is sent. On desktop, Enter still sends.
+
+## Closed (2026-09-30)
+
+Superseded by CARD-469 (Jacob, 2026-09-30).

@@ -76,3 +76,6 @@ Session `f67162a7-3462-40c4-ad73-882086a77af2` (Jacob, "Teach AutoReiv to read I
   tool call) - both change reply behavior; left for a follow-up card.
 - Tests: `tests/unit/orchestration/test_card523_tool_argument_robustness.py`.
 - 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.
+- Live 2026-09-30 1:5x PM ET, throwaway :8770 from qa e5071ea1 with a clone of the live settings (AutoReiv on nemotron/Spark, Developer on qwen3.8/Nimo):
+  AutoReiv told to call handoff_to_agent with agent_id/task used the schema names (target_agent_id/task_directive) on
+  its own; the hand-off to Direct completed ("pong", Turns Used: 1). The alias path is covered by unit tests only.

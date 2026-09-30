@@ -1,6 +1,6 @@
 ---
 id: CARD-524
-title: "Multi-step chats lose the operator's latest answer: default context resolves to 8192 and compaction keeps only the last 8 messages"
+title: "When compaction runs it can drop the operator's latest answer (keep-rule) and the unconfigured baseline is 8192"
 status: Ready
 created: 2026-09-26
 branch: qa
@@ -18,7 +18,7 @@ milestone: M24
 
 # [CARD-524] Context budget and compaction drop the operator's answers mid-task
 
-> **Status**: Ready (found in the CARD-497 live retest on serve, 2026-09-26 ~11:22 AM ET). P2: it blocks any multi-turn, tool-heavy flow (AutoReiv capability intake re-asked the same questions three times).
+> **Status**: Ready (shrunk 2026-09-30: only the compaction keep-rule and the 8192 baseline remain)
 > **Related**: CARD-497 (intake live test), CARD-523 (tool-argument robustness), CARD-162 (context limit cascade)
 > **Labels**: `type:bug`, `area:kernel`, `P2`
 
@@ -47,3 +47,13 @@ Settings Studio: set the default context window (or a per-model window for `nemo
 ## Done when
 
 The IPMI intake on serve reaches "show the brief" without re-asking answered questions.
+
+## Re-check (2026-09-30) - shrunk
+
+- Item 1 is resolved on Jacob's install: `model_context_windows` now has `nemotron-3.5-lightning: 262144` and
+  `qwen3.8:latest: 262144`, so AutoReiv, Developer and Architect resolve 262144 (checked on a clone of the live settings).
+  Compaction only runs over 75% of the window, so the multi-step intake no longer hits it.
+- Still open (small): with nothing configured the code baseline is still 8192 (`context_compactor.py`), and when
+  compaction does run it keeps the last 8 messages, which can drop the latest user message in a tool-heavy turn. Remaining
+  change: always keep the latest user message (and the last `skill_view` body) when compacting; consider 32768 as the
+  unconfigured baseline.

@@ -1,7 +1,8 @@
 ---
 id: CARD-277
 title: "IA \u2014 rename AutoReiv-agent \u2192 System"
-status: Parked
+status: Superseded
+completed: 2026-09-30
 created: 2026-09-13
 adr: none
 labels:
@@ -13,7 +14,7 @@ labels:
 
 # [CARD-277] IA — rename AutoReiv-agent → System
 
-> **Status**: Parked
+> **Status**: Superseded (stale, closed 2026-09-30)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:chore`, `ui`, `track-b`, `ia`
@@ -55,3 +56,7 @@ labels:
 - Parent: CARD-275. Skip re-carding 268–274.
 - Surface/IA work must not fork Job / HITL / Observe spines.
 - Track D remains parked until Jacob unlocks.
+
+## Closed (2026-09-30)
+
+Stale (Jacob approved closing, 2026-09-30): The platform agent is now named AutoReiv in the roster and Chat picker; the 'System' rename no longer applies.

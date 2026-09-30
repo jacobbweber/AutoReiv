@@ -1,7 +1,7 @@
 ---
 id: CARD-493
 title: "Recent Chats doesn't show which chats are still replying or waiting for approval"
-status: Parked
+status: Ready
 created: 2026-09-25
 branch: qa
 related:
@@ -20,7 +20,7 @@ milestone: Horizon
 
 # [CARD-493] Recent Chats doesn't show which chats are still replying or waiting for approval
 
-> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
+> **Status**: Ready (unparked 2026-09-30)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-488 planning (decisions D4 and D6)
 > **Related**: CARD-488 (switching during a reply), CARD-485 (busy state for the open chat), CARD-487 (live replay)
@@ -63,3 +63,7 @@ Having to open every chat to find the one that's still working or waiting for yo
 
 ## 3. Runbook
 Start a long reply in A and switch to B: A shows the "replying" dot and it clears when done. Trigger an approval in A while B is open: A shows the amber dot.
+
+## Log
+
+- 2026-09-30: unparked to Ready (Jacob).

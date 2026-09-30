@@ -1,7 +1,7 @@
 ---
 id: CARD-494
 title: "A reply waiting behind another chat's reply just says \"Streaming...\" with nothing happening"
-status: Parked
+status: Ready
 created: 2026-09-25
 branch: qa
 related:
@@ -20,7 +20,7 @@ milestone: Horizon
 
 # [CARD-494] A reply waiting behind another chat's reply just says "Streaming..." with nothing happening
 
-> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
+> **Status**: Ready (unparked 2026-09-30)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 repro (first driver run) and CARD-488 planning (decision D7)
 > **Related**: CARD-488 (send in B while A runs), CARD-486 (Stop frees the slot), CARD-491 (side calls hold the slot)
@@ -64,3 +64,7 @@ Replies that look frozen while they're only waiting their turn.
 
 ## 3. Runbook
 Start a long reply in A, switch to B and send "hi". B says it's waiting, then answers when A finishes, or right away if you stop A.
+
+## Log
+
+- 2026-09-30: unparked to Ready (Jacob).

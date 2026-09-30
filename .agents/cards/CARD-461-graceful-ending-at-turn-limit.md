@@ -147,3 +147,8 @@ milestone: M24
 - Tests: `tests/unit/kernel/test_card461_turn_limit_summary.py` (sync, stream, fallback x3, keep-going history, grep
   guard); `test_react_state.py` and `test_card444...` markers updated.
 - 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.
+- Live 2026-09-30 1:5x PM ET, throwaway :8770 from qa e5071ea1 with a clone of the live settings (AutoReiv on nemotron/Spark, Developer on qwen3.8/Nimo):
+  Developer at max_turns 2: the first reply batched its reads into 2 steps and finished normally; "keep going" ran 11
+  tools, hit the limit and ended with "Finished: ... Left: ... Say keep going ..." plus
+  `(Stopped at the 2-step limit for one reply. Say "keep going" to continue.)`. No "Execution terminated" in the session.
+  Max turns restored to 50.

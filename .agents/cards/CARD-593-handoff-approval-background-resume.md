@@ -67,3 +67,8 @@ carries on on the server even if my phone sleeps; the card tells me when it is d
   before); the child's work itself is not lost.
 - Background work lives in the server process; a restart mid-hand-off loses it (the card says so).
 - 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.
+- Live 2026-09-30 1:5x PM ET, throwaway :8770 from qa e5071ea1 with a clone of the live settings (AutoReiv on nemotron/Spark, Developer on qwen3.8/Nimo):
+  AutoReiv -> Developer hand-off (ask mode) parked on write_project_file; `POST /decision` returned 200 in **0.13 s**
+  with `nested: running`; the poller saw `completed` after 2 polls (6.1 s) with the child's summary; the parent resume
+  (2.1 s) answered from the hand-off result. (The test file went into the agentic-test project's ignored scratch/ and was
+  deleted afterwards.) A hand_off_card run was not tried live (no Ready card in the test project); unit-tested.

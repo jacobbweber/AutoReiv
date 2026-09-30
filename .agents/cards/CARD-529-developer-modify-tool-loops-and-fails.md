@@ -1,7 +1,8 @@
 ---
 id: CARD-529
 title: "A job phase stopped by a repeat-cycle or policy block says only \"phase failed\" in chat (items 1, 2, 4 done elsewhere)"
-status: Ready
+status: Superseded
+completed: 2026-09-30
 created: 2026-09-26
 branch: qa
 related:
@@ -23,7 +24,7 @@ milestone: M25
 
 > **Partly superseded (2026-09-26)** by [CARD-539](CARD-539-capability-scoping-one-allowed-tools-function.md) / [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md): change items 2 (tools offered outside the allowlist) and 4 (keyword-family catalog routing) moved there. This card keeps items 1 and 3, which are separate concerns (Developer tooling and honest stop reasons). Build after CARD-539.
 
-> **Status**: Ready (shrunk in CARD-577). Item 1 is done: Toolsmith reads a custom tool with view_native_tool (CARD-571); items 2 and 4 went to CARD-539. Remaining: item 3, the chat reply still says "phase failed" (web/routers/chat.py) instead of the stop reason.
+> **Status**: Superseded (closed 2026-09-30)
 > **Related**: CARD-520 (Ask Developer from Observability), CARD-422 (Tools Studio Talk), CARD-523 (tool-argument robustness and honest failures), CARD-527 (built-in tools)
 > **Labels**: `type:bug`, `area:developer`, `area:tools`, `P2`
 
@@ -47,3 +48,9 @@ A modify request for an existing custom tool reads its code and proposes a chang
 
 ## Log
 - 2026-09-29: Shrunk in CARD-577 to item 3 (honest stop reason); item 1 done by CARD-571 (view_native_tool).
+
+## Closed (2026-09-30)
+
+Closed by Jacob 2026-09-30. Items 1, 2, 4 were done elsewhere (CARD-571, CARD-539). Item 3's cause is gone: a
+repeat-cycle stop now answers with a no-tools final reply (CARD-551) and a turn-limit stop with a short summary
+(CARD-461), so a stopped phase no longer ends on a bare error line.
