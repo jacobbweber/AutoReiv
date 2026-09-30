@@ -11,13 +11,13 @@ labels:
   - area:chat
   - area:gateway
   - P3
-needs_decision: "Whether to add a vision helper model for text-only chat models, and how it is configured (Beat 3)"
+needs_decision: none
 milestone: M24
 ---
 
 # [CARD-480] Vision helper: describe images with a configured vision model when the chat model is text-only
 
-> **Status**: Ready (depends on CARD-475)
+> **Status**: Parked (Jacob, 2026-09-30).
 > **Created**: 2026-09-25
 > **Observed during**: CARD-475 planning, decision D1(c).
 > **Related**: CARD-475
@@ -57,3 +57,9 @@ Tests: a fake vision provider gets the image once; the text model gets only the 
 ## 2. Acceptance criteria (EARS)
 - **[REQ-480-001]** WHILE a vision purpose model is configured and the chat model is text-only, WHEN an image is attached, THE SYSTEM SHALL send the image to the vision model and pass its description to the chat model.
 - **[REQ-480-002]** IF the vision helper fails or times out, THEN THE SYSTEM SHALL fall back to the CARD-475 notice.
+
+## Decision (Jacob, 2026-09-30)
+- Jacob approved the class-b recommendation: **Park**. No vision helper for now; text-only models keep the CARD-475 notice. Revisit when a vision-capable local model is in the plan.
+
+## Log
+- 2026-09-30: Parked per Jacob's class-b approval.

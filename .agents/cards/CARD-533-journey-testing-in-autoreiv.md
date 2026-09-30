@@ -15,13 +15,13 @@ labels:
   - area:developer
   - area:projects
   - P2
-needs_decision: "D1-D6: what journey tools may start, sandbox and permissions"
+needs_decision: none
 milestone: M25
 ---
 
 # [CARD-533] Journey testing built into AutoReiv
 
-> **Status**: Ready (approved by Jacob 2026-09-26 ~4:40 PM ET). **Depends on CARD-532** (the runner) **and CARD-539** (capability scoping, [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md)). Product feature: lives in `platform-packs/developer` and the app, not `.agents` (agents-vs-packs rule: `.agents` is coding-assistant tooling; product lives in `platform-packs`).
+> **Status**: Parked (Jacob, 2026-09-30).
 > **Related**: CARD-532 (runner, environment, journey format)
 > **Labels**: `type:product`, `area:developer`, `area:projects`, `P2`
 
@@ -49,3 +49,9 @@ Long-term intent: AutoReiv and its Developer agent eventually test and build Aut
 ## Done when
 
 The Developer can run a journey from a chat, read its report and explain a failure; Projects Studio shows the run; the safety decisions are implemented as decided.
+
+## Decision (Jacob, 2026-09-30)
+- Jacob approved the class-b recommendation: **Park**. Journey testing stays in the coding-assistant runner (CARD-532, `scripts/live_qa.py`) until the D1-D6 safety decisions are worth making.
+
+## Log
+- 2026-09-30: Parked per Jacob's class-b approval.

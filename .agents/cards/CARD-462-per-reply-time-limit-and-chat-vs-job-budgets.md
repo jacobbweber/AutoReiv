@@ -2,6 +2,7 @@
 id: CARD-462
 title: "Separate turn and time budgets for standing Jobs vs chat (per-reply limit done in CARD-567)"
 status: Done
+completed: 2026-09-30
 created: 2026-09-24
 branch: qa
 adr: none
@@ -21,7 +22,7 @@ milestone: M24
 
 # [CARD-462] Per-reply time limit and separate turn budgets for chat vs standing Jobs
 
-> **Status**: Ready (shrunk in CARD-577; needs Jacob's numbers for Open decisions 2, 3 and 5 before **build**). The per-reply time limit shipped in CARD-567. Remaining: a standing-Job run limit, real phase max_turns (no hidden 10), handoff envelope defaults and the child cap.
+> **Status**: Done (merged into qa 2026-09-30)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-445 discussion - Jacob asked for ideas beyond a turn count: a time limit per reply, and different budgets for interactive chat vs standing Jobs.
 > **ADR Reference**: none
@@ -155,3 +156,4 @@ milestone: M24
 ## Log
 - 2026-09-29: Shrunk in CARD-577: per-reply time limit done in CARD-567; remaining scope is job/phase and handoff budgets.
 - 2026-09-30: Jacob approved (class-b): phases and handoff children use the agent's max_turns (50). Built and closed.
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

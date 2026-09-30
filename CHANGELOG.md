@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-462: standing Job phases and handoff children use the agent's own max_turns (50); no hidden 10, no 10..15 child clamp.
 - CARD-503: a Teach distill that could not use the model says so ('Written without the model: <reason>') and returns source/fallback_reason.
 - CARD-593: approving inside a hand-off (or the hand-off itself) returns at once; the work runs in the background and the approval card polls GET /api/approvals/{id}/resume (phone-safe).
 - CARD-523: handoff_to_agent accepts agent_id/task; {raw: json} arguments are unwrapped; skill_view takes skill_name/id/name/skills; the skill index shows ids; a child that hits its step limit is reported incomplete with its real turn count.
