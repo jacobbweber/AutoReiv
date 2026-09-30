@@ -47,3 +47,4 @@ when its new Proposed card mentions it (statuses match, so no refusal): data los
 
 - 2026-09-29: fixed on the branch with tests.
 - 2026-09-29: preflight --fast --base qa GREEN. Jacob: merge to qa (battery brief allows merging small fixes). Done; merged into qa.
+- 2026-09-29: battery triage: live on the throwaway after the merge: Architect filed a new Ready CARD-2 (multiply) whose text says 'add() (covered by CARD-1)'; no refusal, CARD-1 untouched

@@ -37,3 +37,7 @@ milestone: M25
 ## Done when
 
 A built-in tool never gets an Ask Developer card; it gets either a patch it can apply or a clear "needs a code change" label; `get_recent_errors` and `list_available_skills_and_tools` stay under 8 KB by default or accept a limit.
+
+## Log
+
+- 2026-09-29: battery triage: still valid; the escalation button now opens Toolsmith (CARD-571), which also cannot change a built-in tool

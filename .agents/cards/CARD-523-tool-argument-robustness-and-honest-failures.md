@@ -52,3 +52,8 @@ Session `f67162a7-3462-40c4-ad73-882086a77af2` (Jacob, "Teach AutoReiv to read I
 
 - Unit tests for each item (alias, unknown-arg message, string list, runbook-id hint, index shows ids, allowlist-filtered activation, failure note).
 - Live retest of the IPMI prompt on serve: a bad-argument handoff either succeeds through the alias or the reply names the failure.
+
+## Log
+
+- 2026-09-29: battery triage: items 2 (activate_skill parts) and 4 are obsolete since CARD-578 removed activate_skill; handoff_to_agent still rejects agent_id/task (no alias), rest still open
+- 2026-09-29: battery triage: item 3 seen again: AutoReiv (Spark) called skill_view('weekly-work-logs') from the skill's display name; the refusal listed the ids and it recovered with 'wiki_tasks'

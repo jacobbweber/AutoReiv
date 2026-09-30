@@ -33,3 +33,7 @@ Make the fallback structural instead of worded. For example, show Ask Developer 
 ## Done when
 
 The routing journey passes 5 of 5 runs on desktop and phone with the real model.
+
+## Log
+
+- 2026-09-29: battery triage: still valid; Ask Developer buttons now open Toolsmith (CARD-571); routing in the battery followed the prompt (Developer and Toolsmith handed off correctly on Spark/Nimo)

@@ -47,3 +47,4 @@ override. It also ignored the per-provider `providers.<id>.base_url` that Settin
 
 - 2026-09-29: fixed on the branch with tests.
 - 2026-09-29: preflight --fast --base qa GREEN. Jacob: merge to qa (battery brief allows merging small fixes). Done; merged into qa.
+- 2026-09-29: battery triage: live on the throwaway after the merge: AutoReiv's no-argument check reported vllm 192.168.1.218:8099 reachable (200, 60 ms, endpoint_source settings) and the Developer override ollama 192.168.1.29:11434 reachable (200, 34 ms)
