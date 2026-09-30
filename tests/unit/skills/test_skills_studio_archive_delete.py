@@ -135,9 +135,10 @@ def test_delete_missing_okta_admin_is_not_a_shipped_seed():
     missing = client.delete("/api/skills/user-skills/okta-admin", params={"confirm": True})
     assert missing.status_code == 404
     assert not dest.exists()
-    seeds = REPO_ROOT / "src" / "infrastructure" / "skills" / "seeds"
-    assert seeds.is_dir()
-    assert not (seeds / "okta-admin").exists()
+    # CARD-570: shipped skills live in platform/skills (the old skills/seeds folder is gone)
+    shipped = REPO_ROOT / "platform" / "skills"
+    assert shipped.is_dir()
+    assert not (shipped / "okta-admin").exists()
 
 
 def test_delete_rejects_path_traversal_outside_skills_jail():

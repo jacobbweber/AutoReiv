@@ -27,7 +27,6 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-09-29 | providers | a provider stream timeout shows an empty reason: "Streaming connection failed to OpenAI at <url>: " (httpx ReadTimeout has an empty str); include the exception type (seen on Toolsmith after 212 s on Spark, reply ended empty) | from battery 2026-09-29 | src/application/gateway
 - 2026-09-29 | chat | the 600 s reply limit counts time spent waiting for a generation slot, so a turn can hit the limit before its model has worked long (Architect turn hit 600 s with first token at 281 s) | from battery 2026-09-29 | src/application/kernel/agent_kernel.py, src/application/generation_semaphore.py
 - 2026-09-29 | hitl | approving hand_off_card blocks the /api/hitl/decide call for over 60 s while the Developer child waits for a generation slot; the decision should return once recorded | from battery 2026-09-29 | src/web/routers/hitl.py
-- 2026-09-29 | tests | tests/unit/skills/test_card502_adopt_persists.py fails 4 of 6 on qa (KeyError 'resets_on_restart'; missing packs/autoreiv/skills/wiki-inbox/SKILL.md): the test still expects the packs layout CARD-570 removed; preflight --fast does not select it | from battery 2026-09-29 | tests/unit/skills/test_card502_adopt_persists.py
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js

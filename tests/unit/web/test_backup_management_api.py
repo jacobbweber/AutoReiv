@@ -54,7 +54,6 @@ def app_with_custom_data_dir(tmp_path, monkeypatch):
         skills_path=skills_dir,
         agents_path=data_dir / "agents",
         job_templates_path=data_dir / "templates" / "jobs",
-        packs_path=data_dir / "packs",
         backups_path=backups_dir,
     )
 

@@ -1,12 +1,12 @@
 """CARD-502: an adopted Teach skill is live on the next message and survives restart (REQ-502-001..008).
 
 Real FastAPI app + SQLite on the per-test temp data folder (tests/conftest.py). A "restart" is a
-second create_app on the same database and data folder, which re-runs platform pack promotion.
+second create_app on the same database and data folder, which reloads platform/ agents and skills
+plus the user copies in the data folder (CARD-570 layout: <data>/skills/<id>/SKILL.md, <data>/agents/<id>.md).
 """
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
@@ -14,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone, ModelPurpose
+from src.infrastructure.content.store import get_store
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
@@ -56,26 +57,30 @@ def _adopt(client, agent_id="autoreiv", skill_id="cite-sources", runbook=RUNBOOK
     )
 
 
-def _pack_json(agent_id):
-    return json.loads((_data_root() / "packs" / agent_id / "pack.json").read_text(encoding="utf-8"))
+def _user_skill(skill_id):
+    return _data_root() / "skills" / skill_id / "SKILL.md"
+
+
+def _user_agent(agent_id):
+    return _data_root() / "agents" / f"{agent_id}.md"
 
 
 def test_adopt_is_listed_on_next_read_and_in_next_turn_prompt(boot):
     """REQ-502-001/002/005/008."""
-    client, store, app = boot()
+    client, _store, app = boot()
     res = _adopt(client)
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["active"] is True
     assert body["already_adopted"] is False
-    assert body["resets_on_restart"] is False
     assert "cite-sources" in _skills(client, "autoreiv")
     agent = app.state.registry.get_agent("autoreiv")
     assert "cite-sources" in agent.allowed_skill
     prompt = app.state.kernel._build_effective_system_message(agent, None).content
     assert "Always cite the source C502" in prompt
-    assert (_data_root() / "packs" / "autoreiv" / "skills" / "cite-sources" / "SKILL.md").is_file()
-    assert not bool(getattr(store.get_agent_profile("autoreiv"), "user_modified", False))
+    assert _user_skill("cite-sources").is_file()
+    # CARD-570: Adopt saves the agent user copy the same way an Agent Studio save does
+    assert "cite-sources" in _user_agent("autoreiv").read_text(encoding="utf-8")
 
 
 def test_adopted_skill_survives_restart_with_keep_customizations_on(boot):
@@ -84,13 +89,10 @@ def test_adopted_skill_survives_restart_with_keep_customizations_on(boot):
     assert _adopt(client).status_code == 200
     client2, _s2, app2 = boot()
     assert "cite-sources" in _skills(client2, "autoreiv")
-    pj = _pack_json("autoreiv")
-    assert "cite-sources" in pj["allowed_skill"]
-    assert any((s.get("id") if isinstance(s, dict) else s) == "cite-sources" for s in pj.get("skills") or [])
+    assert _user_skill("cite-sources").is_file()
+    assert "cite-sources" in _user_agent("autoreiv").read_text(encoding="utf-8")
     prompt = app2.state.kernel._build_effective_system_message(app2.state.registry.get_agent("autoreiv"), None).content
     assert "Always cite the source C502" in prompt
-
-
 
 
 def test_readopt_updates_one_entry_and_the_runbook(boot):
@@ -101,14 +103,15 @@ def test_readopt_updates_one_entry_and_the_runbook(boot):
     assert second.status_code == 200, second.text
     assert second.json()["already_adopted"] is True
     assert _skills(client, "autoreiv").count("cite-sources") == 1
-    text = (_data_root() / "packs" / "autoreiv" / "skills" / "cite-sources" / "SKILL.md").read_text(encoding="utf-8")
+    text = _user_skill("cite-sources").read_text(encoding="utf-8")
     assert "C502 v2" in text
 
 
 def test_platform_skill_id_clash_is_refused(boot):
     """REQ-502-006 (b): 409, nothing changes."""
     client, _store, _app = boot()
-    stock = _data_root() / "packs" / "autoreiv" / "skills" / "wiki-inbox" / "SKILL.md"
+    stock = get_store().skills.shipped_path("wiki-inbox")
+    assert stock.is_file()
     before_text = stock.read_text(encoding="utf-8")
     before = _skills(client, "autoreiv")
     res = _adopt(client, skill_id="wiki-inbox")
@@ -116,6 +119,7 @@ def test_platform_skill_id_clash_is_refused(boot):
     assert "already has a platform skill called wiki-inbox" in res.json()["detail"]
     assert stock.read_text(encoding="utf-8") == before_text
     assert _skills(client, "autoreiv") == before
+    assert not _user_skill("wiki-inbox").exists()
 
 
 def test_unknown_agent_is_404_and_creates_no_folder(boot):
@@ -124,7 +128,8 @@ def test_unknown_agent_is_404_and_creates_no_folder(boot):
     res = _adopt(client, agent_id="nobody-c502")
     assert res.status_code == 404, res.text
     assert "nobody-c502" in res.json()["detail"]
-    assert not (_data_root() / "packs" / "nobody-c502").exists()
+    assert not _user_agent("nobody-c502").exists()
+    assert not _user_skill("cite-sources").exists()
 
 
 def test_custom_agent_adopt_is_listed(boot):
