@@ -67,3 +67,6 @@ Notices that vanish.
 1. Pull qa, restart the serve, Ctrl+F5.
 2. Chat with an agent on a text-only model (e.g. nemotron) and attach a PNG: the sky "This model can't view images..." line shows once.
 3. Reload the page, then open the same chat on the phone: the line is still there under your message.
+
+## Live check
+- 2026-09-30 ~3:00 PM ET, throwaway :8770 (clone data, nemotron, AutoReiv): PNG attached -> one `attachment_notice`; saved rows `user, note, assistant`; after a second turn still one note; after a page reload the thread shows 1 `.chat-note` on desktop and phone. Screenshots: `scratch/ui0930/482-note-after-reload-desktop.png` / `-phone.png` (Jarvis).
