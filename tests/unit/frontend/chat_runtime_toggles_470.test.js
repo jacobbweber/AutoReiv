@@ -156,7 +156,7 @@ describe('CARD-470 source and template contracts', () => {
     expect(html).toContain('title="Off: AutoReiv asks before write, shell and code tools. On: they run without asking. Blocked tools stay blocked."');
     const chip = html.match(/<span id="approvalBadge"[^>]*>([\s\S]*?)<\/span>/);
     expect(chip).not.toBeNull();
-    expect(chip[0]).toMatch(/amber/);
+    expect(chip[0]).toMatch(/teal/); // CARD-478: teal, not the goal chip's amber
     expect(chip[1].trim()).toBe('Auto-run ON');
     expect(html).not.toContain('Allow safe tools to run without asking');
   });
