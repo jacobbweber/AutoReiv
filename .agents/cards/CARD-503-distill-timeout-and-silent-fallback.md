@@ -1,7 +1,8 @@
 ---
 id: CARD-503
 title: "Teach distill gives the model 4.5 s, then silently uses a canned fallback"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-25
 branch: qa
 related:
@@ -17,7 +18,7 @@ milestone: M24
 
 # [CARD-503] Teach distill gives the model 4.5 s, then silently uses a canned fallback
 
-> **Status**: Ready
+> **Status**: Done (merged into qa 2026-09-30)
 > **Created**: 2026-09-25 (found while refining CARD-500)
 > **Related**: CARD-500, CARD-352
 > **Labels**: `type:bug`, `area:skills`, `P2`
@@ -68,3 +69,13 @@ milestone: M24
 
 1. With the normal model, Teach from a reply: the card has no "Written without the model" label.
 2. Stop the model provider (or pick an unreachable one), Teach again: the card shows the label and the reason.
+
+## Outcome (2026-09-30)
+
+- REQ-503-001: done in CARD-592 (distill waits `helper_call_seconds()`, Settings > Reply limits, default 1800 s; was
+  4.5 s) and CARD-591 (helper calls get 16384 tokens of room).
+- REQ-503-002/003: `distill_turn` returns `source: "model"` or `source: "fallback"` with a plain `fallback_reason`
+  (no model connected / did not answer in time / call failed / empty answer / no JSON lesson). The fallback's card text
+  starts with `(Written without the model: <reason>.)` in the observed-slip line, so the card shows it with no UI change.
+- Tests: `tests/unit/skills/test_card503_distill_fallback_note.py`.
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

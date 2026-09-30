@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-503: a Teach distill that could not use the model says so ('Written without the model: <reason>') and returns source/fallback_reason.
 - CARD-593: approving inside a hand-off (or the hand-off itself) returns at once; the work runs in the background and the approval card polls GET /api/approvals/{id}/resume (phone-safe).
 - CARD-523: handoff_to_agent accepts agent_id/task; {raw: json} arguments are unwrapped; skill_view takes skill_name/id/name/skills; the skill index shows ids; a child that hits its step limit is reported incomplete with its real turn count.
 - CARD-461: a reply that runs out of steps ends with a short no-tools summary and 'Say keep going to continue', not 'Execution terminated: Max turn budget'.
