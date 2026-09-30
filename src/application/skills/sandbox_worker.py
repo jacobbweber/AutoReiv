@@ -12,6 +12,7 @@ import tempfile
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
+ALWAYS_DROP_ENV_PREFIXES = ("AUTOREIV_CRED_",)
 SENSITIVE_ENV_KEYWORDS = (
     "KEY",
     "TOKEN",
@@ -62,7 +63,8 @@ class SandboxedSubprocessWorker:
         Produce a sanitized environment dict stripping sensitive host keys [REQ-SANDBOX-002].
         ``drop_env_prefixes`` also removes keys with those prefixes (CARD-511 tool check).
         """
-        drop = tuple(p.upper() for p in (drop_env_prefixes or ()))
+        # CARD-519: agent credentials never pass through from the host env; a tool gets its own via env_overrides.
+        drop = tuple(p.upper() for p in (*ALWAYS_DROP_ENV_PREFIXES, *(drop_env_prefixes or ())))
         clean_env: Dict[str, str] = {}
         for key, val in os.environ.items():
             upper_key = key.upper()

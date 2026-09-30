@@ -1,7 +1,7 @@
 ---
 id: CARD-519
 title: "Agent credentials are exported to the whole server process during every tool call, so other agents' tools can read them"
-status: Ready
+status: In Review
 created: 2026-09-26
 branch: qa
 related:
@@ -41,3 +41,14 @@ Stop writing credentials to `os.environ`. Give a tool its own agent's credential
 - A test runs two concurrent tool calls from agents with different credentials and shows neither can see the other's secret (in `os.environ` or in a native tool's subprocess environment).
 - `sanitize_environment` drops `AUTOREIV_CRED_*` by default.
 - A native tool granted a credential still receives it.
+
+## Outcome (2026-09-30)
+
+- `ScopedToolRegistry.execute` no longer writes `AUTOREIV_CRED_*` to `os.environ`; credentials live only in the task's
+  tool context (ContextVar), so concurrent calls of other agents cannot see them.
+- `credential_env_from_context()` builds `AUTOREIV_CRED_<ID>` overrides for one subprocess; native custom tools pass
+  them to `run_sandboxed`, so a granted tool still receives its credential.
+- `sanitize_environment` always drops host `AUTOREIV_CRED_*` variables (overrides are applied after).
+- No tool in `src/` or `platform/` read `AUTOREIV_CRED_*` from the environment.
+- Tests: `tests/unit/security/test_card519_scoped_credentials.py` (two concurrent calls, sanitizer, native tool
+  subprocess gets only its own credential); CARD-168 test updated.

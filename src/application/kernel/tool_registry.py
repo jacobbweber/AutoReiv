@@ -4,7 +4,6 @@ Scoped Tool Registry with Role-Based Access Control (RBAC) [REQ-KERNEL-002].
 
 import asyncio
 import inspect
-import os
 import re
 import time
 from contextvars import ContextVar
@@ -22,6 +21,20 @@ _tool_context: ContextVar[Optional[Dict[str, Any]]] = ContextVar(
 def get_tool_context() -> Dict[str, Any]:
     """Caller agent id and session for the in-flight tool execution."""
     return dict(_tool_context.get() or {})
+
+
+CREDENTIAL_ENV_PREFIX = "AUTOREIV_CRED_"
+
+
+def credential_env_key(credential_id: str) -> str:
+    """Environment name a subprocess tool sees for one credential: AUTOREIV_CRED_<ID>."""
+    return f"{CREDENTIAL_ENV_PREFIX}{re.sub(r'[^A-Za-z0-9_]', '_', credential_id).upper()}"
+
+
+def credential_env_from_context() -> Dict[str, str]:
+    """CARD-519: the calling agent's own credentials as env overrides for one subprocess (never os.environ)."""
+    creds = (_tool_context.get() or {}).get("credentials") or {}
+    return {credential_env_key(cid): secret for cid, secret in creds.items() if secret}
 
 
 def argument_mismatch_error(tool_name: str, handler: Any, schema: Optional[Dict[str, Any]], args: Dict[str, Any]) -> Optional[str]:
@@ -183,18 +196,15 @@ class ScopedToolRegistry:
         """
         mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
         store = state_store or self.state_store
+        # CARD-519: credentials live only in this task's tool context (a ContextVar), never in the process-global
+        # os.environ where concurrent tool calls of other agents (and their subprocesses) could read them.
         resolved_creds: Dict[str, str] = {}
-        env_vars_set: List[str] = []
         if store and getattr(agent, "allowed_credentials", None):
             for cid in agent.allowed_credentials:
                 try:
                     cred = store.get_credential(cid)
                     if cred and cred.secret:
                         resolved_creds[cid] = cred.secret
-                        env_key = f"AUTOREIV_CRED_{re.sub(r'[^A-Za-z0-9_]', '_', cid).upper()}"
-                        if env_key not in os.environ:
-                            os.environ[env_key] = cred.secret
-                            env_vars_set.append(env_key)
                 except Exception:
                     pass
 
@@ -211,8 +221,6 @@ class ScopedToolRegistry:
         try:
             return await self._execute_inner(tool_call, agent, offered=offered)
         finally:
-            for k in env_vars_set:
-                os.environ.pop(k, None)
             _tool_context.reset(token)
 
     async def run_platform_verifier(self, tool_call: ToolCall, agent: AgentProfile) -> ToolResult:
