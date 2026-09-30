@@ -15,7 +15,6 @@ from src.application.skills.wiki_tools import WikiTools
 from src.domain.memory.models import SessionArtifact
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
-
 _VAULT_FOLDERS = {"00_inbox", "01_notes", "02_resources", "03_archive"}
 
 
