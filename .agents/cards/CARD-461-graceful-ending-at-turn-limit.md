@@ -1,7 +1,8 @@
 ---
 id: CARD-461
 title: "Graceful ending at the turn limit: final no-tools summary instead of a bare error"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-24
 branch: qa
 adr: none
@@ -20,7 +21,7 @@ milestone: M24
 
 # [CARD-461] Graceful ending at the turn limit: final no-tools summary instead of a bare error
 
-> **Status**: Ready
+> **Status**: Done (merged into qa 2026-09-30)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-445 discussion - when a reply runs out of turns the user only sees `Execution terminated: Max turn budget of N reached.` and loses what the agent had already done.
 > **ADR Reference**: none
@@ -132,3 +133,17 @@ milestone: M24
 - Refine the card: say **continue**.
 - Start implementation: say **build**.
 - After the runbook passes: say **merge to qa**.
+
+## Outcome (2026-09-30)
+
+- `src/application/kernel/turn_limit.py`: the instruction, footer and fallback text.
+- Both kernel paths: when `max_turns` runs out, one more model call with no tools (reusing CARD-551's
+  `_final_answer_without_tools`; it does not count toward `max_turns`). The reply is that summary plus
+  `(Stopped at the N-step limit for one reply. Say "keep going" to continue.)`; an empty, failed or tool-only final call
+  saves `I hit the limit of N steps for one reply before finishing. Say "keep going" and I'll pick up where I left off.`
+  The stream path sends the text as a token and ends with `TURN_END`.
+- Status stays not-completed: ReactState FAILED, ACE failed flush with reason `turn_limit`.
+- "Execution terminated: Max turn budget of N reached." is gone from `src/`.
+- Tests: `tests/unit/kernel/test_card461_turn_limit_summary.py` (sync, stream, fallback x3, keep-going history, grep
+  guard); `test_react_state.py` and `test_card444...` markers updated.
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

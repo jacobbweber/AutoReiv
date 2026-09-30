@@ -41,6 +41,7 @@ from src.application.kernel.telemetry_attribution import (
     calculate_token_attribution,
 )
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.kernel.turn_limit import TURN_LIMIT_INSTRUCTION, TURN_LIMIT_REASON, turn_limit_reply
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
 from src.application.telemetry.collector import TelemetryCollector
@@ -1112,13 +1113,14 @@ class AgentKernel:
 
             last_turn_end = time.perf_counter()
 
-        self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
-        limit_msg = ChatMessage(
-            role=Role.ASSISTANT,
-            content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
+        # CARD-461: one last no-tools call summarizes what was done and what is left.
+        summary = await self._final_answer_without_tools(
+            model_name, system_msg, history, self._resolve_context_limit(agent, model_name), TURN_LIMIT_INSTRUCTION
         )
+        self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
+        limit_msg = ChatMessage(role=Role.ASSISTANT, content=turn_limit_reply(summary, agent.max_turns))
         self._ace_flush_failed_turn(
-            session_id=session_id, agent_id=agent.id, failed=True, error_message=limit_msg.content
+            session_id=session_id, agent_id=agent.id, failed=True, error_message=TURN_LIMIT_REASON
         )
         if save_to_history:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
@@ -1670,18 +1672,19 @@ class AgentKernel:
 
             last_turn_end = time.perf_counter()
 
-        # If turn limit reached
+        # If turn limit reached - CARD-461: one last no-tools call summarizes what was done and what is left.
+        summary = await self._final_answer_without_tools(
+            model_name, system_msg, history, self._resolve_context_limit(agent, model_name), TURN_LIMIT_INSTRUCTION
+        )
         failed_ev = self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
         if failed_ev:
             yield failed_ev
-        limit_msg = ChatMessage(
-            role=Role.ASSISTANT,
-            content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
-        )
+        limit_msg = ChatMessage(role=Role.ASSISTANT, content=turn_limit_reply(summary, agent.max_turns))
         self._ace_flush_failed_turn(
-            session_id=session_id, agent_id=agent.id, failed=True, error_message=limit_msg.content
+            session_id=session_id, agent_id=agent.id, failed=True, error_message=TURN_LIMIT_REASON
         )
         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
+        yield KernelEvent(event_type=KernelEventType.TOKEN, content=limit_msg.content)
         yield KernelEvent(
             event_type=KernelEventType.TURN_END,
             content=limit_msg.content,
