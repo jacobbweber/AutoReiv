@@ -21,6 +21,12 @@ def turn_limit_fallback(max_turns: int) -> str:
     )
 
 
+def is_turn_limit_reply(text: str) -> bool:
+    """CARD-523: True when a reply is a CARD-461 limit stop (summary footer or fallback)."""
+    t = text or ""
+    return "-step limit for one reply." in t or "steps for one reply before finishing." in t
+
+
 def turn_limit_reply(summary: str, max_turns: int) -> str:
     """Summary + footer, or the fixed fallback when the final no-tools call gave nothing."""
     summary = (summary or "").strip()

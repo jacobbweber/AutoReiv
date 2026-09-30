@@ -440,6 +440,10 @@ class HandoffIsolationEngine:
                     )
                 if ev_val in (KernelEventType.TOKEN, "token") and getattr(ev, "content", None):
                     summary_parts.append(str(ev.content))
+                react = getattr(ev, "react", None)
+                if isinstance(react, dict) and isinstance(react.get("turn_idx"), int):
+                    # CARD-523: count the child's real steps (the limit stop reports turn_idx == max_turns).
+                    turns_taken = max(turns_taken, min(react["turn_idx"] + 1, bounded_profile.max_turns))
                 if ev_val in (KernelEventType.ERROR, "error"):
                     error_text = str(getattr(ev, "content", "") or "")
                 if ev_val in (KernelEventType.APPROVAL_REQUIRED, "approval_required"):
@@ -511,6 +515,9 @@ class HandoffIsolationEngine:
                     )
                 )
 
+            from src.application.kernel.turn_limit import is_turn_limit_reply  # local: kernel imports this module
+
+            final_status = "incomplete" if is_turn_limit_reply(summary_text) else "completed"
             if on_event:
                 on_event(
                     "handoff_complete",
@@ -518,7 +525,7 @@ class HandoffIsolationEngine:
                         "correlation_id": envelope.correlation_id,
                         "recipient": envelope.recipient_agent_id,
                         "recipient_name": target_profile.name,
-                        "status": "completed",
+                        "status": final_status,
                         "turns_used": turns_taken,
                     },
                 )
@@ -528,7 +535,7 @@ class HandoffIsolationEngine:
                     correlation_id=envelope.correlation_id,
                     sender_agent_id=envelope.sender_agent_id,
                     recipient_agent_id=envelope.recipient_agent_id,
-                    status="completed",
+                    status=final_status,
                     summary=summary_text,
                     turns_used=turns_taken,
                 )
