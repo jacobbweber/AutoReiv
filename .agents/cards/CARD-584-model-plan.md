@@ -69,3 +69,4 @@ idle). After the 22:02 ET swap request for nemotron, vLLM behind the gateway (:8
 
 - 2026-09-29: script written; dry-run against the real serve shows the planned changes (nothing applied there).
 - 2026-09-29: plan changed to one model per machine (Architect to Nimo), plan check and tests added.
+- 2026-09-29 (live, throwaway :8770, combined branch): plan applied; `--check` holds (Spark: nemotron only; Architect + Developer on Nimo qwen3.8:latest 262144). Architect lane arch-02/04/05/06/07 all answered on Nimo (mean round 35 s) and the hand-off chain reached Done. Spark vLLM (:8006) went down after the 22:02 ET swap request and stayed down past 23:20 ET (`loaded_model: null`), so the nemotron agent pass could not be rerun live; the Spark agents ran on Nimo as a fallback for the battery. Live acceptance stays open until nemotron is back.
