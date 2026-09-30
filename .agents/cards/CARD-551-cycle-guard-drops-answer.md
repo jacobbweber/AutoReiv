@@ -1,7 +1,7 @@
 ---
 id: CARD-551
 title: "The repetitive-cycle guard ends the turn with no answer even when the tool already returned it"
-status: Ready
+status: In Review
 created: 2026-09-27
 branch: qa
 related:
@@ -33,3 +33,16 @@ When the guard fires, make one last model call with no tools ("You already have 
 ## Done when
 
 The unit test passes, and three runs of the card-537 journey on phone never end with "Execution terminated".
+
+## Outcome (2026-09-30, CARD-551 + CARD-460 as one change)
+
+- `src/application/kernel/repeat_guard.py`: a tool call identical (name + sorted args) to one that ran and succeeded in
+  the immediately previous step is not run again; the model gets `{"already_done": true, "notice": ..., "result": <earlier
+  result>}`. Poll/status tools (`REPEAT_SAFE_TOOLS`: git_status, get_recent_errors, get_tool_health_matrix,
+  inspect_system_health) always run; parked approvals and errors are never reused.
+- When the cycle detector still fires (third identical call, A,B,A,B,A,B), both kernel paths make one last model call
+  with **no tools** and save that answer (state DONE). An empty or failed final call saves a plain-English fallback
+  (state FAILED). "Execution terminated: Detected repetitive cycle calling tools." is gone.
+- Text loops end with a plain-English message instead of "Execution terminated: ...".
+- CARD-460: the churn rule (same tool, different arguments, 5 in a row) is removed; the turn limit is the backstop.
+- Tests: `tests/unit/kernel/test_card551_repeat_guard.py`; kernel cycle and churn tests updated.

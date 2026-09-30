@@ -1,7 +1,7 @@
 ---
 id: CARD-460
 title: "Kernel repeat guard: hand back the earlier result before stopping a loop"
-status: Ready
+status: Done
 created: 2026-09-24
 branch: qa
 adr: ADR-0043 (amends the cycle-detection behaviour it documents)
@@ -20,7 +20,7 @@ milestone: M24
 
 # [CARD-460] Kernel repeat guard: hand back the earlier result before stopping a loop
 
-> **Status**: Ready
+> **Status**: Done (merged into CARD-551, 2026-09-30)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-445 discussion - with the default turn budget going from 10 to 50, loops must be caught early so the bigger budget is not burned on repeats.
 > **ADR Reference**: ADR-0043 (resilience / cycle detection) - this card changes what happens on a hit, not the detector's existence.
@@ -144,3 +144,9 @@ milestone: M24
 - Refine the card: say **continue**.
 - Start implementation: say **build**.
 - After the runbook passes: say **merge to qa**.
+
+## Outcome (2026-09-30)
+
+Done in CARD-551 (one change): reuse-instead-of-re-run for the previous step, no churn rule, loop stop answers with a
+no-tools final call. The per-tool `repeat_safe` flag is a fixed `REPEAT_SAFE_TOOLS` set for now. The graceful turn-limit
+ending is CARD-461.

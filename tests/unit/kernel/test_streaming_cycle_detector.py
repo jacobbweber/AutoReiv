@@ -48,13 +48,9 @@ def test_cycle_detector_detects_oscillation():
     assert detector.record_and_check([tc_b])
 
 
-def test_cycle_detector_detects_argument_churn():
-    """Detects repeated calls to the same tool name with churning arguments."""
+def test_same_tool_with_different_arguments_is_normal_work():
+    """CARD-460: no churn rule - reading many different files in a row is not a loop."""
     detector = CycleDetector(max_repeats=3, max_churn_repeats=5)
-    for i in range(4):
+    for i in range(12):
         tc = ToolCall(id=f"c{i}", name="execute_query", arguments={"query": f"SELECT {i}"})
         assert not detector.record_and_check([tc])
-
-    # 5th consecutive call to execute_query with churning args triggers churn circuit breaker
-    tc5 = ToolCall(id="c5", name="execute_query", arguments={"query": "SELECT 5"})
-    assert detector.record_and_check([tc5])
