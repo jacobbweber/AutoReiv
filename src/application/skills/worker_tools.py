@@ -232,6 +232,14 @@ class BatchWorkerTools:
             },
         }
 
+    def _promotion_path(self, wiki_slug: str) -> str:
+        """CARD-590: a bare slug lands in the inbox (One-Door Policy; the curator graduates it), not the vault root.
+        A slug with a folder (``reports/audit``) is kept as given."""
+        rel = str(wiki_slug or "promoted-artifact").replace("\\", "/").strip().strip("/")
+        if not rel.lower().endswith(".md"):
+            rel = f"{rel}.md"
+        return rel if "/" in rel else f"00_Inbox/{rel}"
+
     def promote_artifact_to_wiki(
         self,
         artifact_id: str,
@@ -256,7 +264,7 @@ class BatchWorkerTools:
             topic=category,
             category=category,
             summary=art.summary,
-            relative_path=f"{wiki_slug}.md" if not wiki_slug.endswith(".md") else wiki_slug,
+            relative_path=self._promotion_path(wiki_slug),
         )
 
         if res.get("success"):
