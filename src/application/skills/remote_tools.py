@@ -88,7 +88,7 @@ class RemoteTools:
         host_id: str,
         command: str,
         cwd: Optional[str] = None,
-        timeout: float = 30.0,
+        timeout: float = 600.0,  # CARD-592: was 30 s (SSH connect stays 15 s)
     ) -> Dict[str, Any]:
         """Execute a shell command on a remote host over SSH."""
         start_time = time.perf_counter()
@@ -270,7 +270,7 @@ class RemoteTools:
                     "host_id": {"type": "string", "description": "Identifier of the remote host (e.g. 'game-server')"},
                     "command": {"type": "string", "description": "Shell command to execute on the remote host"},
                     "cwd": {"type": "string", "description": "Optional working directory on the remote host"},
-                    "timeout": {"type": "number", "description": "Command timeout in seconds (default 30)", "default": 30.0},
+                    "timeout": {"type": "number", "description": "Command timeout in seconds (default 600)", "default": 600.0},
                 },
                 "required": ["host_id", "command"],
             },

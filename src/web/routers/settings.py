@@ -851,22 +851,22 @@ async def refresh_models(request: Request, req: Optional[HardwareFitQueryRequest
 
 @router.get("/api/settings/reply-limits")
 async def get_reply_limits(request: Request):
-    """CARD-567: per-reply limits for every streaming model call (tokens and wall-clock seconds)."""
-    from src.application.kernel.reply_limits import SETTING_KEY, resolve_reply_limits
+    """CARD-567: per-reply limits for every streaming model call (tokens and wall-clock seconds).
+    CARD-592: plus provider_idle_seconds, phase_seconds and helper_seconds (model-call waits)."""
+    from src.application.kernel.reply_limits import SETTING_KEY, resolve_all_limits
 
-    max_tokens, max_seconds = resolve_reply_limits(request.app.state.store)
-    return {"key": SETTING_KEY, "max_tokens": max_tokens, "max_seconds": max_seconds}
+    return {"key": SETTING_KEY, **resolve_all_limits(request.app.state.store)}
 
 
 @router.put("/api/settings/reply-limits")
 async def put_reply_limits(request: Request):
-    """CARD-567: save max_tokens / max_seconds (positive integers; null or 0 clears back to env/default)."""
-    from src.application.kernel.reply_limits import SETTING_KEY, resolve_reply_limits
+    """CARD-567/592: save any Reply limits field (positive integers; null or 0 clears back to env/default)."""
+    from src.application.kernel.reply_limits import SETTING_KEY, TIMEOUT_FIELDS, resolve_all_limits
 
     body = await request.json()
     store = request.app.state.store
     saved = dict(store.get_setting(SETTING_KEY) or {})
-    for field in ("max_tokens", "max_seconds"):
+    for field in ("max_tokens", "max_seconds", *TIMEOUT_FIELDS):
         if field not in body:
             continue
         value = body.get(field)
@@ -881,8 +881,7 @@ async def put_reply_limits(request: Request):
         else:
             saved.pop(field, None)
     store.set_setting(SETTING_KEY, saved)
-    max_tokens, max_seconds = resolve_reply_limits(store)
-    return {"key": SETTING_KEY, "max_tokens": max_tokens, "max_seconds": max_seconds}
+    return {"key": SETTING_KEY, **resolve_all_limits(store)}
 
 
 @router.get("/api/settings/mcp")

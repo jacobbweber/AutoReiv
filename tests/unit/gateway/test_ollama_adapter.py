@@ -180,13 +180,16 @@ async def test_ollama_model_not_found():
 
 
 @pytest.mark.asyncio
-async def test_ollama_connect_timeout_is_30s():
+async def test_ollama_timeouts_are_generous(monkeypatch):
+    # CARD-592: connect 60 s, silence 1800 s, a queued request may wait 600 s for a pooled connection.
+    monkeypatch.delenv("GATEWAY_DEFAULT_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("AUTOREIV_PROVIDER_IDLE_SECONDS", raising=False)
     adapter = OllamaProviderAdapter()
     try:
         client = adapter._get_client()
-        assert client.timeout.connect == 30.0
-        assert client.timeout.read == 900.0
-        assert client.timeout.pool == 30.0
+        assert client.timeout.connect == 60.0
+        assert client.timeout.read == 1800.0
+        assert client.timeout.pool == 600.0
     finally:
         await adapter.close()
 

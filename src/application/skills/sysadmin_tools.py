@@ -170,7 +170,7 @@ class SysadminTools:
     async def run_cli_command(
         self,
         command: str,
-        timeout_seconds: float = 30.0,
+        timeout_seconds: float = 600.0,  # CARD-592: was 30 s
         cwd: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
@@ -300,8 +300,8 @@ class SysadminTools:
                     "command": {"type": "string", "description": "Shell command to execute"},
                     "timeout_seconds": {
                         "type": "number",
-                        "description": "Optional timeout in seconds",
-                        "default": 30.0,
+                        "description": "Optional timeout in seconds (default 600)",
+                        "default": 600.0,
                     },
                     "cwd": {
                         "type": "string",

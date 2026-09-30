@@ -955,7 +955,7 @@ export function initEducationStudio(state, callbacks = {}) {
     showJobId('');
     // Long-lived stream: abort only if mint never arrives. Cleared once job_id is known.
     const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const mintTimeoutMs = 45000;
+    const mintTimeoutMs = 30 * 60 * 1000; // CARD-592: a queued local model can take minutes (was 45 s)
     let timer = ac ? setTimeout(() => ac.abort(), mintTimeoutMs) : null;
     try {
       const sessionId = await ensureSession(topic);

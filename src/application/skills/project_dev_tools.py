@@ -24,6 +24,7 @@ SKIP_DIRS = frozenset(
 MAX_SEARCH_FILE_BYTES = 1_000_000
 OUTPUT_TAIL_CHARS = 4000
 DEFAULT_CHECK_TIMEOUT_S = 900
+MAX_CHECK_TIMEOUT_S = 14400  # CARD-592: 4 h cap (was 1 h)
 
 
 class ProjectDevTools:
@@ -79,7 +80,7 @@ class ProjectDevTools:
         blocked = protected_write_error(root)
         if blocked:
             return {"success": False, "error": blocked}
-        timeout = max(10, min(int(timeout_seconds or DEFAULT_CHECK_TIMEOUT_S), 3600))
+        timeout = max(10, min(int(timeout_seconds or DEFAULT_CHECK_TIMEOUT_S), MAX_CHECK_TIMEOUT_S))
         results: List[Dict[str, Any]] = []
         for name in names:
             cmd = contract.checks[name]

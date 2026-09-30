@@ -3,9 +3,20 @@
  * Reads and saves GET/PUT /api/settings/reply-limits. An empty or 0 field clears the saved value
  * (back to env AUTOREIV_MAX_REPLY_TOKENS / AUTOREIV_MAX_REPLY_SECONDS, then the defaults 32768 / 1200).
  * CARD-585: the seconds count from the model's first token.
+ * CARD-592: three more waits live in the same setting: provider silence, one job phase / developer turn, one helper
+ * call. Defaults 7200 s per reply, 1800 s silence, 21600 s per phase, 1800 s per helper call.
  */
 
 export const REPLY_LIMITS_URL = '/api/settings/reply-limits';
+
+/** els key -> API field, label, element id. Only fields present on the page are read and sent. */
+export const LIMIT_FIELDS = [
+  { key: 'tokens', field: 'max_tokens', label: 'Max tokens per reply', id: 'replyLimitMaxTokensInput' },
+  { key: 'seconds', field: 'max_seconds', label: 'Max seconds per reply', id: 'replyLimitMaxSecondsInput' },
+  { key: 'idle', field: 'provider_idle_seconds', label: 'Provider silence (s)', id: 'replyLimitProviderIdleInput' },
+  { key: 'phase', field: 'phase_seconds', label: 'Job phase / developer turn (s)', id: 'replyLimitPhaseSecondsInput' },
+  { key: 'helper', field: 'helper_seconds', label: 'Helper call (s)', id: 'replyLimitHelperSecondsInput' },
+];
 
 function byId(doc, id) {
   return doc && typeof doc.getElementById === 'function' ? doc.getElementById(id) : null;
@@ -21,8 +32,9 @@ export function parseLimitField(raw, label) {
 }
 
 function show(els, data) {
-  if (els.tokens) els.tokens.value = data && data.max_tokens ? String(data.max_tokens) : '';
-  if (els.seconds) els.seconds.value = data && data.max_seconds ? String(data.max_seconds) : '';
+  for (const f of LIMIT_FIELDS) {
+    if (els[f.key]) els[f.key].value = data && data[f.field] ? String(data[f.field]) : '';
+  }
 }
 
 function setStatus(els, text, ok) {
@@ -46,14 +58,16 @@ export async function loadReplyLimits(els, { fetchFn = typeof fetch !== 'undefin
   }
 }
 
-/** Save both fields; the fields then show what the server resolved. */
+/** Save every field on the page; the fields then show what the server resolved. */
 export async function saveReplyLimits(els, { fetchFn = typeof fetch !== 'undefined' ? fetch : null } = {}) {
   let body;
   try {
-    body = {
-      max_tokens: parseLimitField(els.tokens && els.tokens.value, 'Max tokens per reply'),
-      max_seconds: parseLimitField(els.seconds && els.seconds.value, 'Max seconds per reply'),
-    };
+    body = {};
+    for (const f of LIMIT_FIELDS) {
+      if (f.key === 'tokens' || f.key === 'seconds' || els[f.key]) {
+        body[f.field] = parseLimitField(els[f.key] && els[f.key].value, f.label);
+      }
+    }
   } catch (err) {
     setStatus(els, err.message, false);
     return null;
@@ -81,11 +95,10 @@ export async function saveReplyLimits(els, { fetchFn = typeof fetch !== 'undefin
 /** Wire the Settings card once and load the values. */
 export function setupReplyLimits(doc = typeof document !== 'undefined' ? document : null, { fetchFn } = {}) {
   const els = {
-    tokens: byId(doc, 'replyLimitMaxTokensInput'),
-    seconds: byId(doc, 'replyLimitMaxSecondsInput'),
     save: byId(doc, 'replyLimitsSaveBtn'),
     status: byId(doc, 'replyLimitsStatus'),
   };
+  for (const f of LIMIT_FIELDS) els[f.key] = byId(doc, f.id);
   if (!els.tokens || !els.seconds) return null;
   const opts = fetchFn ? { fetchFn } : {};
   if (els.save && els.save.dataset && els.save.dataset.wired !== '1') {

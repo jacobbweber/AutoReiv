@@ -492,7 +492,7 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    timeout=180.0,
+                    timeout=1800.0,  # CARD-592: image builds can be slow (was 180 s)
                 )
                 if build_res.returncode != 0:
                     return {
@@ -514,7 +514,7 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    timeout=30.0,
+                    timeout=120.0,  # CARD-592 (was 30 s)
                 )
                 if run_res.returncode != 0:
                     return {

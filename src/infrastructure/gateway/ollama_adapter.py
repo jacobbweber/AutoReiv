@@ -27,7 +27,7 @@ from src.domain.gateway.models import (
     ToolDefinition,
 )
 from src.domain.settings.models import ModelDescriptor
-from src.infrastructure.gateway.timeouts import describe_http_error, provider_read_timeout
+from src.infrastructure.gateway.timeouts import describe_http_error, http_timeout, probe_timeout, provider_read_timeout
 
 
 class OllamaProviderAdapter(LLMProviderPort):
@@ -51,14 +51,23 @@ class OllamaProviderAdapter(LLMProviderPort):
         if raw_url in ("http://127.0.0.1", "http://localhost"):
             raw_url = f"{raw_url}:11434"
         self.base_url = raw_url.rstrip("/")
-        self.timeout = timeout or provider_read_timeout()  # CARD-588
+        self._timeout = timeout  # CARD-588/592: None = follow the setting
         self.default_model = "llama3.2:latest"
         self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
         self._client_injected = client is not None
 
+    @property
+    def timeout(self) -> float:
+        """CARD-592: provider silence allowed, read per request so a saved setting applies without a restart."""
+        return self._timeout or provider_read_timeout()
+
+    @timeout.setter
+    def timeout(self, value: Optional[float]) -> None:
+        self._timeout = value
+
     def _http_timeout(self) -> httpx.Timeout:
-        return httpx.Timeout(connect=30.0, read=self.timeout, write=30.0, pool=30.0)
+        return http_timeout(self.timeout)
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
@@ -226,7 +235,9 @@ class OllamaProviderAdapter(LLMProviderPort):
 
         try:
             client = self._get_client()
-            async with client.stream("POST", self._endpoint(client, "/api/chat"), json=payload) as response:
+            async with client.stream(
+                "POST", self._endpoint(client, "/api/chat"), json=payload, timeout=self._http_timeout()
+            ) as response:
                 if response.status_code == 404:
                     err_body = await response.aread()
                     raise ModelNotFoundError(
@@ -288,7 +299,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         """Fetch available models from Ollama /api/tags."""
         try:
             client = self._get_client()
-            resp = await client.get(self._endpoint(client, "/api/tags"))
+            resp = await client.get(self._endpoint(client, "/api/tags"), timeout=probe_timeout())
             resp.raise_for_status()
             data = resp.json()
 

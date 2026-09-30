@@ -248,9 +248,13 @@ def create_app(
         gateway.set_max_concurrent_generations(1)
         configure_process_generation_limit(1)
     # CARD-586: calls without their own max_tokens use Settings > Reply limits (never unbounded)
-    from src.application.kernel.reply_limits import resolve_reply_limits
+    from src.application.kernel.reply_limits import bind_store, resolve_reply_limits, saved_timeout
+    from src.infrastructure.gateway.timeouts import set_provider_idle_resolver
 
     gateway.set_reply_cap_resolver(lambda: resolve_reply_limits(store)[0])
+    # CARD-592: phase/helper waits and provider silence follow the saved Reply limits too
+    bind_store(store)
+    set_provider_idle_resolver(lambda: saved_timeout("provider_idle_seconds", store))
     obs_service = ObservabilityDashboardService(state_store=store)
 
     kernel = AgentKernel(

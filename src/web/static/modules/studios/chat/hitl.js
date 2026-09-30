@@ -408,8 +408,11 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || '') === 'goal_plan_review';
 }
 
-/** Resolve true once this tab's stream has ended (false after timeoutMs) [CARD-530]. */
-export function waitUntilIdle(state, { intervalMs = 250, timeoutMs = 15 * 60 * 1000 } = {}) {
+/**
+ * Resolve true once this tab's stream has ended (false after timeoutMs) [CARD-530].
+ * CARD-592: 6 h (was 15 min); a reply with long thinking, tools and hand-offs can stream for hours.
+ */
+export function waitUntilIdle(state, { intervalMs = 250, timeoutMs = 6 * 60 * 60 * 1000 } = {}) {
   return new Promise((resolve) => {
     const started = Date.now();
     const tick = () => {

@@ -165,11 +165,12 @@ def qa_num_ctx(env: Mapping[str, str]) -> int:
         return DEFAULT_NUM_CTX
 
 
-def check_model(url: str, model: str, timeout: float = 20.0, num_ctx: int = 0) -> bool:
+def check_model(url: str, model: str, timeout: float = 600.0, num_ctx: int = 0) -> bool:
     """True when the QA model answers a 5-token chat completion.
 
     CARD-575: on an Ollama host with num_ctx set, use the native /api/chat so options.num_ctx is honoured
     (the /v1 endpoint loads the model at the server default context).
+    CARD-592: 600 s (was 20 s): the ping may queue behind other chats or wait for a model load.
     """
     if num_ctx and is_ollama_url(url):
         host = url.rstrip("/").removesuffix("/v1")

@@ -13,7 +13,7 @@ from src.domain.gateway.models import ToolDefinition
 class SandboxExecutionTools:
     """Tool group providing safe, isolated code execution inside an ephemeral subprocess sandbox."""
 
-    def __init__(self, default_timeout_seconds: float = 30.0):
+    def __init__(self, default_timeout_seconds: float = 600.0):  # CARD-592: was 30 s
         self.default_timeout_seconds = default_timeout_seconds
 
     def get_tool_definitions(self) -> List[ToolDefinition]:
@@ -40,8 +40,8 @@ class SandboxExecutionTools:
                         },
                         "timeout_seconds": {
                             "type": "number",
-                            "description": "Maximum execution time in seconds before terminating (default: 30.0).",
-                            "default": 30.0,
+                            "description": "Maximum execution time in seconds before terminating (default: 600).",
+                            "default": 600.0,
                         },
                         "files": {
                             "type": "object",

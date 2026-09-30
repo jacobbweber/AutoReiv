@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Optional
 
+from src.application.kernel.reply_limits import helper_call_seconds
 from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ async def phase_llm_text(
     user: str,
     temperature: float = 0.4,
     max_tokens: int = 2000,
-    timeout: float = 60.0,
+    timeout: Optional[float] = None,
     fallback: str = "",
 ) -> str:
     """Call the gateway once and return its text, or ``fallback`` on no gateway, error or empty reply."""
@@ -39,7 +40,8 @@ async def phase_llm_text(
             max_tokens=max_tokens,
             background=True,  # CARD-585: Studio helpers never hold a chat reply's slot
         )
-        resp = await asyncio.wait_for(gateway.complete(req), timeout=timeout)
+        # CARD-592: default is Settings > Reply limits > helper_seconds (was 60 s)
+        resp = await asyncio.wait_for(gateway.complete(req), timeout=timeout or helper_call_seconds())
         text = (getattr(resp, "text", None) or "").strip()
         return text or fallback
     except Exception as exc:

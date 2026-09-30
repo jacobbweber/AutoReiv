@@ -157,10 +157,10 @@ async def _run(kernel, store, text="hi"):
     return events, saved
 
 
-def test_default_reply_seconds_is_1200():
+def test_default_reply_seconds_is_7200():
     from src.application.kernel.reply_limits import DEFAULT_MAX_SECONDS
 
-    assert DEFAULT_MAX_SECONDS == 1200
+    assert DEFAULT_MAX_SECONDS == 7200  # CARD-592 (CARD-585 had 1200)
 
 
 @pytest.mark.asyncio
