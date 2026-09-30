@@ -148,7 +148,8 @@ def test_post_adopt_skill_success(test_client):
     assert data["status"] == "adopted"
     assert data["skill_id"] == "format-table-rule"
 
-    skill_file = data_dir / "packs" / "autoreiv" / "skills" / "format-table-rule" / "SKILL.md"
+    # CARD-570: one flat user skills folder in the data dir
+    skill_file = data_dir / "skills" / "format-table-rule" / "SKILL.md"
     assert skill_file.is_file()
 
 
