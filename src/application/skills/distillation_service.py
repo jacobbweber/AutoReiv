@@ -66,6 +66,7 @@ class SkillDistillationService:
         self.gateway = gateway
         self.data_dir = Path(data_dir) if data_dir is not None else None
         self.agent_registry = agent_registry
+        self._fallback_reason = ""  # CARD-503: why the last distill used the canned draft
 
     async def distill_turn(
         self,
@@ -80,12 +81,20 @@ class SkillDistillationService:
         target_agent_id = turn_data["target_agent_id"]
         guidance_text = (guidance or "").strip()
 
+        self._fallback_reason = ""
         llm_result = await self._run_llm_distillation(turn_data, guidance_text)
         if llm_result:
             result = self._build_distill_response(target_agent_id, llm_result, guidance_text)
+            result["source"] = "model"
         else:
-            # Defensive fallback if LLM is unreachable
+            # Defensive fallback if LLM is unreachable. CARD-503: say so on the card.
             result = self._build_heuristic_distill_response(target_agent_id, turn_data, guidance_text)
+            reason = self._fallback_reason or "the model did not return a usable answer"
+            result["source"] = "fallback"
+            result["fallback_reason"] = reason
+            summary = dict(result.get("plain_summary") or {})
+            summary["observed_slip"] = f"(Written without the model: {reason}.) " + str(summary.get("observed_slip") or "")
+            result["plain_summary"] = summary
 
         result["session_id"] = session_id
         result["adoption_state"] = "pending"
@@ -239,6 +248,7 @@ class SkillDistillationService:
 
     async def _run_llm_distillation(self, turn_data: Dict[str, Any], guidance: str) -> Optional[Dict[str, Any]]:
         if not self.gateway:
+            self._fallback_reason = "no model is connected"
             return None
 
         system_prompt = (
@@ -305,7 +315,12 @@ class SkillDistillationService:
             match = re.search(r"\{[\s\S]*\}", text)
             if match:
                 return json.loads(match.group(0))
+            self._fallback_reason = "the model's answer had no JSON lesson" if text else "the model returned an empty answer"
+        except asyncio.TimeoutError:
+            self._fallback_reason = "the model did not answer in time"
+            logger.warning("LLM distillation call timed out")
         except Exception as exc:
+            self._fallback_reason = "the model call failed"
             logger.warning("LLM distillation call failed or timed out: %s", exc)
 
         return None
