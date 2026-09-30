@@ -37,6 +37,7 @@ async def phase_llm_text(
             ],
             temperature=temperature,
             max_tokens=max_tokens,
+            background=True,  # CARD-585: Studio helpers never hold a chat reply's slot
         )
         resp = await asyncio.wait_for(gateway.complete(req), timeout=timeout)
         text = (getattr(resp, "text", None) or "").strip()

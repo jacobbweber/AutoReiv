@@ -218,6 +218,7 @@ class CapabilityDetector:
                 ],
                 temperature=0.2,
                 max_tokens=250,
+                background=True,  # CARD-585
             )
             resp = await asyncio.wait_for(gateway.complete(req), timeout=4.0)
             text = resp.text.strip()

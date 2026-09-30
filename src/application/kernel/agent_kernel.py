@@ -1226,10 +1226,18 @@ class AgentKernel:
             stream_gen = None
             try:
                 stream_gen = self.gateway.stream(req, demux_reasoning=True)
-                deadline = time.monotonic() + reply_max_seconds
+                # CARD-585: the reply time limit starts at the model's first token, so time spent waiting for a
+                # generation slot or for the provider to start (queue, prefill, model load) does not count.
+                # Before the first token the provider's read timeout bounds silence.
+                deadline: Optional[float] = None
                 while True:
                     try:
-                        chunk = await asyncio.wait_for(stream_gen.__anext__(), timeout=max(0.0, deadline - time.monotonic()))
+                        if deadline is None:
+                            chunk = await stream_gen.__anext__()
+                        else:
+                            chunk = await asyncio.wait_for(
+                                stream_gen.__anext__(), timeout=max(0.0, deadline - time.monotonic())
+                            )
                     except StopAsyncIteration:
                         break
                     except asyncio.TimeoutError:
@@ -1246,6 +1254,7 @@ class AgentKernel:
                     if first_token_time is None and (chunk.content or chunk.reasoning_content or chunk.tool_calls):
                         first_token_time = time.perf_counter()
                         ttft_ms = (first_token_time - turn_start) * 1000
+                        deadline = time.monotonic() + reply_max_seconds
 
                     if chunk.content or chunk.reasoning_content:
                         if chunk.content:

@@ -61,6 +61,10 @@ class CompletionRequest(BaseModel):
         default=None,
         description="Ollama think mode. Nested complete() sets False so chain-of-thought cannot eat the read timeout.",
     )
+    background: bool = Field(
+        default=False,
+        description="CARD-585: background call (memory, detection, helpers); uses the background slot pool, not the provider's.",
+    )
 
 
 class StreamChunk(BaseModel):
