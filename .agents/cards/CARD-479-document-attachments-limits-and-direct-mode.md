@@ -1,7 +1,7 @@
 ---
 id: CARD-479
 title: "Document attachments: tiny inline limits and Direct mode cannot read attached files"
-status: Ready
+status: In Review
 created: 2026-09-25
 branch: qa
 related:
@@ -12,13 +12,13 @@ labels:
   - area:chat
   - area:attachments
   - P2
-needs_decision: "Document attachments: inline size limits and whether Direct mode may read attached files (Beat 3)"
+needs_decision: none
 milestone: M24
 ---
 
 # [CARD-479] Document attachments: tiny inline limits and Direct mode cannot read attached files
 
-> **Status**: Ready
+> **Status**: In Review (built 2026-09-30; waiting for Jacob's **merge to qa**)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-475 planning (code read, qa `8929a743`).
 > **Related**: CARD-475, CARD-143
@@ -61,3 +61,20 @@ Size-based silent omission, and the false tool note in Direct mode.
 - **[REQ-479-001]** WHEN a supported document is attached, THE SYSTEM SHALL include an extracted excerpt up to the character budget and mark any truncation.
 - **[REQ-479-002]** WHILE in Direct mode, THE SYSTEM SHALL NOT tell the model to use tools to read attachments.
 - **[REQ-479-003]** IF extraction fails, THEN THE SYSTEM SHALL say so to the model and the user.
+
+## Decision (Jacob, 2026-09-30)
+- Approved the class-b recommendation: the inline attachment limit is **sized from the model's context window**, and **Direct mode reads attachments** (their text is included; no tool note).
+
+## Outcome (2026-09-30, branch `card/479-attachments-context-sized`)
+- New `src/application/gateway/attachment_text.py`:
+  - `attachment_char_budget(context_tokens)` = a quarter of the window at ~4 chars/token, kept between 8,000 and 400,000 characters (nemotron 262,144 tokens -> 262,144 characters; an 8k model -> 8,192).
+  - `build_attachment_prompt(...)` extracts every document (PDF, Excel, Word, CSV) and text file whatever its file size (the 16 KB / 8 KB cut-offs are gone), shares the budget between the turn's files, and marks a cut: agent mode "read the rest with `read_document_file`", Direct mode "the rest was not included".
+  - Direct mode ends with "Their text is included here; there are no tools in this chat" instead of the `read_document_file` note [REQ-479-002].
+  - A file that cannot be read is named in the prompt and returned in `failures` [REQ-479-003].
+- `chat.py` stream worker: budget from `resolve_agent_context_limit(profile, store)`; each failure is also sent to the user as an `attachment_notice` (the sky line from CARD-475; saved as a chat note once CARD-482 is merged). `format_prompt_with_attachments` stays as a thin wrapper.
+- Tests: `tests/unit/gateway/test_card479_attachment_text.py` (budget from window, 56 KB text inlined on 262k, cut + marker on a small window, Direct wording, 3,000-row CSV over 16 KB extracted, missing file told to both, shared budget, image line unchanged).
+
+## Human Verification Runbook (2 minutes)
+1. Pull qa, restart the serve, Ctrl+F5.
+2. Chat Studio -> **Direct**: attach a text or CSV file over 20 KB and ask "What is the last line of the file?" The answer quotes the real last line (no "I'll read it with a tool").
+3. Any agent chat: attach the same file; the answer uses the content. Attach a broken PDF (rename a .txt to .pdf): the sky line says it couldn't be read.
