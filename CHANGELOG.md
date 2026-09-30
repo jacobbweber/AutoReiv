@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-551 (+460): an identical tool call right after itself returns the earlier result instead of running again; a loop stop answers with one no-tools call instead of 'Execution terminated'; the churn rule is gone.
 - CARD-552: read_document_file reads only inside the data/attachments folder, wiki vault, selected project and scratch; other paths are refused with a pointer to repo_file_read / read_project_file; db, key and .env files are never read.
 - CARD-519: agent credentials stay in the calling tool's context (never os.environ); native tools get only their own agent's credentials; the sandbox always drops host AUTOREIV_CRED_* vars.
 - CARD-592: every timeout relaxed for local models (reply 7200 s, provider silence 1800 s, phase 21600 s, helper 1800 s, all in Settings > Reply limits; chat stream keepalive; long tool/job defaults; probes stay short).

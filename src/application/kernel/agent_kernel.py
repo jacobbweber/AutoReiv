@@ -23,6 +23,12 @@ from src.application.kernel.empty_reply import (
 )
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
+from src.application.kernel.repeat_guard import (
+    LOOP_FALLBACK_MESSAGE,
+    LOOP_FINAL_INSTRUCTION,
+    TEXT_LOOP_MESSAGE,
+    RepeatGuard,
+)
 from src.application.kernel.reply_limits import (
     ReplyLimitStop,
     reply_token_limit,
@@ -804,6 +810,7 @@ class AgentKernel:
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
+        repeat_guard = RepeatGuard()  # CARD-551/460
         react_ctx = {
             "phase_id": phase_id,
             "job_id": job_id,
@@ -817,6 +824,7 @@ class AgentKernel:
         last_turn_end = None
 
         for turn_idx in range(agent.max_turns):
+            repeat_guard.next_step()
             turn_start = time.perf_counter()
             inter_step_latency_ms = ((turn_start - last_turn_end) * 1000) if last_turn_end is not None else None
             self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
@@ -951,7 +959,7 @@ class AgentKernel:
                 self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
-                    content="Execution terminated: Detected repetitive text generation loop.",
+                    content=TEXT_LOOP_MESSAGE,  # CARD-460: plain words
                 )
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
@@ -1001,18 +1009,19 @@ class AgentKernel:
 
             # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(assistant_msg.tool_calls):
-                self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
-                cycle_msg = ChatMessage(
-                    role=Role.ASSISTANT,
-                    content="Execution terminated: Detected repetitive cycle calling tools.",
+                # CARD-551: answer from the tool results already in hand instead of "Execution terminated".
+                final_text = await self._final_answer_without_tools(
+                    model_name, system_msg, history, nested_ctx, LOOP_FINAL_INSTRUCTION
                 )
+                self._transition_react_state(ReactState.DONE if final_text else ReactState.FAILED, turn_idx, **react_ctx)
+                cycle_msg = ChatMessage(role=Role.ASSISTANT, content=final_text or LOOP_FALLBACK_MESSAGE)
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 self._ace_flush_failed_turn(
                     session_id=session_id,
                     agent_id=agent.id,
-                    failed=True,
-                    error_message=cycle_msg.content,
+                    failed=not final_text,
+                    error_message=None if final_text else "repeat_loop",
                 )
                 return cycle_msg
 
@@ -1024,7 +1033,7 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(
+                gated = repeat_guard.reuse(tc) or self._gate_tool_call(
                     tc,
                     session_id,
                     agent,
@@ -1048,6 +1057,7 @@ class AgentKernel:
                     )
 
 
+                repeat_guard.record(tc, tool_res)
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
                 tool_success = True if is_hitl else tool_res.success
@@ -1178,6 +1188,7 @@ class AgentKernel:
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
+        repeat_guard = RepeatGuard()  # CARD-551/460
 
         trace_id = session_id or str(uuid.uuid4())
         provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
@@ -1186,6 +1197,7 @@ class AgentKernel:
         last_turn_end = None
 
         for turn_idx in range(agent.max_turns):
+            repeat_guard.next_step()
             thinking_ev = self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             if thinking_ev:
                 yield thinking_ev
@@ -1397,7 +1409,7 @@ class AgentKernel:
                     yield failed_ev
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
-                    content="Execution terminated: Detected repetitive text generation loop.",
+                    content=TEXT_LOOP_MESSAGE,  # CARD-460: plain words
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 self._ace_flush_failed_turn(
@@ -1454,16 +1466,22 @@ class AgentKernel:
 
             # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(collected_tool_calls):
-                failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
-                if failed_ev:
-                    yield failed_ev
-                cycle_msg = ChatMessage(
-                    role=Role.ASSISTANT,
-                    content="Execution terminated: Detected repetitive cycle calling tools.",
+                # CARD-551: answer from the tool results already in hand instead of "Execution terminated".
+                final_text = await self._final_answer_without_tools(
+                    model_name, system_msg, history, context_limit, LOOP_FINAL_INSTRUCTION
                 )
+                end_ev = self._transition_react_state(
+                    ReactState.DONE if final_text else ReactState.FAILED, turn_idx, **react_ctx
+                )
+                if end_ev:
+                    yield end_ev
+                cycle_msg = ChatMessage(role=Role.ASSISTANT, content=final_text or LOOP_FALLBACK_MESSAGE)
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 self._ace_flush_failed_turn(
-                    session_id=session_id, agent_id=agent.id, failed=True, error_message=cycle_msg.content
+                    session_id=session_id,
+                    agent_id=agent.id,
+                    failed=not final_text,
+                    error_message=None if final_text else "repeat_loop",
                 )
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
@@ -1510,7 +1528,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = self._gate_tool_call(
+                gated = repeat_guard.reuse(tc) or self._gate_tool_call(
                     tc,
                     session_id,
                     agent,
@@ -1559,6 +1577,7 @@ class AgentKernel:
                         )
 
 
+                repeat_guard.record(tc, tool_res)
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
                 tool_success = True if is_hitl else tool_res.success
@@ -1668,6 +1687,40 @@ class AgentKernel:
             content=limit_msg.content,
             is_finished=True,
         )
+
+    async def _final_answer_without_tools(
+        self,
+        model_name: str,
+        system_msg: ChatMessage,
+        history: List[ChatMessage],
+        context_limit: int,
+        instruction: str,
+    ) -> str:
+        """CARD-551/461: one last model call with no tools; "" when it fails, is empty or only tries to call tools."""
+        try:
+            messages = ContextCompactor.compact(
+                [system_msg] + list(history),
+                model_name=model_name,
+                max_tokens=max(1000, int(context_limit * 0.75)),
+                keep_last_n_turns=4,
+                max_tool_chars=resolve_max_tool_chars(context_limit),
+                preserve_root_intent=True,
+            )
+            messages = list(messages) + [ChatMessage(role=Role.USER, content=instruction)]
+            req = CompletionRequest(
+                model=model_name,
+                messages=messages,
+                tools=None,
+                num_ctx=context_limit,
+                max_tokens=reply_token_limit(resolve_reply_limits(self.state_store)[0], context_limit),
+            )
+            resp = await self.gateway.complete(req)
+            msg = getattr(resp, "message", None)
+            text = (getattr(msg, "content", None) or getattr(resp, "text", None) or "").strip()
+            return "" if is_empty_reply(text, None) else text
+        except Exception as exc:  # the fallback message covers it
+            logger.warning("final no-tools answer failed: %s", exc)
+            return ""
 
     def _nested_park_replay_events(self, history: List[ChatMessage]) -> List[KernelEvent]:
         """Re-emit a nested child park on parent resume [REQ-HITL-038]."""

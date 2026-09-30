@@ -41,7 +41,6 @@ class CycleDetector:
         Record tool calls and check if:
         1. Exact identical signature repeats max_repeats times consecutively.
         2. Oscillating signature pattern repeats (e.g. A->B->A->B->A->B).
-        3. Single tool argument churn: same tool invoked with churning arguments max_churn_repeats times without progress.
         Returns True if a repetition cycle or churn trap is detected [REQ-RESIL-003].
         """
         if not tool_calls:
@@ -74,12 +73,8 @@ class CycleDetector:
                 if matched:
                     return True
 
-        # 3. Argument churn / thrashing detection on same tool name
-        if len(self._tool_name_history) >= self.max_churn_repeats:
-            recent_names = self._tool_name_history[-self.max_churn_repeats :]
-            if all(n == names for n in recent_names):
-                return True
-
+        # CARD-460: no churn rule - the same tool with different arguments is normal work (reading five files);
+        # the turn limit is the backstop.
         return False
 
     def record_and_check_text(

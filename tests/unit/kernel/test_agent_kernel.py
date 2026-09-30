@@ -292,7 +292,9 @@ async def test_agent_kernel_cycle_detection(store, collector, registry):
         user_content="Get stuck",
     )
 
-    assert "cycle" in final_msg.content.lower() or "terminated" in final_msg.content.lower()
+    # CARD-551: one last no-tools call answers from the tool results (the mock's default reply)
+    assert final_msg.content == "Default mock reply"
+    assert llm.requests[-1].tools is None
 
 
 @pytest.mark.asyncio
