@@ -78,3 +78,6 @@ Size-based silent omission, and the false tool note in Direct mode.
 1. Pull qa, restart the serve, Ctrl+F5.
 2. Chat Studio -> **Direct**: attach a text or CSV file over 20 KB and ask "What is the last line of the file?" The answer quotes the real last line (no "I'll read it with a tool").
 3. Any agent chat: attach the same file; the answer uses the content. Attach a broken PDF (rename a .txt to .pdf): the sky line says it couldn't be read.
+
+## Live check
+- 2026-09-30 ~3:00 PM ET, throwaway :8770 (clone data, Direct on nemotron): a 36,967-byte text file (was path-only above 8 KB) -> the prompt carries the text and no `read_document_file` note; asked for the last line, Direct answered `LAST LINE: the blue heron lands at 7:42` (exact). Screenshots: `scratch/ui0930/479-direct-attachment-desktop.png` / `-phone.png` (Jarvis).
