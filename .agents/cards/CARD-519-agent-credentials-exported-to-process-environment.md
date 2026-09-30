@@ -1,7 +1,8 @@
 ---
 id: CARD-519
 title: "Agent credentials are exported to the whole server process during every tool call, so other agents' tools can read them"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-26
 branch: qa
 related:
@@ -18,7 +19,7 @@ milestone: M24
 
 # [CARD-519] Agent credentials leak into the process environment during tool calls
 
-> **Status**: Ready (found while building CARD-511, 2026-09-26 ~2:30 AM ET, branch `feat/card-511-tool-check`). Not recommended as next by the queue rule (it does not damage data or block current work), but it is a real cross-agent secret leak on a shared server, so Jacob may want it soon after CARD-511. The CARD-511 tool check already strips these variables from its own sandbox.
+> **Status**: Done (merged into qa 2026-09-30)
 > **Related**: CARD-511 (`tool_check.py` passes `drop_env_prefixes=("AUTOREIV_CRED_",)`), CARD-423 (native tools run in `sandbox_worker`)
 > **Labels**: `type:bug`, `area:tools`, `area:security`, `P2`
 
@@ -41,3 +42,15 @@ Stop writing credentials to `os.environ`. Give a tool its own agent's credential
 - A test runs two concurrent tool calls from agents with different credentials and shows neither can see the other's secret (in `os.environ` or in a native tool's subprocess environment).
 - `sanitize_environment` drops `AUTOREIV_CRED_*` by default.
 - A native tool granted a credential still receives it.
+
+## Outcome (2026-09-30)
+
+- `ScopedToolRegistry.execute` no longer writes `AUTOREIV_CRED_*` to `os.environ`; credentials live only in the task's
+  tool context (ContextVar), so concurrent calls of other agents cannot see them.
+- `credential_env_from_context()` builds `AUTOREIV_CRED_<ID>` overrides for one subprocess; native custom tools pass
+  them to `run_sandboxed`, so a granted tool still receives its credential.
+- `sanitize_environment` always drops host `AUTOREIV_CRED_*` variables (overrides are applied after).
+- No tool in `src/` or `platform/` read `AUTOREIV_CRED_*` from the environment.
+- Tests: `tests/unit/security/test_card519_scoped_credentials.py` (two concurrent calls, sanitizer, native tool
+  subprocess gets only its own credential); CARD-168 test updated.
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

@@ -26,6 +26,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
+from src.application.kernel.tool_registry import credential_env_from_context
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
 from src.application.tools.tool_check import NATIVE_RUNNER, ToolCheckService, access_warning, record_check_on_job
 from src.domain.gateway.models import ToolCall
@@ -516,6 +517,7 @@ async def _run_sandboxed(code: str, arguments: Mapping[str, Any]) -> Any:
             "args.json": args_json,
         },
         read_outputs=["result.json"],
+        env_overrides=credential_env_from_context() or None,  # CARD-519: only the calling agent's credentials
     )
     raw = (result.output_files or {}).get("result.json") or ""
     if not result.success or not raw.strip():

@@ -63,9 +63,10 @@ async def test_tool_context_jit_credential_injection(tmp_path):
     assert res.success is True
     assert "credentials" in context_seen
     assert context_seen["credentials"]["github-pat"] == "ghp_live_secret_token_abcdef123456"
-    assert env_seen["AUTOREIV_CRED_GITHUB_PAT"] == "ghp_live_secret_token_abcdef123456"
+    # CARD-519: never written to the process-global environment, only to the tool context
+    assert env_seen["AUTOREIV_CRED_GITHUB_PAT"] is None
 
-    # Verify env is cleaned up after execution
+    # Verify env is clean after execution
     assert "AUTOREIV_CRED_GITHUB_PAT" not in os.environ
 
     # 2. Agent WITHOUT credential grant
