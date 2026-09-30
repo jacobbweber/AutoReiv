@@ -46,3 +46,4 @@ model at a time; a swap took ~5 min. The first Direct request during a swap fail
 ## Log
 
 - 2026-09-29: built on the branch with tests; old 200 s/600 s default tests updated to 900 s.
+- 2026-09-29 (live, throwaway :8770, combined branch): a Tutor hand-off to AutoReiv while Spark was down failed after 900 s with `ReadTimeout: no data from the provider for 900 s (...)` instead of an empty reason at 200 s. A request that succeeds after a long swap could not be shown: Spark never finished loading (a direct 25-min request was not served either).
