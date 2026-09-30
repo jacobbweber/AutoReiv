@@ -283,7 +283,8 @@ class ContextCompactor:
             )
 
         # Filter out UI-only proposal messages that cannot be processed by standard LLM APIs [CARD-358, REQ-SKIL-015]
-        messages = [m for m in messages if m.role != Role.SKILL_PROPOSAL]
+        # CARD-482: chat notes (e.g. the can't-view-images notice) are UI-only too.
+        messages = [m for m in messages if m.role not in (Role.SKILL_PROPOSAL, Role.NOTE)]
         if not messages:
             return [], CompactionMetrics(
                 original_tokens=0,

@@ -18,8 +18,9 @@ from src.application.kernel.context_compactor import (
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.empty_reply import (
     EMPTY_REPLY_MESSAGE,
+    chat_note,
     is_empty_reply,
-    skip_empty_assistant_rows,
+    model_history_rows,
 )
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
@@ -785,7 +786,7 @@ class AgentKernel:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
         # CARD-475 [REQ-475-006]: empty assistant rows from failed streams are not replayed.
-        history = skip_empty_assistant_rows(self.state_store.get_messages(session_id=session_id))
+        history = model_history_rows(self.state_store.get_messages(session_id=session_id))
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
@@ -1157,7 +1158,7 @@ class AgentKernel:
             "assigned_agent_id": agent.id,
         }
         # CARD-475 [REQ-475-006]: empty assistant rows from failed streams are not replayed.
-        history = skip_empty_assistant_rows(self.state_store.get_messages(session_id=session_id))
+        history = model_history_rows(self.state_store.get_messages(session_id=session_id))
         notices_sent: set = set()
         if resume:
             replay = self._nested_park_replay_events(history)
@@ -1261,6 +1262,12 @@ class AgentKernel:
                         note_text = str(chunk.notice.get("message") or "")
                         if note_text and note_text not in notices_sent:
                             notices_sent.add(note_text)
+                            try:  # CARD-482: keep the notice in the thread as a chat note (not model context)
+                                self.state_store.save_message(
+                                    session_id=session_id, agent_id=agent.id, message=chat_note(chunk.notice, note_text)
+                                )
+                            except Exception as exc:  # noqa: BLE001 - a lost note must not break the reply
+                                logger.warning("chat note not saved: %s", exc)
                             yield KernelEvent(
                                 event_type=KernelEventType.NOTICE, content=note_text, notice=dict(chunk.notice)
                             )
