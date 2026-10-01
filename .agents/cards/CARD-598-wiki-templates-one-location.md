@@ -1,7 +1,8 @@
 ---
 id: CARD-598
 title: "Wiki templates: one storage folder, agents create/list/use templates there (AutoReiv saved a new template under notes again)"
-status: In Review
+status: Done
+completed: 2026-10-01
 created: 2026-10-01
 branch: qa
 related:
@@ -34,7 +35,7 @@ log:
 
 # [CARD-598] Wiki templates: one storage folder, agents create/list/use templates there (AutoReiv saved a new template under notes again)
 
-> **Status**: In Review (filed 2026-10-01)
+> **Status**: Done (completed 2026-10-01)
 > **Labels**: `type:bug`, `area:wiki`, `area:skills`, `P1`
 
 ## Problem
