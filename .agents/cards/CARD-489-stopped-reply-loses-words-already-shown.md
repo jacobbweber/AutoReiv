@@ -1,7 +1,8 @@
 ---
 id: CARD-489
 title: "A stopped reply disappears: the words already shown are not kept"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-25
 branch: qa
 related:
@@ -12,13 +13,13 @@ labels:
   - area:chat
   - area:backend
   - P3
-needs_decision: "D1/D2: keep the words already shown when a reply is stopped (recommendations written; needs a yes)"
+needs_decision: none
 milestone: M24
 ---
 
 # [CARD-489] A stopped reply disappears: the words already shown are not kept
 
-> **Status**: Ready
+> **Status**: Done (merged into qa 2026-09-30)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 planning (scratch server + slow fake gateway, `scratch/c486_driver2.py abort`)
 > **Related**: CARD-486 (Stop aborts on the server), CARD-259 (kill/resume)
@@ -65,3 +66,22 @@ Stopped replies vanishing without a trace.
 
 ## 4. Runbook
 Ask for a long answer, stop after a few lines, and reload: the lines are still there, marked "Stopped".
+
+## Decision (Jacob, 2026-09-30)
+- Approved the class-b recommendation: **keep partial words on Stop**. D1 = server (the worker's cancel path), D2 = yes, the saved text goes into the next turn's context labelled as stopped.
+
+## Outcome (2026-09-30, branch `card/489-keep-words-on-stop`)
+- New `src/application/kernel/stopped_reply.py`: `PartialReply` collects token text since the last saved step (reset on tool start, handoff, approval, turn end, error); `stopped_message(text)` builds the assistant row `<words>\n\n_(Stopped)_`, or None when no token was shown.
+- `chat.py` stream worker: plain turns feed every kernel event to `PartialReply`; the `CancelledError` branch saves the stopped row before queuing `turn_end` aborted. The abort endpoint already waits up to 5 s for the worker, so the client's reload after Stop shows the saved words. Busy-elsewhere Stop goes through the same abort, so it is covered too.
+- The "Stopped" label is the `_(Stopped)_` line at the end of the saved text (renders as a small italic line). Because it is part of the text, the model sees the words marked as stopped on the next turn (D2).
+- Scope: plain chat turns. Goal-job phases keep CARD-259 kill/resume (their phase is re-queued and re-run, so no duplicate text is saved).
+- Tests: `tests/unit/web/test_card489_keep_words_on_stop.py` (collection/reset, marker, nothing before the first token, SQLite round-trip, worker wiring).
+
+## Human Verification Runbook (1 minute)
+1. Pull qa, restart the serve, Ctrl+F5.
+2. Chat Studio: ask for a long answer ("Write 40 numbered tips about ..."), press **Stop** after a few lines.
+3. The lines stay, ending with *(Stopped)*. Reload: still there. Say "continue": the reply picks up from there.
+
+## Live check
+- 2026-09-30 ~3:00 PM ET, throwaway :8770 (clone data, Direct on nemotron): first run saved nothing because the Direct fast path has its own loop; fixed (`partial.observe` there too, test updated). Rerun: Stop after 60 tokens -> rows `user, assistant`; the assistant row holds tips 1-8 and ends with `_(Stopped)_`; visible as (Stopped) after reload on desktop and phone. Screenshots: `scratch/ui0930/489-stopped-desktop.png` / `-phone.png` (Jarvis).
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

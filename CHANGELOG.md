@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-489: Stop keeps the words already shown and saves them with a (Stopped) mark.
 - CARD-482: attachment notices show as a chat note that survives reload and is not saved into the thread the model sees.
 - CARD-479: document attachments are sized to the model's context, and Direct mode gets the attached text too.
 - CARD-478: the Auto-run tools chip uses the goal chip's teal, so it reads as a setting, not a warning.

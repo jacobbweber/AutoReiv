@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
+from src.application.kernel.stopped_reply import PartialReply, stopped_message
 from src.application.orchestration.chat_job_binding import (
     latest_open_job_for_session,
     output_packet_for_phase,
@@ -1926,6 +1927,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
     async def worker():
         """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
+        partial = PartialReply()  # CARD-489: words shown so far, kept if the reply is stopped
         try:
             resume = bool(req.resume)
             effective_content = ""
@@ -2205,6 +2207,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     approval_mode=req.approval_mode or "ask",
                     resume=resume,
                 ):
+                    partial.observe(event)  # CARD-489: Direct replies keep their words on Stop too
                     if event.event_type == KernelEventType.TURN_END:
                         await queue.put(_sse("turn_done", {"content": event.content, "direct_mode": True}))
                     elif event.event_type == KernelEventType.REACT_STATE:
@@ -2407,6 +2410,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             ):
                 if event.event_type == KernelEventType.TURN_END and event.content:
                     last_plain = event.content
+                partial.observe(event)
                 await _forward_kernel_event(queue, event, profile)
 
             if self_verify and not resume:
@@ -2464,6 +2468,12 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
         except asyncio.CancelledError:
             logger.info("Chat stream worker cancelled for session: %s", req.session_id)
+            stopped = stopped_message(partial.text())  # CARD-489 [REQ-489-001/003]
+            if stopped is not None and store and hasattr(store, "save_message"):
+                try:
+                    store.save_message(session_id=req.session_id, agent_id=profile.id, message=stopped)
+                except Exception:
+                    logger.exception("Failed to save the stopped reply")
             await queue.put(
                 _sse(
                     "turn_end",
