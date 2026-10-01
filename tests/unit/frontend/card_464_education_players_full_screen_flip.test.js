@@ -3,6 +3,8 @@
  * REQ-464-001..006
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { loadPageHtml } from './template_helper.js';
 
 function makeClassList(initial = []) {
@@ -173,6 +175,16 @@ describe('CARD-464 page layout', () => {
     expect(playersStart).toBeGreaterThan(opStart);
     expect(section).toMatch(/id="educationPlayersConsole"[^>]*class="[^"]*flex-1[^"]*min-h-0/);
     expect(section).toMatch(/id="educationPlayerFlashcardPanel"[^>]*class="[^"]*flex-1/);
+  });
+
+  it('[REQ-464-001] the card sizes to the space left so Flip / Know / Miss never need scrolling (v2)', () => {
+    expect(section).toMatch(/id="educationPlayerFlashcardPanel"[^>]*class="[^"]*flex-1 min-h-0/);
+    expect(section).toMatch(/id="educationPlayerFlashScene"[^>]*class="[^"]*flex-1/);
+    expect(section).toMatch(/id="educationPlayerFlashGradeRow"[^>]*class="[^"]*shrink-0/);
+    const css = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/css/studios.css'), 'utf-8');
+    const card = css.slice(css.indexOf('.edu-flip-card {'), css.indexOf('}', css.indexOf('.edu-flip-card {')));
+    expect(card).toContain('min-height: 0');
+    expect(card).not.toMatch(/min-height:\s*\d+rem/);
   });
 
   it('[REQ-464-005] one progress view: inside the players, none in the operator bar', () => {

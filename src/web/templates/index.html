@@ -3225,7 +3225,7 @@
 
           <!-- CARD-448: Flashcard / Quiz / Test players (durable Learning OS grades) -->
           <!-- CARD-448 players; CARD-464: they fill the Studio below the operator bar (tabs: Flashcards / Quiz / Test / Progress). -->
-          <div id="educationPlayersConsole" class="px-4 py-3 bg-sky-950/10 flex-1 min-h-0 overflow-y-auto flex flex-col gap-3" data-card="448 464" aria-label="Education Studio players">
+          <div id="educationPlayersConsole" class="px-3 sm:px-4 py-2 bg-sky-950/10 flex-1 min-h-0 overflow-y-auto flex flex-col gap-2" data-card="448 464" aria-label="Education Studio players">
             <div class="flex flex-wrap items-center gap-2 justify-between">
               <div class="flex flex-wrap items-center gap-2 min-w-0">
                 <span class="text-[10px] font-semibold uppercase tracking-wider text-sky-300/90">Players</span>
@@ -3250,25 +3250,25 @@
             <div id="educationPlayerStatus" class="text-xs font-medium min-h-[1rem] text-slate-400" aria-live="polite">Flashcard / Quiz / Test - durable grades via Learning OS</div>
 
             <!-- Flashcard player (CARD-464): one large card; click / Space / Flip turns it; Know / Miss after the flip -->
-            <div id="educationPlayerFlashcardPanel" class="flex-1 flex flex-col gap-3 rounded-xl border border-amber-900/40 bg-[#08090c]/80 p-4" data-card="448 464">
-              <div class="flex flex-wrap items-center justify-between gap-2">
+            <!-- CARD-464 v2: the panel takes exactly the space left (min-h-0); only the card shrinks, so Flip / Know / Miss stay on screen. -->
+            <div id="educationPlayerFlashcardPanel" class="flex-1 min-h-0 flex flex-col gap-2 rounded-xl border border-amber-900/40 bg-[#08090c]/80 p-2.5 sm:p-3" data-card="448 464">
+              <div class="shrink-0 flex flex-wrap items-center justify-between gap-2">
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-amber-200/90">Flashcards</div>
                 <div class="flex flex-wrap gap-1.5">
                   <button type="button" id="educationPlayerFlashStartBtn" class="text-xs px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white font-semibold">Start deck</button>
                   <button type="button" id="educationPlayerFlashRevealBtn" class="hidden text-xs px-3 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200" title="Flip the card (Space)">Flip card</button>
                 </div>
               </div>
-              <div id="educationPlayerFlashMeta" class="text-xs font-mono text-slate-400 text-center"></div>
-              <div class="edu-flip-scene flex-1 min-h-[16rem] w-full max-w-3xl mx-auto">
+              <div id="educationPlayerFlashMeta" class="shrink-0 text-xs font-mono text-slate-400 text-center truncate"></div>
+              <div id="educationPlayerFlashScene" class="edu-flip-scene flex-1 min-h-[6rem] w-full max-w-4xl mx-auto">
                 <div id="educationPlayerFlashCard" class="edu-flip-card" role="button" tabindex="0" aria-pressed="false" aria-label="Flashcard. Click or press Space to flip." data-card="464">
                   <div id="educationPlayerFlashFront" class="edu-flip-face edu-flip-front text-lg sm:text-xl text-slate-100 leading-relaxed">No flashcard loaded. Start a deck from due mastery.</div>
                   <div id="educationPlayerFlashBack" class="edu-flip-face edu-flip-back hidden text-lg sm:text-xl text-emerald-100 leading-relaxed" aria-hidden="true"></div>
                 </div>
               </div>
-              <div id="educationPlayerFlashGradeRow" class="hidden flex flex-wrap items-center justify-center gap-2">
-                <button type="button" id="educationPlayerFlashKnowBtn" class="text-sm px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Know</button>
-                <button type="button" id="educationPlayerFlashMissBtn" class="text-sm px-5 py-2 rounded-lg bg-amber-800 hover:bg-amber-700 text-white font-semibold">Miss</button>
-                <span class="w-full text-center text-[10px] text-slate-500">Writes <code class="text-slate-400">POST /api/education/quiz/grade</code> - failures never fake pass.</span>
+              <div id="educationPlayerFlashGradeRow" class="hidden shrink-0 flex flex-wrap items-center justify-center gap-2" title="Writes POST /api/education/quiz/grade - failures never fake pass.">
+                <button type="button" id="educationPlayerFlashKnowBtn" class="text-sm px-6 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Know</button>
+                <button type="button" id="educationPlayerFlashMissBtn" class="text-sm px-6 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-700 text-white font-semibold">Miss</button>
               </div>
             </div>
 

@@ -27,12 +27,14 @@ body.radical-desktop-demo #view-education.desktop-view-hosted {
 .edu-flip-scene {
   perspective: 1400px;
   display: flex;
+  min-height: 0;
 }
+/* CARD-464 v2: the card has no fixed height; it fills the scene, which takes the space the controls leave. */
 .edu-flip-card {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
-  min-height: 16rem;
+  min-height: 0;
   transform-style: preserve-3d;
   cursor: pointer;
   border-radius: 1rem;
@@ -54,7 +56,7 @@ body.radical-desktop-demo #view-education.desktop-view-hosted {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 1.5rem;
+  padding: 1rem 1.25rem;
   overflow-y: auto;
   border-radius: 1rem;
   backface-visibility: hidden;
