@@ -11,18 +11,18 @@
  *    - Contains the template sections.
  */
 import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
+import { getJson, isStreaming, openApp, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
 
 const role = (m) => String((m && m.role) || '').toLowerCase();
 
 async function approveAllHitl(page) {
-  const cards = page.locator(HITL_CARD);
-  const count = await cards.count();
+  const buttons = page.locator('button[data-hitl-decision="APPROVED"]');
+  const count = await buttons.count();
   let clicked = 0;
   for (let i = 0; i < count; i += 1) {
-    const approve = cards.nth(i).locator('[data-hitl-decision="APPROVED"]').first();
-    if (await approve.isVisible().catch(() => false)) {
-      await approve.click();
+    const btn = buttons.nth(i);
+    if (await btn.isVisible().catch(() => false)) {
+      await btn.click().catch(() => {});
       clicked += 1;
       await page.waitForTimeout(1000);
     }
@@ -34,7 +34,11 @@ async function waitReplyWithHitl(page, streams, prevCount, { timeoutMs = 400000 
   await waitFor(() => streams.count > prevCount, { timeoutMs: 20000 });
   let quiet = 0;
   await waitFor(async () => {
-    await approveAllHitl(page);
+    const approved = await approveAllHitl(page);
+    if (approved > 0) {
+      quiet = 0;
+      return false;
+    }
     quiet = (await isStreaming(page)) ? 0 : quiet + 1;
     return quiet >= 4;
   }, { timeoutMs, intervalMs: 2000 });
@@ -65,6 +69,11 @@ async function startNewChat(page) {
   if (await newChatBtn.isVisible().catch(() => false)) {
     await newChatBtn.click();
     await page.waitForTimeout(1000);
+  }
+  const closeBtn = page.locator('#chatSessionsDrawerCloseBtn');
+  if (await closeBtn.isVisible().catch(() => false)) {
+    await closeBtn.click().catch(() => {});
+    await page.waitForTimeout(500);
   }
 }
 
@@ -170,17 +179,19 @@ export default {
       if (!sid) throw new Error('Could not find chat session for note creation');
       const msgs = await getJson(request, `${base}/api/sessions/${encodeURIComponent(sid)}/messages`);
       const toolRows = (Array.isArray(msgs) ? msgs : []).filter((m) => role(m) === 'tool');
-      const createRow = toolRows.find((m) => String(m.name || '') === 'wiki_note_create');
-      if (!createRow) {
+      const noteRows = toolRows.filter((m) => String(m.name || '') === 'wiki_note_create');
+      if (noteRows.length === 0) {
         throw new Error(`AutoReiv did not call wiki_note_create (called: ${toolRows.map((t) => t.name).join(', ') || 'none'})`);
       }
 
-      let parsed;
-      try { parsed = JSON.parse(String(createRow.content || '')); } catch { parsed = { raw: createRow.content }; }
-      if (!parsed.success) {
-        throw new Error(`wiki_note_create failed: ${JSON.stringify(parsed)}`);
+      const parsedRows = noteRows.map((r) => {
+        try { return JSON.parse(String(r.content || '')); } catch { return { raw: r.content }; }
+      });
+      const successRow = parsedRows.find((p) => p && p.success === true);
+      if (!successRow) {
+        throw new Error(`wiki_note_create had no successful execution: ${JSON.stringify(parsedRows)}`);
       }
-      const notePath = String(parsed.path || parsed.relative_path || '').replace(/\\/g, '/');
+      const notePath = String(successRow.path || successRow.relative_path || '').replace(/\\/g, '/');
       j.note(`wiki_note_create result path: ${notePath}`);
       if (!notePath.startsWith('00_Inbox/')) {
         throw new Error(`Created note was not staged in 00_Inbox/: ${notePath}`);
