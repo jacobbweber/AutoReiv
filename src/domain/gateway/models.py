@@ -14,6 +14,7 @@ class Role(str, Enum):
     ASSISTANT = "assistant"
     TOOL = "tool"
     SKILL_PROPOSAL = "skill_proposal"
+    NOTE = "note"  # CARD-482: operator note saved in the thread, never sent to the model
 
 
 

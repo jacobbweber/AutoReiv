@@ -662,6 +662,18 @@ export function renderMessageItem(msg, _idx, _allMessages, {
     return;
   }
 
+  // 3b. Chat note [CARD-482]: a saved operator notice (e.g. this model can't view images). Not a chat bubble.
+  if (role === 'note') {
+    const text = (msg.content || '').trim();
+    if (!text) return;
+    const note = document.createElement('div');
+    note.className = 'chat-attachment-notice chat-note mx-auto my-2 max-w-3xl px-3 py-2 rounded-xl border border-sky-900/60 bg-sky-950/40 text-sky-200 text-xs break-words';
+    note.setAttribute('role', 'status');
+    note.textContent = text;
+    messagesContainer.appendChild(note);
+    return;
+  }
+
   // 4. Skill Proposal Message [CARD-358, REQ-SKIL-016]
   if (role === 'skill_proposal') {
     let proposalData;

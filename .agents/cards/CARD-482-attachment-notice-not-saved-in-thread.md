@@ -1,7 +1,8 @@
 ---
 id: CARD-482
 title: "The 'can't view images' notice is not saved, so it is gone after a reload or on another device"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-25
 branch: qa
 related:
@@ -11,13 +12,13 @@ labels:
   - type:ux
   - area:chat
   - P3
-needs_decision: "Whether and where to persist the can't-view-images notice (Beat 3)"
+needs_decision: none
 milestone: M24
 ---
 
 # [CARD-482] The "can't view images" notice is not saved, so it is gone after a reload or on another device
 
-> **Status**: Ready
+> **Status**: Done (merged into qa 2026-09-30)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-475 build.
 > **Related**: CARD-475, CARD-469
@@ -53,3 +54,21 @@ Notices that vanish.
 ## 2. Acceptance criteria (EARS)
 - **[REQ-482-001]** WHEN a turn produced an attachment notice, THE SYSTEM SHALL show that notice in the thread after a reload and on another device.
 - **[REQ-482-002]** THE SYSTEM SHALL NOT send stored notices to the model.
+
+## Decision (Jacob, 2026-09-30)
+- Approved the class-b recommendation: save the can't-view-images notice **as a chat note** in the thread; it is never sent to the model.
+
+## Outcome (2026-09-30, branch `card/482-image-notice-chat-note`)
+- New message role `note` (`Role.NOTE`). When the gateway raises a notice, `stream_turn` saves it once per turn as a note row (`name` = notice type, e.g. `attachment_notice`), between the user message and the reply. A failed save only logs a warning.
+- The model never sees notes: kernel history uses `model_history_rows` (empty assistant rows and notes skipped) and the compactor drops `note` like `skill_proposal` [REQ-482-002].
+- Thread renderer: a `note` row is drawn as the same sky status line as the live notice (`.chat-attachment-notice.chat-note`), so it survives reloads, session switches and other devices [REQ-482-001]. `reportStreamOutcome` skips a live notice the reloaded thread already shows (no double line; this also removes the TC-19 late-reload risk for this notice).
+- Tests: `tests/unit/kernel/test_card482_chat_note.py` (SQLite round-trip, history/compactor skip, stream_turn saves one note and the next turn's model request has none); `tests/unit/frontend/card_482_chat_note.test.js`.
+
+## Human Verification Runbook (1 minute)
+1. Pull qa, restart the serve, Ctrl+F5.
+2. Chat with an agent on a text-only model (e.g. nemotron) and attach a PNG: the sky "This model can't view images..." line shows once.
+3. Reload the page, then open the same chat on the phone: the line is still there under your message.
+
+## Live check
+- 2026-09-30 ~3:00 PM ET, throwaway :8770 (clone data, nemotron, AutoReiv): PNG attached -> one `attachment_notice`; saved rows `user, note, assistant`; after a second turn still one note; after a page reload the thread shows 1 `.chat-note` on desktop and phone. Screenshots: `scratch/ui0930/482-note-after-reload-desktop.png` / `-phone.png` (Jarvis).
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.

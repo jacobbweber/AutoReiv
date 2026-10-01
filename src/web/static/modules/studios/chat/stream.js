@@ -235,7 +235,9 @@ export function reportStreamOutcome(outcome, {
   // CARD-475: notices render after the finalize reload, like the CARD-469 error.
   const notices = outcome && typeof outcome.notices === 'function' ? outcome.notices() : [];
   if (messagesContainer && doc) {
-    notices.forEach((text) => {
+    // CARD-482: the notice is saved as a chat note; skip it when the reloaded thread already shows it.
+    const shown = new Set(Array.from(messagesContainer.querySelectorAll?.('.chat-attachment-notice') || []).map((n) => n.textContent));
+    notices.filter((text) => !shown.has(text)).forEach((text) => {
       const note = doc.createElement('div');
       note.className = 'chat-attachment-notice mx-auto my-2 max-w-3xl px-3 py-2 rounded-xl border border-sky-900/60 bg-sky-950/40 text-sky-200 text-xs break-words';
       note.setAttribute('role', 'status');
