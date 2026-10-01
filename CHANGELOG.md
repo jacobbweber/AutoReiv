@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.43.0] - 2026-10-01
+
 - CARD-464: Education Studio players fill the Studio; flashcards flip and size to the space left so Flip / Know / Miss stay visible (default window, maximized, phone); Progress is a player tab.
 - CARD-463: Education Studio keeps only the operator bar and the players; the legacy Learning OS panels are removed.
 - CARD-595: an open Projects document stays inside the studio content area, so its close button and the studio's minimize/close are all visible and clickable (phone and narrow windows); smoke TC-47.
