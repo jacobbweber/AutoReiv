@@ -231,6 +231,10 @@ export function initAgentForge(state, callbacks = {}) {
         cachedSkillsCatalog = catalog;
       },
     });
+    // CARD-594: loadPlatformSkills painted the pills with the agent and allowed set captured when it started.
+    // An agent picked while the catalog loaded replaced lastAllowedSkills, so repaint with the current ones;
+    // otherwise every pill shows off and a Save drops those skills (skillsForSave reads the pill state).
+    renderNestedHomesWrapper();
     return result;
   }
 

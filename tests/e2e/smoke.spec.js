@@ -1031,12 +1031,12 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     async function setup472(page, request) {
       const tag = `${vp.name}-${Date.now()}`;
       const S = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `W 472 ${tag}` } })).json();
-      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'developer', title: `D 472 ${tag}` } })).json();
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'toolsmith', title: `D 472 ${tag}` } })).json();
       const t = { S, DEV, artifactGets: [], talks: [], distills: 0, devPrompt: '' };
       const proposal = {
         status: 'ok', needs_tool: true, target_agent_id: 'autoreiv',
-        // CARD-520: this history card keeps the old key on purpose; Ask Developer must still work for it.
-        factory_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC34 things', suggested_tool_name: 'get_tc34_tool', starter_objectives: ['Return TC34 data'] },
+        // CARD-520 key (CARD-574 dropped the old factory_escalation migration).
+        tool_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC34 things', suggested_tool_name: 'get_tc34_tool', starter_objectives: ['Return TC34 data'] },
       };
       await page.route('**/api/sessions/*/messages', (route) => {
         const url = route.request().url();
@@ -1062,7 +1062,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         const body = route.request().postDataJSON();
         t.talks.push(body);
         t.devPrompt = `Create tool ${body.draft.tool_name}: ${body.draft.behavior}`;
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'developer', prompt: t.devPrompt, opened_chat: true, opened_job: false, job_id: null }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'toolsmith', prompt: t.devPrompt, opened_chat: true, opened_job: false, job_id: null }) });
       });
       page.on('request', (r) => { if (r.url().includes('/api/skills/distill')) t.distills += 1; });
       await page.setViewportSize({ width: vp.width, height: vp.height });
@@ -1211,7 +1211,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
   }
   // CARD-502: the Adopt message comes from the server answer; the restart warning shows when keep-customizations is off.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
-    test(`TC-37 (${vp.name}): Adopt shows "<name> is on for <agent>"; the restart warning shows when customizations reset [CARD-502]`, async ({ page, request }) => {
+    test(`TC-37 (${vp.name}): Adopt shows "<name> is on for <agent>"; no restart warning (skills are files, CARD-570) [CARD-502]`, async ({ page, request }) => {
       const tag = `${vp.name}-${Date.now()}`;
       const S = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `A 502 ${tag}` } })).json();
       const prop = (skill, name) => ({ status: 'ok', needs_tool: false, target_agent_id: 'autoreiv', skill_id: skill, name, plain_summary: { observed_slip: `${name} slip`, remedy: `${name} remedy` }, runbook_markdown: `---\nname: ${skill}\n---\n# ${name}` });
@@ -1245,7 +1245,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(on).toContainText('TC37 Stays On is on for autoreiv from your next message.');
       const warn = page.locator('.skill-proposal-card', { hasText: 'TC37 Resets' });
       await warn.locator('.btn-adopt-skill').click();
-      await expect(page.locator('#toastContainer')).toContainText('Keep my agent customizations is off, so it will be removed on the next restart.');
+      // CARD-570: adopted skills are files that survive restart, so there is no restart warning any more.
+      await expect(page.locator('#toastContainer')).toContainText('TC37 Resets is on for autoreiv from your next message.');
+      await expect(page.locator('#toastContainer')).not.toContainText('removed on the next restart');
       expect(adopts.map((a) => a.skill_id)).toEqual(['tc37-on', 'tc37-warn']);
       await expect(page.locator('#messagesContainer')).not.toContainText('Active for your next message');
     });
@@ -1253,7 +1255,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
 
   // CARD-509: a Studio Save keeps skills without a pill; coding and proposals now have pills. CARD-544: coding is unticked on AutoReiv.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
-    test(`TC-38 (${vp.name}): Studio shows coding and proposals pills; a Max Turns save keeps proposals, coding stays unticked; Developer ticks coding [CARD-509, CARD-544, CARD-550]`, async ({ page }) => {
+    test(`TC-38 (${vp.name}): Studio shows coding and proposals pills; a Max Turns save keeps proposals, coding stays unticked; Developer ticks implement-change [CARD-509, CARD-544, CARD-570]`, async ({ page }) => {
       const puts = [];
       await page.route('**/api/agents/autoreiv', (route) => {
         if (route.request().method() !== 'PUT') return route.continue();
@@ -1272,8 +1274,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       };
       await pick('autoreiv', 'AutoReiv');
       // CARD-544 D1: AutoReiv no longer ticks coding, but the shipped runbook keeps a pill so it can be re-ticked.
+      // CARD-594: check the ticked pill first (an unpainted pill is also unticked), with room for a slow catalog load.
+      await expect(page.locator('.forge-skill-pill[data-skill-id="proposals"]')).toHaveAttribute('aria-pressed', 'true', { timeout: 20000 });
       await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'false');
-      await expect(page.locator('.forge-skill-pill[data-skill-id="proposals"]')).toHaveAttribute('aria-pressed', 'true');
       await page.evaluate(() => { const el = document.getElementById('forgeMaxTurnsInput'); el.value = '57'; el.dispatchEvent(new Event('input', { bubbles: true })); });
       await page.locator('#saveAgentBtn').evaluate((b) => b.click());
       await expect.poll(() => puts.length).toBe(1);
@@ -1282,8 +1285,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(String(puts[0].max_turns)).toBe('57');
       await pick('developer', 'Developer');
       await expect(page.locator('.forge-skill-pill[data-skill-id="proposals"]')).toHaveCount(1);
-      // CARD-550 D1: Developer ticks coding (the checkout repo_file_* tools).
-      await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'true');
+      // CARD-570/562: Developer is a card worker; it ticks implement-change, not coding.
+      await expect(page.locator('.forge-skill-pill[data-skill-id="implement-change"]')).toHaveAttribute('aria-pressed', 'true', { timeout: 20000 });
+      await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'false');
     });
   }
 
@@ -1315,14 +1319,14 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     }
 
     test(`TC-39 (${vp.name}): a capability gap opens Skill Studio or a Developer chat, never the Factory [CARD-496]`, async ({ page, request }) => {
-      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'developer', title: `D 496 ${vp.name}-${Date.now()}` } })).json();
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'toolsmith', title: `D 496 ${vp.name}-${Date.now()}` } })).json();
       const talks = [];
       let devPrompt = '';
       await page.route('**/api/tools_studio/authoring/talk', (route) => {
         const body = route.request().postDataJSON();
         talks.push(body);
         devPrompt = `Create tool ${body.draft.tool_name}: ${body.draft.behavior}`;
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'developer', prompt: devPrompt, opened_chat: true, opened_job: false, job_id: null }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'toolsmith', prompt: devPrompt, opened_chat: true, opened_job: false, job_id: null }) });
       });
       await page.route('**/api/sessions/*/messages', (route) => {
         if (!route.request().url().includes(DEV.id)) return route.continue();
@@ -1361,7 +1365,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await card.locator('.btn-gap-ask-developer').click();
       await expect(page.locator('#view-chat')).toBeVisible();
       await expect.poll(() => streamPosts.length, { timeout: 15000 }).toBe(1);
-      expect(streamPosts[0].agent_id).toBe('developer');
+      expect(streamPosts[0].agent_id).toBe('toolsmith');  // CARD-571: Ask Developer opens Toolsmith
       expect(streamPosts[0].resume).toBe(false);
       expect(streamPosts[0].content).toContain('get_tc39_inventory');
       expect(streamPosts[0].content).toContain('Look up TC39 inventory counts');
@@ -1434,6 +1438,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect((await refused.json()).detail.message).toContain(`Not registered: ${bad} failed the import check`);
       expect((await post(good, "def run(text='', **kw):\n    return {'echo': text}\n")).status()).toBe(200);
       expect((await post(high, 'def run(**kw):\n    return 1\n', { risk_level: 'high' })).status()).toBe(200);
+      // CARD-570: a runtime-built tool is saved disabled; it joins the catalog once Jacob enables it.
+      for (const name of [good, high]) expect((await request.post(`/api/tools/native/${name}/enable`)).status()).toBe(200);
 
       const errors = [];
       page.on('pageerror', (e) => errors.push(String(e)));
@@ -1554,7 +1560,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
   // CARD-520: Observability tool-escalation card: top-level section, Needs a tool, Ask Developer (real send), Asked Developer.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
     test(`TC-45 (${vp.name}): a tool-escalation card offers Ask Developer, the Developer reply starts, the card shows Asked Developer [CARD-520]`, async ({ page, request }) => {
-      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'developer', title: `D 520 ${vp.name}-${Date.now()}` } })).json();
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'toolsmith', title: `D 520 ${vp.name}-${Date.now()}` } })).json();
       const ESC = {
         id: 'rec_tc45', agent_id: 'autoreiv', skill_path: null, friction_type: 'payload_bloat', remedy_kind: 'tool_escalation',
         tool_name: 'get_tc45_dump', payload_bytes: 20790, session_id: 'sess_tc45', status: 'pending', created_at: '2026-09-26T17:00:00Z',
@@ -1576,7 +1582,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.route('**/api/tools_studio/authoring/talk', (route) => {
         const body = route.request().postDataJSON();
         t.talks.push(body);
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'developer', prompt: `Tools Studio tool intent (modify)\n\nTool: ${body.draft.tool_name}\n${body.draft.behavior}`, opened_chat: true, opened_job: false, job_id: null }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ session_id: DEV.id, agent_id: 'toolsmith', prompt: `Tools Studio tool intent (modify)\n\nTool: ${body.draft.tool_name}\n${body.draft.behavior}`, opened_chat: true, opened_job: false, job_id: null }) });
       });
       let release;
       const held = new Promise((r) => { release = r; });
@@ -1606,7 +1612,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(t.talks[0].draft.tool_name).toBe('get_tc45_dump');
       await expect(page.locator('#view-chat')).toBeVisible();
       await expect.poll(() => t.streamPosts.length, { timeout: 15000 }).toBe(1);
-      expect(t.streamPosts[0].agent_id).toBe('developer');
+      expect(t.streamPosts[0].agent_id).toBe('toolsmith');  // CARD-571: Ask Developer opens Toolsmith
       expect(t.streamPosts[0].content).toContain('get_tc45_dump');
       await expect(page.locator('#messagesContainer [data-stream-bubble="true"]')).toBeVisible();
       await expect.poll(() => t.escalations.length).toBe(1);
