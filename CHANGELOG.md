@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-478: the Auto-run tools chip uses the goal chip's teal, so it reads as a setting, not a warning.
 - CARD-594: 14 stale smoke tests updated to the CARD-570/571/574 behaviour; Agent Studio no longer repaints skill pills from a stale set when an agent is picked during the catalog load (a Save could drop skills).
 - CARD-462: standing Job phases and handoff children use the agent's own max_turns (50); no hidden 10, no 10..15 child clamp.
 - CARD-503: a Teach distill that could not use the model says so ('Written without the model: <reason>') and returns source/fallback_reason.

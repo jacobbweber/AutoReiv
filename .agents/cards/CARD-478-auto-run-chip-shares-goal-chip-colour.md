@@ -1,7 +1,8 @@
 ---
 id: CARD-478
 title: "Auto-run ON chip shares the amber colour of the multi-phase goal chip"
-status: Ready
+status: Done
+completed: 2026-09-30
 created: 2026-09-25
 branch: qa
 related:
@@ -11,13 +12,13 @@ labels:
   - area:chat
   - area:frontend
   - P3
-needs_decision: "Auto-run ON chip colour (Beat 3)"
+needs_decision: none
 milestone: M24
 ---
 
 # [CARD-478] Auto-run ON chip shares the amber colour of the multi-phase goal chip
 
-> **Status**: Ready
+> **Status**: Done (merged into qa 2026-09-30)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-470 build (decision D3 chose amber for "Auto-run ON").
 > **Related**: CARD-470
@@ -56,3 +57,18 @@ Two chips that look the same.
 ## 2. Acceptance criteria (EARS)
 - **[REQ-478-001]** THE SYSTEM SHALL render `#approvalBadge` and `#goalBadge` in different colour families.
 - **[REQ-478-002]** `#approvalBadge` SHALL keep a warning colour and the text "Auto-run ON".
+
+## Decision (Jacob, 2026-09-30)
+- Approved the class-b recommendation: the **Auto-run ON chip is teal**; the goal chip stays amber, Verify stays emerald.
+
+## Outcome (2026-09-30, branch `card/478-auto-run-chip-teal`)
+- `index.html` `#approvalBadge`: `bg-teal-950/80 border-teal-600/80 text-teal-300` (was amber, same as `#goalBadge`). Text and tooltip unchanged.
+- Tests: `tests/unit/frontend/card_478_auto_run_chip_teal.test.js` (teal; differs from goal and Verify chips; text "Auto-run ON"); `chat_runtime_toggles_470.test.js` now expects teal.
+
+## Human Verification Runbook (1 minute)
+1. Pull qa, restart the serve, Ctrl+F5.
+2. Chat Studio: turn **Auto-run** on. The chip reads "Auto-run ON" in teal; start a multi-phase goal and the goal chip is still amber.
+
+## Live check
+- 2026-09-30 ~3:05 PM ET, throwaway :8770 (clone data, branch merged into a temp live branch): Auto-run toggle on -> `#approvalBadge` visible with `bg-teal-950/80 border-teal-600/80 text-teal-300`. Screenshots: `scratch/ui0930/478-auto-run-chip.png`, `478-auto-run-chip-page.png` (Jarvis).
+- 2026-09-30: preflight --fast --base qa GREEN. Jacob: merge to qa (small engineering fix). Done; merged into qa.
