@@ -1626,4 +1626,62 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#frictionRecommendationsList [data-rec-id="rec_tc45"]').first()).toContainText('Asked Developer');
     });
   }
+
+  // CARD-595: the Projects document viewer must sit inside the studio content area, not under the studio window title bar.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'narrow', width: 760, height: 900 }, { name: 'phone', width: 390, height: 844 }]) {
+    test(`TC-47 (${vp.name}): an open Projects document keeps its own close button and the studio minimize/close clickable [CARD-595]`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      const PROJ = { slug: 'tc47', name: 'TC47 Project', path: 'C:/tc47' };
+      await page.route('**/api/projects', (route) => {
+        if (route.request().method() !== 'GET') return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ projects: [PROJ], selected: PROJ }) });
+      });
+      await page.route('**/api/projects/files/list*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        path: '.', project_root: PROJ.path, entries: [{ name: 'README.md', path: 'README.md', type: 'file', ext: '.md', is_dir: false }],
+      }) }));
+      await page.route('**/api/projects/files/read*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        path: 'README.md', content: '# TC47\n\nhello', chars: 13, truncated: false, is_markdown: true,
+      }) }));
+      await page.route('**/api/projects/drift*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ drift: [], items: [] }) }));
+      await page.addInitScript(() => { try { localStorage.setItem('autoreiv.projectsStudioMode', 'explorer'); } catch { /* storage blocked: default mode is explorer */ } });
+
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#dock-projects')).toBeVisible();
+      await page.waitForTimeout(1000);
+      if (!(await page.locator('#view-projects').isVisible())) await page.locator('#dock-projects').click();
+      await expect(page.locator('#view-projects')).toBeVisible();
+      const row = page.locator('#projectsTreeList div', { hasText: /^\s*README\.md\s*$/ }).last();
+      await expect(row).toBeVisible({ timeout: 15000 });
+      await row.click();
+      await expect(page.locator('#projectsViewerPath')).toHaveText('README.md');
+
+      const titlebar = page.locator('.desktop-win-titlebar').filter({ has: page.locator('.desktop-win-title', { hasText: /Projects/ }) }).first();
+      await expect(titlebar).toBeVisible();
+      const close = page.locator('#projectsViewerCloseBtn');
+      await expect(close).toBeVisible();
+      const tb = await titlebar.boundingBox();
+      const cb = await close.boundingBox();
+      expect(cb.y, 'viewer close button sits below the studio title bar').toBeGreaterThanOrEqual(tb.y + tb.height - 1);
+      const hit = (sel) => page.evaluate((s) => {
+        const el = typeof s === 'string' ? document.querySelector(s) : null;
+        if (!el) return false;
+        const b = el.getBoundingClientRect();
+        const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+        return h === el || el.contains(h);
+      }, sel);
+      expect(await hit('#projectsViewerCloseBtn'), 'viewer close not covered').toBe(true);
+
+      await close.click({ timeout: 3000 });
+      await expect.poll(async () => !(await page.locator('#projectsViewerPane').isVisible()) || (await page.textContent('#projectsViewerPath')) !== 'README.md').toBe(true);
+
+      await row.click();
+      await expect(page.locator('#projectsViewerPath')).toHaveText('README.md');
+      await titlebar.locator('.desktop-win-min').click({ timeout: 3000 });
+      await expect(page.locator('#view-projects')).toBeHidden();
+      await page.locator('#dock-projects').click();
+      await expect(page.locator('#view-projects')).toBeVisible();
+      await titlebar.locator('.desktop-win-close').click({ timeout: 3000 });
+      await expect(page.locator('#view-projects')).toBeHidden();
+    });
+  }
 });

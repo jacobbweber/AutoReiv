@@ -67,7 +67,10 @@ describe('Projects Studio Web Workspace UI [REQ-PROJ-010..014]', () => {
 
   it('declares mobile overlay reading pane, close button, and closeReadingPane handler [REQ-PROJ-011, REQ-PROJ-013]', () => {
     expect(indexHtml).toContain('id="projectsViewerCloseBtn"');
-    expect(indexHtml).toContain('fixed inset-0 z-50 md:relative');
+    // CARD-595: the overlay stays inside the studio content area (absolute in a relative parent), never viewport-fixed under the studio title bar.
+    expect(indexHtml).toContain('absolute inset-0 z-30 md:relative');
+    expect(indexHtml).not.toMatch(/id="projectsViewerPane"[^>]*\bfixed inset-0/);
+    expect(indexHtml).toMatch(/id="projectsExplorerView"[^>]*\brelative\b/);
     expect(projectsJs).toContain('closeReadingPane');
     expect(projectsJs).toContain('projectsViewerCloseBtn');
   });

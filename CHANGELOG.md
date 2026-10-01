@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-595: an open Projects document stays inside the studio content area, so its close button and the studio's minimize/close are all visible and clickable (phone and narrow windows); smoke TC-47.
 - CARD-489: Stop keeps the words already shown and saves them with a (Stopped) mark.
 - CARD-482: attachment notices show as a chat note that survives reload and is not saved into the thread the model sees.
 - CARD-479: document attachments are sized to the model's context, and Direct mode gets the attached text too.
