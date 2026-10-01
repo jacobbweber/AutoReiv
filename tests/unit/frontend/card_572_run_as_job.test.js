@@ -67,6 +67,7 @@ describe('CARD-572 Run as a job', () => {
     expect(routines).toContain('run_as_job,');
     expect(routines).toContain("routine.run_as_job === true");
     const edu = read('src/web/static/modules/studios/education.js');
-    expect((edu.match(/runAsJob: true/g) || []).length).toBe(2);
+    // CARD-463: the Studio Ask / mint-exercise paths that asked runAsJob are removed (study runs through Tutor).
+    expect((edu.match(/runAsJob: true/g) || []).length).toBe(0);
   });
 });

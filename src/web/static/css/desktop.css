@@ -316,12 +316,10 @@ body.radical-desktop-demo #view-chat.desktop-view-hosted #chatOptionsToggleBtn {
   z-index: 1;
 }
 
-/* CARD-237 / REQ-EDU-SHELL-002a: Education Ask controls must receive clicks in hosted windows */
+/* CARD-237 / REQ-EDU-SHELL-002a: Education operator controls must receive clicks in hosted windows (CARD-463: topic box is in the operator bar) */
 body.radical-desktop-demo #view-education.desktop-view-hosted,
-body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskForm,
-body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskSubmitBtn,
-body.radical-desktop-demo #view-education.desktop-view-hosted #educationTopicInput,
-body.radical-desktop-demo #view-education.desktop-view-hosted #educationTeachStyleInput {
+body.radical-desktop-demo #view-education.desktop-view-hosted #educationOperatorConsole,
+body.radical-desktop-demo #view-education.desktop-view-hosted #educationTopicInput {
   pointer-events: auto;
   position: relative;
   z-index: 1;

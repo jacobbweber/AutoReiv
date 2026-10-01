@@ -102,7 +102,9 @@ describe('CARD-441 Progress you can trust (non-Studio Tutor surface)', () => {
   it('keeps Studio chrome and adds Tutor Progress affordances [REQ-441-004]', () => {
     expect(html).toContain('id="tab-education"');
     expect(html).toContain('id="view-education"');
-    expect(html).toContain('id="educationCourseChrome"');
+    // CARD-463: Studio course chrome removed; Progress lives in the operator bar and Tutor.
+    expect(html).not.toContain('id="educationCourseChrome"');
+    expect(html).toContain('id="educationOperatorProgressBtn"');
     expect(html).toContain('id="chatEducationModeProgressBtn"');
     expect(html).toContain('id="chatEducationModeProgressPanel"');
     expect(html).toContain('id="chatEducationModeProgressBody"');
@@ -110,7 +112,7 @@ describe('CARD-441 Progress you can trust (non-Studio Tutor surface)', () => {
     expect(studyJs).toContain('/api/education/progress');
     expect(studyJs).toContain(STUDY_PROGRESS_SKILL);
     expect(studyJs).toContain('education_progress_summary');
-    expect(educationJs).toContain('renderEducationCourseChrome');
+    expect(educationJs).not.toContain('renderEducationCourseChrome');
   });
 
   it('buildProgressSummaryPrompt names progress-summary skill and progress API', () => {

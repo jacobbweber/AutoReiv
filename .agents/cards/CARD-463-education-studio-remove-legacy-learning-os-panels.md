@@ -1,7 +1,7 @@
 ---
 id: CARD-463
 title: "Education Studio cleanup: remove the legacy Learning OS panels, keep operator bar + players"
-status: Ready
+status: In Review
 created: 2026-09-24
 branch: qa
 adr: ADR-0059 (Education Studio = operator + players)
@@ -24,7 +24,7 @@ milestone: M23
 
 # [CARD-463] Education Studio cleanup: remove the legacy Learning OS panels, keep operator bar + players
 
-> **Status**: Ready - approved for **build** by Jacob 2026-09-30 (class-b); not started yet.
+> **Status**: In Review - built 2026-10-01 on `card/463-education-remove-legacy-panels`; waiting for Jacob's **merge to qa**.
 > **Created**: 2026-09-24
 > **Observed during**: Jacob review of Education Studio on Jarvis (screenshot shared in chat, described below).
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) - Studio stays and is the operator + players surface. This card removes the old panel farm that ADR-0059 option 2 rejected; it does **not** retire the Studio.
@@ -197,3 +197,14 @@ Jacob: the original "engineering look" Learning OS UI never added value (it move
 
 ## Log
 - 2026-09-30: Jacob approved (class-b): remove all legacy panels, keep operator bar + players. Not started in the 2026-09-30 session (time-box); next after CARD-479/482/489 review.
+
+## Outcome (2026-10-01, In Review)
+- **index.html:** `#view-education` is now the header, the operator bar and the players. The Refresh button, the Study Launcher / Ask pane (course chrome, Knowledge Anchor, steps / Jump to step, Delivery Profile, Pedagogy Style, Wiki Grounding, Launch / Discuss), the 8 `details.edu-section` panels and the Education Jobs list are gone. `#educationTopicInput` moved into the operator bar before Set active (sr-only label "Target topic"). The players console now takes the rest of the height (CARD-464 builds on this). The Tutor-panel copy "Education Studio wiki search stays" / "course chrome stays" was removed.
+- **education.js:** 2,756 -> 62 lines. It lazy-loads `education_operator.js` and `education_players.js` and clears localStorage `autoreiv.education.sessions.v1` on init (`clearLegacyEducationSessions`).
+- **app.js:** the Lumina "Watch in Lumina" shortcut wiring is gone; the Lumina tab is unchanged.
+- **CSS:** removed the `studios.css` rules for the main column, the pedagogy columns, `edu-section` and the Ask form; the `desktop.css` CARD-237 click rule now targets the operator bar and the topic box.
+- **Tests:** deleted `education_studio.test.js`, `education_continuity_315.test.js` and `job_phase_chrome_education.test.js`. Updated `card_437`/`439`/`440`/`441`/`572`/`592`, `dom_audit` and `test_card320_course_mastery_model.py` to the new layout. Added `card_463_education_legacy_panels_removed.test.js` (removed ids absent, topic box inside the operator bar, thin shell, localStorage cleared). Vitest 149 files / 926 tests green; `tests/unit/education` 216 passed.
+- **Backend:** unchanged (REQ-463-005). The progress API still returns `studio_chrome_retained: true` (`progress_summary.py`, `education_tools.py`, `study_entry.js`). That flag is now stale, so it belongs with the backend-prune follow-up (question 5).
+- **Live check (throwaway clone serve on :8770, desktop 1400x900 + phone 390x844):** none of the removed ids are present and there are 0 `edu-section` elements. A seeded `autoreiv.education.sessions.v1` key is cleared on load. Typing "Raft consensus" and clicking Set active sets the topic and course chips (`course_43eb0f101750`). The Due and Progress panels open. Flashcards -> Start deck answers "No due/quiz items for flashcard deck." (the clone has no due items). There were 0 console errors.
+- **Screenshots:** `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui0930\463-studio-desktop.png`, `463-studio-phone.png`, `463-set-active-players-desktop.png`, `463-set-active-players-phone.png`.
+- 2026-10-01: Built on `card/463-education-remove-legacy-panels`; live-checked on :8770 with screenshots; In Review for Jacob's **merge to qa**.

@@ -410,17 +410,6 @@ export function initApp() {
         import('./modules/studios/lumina.js')
           .then((m) => {
             luminaCtrl = m.initLuminaStudio(state, sharedCallbacks);
-            const ampWatchLuminaBtn = $('educationAmpWatchLuminaBtn');
-            if (ampWatchLuminaBtn) {
-              ampWatchLuminaBtn.addEventListener('click', () => {
-                const topicInput = $('educationTopicInput');
-                const topic = (topicInput && topicInput.value) || 'Photosynthesis';
-                switchTab('lumina');
-                if (luminaCtrl && typeof luminaCtrl.openTopicInLumina === 'function') {
-                  luminaCtrl.openTopicInLumina(topic);
-                }
-              });
-            }
           })
           .catch((err) => {
             console.error('[AutoReiv UI] Failed to initialize Lumina Studio:', err);
