@@ -210,6 +210,12 @@ def _render_education_note(
             content,
             count=1,
         )
+        content = re.sub(
+            r'(?m)^document_type:\s*"template"\s*$',
+            'document_type: "education_note"',
+            content,
+            count=1,
+        )
     else:
         content = (
             f"---\n"

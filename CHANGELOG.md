@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-598: AutoReiv has dedicated wiki template authoring tools (wiki_template_create and wiki_template_update) that save structured templates to 02_Resources/_Templates/; new notes instantiated from templates stage into 00_Inbox/ via wiki_note_create(template=<slug>).
+
 ## [0.43.0] - 2026-10-01
 
 - CARD-464: Education Studio players fill the Studio; flashcards flip and size to the space left so Flip / Know / Miss stay visible (default window, maximized, phone); Progress is a player tab.
