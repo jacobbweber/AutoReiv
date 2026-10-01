@@ -3,6 +3,8 @@
  * Durable Learning OS grades via POST /api/education/quiz/grade,
  * GET /api/education/quiz/next, GET /api/education/mastery/due.
  * Flashcards: front-only then reveal/grade (not both-sides dump as only mode).
+ * CARD-464: players fill the Studio; flashcards are one card you flip (click / Space / Flip card), grade after
+ * the flip; the Progress tab hosts the operator's progress view. Reduced motion swaps sides without animation.
  * Keeps CARD-447 operator console; Tutor remains coach. Does not retire Studio.
  */
 
@@ -17,14 +19,16 @@ import {
 export const EDUCATION_PLAYER_GRADE_HTTP = 'POST /api/education/quiz/grade';
 export const EDUCATION_PLAYER_QUIZ_NEXT_HTTP = 'GET /api/education/quiz/next';
 export const EDUCATION_PLAYER_DUE_HTTP = 'GET /api/education/mastery/due';
-export const EDUCATION_PLAYER_MODES = ['flashcard', 'quiz', 'test'];
+export const EDUCATION_PLAYER_MODES = ['flashcard', 'quiz', 'test', 'progress'];
 
-/** @type {'flashcard'|'quiz'|'test'} */
+/** @type {'flashcard'|'quiz'|'test'|'progress'} */
 let _mode = 'flashcard';
 
-const flashState = { item: null, revealed: false, deck: [], index: 0 };
+// revealed latches once the card was flipped (grading allowed); flipped is the side shown now [CARD-464].
+const flashState = { item: null, revealed: false, flipped: false, deck: [], index: 0 };
 const quizState = { item: null };
 const testState = { items: [], index: 0, results: [], active: false, limit: 5 };
+let _keyBound = false;
 
 function _el(id) {
   return typeof $ === 'function' ? $(id) : null;
@@ -164,7 +168,7 @@ function _setStatus(text, kind) {
     warn: 'text-amber-300',
     info: 'text-slate-400',
   };
-  el.className = 'text-[11px] font-medium min-h-[1rem] ' + (colors[kind] || colors.info);
+  el.className = 'text-xs font-medium min-h-[1rem] ' + (colors[kind] || colors.info);
 }
 
 function _setContextChrome(ctx) {
@@ -180,6 +184,7 @@ export function setPlayerMode(mode) {
     flashcard: 'educationPlayerFlashcardPanel',
     quiz: 'educationPlayerQuizPanel',
     test: 'educationPlayerTestPanel',
+    progress: 'educationPlayerProgressPanel',
   };
   Object.keys(map).forEach((m) => {
     const panel = _el(map[m]);
@@ -191,6 +196,7 @@ export function setPlayerMode(mode) {
     flashcard: 'educationPlayerModeFlashcardBtn',
     quiz: 'educationPlayerModeQuizBtn',
     test: 'educationPlayerModeTestBtn',
+    progress: 'educationPlayerModeProgressBtn',
   };
   Object.keys(btnMap).forEach((m) => {
     const btn = _el(btnMap[m]);
@@ -218,6 +224,29 @@ function _normalizeItem(raw) {
   };
 }
 
+/** CARD-464 / REQ-464-003: no flip animation when the OS asks for reduced motion. */
+export function prefersReducedMotion() {
+  try {
+    return Boolean(
+      typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    );
+  } catch {
+    return false;
+  }
+}
+
+function _paintFlipCard() {
+  const card = _el('educationPlayerFlashCard');
+  if (!card) return;
+  const flipped = Boolean(flashState.item && flashState.flipped);
+  card.classList.toggle('is-flipped', flipped);
+  card.classList.toggle('edu-flip-animated', !prefersReducedMotion());
+  card.setAttribute('aria-pressed', flipped ? 'true' : 'false');
+  card.setAttribute('data-flipped', flipped ? 'true' : 'false');
+}
+
 function _renderFlashcardView() {
   const frontEl = _el('educationPlayerFlashFront');
   const backEl = _el('educationPlayerFlashBack');
@@ -235,6 +264,8 @@ function _renderFlashcardView() {
     if (revealBtn) revealBtn.classList.add('hidden');
     if (gradeRow) gradeRow.classList.add('hidden');
     flashState.revealed = false;
+    flashState.flipped = false;
+    _paintFlipCard();
     return;
   }
   // Front-only until reveal — do not dump both sides as the only mode [CARD-448]
@@ -261,11 +292,13 @@ function _renderFlashcardView() {
     if (backEl) {
       backEl.textContent = item.expected_answer || '(no back text on ledger)';
       backEl.classList.remove('hidden');
-      backEl.setAttribute('aria-hidden', 'false');
+      backEl.setAttribute('aria-hidden', flashState.flipped ? 'false' : 'true');
     }
-    if (revealBtn) revealBtn.classList.add('hidden');
+    // CARD-464: the Flip button stays so the card can be turned back and forth; grading needs one flip.
+    if (revealBtn) revealBtn.classList.remove('hidden');
     if (gradeRow) gradeRow.classList.remove('hidden');
   }
+  _paintFlipCard();
 }
 
 function _renderQuizView() {
@@ -360,6 +393,7 @@ export async function startFlashcardDeck(opts) {
     flashState.deck = deck.map(_normalizeItem).filter(Boolean);
     flashState.index = 0;
     flashState.revealed = false;
+    flashState.flipped = false;
     flashState.item = flashState.deck[0] || null;
     _renderFlashcardView();
     if (!flashState.deck.length) {
@@ -370,7 +404,7 @@ export async function startFlashcardDeck(opts) {
     _setStatus(
       'Flashcard deck loaded (' +
         flashState.deck.length +
-        '). Front only — reveal before grade.',
+        '). Click the card or press Space to flip, then grade.',
       'success',
     );
     toast('Flashcard deck: ' + flashState.deck.length + ' card(s)', 'success');
@@ -389,9 +423,46 @@ export function revealFlashcard() {
     return false;
   }
   flashState.revealed = true;
+  flashState.flipped = true;
   _renderFlashcardView();
   _setStatus('Back revealed. Grade honestly (Know / Miss) — writes Learning OS ledger.', 'info');
   return true;
+}
+
+/** CARD-464 / REQ-464-002: click, Space or Flip card turns the card; the first flip reveals the answer. */
+export function flipFlashcard() {
+  if (!flashState.item) {
+    _setStatus('Load a flashcard first.', 'warn');
+    return false;
+  }
+  if (!flashState.revealed) return revealFlashcard();
+  flashState.flipped = !flashState.flipped;
+  _renderFlashcardView();
+  return true;
+}
+
+/** Space flips the card while the Flashcards tab is showing and focus is not in a text field or on a button. */
+export function shouldFlipOnKey(event, { mode = _mode, studioVisible = true } = {}) {
+  if (!event || event.defaultPrevented) return false;
+  if (event.key !== ' ' && event.code !== 'Space') return false;
+  if (event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (mode !== 'flashcard' || !studioVisible) return false;
+  const t = event.target;
+  const tag = t && t.tagName ? String(t.tagName).toUpperCase() : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') return false;
+  if (t && t.isContentEditable) return false;
+  return true;
+}
+
+function _studioVisible() {
+  const view = _el('view-education');
+  if (!view) return false;
+  if (view.classList && view.classList.contains('hidden')) return false;
+  return view.getAttribute ? view.getAttribute('aria-hidden') !== 'true' : true;
+}
+
+export function getPlayerMode() {
+  return _mode;
 }
 
 export async function gradeFlashcard(opts) {
@@ -432,6 +503,7 @@ export async function gradeFlashcard(opts) {
   );
   flashState.index += 1;
   flashState.revealed = false;
+  flashState.flipped = false;
   flashState.item = flashState.deck[flashState.index] || null;
   _renderFlashcardView();
   if (!flashState.item) _setStatus('Deck finished. Progress is on mastery/due.', 'success');
@@ -626,6 +698,24 @@ export function initEducationStudioPlayers(callbacks) {
       setPlayerMode('test');
     });
   }
+  // CARD-464 / REQ-464-005: one progress view. The Progress tab and the operator Progress button both show it here.
+  const loadProgress = () =>
+    import('./education_operator.js')
+      .then((m) => (m && typeof m.openStudioProgress === 'function' ? m.openStudioProgress({ toast }) : null))
+      .catch((err) => console.warn('[Education Players] progress load failed', err));
+  const modeProgress = _el('educationPlayerModeProgressBtn');
+  if (modeProgress) {
+    modeProgress.addEventListener('click', (e) => {
+      e.preventDefault();
+      setPlayerMode('progress');
+      loadProgress();
+    });
+  }
+  const operatorProgress = _el('educationOperatorProgressBtn');
+  if (operatorProgress) {
+    // The operator module loads the data on this click; the players switch to the Progress tab.
+    operatorProgress.addEventListener('click', () => setPlayerMode('progress'));
+  }
 
   const flashStart = _el('educationPlayerFlashStartBtn');
   if (flashStart) {
@@ -638,7 +728,28 @@ export function initEducationStudioPlayers(callbacks) {
   if (flashReveal) {
     flashReveal.addEventListener('click', (e) => {
       e.preventDefault();
-      revealFlashcard();
+      flipFlashcard();
+    });
+  }
+  const flashCard = _el('educationPlayerFlashCard');
+  if (flashCard) {
+    flashCard.addEventListener('click', (e) => {
+      e.preventDefault();
+      flipFlashcard();
+    });
+    flashCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        flipFlashcard();
+      }
+    });
+  }
+  if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !_keyBound) {
+    _keyBound = true;
+    document.addEventListener('keydown', (e) => {
+      if (!shouldFlipOnKey(e, { mode: _mode, studioVisible: _studioVisible() })) return;
+      e.preventDefault();
+      flipFlashcard();
     });
   }
   const flashKnow = _el('educationPlayerFlashKnowBtn');
@@ -703,6 +814,7 @@ export function initEducationStudioPlayers(callbacks) {
     setPlayerMode,
     startFlashcardDeck,
     revealFlashcard,
+    flipFlashcard,
     gradeFlashcard,
     startQuizPlayer,
     gradeQuizPlayer,

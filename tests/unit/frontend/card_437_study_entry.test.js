@@ -251,9 +251,13 @@ describe('CARD-437 Study entry = Tutor education mode (thin shell)', () => {
     expect(toasts.some((t) => t.type === 'error')).toBe(true);
   });
 
-  it('Education Studio discussWithTutor reuses Study entry path', () => {
-    expect(educationJs).toContain("from './study_entry.js'");
-    expect(educationJs).toContain('enterTutorEducationMode');
+  it('Education Studio Pair Tutor reuses Study entry path (operator bar since CARD-463)', () => {
+    const operatorJs = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/education_operator.js'),
+      'utf-8',
+    );
+    expect(operatorJs).toContain("from './study_entry.js'");
+    expect(operatorJs).toContain('enterTutorEducationMode');
     expect(educationJs).toContain('CARD-437');
     expect(studyJs).toContain('/api/education/tutor/context');
   });

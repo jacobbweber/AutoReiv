@@ -84,7 +84,8 @@ describe('Dead UI Pruning Audit [CARD-369]', () => {
     it('preserves active form submit buttons and cross-studio bridges', () => {
       expect(html).toContain('id="promptsEditorSaveBtn"');
       expect(html).toContain('id="saveToneBtn"');
-      expect(html).toContain('id="educationAmpWatchLuminaBtn"');
+      // CARD-463: the Education -> Lumina shortcut left with the Study Launcher.
+      expect(html).not.toContain('id="educationAmpWatchLuminaBtn"');
       expect(html).toContain('id="wikiMobileDrawerBtn"');
       expect(html).toContain('id="wikiDrawerCloseBtn"');
     });

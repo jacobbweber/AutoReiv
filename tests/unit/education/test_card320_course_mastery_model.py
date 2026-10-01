@@ -240,8 +240,8 @@ def test_course_pipeline_is_default_ask_path():
 
     js_path = Path(__file__).resolve().parents[3] / "src/web/static/modules/studios/education.js"
     js = js_path.read_text(encoding="utf-8")
-    assert "COURSE_PIPELINE" in js or "coursePipeline" in js or "educationCourse" in js
-    assert "jumpToStep" in js or "jump_to_step" in js or "Jump to step" in js or "jump-to-step" in js
+    # CARD-463: the Studio course launcher / Jump to step UI is removed; the course API stays (Tutor drives it).
+    assert "educationCourseChrome" not in js
     assert "DualCodingPlayer" not in js
     assert "dual-coding-player" not in js.lower()
 

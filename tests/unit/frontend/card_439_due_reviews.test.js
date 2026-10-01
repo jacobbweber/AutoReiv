@@ -101,13 +101,15 @@ describe('CARD-439 Due reviews in Tutor education mode', () => {
 
   it('keeps Education Studio due chrome and adds Tutor due affordances [REQ-439]', () => {
     expect(html).toContain('id="tab-education"');
-    expect(html).toContain('id="educationDueList"');
-    expect(html).toContain('id="educationRefreshDueBtn"');
-    expect(html).toContain('id="educationRunRetentionBtn"');
+    // CARD-463: the Studio Due lab section is gone; Due lives in the operator bar.
+    expect(html).not.toContain('id="educationDueList"');
+    expect(html).toContain('id="educationOperatorDueBtn"');
+    expect(html).toContain('id="educationOperatorDueList"');
     expect(html).toContain('id="chatEducationModeDueBtn"');
     expect(html).toContain('id="chatEducationModeDuePanel"');
     expect(html).toContain('id="chatEducationModeDueList"');
-    expect(educationJs).toContain('/api/education/mastery/due');
+    expect(html).toContain('/api/education/mastery/due');
+    expect(educationJs).toContain("import('./education_operator.js')");
     expect(studyJs).toContain('/api/education/mastery/due');
     expect(studyJs).toContain(STUDY_DUE_REVIEW_SKILL);
     expect(studyJs).toContain('No due reviews.');

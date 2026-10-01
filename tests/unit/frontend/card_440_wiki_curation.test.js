@@ -109,8 +109,10 @@ describe('CARD-440 Wiki curation in Tutor education mode', () => {
     expect(html).toContain('id="view-education"');
     expect(html).toContain('id="chatEducationModeCurateBtn"');
     expect(html).toContain('id="chatEducationModeCuratePanel"');
-    expect(educationJs).toContain('educationWikiSearchInput');
-    expect(educationJs).toContain('educationWikiHits');
+    // CARD-463: Studio wiki search removed; curation stays in the operator bar and Tutor.
+    expect(educationJs).not.toContain('educationWikiSearchInput');
+    expect(html).not.toContain('id="educationWikiSearchInput"');
+    expect(html).toContain('id="educationOperatorCurateBtn"');
     expect(studyJs).toContain('/api/education/wiki/curate');
     expect(studyJs).toContain(STUDY_WIKI_CURATION_SKILL);
     expect(studyJs.toLowerCase()).toContain('do not claim the library was updated');

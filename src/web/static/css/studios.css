@@ -1,35 +1,11 @@
 /* AutoReiv Studios Layout Grids & Responsive Scrollers [CARD-396] */
 
-/* CARD-250 / REQ-EDU-VP-001..002: Learning OS panels wrap/stack in viewport — no sideways peek */
+/* CARD-250 / CARD-315: Education Studio (operator bar + players since CARD-463) scrolls vertically, no sideways peek. */
 #view-education,
-#educationStudio,
-#educationMainColumn {
+#educationStudio {
   min-width: 0;
   max-width: 100%;
 }
-#view-education {
-  overflow-x: hidden;
-}
-#educationPedagogyColumns.education-pedagogy-columns {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 0;
-  overflow-x: hidden !important;
-  overflow-y: auto;
-  min-width: 0;
-  max-width: 100%;
-  -webkit-overflow-scrolling: touch;
-}
-#educationPedagogyColumns > [id$='Panel'] {
-  flex: 1 1 100%;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* CARD-315: Education sections collapse + scroll (phone + desktop; Ask + rail stay). */
 #view-education {
   min-height: 0;
   overflow-x: hidden;
@@ -46,105 +22,61 @@ body.radical-desktop-demo #view-education.desktop-view-hosted {
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
-#educationPedagogyColumns > details.edu-section {
-  flex: 1 1 100%;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(51, 65, 85, 0.9);
-  background: rgba(15, 23, 42, 0.6);
-  overflow: visible;
-  flex-grow: 1;
-  flex-shrink: 1;
-}
-#educationPedagogyColumns > details.edu-section:not([open]) {
-  overflow: hidden;
-}
 
-/* CARD-328 / CARD-348: Education mobile vertical scrolling — unified flow without inner scroll traps */
-@media (max-width: 1023px) {
-  #view-education:not(.desktop-view-hosted) {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    height: 100% !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  #educationStudio {
-    height: auto !important;
-    min-height: 100% !important;
-    overflow: visible !important;
-  }
-  #educationStudio > div.flex-1 {
-    overflow: visible !important;
-    height: auto !important;
-    flex: none !important;
-  }
-  #educationStudio .lg\:w-\[26rem\] {
-    overflow: visible !important;
-    height: auto !important;
-    flex: none !important;
-  }
-  #educationAskForm {
-    overflow: visible !important;
-    height: auto !important;
-    flex: none !important;
-  }
-  #educationMainColumn {
-    overflow: visible !important;
-    height: auto !important;
-    flex: none !important;
-  }
-  #educationPedagogyColumns {
-    overflow: visible !important;
-    height: auto !important;
-    flex: none !important;
-  }
+/* CARD-464: flip-style flashcard (front -> click / Space -> back). Reduced motion swaps sides instantly. */
+.edu-flip-scene {
+  perspective: 1400px;
+  display: flex;
+  min-height: 0;
 }
-#educationPedagogyColumns > details.edu-section[open] {
-  overflow: visible;
-}
-#educationPedagogyColumns > details.edu-section > summary {
-  list-style: none;
+/* CARD-464 v2: the card has no fixed height; it fills the scene, which takes the space the controls leave. */
+.edu-flip-card {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  transform-style: preserve-3d;
   cursor: pointer;
-  user-select: none;
+  border-radius: 1rem;
+  outline: none;
+}
+.edu-flip-card.edu-flip-animated {
+  transition: transform 0.45s ease;
+}
+.edu-flip-card.is-flipped {
+  transform: rotateY(180deg);
+}
+.edu-flip-card:focus-visible {
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.7);
+}
+.edu-flip-face {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #e2e8f0;
-  background: rgba(15, 23, 42, 0.85);
-  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+  justify-content: center;
+  text-align: center;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  border-radius: 1rem;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  white-space: pre-wrap;
 }
-#educationPedagogyColumns > details.edu-section > summary::-webkit-details-marker {
-  display: none;
+.edu-flip-front {
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.95), rgba(2, 6, 23, 0.95));
+  border: 1px solid rgba(180, 83, 9, 0.45);
 }
-#educationPedagogyColumns > details.edu-section > summary::after {
-  content: '+';
-  color: #94a3b8;
-  font-size: 0.7rem;
+.edu-flip-back {
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, rgba(6, 78, 59, 0.55), rgba(2, 6, 23, 0.95));
+  border: 1px solid rgba(16, 185, 129, 0.45);
 }
-#educationPedagogyColumns > details.edu-section[open] > summary::after {
-  content: '\2212';
-}
-#educationPedagogyColumns > details.edu-section:not([open]) > summary {
-  border-bottom: none;
-}
-#educationPedagogyColumns > details.edu-section > .edu-section-body {
-  padding: 0.85rem;
-  overflow: visible;
-  max-height: none;
-}
-#educationPedagogyColumns > details.edu-section > .edu-section-body > [id$='Panel'] {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  padding: 0;
-  border-radius: 0;
+@media (prefers-reduced-motion: reduce) {
+  .edu-flip-card,
+  .edu-flip-card.edu-flip-animated {
+    transition: none !important;
+  }
 }
 
 /* --- CARD-303 Projects Manager / Explorer mode flip --- */

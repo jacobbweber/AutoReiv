@@ -36,7 +36,8 @@ describe('CARD-592 relaxed timeouts', () => {
   it('long client waits are relaxed', () => {
     const hitl = fs.readFileSync(path.join(ROOT, 'src/web/static/modules/studios/chat/hitl.js'), 'utf-8');
     expect(hitl).toMatch(/timeoutMs = 6 \* 60 \* 60 \* 1000/);
+    // CARD-463: the Studio mint-exercise wait (mintTimeoutMs) went with the removed lab sections.
     const edu = fs.readFileSync(path.join(ROOT, 'src/web/static/modules/studios/education.js'), 'utf-8');
-    expect(edu).toMatch(/mintTimeoutMs = 30 \* 60 \* 1000/);
+    expect(edu).not.toContain('mintTimeoutMs');
   });
 });

@@ -339,7 +339,7 @@
             <div id="chatEducationModeCurateResult" class="max-h-36 overflow-y-auto space-y-1 text-xs text-slate-300">
               <div class="text-[11px] text-slate-500 px-1">Supply a link or curriculum outline. Notes stage in 00_Inbox/ via wiki_note_create.</div>
             </div>
-            <p class="mt-1 text-[10px] text-slate-500">Uses <code class="text-slate-400">POST /api/education/wiki/curate</code> + skill <code class="text-slate-400">education-wiki-curation</code>. Failures do not claim library updated. Education Studio wiki search stays.</p>
+            <p class="mt-1 text-[10px] text-slate-500">Uses <code class="text-slate-400">POST /api/education/wiki/curate</code> + skill <code class="text-slate-400">education-wiki-curation</code>. Failures do not claim library updated.</p>
           </div>
 
 
@@ -355,7 +355,7 @@
             <div id="chatEducationModeProgressBody" class="space-y-1 text-xs text-slate-300">
               <div class="text-[11px] text-slate-500 px-1">Open Progress to load course, mastery, and due from Learning OS.</div>
             </div>
-            <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">GET /api/education/progress</code> (course + mastery + due). Failures show empty/error — never a fake 100%. Education Studio course chrome stays.</p>
+            <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">GET /api/education/progress</code> (course + mastery + due). Failures show empty/error — never a fake 100%.</p>
           </div>
 
         </div>
@@ -3162,14 +3162,8 @@
                   <h2 class="text-sm font-bold text-white tracking-tight">Education Studio</h2>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">Adaptive SRS</span>
                 </div>
-                <p class="text-[11px] text-slate-400">Wiki-grounded concept mastery, spaced repetition retrieval &amp; standing exercise jobs</p>
+                <p class="text-[11px] text-slate-400">Operator bar and the Flashcard / Quiz / Test players. Study conversations happen with Tutor.</p>
               </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" id="educationSessionsRefreshBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition flex items-center space-x-1.5" title="Refresh sessions">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span class="hidden sm:inline">Refresh</span>
-              </button>
             </div>
           </div>
 
@@ -3180,6 +3174,9 @@
                 <span class="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/90">Operator</span>
                 <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-[10px] font-mono text-slate-300">topic <span id="educationActiveTopic" class="text-sky-300">-</span></span>
                 <span class="px-2 py-0.5 rounded-md bg-[#08090c] border border-brand-700/50 text-[10px] font-mono text-brand-300" title="Durable course id">course <span id="educationActiveCourseId" class="select-all">-</span></span>
+                <!-- CARD-463: the topic box moved here from the removed Study Launcher (the operator reads it). -->
+                <label for="educationTopicInput" class="sr-only">Target topic</label>
+                <input type="text" id="educationTopicInput" placeholder="Target topic, e.g. Raft consensus" aria-label="Target topic" class="w-48 sm:w-56 bg-[#08090c] border border-emerald-800/60 rounded-md px-2 py-0.5 text-[11px] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition" />
                 <button type="button" id="educationSetActiveContextBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-800/70 hover:bg-emerald-700 border border-emerald-600/50 text-[10px] font-semibold text-emerald-50 transition" title="Save topic/course as Studio-active (Tutor reads this)">
                   <i data-lucide="pin" class="w-3 h-3"></i><span>Set active</span>
                 </button>
@@ -3211,19 +3208,6 @@
               </div>
               <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">/api/education/mastery/due</code>. Chat strip is not required.</p>
             </div>
-            <div id="educationOperatorProgressPanel" class="hidden mt-2 rounded-lg border border-violet-900/40 bg-[#08090c]/80 p-2" aria-live="polite" aria-hidden="true" data-card="447">
-              <div class="flex items-center justify-between gap-2 mb-1">
-                <div class="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">Progress (Learning OS)</div>
-                <div class="flex items-center gap-1">
-                  <button type="button" id="educationOperatorProgressRefreshBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Refresh</button>
-                  <button type="button" id="educationOperatorProgressHideBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Hide</button>
-                </div>
-              </div>
-              <div id="educationOperatorProgressBody" class="space-y-1 text-xs text-slate-300">
-                <div class="text-[11px] text-slate-500 px-1">Open Progress to load course, mastery, and due.</div>
-              </div>
-              <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">GET /api/education/progress</code>. Failures never fake 100%.</p>
-            </div>
             <div id="educationOperatorCuratePanel" class="hidden mt-2 rounded-lg border border-sky-900/40 bg-[#08090c]/80 p-2" aria-live="polite" data-card="447">
               <div class="flex items-center justify-between gap-2 mb-1">
                 <div class="text-[10px] font-semibold uppercase tracking-wider text-sky-200/90">Wiki curation (Learning OS)</div>
@@ -3242,552 +3226,106 @@
           </div>
 
           <!-- CARD-448: Flashcard / Quiz / Test players (durable Learning OS grades) -->
-          <div id="educationPlayersConsole" class="px-4 py-2.5 border-b border-sky-900/40 bg-sky-950/20 flex-shrink-0" data-card="448" aria-label="Education Studio players">
-            <div class="flex flex-wrap items-center gap-2 justify-between mb-2">
+          <!-- CARD-448 players; CARD-464: they fill the Studio below the operator bar (tabs: Flashcards / Quiz / Test / Progress). -->
+          <div id="educationPlayersConsole" class="px-3 sm:px-4 py-2 bg-sky-950/10 flex-1 min-h-0 overflow-y-auto flex flex-col gap-2" data-card="448 464" aria-label="Education Studio players">
+            <div class="flex flex-wrap items-center gap-2 justify-between">
               <div class="flex flex-wrap items-center gap-2 min-w-0">
                 <span class="text-[10px] font-semibold uppercase tracking-wider text-sky-300/90">Players</span>
                 <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-[10px] font-mono text-slate-300">topic <span id="educationPlayerContextTopic" class="text-sky-300">-</span></span>
                 <span class="px-2 py-0.5 rounded-md bg-[#08090c] border border-brand-700/40 text-[10px] font-mono text-brand-300">course <span id="educationPlayerContextCourse" class="select-all">-</span></span>
-                <span id="educationPlayerStatus" class="text-[11px] font-medium min-h-[1rem] text-slate-400">Flashcard / Quiz / Test — durable grades via Learning OS</span>
               </div>
               <div class="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Player mode">
-                <button type="button" id="educationPlayerModeFlashcardBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/50 text-[10px] text-amber-100 transition ring-1 ring-emerald-400/60" aria-pressed="true" data-card="448" title="Flashcard player (front then reveal)">
-                  <i data-lucide="layers" class="w-3 h-3"></i><span>Flashcards</span>
+                <button type="button" id="educationPlayerModeFlashcardBtn" role="tab" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/50 text-xs font-semibold text-amber-100 transition ring-1 ring-emerald-400/60" aria-pressed="true" data-card="448" title="Flashcards: flip the card, then grade">
+                  <i data-lucide="layers" class="w-3.5 h-3.5"></i><span>Flashcards</span>
                 </button>
-                <button type="button" id="educationPlayerModeQuizBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-950/50 hover:bg-violet-900/60 border border-violet-800/50 text-[10px] text-violet-100 transition" aria-pressed="false" data-card="448" title="Quiz player">
-                  <i data-lucide="circle-help" class="w-3 h-3"></i><span>Quiz</span>
+                <button type="button" id="educationPlayerModeQuizBtn" role="tab" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-950/50 hover:bg-violet-900/60 border border-violet-800/50 text-xs font-semibold text-violet-100 transition" aria-pressed="false" data-card="448" title="Quiz player">
+                  <i data-lucide="circle-help" class="w-3.5 h-3.5"></i><span>Quiz</span>
                 </button>
-                <button type="button" id="educationPlayerModeTestBtn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/50 text-[10px] text-rose-100 transition" aria-pressed="false" data-card="448" title="Multi-item test player">
-                  <i data-lucide="clipboard-check" class="w-3 h-3"></i><span>Test</span>
+                <button type="button" id="educationPlayerModeTestBtn" role="tab" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/50 text-xs font-semibold text-rose-100 transition" aria-pressed="false" data-card="448" title="Multi-item test player">
+                  <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i><span>Test</span>
+                </button>
+                <button type="button" id="educationPlayerModeProgressBtn" role="tab" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-950/40 hover:bg-violet-900/60 border border-violet-700/50 text-xs font-semibold text-violet-100 transition" aria-pressed="false" data-card="464" title="Progress (Learning OS)">
+                  <i data-lucide="gauge" class="w-3.5 h-3.5"></i><span>Progress</span>
                 </button>
               </div>
             </div>
+            <div id="educationPlayerStatus" class="text-xs font-medium min-h-[1rem] text-slate-400" aria-live="polite">Flashcard / Quiz / Test - durable grades via Learning OS</div>
 
-            <!-- Flashcard player: front-only then reveal/grade -->
-            <div id="educationPlayerFlashcardPanel" class="rounded-lg border border-amber-900/40 bg-[#08090c]/80 p-2.5 space-y-2" data-card="448">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="text-[10px] font-semibold uppercase tracking-wider text-amber-200/90">Flashcard player</div>
+            <!-- Flashcard player (CARD-464): one large card; click / Space / Flip turns it; Know / Miss after the flip -->
+            <!-- CARD-464 v2: the panel takes exactly the space left (min-h-0); only the card shrinks, so Flip / Know / Miss stay on screen. -->
+            <div id="educationPlayerFlashcardPanel" class="flex-1 min-h-0 flex flex-col gap-2 rounded-xl border border-amber-900/40 bg-[#08090c]/80 p-2.5 sm:p-3" data-card="448 464">
+              <div class="shrink-0 flex flex-wrap items-center justify-between gap-2">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-amber-200/90">Flashcards</div>
                 <div class="flex flex-wrap gap-1.5">
-                  <button type="button" id="educationPlayerFlashStartBtn" class="text-[10px] px-2 py-1 rounded-md bg-amber-700 hover:bg-amber-600 text-white font-semibold">Start deck</button>
-                  <button type="button" id="educationPlayerFlashRevealBtn" class="hidden text-[10px] px-2 py-1 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200">Reveal back</button>
+                  <button type="button" id="educationPlayerFlashStartBtn" class="text-xs px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white font-semibold">Start deck</button>
+                  <button type="button" id="educationPlayerFlashRevealBtn" class="hidden text-xs px-3 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200" title="Flip the card (Space)">Flip card</button>
                 </div>
               </div>
-              <div id="educationPlayerFlashMeta" class="text-[10px] font-mono text-slate-500"></div>
-              <div id="educationPlayerFlashFront" class="text-xs text-slate-100 bg-slate-950/80 border border-amber-900/30 rounded-lg p-3 min-h-[3rem] leading-relaxed">Front only until reveal. Start a deck from due mastery.</div>
-              <div id="educationPlayerFlashBack" class="hidden text-xs text-emerald-100/90 bg-emerald-950/30 border border-emerald-900/40 rounded-lg p-3 min-h-[2.5rem] leading-relaxed" aria-hidden="true"></div>
-              <div id="educationPlayerFlashGradeRow" class="hidden flex flex-wrap gap-1.5">
-                <button type="button" id="educationPlayerFlashKnowBtn" class="text-[10px] px-2.5 py-1 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Know</button>
-                <button type="button" id="educationPlayerFlashMissBtn" class="text-[10px] px-2.5 py-1 rounded-md bg-amber-800 hover:bg-amber-700 text-white font-semibold">Miss</button>
-                <span class="text-[10px] text-slate-500 self-center">Writes <code class="text-slate-400">POST /api/education/quiz/grade</code> — failures never fake pass.</span>
+              <div id="educationPlayerFlashMeta" class="shrink-0 text-xs font-mono text-slate-400 text-center truncate"></div>
+              <div id="educationPlayerFlashScene" class="edu-flip-scene flex-1 min-h-[6rem] w-full max-w-4xl mx-auto">
+                <div id="educationPlayerFlashCard" class="edu-flip-card" role="button" tabindex="0" aria-pressed="false" aria-label="Flashcard. Click or press Space to flip." data-card="464">
+                  <div id="educationPlayerFlashFront" class="edu-flip-face edu-flip-front text-lg sm:text-xl text-slate-100 leading-relaxed">No flashcard loaded. Start a deck from due mastery.</div>
+                  <div id="educationPlayerFlashBack" class="edu-flip-face edu-flip-back hidden text-lg sm:text-xl text-emerald-100 leading-relaxed" aria-hidden="true"></div>
+                </div>
+              </div>
+              <div id="educationPlayerFlashGradeRow" class="hidden shrink-0 flex flex-wrap items-center justify-center gap-2" title="Writes POST /api/education/quiz/grade - failures never fake pass.">
+                <button type="button" id="educationPlayerFlashKnowBtn" class="text-sm px-6 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Know</button>
+                <button type="button" id="educationPlayerFlashMissBtn" class="text-sm px-6 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-700 text-white font-semibold">Miss</button>
               </div>
             </div>
 
             <!-- Quiz player -->
-            <div id="educationPlayerQuizPanel" class="hidden rounded-lg border border-violet-900/40 bg-[#08090c]/80 p-2.5 space-y-2" data-card="448">
+            <div id="educationPlayerQuizPanel" class="hidden flex-1 flex flex-col gap-3 rounded-xl border border-violet-900/40 bg-[#08090c]/80 p-4" data-card="448 464">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">Quiz player</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-violet-200/90">Quiz</div>
                 <div class="flex flex-wrap gap-1.5">
-                  <button type="button" id="educationPlayerQuizStartBtn" class="text-[10px] px-2 py-1 rounded-md bg-violet-700 hover:bg-violet-600 text-white font-semibold">Start / Next</button>
-                  <button type="button" id="educationPlayerQuizNextBtn" class="text-[10px] px-2 py-1 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200">Next item</button>
+                  <button type="button" id="educationPlayerQuizStartBtn" class="text-xs px-3 py-1.5 rounded-lg bg-violet-700 hover:bg-violet-600 text-white font-semibold">Start / Next</button>
+                  <button type="button" id="educationPlayerQuizNextBtn" class="text-xs px-3 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200">Next item</button>
                 </div>
               </div>
-              <div id="educationPlayerQuizPrompt" class="text-xs text-slate-100 bg-slate-950/80 border border-violet-900/30 rounded-lg p-3 min-h-[3rem] leading-relaxed">No quiz item loaded.</div>
-              <div class="flex flex-col sm:flex-row gap-1.5">
-                <input type="text" id="educationPlayerQuizAnswer" placeholder="Type your answer…" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono" />
-                <button type="button" id="educationPlayerQuizGradeBtn" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Grade</button>
+              <div id="educationPlayerQuizPrompt" class="text-base sm:text-lg text-slate-100 bg-slate-950/80 border border-violet-900/30 rounded-xl p-4 min-h-[8rem] leading-relaxed">No quiz item loaded.</div>
+              <textarea id="educationPlayerQuizAnswer" rows="4" placeholder="Type your answer." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-y"></textarea>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" id="educationPlayerQuizGradeBtn" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold">Grade</button>
+                <div id="educationPlayerQuizResult" class="text-sm text-slate-300 min-h-[1rem]"></div>
               </div>
-              <div id="educationPlayerQuizResult" class="text-[11px] text-slate-400 min-h-[1rem]"></div>
               <p class="text-[10px] text-slate-500">Uses <code class="text-slate-400">GET /api/education/quiz/next</code> + <code class="text-slate-400">POST /api/education/quiz/grade</code>. Studio topic context preferred.</p>
             </div>
 
             <!-- Test player (multi-item session) -->
-            <div id="educationPlayerTestPanel" class="hidden rounded-lg border border-rose-900/40 bg-[#08090c]/80 p-2.5 space-y-2" data-card="448">
+            <div id="educationPlayerTestPanel" class="hidden flex-1 flex flex-col gap-3 rounded-xl border border-rose-900/40 bg-[#08090c]/80 p-4" data-card="448 464">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="text-[10px] font-semibold uppercase tracking-wider text-rose-200/90">Test player</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-rose-200/90">Test</div>
                 <div class="flex flex-wrap gap-1.5">
-                  <button type="button" id="educationPlayerTestStartBtn" class="text-[10px] px-2 py-1 rounded-md bg-rose-700 hover:bg-rose-600 text-white font-semibold">Start test</button>
+                  <button type="button" id="educationPlayerTestStartBtn" class="text-xs px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-600 text-white font-semibold">Start test</button>
                 </div>
               </div>
-              <div id="educationPlayerTestProgress" class="text-[10px] font-mono text-slate-500"></div>
-              <div id="educationPlayerTestPrompt" class="text-xs text-slate-100 bg-slate-950/80 border border-rose-900/30 rounded-lg p-3 min-h-[3rem] leading-relaxed">No test session.</div>
-              <div class="flex flex-col sm:flex-row gap-1.5">
-                <input type="text" id="educationPlayerTestAnswer" placeholder="Answer this item…" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono" />
-                <button type="button" id="educationPlayerTestGradeBtn" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Grade &amp; next</button>
+              <div id="educationPlayerTestProgress" class="text-xs font-mono text-slate-400"></div>
+              <div id="educationPlayerTestPrompt" class="text-base sm:text-lg text-slate-100 bg-slate-950/80 border border-rose-900/30 rounded-xl p-4 min-h-[8rem] leading-relaxed">No test session.</div>
+              <textarea id="educationPlayerTestAnswer" rows="4" placeholder="Answer this item." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-y"></textarea>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" id="educationPlayerTestGradeBtn" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold">Grade &amp; next</button>
+                <div id="educationPlayerTestResult" class="text-sm text-slate-300 min-h-[1rem]"></div>
               </div>
-              <div id="educationPlayerTestResult" class="text-[11px] text-slate-400 min-h-[1rem]"></div>
-              <div id="educationPlayerTestSummary" class="text-[11px] text-slate-300"></div>
+              <div id="educationPlayerTestSummary" class="text-sm text-slate-200"></div>
               <p class="text-[10px] text-slate-500">Multi-item session; each grade is durable. Hard-refresh still shows mastery/due/next. Failures never fake pass.</p>
             </div>
-          </div>
 
-          <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-w-0">
-            <!-- Ask pane (Study Launcher) -->
-            <div class="w-full lg:w-[26rem] xl:w-[28rem] border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col bg-slate-950/60 flex-shrink-0 overflow-hidden">
-              <form id="educationAskForm" class="p-4 space-y-3.5 overflow-y-auto flex-1">
-                <div>
-                  <div class="flex items-center justify-between mb-1">
-                    <label for="educationTopicInput" class="text-[11px] font-semibold text-slate-300 flex items-center space-x-1">
-                      <i data-lucide="target" class="w-3 h-3 text-sky-400"></i>
-                      <span>Target Topic</span>
-                      <span class="text-rose-400">*</span>
-                    </label>
-                  </div>
-                  <input type="text" id="educationTopicInput" required placeholder="e.g. Distributed Consensus in Raft" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition" />
+            <!-- Progress (CARD-464): the operator's Progress view lives here, the only progress view in the Studio -->
+            <div id="educationPlayerProgressPanel" class="hidden flex-1 flex flex-col gap-3" data-card="464">
+              <div id="educationOperatorProgressPanel" class="rounded-xl border border-violet-900/40 bg-[#08090c]/80 p-4" aria-live="polite" aria-hidden="false" data-card="447 464">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <div class="text-[11px] font-semibold uppercase tracking-wider text-violet-200/90">Progress (Learning OS)</div>
+                  <button type="button" id="educationOperatorProgressRefreshBtn" class="text-xs px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Refresh</button>
                 </div>
-
-                <div>
-                  
-                <div id="educationCourseChrome" class="rounded-lg border border-sky-800/50 bg-sky-950/30 p-2.5 space-y-2" data-card="327">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-semibold text-sky-300">Course pipeline (default)</span>
-                    <span id="educationCourseStatus" class="text-[10px] font-mono text-slate-400">none</span>
-                  </div>
-                  <div class="flex items-center justify-between gap-2 pt-0.5">
-                    <div class="flex items-center space-x-1.5">
-                      <span id="educationMasteryBadge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-900/60 text-sky-200 border border-sky-700/50">Level 0: Explorer</span>
-                      <span id="educationAcademicRank" class="text-[10px] font-medium text-slate-400">Kindergarten</span>
-                    </div>
-                    <button type="button" id="educationGrowthPortfolioBtn" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-medium text-slate-300 hover:text-white transition flex items-center space-x-1" title="Generate durable growth portfolio note to 00_Inbox/">
-                      <i data-lucide="book-marked" class="w-3 h-3 text-sky-400"></i>
-                      <span>Portfolio</span>
-                    </button>
-                  </div>
-                  <div class="space-y-1">
-                    <div class="w-full bg-slate-900/80 rounded-full h-1.5 overflow-hidden border border-slate-700/50">
-                      <div id="educationMasteryProgressBar" class="bg-gradient-to-r from-sky-500 to-indigo-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                    <p id="educationNextMilestone" class="text-[10px] text-slate-400 truncate">Next: Complete 3 practice items with &gt;= 50% pass rate</p>
-                  </div>
-                  <!-- Knowledge Type Anchor Bar [CARD-334] -->
-                  <div id="educationKnowledgeAnchorBar" class="flex items-center justify-between gap-1.5 pt-1.5 border-t border-sky-800/40 text-[10px]" data-card="334">
-                    <div class="flex items-center space-x-1.5">
-                      <span class="text-slate-400 font-medium">Knowledge Anchor:</span>
-                      <span id="educationKnowledgeTypeBadge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-900/60 text-blue-200 border border-blue-700/50">Concept (Mental Model)</span>
-                    </div>
-                    <select id="educationKnowledgeTypeSelect" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] text-slate-200 focus:outline-none focus:border-sky-500">
-                      <option value="concept">Concept</option>
-                      <option value="tool">Tool</option>
-                      <option value="method">Method</option>
-                      <option value="problem">Problem</option>
-                    </select>
-                  </div>
-                  <p id="educationCourseCurrent" class="text-[11px] text-slate-300 truncate">Start Ask on a topic to open an ordered course.</p>
-                  <ol id="educationCourseSteps" class="text-[10px] text-slate-400 list-decimal list-inside space-y-0.5 max-h-28 overflow-y-auto"></ol>
-                  <p id="educationCourseMastery" class="text-[10px] text-slate-500">Mastery: —</p>
+                <div id="educationOperatorProgressBody" class="space-y-1 text-sm text-slate-300">
+                  <div class="text-xs text-slate-500 px-1">Open Progress to load course, mastery, and due.</div>
                 </div>
-
-<label class="text-[11px] font-semibold text-slate-300 block mb-1.5">Jump to step <span class="text-slate-500 font-normal">(secondary)</span></label>
-                  <div id="educationModeGroup" class="grid grid-cols-4 gap-1" role="group" aria-label="Learning mode">
-                    <button type="button" id="educationModePriming" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Schema outline first">Priming</button>
-                    <button type="button" id="educationModeDualCoding" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Jump to Dual Coding step (secondary — not a player shell)">Dual Code</button>
-                    <button type="button" id="educationModeConstruction" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Synthesize study notes">Artifact</button>
-                    <button type="button" id="educationModeApplication" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Hands-on coding exercise">Exercise</button>
-                    <button type="button" id="educationModeAnalysis" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Error & metacog tracking">Analysis</button>
-                    <button type="button" id="educationModeEnvironment" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Delivery pace & profile">Profile</button>
-                    <button type="button" id="educationModeAmplifiers" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Visual concept flow">Amplifier</button>
-                    <button type="button" id="educationModeCustom" aria-pressed="true" class="px-2 py-1.5 rounded-md bg-brand-600 border border-brand-500 text-[10px] font-semibold text-white transition text-center truncate" title="Conversational tutor">Custom</button>
-                  </div>
-                </div>
-
-                <!-- Dedicated Delivery Profile Toolbar [CARD-333] -->
-                <div id="educationDeliveryProfileToolbar" class="rounded-lg border border-emerald-800/50 bg-emerald-950/20 p-2.5 space-y-1.5" data-card="333">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center space-x-1.5">
-                      <i data-lucide="sliders" class="w-3.5 h-3.5 text-emerald-400"></i>
-                      <span class="text-[11px] font-semibold text-emerald-300">Presentation Delivery Profile</span>
-                    </div>
-                    <span id="educationActiveDeliveryProfileBadge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-900/60 text-emerald-200 border border-emerald-700/50">Default (Balanced)</span>
-                  </div>
-                  <div class="flex items-center gap-2 pt-0.5">
-                    <select id="educationPrimaryDeliveryProfileSelect" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 min-w-0">
-                      <option value="default">Default (Stepwise, Balanced)</option>
-                      <option value="calm_focus">Calm Focus (10m Timer, Encouraging)</option>
-                      <option value="adhd_bite">ADHD Bite-Size (120s, 160 chars/micro-step)</option>
-                      <option value="pomodoro">Pomodoro (25m Focus Block)</option>
-                    </select>
-                    <button type="button" id="educationApplyDeliveryProfileBtn" class="px-2.5 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white text-xs font-medium transition flex-shrink-0">Apply</button>
-                  </div>
-                  <p class="text-[10px] text-slate-400">Controls presentation pacing, chunk size, and timers only — does not alter academic depth ladder or spaced repetition intervals.</p>
-                </div>
-
-                <div>
-                  <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-300 block mb-1">Pedagogy Style &amp; Constraints</label>
-                  <textarea id="educationTeachStyleInput" rows="2" placeholder="e.g. ADHD bite-size with one real-world analogy; emphasize trade-offs" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-y transition"></textarea>
-                </div>
-
-
-                <div>
-                  <label for="educationWikiSearchInput" class="text-[11px] font-semibold text-slate-300 block mb-1">Wiki Grounding</label>
-                  <input type="text" id="educationWikiSearchInput" placeholder="Filter knowledge vault notes…" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition" />
-                  <div class="mt-1 text-[10px] text-slate-400 truncate">Selected: <span id="educationSelectedWikiTitle" class="text-slate-200 font-medium"></span> <span id="educationSelectedWikiPath" class="font-mono text-slate-500">None (General)</span></div>
-                  <div id="educationWikiHits" class="mt-1.5 max-h-32 overflow-y-auto space-y-1 border border-slate-800 rounded-lg p-1 bg-slate-950/60">
-                    <div class="text-[11px] text-slate-500 px-1 py-0.5">Type to search vault notes…</div>
-                  </div>
-                </div>
-
-                <button type="button" id="educationAskSubmitBtn" class="w-full px-3 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-md shadow-brand-500/20 transition flex items-center justify-center space-x-1.5">
-                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                  <span>Launch Study Session</span>
-                </button>
-                <button type="button" id="educationDiscussTutorBtn" class="w-full px-3 py-2 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-700/50 text-indigo-200 text-xs font-semibold transition flex items-center justify-center space-x-1.5">
-                  <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-indigo-400"></i>
-                  <span>Discuss with Tutor</span>
-                </button>
-                <p id="educationAskStatus" class="text-[11px] text-slate-400 text-center font-medium">Ready.</p>
-
-                <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3 space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] uppercase tracking-wider text-slate-500 font-mono font-bold">Active Job ID</span>
-                    <button type="button" id="educationCopyJobIdBtn" class="hidden px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 font-mono">Copy</button>
-                  </div>
-                  <code id="educationJobIdChip" class="block text-xs font-mono text-indigo-300 break-all opacity-60">—</code>
-                  <div class="flex flex-wrap gap-1.5 pt-1">
-                    <button type="button" id="educationOpenChatBtn" class="hidden px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition">Open in Chat</button>
-                    <button type="button" id="educationOpenObserveBtn" class="hidden px-2.5 py-1 rounded-md bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-800/60 text-xs font-medium text-indigo-200 transition">Open in Observe</button>
-                  </div>
-                </div>
-              </form>
+                <p class="mt-2 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">GET /api/education/progress</code>. Failures never fake 100%.</p>
+              </div>
             </div>
-
-            <!-- Main column: Pedagogy Wrap/Stack + Jobs [CARD-250] -->
-            <div id="educationMainColumn" class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-              <div id="educationPedagogyColumns" class="education-pedagogy-columns flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-4" role="region" aria-label="Learning OS panels">
-                
-                <!-- Panel 0: Dual Coding Player [CARD-321] -->
-                <details class="edu-section" data-card="321" data-edu-section="dual_coding" id="educationDualCodingSection">
-                  <summary>Dual Coding (Prose &amp; Diagram Player)</summary>
-                  <div class="edu-section-body">
-                    <div id="educationDualCodingPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                        <div class="flex items-center space-x-2">
-                          <div class="w-6 h-6 rounded-md bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
-                            <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
-                          </div>
-                          <h3 class="text-xs font-bold text-slate-100">Dual Coding Player</h3>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                          <button type="button" id="educationDualCodingPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition flex-shrink-0">Preview Topic Codes</button>
-                          <button type="button" id="educationDualCodingCompleteBtn" class="px-3 py-1 rounded-lg bg-sky-700/80 hover:bg-sky-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5 flex-shrink-0">
-                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                            <span>Complete Step &amp; Save</span>
-                          </button>
-                        </div>
-                      </div>
-                      <div id="educationDualCodingStatus" class="text-[11px] font-mono text-sky-300 min-h-[1rem]">Dual coding: ready.</div>
-                      
-                      <!-- Verbal Code Prose Container -->
-                      <div class="space-y-1">
-                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Verbal Code (Concept Definition)</span>
-                        <div id="educationDualCodingProse" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] leading-relaxed">
-                          Dual Coding pairs verbal concept explanations with structured visual models. Load or start a course on a topic to view its dual representations.
-                        </div>
-                      </div>
-
-                      <!-- Visual Code Mermaid Container -->
-                      <div class="space-y-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Visual Code (Relational Diagram)</span>
-                          <button type="button" id="educationDualCodingRenderBtn" class="text-[10px] text-sky-400 hover:underline">Re-render Diagram</button>
-                        </div>
-                        <pre id="educationDualCodingMermaidSource" class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-36 overflow-auto bg-slate-950/80 border border-slate-800 rounded-lg p-3">flowchart TD
-    A[Topic] --> B[Key Concepts]
-    B --> C[Implementation]
-    C --> D[Mastery]</pre>
-                        <div id="educationDualCodingDiagram" class="mermaid-diagram-container hidden bg-slate-950/90 border border-slate-800 rounded-lg p-3 flex justify-center items-center overflow-x-auto min-h-[100px]"></div>
-                      </div>
-
-                      <div class="text-[10px] text-slate-500">Dual Coding ensures concepts are stored across both verbal and spatial memory channels.</div>
-                    </div>
-                  </div>
-                </details>
-
-                <!-- Panel 1: Quiz & Due Reviews -->
-                <details class="edu-section" data-card="315" data-edu-section="quiz">
-                  <summary>Quiz & Due Reviews</summary>
-                  <div class="edu-section-body">
-<div id="educationQuizPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-6 h-6 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                        <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                      </div>
-                      <h3 class="text-xs font-bold text-slate-100">Spaced Retrieval &amp; Quiz Arena</h3>
-                    </div>
-                    <div id="educationLearnerSummary" class="text-[10px] font-mono text-amber-300/90 bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-800/40">Learner model: loading…</div>
-                  </div>
-
-                  <div class="flex flex-wrap items-center gap-1.5">
-                    <button type="button" id="educationNextQuizBtn" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-                      <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                      <span>Next Due Quiz</span>
-                    </button>
-                    <button type="button" id="educationExtractQuizBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Extract from Wiki</button>
-                    <button type="button" id="educationPressureAskBtn" class="px-2.5 py-1.5 rounded-lg bg-violet-950/60 hover:bg-violet-900/80 border border-violet-800/50 text-xs font-medium text-violet-200 transition">Focus Missed</button>
-                    <button type="button" id="educationRefreshDueBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Refresh Due</button>
-                    <button type="button" id="educationRunRetentionBtn" class="px-2.5 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-800/50 text-xs font-medium text-indigo-200 transition">Run Retention Routine</button>
-                  </div>
-
-                  <!-- Active Question Card -->
-                  <div id="educationQuizPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[3rem] font-medium leading-relaxed">
-                    No quiz item loaded. Click "Next Due Quiz" or extract from your vault to begin.
-                  </div>
-
-                  <div class="flex items-center gap-2">
-                    <input type="text" id="educationQuizAnswerInput" placeholder="Type your recall answer…" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono transition" />
-                    <button type="button" id="educationQuizGradeBtn" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition flex-shrink-0">Grade</button>
-                  </div>
-                  <div id="educationQuizGradeResult" class="text-xs text-slate-400 font-medium min-h-[1rem]"></div>
-
-                  <div class="pt-2 border-t border-slate-800/60">
-                    <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Scheduled Due Reviews</div>
-                    <div id="educationDueList" class="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-slate-800 bg-slate-950/50 p-1.5 text-xs">
-                      <div class="text-[11px] text-slate-500 px-1 py-0.5">No reviews due right now.</div>
-                    </div>
-                  </div>
-                </div>
-                  </div>
-                </details>
-
-                <!-- Panel 2: Elaboration / Explain-It-Back [CARD-323] -->
-                <details class="edu-section" data-card="323" data-edu-section="elaboration" id="educationElaborationSection">
-                  <summary>Explain-It-Back (Elaboration)</summary>
-                  <div class="edu-section-body">
-                    <div id="educationElaborationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                        <div class="flex items-center space-x-2">
-                          <div class="w-6 h-6 rounded-md bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
-                            <i data-lucide="brain" class="w-3.5 h-3.5"></i>
-                          </div>
-                          <h3 class="text-xs font-bold text-slate-100">Explain-It-Back (Feynman Technique)</h3>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                          <button type="button" id="educationElaborationPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Preview Probing Questions</button>
-                          <button type="button" id="educationElaborationCompleteBtn" class="px-3 py-1 rounded-lg bg-teal-700/80 hover:bg-teal-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                            <span>Complete Step &amp; Save</span>
-                          </button>
-                          <button type="button" id="educationNextElaborationBtn" class="px-2.5 py-1 rounded-lg bg-teal-700/80 hover:bg-teal-600 border border-teal-600/50 text-[11px] font-medium text-white transition flex items-center space-x-1">
-                            <i data-lucide="play" class="w-3 h-3"></i>
-                            <span>Next Concept</span>
-                          </button>
-                          <button type="button" id="educationExtractElaborationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 transition">Extract from Wiki</button>
-                        </div>
-                      </div>
-
-                      <div id="educationElaborationStatus" class="text-[11px] font-mono text-teal-300 min-h-[1rem]">Elaboration: ready.</div>
-
-                      <div id="educationElaborationPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
-                        No elaboration item loaded. Load or preview topic probing questions to explain in your own words.
-                      </div>
-
-                      <textarea id="educationElaborationAnswerInput" rows="3" placeholder="Explain the concept in your own words, as if teaching someone new to the topic…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 leading-relaxed transition"></textarea>
-
-                      <div class="flex items-center justify-between pt-1">
-                        <button type="button" id="educationElaborationGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-sm transition">Verify Explanation</button>
-                        <span id="educationElaborationGradeResult" class="text-xs text-slate-400 font-medium"></span>
-                      </div>
-                    </div>
-                  </div>
-                </details>
-
-                <!-- Panel 3: Construction / Generative Study Notes [CARD-324] -->
-                <details class="edu-section" data-card="324" data-edu-section="construction" id="educationConstructionSection">
-                  <summary>Study Artifact &amp; Construction Lab</summary>
-                  <div class="edu-section-body">
-                    <div id="educationConstructionPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                        <div class="flex items-center space-x-2">
-                          <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                            <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
-                          </div>
-                          <h3 class="text-xs font-bold text-slate-100">Construction Lab &amp; Schema Synthesis</h3>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                          <button type="button" id="educationConstructionPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Preview Lab Invariants</button>
-                          <button type="button" id="educationConstructionCompleteBtn" class="px-3 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                            <span>Complete Lab &amp; Save</span>
-                          </button>
-                          <button type="button" id="educationGenerateConstructionBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition flex items-center space-x-1">
-                            <i data-lucide="sparkles" class="w-3 h-3"></i>
-                            <span>Generate Study Note</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div id="educationConstructionStatus" class="text-[11px] font-mono text-emerald-300 min-h-[1rem]">Construction: ready.</div>
-
-                      <div id="educationConstructionPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
-                        No construction lab loaded. Preview topic lab to view invariants.
-                      </div>
-
-                      <textarea id="educationConstructionAnswerInput" rows="3" placeholder="Submit your structural schema, data model, and boundary implementation…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono leading-relaxed transition"></textarea>
-
-                      <div class="flex items-center justify-between pt-1">
-                        <button type="button" id="educationConstructionGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition">Verify Construction</button>
-                        <span id="educationConstructionGradeResult" class="text-xs text-slate-400 font-medium"></span>
-                      </div>
-                      <div id="educationConstructionResult" class="text-xs text-slate-400"></div>
-                      <div id="educationConstructionPath" class="text-[11px] font-mono text-emerald-300/90 break-all min-h-[1rem]">No study note generated yet.</div>
-                    </div>
-                  </div>
-                </details>
-
-                <!-- Panel 4: Application Lab / Exercise Jobs [CARD-324] -->
-                <details class="edu-section" data-card="324" data-edu-section="application" id="educationApplicationSection">
-                  <summary>Application Lab</summary>
-                  <div class="edu-section-body">
-                    <div id="educationApplicationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                        <div class="flex items-center space-x-2">
-                          <div class="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                            <i data-lucide="code" class="w-3.5 h-3.5"></i>
-                          </div>
-                          <h3 class="text-xs font-bold text-slate-100">Application Lab &amp; Exercise Job</h3>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                          <button type="button" id="educationApplicationPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Preview Lab Invariants</button>
-                          <button type="button" id="educationApplicationCompleteBtn" class="px-3 py-1 rounded-lg bg-rose-700/80 hover:bg-rose-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                            <span>Complete Lab &amp; Save</span>
-                          </button>
-                          <button type="button" id="educationExtractApplicationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 transition">Extract Exercises</button>
-                          <button type="button" id="educationNextApplicationBtn" class="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 border border-rose-800/50 text-[11px] font-medium text-rose-200 transition">Next Exercise</button>
-                          <button type="button" id="educationMintExerciseJobBtn" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shadow-sm transition">Mint Exercise Job</button>
-                        </div>
-                      </div>
-
-                      <div id="educationApplicationStatus" class="text-[11px] font-mono text-rose-300 min-h-[1rem]">Application: ready.</div>
-
-                      <div id="educationApplicationPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
-                        No application exercise loaded.
-                      </div>
-
-                      <textarea id="educationApplicationAnswerInput" rows="3" placeholder="Submit your solution, command run, or code attempt for automated verification…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono leading-relaxed transition"></textarea>
-
-                      <div class="flex items-center justify-between pt-1">
-                        <button type="button" id="educationApplicationGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm transition">Verify Solution</button>
-                        <span id="educationApplicationGradeResult" class="text-xs text-slate-400 font-medium"></span>
-                      </div>
-                      <div id="educationApplicationJobId" class="text-[10px] font-mono text-indigo-300/90 break-all min-h-[1rem]"></div>
-                    </div>
-                  </div>
-                </details>
-
-                <!-- Panel 5: Analysis & Error Log -->
-                <details class="edu-section" data-card="315" data-edu-section="analysis">
-                  <summary>Mastery Analysis</summary>
-                  <div class="edu-section-body">
-<div id="educationAnalysisPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                  <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-6 h-6 rounded-md bg-fuchsia-500/10 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400">
-                        <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i>
-                      </div>
-                      <h3 class="text-xs font-bold text-slate-100">Mastery Analysis &amp; Error Taxonomy</h3>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <button type="button" id="educationRefreshAnalysisBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-300 transition flex-shrink-0">Refresh Analysis</button>
-                      <button type="button" id="educationAnalysisNextQuizBtn" class="px-2.5 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[11px] font-medium text-amber-100 transition flex-shrink-0">Review Weak Items</button>
-                      <button type="button" id="educationAnalysisHandoffBtn" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold transition flex-shrink-0">Handoff to Retention</button>
-                    </div>
-                  </div>
-                  <div id="educationAnalysisSummary" class="text-[11px] font-mono text-fuchsia-300 min-h-[1rem]">Analysis: ready.</div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Error Log</div>
-                      <div id="educationErrorLogList" class="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-slate-800 bg-slate-950/50 p-1.5 text-xs">
-                        <div class="text-[11px] text-slate-500 px-1 py-0.5">No errors logged yet.</div>
-                      </div>
-                    </div>
-                    <div>
-                      <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Metacognitive Patterns</div>
-                      <div id="educationMetacogList" class="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-slate-800 bg-slate-950/50 p-1.5 text-xs">
-                        <div class="text-[11px] text-slate-500 px-1 py-0.5">No patterns detected.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                  </div>
-                </details>
-
-                <!-- Panel 6: Delivery Profile -->
-                <details class="edu-section" data-card="315" data-edu-section="environment">
-                  <summary>Delivery Profile</summary>
-                  <div class="edu-section-body">
-<div id="educationEnvironmentPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                        <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
-                      </div>
-                      <h3 class="text-xs font-bold text-slate-100">Study Delivery Profile</h3>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <select id="educationDeliveryProfileSelect" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-brand-500 min-w-0 max-w-full">
-                        <option value="default">Default (Balanced)</option>
-                      </select>
-                      <button type="button" id="educationSelectProfileBtn" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex-shrink-0">Apply</button>
-                      <button type="button" id="educationEnvironmentCompleteBtn" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition flex-shrink-0">Complete Framing</button>
-                      <button type="button" id="educationRefreshEnvironmentBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-300 transition flex-shrink-0">Refresh</button>
-                      <button type="button" id="educationEnvNextQuizBtn" class="px-2.5 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[11px] text-amber-100 transition flex-shrink-0">Profile Quiz</button>
-                    </div>
-                  </div>
-                  <div id="educationEnvironmentSummary" class="text-[11px] font-mono text-emerald-300 min-h-[1rem]">Environment: default.</div>
-                  <div id="educationEnvironmentDueNote" class="text-[10px] text-slate-500">Spaced Repetition due items are calculated from your durable mastery ledger.</div>
-                </div>
-                  </div>
-                </details>
-
-                <!-- Panel 7: Visual Amplifiers -->
-                <details class="edu-section" data-card="315" data-edu-section="amplifiers">
-                  <summary>Visual Amplifiers</summary>
-                  <div class="edu-section-body">
-<div id="educationAmplifiersPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-6 h-6 rounded-md bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
-                        <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
-                      </div>
-                      <h3 class="text-xs font-bold text-slate-100">Visual Amplifiers &amp; Concept Flow</h3>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <input id="educationAmpItemId" type="text" placeholder="edu_item_id..." class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-mono w-32 min-w-0 max-w-full flex-1 sm:flex-initial focus:outline-none focus:border-violet-500" />
-                      <button type="button" id="educationAmpAttachBtn" class="px-2.5 py-1 rounded-lg bg-violet-700/80 hover:bg-violet-600 text-white text-xs font-medium transition flex-shrink-0">Attach Diagram</button>
-                      <button type="button" id="educationAmpRefreshBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-300 transition flex-shrink-0">Refresh</button>
-                      <button type="button" id="educationAmpNextQuizBtn" class="px-2.5 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[11px] text-amber-100 transition flex-shrink-0">Visual Quiz</button>
-                      <button type="button" id="educationAmpWatchLuminaBtn" class="px-2.5 py-1 rounded-lg bg-indigo-700/80 hover:bg-indigo-600 border border-indigo-500/50 text-[11px] text-indigo-100 transition flex items-center space-x-1 flex-shrink-0" title="Watch this topic in Lumina Studio">
-                        <i data-lucide="tv" class="w-3 h-3"></i>
-                        <span>Watch in Lumina</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div id="educationAmplifiersSummary" class="text-[11px] font-mono text-violet-300 min-h-[1rem]">Amplifiers: ready.</div>
-                  <pre id="educationAmpMermaidPreview" class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-36 overflow-auto bg-slate-950/80 border border-slate-800 rounded-lg p-3">Mermaid preview: none</pre>
-                  <ol id="educationAmpStepsPreview" class="text-xs text-slate-400 list-decimal list-inside space-y-0.5"></ol>
-                  <div id="educationAmpGuardNote" class="text-[10px] text-slate-500">Visual diagrams reinforce active recall and are grounded directly in your knowledge vault.</div>
-                </div>
-                  </div>
-                </details>
-
-              </div>
-
-              <!-- Session list: Education Jobs -->
-              <div class="h-44 flex flex-col overflow-hidden bg-slate-950/80 min-w-0 border-t border-slate-800/80 flex-shrink-0">
-                <div class="px-4 py-2 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0 bg-slate-900/50">
-                  <div class="flex items-center space-x-2">
-                    <i data-lucide="history" class="w-3.5 h-3.5 text-slate-400"></i>
-                    <h3 class="text-xs font-bold text-slate-200">Education Jobs &amp; Study Sessions</h3>
-                  </div>
-                  <span class="text-[10px] text-slate-500 font-mono">Durable standing handoff</span>
-                </div>
-                <div id="educationSessionList" class="flex-1 overflow-y-auto p-3 space-y-2">
-                  <div class="text-xs text-slate-500 italic px-2 py-4 text-center">No Education Jobs yet. Launch a study session above to begin.</div>
-                </div>
-              </div>
-            </div><!-- /#educationMainColumn -->
           </div>
+
         </div>
       </section>
 
