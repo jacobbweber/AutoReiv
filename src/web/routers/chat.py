@@ -155,61 +155,16 @@ async def _background_extract_turn_memory(
 def format_prompt_with_attachments(
     content: Optional[str],
     attachments: Optional[List[Dict[str, Any]]],
+    *,
+    char_budget: Optional[int] = None,
+    direct: bool = False,
 ) -> str:
-    """Format user prompt together with uploaded media and file attachments [CARD-143]."""
-    text = (content or "").strip()
-    if not attachments:
-        return text
+    """Format user prompt together with uploaded media and file attachments [CARD-143, CARD-479]."""
+    from src.application.gateway.attachment_text import MIN_BUDGET_CHARS, build_attachment_prompt
 
-    att_blocks = []
-    for att in attachments:
-        fname = att.get("filename", "attachment")
-        url = att.get("url", "")
-        ctype = att.get("content_type", "unknown")
-        size = att.get("size_bytes", 0)
-        local_path = att.get("path", "")
-
-        is_image = ctype.startswith("image/") or fname.lower().endswith(
-            (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
-        )
-        is_doc = fname.lower().endswith(
-            (".pdf", ".xlsx", ".xlsm", ".xls", ".docx", ".doc", ".csv", ".tsv")
-        )
-        if is_image:
-            att_blocks.append(
-                f"![{fname}]({url})\n"
-                f"*(Attached Image: `{fname}`, {size} bytes, format: `{ctype}`, Local Path: `{local_path}`)*"
-            )
-        elif is_doc:
-            block = (
-                f"📎 [{fname} ({size} bytes)]({url})\n"
-                f"*(Attached Document: `{fname}`, {size} bytes, Local Path: `{local_path}`)*"
-            )
-            if local_path and Path(local_path).exists() and size < 16384:
-                try:
-                    from src.application.skills.document_extractors import extract_document
-                    doc_res = extract_document(local_path, max_pages=5, max_rows=25)
-                    if doc_res.get("success") and doc_res.get("content"):
-                        block += f"\n\n**Document Content Preview:**\n{doc_res['content']}"
-                except Exception:
-                    pass
-            att_blocks.append(block)
-        else:
-            block = f"📎 [{fname} ({size} bytes)]({url}) (Local Path: `{local_path}`)"
-            if local_path and Path(local_path).exists() and size < 8192:
-                try:
-                    snippet = Path(local_path).read_text(encoding="utf-8", errors="replace")
-                    block += f"\n```\n{snippet}\n```"
-                except Exception:
-                    pass
-            att_blocks.append(block)
-
-    attachment_section = (
-        "\n\n---\n"
-        + "\n\n".join(att_blocks)
-        + "\n\n*(Note for Agent: The user has attached the files/images above. You can read documents using `read_document_file` or filesystem tools if needed.)*"
-    )
-    return f"{text}{attachment_section}".strip()
+    return build_attachment_prompt(
+        content, attachments, char_budget=char_budget or MIN_BUDGET_CHARS, direct=direct
+    ).text
 
 
 def format_json_deliverable_to_markdown(text: str) -> str:
@@ -1973,7 +1928,21 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
         """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
         try:
             resume = bool(req.resume)
-            effective_content = format_prompt_with_attachments(req.content, req.attachments) if not resume else ""
+            effective_content = ""
+            if not resume:
+                # CARD-479: inline attachment text sized from the model's context window; Direct gets the text, no tool note.
+                from src.application.gateway.attachment_text import attachment_char_budget, build_attachment_prompt
+                from src.application.kernel.context_compactor import resolve_agent_context_limit
+
+                built = build_attachment_prompt(
+                    req.content,
+                    req.attachments,
+                    char_budget=attachment_char_budget(resolve_agent_context_limit(profile, store)) if req.attachments else 0,
+                    direct=req.agent_id == "direct",
+                )
+                effective_content = built.text
+                for failure in built.failures:  # REQ-479-003: the user is told too
+                    await queue.put(_sse("attachment_notice", {"type": "attachment_notice", "message": failure}))
 
             # Auto-generate 2-5 word session title on first turn [CARD-150, REQ-CHAT-002]
             if (not resume) and req.content and store and hasattr(store, "get_session") and hasattr(store, "update_session_title"):
