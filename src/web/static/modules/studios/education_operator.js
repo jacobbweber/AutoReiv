@@ -415,13 +415,7 @@ export function initEducationStudioOperator(callbacks = {}) {
       await openStudioProgress({ toast });
     });
   }
-  const progressHide = $('educationOperatorProgressHideBtn');
-  if (progressHide) {
-    progressHide.addEventListener('click', (e) => {
-      e.preventDefault();
-      _showPanel('educationOperatorProgressPanel', false);
-    });
-  }
+  // CARD-464: progress renders in the players' Progress tab; there is no Hide in the operator bar any more.
 
   const curateBtn = $('educationOperatorCurateBtn');
   if (curateBtn) {

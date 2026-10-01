@@ -1,7 +1,7 @@
 ---
 id: CARD-464
 title: "Education Studio expansion: full-screen players and flip-style flashcards"
-status: Ready
+status: In Review
 created: 2026-09-24
 branch: qa
 adr: ADR-0059 (Education Studio = operator + players)
@@ -20,7 +20,7 @@ milestone: M23
 
 # [CARD-464] Education Studio expansion: full-screen players and flip-style flashcards
 
-> **Status**: Ready - approved for **build** by Jacob 2026-09-30 (class-b); starts after CARD-463; not started yet.
+> **Status**: In Review - built 2026-10-01 on `card/464-education-full-screen-players` (stacked on CARD-463's branch); waiting for Jacob's **merge to qa** (merge 463 first, or merge 464 to take both).
 > **Created**: 2026-09-24
 > **Observed during**: Jacob review of Education Studio on Jarvis - after the legacy panels go (CARD-463), the players should own the screen and flashcards should look like real cards.
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)
@@ -132,3 +132,24 @@ milestone: M23
 
 ## Log
 - 2026-09-30: Jacob approved (class-b): full-screen players + flip flashcards, after CARD-463. Not started yet.
+
+## Outcome (2026-10-01, In Review)
+- **Branch:** `card/464-education-full-screen-players`, cut from `card/463-education-remove-legacy-panels`. Its diff on top of 463 is this card only. Merging 464 brings 463 with it.
+- **Layout (REQ-464-001):** `#educationPlayersConsole` is the `flex-1` region under the operator bar. Mode buttons are larger tabs: Flashcards / Quiz / Test / **Progress**. Each player panel grows to fill the region, and the region scrolls when the window is small.
+- **Flip flashcards (REQ-464-002/003):** `#educationPlayerFlashCard` is one large focusable card. `#educationPlayerFlashFront` and `#educationPlayerFlashBack` are its two faces (CSS 3D `rotateY`, `studios.css` `.edu-flip-*`). Click the card, press Space (Flashcards tab, focus not in a text field or on a button) or use **Flip card** (the old Reveal button, same id). The answer text is only written on the first flip. Know / Miss appear after it, and the card can be turned back and forth. Under reduced motion the card has no `edu-flip-animated` class and the sides swap instantly (also a CSS media query). The deck position is shown above the card.
+- **Grading (REQ-464-004):** unchanged. `POST /api/education/quiz/grade` runs once per Know / Miss, and the next card starts face down.
+- **Progress (REQ-464-005):** the operator's progress view (`#educationOperatorProgressPanel` and the same body / Refresh ids) moved into the players' Progress tab. The operator bar has no inline progress body and no Hide button any more. The operator Progress button and the Progress tab both open that tab and load `/api/education/progress`.
+- **Quiz / Test (REQ-464-006):** larger prompts (`text-base`/`text-lg`, `min-h-[8rem]`) and multi-line `<textarea>` answers with the same ids; grading is unchanged.
+- **Code:** `education_players.js` adds `flipFlashcard`, `shouldFlipOnKey`, `prefersReducedMotion`, `getPlayerMode` and the `progress` mode; `education_operator.js` drops the Hide wiring. No backend change.
+- **Tests:** `card_464_education_players_full_screen_flip.test.js` (10 tests: flip state, answer hidden before the flip, grade once then the next card face down, reduced motion, Space rules, Progress tab, layout). The CARD-448 / 447 tests pass unchanged. Vitest: 150 files / 936 tests.
+- **Live check (throwaway clone serve on :8770, three seeded Raft cards, desktop 1400x900 + phone 390x844):**
+  - Start deck shows card 1/3 face up with the back empty and Know / Miss hidden.
+  - Clicking the card flips it: back text shown, grade row visible, animated.
+  - Know sent 1 grade POST for the right item; the status read "Pass (durable). Next due ..." and the next card came up face down.
+  - Space flips it.
+  - The quiz answer box is a textarea.
+  - The operator Progress button opened the Progress tab; nothing renders in the operator bar.
+  - Reduced motion: the card flips with no animation class and `transition-duration: 0s`.
+  - 0 console errors.
+- **Screenshots:** `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui0930\464-flashcard-front-desktop.png`, `464-flashcard-front-phone.png`, `464-flashcard-flipped-desktop.png`, `464-flashcard-flipped-phone.png`, `464-quiz-desktop.png`, `464-quiz-phone.png`, `464-progress-desktop.png`, `464-progress-phone.png`.
+- 2026-10-01: Built (stacked on CARD-463); live-checked on :8770 with screenshots; In Review for Jacob's **merge to qa**.

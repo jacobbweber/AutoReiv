@@ -23,6 +23,60 @@ body.radical-desktop-demo #view-education.desktop-view-hosted {
   touch-action: pan-y;
 }
 
+/* CARD-464: flip-style flashcard (front -> click / Space -> back). Reduced motion swaps sides instantly. */
+.edu-flip-scene {
+  perspective: 1400px;
+  display: flex;
+}
+.edu-flip-card {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 16rem;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  border-radius: 1rem;
+  outline: none;
+}
+.edu-flip-card.edu-flip-animated {
+  transition: transform 0.45s ease;
+}
+.edu-flip-card.is-flipped {
+  transform: rotateY(180deg);
+}
+.edu-flip-card:focus-visible {
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.7);
+}
+.edu-flip-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+  border-radius: 1rem;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  white-space: pre-wrap;
+}
+.edu-flip-front {
+  background: linear-gradient(160deg, rgba(30, 41, 59, 0.95), rgba(2, 6, 23, 0.95));
+  border: 1px solid rgba(180, 83, 9, 0.45);
+}
+.edu-flip-back {
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, rgba(6, 78, 59, 0.55), rgba(2, 6, 23, 0.95));
+  border: 1px solid rgba(16, 185, 129, 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  .edu-flip-card,
+  .edu-flip-card.edu-flip-animated {
+    transition: none !important;
+  }
+}
+
 /* --- CARD-303 Projects Manager / Explorer mode flip --- */
 #view-projects {
   position: relative;

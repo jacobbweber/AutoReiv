@@ -250,3 +250,4 @@ Say **`build`** on **CARD-447** to start Studio implementation. No product code 
 
 ## Log
 - 2026-09-30: updated to follow CARD-463/464 (Jacob class-b approval).
+- 2026-10-01: CARD-463 and CARD-464 built and In Review (branch `card/464-education-full-screen-players` is stacked on `card/463-education-remove-legacy-panels`).
