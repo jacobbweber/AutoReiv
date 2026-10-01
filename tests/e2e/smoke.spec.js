@@ -1274,8 +1274,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       };
       await pick('autoreiv', 'AutoReiv');
       // CARD-544 D1: AutoReiv no longer ticks coding, but the shipped runbook keeps a pill so it can be re-ticked.
+      // CARD-594: check the ticked pill first (an unpainted pill is also unticked), with room for a slow catalog load.
+      await expect(page.locator('.forge-skill-pill[data-skill-id="proposals"]')).toHaveAttribute('aria-pressed', 'true', { timeout: 20000 });
       await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'false');
-      await expect(page.locator('.forge-skill-pill[data-skill-id="proposals"]')).toHaveAttribute('aria-pressed', 'true');
       await page.evaluate(() => { const el = document.getElementById('forgeMaxTurnsInput'); el.value = '57'; el.dispatchEvent(new Event('input', { bubbles: true })); });
       await page.locator('#saveAgentBtn').evaluate((b) => b.click());
       await expect.poll(() => puts.length).toBe(1);
@@ -1285,7 +1286,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await pick('developer', 'Developer');
       await expect(page.locator('.forge-skill-pill[data-skill-id="proposals"]')).toHaveCount(1);
       // CARD-570/562: Developer is a card worker; it ticks implement-change, not coding.
-      await expect(page.locator('.forge-skill-pill[data-skill-id="implement-change"]')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('.forge-skill-pill[data-skill-id="implement-change"]')).toHaveAttribute('aria-pressed', 'true', { timeout: 20000 });
       await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'false');
     });
   }

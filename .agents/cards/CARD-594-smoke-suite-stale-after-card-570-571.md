@@ -43,3 +43,4 @@ Full preflight's smoke stage had 14 failures (7 tests x desktop/phone) since the
 
 ## Log
 - 2026-09-30: filed and fixed (Jacob: fix the 14 smoke tests so full preflight is green; merge when green).
+- 2026-10-01: Full smoke in main failed TC-38 once on desktop and once on phone. The proposals pill stayed unticked; the test passes 6/6 in isolation. Real race in Agent Studio: `loadAgentForge` -> `loadPlatformSkills` paints the pills with the `lastAllowedSkills` set captured when it started (empty on first open). When an agent is picked while `/api/skills/archived-skills` is slow, that late paint turns every pill off, and a Save would drop those skills because `skillsForSave` reads the pill state. Fix: `loadPlatformSkillsWrapper` repaints with the current agent and set after the load (`forge.js`). Test `card_594_forge_pills_repaint.test.js`. TC-38 now checks the ticked pill first, with a 20 s wait.
