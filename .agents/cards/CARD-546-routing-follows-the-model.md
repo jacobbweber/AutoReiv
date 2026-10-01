@@ -1,7 +1,9 @@
 ---
 id: CARD-546
 title: "Out-of-domain routing and the Ask Developer button still depend on the model following the prompt"
-status: Ready
+status: Superseded
+superseded_by: CARD-596
+completed: 2026-10-01
 created: 2026-09-26
 branch: qa
 related:
@@ -16,7 +18,7 @@ milestone: M25
 
 # [CARD-546] Out-of-domain routing still depends on the model following the prompt
 
-> **Status**: Ready (filed from CARD-539 live QA, 2026-09-26 ~11:55 PM ET).
+> **Status**: Superseded by CARD-596 (2026-10-01: Jacob chose deliberate agent scopes and direct chat instead of routing)
 > **Related**: CARD-539 (ADR-0061, D6)
 > **Labels**: `type:bug`, `area:agents`, `P2`
 
@@ -45,7 +47,16 @@ Throwaway :8770, clone of real data, qa `de12b988`-era code, AutoReiv on `defaul
 
 **Finding:** routing is worse than the 6/10 of 2026-09-26 and depends on the model choosing `lookup_agents` first. Once it does, the handoff follows every time (2/2). This supports the structural fix in "Change": a router check before the turn for requests that match none of AutoReiv's ticked skills (or offer the Tutor button whenever education tools are named but not ticked). Also: post-turn memory extraction can freeze a wrong "state" fact after one run - worth a separate look.
 
+## What we learned (closing note, 2026-10-01)
+
+- Baseline on nemotron-3.5-lightning: AutoReiv handed study requests to Tutor in 2/10 runs; in 8/10 it never called `lookup_agents` and ran 15-43 wiki tools instead (when it looked, the hand-off always followed).
+- An overlapping skill confused routing: AutoReiv also ticked `socratic-tutoring`, so its domain line (and a router) claimed study requests.
+- A prompt hint ("hand it off now") did not help (2/10); a routing check before the turn plus a platform-made hand-off reached 8/10.
+- Saved short-lived memory facts replaced live checks (CARD-597).
+- Jacob's decision (2026-10-01): no routing; agents get deliberate scopes and the user picks the agent (CARD-596). The design branch and prototype were deleted.
+
 ## Log
 
 - 2026-09-29: battery triage: still valid; Ask Developer buttons now open Toolsmith (CARD-571); routing in the battery followed the prompt (Developer and Toolsmith handed off correctly on Spark/Nimo)
 - 2026-09-30: re-measured on nemotron per Jacob's class-b approval: Tutor handoff 2/10 (fresh env each run), 1/10 (shared env, memory-contaminated). Still Ready; the structural router fix is the next step.
+- 2026-10-01: Superseded by CARD-596 (agent scopes and direct chat); design branch card/546-routing-design deleted.

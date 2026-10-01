@@ -1,7 +1,8 @@
 ---
 id: CARD-435
 title: "Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Operator + Players"
-status: Ready
+status: Done
+completed: 2026-10-01
 created: 2026-09-23
 adr: ADR-0059
 labels:
@@ -18,7 +19,7 @@ milestone: M23
 
 # [CARD-435] Education Tutor-First Direction: Learning OS Rails, Wiki Library, Studio as Operator + Players
 
-> **Status**: Ready
+> **Status**: Done (2026-10-01: every successor card, 436-448 and 463/464, is Done)
 > **Created**: 2026-09-23
 > **Baseline**: `qa` @ `752c8f6f` (v0.42.0)
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) (amends Studio retirement fork)
@@ -252,3 +253,4 @@ Say **`build`** on **CARD-447** to start Studio implementation. No product code 
 - 2026-09-30: updated to follow CARD-463/464 (Jacob class-b approval).
 - 2026-10-01: CARD-463 and CARD-464 built and In Review (branch `card/464-education-full-screen-players` is stacked on `card/463-education-remove-legacy-panels`).
 - 2026-10-01: CARD-463 and CARD-464 merged into qa (Done).
+- 2026-10-01: closed Done: all successor cards are Done; Tutor's scope is now set by CARD-596.

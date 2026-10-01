@@ -1,7 +1,7 @@
 ---
 id: CARD-533
 title: "Journey testing inside AutoReiv: a Developer skill and tools to run journeys, and a Projects Studio view of journey runs"
-status: Ready
+status: Parked
 created: 2026-09-26
 branch: qa
 depends_on:
@@ -55,3 +55,4 @@ The Developer can run a journey from a chat, read its report and explain a failu
 
 ## Log
 - 2026-09-30: Parked per Jacob's class-b approval.
+- 2026-10-01: status set to Parked to match the 2026-09-30 decision (the field had stayed Ready).

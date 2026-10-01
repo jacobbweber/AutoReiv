@@ -1,7 +1,7 @@
 ---
 id: CARD-480
 title: "Vision helper: describe images with a configured vision model when the chat model is text-only"
-status: Ready
+status: Parked
 created: 2026-09-25
 branch: qa
 related:
@@ -63,3 +63,4 @@ Tests: a fake vision provider gets the image once; the text model gets only the 
 
 ## Log
 - 2026-09-30: Parked per Jacob's class-b approval.
+- 2026-10-01: status set to Parked to match the 2026-09-30 decision (the field had stayed Ready).
