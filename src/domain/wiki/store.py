@@ -830,37 +830,45 @@ class WikiStore:
             if target.exists():
                 return target
 
-            # Check legacy -> numbered mapping
-            prefix_map = {
-                "inbox/": "00_Inbox/",
-                "00_inbox/": "00_Inbox/",
-                "notes/": "01_Notes/",
-                "01_notes/": "01_Notes/",
-                "resources/": "02_Resources/",
-                "02_resources/": "02_Resources/",
-                "archive/": "03_Archive/",
-                "03_archive/": "03_Archive/",
-                "02_resources/templates/": "02_Resources/_Templates/",
-                "resources/templates/": "02_Resources/_Templates/",
-            }
+            # Check legacy -> numbered mapping (longest prefix first)
+            prefix_pairs = [
+                ("02_resources/templates/", "02_Resources/_Templates/"),
+                ("resources/templates/", "02_Resources/_Templates/"),
+                ("00_inbox/", "00_Inbox/"),
+                ("inbox/", "00_Inbox/"),
+                ("01_notes/", "01_Notes/"),
+                ("notes/", "01_Notes/"),
+                ("02_resources/", "02_Resources/"),
+                ("resources/", "02_Resources/"),
+                ("03_archive/", "03_Archive/"),
+                ("archive/", "03_Archive/"),
+            ]
             rel_lower = rel.lower()
-            for prefix, mapped in prefix_map.items():
+            for prefix, mapped in prefix_pairs:
                 if rel_lower.startswith(prefix):
                     alt = self.root_dir / (mapped + rel[len(prefix):])
                     if alt.exists():
                         return alt.resolve()
 
             # Reverse mapping: numbered -> legacy
-            reverse_map = {
-                "00_inbox/": "inbox/",
-                "01_notes/": "notes/",
-                "02_resources/": "resources/",
-                "03_archive/": "archive/",
-            }
-            for prefix, mapped in reverse_map.items():
+            reverse_pairs = [
+                ("02_resources/_templates/", "resources/templates/"),
+                ("00_inbox/", "inbox/"),
+                ("01_notes/", "notes/"),
+                ("02_resources/", "resources/"),
+                ("03_archive/", "archive/"),
+            ]
+            for prefix, mapped in reverse_pairs:
                 if rel_lower.startswith(prefix):
                     alt = self.root_dir / (mapped + rel[len(prefix):])
                     if alt.exists():
+                        return alt.resolve()
+
+            # For paths that do not exist yet (e.g. creating/targeting), map aliases if destination directory exists
+            for prefix, mapped in prefix_pairs:
+                if rel_lower.startswith(prefix):
+                    alt = self.root_dir / (mapped + rel[len(prefix):])
+                    if (self.root_dir / mapped).exists():
                         return alt.resolve()
 
             return target
@@ -1250,14 +1258,14 @@ class WikiStore:
     def _resolve_templates_dir(self, create: bool = True) -> Path:
         self.scaffold()
         p1 = self.root_dir / "02_Resources" / "_Templates"
+        if create:
+            p1.mkdir(parents=True, exist_ok=True)
+            return p1
         if p1.exists():
             return p1
         p2 = self.root_dir / "resources" / "templates"
         if p2.exists():
             return p2
-        if create:
-            p1.mkdir(parents=True, exist_ok=True)
-            return p1
         return p1
 
     def list_templates(self) -> List[Dict[str, Any]]:

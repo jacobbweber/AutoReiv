@@ -24,6 +24,10 @@ Stage new knowledge, system health checks, research findings, and session delive
    - All newly created notes MUST land in `00_Inbox/` via `wiki_note_create`.
    - Never attempt to write directly to `01_Notes/` or hijack personal weekly worklogs (`01_Notes/weekly/`).
    - Downstream autonomous curation routines or operator triage groom notes from `00_Inbox/` into permanent warehouse topics.
+2. **Templates vs Notes**:
+   - Reusable templates are created with `wiki_template_create` and land strictly in `02_Resources/_Templates/<slug>.md`.
+   - NEVER call `wiki_note_create` to author a template.
+   - To create a note from an existing template, call `wiki_note_create(template="<slug>", ...)`.
 
 ## Available Tools
 - `wiki_note_create`: Stage a structured note in `00_Inbox/` with title, domain, topic, tags, and summary.

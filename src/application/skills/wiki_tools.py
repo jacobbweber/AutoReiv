@@ -4,6 +4,7 @@ Universal Wiki Tools for Document Management, Search & Knowledge Graph [REQ-WIKI
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -73,6 +74,48 @@ class WikiTools:
         and automated curation (unless explicitly a resource or operating manual).
         Supports optional structured template directives [CARD-178, REQ-WIKI-034].
         """
+        # CARD-598: templates must be authored via wiki_template_create, never wiki_note_create.
+        clean_doc_type = str(document_type or "").strip().lower()
+        extra_fm = dict(extra_frontmatter or {})
+        extra_type = str(extra_fm.get("type") or "").strip().lower()
+        title_lower = str(title or "").strip().lower()
+
+        title_is_template = (
+            title_lower == "template"
+            or title_lower.endswith(" template")
+            or title_lower.endswith("-template")
+            or title_lower.endswith("_template")
+        )
+
+        is_template = (
+            clean_doc_type == "template"
+            or extra_type == "template"
+            or title_is_template
+        )
+        if not is_template and content and content.strip().startswith("---"):
+            try:
+                parsed_meta, _ = FrontmatterParser.parse(content)
+                extra = getattr(parsed_meta, "model_extra", None) or {}
+                if str(extra.get("type") or "").strip().lower() == "template":
+                    is_template = True
+                elif not clean_doc_type and str(getattr(parsed_meta, "document_type", "") or "").lower() == "template":
+                    is_template = True
+            except Exception:
+                pass
+
+        if is_template:
+            clean_slug = re.sub(r"[^a-z0-9\-]", "", title_lower.replace(" ", "-").replace("_", "-"))
+            if clean_slug.endswith("-template"):
+                clean_slug = clean_slug[:-9].rstrip("-")
+            clean_slug = clean_slug or "new-template"
+            return {
+                "success": False,
+                "error": (
+                    f"Templates cannot be created with wiki_note_create. Use wiki_template_create(slug='{clean_slug}', "
+                    f"title='{title}', ...) to author structured templates in 02_Resources/_Templates/."
+                ),
+            }
+
         effective_template = (template or "").strip() or "zettelkasten-atomic"
         clean_tags = coerce_string_or_list_of_strings(tags)
         extra_frontmatter = dict(extra_frontmatter or {})
@@ -356,7 +399,7 @@ class WikiTools:
         tags: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        Create a new structured wiki note template in resources/templates/.
+        Create a new structured wiki note template in 02_Resources/_Templates/.
         Fails closed if the template already exists.
         """
         return self.store.create_template(
@@ -433,7 +476,7 @@ class WikiTools:
                         "type": "string",
                         "default": "inbox",
                         "enum": ["inbox", "resources"],
-                        "description": "Target category: 'inbox' for all notes (staged for curation), 'resources' for templates/manuals.",
+                        "description": "Target category: 'inbox' for all notes (staged for curation), 'resources' for reference manuals (templates must use wiki_template_create).",
                     },
                     "inbox_priority": {
                         "type": "string",
@@ -618,7 +661,7 @@ class WikiTools:
         registry.register_tool(
             name="wiki_template_create",
             description=(
-                "Author a new structured wiki note template in the canonical template directory (resources/templates/<slug>.md). "
+                "Author a new structured wiki note template in the canonical template directory (02_Resources/_Templates/<slug>.md). "
                 "Templates define reusable schemas, headings, and guidelines for future notes. "
                 "Fails closed if a template with this slug already exists (use wiki_template_update to modify existing templates)."
             ),
@@ -639,7 +682,7 @@ class WikiTools:
         registry.register_tool(
             name="wiki_template_update",
             description=(
-                "Update an existing structured wiki note template in resources/templates/<slug>.md. "
+                "Update an existing structured wiki note template in 02_Resources/_Templates/<slug>.md. "
                 "Fails closed if the template does not exist (use wiki_template_create to author new templates)."
             ),
             parameters={
