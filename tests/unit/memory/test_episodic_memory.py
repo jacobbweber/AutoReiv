@@ -59,7 +59,7 @@ def test_memory_tools_rendering_and_auto_recall(memory_store):
 
     facts = skill.get_facts(entity="user")
     block = render_memory_context(facts)
-    assert "[Episodic Memory - Recalled Facts]" in block
+    assert "[Saved notes (may be out of date; check with tools before relying on them)]" in block
     assert "user.theme: dark" in block
     assert "user.timezone: America/New_York" in block
 
@@ -92,7 +92,7 @@ def test_agent_kernel_episodic_auto_recall(memory_store):
 
     assert system_msg.role == Role.SYSTEM
     assert "You are a helpful software architect." in system_msg.content
-    assert "[Episodic Memory - Recalled Facts]" in system_msg.content
+    assert "[Saved notes (may be out of date; check with tools before relying on them)]" in system_msg.content
     assert "user.favorite_framework: FastAPI" in system_msg.content
 
 

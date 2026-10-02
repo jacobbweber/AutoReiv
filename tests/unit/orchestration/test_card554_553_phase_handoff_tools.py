@@ -116,7 +116,12 @@ def test_is_planning_phase_matches_formulate_only():
 
 
 def test_gate_blocks_handoff_and_work_tools_in_a_planning_phase(store, bind_skills):
-    ar = _autoreiv(bind_skills)
+    ticks = bind_skills({
+        "authoring": ["list_available_skills_and_tools"],
+        "projects": ["write_project_file", "read_project_file"],
+        "orchestration": ["handoff_to_agent", "lookup_agents"],
+    })
+    ar = AgentProfile(id="autoreiv", name="AutoReiv", description="a", system_prompt="s", tone=AgentTone.TECHNICAL, allowed_skill=ticks)
     gate = ToolPolicyGate(store)
 
     def verdict(name, planning):

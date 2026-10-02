@@ -11,6 +11,7 @@ Per-agent physical database (<agent_slug>_memory.db) maintaining:
 from __future__ import annotations
 
 import json
+import logging
 import math
 import sqlite3
 import uuid
@@ -24,6 +25,8 @@ from src.infrastructure.memory.repositories.education_course_ops import ensure_e
 from src.infrastructure.memory.repositories.education_course_ops import install_on as _install_edu_course
 from src.infrastructure.memory.repositories.education_mastery_ops import ensure_education_mastery_schema
 from src.infrastructure.memory.repositories.education_mastery_ops import install_on as _install_edu_mastery
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_effective_memory_score(
@@ -119,6 +122,8 @@ class AgentMemoryRepository:
                     access_count INTEGER NOT NULL DEFAULT 1,
                     decay_half_life_days REAL NOT NULL DEFAULT 30.0,
                     is_active INTEGER NOT NULL DEFAULT 1,
+                    observed_at TEXT,
+                    expires_at TEXT,
                     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
                     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
                     last_accessed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -169,6 +174,16 @@ class AgentMemoryRepository:
             ensure_education_mastery_schema(conn)
             # Education course pipeline [CARD-320]
             ensure_education_course_schema(conn)
+
+            # CARD-597: Ensure observed_at and expires_at columns exist
+            for col in ("observed_at", "expires_at"):
+                try:
+                    conn.execute(f"ALTER TABLE semantic_facts ADD COLUMN {col} TEXT")
+                except sqlite3.OperationalError:
+                    pass
+
+        # CARD-597: Deactivate any short-lived facts
+        self.deactivate_short_lived_facts()
 
     # --- Shelf 1: Pinned Memories ---
 
@@ -265,17 +280,20 @@ class AgentMemoryRepository:
         confidence: float = 1.0,
         decay_half_life_days: float = 30.0,
         fact_id: Optional[str] = None,
+        observed_at: Optional[str] = None,
+        expires_at: Optional[str] = None,
     ) -> str:
         fid = fact_id or f"fact_{uuid.uuid4().hex[:12]}"
         now = datetime.now(timezone.utc).isoformat()
+        obs = observed_at or now
         with self.get_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO semantic_facts (
                     id, category, entity, attribute, value, confidence, access_count,
-                    decay_half_life_days, is_active, created_at, updated_at, last_accessed_at
+                    decay_half_life_days, is_active, observed_at, expires_at, created_at, updated_at, last_accessed_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?, 1, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?, 1, ?, ?, ?, ?, ?)
                 """,
                 (
                     fid,
@@ -285,6 +303,8 @@ class AgentMemoryRepository:
                     value.strip(),
                     confidence,
                     decay_half_life_days,
+                    obs,
+                    expires_at,
                     now,
                     now,
                     now,
@@ -334,7 +354,9 @@ class AgentMemoryRepository:
             query = "SELECT * FROM semantic_facts"
             params: List[Any] = []
             if active_only:
-                query += " WHERE is_active = 1"
+                now_iso = datetime.now(timezone.utc).isoformat()
+                query += " WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > ?)"
+                params.append(now_iso)
             query += " ORDER BY last_accessed_at DESC LIMIT ?"
             params.append(limit)
             rows = conn.execute(query, tuple(params)).fetchall()
@@ -430,23 +452,26 @@ class AgentMemoryRepository:
             return []
         fts_expr = " OR ".join(terms)
 
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat()
+
         with self.get_connection() as conn:
             sql = """
                 SELECT
                     sf.id, sf.category, sf.entity, sf.attribute, sf.value,
                     sf.confidence, sf.access_count, sf.decay_half_life_days,
+                    sf.observed_at, sf.expires_at,
                     sf.created_at, sf.updated_at, sf.last_accessed_at,
                     bm25(semantic_facts_fts) AS bm25_rank
                 FROM semantic_facts sf
                 JOIN semantic_facts_fts fts ON sf.id = fts.id
                 WHERE sf.is_active = 1
+                  AND (sf.expires_at IS NULL OR sf.expires_at > ?)
                   AND semantic_facts_fts MATCH ?
                 ORDER BY bm25_rank ASC
                 LIMIT 50
             """
-            rows = conn.execute(sql, (fts_expr,)).fetchall()
-
-            now = datetime.now(timezone.utc)
+            rows = conn.execute(sql, (now_iso, fts_expr)).fetchall()
             results = []
             for row in rows:
                 item = dict(row)
@@ -521,6 +546,34 @@ class AgentMemoryRepository:
                     ),
                 )
             return count
+
+    def deactivate_short_lived_facts(self) -> int:
+        """Deactivate stored facts matching short-lived state patterns [CARD-597]."""
+        from src.application.memory.extractor import is_short_lived_fact
+
+        with self.get_connection() as conn:
+            rows = conn.execute(
+                "SELECT id, entity, attribute, value FROM semantic_facts WHERE is_active = 1"
+            ).fetchall()
+            stale_ids = [
+                r["id"]
+                for r in rows
+                if is_short_lived_fact(r["entity"], r["attribute"], r["value"])
+            ]
+            if stale_ids:
+                now = datetime.now(timezone.utc).isoformat()
+                placeholders = ",".join("?" for _ in stale_ids)
+                conn.execute(
+                    f"UPDATE semantic_facts SET is_active = 0, updated_at = ? WHERE id IN ({placeholders})",
+                    (now, *stale_ids),
+                )
+                logger.info(
+                    "CARD-597: Deactivated %d short-lived semantic facts in %s",
+                    len(stale_ids),
+                    self.db_path.name,
+                )
+            return len(stale_ids)
+
 
 _install_edu_mastery(AgentMemoryRepository)
 _install_edu_course(AgentMemoryRepository)

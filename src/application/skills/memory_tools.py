@@ -15,13 +15,14 @@ def render_memory_context(facts: List[Dict[str, Any]]) -> str:
     if not facts:
         return ""
 
-    lines = ["[Episodic Memory - Recalled Facts]"]
+    lines = ["[Saved notes (may be out of date; check with tools before relying on them)]"]
     for f in facts:
         entity = f.get("entity", "general")
-        key = f.get("key", "fact")
+        key = f.get("key") or f.get("attribute", "fact")
         val = f.get("value", "")
-        conf = f.get("confidence", 1.0)
-        lines.append(f"- {entity}.{key}: {val} (confidence: {conf:.2f})")
+        seen_raw = f.get("observed_at") or f.get("updated_at") or f.get("created_at") or ""
+        seen_date = f" (seen {seen_raw[:10]})" if len(seen_raw) >= 10 else ""
+        lines.append(f"- {entity}.{key}: {val}{seen_date}")
 
     return "\n".join(lines)
 

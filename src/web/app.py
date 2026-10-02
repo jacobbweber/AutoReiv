@@ -309,6 +309,25 @@ def create_app(
             logging.getLogger(__name__).warning("CARD-530: repaired stuck jobs %s", repaired)
     except Exception as exc:
         logging.getLogger(__name__).warning("stuck job repair skipped: %s", exc)
+
+    # CARD-597: Deactivate any short-lived semantic facts stored across agent memory databases
+    try:
+        agents_dir = data_paths.root / "agents"
+        if agents_dir.is_dir():
+            from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
+            total_deactivated = 0
+            for agent_mem_db in agents_dir.glob("*/memory.db"):
+                try:
+                    mrepo = AgentMemoryRepository(db_path=agent_mem_db)
+                    total_deactivated += mrepo.deactivate_short_lived_facts()
+                except Exception as me:
+                    logging.getLogger(__name__).debug("Error cleaning short-lived facts in %s: %s", agent_mem_db, me)
+            if total_deactivated > 0:
+                logging.getLogger(__name__).info("CARD-597: Deactivated %d short-lived facts on startup", total_deactivated)
+    except Exception as exc:
+        logging.getLogger(__name__).debug("CARD-597 startup memory fact migration skipped: %s", exc)
+
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
     # CARD-228: progressive SKILL.md — catalog resolve metadata-only; body on phase bind.
     _early_skill_catalog = getattr(registry, "user_skill_catalog", None)

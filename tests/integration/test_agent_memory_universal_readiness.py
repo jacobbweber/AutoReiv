@@ -291,7 +291,7 @@ async def test_universal_system_prompt_grounding_cold_start(temp_data_dir, store
     )
     prompt_tutor_populated = msg_tutor_populated.content
     assert "[Agent Brain - Cognitive Memory System]" in prompt_tutor_populated
-    assert "[Agent Brain - Recalled Relevant Facts]" in prompt_tutor_populated
+    assert "[Saved notes (may be out of date; check with tools before relying on them)]" in prompt_tutor_populated
     assert "learner.current_topic: Quantum Mechanics" in prompt_tutor_populated
 
 
@@ -335,6 +335,6 @@ async def test_goal_job_background_memory_extraction(temp_data_dir):
     assert facts[0]["entity"] == "project"
     assert facts[0]["value"] == "sqlite"
 
+    # CARD-597: content-free milestones ("Turn completed with N facts") are dropped
     summaries = repo.list_session_summaries()
-    assert len(summaries) >= 1
-    assert "sess_goal_1" in summaries[0]["session_id"]
+    assert len(summaries) == 0

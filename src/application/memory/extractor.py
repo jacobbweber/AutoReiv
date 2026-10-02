@@ -24,6 +24,51 @@ _TRIVIAL_UTTERANCE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_TRANSIENT_ATTR_PATTERN = re.compile(
+    r"(?:due_today|due_now|items_queued|queue_count|pending_count|is_due|due_count|items_due|_due$|_today$|_now$|current_status|temp_|turn_status|task_status)",
+    re.IGNORECASE,
+)
+_TRANSIENT_VAL_PATTERN = re.compile(
+    r"^(?:none\s+due|no\s+.*due|0\s+due|empty|not\s+found|nothing\s+due|false|0)$",
+    re.IGNORECASE,
+)
+_DUE_RELATED_PATTERN = re.compile(
+    r"(?:due|queue|review|flashcard|srs|task|todo)",
+    re.IGNORECASE,
+)
+
+
+def is_short_lived_fact(entity: str, attribute: str, value: str) -> bool:
+    """Determine whether an extracted fact is momentary/transient state [CARD-597].
+
+    Short-lived state includes:
+    - Today/now flags and counts (due_today, due_now, items_queued, queue_count)
+    - Flashcard/SRS review queue status (e.g. user.flashcard_review_due_today: false)
+    - Empty or 'not found' check results
+    - Transient task or turn status flags
+    """
+    ent = (entity or "").strip().lower()
+    attr = (attribute or "").strip().lower()
+    val = (value or "").strip().lower()
+
+    if _TRANSIENT_ATTR_PATTERN.search(attr):
+        return True
+
+    if _DUE_RELATED_PATTERN.search(attr) and _TRANSIENT_VAL_PATTERN.search(val):
+        return True
+
+    if _DUE_RELATED_PATTERN.search(ent) and (_TRANSIENT_ATTR_PATTERN.search(attr) or _TRANSIENT_VAL_PATTERN.search(val)):
+        return True
+
+    if "due" in attr and any(w in val for w in ("false", "0", "none", "empty", "no ")):
+        return True
+
+    if attr in ("status", "state", "current_state", "current_status") and any(
+        w in val for w in ("waiting", "idle", "in_progress", "pending", "running", "done", "finished")
+    ):
+        return True
+
+    return False
 
 
 def should_skip_extraction(user_text: str) -> bool:
@@ -43,6 +88,8 @@ class CandidateMemoryFact(BaseModel):
     attribute: str = Field(description="Normalized attribute name, e.g. 'os_platform', 'preferred_language'")
     value: str = Field(default="", description="Fact value string")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    observed_at: Optional[str] = Field(default=None, description="ISO timestamp when fact was observed")
+    expires_at: Optional[str] = Field(default=None, description="ISO timestamp after which fact is expired")
 
 
 def parse_extraction_response(raw_response: str) -> List[CandidateMemoryFact]:
@@ -92,6 +139,9 @@ def parse_extraction_response(raw_response: str) -> List[CandidateMemoryFact]:
                 confidence=float(item.get("confidence", 1.0)),
             )
             if candidate.entity and candidate.attribute:
+                if is_short_lived_fact(candidate.entity, candidate.attribute, candidate.value):
+                    logger.debug("Filtered out short-lived candidate fact: %s.%s = %s", candidate.entity, candidate.attribute, candidate.value)
+                    continue
                 candidates.append(candidate)
         except Exception as exc:
             logger.debug("Failed to parse candidate fact item %s: %s", item, exc)
@@ -122,6 +172,15 @@ Guidelines:
 - DELETE: A fact explicitly contradicted or revoked.
 - BUMP: A known fact reaffirmed.
 - If there are no durable facts to record, output [].
+
+CRITICAL: DO NOT RECORD SHORT-LIVED STATE:
+- NEVER record transient or momentary state, including:
+  * "due today", "due now", review queue status, or whether tasks/flashcards are due.
+  * Empty results or "not found" status (e.g. "no items found", "0 flashcards due").
+  * Temporary status or in-progress flags (e.g. "reviewing flashcards", "waiting for reply").
+  * Current date, current time, or today's schedule status.
+- ONLY record enduring knowledge (preferences, environment, constraints, decisions).
+- If the turn only discusses transient status (such as "no flashcards due today" or "checked queue, it is empty"), output [].
 
 User: {user_text}
 Assistant: {assistant_text}
@@ -155,6 +214,9 @@ class MemoryExtractorService:
 
     def apply_candidate_fact(self, candidate: CandidateMemoryFact) -> Dict[str, Any]:
         """Apply candidate fact against the repository with deterministic conflict resolution."""
+        if is_short_lived_fact(candidate.entity, candidate.attribute, candidate.value):
+            return {"action_taken": "SKIPPED_SHORT_LIVED", "fact_id": None}
+
         existing = self._find_active_fact(candidate.entity, candidate.attribute)
 
         if candidate.action == "DELETE":
@@ -174,6 +236,8 @@ class MemoryExtractorService:
                 value=candidate.value,
                 category=candidate.category,
                 confidence=candidate.confidence,
+                observed_at=candidate.observed_at,
+                expires_at=candidate.expires_at,
             )
             return {"action_taken": "ADD", "fact_id": fid}
 
@@ -193,6 +257,8 @@ class MemoryExtractorService:
                 value=candidate.value,
                 category=candidate.category,
                 confidence=candidate.confidence,
+                observed_at=candidate.observed_at,
+                expires_at=candidate.expires_at,
             )
             return {"action_taken": "ADD", "fact_id": fid}
 
@@ -219,6 +285,8 @@ class MemoryExtractorService:
             value=candidate.value,
             category=candidate.category,
             confidence=candidate.confidence,
+            observed_at=candidate.observed_at,
+            expires_at=candidate.expires_at,
         )
         return {"action_taken": "ADD", "fact_id": fid}
 
