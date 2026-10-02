@@ -1,8 +1,9 @@
 ---
 id: CARD-597
 title: "Memory: don't save short-lived state, drop the newest-15 fallback, date facts and mark them as possibly stale"
-status: In Review
+status: Done
 created: 2026-10-01
+completed: 2026-10-02
 branch: feat/card-597-memory-no-stale-state-facts
 related:
   - CARD-546
@@ -28,11 +29,12 @@ log:
   - 2026-10-01 Added unit tests in test_card597_memory_no_stale_facts.py; updated test_memory_assembler.py, test_episodic_memory.py, test_agent_memory_universal_readiness.py, test_agent_memory_lifecycle_walkthrough.py.
   - 2026-10-02 Preflight fast GREEN; fixed test_card554_553_phase_handoff_tools.py binding for CARD-596 handoff decoupling.
   - 2026-10-02 Live QA: card-597-memory-no-stale-state-facts verified on desktop and phone with Spark nemotron-3.5-lightning (PASS 2/2). Status -> In Review.
+  - 2026-10-02 Jacob approved merge to qa. Status -> Done.
 ---
 
 # [CARD-597] Memory: don't save short-lived state, drop the newest-15 fallback, date facts and mark them as possibly stale
 
-> **Status**: In Review
+> **Status**: Done
 > **Labels**: `type:bug`, `area:memory`, `area:kernel`, `P2`
 
 ## Problem
