@@ -190,8 +190,81 @@ def test_resolve_agent_context_limit_cascade():
     )
     assert resolve_agent_context_limit(agent_default, state_store=store_platform_no_ctx) == 32768
 
-    # Tier 3 Fallback C: Ultimate baseline if nothing configured is 8192
+    # Tier 3 Fallback C: Ultimate baseline if nothing configured is 8192 (to be updated to 32768 in CARD-524)
     store_empty = DummyStateStore()
     assert resolve_agent_context_limit(agent_default, state_store=store_empty) == 8192
     assert resolve_agent_context_limit(None, state_store=None) == 8192
+
+
+def test_unconfigured_baseline_and_nemotron_window():
+    """CARD-524: Unconfigured baseline is 32768 and nemotron resolves to 262144."""
+    assert get_model_context_limit("default") == 32768
+    assert get_model_context_limit("") == 32768
+    assert get_model_context_limit("nemotron-3.5-lightning") == 262144
+    assert resolve_agent_context_limit(None, state_store=None) == 32768
+
+
+def test_compaction_keeps_latest_user_answer_and_skill_runbook():
+    """CARD-524: In a tool-heavy turn, compaction preserves the latest user answer and skill runbook."""
+    from src.domain.gateway.models import ToolCall
+
+    messages = [
+        ChatMessage(role=Role.SYSTEM, content="You are AutoReiv."),
+        ChatMessage(role=Role.USER, content="Teach AutoReiv to read IPMI sensor temperatures"),
+        ChatMessage(
+            role=Role.ASSISTANT,
+            content="",
+            tool_calls=[ToolCall(id="call_sv1", name="skill_view", arguments={"pack_id": "agent-authoring"})],
+        ),
+        ChatMessage(
+            role=Role.TOOL,
+            name="skill_view",
+            tool_call_id="call_sv1",
+            content="## Agent Authoring Runbook\nStep 1: Check existing agents. Step 2: Author manifest.",
+        ),
+        ChatMessage(role=Role.ASSISTANT, content="Here are 4 questions:\n1. Sensor type?\n2. Protocol?\n3. Interval?\n4. Threshold?"),
+        ChatMessage(role=Role.USER, content="Here are my answers: 1: temp, 2: IPMI v2, 3: 5m, 4: >80C"),
+    ]
+
+    # Add 12 tool calls and responses in turn 2 (simulating a tool-heavy turn)
+    for i in range(12):
+        cid = f"call_tool_{i}"
+        messages.append(
+            ChatMessage(
+                role=Role.ASSISTANT,
+                content="",
+                tool_calls=[ToolCall(id=cid, name=f"inspect_step_{i}", arguments={"step": i})],
+            )
+        )
+        messages.append(
+            ChatMessage(
+                role=Role.TOOL,
+                name=f"inspect_step_{i}",
+                tool_call_id=cid,
+                content=f"Result data for inspection step {i}: status=ok, metric_{i}=42",
+            )
+        )
+
+    # Force compaction with small max_tokens or keep_last_n_turns=2
+    compacted, metrics = ContextCompactor.compact_with_stats(
+        messages, max_tokens=100, keep_last_n_turns=2, preserve_root_intent=True
+    )
+
+    assert metrics.compaction_applied
+
+    # Positive assertions:
+    # 1. Root intent is preserved
+    assert any(m.role == Role.USER and "Teach AutoReiv to read IPMI" in (m.content or "") for m in compacted)
+    # 2. Latest user answer is preserved verbatim (not dropped into an elided summary)
+    assert any(m.role == Role.USER and "Here are my answers" in (m.content or "") for m in compacted)
+    # 3. Loaded skill runbook is preserved
+    assert any("Agent Authoring Runbook" in (m.content or "") for m in compacted)
+
+    # Negative assertions:
+    # Latest user answer must NOT be absent from the non-summary messages
+    non_summary_user_contents = [
+        m.content for m in compacted if m.role == Role.USER
+    ]
+    assert any("Here are my answers" in c for c in non_summary_user_contents)
+
 

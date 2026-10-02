@@ -62,11 +62,11 @@ def get_model_context_limit(
         if parsed > 0:
             return parsed
     if not name or name == "default":
-        return 8192
+        return 32768
 
     if "1m" in name or "gemini-1.5" in name or "gemini-2.0" in name:
         return 1000000
-    if "256k" in name or "262k" in name or "262144" in name:
+    if "256k" in name or "262k" in name or "262144" in name or "nemotron" in name:
         return 262144
     if (
         "128k" in name
@@ -95,11 +95,13 @@ def get_model_context_limit(
         return 32768
     if "16k" in name or "gpt-3.5-turbo-16k" in name:
         return 16384
+    if "8k" in name or "llama3.2" in name:
+        return 8192
     if "4k" in name:
         return 4096
 
-    # Default conservative baseline for local 8k models (e.g. llama3.2, phi4, gemma2)
-    return 8192
+    # Default conservative baseline for modern models when context is unconfigured (CARD-524)
+    return 32768
 
 
 def resolve_agent_context_limit(
