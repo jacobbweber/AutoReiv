@@ -23,8 +23,8 @@ def test_get_model_context_limit_resolves_patterns():
     assert get_model_context_limit("qwen3.8:27b-262k") == 262144
     assert get_model_context_limit("mistral:7b") == 32768
     assert get_model_context_limit("llama3.2:3b") == 8192
-    assert get_model_context_limit("default") == 8192
-    assert get_model_context_limit("") == 8192
+    assert get_model_context_limit("default") == 32768
+    assert get_model_context_limit("") == 32768
     assert get_model_context_limit("qwen3.8:latest", default_override=131072) == 131072
     assert get_model_context_limit(
         "qwen3.8:latest",
@@ -190,10 +190,10 @@ def test_resolve_agent_context_limit_cascade():
     )
     assert resolve_agent_context_limit(agent_default, state_store=store_platform_no_ctx) == 32768
 
-    # Tier 3 Fallback C: Ultimate baseline if nothing configured is 8192 (to be updated to 32768 in CARD-524)
+    # Tier 3 Fallback C: Ultimate baseline if nothing configured is 32768 (CARD-524)
     store_empty = DummyStateStore()
-    assert resolve_agent_context_limit(agent_default, state_store=store_empty) == 8192
-    assert resolve_agent_context_limit(None, state_store=None) == 8192
+    assert resolve_agent_context_limit(agent_default, state_store=store_empty) == 32768
+    assert resolve_agent_context_limit(None, state_store=None) == 32768
 
 
 def test_unconfigured_baseline_and_nemotron_window():
@@ -268,3 +268,71 @@ def test_compaction_keeps_latest_user_answer_and_skill_runbook():
     assert any("Here are my answers" in c for c in non_summary_user_contents)
 
 
+def test_compaction_never_leaves_a_tool_return_without_its_call():
+    """CARD-524: every tool return in the compacted payload follows the assistant call that made it."""
+    from src.domain.gateway.models import ToolCall
+
+    messages = [
+        ChatMessage(role=Role.SYSTEM, content="sys"),
+        ChatMessage(role=Role.USER, content="root goal"),
+        ChatMessage(role=Role.ASSISTANT, content="ack"),
+        ChatMessage(role=Role.USER, content="latest answer: use port 623"),
+        ChatMessage(
+            role=Role.ASSISTANT,
+            content="",
+            tool_calls=[
+                ToolCall(id="sv", name="skill_view", arguments={"skill_id": "agent-authoring"}),
+                ToolCall(id="other", name="system_info", arguments={}),
+            ],
+        ),
+        ChatMessage(role=Role.TOOL, name="skill_view", tool_call_id="sv", content="## Runbook body"),
+        ChatMessage(role=Role.TOOL, name="system_info", tool_call_id="other", content="host=jarvis"),
+    ]
+    for i in range(6):
+        messages.append(
+            ChatMessage(role=Role.ASSISTANT, content="", tool_calls=[ToolCall(id=f"c{i}", name="a", arguments={})])
+        )
+        messages.append(ChatMessage(role=Role.TOOL, name="a", tool_call_id=f"c{i}", content=f"r{i}"))
+        messages.append(ChatMessage(role=Role.TOOL, name="a", tool_call_id=f"c{i}", content=f"r{i} extra"))
+
+    compacted, metrics = ContextCompactor.compact_with_stats(messages, max_tokens=10, keep_last_n_turns=1)
+
+    assert metrics.compaction_applied and metrics.turns_compacted > 0
+    seen_calls = set()
+    for m in compacted:
+        if m.role == Role.ASSISTANT:
+            seen_calls.update(tc.id for tc in (m.tool_calls or []))
+        if m.role == Role.TOOL:
+            assert m.tool_call_id in seen_calls
+    # The pinned skill_view call keeps only the skill_view call (its sibling's return was summarized).
+    pinned_call = next(m for m in compacted if any(tc.id == "sv" for tc in (m.tool_calls or [])))
+    assert [tc.id for tc in pinned_call.tool_calls] == ["sv"]
+    contents = [m.content for m in compacted]
+    assert "latest answer: use port 623" in contents and "## Runbook body" in contents
+    # Chronology: latest answer, then runbook call, then the recent window.
+    assert contents.index("latest answer: use port 623") < contents.index("## Runbook body")
+
+
+def test_summary_keeps_newest_lines_with_an_omission_marker():
+    """CARD-524: the summary keeps the newest intermediate lines, not the oldest 8."""
+    messages = [ChatMessage(role=Role.SYSTEM, content="sys"), ChatMessage(role=Role.USER, content="root")]
+    for i in range(20):
+        messages.append(ChatMessage(role=Role.ASSISTANT, content=f"step {i:02d}"))
+    messages.append(ChatMessage(role=Role.USER, content="now"))
+    messages.append(ChatMessage(role=Role.ASSISTANT, content="done"))
+
+    compacted, _ = ContextCompactor.compact_with_stats(messages, max_tokens=10, keep_last_n_turns=1)
+
+    summary = next(m.content for m in compacted if "[Summary of earlier conversation:" in m.content)
+    assert "step 19" in summary and "older messages omitted" in summary
+    assert "step 00" not in summary
+
+
+def test_unrecognised_custom_model_defers_to_platform_default_window():
+    """CARD-524: a custom model with no size tag uses the platform default window, else the 32k baseline."""
+    agent = DummyAgent(model="my-local-model:latest", provider="ollama")
+    store = DummyStateStore(purpose_matrix={"default_context_window": 65536})
+    assert resolve_agent_context_limit(agent, state_store=store) == 65536
+    assert resolve_agent_context_limit(agent, state_store=DummyStateStore()) == 32768
+    tagged = DummyAgent(model="tiny-8k", provider="ollama")
+    assert resolve_agent_context_limit(tagged, state_store=store) == 8192

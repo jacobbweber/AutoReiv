@@ -2,17 +2,20 @@
 id: CARD-524
 title: "When compaction runs it can drop the operator's latest answer (keep-rule) and the unconfigured baseline is 8192"
 type: bug
-status: In Progress
+status: In Review
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
-  journeys: [card-524-compaction-keeps-answers]
+  journeys: []
   checks:
     - tests/unit/kernel/test_context_compactor.py::test_compaction_keeps_latest_user_answer_and_skill_runbook
     - tests/unit/kernel/test_context_compactor.py::test_unconfigured_baseline_and_nemotron_window
+    - tests/unit/kernel/test_context_compactor.py::test_compaction_never_leaves_a_tool_return_without_its_call
+    - tests/unit/kernel/test_context_compactor.py::test_summary_keeps_newest_lines_with_an_omission_marker
+    - tests/unit/kernel/test_context_compactor.py::test_unrecognised_custom_model_defers_to_platform_default_window
 branch: feat/card-524-compaction-drops-latest-answer
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 45, qa_runs: 1, findings: 1}
 created: 2026-09-26
 ---
 
@@ -48,14 +51,24 @@ Hardcoded `8192` unconfigured baseline and `summary_lines[:8]` oldest-slice comp
 - `needs_decision: none` (pure technical bug fix).
 
 ## Findings
-- (fixed) none yet
+- (fixed) Tier 2 of `resolve_agent_context_limit` treated any model whose limit came out as 8192 as unrecognised, so an explicit `*-8k` tag fell through to the platform default window. It now asks the override/family lookup directly (`_override_context_limit` / `_family_context_limit`).
+- (fixed) The recent window could open on a tool return whose assistant call had been compacted away; the split now steps back to the call.
 - (to findings list) none
 
 ## Results
-| Journey | Viewport | Result | Notes |
-|---|---|---|---|
+What changed (`src/application/kernel/context_compactor.py`):
+- Keep-rule: the latest user message and the latest `skill_view` call + return that fall outside the recent window are kept verbatim, in order; a pinned assistant message keeps only its `skill_view` call so no call is left without a return. Unpinned runs are summarized separately.
+- The recent window never starts on an orphan tool return.
+- Summaries keep the newest 10 lines with an "N older messages omitted" marker (was the oldest 8).
+- Unconfigured / unrecognised baseline is 32768 (`UNCONFIGURED_CONTEXT_BASELINE`); `nemotron` resolves to 262144; `*-8k` and `llama3.2` stay 8192.
 
-Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-524\...`
+| Check | Result | Notes |
+|---|---|---|
+| `tests/unit/kernel/test_context_compactor.py` | PASS | 12 passed (3 stale 8192/keep-rule failures fixed, 3 new) |
+| Full pytest | PASS | 2282 passed, 12 skipped |
+| Fast preflight (`--base origin/qa`) | PASS | ruff, pytest guard 188, changed 12, mapped 12, vitest 944 |
+
+Journey: none. Compaction is not reachable live on the current plan (AutoReiv/Tutor on Spark nemotron, 262k window), so the proof is the unit checks above; the planned `card-524-compaction-keeps-answers` journey was dropped.
 
 ## Release note
 Fix context compaction dropping latest operator answers and loaded skill runbooks in tool-heavy turns, and raise unconfigured context baseline to 32k.

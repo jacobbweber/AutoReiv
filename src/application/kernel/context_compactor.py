@@ -20,16 +20,12 @@ class CompactionMetrics:
     compaction_applied: bool
 
 
-def get_model_context_limit(
-    model_name: str,
-    default_override: Optional[int] = None,
-    model_overrides: Optional[dict] = None,
-) -> int:
-    """
-    Returns context limit in tokens [REQ-COMPACT-001].
-    Settings overrides win, then explicit size tags, then family guesses.
-    """
-    raw = (model_name or "").strip()
+# CARD-524: an unconfigured or unrecognised model is budgeted at 32k (was 8192).
+UNCONFIGURED_CONTEXT_BASELINE = 32768
+
+
+def _override_context_limit(raw: str, model_overrides: Optional[dict]) -> Optional[int]:
+    """Settings Studio per-model window for this model name, if one is set."""
     name = raw.lower()
     candidates = []
     if raw:
@@ -54,16 +50,13 @@ def get_model_context_limit(
                     continue
                 if parsed > 0:
                     return parsed
-    if default_override:
-        try:
-            parsed = int(default_override)
-        except (TypeError, ValueError):
-            parsed = 0
-        if parsed > 0:
-            return parsed
-    if not name or name == "default":
-        return 32768
+    return None
 
+
+def _family_context_limit(name: str) -> Optional[int]:
+    """Window guessed from an explicit size tag or the model family; None when unrecognised."""
+    if not name or name == "default":
+        return None
     if "1m" in name or "gemini-1.5" in name or "gemini-2.0" in name:
         return 1000000
     if "256k" in name or "262k" in name or "262144" in name or "nemotron" in name:
@@ -99,9 +92,32 @@ def get_model_context_limit(
         return 8192
     if "4k" in name:
         return 4096
+    return None
 
-    # Default conservative baseline for modern models when context is unconfigured (CARD-524)
-    return 32768
+
+def get_model_context_limit(
+    model_name: str,
+    default_override: Optional[int] = None,
+    model_overrides: Optional[dict] = None,
+) -> int:
+    """
+    Returns context limit in tokens [REQ-COMPACT-001].
+    Settings overrides win, then explicit size tags, then family guesses,
+    then the 32k unconfigured baseline [CARD-524].
+    """
+    raw = (model_name or "").strip()
+    override = _override_context_limit(raw, model_overrides)
+    if override:
+        return override
+    if default_override:
+        try:
+            parsed = int(default_override)
+        except (TypeError, ValueError):
+            parsed = 0
+        if parsed > 0:
+            return parsed
+    family = _family_context_limit(raw.lower())
+    return family if family is not None else UNCONFIGURED_CONTEXT_BASELINE
 
 
 def resolve_agent_context_limit(
@@ -116,7 +132,7 @@ def resolve_agent_context_limit(
            check model overrides or model name architecture defaults.
     Tier 3 (Platform Settings Fallback): If agent uses default provider/model (or custom model
            has no override), fall back to platform default_context_window (Settings Studio),
-           then platform default model limit, then 8192 baseline.
+           then platform default model limit, then the 32768 baseline [CARD-524].
     """
     # 1. Tier 1: Per-Agent explicit context window override
     if agent and getattr(agent, "context_window", None) is not None:
@@ -188,10 +204,15 @@ def resolve_agent_context_limit(
             except (TypeError, ValueError):
                 pass
 
-        # Use model's native limit heuristic without injecting platform default override
-        custom_limit = get_model_context_limit(raw_agent_model, model_overrides=model_overrides)
-        if custom_limit != 8192 or not default_ctx_override:
-            return custom_limit
+        # Use model's native limit heuristic without injecting platform default override.
+        # An unrecognised model defers to the platform default window when one is set.
+        known_limit = _override_context_limit(raw_agent_model, model_overrides) or _family_context_limit(
+            raw_agent_model.lower()
+        )
+        if known_limit:
+            return known_limit
+        if not default_ctx_override:
+            return UNCONFIGURED_CONTEXT_BASELINE
 
     # 3. Tier 3: Agent on default provider / model -> Platform settings fallback
     if default_ctx_override and default_ctx_override > 0:
@@ -245,6 +266,38 @@ class ContextCompactor:
     Preserves system instructions, root intent, condenses intermediate turns,
     and keeps recent turns verbatim.
     """
+
+    SUMMARY_LINES = 10
+
+    @staticmethod
+    def _pinned_intermediate(intermediate: List[ChatMessage]) -> dict:
+        """CARD-524: index -> message kept verbatim out of the compacted history.
+
+        Keeps the latest user message and the latest skill_view call with its tool return.
+        A pinned assistant message keeps only the skill_view call, so no call is left without a return.
+        """
+        pinned: dict = {}
+        for idx in range(len(intermediate) - 1, -1, -1):
+            if intermediate[idx].role == Role.USER:
+                pinned[idx] = intermediate[idx]
+                break
+        for cidx in range(len(intermediate) - 1, -1, -1):
+            call_msg = intermediate[cidx]
+            if call_msg.role != Role.ASSISTANT:
+                continue
+            calls = [tc for tc in (call_msg.tool_calls or []) if tc.name == "skill_view"]
+            if not calls:
+                continue
+            call = calls[-1]
+            for ridx in range(cidx + 1, len(intermediate)):
+                ret = intermediate[ridx]
+                if ret.role == Role.TOOL and ret.tool_call_id == call.id:
+                    pinned[cidx] = call_msg.model_copy(update={"tool_calls": [call], "content": call_msg.content or ""})
+                    pinned[ridx] = ret
+                    break
+            if cidx in pinned:
+                break
+        return pinned
 
     @staticmethod
     def estimate_tokens(messages: List[ChatMessage]) -> int:
@@ -399,23 +452,51 @@ class ContextCompactor:
                 compaction_applied=tools_truncated_count > 0,
             )
 
-        # 3. Partition into intermediate turns vs recent turns
-        intermediate_turns = turns[:-keep_msg_count]
-        recent_turns = turns[-keep_msg_count:]
+        # 3. Partition into intermediate turns vs recent turns.
+        # CARD-524: never open the recent window on a tool return whose call was compacted away.
+        split = len(turns) - keep_msg_count
+        while split > 0 and turns[split].role == Role.TOOL:
+            split -= 1
+        intermediate_turns = turns[:split]
+        recent_turns = turns[split:]
 
-        # 4. Summarize intermediate turns
-        summary_lines: List[str] = []
-        for m in intermediate_turns:
-            role_label = m.role.value.capitalize()
-            preview = (m.content or "")[:150].replace("\n", " ")
-            summary_lines.append(f"- {role_label}: {preview}...")
+        # CARD-524 keep-rule: the operator's latest message and the latest loaded skill_view
+        # runbook stay verbatim even when a tool-heavy turn pushes them out of the recent window.
+        pinned = cls._pinned_intermediate(intermediate_turns)
 
-        summary_text = (
-            "[Summary of earlier conversation:\n"
-            + "\n".join(summary_lines[:8])
-            + "\n... (earlier turns compacted to preserve context budget)]"
-        )
-        summary_msg = ChatMessage(role=Role.ASSISTANT, content=summary_text)
+        # 4. Summarize unpinned runs of intermediate turns (newest lines win)
+        compacted_prefix: List[ChatMessage] = []
+        run: List[ChatMessage] = []
+        summarized = 0
+
+        def flush_run() -> None:
+            nonlocal summarized
+            if not run:
+                return
+            summary_lines: List[str] = []
+            for m in run:
+                role_label = m.role.value.capitalize()
+                preview = (m.content or "")[:150].replace("\n", " ")
+                summary_lines.append(f"- {role_label}: {preview}...")
+            omitted = max(0, len(summary_lines) - cls.SUMMARY_LINES)
+            head = f"... ({omitted} older messages omitted)\n" if omitted else ""
+            summary_text = (
+                "[Summary of earlier conversation:\n"
+                + head
+                + "\n".join(summary_lines[-cls.SUMMARY_LINES :])
+                + "\n... (earlier turns compacted to preserve context budget)]"
+            )
+            compacted_prefix.append(ChatMessage(role=Role.ASSISTANT, content=summary_text))
+            summarized += len(run)
+            run.clear()
+
+        for idx, m in enumerate(intermediate_turns):
+            if idx in pinned:
+                flush_run()
+                compacted_prefix.append(pinned[idx])
+            else:
+                run.append(m)
+        flush_run()
 
         # 5. Assemble compacted payload
         compacted: List[ChatMessage] = []
@@ -423,7 +504,7 @@ class ContextCompactor:
             compacted.append(system_msg)
         if root_intent_msg:
             compacted.append(root_intent_msg)
-        compacted.append(summary_msg)
+        compacted.extend(compacted_prefix)
         compacted.extend(recent_turns)
 
         compacted_tokens = cls.estimate_tokens(compacted)
@@ -431,7 +512,7 @@ class ContextCompactor:
         return compacted, CompactionMetrics(
             original_tokens=original_tokens,
             compacted_tokens=compacted_tokens,
-            turns_compacted=len(intermediate_turns),
+            turns_compacted=summarized,
             tools_truncated=tools_truncated_count,
             compression_ratio=compacted_tokens / max(1, original_tokens),
             compaction_applied=True,
