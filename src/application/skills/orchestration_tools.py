@@ -270,6 +270,11 @@ class OrchestrationTools:
                 "=== Subagent Handoff Failed ===\n"
                 "Error: target_agent_id is required."
             )
+        if target.strip().lower() != "developer":
+            return (
+                "=== Subagent Handoff Failed ===\n"
+                f"Error: handoff_to_agent only allows target 'developer', got '{target}'."
+            )
         ctx = get_tool_context()
         parent_mode = "run" if str(ctx.get("approval_mode") or "").strip().lower() == "run" else "ask"
         session_id = ctx.get("session_id") or self.session_id

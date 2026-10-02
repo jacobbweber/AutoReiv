@@ -176,7 +176,7 @@ def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_train
 
     manifest = load_platform_manifest("autoreiv")
     skill = next(s for s in manifest.skills if s.id == "agent-authoring")
-    assert set(skill.tools) == {"inspect_agent", "lookup_agents", "handoff_to_agent", "propose_skill"}
+    assert set(skill.tools) == {"inspect_agent", "propose_skill"}  # CARD-596
     assert "launch_factory_training" not in [t for s in manifest.skills for t in s.tools]
 
     offenders = []
@@ -213,18 +213,13 @@ def test_12b_agent_authoring_is_found_for_teach_requests():
 
 
 def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flow():
-    """Live retest: the model called handoff_to_agent(agent_id=, task=) and got a TypeError."""
-    from src.application.skills.orchestration_tools import OrchestrationTools
-
-    _, body = _authoring_skill_md()
-    assert 'handoff_to_agent(target_agent_id="developer", task_directive=' in body
-    assert "agent_id=" not in body.replace("target_agent_id=", "")
-    params = inspect.signature(OrchestrationTools.handoff_to_agent).parameters
-    assert "target_agent_id" in params and "task_directive" in params
-    # Flow order: inspect, ask, show the brief, get a yes, then hand off.
-    steps = [body.index(s) for s in ("inspect_agent", "Ask what is missing", "Show the brief", "yes", "handoff_to_agent(")]
+    """CARD-596: tool/MCP needs point to Ask Developer (opens Toolsmith); skills to propose_skill/Skill Studio."""
+    front, body = _authoring_skill_md()
+    assert "Ask Developer" in front["description"] or "Ask Developer" in body
+    assert "Toolsmith" in body
+    # Flow order: inspect, ask, show the brief, get a yes, then act.
+    steps = [body.index(s) for s in ("inspect_agent", "Ask what is missing", "Show the brief", "yes", "Ask Developer")]
     assert steps == sorted(steps), steps
-    assert "tell the operator" in body.lower() and "fail" in body.lower()
 
 
 def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_view():

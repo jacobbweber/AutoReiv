@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-596: Scoped agents to their designated domains and shifted routing to direct chat selection by the operator. Removed handoff_to_agent and lookup_agents from default platform tools, restricting handoff_to_agent exclusively to Toolsmith targeting Developer for coding tasks. Out-of-scope requests now clearly guide the user to the covering agent in Chat or offer the Ask Developer button.
 - CARD-598: AutoReiv has dedicated wiki template authoring tools (wiki_template_create and wiki_template_update) that save structured templates to 02_Resources/_Templates/; new notes instantiated from templates stage into 00_Inbox/ via wiki_note_create(template=<slug>).
 
 ## [0.43.0] - 2026-10-01

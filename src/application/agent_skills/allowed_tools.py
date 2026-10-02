@@ -186,16 +186,36 @@ def _blurbed_labels(agent: Any, limit: int = 90) -> list[str]:
     return out
 
 
+def _other_agents_roster(agent_id: str) -> list[str]:
+    store = _store()
+    roster: list[str] = []
+    clean_id = agent_id.strip().lower()
+    try:
+        for item in store.agents.list():
+            if item.id.lower() == clean_id or item.id.lower() in NO_TOOL_AGENTS:
+                continue
+            name = str(item.meta.get("name") or item.id.title())
+            skills = item.skills
+            if not skills:
+                continue
+            skill_labels = [skill_label(s, item.id) for s in skills]
+            roster.append(f"{name}: {', '.join(skill_labels)}")
+    except Exception:
+        pass
+    return roster
+
+
 def domain_line(agent: Any) -> str:
-    """Generated domain boundary for the system prompt: ticked skills, then hand off or Ask Developer."""
+    """Generated domain boundary for the system prompt: ticked skills, then direct user to covering agent or Ask Developer."""
     name = str(_field(agent, "name", "id") or "This agent")
+    agent_id = str(_field(agent, "id") or "")
     labels = _blurbed_labels(agent)
     covers = "; ".join(labels) if labels else "general conversation only"
-    if "handoff_to_agent" in WITHHELD_PLATFORM_TOOLS.get(str(_field(agent, "id") or ""), frozenset()):
-        return f"{name} covers: {covers}. For anything else, say so plainly; do not try to reach other agents."
+    roster = _other_agents_roster(agent_id)
+    roster_text = f" Covering agents: {'; '.join(roster)}." if roster else ""
     return (
-        f"{name} covers: {covers}. For anything else, find the right agent with lookup_agents and "
-        'hand off with handoff_to_agent; if no agent covers it, say so plainly and end your reply with "You can use Ask Developer to add this."'
+        f"{name} covers: {covers}. For requests outside your skills, tell the user plainly which agent to open in Chat (e.g. \"open Tutor in Chat\").{roster_text} "
+        'If no agent covers it, state that plainly in 1-2 concise sentences and end your reply with "You can use Ask Developer to add this."'
     )
 
 

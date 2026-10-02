@@ -27,9 +27,9 @@ def test_autoreiv_pack_excludes_cli_exec():
             f"cli_exec must not be in skill '{skill.get('id')}' for autoreiv"
         )
 
-    # 3. System prompt must direct shell requests to developer and notes to 00_Inbox/
+    # 3. System prompt directs out-of-scope to covering agent/Ask Developer, notes to 00_Inbox/
     system_prompt = pack_data.get("system_prompt", "")
-    assert "developer" in system_prompt
+    assert "Ask Developer" in system_prompt or "developer" in system_prompt.lower()
     assert "00_Inbox" in system_prompt
 
 
@@ -48,5 +48,5 @@ def test_platform_health_skill_md_excludes_cli_exec():
 
     content = skill_md_path.read_text(encoding="utf-8")
     assert "cli_exec" not in content, "platform-health SKILL.md must not reference cli_exec"
-    assert "developer" in content, "platform-health SKILL.md should advise handoff to developer"
+    assert "Developer" in content or "developer" in content.lower(), "platform-health SKILL.md advises opening Developer"
     assert "00_Inbox" in content, "platform-health SKILL.md should instruct saving to 00_Inbox/"

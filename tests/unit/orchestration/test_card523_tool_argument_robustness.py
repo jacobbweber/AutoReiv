@@ -51,21 +51,21 @@ def _agent(*names):
 def _tools(tmp_path, kernel):
     store = SQLiteStateStore(db_path=tmp_path / "s.db")
     registry = BuiltinAgentRegistry(state_store=store)
-    registry.register_profile(platform_pack_profile("direct"))
+    registry.register_profile(platform_pack_profile("developer"))
     registry.register_profile(platform_pack_profile("autoreiv"))
     directory = AgentDirectoryService(agent_registry=registry, state_store=store)
     engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel_factory=lambda p: kernel)
     return OrchestrationTools(
-        directory_service=directory, handoff_engine=engine, caller_agent_id="autoreiv", session_id="sess_523"
+        directory_service=directory, handoff_engine=engine, caller_agent_id="toolsmith", session_id="sess_523"
     )
 
 
 @pytest.mark.asyncio
 async def test_handoff_accepts_agent_id_and_task_aliases(tmp_path):
     kernel = ChildKernel()
-    out = await _tools(tmp_path, kernel).handoff_to_agent(agent_id="direct", task="Read the IPMI sensors")
-    assert "Handoff Completed (direct)" in str(out)
-    assert kernel.calls and kernel.calls[0]["agent"] == "direct"
+    out = await _tools(tmp_path, kernel).handoff_to_agent(agent_id="developer", task="Read the IPMI sensors")
+    assert "Handoff Completed (developer)" in str(out)
+    assert kernel.calls and kernel.calls[0]["agent"] == "developer"
     assert "Read the IPMI sensors" in kernel.calls[0]["user_content"]
 
 
@@ -81,7 +81,7 @@ async def test_handoff_aliases_pass_the_registry_argument_check(tmp_path):
         parameters={"type": "object", "properties": {"target_agent_id": {"type": "string"}}},
     )
     res = await reg.execute(
-        ToolCall(id="c1", name="handoff_to_agent", arguments={"agent_id": "direct", "task": "Read sensors"}),
+        ToolCall(id="c1", name="handoff_to_agent", arguments={"agent_id": "developer", "task": "Read sensors"}),
         _agent("handoff_to_agent"),
         approval_mode="run",
     )
@@ -104,8 +104,8 @@ async def test_child_at_its_step_limit_is_reported_incomplete_with_real_turns(tm
             yield ev
 
     kernel.stream_turn = probe
-    out = str(await tools.handoff_to_agent(target_agent_id="direct", task_directive="Read files"))
-    assert "Handoff Incomplete (direct)" in out
+    out = str(await tools.handoff_to_agent(target_agent_id="developer", task_directive="Read files"))
+    assert "Handoff Incomplete (developer)" in out
     assert "Status: completed" not in out
     assert f"Turns Used: {max_turns}" in out
     assert "README is left" in out
@@ -113,7 +113,7 @@ async def test_child_at_its_step_limit_is_reported_incomplete_with_real_turns(tm
 
 @pytest.mark.asyncio
 async def test_completed_handoff_reports_real_turn_count(tmp_path):
-    out = str(await _tools(tmp_path, ChildKernel(steps=3)).handoff_to_agent(target_agent_id="direct", task="x"))
+    out = str(await _tools(tmp_path, ChildKernel(steps=3)).handoff_to_agent(target_agent_id="developer", task="x"))
     assert "Handoff Completed" in out and "Turns Used: 3" in out
 
 

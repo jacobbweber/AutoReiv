@@ -20,6 +20,7 @@ def test_setup(tmp_path):
     registry = BuiltinAgentRegistry(state_store=store)
     registry.register_profile(platform_pack_profile("direct"))
     registry.register_profile(platform_pack_profile("autoreiv"))
+    registry.register_profile(platform_pack_profile("developer"))
     directory = AgentDirectoryService(agent_registry=registry, state_store=store)
 
     from src.domain.kernel.models import KernelEvent, KernelEventType
@@ -50,7 +51,7 @@ def test_setup(tmp_path):
     skill = OrchestrationTools(
         directory_service=directory,
         handoff_engine=engine,
-        caller_agent_id="autoreiv",
+        caller_agent_id="toolsmith",
         session_id="sess_root_001",
     )
 
@@ -74,10 +75,10 @@ def test_lookup_agents_tool(test_setup):
 
 @pytest.mark.asyncio
 async def test_handoff_to_agent_success(test_setup):
-    """Verify successful handoff to valid specialist subagent [REQ-A2A-002, REQ-A2A-003]."""
+    """Verify successful handoff to valid specialist subagent [REQ-A2A-002, REQ-A2A-003, CARD-596]."""
     skill = test_setup["skill"]
     res = await skill.handoff_to_agent(
-        target_agent_id="direct",
+        target_agent_id="developer",
         task_directive="Inspect system disk usage and free memory",
         input_payload={"threshold": 80},
     )
@@ -91,8 +92,8 @@ async def test_handoff_anti_recursion_depth_limit(test_setup):
     """Verify delegation beyond depth 2 is rejected [REQ-A2A-003]."""
     engine = test_setup["engine"]
     envelope = HandoffEnvelope(
-        sender_agent_id="autoreiv",
-        recipient_agent_id="direct",
+        sender_agent_id="toolsmith",
+        recipient_agent_id="developer",
         session_id="sess_123",
         task_intent="Nested task",
         depth=3,  # Exceeds max depth 2
@@ -106,9 +107,10 @@ async def test_handoff_anti_recursion_depth_limit(test_setup):
 @pytest.mark.asyncio
 async def test_handoff_blocks_self_delegation(test_setup):
     """Verify circular self-handoff is rejected [REQ-A2A-003]."""
-    skill = test_setup["skill"]  # caller is 'autoreiv'
+    skill = test_setup["skill"]
+    skill.caller_agent_id = "developer"  # caller is 'developer'
     res = await skill.handoff_to_agent(
-        target_agent_id="autoreiv",
+        target_agent_id="developer",
         task_directive="Looping to self",
     )
 
@@ -117,14 +119,14 @@ async def test_handoff_blocks_self_delegation(test_setup):
 
 @pytest.mark.asyncio
 async def test_handoff_to_non_existent_agent(test_setup):
-    """Verify delegation to unknown agent fails gracefully [REQ-A2A-003]."""
+    """Verify delegation to unknown agent fails gracefully [REQ-A2A-003, CARD-596]."""
     skill = test_setup["skill"]
     res = await skill.handoff_to_agent(
         target_agent_id="quantum-physicist-agent-999",
         task_directive="Compute quantum state",
     )
 
-    assert "not found" in res.lower() or "failed" in res.lower()
+    assert "failed" in res.lower() or "developer" in res.lower()
 
 
 @pytest.mark.asyncio
@@ -133,10 +135,10 @@ async def test_handoff_uses_live_tool_context(test_setup):
 
     skill = test_setup["skill"]
     mock_kernel = test_setup["mock_kernel"]
-    token = _tool_context.set({"agent_id": "autoreiv", "session_id": "chat_sess_live"})
+    token = _tool_context.set({"agent_id": "toolsmith", "session_id": "chat_sess_live"})
     try:
         res = await skill.handoff_to_agent(
-            target_agent_id="direct",
+            target_agent_id="developer",
             task_directive="List system info",
         )
     finally:
@@ -169,7 +171,7 @@ async def test_handoff_bubbles_child_approval(test_setup):
     skill.handoff_engine.kernel = ParkKernel()
     skill.handoff_engine.kernel_factory = lambda profile: ParkKernel()
     res = await skill.handoff_to_agent(
-        target_agent_id="direct",
+        target_agent_id="developer",
         task_directive="List system info using cli_exec",
     )
     assert isinstance(res, dict)
@@ -183,10 +185,10 @@ async def test_handoff_bubbles_child_approval(test_setup):
 async def test_handoff_batch_over_cap_errors(test_setup):
     skill = test_setup["skill"]
     res = await skill.handoff_to_agent(
-        target_agent_id="direct",
+        target_agent_id="developer",
         batch=[
-            {"target_agent_id": "direct", "task_directive": "one"},
-            {"target_agent_id": "direct", "task_directive": "two"},
+            {"target_agent_id": "developer", "task_directive": "one"},
+            {"target_agent_id": "developer", "task_directive": "two"},
         ],
     )
     assert "failed" in res.lower()
@@ -198,7 +200,7 @@ async def test_handoff_batch_over_cap_errors(test_setup):
 async def test_handoff_packet_missing_field_fails(test_setup):
     skill = test_setup["skill"]
     res = await skill.handoff_to_agent(
-        target_agent_id="direct",
+        target_agent_id="developer",
         packet={"goal": "only goal"},
     )
     assert "failed" in res.lower()
@@ -210,7 +212,7 @@ async def test_handoff_packet_coercion_resilience(test_setup):
     """Verify handoff packet coerces integer budget and list done_when seamlessly without failing."""
     skill = test_setup["skill"]
     res = await skill.handoff_to_agent(
-        target_agent_id="direct",
+        target_agent_id="developer",
         packet={
             "goal": "Run diagnostics",
             "facts": ["Fact 1"],

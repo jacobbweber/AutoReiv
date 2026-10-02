@@ -9,7 +9,7 @@
 import { waitFor } from './lib/runner.mjs';
 import { getJson, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
 
-const CODE_ASK = 'Write a small Python function that reverses a string, run it on "AutoReiv", and show me the output.';
+const CODE_ASK = 'Inspect the AutoReiv git repository and write code to implement a bugfix in the codebase.';
 const STUDY_ASK = 'Start my flashcard due review for today: show me the first card that is due and grade my answer.';
 const NOBODY_ASK = 'Book me a real flight from Boston to Denver next Friday and pay for it with my credit card.';
 // The old refusal sentence ("outside my authorized domain", "not authorized to"); saying plainly that no agent covers it is expected.
@@ -28,13 +28,6 @@ async function messages(request, base, sid) {
 
 const role = (m) => String((m && m.role) || '').toLowerCase();
 
-/** Execute phases of this chat's jobs that are assigned to developer (journey API). */
-async function developerPhases(request, base, sid) {
-  const jn = await getJson(request, `${base}/api/chat/sessions/${encodeURIComponent(sid)}/journey`).catch(() => ({}));
-  const jobs = Array.isArray(jn.jobs) ? jn.jobs : [];
-  const phases = jobs.flatMap((job) => (Array.isArray(job.phases) ? job.phases : []));
-  return phases.filter((ph) => /developer/i.test(String(ph.assigned_agent_id || ph.agent_id || ph.agent || '')));
-}
 
 export default {
   id: 'card-539-out-of-domain-routing',
@@ -45,7 +38,7 @@ export default {
     const streams = trackStreams(page);
     const stamp = `${viewport.name} ${Date.now() % 100000}`;
 
-    await j.step('A code request to AutoReiv goes to Developer (no refusal)', async () => {
+    await j.step('A code request to AutoReiv directs to Developer in Chat (no refusal, no handoff)', async () => {
       const title = `QA 544 code ${stamp}`;
       const sid = await newChat(request, base, title);
       await openApp(page, base);
@@ -55,26 +48,16 @@ export default {
       await waitFor(() => streams.count > n, { timeoutMs: 15000 });
       await waitReplyIdle(page, { timeoutMs: 400000 });
       const rows = await messages(request, base, sid);
-      const handoffs = rows.filter((m) => role(m) === 'tool' && String(m.name || '') === 'handoff_to_agent'
-        && /developer/i.test(String(m.content || '') + JSON.stringify(m.tool_calls || m.arguments || '')));
-      const devPhases = await developerPhases(request, base, sid);
+      const handoffs = rows.filter((m) => role(m) === 'tool' && String(m.name || '') === 'handoff_to_agent');
       const replies = rows.filter((m) => role(m) === 'assistant').map((m) => String(m.content || ''));
       const last = replies[replies.length - 1] || '';
-      j.note(`handoff rows to developer: ${handoffs.length}; job phases on developer: ${devPhases.map((p) => p.name || p.phase_name || '?').join(', ') || 'none'}; reply: ${last.slice(0, 160).replace(/\s+/g, ' ')}`);
-      if (!handoffs.length && !devPhases.length) throw new Error('the code request did not go to Developer (no handoff row, no developer phase)');
-      // The Developer phase must really run as Developer: no tool_policy_blocked on its own session (CARD-544 live QA).
-      for (const ph of devPhases) {
-        const pid = ph.phase_id || ph.id;
-        if (!pid) continue;
-        const prow = await messages(request, base, `${sid}::phase::${pid}`);
-        const blocked = prow.filter((m) => role(m) === 'tool' && /tool_policy_blocked/.test(String(m.content || '')));
-        j.note(`developer phase ${ph.name || '?'}: status ${ph.status || '?'}; tool rows ${prow.filter((m) => role(m) === 'tool').length}; policy-blocked ${blocked.length}`);
-        if (blocked.length) throw new Error(`the Developer phase ran without Developer's tools: ${String(blocked[0].content).slice(0, 120)}`);
-      }
+      j.note(`handoff rows: ${handoffs.length}; reply: ${last.slice(0, 160).replace(/\s+/g, ' ')}`);
+      if (handoffs.length > 0) throw new Error('AutoReiv should not execute handoff_to_agent tool');
+      if (!/developer/i.test(last)) throw new Error('reply did not direct user to Developer');
       if (REFUSAL_RE.test(last)) throw new Error(`reply contains refusal wording: ${last.slice(0, 160)}`);
     }, { timeoutMs: 430000 });
 
-    await j.step('A due-review request to AutoReiv is handed off to Tutor (no refusal)', async () => {
+    await j.step('A due-review request to AutoReiv directs to Tutor in Chat (no handoff, no wiki search loop)', async () => {
       const title = `QA 539 study ${stamp}`;
       const sid = await newChat(request, base, title);
       await openApp(page, base);
@@ -86,17 +69,15 @@ export default {
       const rows = await messages(request, base, sid);
       const handoffs = rows.filter((m) => role(m) === 'tool' && String(m.name || '') === 'handoff_to_agent');
       const lookups = rows.filter((m) => role(m) === 'tool' && String(m.name || '') === 'lookup_agents').length;
+      const wikiSearches = rows.filter((m) => role(m) === 'tool' && String(m.name || '').startsWith('wiki_')).length;
       const replies = rows.filter((m) => role(m) === 'assistant').map((m) => String(m.content || ''));
       const last = replies[replies.length - 1] || '';
-      j.note(`lookup_agents rows: ${lookups}; handoff rows: ${handoffs.length}; reply: ${last.slice(0, 200).replace(/\s+/g, ' ')}`);
-      if (!handoffs.length) throw new Error('AutoReiv did not hand off the due-review request (no handoff_to_agent tool row)');
-      const toTutor = handoffs.some((m) => /tutor/i.test(String(m.content || '')) || /tutor/i.test(JSON.stringify(m.tool_calls || m.arguments || '')));
-      j.note(`handoff mentions tutor: ${toTutor}`);
+      j.note(`lookup_agents rows: ${lookups}; handoff rows: ${handoffs.length}; wiki tool rows: ${wikiSearches}; reply: ${last.slice(0, 200).replace(/\s+/g, ' ')}`);
+      if (handoffs.length > 0) throw new Error('AutoReiv should not execute handoff_to_agent');
+      if (wikiSearches > 0) throw new Error('AutoReiv should not fall into a wiki search loop for study request');
+      if (!/tutor/i.test(last)) throw new Error('reply did not direct user to Tutor');
       if (REFUSAL_RE.test(last)) throw new Error(`reply contains refusal wording: ${last.slice(0, 160)}`);
-      const card = page.locator('text=Delegation to').last();
-      j.note(`delegation card visible: ${await card.isVisible().catch(() => false)}`);
-      await card.scrollIntoViewIfNeeded().catch(() => {});
-    }, { timeoutMs: 430000, soft: true, card: 'CARD-546' });
+    }, { timeoutMs: 430000 });
 
     await j.step('A request no agent covers: the reply says so and offers an Ask Developer button', async () => {
       const title = `QA 539 nobody ${stamp}`;
