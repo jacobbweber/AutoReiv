@@ -38,11 +38,9 @@ RETIRED_TOOL_NAMES: tuple[str, ...] = (
     "launch_factory_training",  # retired Factory dispatch [CARD-497 D12]
 )
 
-# Every agent with tools gets these (CARD-339, ADR-0052, CARD-539 D3).
+# Every agent with tools gets these (CARD-339, ADR-0052, CARD-539 D3, CARD-596).
 REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "ask_clarification",
-    "handoff_to_agent",
-    "lookup_agents",
     "get_session_info",
     "recall_agent_memory",
     "memorize_fact",

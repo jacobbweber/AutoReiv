@@ -22,7 +22,10 @@ from tests.unit.agent_skills.catalog import platform_pack_profile
 
 ROOT = Path(__file__).resolve().parents[3]
 CODE = "def run(**kw):\n    return 1\n"
-TOOLSMITH_TOOLS = {"register_native_tool", "view_native_tool", "plan_native_folder", "list_available_skills_and_tools"}
+TOOLSMITH_TOOLS = {
+    "register_native_tool", "view_native_tool", "plan_native_folder",
+    "list_available_skills_and_tools", "handoff_to_agent",  # CARD-596: Toolsmith hands off to Developer
+}
 FORBIDDEN = {
     "cli_exec", "execute_code", "shell_exec", "run_shell", "run_command", "python_exec", "commit_skill",
     "propose_skill", "propose_tool", "write_file", "patch_project_file", "write_project_file", "git_commit",

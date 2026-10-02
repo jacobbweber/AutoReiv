@@ -6,6 +6,7 @@ tools:
 - view_native_tool
 - plan_native_folder
 - list_available_skills_and_tools
+- handoff_to_agent
 version: 2.0.0
 tier: platform
 safety:

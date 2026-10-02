@@ -106,7 +106,7 @@ async def test_accepting_widens_the_domain_line_and_the_next_turn_in_a_new_chat(
     assert "c537_harbor_tide" in resolve_allowed_tools(fresh)
     line = domain_line(fresh)
     assert "tide" in line.lower(), line  # REQ-537-001: the generated domain line names the accepted skill
-    assert not REFUSAL.search(line) and "handoff_to_agent" in line and "Ask Developer" in line  # REQ-537-002
+    assert not REFUSAL.search(line) and "Ask Developer" in line  # REQ-537-002 (CARD-596: handoff_to_agent retired)
     names = _turn_tools(registry, store, fresh)
     assert set(names) == set(resolve_allowed_tools(fresh)) & set(registry._tools)  # CARD-578: all at once
     assert "c537_harbor_tide" in names, names
@@ -122,4 +122,4 @@ def test_no_platform_pack_pins_a_fixed_domain_that_would_hide_an_accepted_skill(
         return
     section = prompt.split("[DOMAIN BOUNDARIES & REFUSALS]", 1)[1].split("\n\n", 1)[0]
     assert "Focus strictly" not in section and "Focus on" not in section, section
-    assert "Your domain" in section and "handoff_to_agent" in section, section
+    assert "Your domain" in section and ("Chat" in section or "Ask Developer" in section), section

@@ -19,7 +19,7 @@ def test_developer_is_separate_pack_and_not_in_autoreiv():
     assert autoreiv.id == "autoreiv"
     assert "sdlc-engineering" not in autoreiv.allowed_skill
     assert "cli_exec" not in list(resolve_allowed_tools(autoreiv))
-    assert "handoff_to_agent" in list(resolve_allowed_tools(autoreiv))
+    assert "handoff_to_agent" not in list(resolve_allowed_tools(autoreiv))  # CARD-596
 
     dev = platform_pack_profile("developer")
     assert dev.id == "developer"
@@ -32,7 +32,7 @@ def test_developer_is_separate_pack_and_not_in_autoreiv():
 def test_tutor_absorbed_into_autoreiv_profile():
     agent = platform_pack_profile("autoreiv")
     assert agent.id == "autoreiv"
-    assert "socratic-tutoring" in agent.allowed_skill
+    assert "socratic-tutoring" not in agent.allowed_skill  # CARD-596: AutoReiv unticked education skills
     assert "wiki_note_read" in list(resolve_allowed_tools(agent))
     assert "wiki_note_search" in list(resolve_allowed_tools(agent))
 
@@ -50,7 +50,7 @@ def test_autoreiv_profile_definition():
     assert "wiki-knowledge" in agent.allowed_skill
     assert "wiki-inbox" in agent.allowed_skill
     assert "wiki-curation" in agent.allowed_skill
-    assert "coordination" in agent.allowed_skill
+    assert "coordination" not in agent.allowed_skill  # CARD-596
     assert "save_agent_specification" not in list(resolve_allowed_tools(agent))
     assert "propose_agent_specification" not in list(resolve_allowed_tools(agent))  # CARD-569
     assert "inspect_agent" in list(resolve_allowed_tools(agent))
@@ -69,8 +69,8 @@ def test_autoreiv_profile_definition():
     assert "complete_weekly_task" not in list(resolve_allowed_tools(agent))
     assert "rollover_weekly_tasks" not in list(resolve_allowed_tools(agent))
     assert "get_weekly_summary" not in list(resolve_allowed_tools(agent))
-    assert "handoff_to_agent" in list(resolve_allowed_tools(agent))
-    assert "propose_followup" in list(resolve_allowed_tools(agent))
+    assert "handoff_to_agent" not in list(resolve_allowed_tools(agent))  # CARD-596
+    assert "propose_followup" not in list(resolve_allowed_tools(agent))  # CARD-596
     assert "list_user_skills" in list(resolve_allowed_tools(agent))
     assert "skill_view" in list(resolve_allowed_tools(agent))
     assert "propose_skill" in list(resolve_allowed_tools(agent))

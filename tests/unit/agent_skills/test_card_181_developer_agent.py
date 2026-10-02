@@ -6,13 +6,13 @@ from tests.unit.agent_skills.catalog import platform_pack_profile
 
 
 def test_autoreiv_pack_profile_delegates_developer_capabilities():
-    """AutoReiv profile delegates shell/coding to developer via handoff_to_agent."""
+    """AutoReiv profile delegates shell/coding to developer via Chat selection (CARD-596)."""
     profile = platform_pack_profile("autoreiv")
     assert profile.id == "autoreiv"
     assert profile.show_in_chat is True
     assert "cli_exec" not in list(resolve_allowed_tools(profile))
     assert "sdlc-engineering" not in profile.allowed_skill
-    assert "handoff_to_agent" in list(resolve_allowed_tools(profile))
+    assert "handoff_to_agent" not in list(resolve_allowed_tools(profile))
 
 
 

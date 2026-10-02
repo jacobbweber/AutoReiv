@@ -12,6 +12,8 @@
 
 > **Note (2026-09-29, CARD-578 / [ADR-0064](./0064-tools-load-all-at-once.md))**: rule 4 selection is gone. There is no intent matcher, `activate_skill` or per-turn clamp; every allowed tool is sent on every call, only job/phase policy narrows, and a tool runs only if it was sent on that call.
 
+> **Note (2026-10-01, CARD-596)**: rule 6 (Route, do not refuse) is amended: model-driven routing was unreliable on nemotron. Agents no longer hand off to other agents (except Architect/Toolsmith → Developer for coding). Instead, the user picks the agent in Chat; the generated domain line informs the model of covering agents to direct the user to open in Chat, or offers Ask Developer when none covers it.
+
 ---
 
 ## 1. Context

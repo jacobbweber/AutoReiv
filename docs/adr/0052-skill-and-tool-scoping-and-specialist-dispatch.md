@@ -51,6 +51,7 @@ We establish four architectural pillars:
 
 ### 4. Specialist Intake Dispatch (CARD-336 Resolution)
 - In `create_job_from_catalog_resolve()`: when multi-step tasks require specialist capabilities (e.g. Wiki document reorganization or domain fleet actions), assign the execution phase to that specialist agent (`assigned_agent_id`) or mount the required skill, passing formulated parameters across phase boundaries without fail-closed stalls.
+- **Amended by CARD-596 (2026-10-01)**: agents do not model-route to each other in chat; users pick who to talk to directly in Chat. Only Architect/Toolsmith hand off to Developer.
 
 ## Consequences
 
