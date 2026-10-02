@@ -142,7 +142,7 @@ def test_multi_tier_memory_context_assembly(tmp_path):
     assert "[Agent Brain - Pinned Directives]" in block_tight
     assert "Rule: Be deterministic." in block_tight
     assert "[Agent Brain - Episodic Milestones]" not in block_tight  # Omitted on tight tier
-    assert "[Agent Brain - Recalled Relevant Facts]" in block_tight
+    assert "[Saved notes (may be out of date; check with tools before relying on them)]" in block_tight
     # Exactly 3 facts included
     tight_fact_lines = [line for line in block_tight.splitlines() if line.startswith("- system.config_param_")]
     assert len(tight_fact_lines) == 3

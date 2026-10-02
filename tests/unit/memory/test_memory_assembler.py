@@ -37,7 +37,7 @@ def test_memory_context_assembler_formatting(tmp_path):
     repo.add_pinned_memory("Always verify PowerShell commands before execution.")
     repo.record_session_summary("s-10", "Built per-agent memory SQLite repo.", turn_count=4)
     repo.add_semantic_fact("user", "os_platform", "Windows 11", category="environment")
-    repo.add_semantic_fact("user", "preferred_shell", "pwsh", category="user_pref")
+    repo.add_semantic_fact("user", "preferred_shell", "PowerShell", category="user_pref")
 
     assembler = MemoryContextAssembler(repository=repo)
 
@@ -52,8 +52,8 @@ def test_memory_context_assembler_formatting(tmp_path):
     assert "Always verify PowerShell commands" in block_broad
     assert "[Agent Brain - Episodic Milestones]" in block_broad
     assert "Built per-agent memory SQLite repo." in block_broad
-    assert "[Agent Brain - Recalled Relevant Facts]" in block_broad
-    assert "Windows 11" in block_broad
+    assert "[Saved notes (may be out of date; check with tools before relying on them)]" in block_broad
+    assert "PowerShell" in block_broad
 
     # Tight model (e.g. 4k)
     block_tight = assembler.assemble(
@@ -63,7 +63,7 @@ def test_memory_context_assembler_formatting(tmp_path):
     assert "[Agent Brain - Pinned Directives]" in block_tight
     # Episodic summaries must be omitted in tight mode to conserve tokens
     assert "[Agent Brain - Episodic Milestones]" not in block_tight
-    assert "[Agent Brain - Recalled Relevant Facts]" in block_tight
+    assert "[Saved notes (may be out of date; check with tools before relying on them)]" in block_tight
 
 
 def test_agent_memory_tools(tmp_path):

@@ -10,6 +10,7 @@ Dynamically adapts memory injection budget to the active model's context capacit
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
@@ -85,9 +86,18 @@ class MemoryContextAssembler:
         if tier["max_summaries"] > 0:
             try:
                 summaries = self.repository.list_session_summaries(limit=tier["max_summaries"])
-                if summaries:
+                valid_summaries = []
+                for s in summaries:
+                    summary_txt = s.get("summary", "").strip()
+                    if not summary_txt:
+                        continue
+                    # CARD-597: Drop content-free / automatic boilerplate summaries
+                    if re.match(r"^Turn completed with \d+ durable facts? compiled\.?$", summary_txt, re.IGNORECASE):
+                        continue
+                    valid_summaries.append(s)
+                if valid_summaries:
                     lines = ["[Agent Brain - Episodic Milestones]"]
-                    for s in summaries:
+                    for s in valid_summaries:
                         date_str = (s.get("created_at") or "")[:10]
                         sid = s.get("session_id", "session")
                         summary_txt = s.get("summary", "").strip()
@@ -101,18 +111,20 @@ class MemoryContextAssembler:
         if max_facts > 0:
             facts: List[Dict[str, Any]] = []
             try:
+                # CARD-597: Only search when user_query is provided; drop newest-15 fallback
                 if user_query and user_query.strip():
                     facts = self.repository.search_facts(query=user_query, limit=max_facts)
-                if not facts:
-                    facts = self.repository.list_semantic_facts(active_only=True, limit=max_facts)
 
                 if facts:
-                    lines = ["[Agent Brain - Recalled Relevant Facts]"]
+                    # CARD-597: plain header indicating notes may be out of date
+                    lines = ["[Saved notes (may be out of date; check with tools before relying on them)]"]
                     for f in facts:
                         entity = f.get("entity", "fact")
                         attr = f.get("attribute", "info")
                         val = f.get("value", "")
-                        lines.append(f"- {entity}.{attr}: {val}")
+                        seen_raw = f.get("observed_at") or f.get("updated_at") or f.get("created_at") or ""
+                        seen_date = f" (seen {seen_raw[:10]})" if len(seen_raw) >= 10 else ""
+                        lines.append(f"- {entity}.{attr}: {val}{seen_date}")
                     sections.append("\n".join(lines))
             except Exception as exc:
                 logger.debug("Failed recalling semantic facts: %s", exc)

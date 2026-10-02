@@ -133,22 +133,6 @@ async def _background_extract_turn_memory(
         results = await extractor.process_turn(user_text=user_text, assistant_text=assistant_text)
         if results:
             logger.info("Cognitive memory extracted for agent '%s': %s facts applied", agent_id, len(results))
-            summary_text = f"Turn completed with {len(results)} durable facts compiled."
-            decisions = [
-                f"{r.get('action_taken')}: {r.get('entity', '')}.{r.get('attribute', '')}"
-                for r in results
-                if r.get("action_taken")
-            ]
-            try:
-                repo.record_session_summary(
-                    session_id=session_id,
-                    summary=summary_text,
-                    key_decisions=decisions,
-                    turn_count=1,
-                    outcome_status="completed",
-                )
-            except Exception as e:
-                logger.debug("Recording episodic session milestone skipped: %s", e)
     except Exception as exc:
         logger.warning("Background turn memory extraction failed for agent '%s': %s", agent_id, exc)
 
