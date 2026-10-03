@@ -9,6 +9,7 @@ import { copyToClipboard } from '../../utils/clipboard.js';
 import { adoptResultMessage, adoptedBannerHtml } from './adopt_message.js';
 import { readToolEscalation } from '../tool_escalation.js';
 import { renderCardToolRow } from './card_rows.js';
+import { toolRowStatus } from './tool_status.js';
 
 export * from './journey.js';
 
@@ -626,6 +627,7 @@ export function renderMessageItem(msg, _idx, _allMessages, {
     if (renderCardToolRow(msg, messagesContainer)) return;
 
     // Generic Tool Execution Result (collapsible)
+    const rowStatus = toolRowStatus(msg, _idx, _allMessages); // CARD-477: parked, failed, rejected or done
     const el = document.createElement('div');
     el.className = 'flex justify-start w-full my-1';
     el.innerHTML = `
@@ -635,7 +637,7 @@ export function renderMessageItem(msg, _idx, _allMessages, {
             <span class="text-brand-400">🔧</span>
             <span>Tool: <strong class="text-slate-200">${escapeHtml(msg.name || 'tool')}</strong></span>
           </span>
-          <span class="text-[10px] text-emerald-400 font-mono">✓ Complete</span>
+          <span class="text-[10px] ${rowStatus.cls} font-mono" data-tool-status="${rowStatus.key}">${rowStatus.label}</span>
         </summary>
         <div class="mt-2 pt-2 border-t border-slate-800/80 font-mono text-[11px] text-slate-400 whitespace-pre-wrap max-h-48 overflow-y-auto bg-slate-950/60 p-2 rounded">
           ${escapeHtml(msg.content)}
