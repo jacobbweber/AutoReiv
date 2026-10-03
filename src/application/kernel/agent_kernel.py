@@ -1791,7 +1791,7 @@ class AgentKernel:
                 messages=[ChatMessage(role=Role.USER, content=parts_check_prompt(user_text, tools_ran, reply))],
                 tools=None,
                 num_ctx=context_limit,
-                max_tokens=reply_token_limit(2048, context_limit),
+                max_tokens=reply_token_limit(resolve_reply_limits(self.state_store)[0], context_limit),  # thinking counts
             )
             resp = await self.gateway.complete(req)
             msg = getattr(resp, "message", None)

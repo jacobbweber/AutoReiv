@@ -142,12 +142,15 @@ def needs_parts_check(user_text: str, reply: str) -> bool:
 def parts_check_prompt(user_text: str, tools_ran: list, reply: str) -> str:
     ran = "\n".join(f"- {t}" for t in tools_ran) if tools_ran else "- none"
     return (
-        "You check whether an assistant's reply covered every part of the user's request. Do not call tools.\n\n"
+        "You check whether an assistant's reply covered every part of the user's request. Do not call tools. "
+        "Keep your thinking short.\n\n"
         f"User's request:\n{user_text.strip()}\n\n"
         f"Tools that ran this turn:\n{ran}\n\n"
         f"Assistant's reply:\n{reply.strip()}\n\n"
-        "List each separate thing the user asked for. A part counts as done when a tool above did it or the reply "
-        "answers it. For each part that is not done, write one line exactly like:\n"
+        "List each separate thing the user asked for. A part that asks for an action (remember, save, create, update, "
+        "send, search, read, list, look up) counts as done only when a tool above did it; a reply that only says it "
+        "was done does not count. A question counts as done when the reply answers it. For each part that is not "
+        "done, write one line exactly like:\n"
         f"{NOT_DONE_PREFIX} <the part in a few words>.\n"
         f"If every part is done, write exactly: {_ALL_DONE}\n"
         "Write nothing else."
