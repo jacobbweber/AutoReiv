@@ -95,7 +95,6 @@ def test_progress_summary_empty_state_honest(tmp_path: Path):
     assert out["empty"] is True
     assert out["mastery"]["mastery_pct"] is None
     assert out["studio_required"] is False
-    assert out["studio_chrome_retained"] is True
     assert out["http_contract"] == "GET /api/education/progress"
     assert out["skill_hint"] == "progress-summary"
 
@@ -199,3 +198,18 @@ def test_tutor_pack_progress_summary_skill_names_tools():
     assert "CARD-441" in skill_md
     assert "GET /api/education/progress" in skill_md
     assert "No `education_progress_*` agent tool yet" not in skill_md
+
+
+def test_progress_summary_has_no_studio_chrome_flag_card601(tmp_path: Path):
+    """CARD-601: the always-true studio chrome flag is gone from both the ok and the failure payloads."""
+    ok = build_progress_summary(_repo(tmp_path), agent_id="tutor")
+    class _Broken:
+        def __getattr__(self, name):
+            raise RuntimeError("store down")
+
+    failed = build_progress_summary(_Broken(), agent_id="tutor")
+    assert ok["success"] is True
+    assert failed["success"] is False
+    for out in (ok, failed):
+        assert not [k for k in out if k.startswith("studio_chrome")]
+        assert out["studio_required"] is False
