@@ -3549,10 +3549,10 @@
 
                 <div>
                   <div class="flex items-center justify-between mb-1">
-                    <label for="factorySkillTriggerInput" class="text-[11px] font-semibold text-slate-400">Description (trigger, &le; 60 chars)</label>
-                    <span id="factorySkillTriggerCharCount" class="text-[10px] font-mono text-slate-500">0/60</span>
+                    <label for="factorySkillTriggerInput" class="text-[11px] font-semibold text-slate-400">Description (when to use it, up to about 200 chars)</label>
+                    <span id="factorySkillTriggerCharCount" class="text-[10px] font-mono text-slate-500">0/200</span>
                   </div>
-                  <input type="text" id="factorySkillTriggerInput" data-testid="factory-skill-description" maxlength="60" placeholder="When to use this skill: e.g. Create, manipulate, or render 3D scenes in Blender" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                  <textarea id="factorySkillTriggerInput" data-testid="factory-skill-description" rows="3" maxlength="200" placeholder="When to use this skill: e.g. Create, manipulate, or render 3D scenes in Blender" class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 resize-y"></textarea>
                 </div>
 
                 <div>
@@ -3610,7 +3610,7 @@
                     <label for="factorySkillMarkdownEditor" class="text-[11px] font-semibold text-slate-400">SKILL.md Runbook (Editable)</label>
                     <span class="text-[10px] text-slate-500 font-mono">Matt Pocock standard</span>
                   </div>
-                  <textarea id="factorySkillMarkdownEditor" rows="9" placeholder="---&#10;name: My Skill&#10;description: Trigger condition &lt;= 60 chars&#10;tools: []&#10;---&#10;# My Skill&#10;## Procedure&#10;1. Step one..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
+                  <textarea id="factorySkillMarkdownEditor" rows="9" placeholder="---&#10;name: My Skill&#10;description: When to use this skill (up to about 200 chars)&#10;tools: []&#10;---&#10;# My Skill&#10;## Procedure&#10;1. Step one..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
                 </div>
               </div>
             </div>
@@ -4452,7 +4452,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.102"></script>
+  <script type="module" src="/static/app.js?v=2.0.103"></script>
 </body>
 </html>
 

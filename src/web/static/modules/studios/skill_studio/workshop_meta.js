@@ -5,6 +5,20 @@
 
 import { applyWorkshopMetadata } from '../../utils/skill_frontmatter.js';
 
+/** CARD-614: a soft limit (the API accepts any length); the counter warns near it, nothing is cut. */
+export const SKILL_DESCRIPTION_LIMIT = 200;
+
+/** Counter text and warn flag for a description. */
+export function descriptionCounter(text) {
+  const len = String(text || '').length;
+  return { text: `${len}/${SKILL_DESCRIPTION_LIMIT}`, warn: len > SKILL_DESCRIPTION_LIMIT - 10 };
+}
+
+/** One line for the YAML front matter: line breaks typed in the box become spaces. */
+export function cleanDescription(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim();
+}
+
 /**
  * Map a workshop GET payload onto Skill Studio fields [CARD-418 / CARD-411].
  * A catalog-resolvable skill has no "not found" detail.
@@ -14,7 +28,7 @@ import { applyWorkshopMetadata } from '../../utils/skill_frontmatter.js';
 export function applyLoadedSkillView(data = {}, skillId = '') {
   const payload = data && typeof data === 'object' ? data : {};
   const detail = typeof payload.detail === 'string' ? payload.detail : '';
-  const description = String(payload.description || '').slice(0, 60);
+  const description = String(payload.description || ''); // CARD-614: shown in full, never cut on load
   const tools = Array.isArray(payload.tools)
     ? payload.tools.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
@@ -97,7 +111,7 @@ export function createSkillWorkshop({
     const { factorySkillNameInput, factorySkillTriggerInput } = els();
     return {
       name: (factorySkillNameInput && factorySkillNameInput.value.trim()) || '',
-      description: (factorySkillTriggerInput && factorySkillTriggerInput.value.trim()) || '',
+      description: cleanDescription(factorySkillTriggerInput && factorySkillTriggerInput.value),
       tier: 'user',
       safety: readSafety(),
       tools: Array.from(getSelectedTools()),
@@ -171,7 +185,7 @@ export function createSkillWorkshop({
       if (factorySkillIdInput) factorySkillIdInput.value = view.skillId;
       if (factorySkillTriggerInput) {
         factorySkillTriggerInput.value = view.description;
-        if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = `${view.description.length}/60`;
+        if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = descriptionCounter(view.description).text;
       }
       if (factorySkillSafetyReadOnly) factorySkillSafetyReadOnly.checked = view.safety.read_only;
       if (factorySkillSafetyHitl) factorySkillSafetyHitl.checked = view.safety.requires_hitl;

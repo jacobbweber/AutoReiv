@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from src.application.gateway.generation_semaphore import slot_wait_listener
 from src.application.kernel.stopped_reply import PartialReply, stopped_message
 from src.application.orchestration.chat_job_binding import (
+    WAITING_FOR_ANSWER_NOTE,
+    job_waiting_for_answer_on_session,
     latest_open_job_for_session,
     output_packet_for_phase,
     persist_plan_as_job,
@@ -23,7 +25,7 @@ from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
-from src.application.orchestration.kill_resume import job_stopped_by_operator
+from src.application.orchestration.kill_resume import job_stopped_by_operator, job_waiting_for_answer
 from src.application.orchestration.phase_roles import (
     format_planning_phase_block,
     format_planning_repo_note,
@@ -641,6 +643,8 @@ async def _stream_turn_bound(
                 error_text = event.content or "stream error"
             elif event.event_type == KernelEventType.TURN_END:
                 last_content = event.content or last_content
+                if (event.react or {}).get("clarification") and outcome == "done":
+                    outcome = "question"  # CARD-613
 
     # CARD-258: longer budget + 1-2 retries on timeout / connection stall.
     for attempt in range(1, attempts + 1):
@@ -785,6 +789,16 @@ async def _stream_turn_bound(
         await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
         return "failed"
 
+    if outcome == "question":
+        # CARD-613: a step that asks Jacob a question is not done; it waits for his answer in the chat.
+        orch.wait_for_answer(phase.id)
+        await queue.put(
+            _sse(
+                "phase_complete",
+                {"job_id": job.id, "phase_id": phase.id, "status": "waiting_for_answer", "react_state": "STOPPED"},
+            )
+        )
+        return "question"
     if outcome == "parked":
         orch.park_phase(phase.id)
         await queue.put(
@@ -1241,6 +1255,18 @@ async def execute_goal_job_phases(
                 phase_text = pm.content
                 break
 
+        if outcome == "question":
+            # CARD-613: the step asked a question; keep what was done and the question, then wait for the answer.
+            asked = "\n\n---\n\n".join([*completed_deliverables, phase_text, WAITING_FOR_ANSWER_NOTE] if phase_text
+                                         else [*completed_deliverables, WAITING_FOR_ANSWER_NOTE])
+            store.save_message(
+                session_id=session_id,
+                agent_id=getattr(profile, "id", None) or job.agent_id,
+                message=ChatMessage(role=Role.ASSISTANT, content=asked),
+            )
+            await queue.put(_sse("token", {"text": f"\n\n{WAITING_FOR_ANSWER_NOTE}\n"}))
+            await queue.put(_sse("turn_done", {"content": asked, "waiting_answer": True, "job_id": job.id}))
+            return
         if outcome == "parked":
             # CARD-343: phase parked awaiting HITL approval; do NOT claim FAILED.
             park_msg = (
@@ -1780,6 +1806,7 @@ async def get_session_journey(request: Request, session_id: str):
                 "created_at": j.created_at.isoformat() if hasattr(j.created_at, "isoformat") else str(j.created_at),
                 "phases": phases_list,
                 "stopped": job_stopped_by_operator(store, j, list(raw_phases or [])),  # CARD-490: Resume shows
+                "waiting_answer": job_waiting_for_answer(store, j, list(raw_phases or [])),  # CARD-613
             })
 
     # 2. Tool Executions (telemetry spans)
@@ -1991,8 +2018,18 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             # CARD-572: run_as_job (Chat "Run as a job" box) -> JobPhaseOrchestrator.create_job_from_catalog_resolve;
             # everything else -> plain AgentKernel ReAct.
 
+            answer_job = None  # CARD-613: Jacob's message answers a job step's question and continues that step
+            if not resume and not req.run_as_job and req.agent_id != "direct" and orch is not None and store:
+                answer_job = job_waiting_for_answer_on_session(store, req.session_id)
+                if answer_job is not None:
+                    resume = True
+                    store.save_message(
+                        session_id=req.session_id,
+                        agent_id=profile.id,
+                        message=ChatMessage(role=Role.USER, content=effective_content),
+                    )
             if resume:
-                review = last_goal_review_resume(store, req.session_id)
+                review = None if answer_job is not None else last_goal_review_resume(store, req.session_id)
                 if review:
                     status, record = review
                     if status in {"rejected", "reject"}:
@@ -2082,13 +2119,17 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                 reflexion_engine=reflexion_engine,
                                 profile=profile_for_phase(profile, phase, registry),
                                 session_id=resume_session,
-                                user_content=None,
+                                user_content=effective_content if answer_job is not None else None,
                                 approval_mode=req.approval_mode or "ask",
-                                resume=True,
+                                resume=answer_job is None,
                                 job=job,
                                 phase=phase,
                                 self_verify=bool(phase.verify_checker),
                             )
+                            if outcome == "question":  # CARD-613: asked again; the chat keeps the question
+                                relay_phase_reply_to_parent(store, req.session_id, resume_session, profile.id)
+                                await queue.put(_sse("token", {"text": f"\n\n{WAITING_FOR_ANSWER_NOTE}\n"}))
+                                await queue.put(_sse("turn_done", {"waiting_answer": True, "job_id": job.id}))
                             if outcome == "done":
                                 remaining = [
                                     p

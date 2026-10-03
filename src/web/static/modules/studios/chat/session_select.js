@@ -38,9 +38,10 @@ export function hydrateJobPhaseStateFromJourney(journey) {
   if (!job) return null;
   const phases = sortedPhases(job);
   const stopped = job.stopped === true; // CARD-490: Stop paused it; Resume continues the same job
+  const waitingAnswer = !stopped && job.waiting_answer === true; // CARD-613: a step asked a question; a reply continues it
   const activePhase = phases.find((p) => {
     const s = String(p.status || '').toLowerCase();
-    return s === 'waiting_approval' || s === 'running' || s === 'in_progress' || (stopped && s === 'queued');
+    return s === 'waiting_approval' || s === 'running' || s === 'in_progress' || ((stopped || waitingAnswer) && s === 'queued');
   }) || phases[phases.length - 1] || null;
   const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
   const next = {
@@ -54,6 +55,9 @@ export function hydrateJobPhaseStateFromJourney(journey) {
   };
   if (stopped) {
     next.stopped = true;
+    next.reactState = 'STOPPED';
+  } else if (waitingAnswer) {
+    next.jobStatus = 'waiting_for_answer';
     next.reactState = 'STOPPED';
   } else if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
     next.reactState = 'PARKED';

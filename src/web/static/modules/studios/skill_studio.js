@@ -9,7 +9,9 @@
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
 import { toSnakeCase } from '../utils/slug.js';
-import { createSkillWorkshop, skillDeleteRequest } from './skill_studio/workshop_meta.js';
+import {
+  SKILL_DESCRIPTION_LIMIT, createSkillWorkshop, descriptionCounter, skillDeleteRequest,
+} from './skill_studio/workshop_meta.js';
 import { createSkillScopeUI } from './skill_studio/skill_scope.js';
 import { mountSkillFileStatus } from './skill_studio/skill_file_status.js';
 
@@ -158,7 +160,7 @@ export function initSkillStudio(_state, callbacks = {}) {
     }
     if (factorySkillTriggerInput) {
       factorySkillTriggerInput.value = '';
-      if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = '0/60';
+      if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = descriptionCounter('').text;
     }
     if (factorySkillIntentInput) factorySkillIntentInput.value = '';
     if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = '';
@@ -239,7 +241,7 @@ export function initSkillStudio(_state, callbacks = {}) {
       return;
     }
     if (!trigger) {
-      showToast('Please specify a Trigger Condition (<= 60 chars).', 'warning');
+      showToast(`Please add a description: when to use this skill (up to about ${SKILL_DESCRIPTION_LIMIT} characters).`, 'warning');
       if (factorySkillTriggerInput) factorySkillTriggerInput.focus();
       return;
     }
@@ -548,10 +550,10 @@ export function initSkillStudio(_state, callbacks = {}) {
 
   if (factorySkillTriggerInput) {
     factorySkillTriggerInput.addEventListener('input', () => {
-      const len = factorySkillTriggerInput.value.length;
+      const counter = descriptionCounter(factorySkillTriggerInput.value);
       if (factorySkillTriggerCharCount) {
-        factorySkillTriggerCharCount.textContent = `${len}/60`;
-        if (len > 55) {
+        factorySkillTriggerCharCount.textContent = counter.text;
+        if (counter.warn) {
           factorySkillTriggerCharCount.className = 'text-[10px] font-mono text-amber-400';
         } else {
           factorySkillTriggerCharCount.className = 'text-[10px] font-mono text-slate-500';

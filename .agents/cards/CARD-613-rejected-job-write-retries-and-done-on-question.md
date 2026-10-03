@@ -2,16 +2,17 @@
 id: CARD-613
 title: "After a job's write card is rejected the model retries 4-5 times and asks why; the job is then marked done though the reply is a question"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
   journeys: [card-613-rejected-write-ends-cleanly]
   checks: [tests/unit/kernel/test_card613_rejection_is_final.py]
-branch: feat/card-613-rejected-write-ends-cleanly
-log: {minutes: 0, qa_runs: 0, findings: 0}
+branch: feat/card-612-613-614-reply-honesty
+log: {minutes: 170, qa_runs: 4, findings: 4}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-600
   - CARD-572
@@ -35,6 +36,12 @@ Separately, rejecting through `POST /api/approvals/{id}/decision` (no UI) return
 - A job step that ends with a clarification question is `waiting` (needs Jacob's answer), not `done`; the job strip says so.
 - Check the API-only rejection path resumes the job (or leaves it clearly stopped with Resume).
 
+### Built (2026-10-03)
+- `repeat_guard.py`: rejection result text "Rejected. Tool did not run. The operator rejected this X call. Do not call X again for this request: finish without it (give the result in your reply instead) and say plainly what was not done."; `rejected_tool_names(history)` (since the last user message); `RepeatGuard` refuses a repeat with `tool_rejected:` and no new card. The kernel (both paths) also drops rejected tools from the offered set. `hitl.py` writes the same text.
+- A step that ends with `ask_clarification` is a question: the orchestrator's `wait_for_answer` sets the phase queued with reason "waiting for your answer", the strip shows it (no Resume), and Jacob's next chat message is sent as the answer and the step continues.
+- `kill_resume.job_left_parked`: a job parked on an approval that was decided outside the chat (API) with nothing pending shows "Job stopped" + Resume (verify-gate parks excluded).
+- Tests: `tests/unit/kernel/test_card613_rejection_is_final.py` (10), `tests/unit/frontend/card_613_waiting_answer.test.js`.
+
 ## What dies
 Retry loops after a rejection; jobs marked done on a question.
 
@@ -47,10 +54,18 @@ Retry loops after a rejection; jobs marked done on a question.
 
 ## Findings
 - (from the CARD-610 live runs, 2026-10-03)
+- A job is still marked done when the final reply asks a plain-text question (not `ask_clarification`); treating "?" as a question was rejected as too heuristic. Open decision.
+- Execute was sometimes not offered `wiki_note_create` (tool narrowing; empty-wiki/tomatoes variant), so the model said "tool not available" instead of getting a card.
+- After an API rejection, the strip shows STOPPED + Resume but the job card in the chat body still says "Execute RUNNING..." and the old "waiting for operator approval" message stays until Resume.
+- The model sometimes quotes the rejection text back ("per the runbook directive ..."); harmless.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-613 wiki job run 2, UI reject | desktop | Pass | 1 rejection, 0 repeats; honest reply but summary not shown -> rejection text now asks for the result in the reply (da38c6bf). `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-2-ui-card-desktop.png`, `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-2-ui-end-desktop.png` |
+| card-613 wiki job run 3, UI reject (da38c6bf) | desktop | Pass | 1 rejection, 0 repeats, summary in the reply, "What was not done" names the note; job done. `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-3-ui-card-desktop.png`, `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-3-ui-end-desktop.png` |
+| card-613 wiki job run 4, API reject | desktop | Pass | after reload: "Job stopped" + Resume; Resume continued, no new card, 1 call of the rejected tool, job done; reply ended with an Ask Developer line (finding). `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-4-api-card-desktop.png`, `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-4-api-stopped-desktop.png`, `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-4-api-end-desktop.png` |
+| card-613 wiki job run 1, empty wiki | desktop | Pass (no card) | nothing to save, honest "no content"; ended with Ask Developer line. `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\wiki-job-1-ui-end-desktop.png` |
 
 ## Release note
 When you reject an action in a job, the agent stops asking for it again and finishes without it, and a job that ends with a question waits for your answer instead of showing Done.
