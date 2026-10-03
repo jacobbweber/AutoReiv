@@ -1,8 +1,9 @@
 ---
 id: CARD-477
 title: "Chat tool rows say \"Complete\" for tools that were parked for approval or failed"
-status: In Review
+status: Done
 created: 2026-09-25
+completed: 2026-10-03
 branch: feat/card-606-477-chat-row-status
 related:
   - CARD-470
@@ -20,7 +21,7 @@ milestone: M24
 
 # [CARD-477] Chat tool rows say "Complete" for tools that were parked for approval or failed
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-470 live-test diagnosis (2026-09-25 ~12:20 AM ET).
 > - A parked `wiki_note_create` was saved as the tool message `Tool Error: approval_required:appr_…`.

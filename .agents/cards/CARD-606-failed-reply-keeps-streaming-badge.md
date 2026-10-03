@@ -1,8 +1,9 @@
 ---
 id: CARD-606
 title: "A failed Chat reply bubble keeps its STREAMING... badge after the error"
-status: In Review
+status: Done
 created: 2026-10-02
+completed: 2026-10-03
 branch: feat/card-606-477-chat-row-status
 related:
   - CARD-484
@@ -18,7 +19,7 @@ milestone: M24
 
 # [CARD-606] A failed Chat reply bubble keeps its STREAMING... badge after the error
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Labels**: `type:bug`, `area:ui`, `area:chat`, `P3`
 
 ## Why

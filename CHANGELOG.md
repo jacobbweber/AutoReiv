@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-477: Chat tool rows show what happened: Waiting for approval, Asked for approval, Rejected, Failed, Not run or Complete (was always Complete); smoke TC-49.
+- CARD-606: a Chat reply that fails shows Failed instead of a STREAMING badge that never ends; smoke TC-48.
 - CARD-601: the education progress APIs no longer return the always-true studio_chrome_retained field.
 - CARD-484: a Chat message that fails to send (server error, network drop) is put back in the box when no reply had started, so it does not have to be retyped; Stop and a newer draft are left alone; smoke TC-48.
 - CARD-600: ask_clarification ends the turn and waits for the answer (other tool calls in that step do not run, and the question is not repeated); a failed tool call the reply does not mention gets a 'Note: <tool> failed: <short error>' line.
