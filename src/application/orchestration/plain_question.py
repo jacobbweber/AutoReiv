@@ -24,7 +24,7 @@ QUESTION_CHECK_PROMPT = (
 )
 # Worked examples: without them a no-thinking model reads every closing offer as a question (live, nemotron).
 QUESTION_CHECK_EXAMPLES = (
-    ("Task: Draft a packing list for my trip.\n\nReply:\nWhere are you travelling, and for how many days?", "yes"),
+    ("Task: Plan a dinner menu for my guests.\n\nReply:\nHow many guests are coming, and does anyone have dietary needs?", "yes"),
     ("Task: Summarize the meeting notes.\n\nReply:\nSummary: budget approved, launch moved to May.\n\n"
      "Would you like me to turn this into an email?", "no"),
     ("Task: Rename the report file.\n\nReply:\nI can rename it to 'Q3 report' or 'Report Q3'. Which name do you prefer?", "yes"),
