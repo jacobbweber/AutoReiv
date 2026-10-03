@@ -645,7 +645,7 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_note_search",
-            description="Search and filter markdown notes across the Wiki using keyword ranking and optional frontmatter metadata filters (tags, domain, topic, document_type). Returns concise metadata and summary snippets (never full note bodies) [CARD-353]." + WIKI_LOOKUP_HINT,
+            description="Search and filter markdown notes across the Wiki using keyword ranking and optional frontmatter metadata filters (tags, domain, topic, document_type). Returns concise metadata and summary snippets (never full note bodies) [CARD-353]. Use this tool for keyword search or a result limit; tags is a list of strings." + WIKI_LOOKUP_HINT,
             parameters={
                 "type": "object",
                 "properties": {
@@ -662,7 +662,7 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_note_list",
-            description="List markdown notes stored in the Wiki, optionally filtered by folder or YAML frontmatter metadata." + WIKI_LOOKUP_HINT,
+            description="List markdown notes stored in the Wiki, optionally filtered by folder or YAML frontmatter metadata. It has no query or limit parameter (use wiki_note_search for keyword search with a limit); tag is a single string [CARD-610]." + WIKI_LOOKUP_HINT,
             parameters={
                 "type": "object",
                 "properties": {

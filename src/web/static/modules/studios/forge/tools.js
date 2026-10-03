@@ -41,13 +41,13 @@ export function baselineToolCardHtml(tool) {
 export function renderBaselineTools(gridEl = null) {
   const grid = gridEl || $('forgeBaselineGrid');
   if (!grid) return;
+  // Mirrors REQUIRED_PLATFORM_TOOLS in src/application/agent_skills/schema.py (CARD-596/607).
   const requiredPrimitives = [
     { name: 'ask_clarification', description: 'Ask the human operator a clarifying question when requirements are ambiguous.' },
-    { name: 'handoff_to_agent', description: 'Handoff the conversation or task to another agent specialist.' },
-    { name: 'lookup_agents', description: 'Query available agents and their capabilities.' },
     { name: 'get_session_info', description: 'Inspect active session metadata and runtime state.' },
     { name: 'recall_agent_memory', description: 'Recall facts stored for this agent.' },
     { name: 'memorize_fact', description: 'Store a fact for this agent.' },
+    { name: 'read_document_file', description: 'Read an uploaded document attached to the chat.' },
   ];
   grid.innerHTML = requiredPrimitives.map((t) => baselineToolCardHtml(t)).join('');
   safeCreateIcons();

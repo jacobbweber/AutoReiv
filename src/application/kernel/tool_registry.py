@@ -3,6 +3,7 @@ Scoped Tool Registry with Role-Based Access Control (RBAC) [REQ-KERNEL-002].
 """
 
 import asyncio
+import difflib
 import inspect
 import json
 import re
@@ -36,6 +37,24 @@ def credential_env_from_context() -> Dict[str, str]:
     """CARD-519: the calling agent's own credentials as env overrides for one subprocess (never os.environ)."""
     creds = (_tool_context.get() or {}).get("credentials") or {}
     return {credential_env_key(cid): secret for cid, secret in creds.items() if secret}
+
+
+TOOL_NOT_OFFERED = "tool_not_offered"
+_OFFERED_NAMES_SHOWN = 25
+ARGUMENT_REFUSAL = "was called with arguments it does not accept"
+# CARD-610: refusals that ran nothing and already tell the model how to fix the call.
+_SELF_CORRECTING_REFUSALS = (
+    TOOL_NOT_OFFERED + ":",
+    ARGUMENT_REFUSAL,
+    "is not authorized for agent",
+    "not found in system registry",
+)
+
+
+def is_self_correcting_refusal(error: Any) -> bool:
+    """True for a refused call (wrong tool or arguments) that ran nothing; the refusal text explains the fix."""
+    text = str(error or "")
+    return any(marker in text for marker in _SELF_CORRECTING_REFUSALS)
 
 
 def unwrap_raw_arguments(handler: Any, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -86,7 +105,7 @@ def argument_mismatch_error(tool_name: str, handler: Any, schema: Optional[Dict[
         ]
     else:
         accepted = [f"{n}{' (required)' if n in required else ''}" for n in named]
-    parts = [f"Tool '{tool_name}' was called with arguments it does not accept."]
+    parts = [f"Tool '{tool_name}' {ARGUMENT_REFUSAL}."]
     if unknown:
         parts.append("Unknown: " + ", ".join(unknown) + ".")
     if missing:
@@ -94,6 +113,22 @@ def argument_mismatch_error(tool_name: str, handler: Any, schema: Optional[Dict[
     parts.append("Accepted parameters: " + (", ".join(accepted) or "none") + ".")
     parts.append("Nothing was run; call it again using only these parameters.")
     return " ".join(parts)
+
+
+def tool_not_offered_error(tool_name: str, offered: Collection[str]) -> str:
+    """CARD-607: refuse a tool that was not sent on this call, and say what can be called instead."""
+    names = sorted({str(n) for n in offered or [] if n})
+    text = f"{TOOL_NOT_OFFERED}:Tool '{tool_name}' was not in the tools sent on this call, so it is not authorized here."
+    close = difflib.get_close_matches(str(tool_name), names, n=2, cutoff=0.6)
+    if close:
+        text += " Did you mean " + " or ".join(close) + "?"
+    if names:
+        shown = ", ".join(names[:_OFFERED_NAMES_SHOWN])
+        more = f" (+{len(names) - _OFFERED_NAMES_SHOWN} more)" if len(names) > _OFFERED_NAMES_SHOWN else ""
+        text += f" Tools you can call now: {shown}{more}."
+    else:
+        text += " No tools are offered on this call; answer in text."
+    return text
 
 
 @dataclass
@@ -234,6 +269,7 @@ class ScopedToolRegistry:
                 "allowed_skill": list(getattr(agent, "allowed_skill", None) or []),
                 "template_folder": getattr(agent, "template_folder", None),  # CARD-603
                 "credentials": resolved_creds,
+                "offered_tools": sorted(offered) if offered is not None else None,  # CARD-607
             }
         )
         try:
@@ -278,7 +314,7 @@ class ScopedToolRegistry:
                 tool_name=tool_call.name,
                 output=None,
                 success=False,
-                error=f"tool_not_offered:Tool '{tool_call.name}' was not in the tools sent on this call, so it is not authorized here.",
+                error=tool_not_offered_error(tool_call.name, offered),
                 duration_ms=(time.perf_counter() - start_time) * 1000,
             )
 

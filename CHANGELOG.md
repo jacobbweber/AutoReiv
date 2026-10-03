@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-607: a tool_not_offered refusal names the closest tool and the tools that can be called now; the authoring catalog marks you_can_call so Toolsmith no longer calls catalog tools it is not given (0 in 5 live runs); Agent Studio's OS BASELINE and the new-agent scaffold no longer list handoff_to_agent or lookup_agents.
+- CARD-610: a tool call refused for a wrong argument, a tool not offered, a tool the agent may not use or an unknown tool name no longer files an 'Append ACE insight' skill suggestion (so the chat is not marked Needs approval) and no longer adds a 'Note: ... failed' line; real tool failures still file one. The wiki list and search tool descriptions now say which one takes a query, a limit and a tags list.
 - CARD-608: Recent Chats no longer lists job steps (Formulate, Execute) as separate chats; their approvals still mark the parent chat Needs approval, and deleting a chat removes its steps (GET /api/sessions?include_steps=true still lists them).
 - CARD-609: a server restart during a job step no longer leaves the chat stuck busy; at startup the step goes back to resumable, so the chat shows Job stopped with Resume (same job).
 - CARD-490: a job stopped with Stop shows "Job stopped" with a Resume button on the job strip (also after reopening the chat); Resume continues the same job.

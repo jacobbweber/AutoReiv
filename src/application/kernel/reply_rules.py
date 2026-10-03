@@ -13,6 +13,8 @@ from __future__ import annotations
 import re
 from typing import Any, Optional, Tuple
 
+from src.application.kernel.tool_registry import is_self_correcting_refusal
+
 CLARIFICATION_TOOL = "ask_clarification"
 
 REPLY_RULES_BLOCK = (
@@ -65,12 +67,14 @@ def output_failure(output: Any) -> Optional[str]:
 
 
 def counts_as_failure(tool_name: str, success: bool, error: Optional[str], output: Any = None) -> bool:
-    """A real failure: not an approval park and not the clarification stop."""
+    """A real failure: not an approval park, not the clarification stop, and not a refused call that ran
+    nothing and told the model how to fix it (wrong tool, not offered, bad arguments) [CARD-607/610]."""
     if tool_name == CLARIFICATION_TOOL:
         return False
     if success:
         return output_failure(output) is not None
-    return not str(error or "").startswith("approval_required:")
+    text = str(error or "")
+    return not text.startswith("approval_required:") and not is_self_correcting_refusal(text)
 
 
 def track_failure(
