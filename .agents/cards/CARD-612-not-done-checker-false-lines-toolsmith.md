@@ -2,15 +2,15 @@
 id: CARD-612
 title: "The CARD-599 'Not done' check adds false lines to Toolsmith replies, and a finished reply ends with the out-of-domain line"
 type: bug
-status: Ready
+status: In Review
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
   journeys: [card-612-toolsmith-reply-no-false-not-done]
   checks: [tests/unit/kernel/test_card612_not_done_toolsmith.py]
-branch: feat/card-612-not-done-false-lines
-log: {minutes: 0, qa_runs: 0, findings: 0}
+branch: feat/card-612-613-614-reply-honesty
+log: {minutes: 140, qa_runs: 7, findings: 2}
 created: 2026-10-03
 related:
   - CARD-599
@@ -37,6 +37,14 @@ Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003d\toolsmith-ru
 - A step done by a tool call in the turn (successful `register_native_tool`, attach proposal created) is not reported Not done (same mechanism as CARD-604).
 - The out-of-domain line is not part of Toolsmith's instructions (or the rule says to add it only when refusing a request).
 
+### Built (2026-10-03)
+- `developer_mediation.format_developer_prompt` lists only the fields Jacob filled in (no "Language hint: none"/"unspecified") and puts the working notes under the line "Notes for this work (not separate asks):".
+- `reply_rules.needs_parts_check` skips any message carrying that notes line: a brief is one work order, so the parts checker never splits it (live run 3 showed the gap's copied example question read as a separate ask).
+- `describe_tool_run` shows short args first (so `target_agent_id` stays visible behind long code) and counts a tool whose output reports failure as failed; `drop_false_not_done` drops tool/register/attach/target lines when `register_native_tool` ran OK.
+- Checker prompt explains `register_native_tool` and says hints, names and paths are not parts.
+- `allowed_tools.domain_line`: Toolsmith never gets the "You can use Ask Developer to add this." line; other agents are told only a refusal ends with it.
+- Test: `tests/unit/kernel/test_card612_not_done_toolsmith.py` (incl. a genuinely skipped part still reported).
+
 ## What dies
 "Not done" lines for empty brief fields and for steps a tool already did; the Ask Developer tail on a finished Toolsmith reply.
 
@@ -49,10 +57,15 @@ Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003d\toolsmith-ru
 
 ## Findings
 - (from the CARD-607 live runs, 2026-10-03)
+- First live pass (before 34e23eb2): run 1 clean, runs 2-3 still had Not done lines taken from the gap's copied example question and "Address missing capability" -> brief is no longer parts-checked (34e23eb2). Rerun 3/3 clean.
+- AutoReiv (not Toolsmith) still ends some "could not do it" job replies with "You can use Ask Developer to add ..." (wiki runs 1, 2 and 4) although the tool exists; the prompt rule alone does not hold on nemotron. Stripping it after tool work would need a stream-replace event; not done here.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-612 Toolsmith Ask Developer run 1 (34e23eb2) | desktop | Pass | 0 Not done, no Ask Developer tail, register OK + attach proposal. `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\toolsmith-run-1-chat-desktop.png` |
+| card-612 Toolsmith Ask Developer run 2 | desktop | Pass | same. `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\toolsmith-run-2-chat-desktop.png` |
+| card-612 Toolsmith Ask Developer run 3 | desktop | Pass | same; attach approval card under the reply. `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\toolsmith-run-3-chat-desktop.png` |
 
 ## Release note
 Toolsmith replies no longer end with "Not done" lines for things it did, or for empty fields of the Ask Developer request.

@@ -2,7 +2,7 @@
 id: CARD-614
 title: "Skill Studio cuts a skill description to 60 characters on load; relax to about 200 and show the full text"
 type: improvement
-status: Ready
+status: In Review
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-614-long-skill-description]
   checks: [tests/unit/web/test_card614_skill_description_limit.py, tests/unit/frontend/card_614_skill_description_limit.test.js]
 branch: feat/card-612-613-614-reply-honesty
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 45, qa_runs: 1, findings: 1}
 created: 2026-10-03
 related:
   - CARD-611
@@ -34,6 +34,12 @@ Skill Studio says a skill description is "<= 60 chars", but the API (`POST /api/
 - The description box is a 3-row text box (`maxlength="200"` for typing), so the whole text is visible; line breaks become spaces in the front matter.
 - Label, counter (`N/200`, amber near the limit), toast, editor placeholder and the generator prompt say 200.
 
+### Built (2026-10-03)
+- `workshop_meta.js`: `SKILL_DESCRIPTION_LIMIT = 200`, `descriptionCounter` (amber over 190), `cleanDescription` (collapses whitespace); no cut on load.
+- Skill Studio: 3-row textarea, maxlength 200, label "Description (when to use it, up to about 200 chars)", counter `N/200`, toast and editor placeholder updated; `app.js?v=2.0.103`.
+- `skill_studio.py`: generator prompt says at most 200 characters; trigger capped at 200. The 60-char line is gone from docs/findings.md.
+- Tests: `tests/unit/web/test_card614_skill_description_limit.py` (4), `tests/unit/frontend/card_614_skill_description_limit.test.js`.
+
 ## What dies
 Silent truncation of skill descriptions in Skill Studio; the 60-character wording.
 
@@ -45,10 +51,11 @@ Silent truncation of skill descriptions in Skill Studio; the 60-character wordin
 - Soft limit, not enforced server-side: existing longer descriptions keep working.
 
 ## Findings
-
+- `distillation_service.py` still caps distilled skill descriptions at 60 characters (out of scope; separate card if wanted).
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-614 long skill description | desktop | Pass | 173-char description opened in full (173/200); edited to 192 (amber), saved, API returns full text, reopened in full. `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\skill-studio-long-description-opened-desktop.png`, `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003f\skill-studio-long-description-saved-desktop.png` |
 
 ## Release note
 Skill descriptions in Skill Studio can be up to about 200 characters and are shown in full; nothing is cut off when you open or save a skill.
