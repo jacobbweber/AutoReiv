@@ -26,6 +26,13 @@ _ASK_DEVELOPER_TEXT = re.compile(r"\b(?:use|try|via|through|with)\s+(?:the\s+)?[
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _MISSING_TOOL_MARKERS = (NO_SUCH_TOOL, "not found in system registry", "is not authorized for agent")
 _FAILED_TOOL_PREFIXES = ("Tool Error:", "Rejected. Tool did not run.")
+# "I do not have a direct email-sending tool", "I can't access a tool that ...", "there is no fax tool".
+_LACKS_TOOL = re.compile(
+    r"\b(?:do not|don't|does not|doesn't|cannot|can't|unable to)\b[^.\n]{0,40}?\b(?:have|access|use|find|offer)\b"
+    r"[^.\n]{0,50}?\b(?:tools?|capability|capabilities|ability|integration)\b"
+    r"|\bno\s+[\w-]+(?:\s+[\w-]+)?\s+(?:tool|capability|integration)\b",
+    re.IGNORECASE,
+)
 _NO_AGENT_COVERS = re.compile(r"\bno (?:other )?agent\b[^.\n]{0,60}?\bcover", re.IGNORECASE)
 _POINTS_TO_AGENT = re.compile(r"\bopen [\w' -]{1,40}? in Chat\b", re.IGNORECASE)
 
@@ -64,8 +71,9 @@ def _strip_ask_developer(text: str) -> str:
 
 
 def _gap_sentence(body: str, gap_text: str) -> str:
-    for sentence in _SENTENCE_END.split(body):
-        if gap_text and gap_text in sentence:
+    """The sentence saying a capability is missing (CapabilityDetector's text, or 'I do not have a ... tool')."""
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", body):
+        if (gap_text and gap_text in sentence) or _LACKS_TOOL.search(sentence):
             return sentence
     return gap_text
 
@@ -93,8 +101,8 @@ def ask_developer_ending(
     succeeded = any(not row.lstrip().startswith(_FAILED_TOOL_PREFIXES) for row in rows)
     rejected = any(row.lstrip().startswith(_FAILED_TOOL_PREFIXES[1]) for row in rows)
     gap_sentence = _gap_sentence(body, gap_text or "")
-    gap_is_own_tool = bool(gap_text) and any(name and name in gap_sentence for name in own_tools)
-    real_gap = bool(gap_text) and not gap_is_own_tool and not rejected
+    gap_is_own_tool = bool(gap_sentence) and any(name and name in gap_sentence for name in own_tools)
+    real_gap = bool(gap_sentence) and not gap_is_own_tool and not rejected
     said_no = real_gap or had_line or bool(_NO_AGENT_COVERS.search(body))
     turned_down = not rows and said_no and not gap_is_own_tool and not _POINTS_TO_AGENT.search(body)
     if offer and ((missing and not succeeded) or turned_down or (rows and real_gap)):

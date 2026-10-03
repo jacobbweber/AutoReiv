@@ -74,11 +74,21 @@ def test_partly_done_with_a_missing_capability_gets_the_line():
     assert out == reply + "\n\n" + ASK_DEVELOPER_LINE
 
 
+def test_live_email_wording_without_a_detector_gap_gets_the_line():
+    # Live run 3 (2026-10-03): CapabilityDetector missed this wording; the reply still lacked a real tool.
+    hist = [U("summarize gardening and email it"), T('{"ok": true}', "wiki_note_read")]
+    reply = ("Summary: water deeply.\n\n**Email status:** I do not have a direct email-sending tool in my skill set. "
+             "If you need it staged as a note, I can do that via `wiki_note_create`.")
+    assert ask_developer_ending(reply, hist, None, OWN).endswith(ASK_DEVELOPER_LINE)
+
+
 def test_a_gap_about_the_agents_own_tool_adds_nothing():
     hist = [U(), T('{"hits": 2}', "wiki_note_search")]
     reply = "I cannot create the note: I do not have the tool wiki_note_create available. " + MODEL_TAIL
     out = ask_developer_ending(reply, hist, "wiki_note_create available", OWN)
     assert "Ask Developer" not in out
+    reply = "**I do not have the `wiki_note_create` tool available** in this execution context."  # live, 2026-10-03
+    assert "Ask Developer" not in ask_developer_ending(reply, hist, None, OWN)
 
 
 def test_turn_down_without_tools_gets_one_line():
