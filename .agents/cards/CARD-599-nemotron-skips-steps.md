@@ -1,8 +1,9 @@
 ---
 id: CARD-599
 title: "Multi-step requests: nemotron silently skips steps; the reply must cover every ask or say what was skipped"
-status: In Review
+status: Done
 created: 2026-10-01
+completed: 2026-10-02
 branch: feat/card-599-600-reply-honesty
 related:
   - CARD-461
@@ -18,7 +19,7 @@ milestone: M24
 
 # [CARD-599] Multi-step requests: nemotron silently skips steps; the reply must cover every ask or say what was skipped
 
-> **Status**: In Review (2026-10-02)
+> **Status**: Done (2026-10-02)
 > **Labels**: `type:bug`, `area:kernel`, `area:models`, `P2`
 
 ## Why

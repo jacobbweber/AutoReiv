@@ -1,8 +1,9 @@
 ---
 id: CARD-600
 title: "ask_clarification ends the turn, and a reply that hides a failed tool call gets a short note (CARD-523 items 5 and 7)"
-status: In Review
+status: Done
 created: 2026-10-01
+completed: 2026-10-02
 branch: feat/card-599-600-reply-honesty
 related:
   - CARD-523
@@ -17,7 +18,7 @@ milestone: M24
 
 # [CARD-600] ask_clarification ends the turn, and a reply that hides a failed tool call gets a short note (CARD-523 items 5 and 7)
 
-> **Status**: In Review (2026-10-02)
+> **Status**: Done (2026-10-02)
 > **Labels**: `type:bug`, `area:kernel`, `area:chat`, `P2`
 
 ## Why
