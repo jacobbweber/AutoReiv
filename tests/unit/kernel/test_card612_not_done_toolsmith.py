@@ -1,7 +1,8 @@
 """CARD-612: no false "Not done" lines on Toolsmith.
 
-- The Ask Developer brief lists only the fields Jacob filled in; its working notes sit after a marker line and are
-  not counted as asks by the skipped-parts checker.
+- The Ask Developer brief lists only the fields Jacob filled in and carries a marker line; a brief is one work order,
+  so the skipped-parts checker does not run on it (live QA: the example question copied from a capability gap and the
+  notes read as separate asks).
 - The checker sees short tool arguments first, so register_native_tool(target_agent_id=...) is visible.
 - A "Not done" tool line is dropped when register_native_tool ran and succeeded; a result that reports a failure
   still counts as failed.
@@ -16,8 +17,6 @@ from src.application.kernel.reply_rules import (
     describe_tool_run,
     drop_false_not_done,
     needs_parts_check,
-    parts_check_prompt,
-    request_text,
 )
 from src.application.tools.developer_mediation import build_packet, format_developer_prompt
 from tests.unit.agent_skills.catalog import platform_pack_profile
@@ -40,18 +39,22 @@ def test_brief_lists_only_filled_fields():
     assert "Packaging preference (note only, not a completed package): native" in filled
 
 
-def test_brief_notes_are_not_asks():
+def test_a_brief_is_never_parts_checked():
     text = _brief(target_agent_id="tutor")
     assert BRIEF_NOTES_MARKER in text
-    asks = request_text(text)
-    assert "register_native_tool (skill" not in asks and "Reply in this chat" not in asks
     assert not needs_parts_check(text, REPLY)  # the brief's notes used to make it look like a 6-part request
-    assert "Reply in this chat" not in parts_check_prompt(text, [], REPLY)
+    # live QA run 3: a capability gap copies the user's question into the brief; it is an example, not an ask
+    gap = format_developer_prompt(build_packet("create", {
+        "tool_name": "days_between",
+        "behavior": "How many days from March 3 to June 9?\n\nMissing capability: Compute the number of days between "
+                    "two calendar dates\n\nRequested from a capability gap for tutor.",
+        "target_agent_id": "tutor",
+    }))
+    assert not needs_parts_check(gap, REPLY)
 
 
 def test_real_multi_part_message_is_still_checked():
     msg = "Remember my bike is blue, then look up the weather, and also list my notes"
-    assert request_text(msg) == msg
     assert needs_parts_check(msg, "Saved and here is the weather.")
 
 

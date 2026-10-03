@@ -130,13 +130,10 @@ _PART_SPLIT = re.compile(
     re.IGNORECASE,
 )
 _ALREADY_SAID_SKIPPED = re.compile(r"\b(not done|skipped|did ?n[o']?t do|could ?n[o']?t do|was ?n[o']?t able to)\b", re.IGNORECASE)
-# CARD-612: a platform-written brief (Ask Developer) puts its working notes after this line; they are not asks.
+# CARD-612: a platform-written brief (Ask Developer) carries this line before its working notes. A brief is one work
+# order (build and register the tool), not a multi-part request: its fields, notes and the example question copied
+# from a capability gap read as separate asks and gave false "Not done" lines (live QA 2026-10-03).
 BRIEF_NOTES_MARKER = "Notes for this work (not separate asks):"
-
-
-def request_text(user_text: str) -> str:
-    """The part of a user message that holds the asks: a platform brief's notes are cut off."""
-    return str(user_text or "").split(BRIEF_NOTES_MARKER, 1)[0].strip()
 
 
 def request_parts(text: str) -> int:
@@ -146,8 +143,10 @@ def request_parts(text: str) -> int:
 
 
 def needs_parts_check(user_text: str, reply: str) -> bool:
-    """Only multi-part requests (3+ asks) whose reply does not already name a skipped part."""
-    if request_parts(request_text(user_text)) < 3 or not str(reply or "").strip():
+    """Only multi-part requests (3+ asks) whose reply does not already name a skipped part; never a platform brief."""
+    if BRIEF_NOTES_MARKER in str(user_text or ""):
+        return False
+    if request_parts(user_text) < 3 or not str(reply or "").strip():
         return False
     return not _ALREADY_SAID_SKIPPED.search(reply)
 
@@ -157,7 +156,7 @@ def parts_check_prompt(user_text: str, tools_ran: list, reply: str) -> str:
     return (
         "You check whether an assistant's reply covered every part of the user's request. Do not call tools. "
         "Keep your thinking short.\n\n"
-        f"User's request:\n{request_text(user_text)}\n\n"
+        f"User's request:\n{user_text.strip()}\n\n"
         f"Tools that ran this turn:\n{ran}\n\n"
         f"Assistant's reply:\n{reply.strip()}\n\n"
         "Split the request into its separate parts and go through them in order. A part that asks for an action "
