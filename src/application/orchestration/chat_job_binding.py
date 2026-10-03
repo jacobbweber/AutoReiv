@@ -5,6 +5,7 @@ Bind chat turns to persisted Job/Phase records
 
 from typing import Any, List, Optional, Sequence
 
+from src.application.orchestration.kill_resume import job_waiting_for_answer
 from src.domain.orchestration.models import (
     FOLLOWUP_JOB_TEMPLATE_ID,
     HandoffPacket,
@@ -75,6 +76,15 @@ def latest_open_job_for_session(store: Any, session_id: str) -> Optional[Job]:
         if status in _OPEN_JOB:
             return job
     return None
+
+
+def job_waiting_for_answer_on_session(store: Any, session_id: str) -> Optional[Job]:
+    """CARD-613: the chat's open job when its step is waiting for Jacob's answer, else None."""
+    job = latest_open_job_for_session(store, session_id)
+    return job if job is not None and job_waiting_for_answer(store, job) else None
+
+
+WAITING_FOR_ANSWER_NOTE = "The job is waiting for your answer. Reply here and the step continues."
 
 
 def latest_job_for_session(store: Any, session_id: str) -> Optional[Job]:

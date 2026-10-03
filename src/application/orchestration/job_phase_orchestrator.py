@@ -18,6 +18,7 @@ from src.application.orchestration.crash_resume import (
 from src.application.orchestration.job_phase_memory import persist_phase_memory_for_job
 from src.application.orchestration.kill_resume import (
     OPERATOR_KILL_REASON,
+    WAITING_FOR_ANSWER_REASON,
     is_operator_kill_reason,
     kill_checkpoint_payload,
 )
@@ -434,6 +435,19 @@ class JobPhaseOrchestrator:
             current_phase_id=phase.id,
         )
         logger.info("Parked phase %s on job %s", phase.id, job.id)
+        return job
+
+    def wait_for_answer(self, phase_id: str) -> Job:
+        """CARD-613: the step asked Jacob a question: phase back to queued (not done), job open; his reply resumes it."""
+        phase = self._store.get_phase(phase_id)
+        if phase.status in _TERMINAL_PHASE:
+            raise InvalidPhaseTransitionError(f"Cannot wait on phase {phase_id}: status is {phase.status.value}.")
+        phase.status = PhaseStatus.QUEUED
+        phase.react_state = None
+        phase = self._store.update_phase(phase)
+        self._commit_checkpoint(phase, verifier_status="none", last_fail_reason=WAITING_FOR_ANSWER_REASON)
+        job = self._store.update_job_status(phase.job_id, JobStatus.RUNNING.value, current_phase_id=phase.id)
+        logger.info("Phase %s on job %s waits for the operator's answer", phase.id, job.id)
         return job
 
     def cancel_job(self, job_id: str) -> Job:

@@ -48,6 +48,7 @@ _SELF_CORRECTING_REFUSALS = (
     ARGUMENT_REFUSAL,
     "is not authorized for agent",
     "not found in system registry",
+    "tool_rejected:",  # CARD-613: the operator rejected this tool earlier in the reply
 )
 
 

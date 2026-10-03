@@ -130,7 +130,7 @@ export function applyJobPhaseEvent(current, eventType, ev) {
     if (data.status === 'waiting_approval') next.reactState = next.reactState || 'PARKED';
   } else if (eventType === 'phase_start') {
     next.stopped = false; // CARD-490: running again
-    if (!next.jobStatus || next.jobStatus === 'queued') next.jobStatus = 'running';
+    if (!next.jobStatus || next.jobStatus === 'queued' || next.jobStatus === 'waiting_for_answer') next.jobStatus = 'running'; // CARD-613
     if (!next.reactState || String(next.reactState).toUpperCase() === 'STOPPED') next.reactState = 'THINKING';
   } else if (eventType === 'phase_complete') {
     if (data.status) next.jobStatus = data.status;

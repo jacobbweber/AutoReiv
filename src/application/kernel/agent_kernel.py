@@ -29,6 +29,7 @@ from src.application.kernel.repeat_guard import (
     LOOP_FINAL_INSTRUCTION,
     TEXT_LOOP_MESSAGE,
     RepeatGuard,
+    rejected_tool_names,
 )
 from src.application.kernel.reply_limits import (
     ReplyLimitStop,
@@ -818,6 +819,8 @@ class AgentKernel:
             user_content,
             matched_capability_ids=self._turn_matched_capability_ids,
         )
+        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
+        active_tools = [t for t in active_tools if t.name not in rejected_now]
         offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
         tool_schema_chars = (
             sum(
@@ -834,7 +837,7 @@ class AgentKernel:
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
-        repeat_guard = RepeatGuard()  # CARD-551/460
+        repeat_guard = RepeatGuard(rejected_tool_names(history))  # CARD-551/460; CARD-613
         wiki_budget = WikiLookupBudget(resolve_wiki_lookups(self.state_store))  # CARD-605: Settings > Reply limits
         react_ctx = {
             "phase_id": phase_id,
@@ -1227,6 +1230,8 @@ class AgentKernel:
             user_content,
             matched_capability_ids=self._turn_matched_capability_ids,
         )
+        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
+        active_tools = [t for t in active_tools if t.name not in rejected_now]
         offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
         tool_schema_chars = (
             sum(
@@ -1243,7 +1248,7 @@ class AgentKernel:
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
-        repeat_guard = RepeatGuard()  # CARD-551/460
+        repeat_guard = RepeatGuard(rejected_tool_names(history))  # CARD-551/460; CARD-613
         wiki_budget = WikiLookupBudget(resolve_wiki_lookups(self.state_store))  # CARD-605: Settings > Reply limits
 
         trace_id = session_id or str(uuid.uuid4())
@@ -1780,7 +1785,12 @@ class AgentKernel:
                         event_type=KernelEventType.TOKEN, content=f"\n\n{question}" if full_content.strip() else question
                     )
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
-                yield KernelEvent(event_type=KernelEventType.TURN_END, content=question or full_content, is_finished=True)
+                yield KernelEvent(
+                    event_type=KernelEventType.TURN_END,
+                    content=question or full_content,
+                    is_finished=True,
+                    react={"clarification": True},  # CARD-613: a job step that asks is not done
+                )
                 return
 
             last_turn_end = time.perf_counter()

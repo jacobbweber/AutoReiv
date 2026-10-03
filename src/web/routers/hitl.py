@@ -14,6 +14,7 @@ from src.application.agent_skills.tool_attachment import (
     apply_tool_attachment,
     runtime_tool_not_enabled,
 )
+from src.application.kernel.repeat_guard import rejection_text
 from src.application.orchestration.background_resume import background_resumes, handoff_outcome
 from src.application.orchestration.followup import PROPOSE_FOLLOWUP_TOOL, apply_followup_decision
 from src.application.orchestration.handoff_engine import PARENT_HANDOFF_TOOLS
@@ -226,7 +227,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
         elif execution and execution.get("error"):
             content = str(execution["error"])
         elif decision_norm in {"rejected", "reject"}:
-            content = "Rejected. Tool did not run."
+            content = rejection_text(str((record or {}).get("tool_name") or "tool"))  # CARD-613
         else:
             content = "Approval recorded."
 
