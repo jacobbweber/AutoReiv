@@ -2,7 +2,7 @@
 id: CARD-610
 title: "Nemotron passes unsupported arguments to wiki tools, and each refusal files a skill suggestion that needs approval"
 type: bug
-status: In Review
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-607-610-tool-noise
 log: {minutes: 150, qa_runs: 5, findings: 4}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-523
   - CARD-562

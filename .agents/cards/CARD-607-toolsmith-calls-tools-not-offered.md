@@ -1,8 +1,9 @@
 ---
 id: CARD-607
 title: "Toolsmith tries tools it is not offered (lookup_agents, list_project_dir, active_project_info)"
-status: In Review
+status: Done
 created: 2026-10-02
+completed: 2026-10-03
 branch: feat/card-607-610-tool-noise
 related:
   - CARD-596
@@ -18,7 +19,7 @@ milestone: M24
 
 # [CARD-607] Toolsmith tries tools it is not offered (lookup_agents, list_project_dir, active_project_info)
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Labels**: `type:bug`, `area:agents`, `area:kernel`, `P3`
 
 ## Why
