@@ -1,4 +1,4 @@
-"""Startup repair for jobs stuck by a concurrent resume [CARD-530 REQ-530-008, D6].
+"""Startup repairs for stuck jobs [CARD-530 REQ-530-008, D6; CARD-609].
 
 Signature: job ``running``, its current phase ``queued`` with react_state DONE. A turn finished, but a second
 run had re-queued the phase, so ``complete_phase`` refused it and nothing ended the job. A phase queued after
@@ -11,6 +11,7 @@ import logging
 from typing import Any, List
 
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
+from src.application.orchestration.kill_resume import SERVER_RESTART_REASON
 from src.domain.orchestration.models import PhaseStatus
 
 logger = logging.getLogger(__name__)
@@ -56,4 +57,36 @@ def reconcile_stuck_phases(store: Any) -> List[str]:
                 logger.debug("journey event for %s skipped", job.id)
         logger.warning("Repaired stuck job %s: phase %s queued/DONE -> failed [CARD-530]", job.id, phase.id)
         fixed.append(job.id)
+    return fixed
+
+
+def requeue_interrupted_phases(store: Any) -> List[str]:
+    """CARD-609: at startup no worker can be running, so a RUNNING phase was cut off by the restart.
+
+    Checkpoint it the way Stop does (RUNNING -> QUEUED, resumable checkpoint, reason ``server_restart``):
+    the chat is not busy, Recent Chats does not say Replying, and the job strip shows Resume. Parked
+    (waiting_approval) phases are left alone. Idempotent; returns the job ids it re-queued.
+    """
+    lister = getattr(store, "list_jobs_by_status", None)
+    if not callable(lister):
+        return []
+    orch = JobPhaseOrchestrator(store)
+    fixed: List[str] = []
+    for job in lister("running") or []:
+        try:
+            phases = store.list_phases_for_job(job.id) or []
+        except Exception:  # noqa: BLE001 - a job without readable phases is not this repair's business
+            continue
+        for phase in phases:
+            if phase.status != PhaseStatus.RUNNING:
+                continue
+            try:
+                result = orch.checkpoint_mid_llm_kill_phase(phase.id, reason=SERVER_RESTART_REASON)
+            except Exception:  # noqa: BLE001
+                logger.exception("restart re-queue failed job=%s phase=%s", job.id, phase.id)
+                continue
+            if result.get("checkpointed"):
+                logger.warning("Re-queued job %s phase %s after a restart (RUNNING -> QUEUED) [CARD-609]", job.id, phase.id)
+                if job.id not in fixed:
+                    fixed.append(job.id)
     return fixed

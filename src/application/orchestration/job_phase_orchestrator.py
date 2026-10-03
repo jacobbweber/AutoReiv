@@ -896,11 +896,14 @@ class JobPhaseOrchestrator:
         )
         return job
 
-    def checkpoint_mid_llm_kill_phase(self, phase_id: str, run_token: Optional[str] = None) -> dict:
+    def checkpoint_mid_llm_kill_phase(
+        self, phase_id: str, run_token: Optional[str] = None, reason: str = OPERATOR_KILL_REASON
+    ) -> dict:
         """Operator/worker kill mid-LLM: checkpoint + re-queue, never fail/cancel [CARD-259].
 
         ``run_token`` (a cancelled worker's own token): when a newer run has started the phase since,
-        leave it alone [CARD-530 REQ-530-004]. Stop (no token) always checkpoints.
+        leave it alone [CARD-530 REQ-530-004]. Stop (no token) always checkpoints. ``reason`` is
+        SERVER_RESTART_REASON for the startup repair [CARD-609].
         """
         phase = self._store.get_phase(phase_id)
         job = self._store.get_job(phase.job_id)
@@ -940,7 +943,7 @@ class JobPhaseOrchestrator:
                     phase,
                     verifier_status="none",
                     hitl_park_state=False,
-                    last_fail_reason=OPERATOR_KILL_REASON,
+                    last_fail_reason=reason,
                 )
             except Exception:
                 logger.exception("kill checkpoint write failed job=%s phase=%s", phase.job_id, phase.id)
@@ -959,7 +962,7 @@ class JobPhaseOrchestrator:
                         payload={
                             "phase_id": phase.id,
                             "phase_index": phase.index,
-                            "reason": OPERATOR_KILL_REASON,
+                            "reason": reason,
                         },
                     )
                 except Exception:

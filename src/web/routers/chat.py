@@ -47,7 +47,7 @@ from src.application.orchestration.research_before_plan import (
     is_research_phase,
     research_already_prepared,
 )
-from src.application.orchestration.session_activity import job_has_running_phase, session_activity
+from src.application.orchestration.session_activity import is_job_step_session, job_has_running_phase, session_activity
 from src.application.orchestration.standing_job_graph import (
     format_phase_llm_exhausted_reason,
     is_phase_llm_retryable,
@@ -1531,6 +1531,7 @@ async def list_sessions(
     request: Request,
     agent_id: Optional[str] = None,
     exclude_session_id: Optional[str] = None,
+    include_steps: bool = False,
 ):
     store = request.app.state.store
     registry = getattr(request.app.state, "registry", None)
@@ -1544,6 +1545,8 @@ async def list_sessions(
                 exclude_session_id=exclude_session_id,
             )
     sessions = store.list_sessions(agent_id=agent_id)
+    if not include_steps:  # CARD-608: job step sessions are not chats; their status rolls up to the parent
+        sessions = [s for s in sessions if not is_job_step_session(s.id)]
     activity = session_activity(store, _live_stream_session_ids())  # CARD-493
     return [
         {

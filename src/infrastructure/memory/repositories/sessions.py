@@ -136,8 +136,12 @@ class SessionRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            deleted = cur.rowcount > 0
+            # CARD-608: the chat's job step sessions are hidden from Recent Chats, so they go with it.
+            prefix = f"{session_id}::phase::"
+            cur.execute("DELETE FROM sessions WHERE substr(id, 1, ?) = ?", (len(prefix), prefix))
             conn.commit()
-            return cur.rowcount > 0
+            return deleted
         finally:
             if self._mem_conn is None:
                 conn.close()
