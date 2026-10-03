@@ -2,7 +2,7 @@
 id: CARD-611
 title: "Saving a skill whose id matches a platform skill overwrites the shipped platform/skills/<id>/SKILL.md, even with a temp skills folder"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-611-save-skill-platform-guard
 log: {minutes: 75, qa_runs: 1, findings: 3}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-570
   - CARD-610
