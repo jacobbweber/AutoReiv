@@ -1,8 +1,9 @@
 ---
 id: CARD-493
 title: "Recent Chats doesn't show which chats are still replying or waiting for approval"
-status: In Review
+status: Done
 created: 2026-09-25
+completed: 2026-10-03
 branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-488
@@ -20,7 +21,7 @@ milestone: Horizon
 
 # [CARD-493] Recent Chats doesn't show which chats are still replying or waiting for approval
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-488 planning (decisions D4 and D6)
 > **Related**: CARD-488 (switching during a reply), CARD-485 (busy state for the open chat), CARD-487 (live replay)

@@ -1,8 +1,9 @@
 ---
 id: CARD-491
 title: "Stop leaves side work running: memory extraction and non-chat jobs are not cancelled"
-status: In Review
+status: Done
 created: 2026-09-25
+completed: 2026-10-03
 branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-486
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-491] Stop leaves side work running: memory extraction and non-chat jobs are not cancelled
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 planning (scratch server + slow fake gateway)
 > **Related**: CARD-486, CARD-154, CARD-259

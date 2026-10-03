@@ -1,8 +1,9 @@
 ---
 id: CARD-490
 title: "After Stop in a plan chat there is no clear way to resume the job"
-status: In Review
+status: Done
 created: 2026-09-25
+completed: 2026-10-03
 branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-486
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-490] After Stop in a plan chat there is no clear way to resume the job
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 planning
 > **Related**: CARD-486, CARD-259 (kill/resume mid-LLM), CARD-485 (job strip on select)

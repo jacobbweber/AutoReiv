@@ -1,8 +1,9 @@
 ---
 id: CARD-494
 title: "A reply waiting behind another chat's reply just says \"Streaming...\" with nothing happening"
-status: In Review
+status: Done
 created: 2026-09-25
+completed: 2026-10-03
 branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-488
@@ -20,7 +21,7 @@ milestone: Horizon
 
 # [CARD-494] A reply waiting behind another chat's reply just says "Streaming..." with nothing happening
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 repro (first driver run) and CARD-488 planning (decision D7)
 > **Related**: CARD-488 (send in B while A runs), CARD-486 (Stop frees the slot), CARD-491 (side calls hold the slot)

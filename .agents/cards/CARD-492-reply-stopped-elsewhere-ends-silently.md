@@ -1,8 +1,9 @@
 ---
 id: CARD-492
 title: "A reply stopped from another device ends silently (or as \"Reply failed\") on the device that started it"
-status: In Review
+status: Done
 created: 2026-09-25
+completed: 2026-10-03
 branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-486
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-492] A reply stopped from another device ends silently (or as "Reply failed") on the device that started it
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-486 build (code reading after D2: Stop on a busy-elsewhere chat aborts the other device's reply)
 > **Related**: CARD-486 (Stop aborts on the server), CARD-485 (busy state), CARD-469 (failed reply is reported)
