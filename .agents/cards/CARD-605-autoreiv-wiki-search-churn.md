@@ -1,8 +1,9 @@
 ---
 id: CARD-605
 title: "AutoReiv makes about 21 wiki search/list calls for one simple search or a missing note"
-status: In Review
+status: Done
 created: 2026-10-02
+completed: 2026-10-03
 branch: feat/card-604-605-memory-and-wiki-budget
 related:
   - CARD-551
@@ -18,7 +19,7 @@ milestone: M24
 
 # [CARD-605] AutoReiv makes about 21 wiki search/list calls for one simple search or a missing note
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Labels**: `type:bug`, `area:kernel`, `area:wiki`, `P2`
 
 ## Why

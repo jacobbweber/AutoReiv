@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-605: an agent makes at most 8 wiki searches or note lists per reply (Settings > Reply limits > Wiki look-ups per reply, 1-50), then answers with what it found and says plainly when nothing matched.
+- CARD-604: when a Chat request asks the agent to remember something, memorize_fact is called in that reply (one retry if the model skipped it), and the CARD-599 check no longer says 'Not done' for a remember or recall step whose tool ran.
 - CARD-601: the education progress APIs no longer return the always-true studio_chrome_retained field.
 - CARD-484: a Chat message that fails to send (server error, network drop) is put back in the box when no reply had started, so it does not have to be retyped; Stop and a newer draft are left alone; smoke TC-48.
 - CARD-600: ask_clarification ends the turn and waits for the answer (other tool calls in that step do not run, and the question is not repeated); a failed tool call the reply does not mention gets a 'Note: <tool> failed: <short error>' line.

@@ -1,8 +1,9 @@
 ---
 id: CARD-604
 title: "Multi-ask runs: nemotron skips memorize_fact in about 30-40% of runs, and the CARD-599 checker can mark a recall that ran as Not done"
-status: In Review
+status: Done
 created: 2026-10-02
+completed: 2026-10-03
 branch: feat/card-604-605-memory-and-wiki-budget
 related:
   - CARD-599
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-604] Multi-ask runs: nemotron skips memorize_fact in about 30-40% of runs, and the CARD-599 checker can mark a recall that ran as Not done
 
-> **Status**: In Review (2026-10-03)
+> **Status**: Done (2026-10-03)
 > **Labels**: `type:bug`, `area:kernel`, `area:memory`, `area:models`, `P2`
 
 ## Why
