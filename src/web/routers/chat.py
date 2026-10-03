@@ -2391,6 +2391,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 turn_content,
                 approval_mode=req.approval_mode or "ask",
                 resume=resume,
+                parts_request=None if resume else req.content,  # CARD-599: skipped-parts check on the typed text
             ):
                 if event.event_type == KernelEventType.TURN_END and event.content:
                     last_plain = event.content
