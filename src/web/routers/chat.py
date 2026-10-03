@@ -2258,6 +2258,15 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                         step_index=started.index,
                                         emit_step_events=True,
                                     )
+                                    if nxt_outcome == "question":
+                                        # CARD-616: a later step asked; show the finished step's reply and the question, then wait.
+                                        shown = [
+                                            relay_phase_reply_to_parent(store, req.session_id, s, profile.id)
+                                            for s in (last_phase_session, phase_session)
+                                        ]
+                                        text = "\n\n".join(t for t in shown if t)
+                                        await queue.put(_sse("token", {"text": f"{text}\n\n{WAITING_FOR_ANSWER_NOTE}\n"}))
+                                        await queue.put(_sse("turn_done", {"waiting_answer": True, "job_id": job.id}))
                                     if nxt_outcome != "done":
                                         last_phase_session = ""
                                         break
