@@ -1919,6 +1919,14 @@
               <input id="replyLimitHelperSecondsInput" type="number" min="0" step="1" placeholder="1800" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
             </label>
           </div>
+          <!-- CARD-605: wiki look-ups per reply -->
+          <p class="text-xs text-slate-400">How many wiki searches or note lists an agent may make in one reply. After that it stops searching and answers with what it found, saying plainly when nothing matched. 1 to 50; empty or 0 uses the default (8).</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-300 block mb-1">Wiki look-ups per reply</span>
+              <input id="replyLimitWikiLookupsInput" type="number" min="0" max="50" step="1" placeholder="8" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+            </label>
+          </div>
           <div class="flex items-center gap-3">
             <button type="button" id="replyLimitsSaveBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save reply limits</button>
             <span id="replyLimitsStatus" class="text-[11px] text-slate-400"></span>
@@ -4439,7 +4447,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.99"></script>
+  <script type="module" src="/static/app.js?v=2.0.100"></script>
 </body>
 </html>
 

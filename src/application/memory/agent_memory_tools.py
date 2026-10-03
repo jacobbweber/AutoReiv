@@ -135,7 +135,8 @@ class AgentMemoryTools:
             description=(
                 "Save a new atomic fact into the agent's dedicated cognitive memory brain (<agent_slug>_memory.db) "
                 "with automatic conflict resolution (ADD, UPDATE, BUMP). Use this to persist user preferences, "
-                "project architecture, tooling choices, or environment constraints."
+                "project architecture, tooling choices, or environment constraints. When the user asks you to remember "
+                "something, call this in the same reply; saying it is noted without this call saves nothing."
             ),
             parameters={
                 "type": "object",

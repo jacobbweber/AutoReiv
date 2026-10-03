@@ -62,6 +62,7 @@ def test_defaults_are_generous(store):
         "provider_idle_seconds": 1800,
         "phase_seconds": 21600,
         "helper_seconds": 1800,
+        "wiki_lookups_per_reply": 8,  # CARD-605
     }
 
 
