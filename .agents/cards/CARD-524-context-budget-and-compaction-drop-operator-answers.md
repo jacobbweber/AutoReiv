@@ -2,7 +2,7 @@
 id: CARD-524
 title: "When compaction runs it can drop the operator's latest answer (keep-rule) and the unconfigured baseline is 8192"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -17,6 +17,7 @@ proof:
 branch: feat/card-524-compaction-drops-latest-answer
 log: {minutes: 45, qa_runs: 1, findings: 1}
 created: 2026-09-26
+completed: 2026-10-02
 ---
 
 # CARD-524 When compaction runs it can drop the operator's latest answer (keep-rule) and the unconfigured baseline is 8192
