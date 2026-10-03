@@ -13,8 +13,8 @@ import pytest
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.gateway.ports import LLMProviderPort
 from src.application.kernel.agent_kernel import AgentKernel
-from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.kernel.reply_limits import DEFAULT_WIKI_LOOKUPS, resolve_wiki_lookups
+from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.kernel.wiki_budget import WIKI_LOOKUP_HINT, WikiLookupBudget
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ChatMessage, CompletionRequest, CompletionResponse, Role, StreamChunk, ToolCall
