@@ -232,6 +232,7 @@ class ScopedToolRegistry:
                 "approval_mode": mode,
                 "job_id": job_id,
                 "allowed_skill": list(getattr(agent, "allowed_skill", None) or []),
+                "template_folder": getattr(agent, "template_folder", None),  # CARD-603
                 "credentials": resolved_creds,
             }
         )

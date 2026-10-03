@@ -43,6 +43,7 @@ class AgentProfilePayload(BaseModel):
     pinned_memory: Optional[str] = ""
     allowed_credentials: Optional[List[str]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
+    template_folder: Optional[str] = None  # CARD-603: None keeps the saved value, "" clears it
     expected_skills_version: Optional[str] = None  # CARD-539 D10 stale-save check
 
 
@@ -111,6 +112,7 @@ def _public_agent(
         "mcp_servers": [
             s.model_dump() if hasattr(s, "model_dump") else s for s in (getattr(profile, "mcp_servers", None) or [])
         ],
+        "template_folder": getattr(profile, "template_folder", None) or "",
     }
 
 
@@ -336,6 +338,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["allowed_credentials"] = getattr(existing, "allowed_credentials", []) or []
     if data.get("mcp_servers") is None:
         data["mcp_servers"] = getattr(existing, "mcp_servers", []) or []
+    if data.get("template_folder") is None:
+        data["template_folder"] = getattr(existing, "template_folder", None)
     data["is_builtin"] = existing.is_builtin
 
     try:

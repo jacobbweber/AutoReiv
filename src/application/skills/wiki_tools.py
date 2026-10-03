@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.skills.template_scope import NO_FOLDER_MESSAGE, caller_template_scope
 from src.domain.wiki.frontmatter import FrontmatterParser, coerce_string_or_list_of_strings
 from src.domain.wiki.store import WikiStore
 
@@ -112,18 +113,26 @@ class WikiTools:
                 "success": False,
                 "error": (
                     f"Templates cannot be created with wiki_note_create. Use wiki_template_create(slug='{clean_slug}', "
-                    f"title='{title}', ...) to author structured templates in 02_Resources/_Templates/."
+                    f"title='{title}', ...) to author structured templates in this agent's template folder."
                 ),
             }
 
-        effective_template = (template or "").strip() or "zettelkasten-atomic"
+        explicit_template = (template or "").strip()
+        effective_template = explicit_template or "zettelkasten-atomic"
         clean_tags = coerce_string_or_list_of_strings(tags)
         extra_frontmatter = dict(extra_frontmatter or {})
         extra_frontmatter.setdefault("template", effective_template)
         if not content:
-            tmpl = self.store.get_template(effective_template)
+            # CARD-603: an agent uses only templates in its own template folder.
+            scope = caller_template_scope()
+            if scope is None:
+                tmpl = self.store.get_template(effective_template)
+            else:
+                tmpl = self.store.get_template(effective_template, folder=scope.own) if scope.own else None
             if tmpl:
                 content = tmpl["content"].replace("${TITLE}", title)
+            elif scope is not None and explicit_template:
+                return {"success": False, "error": f"Template '{explicit_template}' not found."}
 
         vault_root = str(self.store.root_dir.resolve())
 
@@ -233,6 +242,8 @@ class WikiTools:
         target = relative_path or path or note_path or kwargs.get("filepath")
         if not target:
             return {"success": False, "error": "relative_path is required."}
+        if self._hidden_from_caller(target):
+            return {"success": False, "error": f"Note '{target}' not found."}
         res = self.store.read_note(target)
         if not res.get("success"):
             return res
@@ -262,6 +273,8 @@ class WikiTools:
         backup_to_archive: bool = False,
     ) -> Dict[str, Any]:
         """Update note content or frontmatter in the Wiki, optionally backing up prior version to 03_Archive/."""
+        if self._hidden_from_caller(relative_path):
+            return {"success": False, "error": f"Note '{relative_path}' not found."}
         res = self.store.write_note(
             relative_path=relative_path,
             content=content,
@@ -279,6 +292,8 @@ class WikiTools:
         reason: str = "archived",
     ) -> Dict[str, Any]:
         """Safely move a note to 03_Archive/ with updated metadata [CARD-409]."""
+        if self._hidden_from_caller(relative_path):
+            return {"success": False, "error": f"Note '{relative_path}' not found."}
         res = self.store.archive_note(relative_path=relative_path, reason=reason)
         if isinstance(res, dict) and res.get("success"):
             res["vault_root"] = str(self.store.root_dir.resolve())
@@ -297,6 +312,8 @@ class WikiTools:
         **kwargs,
     ) -> Dict[str, Any]:
         """Triage an inbox note and move it to a permanent Degree/Subject directory."""
+        if self._hidden_from_caller(source_path):
+            return {"success": False, "error": f"Note '{source_path}' not found."}
         return self.store.organize_note(
             source_path=source_path,
             target_domain=target_domain,
@@ -324,6 +341,7 @@ class WikiTools:
             domain=domain,
             topic=topic,
             document_type=document_type,
+            hidden=self._caller_hidden(),
         )
 
     def append_wiki_note(
@@ -333,6 +351,8 @@ class WikiTools:
         heading: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Safely append markdown content to an existing Wiki note."""
+        if self._hidden_from_caller(relative_path):
+            return {"success": False, "error": f"Note '{relative_path}' not found."}
         return self.store.append_note(
             relative_path=relative_path,
             content=content,
@@ -360,21 +380,51 @@ class WikiTools:
             author=author,
             pinned=pinned,
             priority=priority,
+            hidden=self._caller_hidden(),
         )
 
     def get_wiki_overview(self, max_items: int = 20) -> Dict[str, Any]:
         """Get high-level summary overview of the Wiki."""
-        return self.store.get_overview(max_items=max_items)
+        return self.store.get_overview(max_items=max_items, hidden=self._caller_hidden())
 
     def get_wiki_graph(self) -> Dict[str, Any]:
         """Get the interconnected wiki knowledge graph nodes and edges."""
         return self.store.get_graph()
 
+    # --- CARD-603: template scope of the calling agent ---
+
+    @staticmethod
+    def _caller_hidden():
+        """Path predicate hiding other agents' template folders from the calling agent (None for platform callers)."""
+        scope = caller_template_scope()
+        if scope is None or not scope.others:
+            return None
+        return scope.hides
+
+    def _hidden_from_caller(self, rel_path: Optional[str]) -> bool:
+        scope = caller_template_scope()
+        if scope is None or not rel_path:
+            return False
+        try:
+            target = Path(str(rel_path))
+            if target.is_absolute():
+                rel = str(target.resolve().relative_to(self.store.root_dir.resolve()))
+            else:
+                rel = str(rel_path)
+        except Exception:
+            rel = str(rel_path)
+        return scope.hides(rel)
+
     def wiki_template_list(self) -> List[Dict[str, Any]]:
         """
-        List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, SOP runbook, ADR).
+        List the structured wiki note templates in this agent's template folder (CARD-603).
         """
-        return self.store.list_templates()
+        scope = caller_template_scope()
+        if scope is None:
+            return self.store.list_templates()
+        if not scope.own:
+            return []
+        return self.store.list_templates(folder=scope.own)
 
     def list_wiki_templates(self) -> List[Dict[str, Any]]:
         """Backward-compatible Python alias for wiki_template_list."""
@@ -382,9 +432,13 @@ class WikiTools:
 
     def wiki_template_read(self, slug: str) -> Optional[Dict[str, Any]]:
         """
-        Read a specific structured wiki note template by slug or name.
+        Read a specific structured wiki note template by slug or name (only from this agent's folder, CARD-603).
         """
-        return self.store.get_template(slug)
+        scope = caller_template_scope()
+        if scope is None:
+            return self.store.get_template(slug)
+        found = self.store.get_template(slug, folder=scope.own) if scope.own else None
+        return found if found is not None else {"success": False, "error": f"Template '{slug}' not found."}
 
     def get_wiki_template(self, slug: str) -> Optional[Dict[str, Any]]:
         """Backward-compatible Python alias for wiki_template_read."""
@@ -399,15 +453,19 @@ class WikiTools:
         tags: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        Create a new structured wiki note template in 02_Resources/_Templates/.
+        Create a new structured wiki note template in this agent's template folder (CARD-603).
         Fails closed if the template already exists.
         """
+        scope = caller_template_scope()
+        if scope is not None and not scope.own:
+            return {"success": False, "error": NO_FOLDER_MESSAGE}
         return self.store.create_template(
             slug=slug,
             title=title,
             description=description,
             content=content,
             tags=tags,
+            folder=scope.own if scope is not None else None,
         )
 
     def update_wiki_template(
@@ -419,15 +477,19 @@ class WikiTools:
         tags: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        Update an existing structured wiki note template.
-        Fails closed if the template does not exist.
+        Update an existing structured wiki note template in this agent's template folder (CARD-603).
+        Fails closed if the template does not exist there.
         """
+        scope = caller_template_scope()
+        if scope is not None and not scope.own:
+            return {"success": False, "error": f"Template '{slug}' not found."}
         return self.store.update_template(
             slug=slug,
             title=title,
             description=description,
             content=content,
             tags=tags,
+            folder=scope.own if scope is not None else None,
         )
 
     # Canonical tool name aliases
@@ -637,7 +699,7 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_template_list",
-            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR). Returns lightweight index metadata without full content.",
+            description="List the structured wiki note templates in this agent's template folder (set per agent in Agent Studio). Returns lightweight index metadata without full content.",
             parameters={"type": "object", "properties": {}},
             handler=self.wiki_template_list,
         )
@@ -661,7 +723,7 @@ class WikiTools:
         registry.register_tool(
             name="wiki_template_create",
             description=(
-                "Author a new structured wiki note template in the canonical template directory (02_Resources/_Templates/<slug>.md). "
+                "Author a new structured wiki note template in this agent's template folder (<template folder>/<slug>.md). "
                 "Templates define reusable schemas, headings, and guidelines for future notes. "
                 "Fails closed if a template with this slug already exists (use wiki_template_update to modify existing templates)."
             ),
@@ -682,7 +744,7 @@ class WikiTools:
         registry.register_tool(
             name="wiki_template_update",
             description=(
-                "Update an existing structured wiki note template in 02_Resources/_Templates/<slug>.md. "
+                "Update an existing structured wiki note template in this agent's template folder. "
                 "Fails closed if the template does not exist (use wiki_template_create to author new templates)."
             ),
             parameters={

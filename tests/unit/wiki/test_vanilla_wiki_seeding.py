@@ -42,7 +42,7 @@ def test_vanilla_wiki_scaffold_seeding(tmp_path: Path):
     assert notes_children == [], f"01_Notes must have zero children, found: {notes_children}"
 
     # 4. Canonical templates exist
-    weekly_template_path = wiki_root / "02_Resources" / "_Templates" / "weekly_notes.md"
+    weekly_template_path = wiki_root / "02_Resources" / "_Templates" / "General" / "weekly_notes.md"  # CARD-603
     assert weekly_template_path.exists(), "weekly_notes.md template missing from _Templates!"
 
     # 5. Templates are clean and do NOT contain mock company projects
