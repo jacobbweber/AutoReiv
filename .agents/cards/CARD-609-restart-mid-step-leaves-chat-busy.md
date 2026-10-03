@@ -44,7 +44,7 @@ Chats stuck busy after a restart.
 - Reuse the Stop checkpoint rather than a new state: the chat, the journey and Resume already handle it (CARD-490). The strip says "Job stopped" for both; the journey event records `server_restart`.
 
 ## Findings
-- (to findings list) nemotron calls `wiki_note_list` with an unsupported `limit` argument; the tool refuses, and online ACE then files a `propose_skill` approval on the job ("Append ACE insight to wiki SOP"). Seen in both job live checks today.
+- (carded as CARD-610) nemotron calls `wiki_note_list` with an unsupported `limit` argument; the tool refuses, and online ACE then files a `propose_skill` approval on the job ("Append ACE insight to wiki SOP"). Seen in both job live checks today.
 
 ## Results
 | Check | Result |
