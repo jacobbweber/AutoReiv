@@ -13,7 +13,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from src.domain.skills.user_skill import SKILL_DESCRIPTION_LIMIT  # CARD-614: soft limit; Skill Studio shows the full text
+# CARD-614: soft limit; Skill Studio shows the full text
+from src.domain.skills.user_skill import SKILL_DESCRIPTION_LIMIT
 
 router = APIRouter(tags=["Skill Studio"])
 
