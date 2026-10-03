@@ -1,8 +1,9 @@
 ---
 id: CARD-484
 title: "A failed Chat send clears the typed message, so it has to be retyped"
-status: In Review
+status: Done
 created: 2026-09-25
+completed: 2026-10-02
 branch: feat/card-484-failed-send-keeps-text
 related:
   - CARD-476
@@ -18,7 +19,7 @@ milestone: M24
 
 # [CARD-484] A failed Chat send clears the typed message, so it has to be retyped
 
-> **Status**: In Review (2026-10-02)
+> **Status**: Done (2026-10-02)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-476 planning (422 repro on the scratch server).
 > **Related**: CARD-476, CARD-397
