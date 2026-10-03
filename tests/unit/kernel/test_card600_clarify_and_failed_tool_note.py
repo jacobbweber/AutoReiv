@@ -222,6 +222,8 @@ def test_note_rules():
     assert failed_tool_note("The handoff to agent hit its budget.", fail) == ""
     assert failed_tool_note("I was unable to reach the Developer.", fail) == ""
     assert failed_tool_note("Here is the plan.", None) == ""
+    assert failed_tool_note("Here.", ("list_project_dir", "tool_not_offered:Tool 'x' was not sent")) == (
+        "Note: list_project_dir failed: Tool 'x' was not sent.")
     assert len(short_error("x" * 500)) <= 160
     # approval parks and the clarification stop are not failures; a later success of the same tool clears it
     assert track_failure(None, "write_card", False, "approval_required:abc") is None

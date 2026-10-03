@@ -84,6 +84,7 @@ def track_failure(
 
 def short_error(error: str) -> str:
     text = re.sub(r"^\s*(tool error:\s*)+", "", str(error or ""), flags=re.IGNORECASE).strip()
+    text = re.sub(r"^[a-z]+(?:_[a-z]+)+:\s*", "", text)  # machine codes such as tool_not_offered:
     text = (text.splitlines() or [""])[0].strip() or "unknown error"
     if len(text) > _NOTE_ERROR_MAX:
         text = text[: _NOTE_ERROR_MAX - 3].rstrip() + "..."
