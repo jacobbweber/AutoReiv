@@ -508,7 +508,6 @@ export async function fetchStudyProgress(agentId = STUDY_TUTOR_AGENT_ID, opts = 
     course,
     learner: body.learner || null,
     studio_required: false,
-    studio_chrome_retained: true,
     http_contract: 'GET /api/education/progress',
     raw: body,
   };

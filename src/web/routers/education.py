@@ -201,7 +201,6 @@ async def progress_summary(
     """Non-Studio trustable progress: course + mastery + due from Learning OS [CARD-441].
 
     Failures return success=false with empty mastery_pct=None - never fabricate 100%.
-    Education Studio course chrome stays (studio_chrome_retained).
     """
     from src.application.education.progress_summary import build_progress_summary
 

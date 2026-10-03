@@ -783,7 +783,6 @@ class EducationTools:
         result.setdefault("skill_hint", "progress-summary")
         result.setdefault("http_contract", "GET /api/education/progress")
         result["studio_required"] = False
-        result["studio_chrome_retained"] = True
         return _json_safe(result)
 
     def education_progress_courses(

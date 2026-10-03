@@ -195,7 +195,6 @@ def build_progress_summary(
                 "No course or mastery progress yet." if empty else None
             ),
             "studio_required": False,
-            "studio_chrome_retained": True,
         }
     except Exception as exc:  # noqa: BLE001
         return {
@@ -220,5 +219,4 @@ def build_progress_summary(
             "empty": True,
             "empty_state": "Progress unavailable.",
             "studio_required": False,
-            "studio_chrome_retained": True,
         }
