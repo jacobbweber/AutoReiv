@@ -1,8 +1,9 @@
 ---
 id: CARD-603
 title: "Per-agent template folders: General (AutoReiv) and Education (Tutor); AutoReiv sends study to Tutor; no run-state facts"
-status: In Review
+status: Done
 created: 2026-10-02
+completed: 2026-10-02
 branch: feat/card-603-per-agent-template-folders
 related:
   - CARD-598
@@ -32,7 +33,7 @@ log:
 
 # [CARD-603] Per-agent template folders: General (AutoReiv) and Education (Tutor); AutoReiv sends study to Tutor; no run-state facts
 
-> **Status**: In Review
+> **Status**: Done
 > **Labels**: `type:feature`, `area:wiki`, `area:agents`, `area:memory`, `P1`
 
 ## Problem
