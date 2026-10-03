@@ -885,7 +885,7 @@ export function initChatStudio(state, callbacks = {}) {
       await refreshWorkbenchArtifactCount();
     } catch (err) {
       if (err.name !== 'AbortError' && ownStream.isCurrent(turn)) {
-        showFailedTurn({ err, showToast, streamContentEl, isResume: options.isResume, userPrompt, replyStarted: accumulatedContent.length > 0, promptInput, setText: setComposerText }); // CARD-484
+        showFailedTurn({ err, showToast, streamContentEl, streamBubble, isResume: options.isResume, userPrompt, replyStarted: accumulatedContent.length > 0, promptInput, setText: setComposerText }); // CARD-484
       }
     } finally {
       if (ownStream.end(turn)) { // CARD-488: a detached turn leaves the view alone

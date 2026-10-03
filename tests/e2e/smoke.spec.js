@@ -494,8 +494,42 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect.poll(() => streamHits).toBe(1);
     await expect(page.getByText('Chat turn failed: Stream error: HTTP 500').first()).toBeVisible();
     await expect(input).toHaveValue('hello');
+    // CARD-606: nothing in the thread still says Streaming... (the bubble may be re-rendered away; if it stays, it says Failed)
+    await expect(page.locator('#messagesContainer')).not.toContainText(/streaming/i);
+    const failedBadges = page.locator('[data-stream-bubble="true"] .animate-pulse');
+    await expect(failedBadges).toHaveCount(0);
     // the stubbed 500 is expected here; anything else still fails the afterEach guard
     page.context()._consoleErrors = page.context()._consoleErrors.filter((t) => !t.includes('status of 500'));
+  });
+
+  test('TC-49: tool rows say Waiting for approval, Failed, Rejected or Complete [CARD-477]', async ({ page, request }) => {
+    const sess = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `TC-49 ${Date.now()}` } })).json();
+    const rows = [
+      { role: 'user', content: 'make two notes and read one' },
+      { role: 'tool', name: 'wiki_note_create', tool_call_id: 'c1', content: 'Tool Error: approval_required:appr_tc49a' },
+      { role: 'tool', name: 'wiki_note_update', tool_call_id: 'c2', content: 'Tool Error: approval_required:appr_tc49b' },
+      { role: 'tool', name: 'wiki_note_update', tool_call_id: 'c2', content: 'Rejected. Tool did not run.' },
+      { role: 'tool', name: 'wiki_note_read', tool_call_id: 'c3', content: "Tool Error: Note '00_Inbox/zz.md' not found" },
+      { role: 'tool', name: 'session_info', tool_call_id: 'c4', content: '{"session_id": "abc"}' },
+      { role: 'assistant', content: 'Waiting for your approval.' },
+    ];
+    await page.route('**/api/sessions/*/messages', (route) => {
+      if (!route.request().url().includes(sess.id)) return route.continue();
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    await page.locator('#toggleSidebarBtn').click();
+    await page.locator('#sessionList > div', { hasText: sess.title }).click();
+    const box = page.locator('#messagesContainer');
+    await expect(box).toContainText('make two notes and read one');
+    await expect(box.locator('[data-tool-status="waiting"]')).toHaveCount(1);
+    await expect(box.locator('[data-tool-status="waiting"]')).toContainText('Waiting for approval');
+    await expect(box.locator('[data-tool-status="asked"]')).toHaveText('Asked for approval');
+    await expect(box.locator('[data-tool-status="rejected"]')).toContainText('Rejected');
+    await expect(box.locator('[data-tool-status="failed"]')).toContainText('Failed');
+    await expect(box.locator('[data-tool-status="complete"]')).toHaveCount(1);
   });
 
   test('TC-11: Quick Prompts picker opens and a pick fills the composer [CARD-469]', async ({ page }) => {
