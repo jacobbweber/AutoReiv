@@ -217,7 +217,7 @@ def domain_line(agent: Any) -> str:
     if agent_id.strip().lower() == "toolsmith":
         no_cover = "If no agent covers it and you cannot build it as a tool, say so plainly in 1-2 concise sentences."
     else:
-        no_cover = "If no agent covers it, state that plainly in 1-2 concise sentences."
+        no_cover = 'If no agent covers it, state that plainly in 1-2 concise sentences ("No agent covers ...").'
     return (
         f"{name} covers: {covers}. For requests outside your skills, tell the user plainly which agent to open in Chat (e.g. \"open Tutor in Chat\").{roster_text} "
         f"{no_cover}"

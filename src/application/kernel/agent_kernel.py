@@ -44,6 +44,7 @@ from src.application.kernel.reply_rules import (  # CARD-599/600
     MEMORIZE_TOOL,
     REPLY_RULES_BLOCK,
     ask_developer_ending,
+    is_toolsmith,
     clarification_question,
     clarification_reply,
     describe_tool_run,
@@ -1039,7 +1040,9 @@ class AgentKernel:
                 note = failed_tool_note(assistant_msg.content or "", last_failure)  # CARD-600
                 if note:
                     assistant_msg.content = f"{(assistant_msg.content or '').rstrip()}\n\n{note}"
-                assistant_msg.content = ask_developer_ending(assistant_msg.content or "", history, bool(gap))  # CARD-615
+                assistant_msg.content = ask_developer_ending(  # CARD-615
+                    assistant_msg.content or "", history, bool(gap), offer=not is_toolsmith(agent)
+                )
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
@@ -1553,7 +1556,7 @@ class AgentKernel:
                     full_content = f"{full_content.rstrip()}\n\n{note}"
                     yield KernelEvent(event_type=KernelEventType.TOKEN, content=f"\n\n{note}")
                 # CARD-615: the saved reply (shown after the stream) keeps the Ask Developer line only if a tool is missing.
-                ended = ask_developer_ending(full_content, history, bool(gap))
+                ended = ask_developer_ending(full_content, history, bool(gap), offer=not is_toolsmith(agent))
                 if ended.startswith(full_content.rstrip()) and len(ended) > len(full_content.rstrip()):
                     yield KernelEvent(event_type=KernelEventType.TOKEN, content=ended[len(full_content.rstrip()):])
                 full_content = ended

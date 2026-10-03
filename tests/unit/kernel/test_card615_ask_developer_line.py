@@ -72,6 +72,18 @@ def test_turn_down_without_tools_gets_one_line():
     assert out.endswith(ASK_DEVELOPER_LINE)
 
 
+def test_no_agent_covers_wording_gets_the_line():
+    out = ask_developer_ending("No agent covers sending faxes.", [U("send a fax")], declined=False)
+    assert out == "No agent covers sending faxes.\n\n" + ASK_DEVELOPER_LINE
+    assert "No agent covers" in domain_line(platform_pack_profile("autoreiv"))
+
+
+def test_toolsmith_never_gets_the_line():
+    hist = [U("send a fax"), T("Tool Error: Tool 'send_fax' not found in system registry.")]
+    assert ask_developer_ending("No agent covers faxes.", hist, True, offer=False) == "No agent covers faxes."
+    assert "Ask Developer" not in ask_developer_ending("Saved. " + MODEL_TAIL, [U()], False, offer=False)
+
+
 def test_pointing_at_another_agent_is_not_a_turn_down():
     out = ask_developer_ending("I can't make flashcards here; open Tutor in Chat.", [U("flashcards")], declined=True)
     assert "Ask Developer" not in out

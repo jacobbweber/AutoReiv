@@ -26,7 +26,12 @@ _ASK_DEVELOPER_TEXT = re.compile(r"\b(?:use|try|via|through|with)\s+(?:the\s+)?[
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _MISSING_TOOL_MARKERS = (NO_SUCH_TOOL, "not found in system registry", "is not authorized for agent")
 _FAILED_TOOL_PREFIXES = ("Tool Error:", "Rejected. Tool did not run.")
+_NO_AGENT_COVERS = re.compile(r"\bno (?:other )?agent\b[^.\n]{0,60}?\bcover", re.IGNORECASE)
 _POINTS_TO_AGENT = re.compile(r"\bopen [\w' -]{1,40}? in Chat\b", re.IGNORECASE)
+
+
+def is_toolsmith(agent: Any) -> bool:
+    return str(getattr(agent, "id", "") or "").strip().lower() == "toolsmith"
 
 
 def _role(message: Any) -> str:
@@ -58,11 +63,12 @@ def _strip_ask_developer(text: str) -> str:
     return "\n".join(lines)
 
 
-def ask_developer_ending(reply: str, history: Sequence[Any], declined: bool) -> str:
+def ask_developer_ending(reply: str, history: Sequence[Any], declined: bool, offer: bool = True) -> str:
     """CARD-615: the final reply with the Ask Developer line only when a tool is truly missing.
 
     declined: the reply reads as "I can't do this" (capability-gap wording). It counts only when no tool was used
-    for the request and the reply does not point at another agent.
+    for the request and the reply does not point at another agent. offer=False (Toolsmith, the developer itself)
+    only drops the model's copy.
     """
     text = reply or ""
     body = _strip_ask_developer(text).rstrip()
@@ -70,8 +76,9 @@ def ask_developer_ending(reply: str, history: Sequence[Any], declined: bool) -> 
     rows = turn_tool_rows(history)
     missing = any(marker in row for row in rows for marker in _MISSING_TOOL_MARKERS)
     succeeded = any(not row.lstrip().startswith(_FAILED_TOOL_PREFIXES) for row in rows)
-    turned_down = not rows and (declined or had_line) and not _POINTS_TO_AGENT.search(body)
-    if (missing and not succeeded) or turned_down:
+    said_no = declined or had_line or bool(_NO_AGENT_COVERS.search(body))
+    turned_down = not rows and said_no and not _POINTS_TO_AGENT.search(body)
+    if offer and ((missing and not succeeded) or turned_down):
         return f"{body}\n\n{ASK_DEVELOPER_LINE}" if body else ASK_DEVELOPER_LINE
     return body if had_line else text
 
