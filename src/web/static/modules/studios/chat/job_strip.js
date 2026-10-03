@@ -131,7 +131,7 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   } else if (eventType === 'phase_start') {
     next.stopped = false; // CARD-490: running again
     if (!next.jobStatus || next.jobStatus === 'queued') next.jobStatus = 'running';
-    if (!next.reactState) next.reactState = 'THINKING';
+    if (!next.reactState || String(next.reactState).toUpperCase() === 'STOPPED') next.reactState = 'THINKING';
   } else if (eventType === 'phase_complete') {
     if (data.status) next.jobStatus = data.status;
     if (data.react_state) next.reactState = data.react_state;
@@ -154,6 +154,7 @@ export function applyJobPhaseEvent(current, eventType, ev) {
     if (data.phase_index != null) next.phaseIndex = data.phase_index;
     if (data.phase_id) next.phaseId = data.phase_id;
     if (data.verifier_status) next.verifyStatus = data.verifier_status;
+    if (String(next.reactState || '').toUpperCase() === 'STOPPED') next.reactState = data.hitl_park_state ? 'PARKED' : 'THINKING'; // CARD-490
     if (data.hitl_park_state) next.reactState = next.reactState || 'PARKED';
     if (!next.jobStatus || next.jobStatus === 'queued') next.jobStatus = 'running';
   } else if (eventType === 'plan_formulated') {

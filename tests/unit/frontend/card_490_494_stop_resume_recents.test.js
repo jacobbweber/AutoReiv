@@ -11,7 +11,7 @@ import {
   sessionActivityMarker, applySessionActivity, createSessionActivityPoller, SESSION_ACTIVITY_URL,
 } from '../../../src/web/static/modules/studios/chat/session_activity.js';
 import { formatJobPhaseStrip, applyJobPhaseEvent, reactStateToneClass } from '../../../src/web/static/modules/studios/chat/job_strip.js';
-import { hydrateJobPhaseStateFromJourney } from '../../../src/web/static/modules/studios/chat/session_select.js';
+import { hydrateJobPhaseStateFromJourney, buildInlineJobChromeFromJourney } from '../../../src/web/static/modules/studios/chat/session_select.js';
 import { renderSessionList } from '../../../src/web/static/modules/studios/chat/chrome.js';
 import * as chat from '../../../src/web/static/modules/studios/chat.js';
 
@@ -123,6 +123,23 @@ describe('CARD-490 Resume on a stopped job', () => {
     expect(reactStateToneClass('STOPPED')).toContain('text-amber-200');
     expect(applyJobPhaseEvent({ jobId: 'job_1', stopped: true }, 'phase_start', { job_id: 'job_1', phase_id: 'p1' }).stopped).toBe(false);
     expect(applyJobPhaseEvent({ jobId: 'job_1', stopped: true }, 'resumed_from_checkpoint', { job_id: 'job_1' }).stopped).toBe(false);
+  });
+
+  it('running again drops the STOPPED chip (live check: it stayed until the next react event)', () => {
+    const stopped = { jobId: 'job_1', stopped: true, reactState: 'STOPPED' };
+    expect(applyJobPhaseEvent(stopped, 'phase_start', { job_id: 'job_1' }).reactState).toBe('THINKING');
+    expect(applyJobPhaseEvent(stopped, 'resumed_from_checkpoint', { job_id: 'job_1' }).reactState).toBe('THINKING');
+    expect(applyJobPhaseEvent(stopped, 'resumed_from_checkpoint', { job_id: 'job_1', hitl_park_state: {} }).reactState).toBe('PARKED');
+  });
+
+  it('the inline phase card rebuilt from a stopped job is not "Streaming" and queued phases are Pending', () => {
+    const model = buildInlineJobChromeFromJourney(journey);
+    expect(model.streaming).toBe(false);
+    expect(model.phases.Research.status).toBe('done');
+    expect(model.phases.Write.status).toBe('pending');
+    const live = buildInlineJobChromeFromJourney({ jobs: [{ id: 'j', status: 'running', phases: [{ id: 'p', index: 0, name: 'Go', status: 'running' }] }] });
+    expect(live.streaming).toBe(true);
+    expect(live.phases.Go.status).toBe('running');
   });
 
   it('a running or finished job is not stopped', () => {

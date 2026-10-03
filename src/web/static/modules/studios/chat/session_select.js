@@ -83,8 +83,15 @@ export function buildInlineJobChromeFromJourney(journey) {
       model = applyInlineJobChromeModel(model, 'phase_complete', { job_id: job.id, phase_id: p.id, phase_name: p.name, index: p.index, status: 'done' });
     } else if (st === 'waiting_approval') {
       model = applyInlineJobChromeModel(model, 'approval_required', { job_id: job.id, job_status: 'waiting_approval', react_state: 'PARKED' });
+    } else if (st === 'failed' || st === 'error') {
+      model = applyInlineJobChromeModel(model, 'phase_complete', { job_id: job.id, phase_id: p.id, phase_name: p.name, index: p.index, status: 'failed' });
+    } else if (st !== 'running' && st !== 'in_progress') {
+      const key = String(p.name || '').trim() || `Phase ${Number(p.index || 0) + 1}`;
+      if (model.phases[key]) model.phases[key].status = 'pending'; // CARD-490: a queued phase is not running
     }
   });
+  // CARD-490: rebuilt from the saved journey, not a live stream; only a job with a running phase says Streaming.
+  model.streaming = phases.some((p) => ['running', 'in_progress'].includes(String(p.status || '').toLowerCase()));
   return model;
 }
 

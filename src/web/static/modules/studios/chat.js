@@ -213,7 +213,7 @@ export function initChatStudio(state, callbacks = {}) {
       const resume = ev.target && ev.target.closest ? ev.target.closest('[data-job-phase="resume"]') : null;
       if (resume) { // CARD-490 REQ-490-002: a resume turn continues the same job id
         if (state.isStreaming || state.sessionBusy || !state.activeSessionId) return;
-        if (jobPhaseState) jobPhaseState = { ...jobPhaseState, stopped: false };
+        if (jobPhaseState) jobPhaseState = { ...jobPhaseState, stopped: false, reactState: 'THINKING' };
         renderJobPhaseStrip();
         void executeChatTurn('', { isResume: true });
         return;
