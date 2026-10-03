@@ -131,12 +131,18 @@ class AgentBuilderTools:
 
     async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
         """Authoring catalog: skills, platform tools, purposes and tones. Not a tool list for the caller."""
+        from src.application.kernel.tool_registry import get_tool_context
         from src.infrastructure.content.store import get_store
 
+        offered = get_tool_context().get("offered_tools")
+        callable_now = set(offered or [])
         tools_list = []
         if self.tool_registry:
             for t in self.tool_registry.list_tools():
-                tools_list.append({"name": t.name, "description": t.description})
+                row = {"name": t.name, "description": t.description}
+                if offered is not None:  # CARD-607: mark the few the caller can call on this turn
+                    row["you_can_call"] = t.name in callable_now
+                tools_list.append(row)
         skills = [
             {"id": f.id, "name": f.meta.get("name") or f.id, "description": f.meta.get("description") or ""}
             for f in get_store().skills.list()
@@ -147,8 +153,9 @@ class AgentBuilderTools:
 
         return {
             "note": (
-                "Authoring catalog only: these tools are not callable by you. Agents get tools by ticking "
-                "skills; propose a skill (or attaching a tool to one) for Jacob to accept."
+                "Authoring catalog only: use it to check whether a tool already exists. These tools are not "
+                "callable by you unless you_can_call is true; any other call is refused. Agents get tools by "
+                "ticking skills; propose a skill (or attaching a tool to one) for Jacob to accept."
             ),
             "skills": skills,
             "catalog_tools": tools_list,

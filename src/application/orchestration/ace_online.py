@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from src.application.kernel.tool_registry import is_self_correcting_refusal
 from src.application.orchestration.skill_proposals import (
     PYTHON_BUILTIN_NOTE,
     _looks_like_python_builtin,
@@ -22,6 +23,17 @@ from src.application.skills.user_catalog import UserSkillCatalog
 GENERATOR_ROLE = "AgentKernel"
 MAX_INSIGHT_CHARS = 400
 ONLINE_SOURCE = "online-ace"
+
+
+def is_ace_lesson_error(error: Any) -> bool:
+    """A tool error worth a skill lesson: not an approval park and not a refusal the tool already explained
+    (wrong tool name, tool not offered, unknown or missing arguments) [CARD-610]."""
+    text = str(error or "")
+    return not text.startswith("approval_required:") and not is_self_correcting_refusal(text)
+
+
+def _lesson_errors(tool_errors: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    return [item for item in (tool_errors or []) if is_ace_lesson_error(item.get("error") or "Tool execution error")]
 
 
 def _catalog_for(data_dir: Union[str, Path], catalog: Any = None) -> UserSkillCatalog:
@@ -37,11 +49,7 @@ def reflect_failed_turn(
     tool_errors: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, str]:
     """Cheap Reflector: one tiny insight from trajectory errors. No LLM, no full playbook."""
-    raw_errors = list(tool_errors or [])
-    errors = [
-        item for item in raw_errors
-        if not str(item.get("error") or "").startswith("approval_required:")
-    ]
+    errors = _lesson_errors(tool_errors)
     tool_bits = []
     for item in errors:
         name = str(item.get("tool_name") or "tool").strip() or "tool"
@@ -175,11 +183,7 @@ def record_failed_turn_delta(
 
     Never writes SKILL.md live. Never writes src/. Does not enqueue nightly [REQ-IMPROVE-016].
     """
-    raw_errors = list(tool_errors or [])
-    errors = [
-        item for item in raw_errors
-        if not str(item.get("error") or "").startswith("approval_required:")
-    ]
+    errors = _lesson_errors(tool_errors)
     if not errors and (not error_message or "approval_required:" in str(error_message)):
         return {
             "success": True,

@@ -59,7 +59,7 @@ from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
     calculate_token_attribution,
 )
-from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.kernel.tool_registry import ScopedToolRegistry, tool_not_offered_error
 from src.application.kernel.turn_limit import TURN_LIMIT_INSTRUCTION, TURN_LIMIT_REASON, turn_limit_reply
 from src.application.kernel.wiki_budget import WikiLookupBudget
 from src.application.orchestration.capability_detector import CapabilityDetector
@@ -239,8 +239,10 @@ class AgentKernel:
     def _ace_note_tool(self, tool_name: str, success: bool, error: Optional[str]) -> None:
         if success:
             return
-        if error and str(error).startswith("approval_required:"):
-            return
+        from src.application.orchestration.ace_online import is_ace_lesson_error
+
+        if not is_ace_lesson_error(error):
+            return  # approval parks and refusals the tool already explained (CARD-610) are not lessons
         self._ace_tool_errors.append({"tool_name": tool_name, "error": error or "Tool execution error"})
 
     def _ace_flush_failed_turn(
@@ -420,7 +422,7 @@ class AgentKernel:
                 tool_name=tc.name,
                 output=None,
                 success=False,
-                error=f"tool_not_offered:Tool '{tc.name}' was not in the tools sent on this call, so it is not authorized here.",
+                error=tool_not_offered_error(tc.name, offered),
             )
         registry_names = set()
         try:
