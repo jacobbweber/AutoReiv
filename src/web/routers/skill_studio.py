@@ -13,8 +13,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from src.domain.skills.user_skill import SKILL_DESCRIPTION_LIMIT  # CARD-614: soft limit; Skill Studio shows the full text
+
 router = APIRouter(tags=["Skill Studio"])
-SKILL_DESCRIPTION_LIMIT = 200  # CARD-614: soft limit; Skill Studio shows the full text and the API accepts any length
 
 
 class ScaffoldRunbookRequest(BaseModel):
