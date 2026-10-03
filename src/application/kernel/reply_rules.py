@@ -26,7 +26,8 @@ CLARIFICATION_SKIPPED_RESULT = "Not run: the turn ended to wait for the user's a
 _NOTE_ERROR_MAX = 160
 # Words that already tell the user a step did not work.
 _FAILURE_WORDS = re.compile(
-    r"\b(fail(ed|s|ure)?|error(ed|s)?|could ?n[o']?t|unable|did ?n[o']?t work|was ?n[o']?t able|not able)\b",
+    r"\b(fail(ed|s|ure)?|error(ed|s)?|could ?n[o']?t|unable|did ?n[o']?t work|was ?n[o']?t able|not able"
+    r"|not found|does ?n[o']?t exist|no such)\b",
     re.IGNORECASE,
 )
 
@@ -51,17 +52,31 @@ def clarification_reply(question: str, streamed_text: str = "") -> str:
     return q
 
 
-def counts_as_failure(tool_name: str, success: bool, error: Optional[str]) -> bool:
+def output_failure(output: Any) -> Optional[str]:
+    """The error of a tool that ran but reported a failure in its result ({"success": false, "error": ...})."""
+    if not isinstance(output, dict):
+        return None
+    status = str(output.get("status") or "").lower()
+    if output.get("success") is False or status in ("error", "failed"):
+        return str(output.get("error") or output.get("message") or status or "failed")
+    return None
+
+
+def counts_as_failure(tool_name: str, success: bool, error: Optional[str], output: Any = None) -> bool:
     """A real failure: not an approval park and not the clarification stop."""
-    if success or tool_name == CLARIFICATION_TOOL:
+    if tool_name == CLARIFICATION_TOOL:
         return False
+    if success:
+        return output_failure(output) is not None
     return not str(error or "").startswith("approval_required:")
 
 
-def track_failure(last: Optional[Tuple[str, str]], tool_name: str, success: bool, error: Optional[str]) -> Optional[Tuple[str, str]]:
+def track_failure(
+    last: Optional[Tuple[str, str]], tool_name: str, success: bool, error: Optional[str], output: Any = None
+) -> Optional[Tuple[str, str]]:
     """Update the turn's last failed tool call; a later success of the same tool clears it."""
-    if counts_as_failure(tool_name, success, error):
-        return (tool_name, str(error or "unknown error"))
+    if counts_as_failure(tool_name, success, error, output):
+        return (tool_name, str(error or output_failure(output) or "unknown error"))
     if success and last and last[0] == tool_name:
         return None
     return last

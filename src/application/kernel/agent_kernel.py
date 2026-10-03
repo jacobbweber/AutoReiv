@@ -1133,7 +1133,7 @@ class AgentKernel:
                         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=parked_msg)
                     self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
                     return parked_msg
-                last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error)
+                last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error, tool_res.output)
                 clarify_q = clarification_question(tc.name, tool_res.success, tool_res.output, tc.arguments)
 
             if clarify_q is not None:
@@ -1724,7 +1724,7 @@ class AgentKernel:
                         is_finished=True,
                     )
                     return
-                last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error)
+                last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error, tool_res.output)
                 clarify_q = clarification_question(tc.name, tool_res.success, tool_res.output, tc.arguments)
 
             if clarify_q is not None:

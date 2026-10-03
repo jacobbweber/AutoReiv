@@ -230,6 +230,13 @@ def test_note_rules():
     assert last == ("harbor_tide", "down")
     assert track_failure(last, "other_tool", True, None) == last
     assert track_failure(last, "harbor_tide", True, None) is None
+    # a tool that ran but reported a failure in its result counts too
+    reported = track_failure(None, "wiki_note_read", True, None, {"success": False, "error": "Note 'x.md' not found."})
+    assert reported == ("wiki_note_read", "Note 'x.md' not found.")
+    assert track_failure(None, "handoff_to_agent", True, None, {"status": "failed", "message": "budget hit"}) == (
+        "handoff_to_agent", "budget hit")
+    assert track_failure(None, "wiki_note_read", True, None, {"success": True}) is None
+    assert failed_tool_note("That note was not found.", reported) == ""
 
 
 # ---------------- CARD-599: the platform rule is in the generated instructions ----------------
