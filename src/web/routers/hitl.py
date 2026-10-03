@@ -16,6 +16,7 @@ from src.application.agent_skills.tool_attachment import (
 )
 from src.application.kernel.repeat_guard import rejection_text
 from src.application.orchestration.background_resume import background_resumes, handoff_outcome
+from src.application.orchestration.chat_job_binding import settle_park_note
 from src.application.orchestration.followup import PROPOSE_FOLLOWUP_TOOL, apply_followup_decision
 from src.application.orchestration.handoff_engine import PARENT_HANDOFF_TOOLS
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
@@ -99,6 +100,10 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     )
     if not resolved:
         raise HTTPException(status_code=404, detail="Approval not found or already resolved")
+    try:  # CARD-617: the job's "Approve or reject above" note now says the card was decided
+        settle_park_note(store, str((record or {}).get("session_id") or ""), req.decision)
+    except Exception:
+        logger.debug("park note not settled for %s", approval_id, exc_info=True)
 
     execution = None
     background_call = None  # CARD-593: (tool_reg, tool_call, profile) of an approved hand-off, run in the background

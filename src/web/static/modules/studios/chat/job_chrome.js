@@ -102,6 +102,8 @@ export function formatMilestoneGoalTitle(rawGoal, maxLength = 80) {
   return sanitized.slice(0, maxLength - 3).trimEnd() + '...';
 }
 
+export const HELD_PHASE_LABELS = { stopped: 'Stopped', waiting: 'Waiting for your answer' };
+
 export function formatJobChromePhasesRowsHtml(model) {
   const m = model || createInlineJobChromeModel();
   return (m.phaseOrder || []).map((key) => {
@@ -110,14 +112,17 @@ export function formatJobChromePhasesRowsHtml(model) {
     const isDone = status === 'done';
     const isRunning = status === 'running' || status === 'waiting_approval';
     const isFailed = status === 'failed' || status === 'error';
-    const label = isDone ? 'Done' : (isRunning ? 'Running...' : (isFailed ? 'Failed' : 'Pending'));
-    const rowTone = isDone
+    const held = HELD_PHASE_LABELS[status]; // CARD-617: Stopped / Waiting for your answer, as on the job strip
+    const label = held || (isDone ? 'Done' : (isRunning ? 'Running...' : (isFailed ? 'Failed' : 'Pending')));
+    const rowTone = held
+      ? 'border-amber-500/40 bg-amber-950/30 text-amber-200'
+      : isDone
       ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200'
       : (isRunning
         ? 'border-indigo-500/50 bg-indigo-950/40 text-indigo-200 ring-1 ring-indigo-500/20'
         : (isFailed ? 'border-rose-500/40 bg-rose-950/30 text-rose-200' : 'border-slate-700/60 bg-slate-800/40 text-slate-300'));
     const icon = isDone ? '✓' : (isRunning ? '⚡' : (isFailed ? '!' : '·'));
-    const labelTone = isDone ? 'text-emerald-300' : (isRunning ? 'text-indigo-300 animate-pulse' : 'text-slate-400');
+    const labelTone = held ? 'text-amber-300' : (isDone ? 'text-emerald-300' : (isRunning ? 'text-indigo-300 animate-pulse' : 'text-slate-400'));
     return `
       <div data-phase-chrome="${escapeChromeText(p.name)}" data-phase-status="${escapeChromeText(status)}"
            class="job-chrome-phase flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${rowTone} text-xs">
