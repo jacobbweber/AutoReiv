@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Collection, Optional, Sequence, Tuple
 
 from src.application.kernel.tool_registry import NO_SUCH_TOOL, is_self_correcting_refusal
 
@@ -63,12 +63,27 @@ def _strip_ask_developer(text: str) -> str:
     return "\n".join(lines)
 
 
-def ask_developer_ending(reply: str, history: Sequence[Any], declined: bool, offer: bool = True) -> str:
+def _gap_sentence(body: str, gap_text: str) -> str:
+    for sentence in _SENTENCE_END.split(body):
+        if gap_text and gap_text in sentence:
+            return sentence
+    return gap_text
+
+
+def ask_developer_ending(
+    reply: str,
+    history: Sequence[Any],
+    gap_text: Optional[str] = None,
+    own_tools: Collection[str] = (),
+    offer: bool = True,
+) -> str:
     """CARD-615: the final reply with the Ask Developer line only when a tool is truly missing.
 
-    declined: the reply reads as "I can't do this" (capability-gap wording). It counts only when no tool was used
-    for the request and the reply does not point at another agent. offer=False (Toolsmith, the developer itself)
-    only drops the model's copy.
+    The line is added when (a) a call was refused because no such tool exists / it is not the agent's and nothing
+    else ran OK, (b) the reply says it lacks a capability (gap_text, from CapabilityDetector) that is not one of the
+    agent's own tools and nothing was rejected, or (c) no tool was used and the reply turns the request down
+    ("No agent covers ...") without pointing at another agent. Otherwise the model's own copy is dropped.
+    offer=False (Toolsmith, the developer itself) only drops the model's copy.
     """
     text = reply or ""
     body = _strip_ask_developer(text).rstrip()
@@ -76,9 +91,13 @@ def ask_developer_ending(reply: str, history: Sequence[Any], declined: bool, off
     rows = turn_tool_rows(history)
     missing = any(marker in row for row in rows for marker in _MISSING_TOOL_MARKERS)
     succeeded = any(not row.lstrip().startswith(_FAILED_TOOL_PREFIXES) for row in rows)
-    said_no = declined or had_line or bool(_NO_AGENT_COVERS.search(body))
-    turned_down = not rows and said_no and not _POINTS_TO_AGENT.search(body)
-    if offer and ((missing and not succeeded) or turned_down):
+    rejected = any(row.lstrip().startswith(_FAILED_TOOL_PREFIXES[1]) for row in rows)
+    gap_sentence = _gap_sentence(body, gap_text or "")
+    gap_is_own_tool = bool(gap_text) and any(name and name in gap_sentence for name in own_tools)
+    real_gap = bool(gap_text) and not gap_is_own_tool and not rejected
+    said_no = real_gap or had_line or bool(_NO_AGENT_COVERS.search(body))
+    turned_down = not rows and said_no and not gap_is_own_tool and not _POINTS_TO_AGENT.search(body)
+    if offer and ((missing and not succeeded) or turned_down or (rows and real_gap)):
         return f"{body}\n\n{ASK_DEVELOPER_LINE}" if body else ASK_DEVELOPER_LINE
     return body if had_line else text
 

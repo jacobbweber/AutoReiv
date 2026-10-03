@@ -35,67 +35,84 @@ def test_domain_line_never_asks_for_the_line():
         assert "Ask Developer" not in domain_line(platform_pack_profile(agent_id))
 
 
+OWN = {"wiki_note_search", "wiki_note_create", "wiki_note_read"}
+
+
 def test_rejected_write_drops_the_models_line():
     hist = [U(), T('{"hits": 2}', "wiki_note_search"), T(rejection_text("wiki_note_create"), "wiki_note_create")]
-    out = ask_developer_ending("Here is the summary.\n\n" + MODEL_TAIL, hist, declined=True)
+    out = ask_developer_ending("Here is the summary.\n\n" + MODEL_TAIL, hist, "save the note", OWN)
     assert "Ask Developer" not in out and out.endswith("The note was not saved.")
 
 
 def test_resumed_reply_after_rejection_drops_it_too():
     # The resumed turn ran no tool itself; the rejection row since the user message still counts as tool use.
     hist = [U(), ChatMessage(role=Role.ASSISTANT, content=""), T(rejection_text("wiki_note_create"))]
-    assert "Ask Developer" not in ask_developer_ending("Done.\n" + MODEL_TAIL, hist, declined=False)
+    assert "Ask Developer" not in ask_developer_ending("Done.\n" + MODEL_TAIL, hist, None, OWN)
 
 
 def test_empty_result_drops_it():
     hist = [U(), T('{"hits": []}', "wiki_note_search")]
-    out = ask_developer_ending("The wiki has no gardening notes, so there is nothing to summarize.\n" + MODEL_TAIL, hist, True)
+    out = ask_developer_ending("The wiki has no gardening notes, so there is nothing to summarize.\n" + MODEL_TAIL, hist, None, OWN)
     assert "Ask Developer" not in out
 
 
 def test_unknown_tool_with_nothing_else_ok_adds_the_exact_line():
     hist = [U("send a fax"), T("Tool Error: Tool 'send_fax' not found in system registry.", "send_fax")]
-    out = ask_developer_ending("I could not send the fax: there is no fax tool.", hist, declined=True)
+    out = ask_developer_ending("I could not send the fax: there is no fax tool.", hist, None, OWN)
     assert out.endswith("\n\n" + ASK_DEVELOPER_LINE) and out.count("Ask Developer") == 1
 
 
 def test_unknown_tool_then_a_good_call_adds_nothing():
     hist = [U(), T("Tool Error: Tool 'wiki_find' not found in system registry."), T('{"hits": 1}', "wiki_note_search")]
-    assert ask_developer_ending("Found one note.", hist, declined=False) == "Found one note."
+    assert ask_developer_ending("Found one note.", hist, None, OWN) == "Found one note."
+
+
+def test_partly_done_with_a_missing_capability_gets_the_line():
+    hist = [U("summarize gardening and email it"), T('{"hits": 2}', "wiki_note_search")]
+    reply = "Here is the summary. I don't have a tool to send email, so I could not email it."
+    out = ask_developer_ending(reply, hist, "send email, so I could not email it", OWN)
+    assert out == reply + "\n\n" + ASK_DEVELOPER_LINE
+
+
+def test_a_gap_about_the_agents_own_tool_adds_nothing():
+    hist = [U(), T('{"hits": 2}', "wiki_note_search")]
+    reply = "I cannot create the note: I do not have the tool wiki_note_create available. " + MODEL_TAIL
+    out = ask_developer_ending(reply, hist, "wiki_note_create available", OWN)
+    assert "Ask Developer" not in out
 
 
 def test_turn_down_without_tools_gets_one_line():
     out = ask_developer_ending("I can't book flights; no agent covers that. You can use Ask Developer to add this.",
-                               [U("book a flight")], declined=False)
+                               [U("book a flight")], None, OWN)
     assert out == "I can't book flights; no agent covers that.\n\n" + ASK_DEVELOPER_LINE
-    out = ask_developer_ending("I don't have a tool to send faxes.", [U("send a fax")], declined=True)
+    out = ask_developer_ending("I don't have a tool to send faxes.", [U("send a fax")], "send faxes", OWN)
     assert out.endswith(ASK_DEVELOPER_LINE)
 
 
 def test_no_agent_covers_wording_gets_the_line():
-    out = ask_developer_ending("No agent covers sending faxes.", [U("send a fax")], declined=False)
+    out = ask_developer_ending("No agent covers sending faxes.", [U("send a fax")], None, OWN)
     assert out == "No agent covers sending faxes.\n\n" + ASK_DEVELOPER_LINE
     assert "No agent covers" in domain_line(platform_pack_profile("autoreiv"))
 
 
 def test_toolsmith_never_gets_the_line():
     hist = [U("send a fax"), T("Tool Error: Tool 'send_fax' not found in system registry.")]
-    assert ask_developer_ending("No agent covers faxes.", hist, True, offer=False) == "No agent covers faxes."
-    assert "Ask Developer" not in ask_developer_ending("Saved. " + MODEL_TAIL, [U()], False, offer=False)
+    assert ask_developer_ending("No agent covers faxes.", hist, "faxes", OWN, offer=False) == "No agent covers faxes."
+    assert "Ask Developer" not in ask_developer_ending("Saved. " + MODEL_TAIL, [U()], None, OWN, offer=False)
 
 
 def test_pointing_at_another_agent_is_not_a_turn_down():
-    out = ask_developer_ending("I can't make flashcards here; open Tutor in Chat.", [U("flashcards")], declined=True)
+    out = ask_developer_ending("I can't make flashcards here; open Tutor in Chat.", [U("flashcards")], "make flashcards", OWN)
     assert "Ask Developer" not in out
 
 
 def test_a_plain_answer_is_untouched():
-    assert ask_developer_ending("Paris.", [U("capital of France?")], declined=False) == "Paris."
+    assert ask_developer_ending("Paris.", [U("capital of France?")], None, OWN) == "Paris."
 
 
 def test_only_the_ask_developer_sentence_goes():
     hist = [U(), T('{"ok": true}', "wiki_note_search")]
-    out = ask_developer_ending("Saved nothing. Use **Ask Developer** if you want a new tool. Anything else is done.", hist, False)
+    out = ask_developer_ending("Saved nothing. Use **Ask Developer** if you want a new tool. Anything else is done.", hist, None, OWN)
     assert out == "Saved nothing. Anything else is done."
 
 

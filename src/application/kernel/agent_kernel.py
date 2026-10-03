@@ -726,6 +726,13 @@ class AgentKernel:
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
+    def _own_tool_names(self, agent: AgentProfile) -> set:
+        """CARD-615: every tool the agent has (not only this call's), so 'I lack X' about its own tool adds no line."""
+        try:
+            return {t.name for t in self.tool_registry.get_tools_for_agent(agent)}
+        except Exception:
+            return set()
+
     def _resolve_active_tools(
         self,
         agent: AgentProfile,
@@ -1044,7 +1051,8 @@ class AgentKernel:
                 if note:
                     assistant_msg.content = f"{(assistant_msg.content or '').rstrip()}\n\n{note}"
                 assistant_msg.content = ask_developer_ending(  # CARD-615
-                    assistant_msg.content or "", history, bool(gap), offer=not is_toolsmith(agent)
+                    assistant_msg.content or "", history, gap.missing_capability if gap else None,
+                    self._own_tool_names(agent), offer=not is_toolsmith(agent),
                 )
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
@@ -1559,7 +1567,10 @@ class AgentKernel:
                     full_content = f"{full_content.rstrip()}\n\n{note}"
                     yield KernelEvent(event_type=KernelEventType.TOKEN, content=f"\n\n{note}")
                 # CARD-615: the saved reply (shown after the stream) keeps the Ask Developer line only if a tool is missing.
-                ended = ask_developer_ending(full_content, history, bool(gap), offer=not is_toolsmith(agent))
+                ended = ask_developer_ending(
+                    full_content, history, gap.missing_capability if gap else None,
+                    self._own_tool_names(agent), offer=not is_toolsmith(agent),
+                )
                 if ended.startswith(full_content.rstrip()) and len(ended) > len(full_content.rstrip()):
                     yield KernelEvent(event_type=KernelEventType.TOKEN, content=ended[len(full_content.rstrip()):])
                 full_content = ended
