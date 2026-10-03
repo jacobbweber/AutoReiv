@@ -24,6 +24,6 @@ def test_sysadmin_tool_descriptions_network_and_os_aware():
 def test_autoreiv_system_prompt_os_aware():
     prompt = platform_pack_profile("autoreiv").system_prompt.lower()
     # CARD-596: AutoReiv routes by naming the agent to open in Chat; it no longer hands off.
-    assert "ask developer" in prompt
+    assert "ask developer" not in prompt and "say so plainly" in prompt  # CARD-615: the kernel adds that line
     assert "handoff_to_agent" not in prompt
 

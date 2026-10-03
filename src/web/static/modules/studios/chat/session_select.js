@@ -94,8 +94,15 @@ export function buildInlineJobChromeFromJourney(journey) {
       if (model.phases[key]) model.phases[key].status = 'pending'; // CARD-490: a queued phase is not running
     }
   });
+  // CARD-617: the card says what the strip says: a stopped job's open step is Stopped, a step asking is Waiting.
+  const held = job.stopped === true ? 'stopped' : (job.waiting_answer === true ? 'waiting' : '');
+  if (held) {
+    const open = phases.find((p) => ['running', 'in_progress', 'waiting_approval', 'queued'].includes(String(p.status || '').toLowerCase()));
+    const key = open ? (String(open.name || '').trim() || `Phase ${Number(open.index || 0) + 1}`) : '';
+    if (key && model.phases[key]) model.phases[key].status = held;
+  }
   // CARD-490: rebuilt from the saved journey, not a live stream; only a job with a running phase says Streaming.
-  model.streaming = phases.some((p) => ['running', 'in_progress'].includes(String(p.status || '').toLowerCase()));
+  model.streaming = !held && phases.some((p) => ['running', 'in_progress'].includes(String(p.status || '').toLowerCase()));
   return model;
 }
 

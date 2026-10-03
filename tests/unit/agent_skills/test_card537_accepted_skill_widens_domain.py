@@ -106,7 +106,7 @@ async def test_accepting_widens_the_domain_line_and_the_next_turn_in_a_new_chat(
     assert "c537_harbor_tide" in resolve_allowed_tools(fresh)
     line = domain_line(fresh)
     assert "tide" in line.lower(), line  # REQ-537-001: the generated domain line names the accepted skill
-    assert not REFUSAL.search(line) and "Ask Developer" in line  # REQ-537-002 (CARD-596: handoff_to_agent retired)
+    assert not REFUSAL.search(line) and "state that plainly" in line  # REQ-537-002 (CARD-615: kernel adds Ask Developer)
     names = _turn_tools(registry, store, fresh)
     assert set(names) == set(resolve_allowed_tools(fresh)) & set(registry._tools)  # CARD-578: all at once
     assert "c537_harbor_tide" in names, names

@@ -128,7 +128,7 @@ def test_domain_line_roster_and_direct_chat_guidance():
     assert "handoff_to_agent" not in line
     assert "Tutor" in line
     assert "Chat" in line
-    assert 'end your reply with "You can use Ask Developer to add this."' in line
+    assert "Ask Developer" not in line  # CARD-615: the kernel adds that line only when a tool is missing
 
 
 def test_authoring_and_health_skills_have_no_handoff():

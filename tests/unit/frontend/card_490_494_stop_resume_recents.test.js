@@ -132,11 +132,11 @@ describe('CARD-490 Resume on a stopped job', () => {
     expect(applyJobPhaseEvent(stopped, 'resumed_from_checkpoint', { job_id: 'job_1', hitl_park_state: {} }).reactState).toBe('PARKED');
   });
 
-  it('the inline phase card rebuilt from a stopped job is not "Streaming" and queued phases are Pending', () => {
+  it('the inline phase card rebuilt from a stopped job is not "Streaming" and its open step is Stopped', () => {
     const model = buildInlineJobChromeFromJourney(journey);
     expect(model.streaming).toBe(false);
     expect(model.phases.Research.status).toBe('done');
-    expect(model.phases.Write.status).toBe('pending');
+    expect(model.phases.Write.status).toBe('stopped'); // CARD-617: same word as the strip (was Pending)
     const live = buildInlineJobChromeFromJourney({ jobs: [{ id: 'j', status: 'running', phases: [{ id: 'p', index: 0, name: 'Go', status: 'running' }] }] });
     expect(live.streaming).toBe(true);
     expect(live.phases.Go.status).toBe('running');

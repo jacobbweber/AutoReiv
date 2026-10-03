@@ -29,7 +29,7 @@ def test_autoreiv_pack_excludes_cli_exec():
 
     # 3. System prompt directs out-of-scope to covering agent/Ask Developer, notes to 00_Inbox/
     system_prompt = pack_data.get("system_prompt", "")
-    assert "Ask Developer" in system_prompt or "developer" in system_prompt.lower()
+    assert "open in Chat" in system_prompt and "Ask Developer" not in system_prompt  # CARD-615: kernel adds it
     assert "00_Inbox" in system_prompt
 
 

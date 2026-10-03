@@ -18,6 +18,7 @@ from src.application.orchestration.chat_job_binding import (
     job_waiting_for_answer_on_session,
     latest_open_job_for_session,
     output_packet_for_phase,
+    park_note,
     persist_plan_as_job,
     verify_skip_fact,
 )
@@ -1269,11 +1270,7 @@ async def execute_goal_job_phases(
             return
         if outcome == "parked":
             # CARD-343: phase parked awaiting HITL approval; do NOT claim FAILED.
-            park_msg = (
-                f"Job {job.id} is waiting for operator approval during "
-                f"{getattr(current, 'name', 'current phase')}. "
-                "Approve or reject above to continue execution."
-            )
+            park_msg = park_note(job.id, getattr(current, "name", "current phase"))
             composite_park = (
                 "\n\n---\n\n".join(completed_deliverables) + f"\n\n---\n\n{park_msg}"
                 if completed_deliverables

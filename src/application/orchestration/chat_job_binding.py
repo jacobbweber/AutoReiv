@@ -3,9 +3,11 @@ Bind chat turns to persisted Job/Phase records
 [REQ-ORCH-035, REQ-ORCH-039, REQ-ORCH-040, REQ-ORCH-041].
 """
 
+import re
 from typing import Any, List, Optional, Sequence
 
 from src.application.orchestration.kill_resume import job_waiting_for_answer
+from src.application.orchestration.session_activity import is_job_step_session, parent_session_id
 from src.domain.orchestration.models import (
     FOLLOWUP_JOB_TEMPLATE_ID,
     HandoffPacket,
@@ -85,6 +87,32 @@ def job_waiting_for_answer_on_session(store: Any, session_id: str) -> Optional[J
 
 
 WAITING_FOR_ANSWER_NOTE = "The job is waiting for your answer. Reply here and the step continues."
+
+_PARK_NOTE = re.compile(r"Job (\S+) is waiting for operator approval during (.+?)\. Approve or reject above to continue execution\.")
+
+
+def park_note(job_id: str, phase_name: str) -> str:
+    """CARD-343: the chat line saved when a job step parks on an approval card."""
+    return f"Job {job_id} is waiting for operator approval during {phase_name}. Approve or reject above to continue execution."
+
+
+def settle_park_note(store: Any, approval_session_id: str, decision: str) -> bool:
+    """CARD-617: once a job step's card is decided (in the chat or through the API), its park note says so.
+
+    The note used to keep saying "Approve or reject above" after an API decision left the job stopped.
+    """
+    if not is_job_step_session(approval_session_id):
+        return False
+    verb = "approved" if str(decision or "").strip().lower() in {"approved", "approve"} else "rejected"
+    origin = parent_session_id(approval_session_id)
+    for message in reversed((store.get_messages(session_id=origin) or [])[-30:]):
+        role = str(getattr(getattr(message, "role", ""), "value", getattr(message, "role", ""))).lower()
+        content = str(getattr(message, "content", "") or "")
+        if role != "assistant" or not _PARK_NOTE.search(content) or not getattr(message, "id", None):
+            continue
+        settled = _PARK_NOTE.sub(lambda m: f"Job {m.group(1)} paused for approval during {m.group(2)}; the card was {verb}.", content)
+        return bool(store.update_message(message.id, settled))
+    return False
 
 
 def latest_job_for_session(store: Any, session_id: str) -> Optional[Job]:

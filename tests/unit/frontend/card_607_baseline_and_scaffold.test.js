@@ -28,7 +28,7 @@ describe('CARD-607 baseline and scaffold', () => {
     const prompt = buildQuickScaffoldPayload({ id: 'garden', name: 'Garden', role: 'gardening' }).system_prompt;
     expect(prompt).not.toContain('lookup_agents');
     expect(prompt).not.toContain('handoff_to_agent');
-    expect(prompt).toContain('suggest Ask Developer');
+    expect(prompt).not.toContain('Ask Developer'); // CARD-615: the kernel adds that line when a tool is missing
     expect(prompt).toContain('Call only the tools you are given');
   });
 });
