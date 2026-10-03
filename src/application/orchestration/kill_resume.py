@@ -24,6 +24,31 @@ def is_operator_kill_reason(reason: Any) -> bool:
     )
 
 
+def _status(value: Any) -> str:
+    return str(getattr(value, "value", value) or "").lower()
+
+
+def job_stopped_by_operator(store: Any, job: Any, phases: Optional[list] = None) -> bool:
+    """CARD-490: an open job that Stop paused: nothing running or parked, a phase queued, and the latest
+    checkpoint was written by an operator kill. Resume (``resume: true``) continues it."""
+    if _status(getattr(job, "status", "")) not in ("running", "in_progress"):
+        return False
+    if phases is None:
+        lister = getattr(store, "list_phases_for_job", None)
+        phases = list(lister(job.id) or []) if callable(lister) else []
+    states = {_status(getattr(p, "status", "")) for p in phases}
+    if "queued" not in states or states & {"running", "in_progress", "waiting_approval"}:
+        return False
+    getter = getattr(store, "get_latest_job_phase_checkpoint", None)
+    if not callable(getter):
+        return False
+    try:
+        checkpoint = getter(job.id)
+    except Exception:  # noqa: BLE001 - no checkpoint means not resumable from here
+        return False
+    return bool(checkpoint is not None and is_operator_kill_reason(getattr(checkpoint, "last_fail_reason", "")))
+
+
 def kill_checkpoint_payload(
     *,
     job_id: Optional[str] = None,

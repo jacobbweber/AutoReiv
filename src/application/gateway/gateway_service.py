@@ -12,9 +12,11 @@ from src.application.gateway.attachment_images import notice_payload, prepare_im
 from src.application.gateway.demuxer import ReasoningDemuxer
 from src.application.gateway.generation_semaphore import (
     DEFAULT_MAX_CONCURRENT_GENERATIONS,
+    SLOT_WAIT_REASON,
     GenerationPools,
     GenerationSemaphore,
     provider_pool_key,
+    slot_wait_listener,
 )
 from src.application.gateway.model_capabilities import ModelCapabilityResolver, is_multimodal_rejection
 from src.application.gateway.ports import LLMProviderPort
@@ -33,6 +35,13 @@ from src.domain.gateway.models import (
 from src.domain.settings.models import ModelDescriptor
 
 logger = logging.getLogger(__name__)
+
+
+def _notify_slot(notify: Callable, kind: str, data: dict) -> None:
+    try:
+        notify(kind, data)
+    except Exception:  # noqa: BLE001 - a closed chat stream must not break the model call
+        logger.debug("slot wait listener failed", exc_info=True)
 
 
 class MultiProviderGateway:
@@ -260,7 +269,14 @@ class MultiProviderGateway:
         Execute streaming with candidate fallback on immediate connection failures
         and optional reasoning token demuxing.
         """
-        async with self.generation_slot_for(request):
+        slot = self.generation_slot_for(request)
+        notify = None if getattr(request, "background", False) else slot_wait_listener.get()
+        queued = notify is not None and slot.would_wait()
+        if queued:  # CARD-494: tell the chat its reply is waiting for another one
+            _notify_slot(notify, "queued", {"position": slot.waiting + 1, "reason": SLOT_WAIT_REASON})
+        async with slot:
+            if queued:
+                _notify_slot(notify, "dequeued", {})
             inner = self._stream_unlocked(
                 request, fallback_models=fallback_models, demux_reasoning=demux_reasoning
             )
