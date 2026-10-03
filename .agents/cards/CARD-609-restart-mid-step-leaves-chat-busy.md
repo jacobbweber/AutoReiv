@@ -2,7 +2,7 @@
 id: CARD-609
 title: "A server restart during a job step leaves the chat stuck busy (no Send, no Resume)"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-608-609-recents-restart
 log: {minutes: 0, qa_runs: 1, findings: 1}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-491
   - CARD-530

@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-608: Recent Chats no longer lists job steps (Formulate, Execute) as separate chats; their approvals still mark the parent chat Needs approval, and deleting a chat removes its steps (GET /api/sessions?include_steps=true still lists them).
+- CARD-609: a server restart during a job step no longer leaves the chat stuck busy; at startup the step goes back to resumable, so the chat shows Job stopped with Resume (same job).
 - CARD-490: a job stopped with Stop shows "Job stopped" with a Resume button on the job strip (also after reopening the chat); Resume continues the same job.
 - CARD-491: Stop cancels background work the reply started (memory extraction), and no longer marks work it could not end as stopped (reason not_started_by_chat, shown as a warning).
 - CARD-492: a reply stopped from another device before any words shows "Stopped" on the device that started it, not "Reply failed".
