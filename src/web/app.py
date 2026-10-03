@@ -650,13 +650,19 @@ def create_app(
 
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+    def stamp_app_js(html_text: str, load_stamp: str) -> str:
+        """Fresh app.js URL per page load that still starts with index.html's version (restart_serve checks it)."""
+        found = re.search(r"/static/app\.js\?v=([^\"'-]+)", html_text)
+        stamp = f"{found.group(1)}-{load_stamp}" if found else load_stamp
+        # Every app.js reference (modulepreload + script) gets the same URL so the preload is used.
+        return re.sub(r"/static/app\.js(\?v=[^\"']*)?", f"/static/app.js?v={stamp}", html_text)
+
     @app.get("/", response_class=HTMLResponse)
     async def index_view():
         index_file = template_dir / "index.html"
         if index_file.exists():
             html_text = index_file.read_text(encoding="utf-8")
-            timestamp = str(int(time.time()))
-            html_text = re.sub(r"/static/app\.js(\?v=[^\"']*)?", f"/static/app.js?v={timestamp}", html_text)
+            html_text = stamp_app_js(html_text, str(int(time.time())))
             return HTMLResponse(
                 content=html_text,
                 headers={

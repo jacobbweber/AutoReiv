@@ -2,6 +2,8 @@
 
 Find listener(s) on a port (default 8000), optionally kill them, start one fresh
 serve from the current branch tip, and print tip SHA + app.js?v= from index.html.
+The server serves app.js?v=<index version>-<page load time>; after a start the
+script reads the served page and reports whether it carries the index version.
 
 Usage:
   python scripts/restart_serve.py --dry-run
@@ -237,6 +239,22 @@ def wait_health(host: str, port: int, tries: int = 40) -> bool:
     return False
 
 
+def served_app_js_version(host: str, port: int) -> Optional[str]:
+    """app.js version in the page the running serve returns (None when it cannot be read)."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/", timeout=5) as resp:
+            return parse_app_js_version(resp.read().decode("utf-8", "replace"))
+    except Exception:
+        return None
+
+
+def served_matches(app_js_v: str, served: Optional[str]) -> bool:
+    """The served stamp is <index version>-<load time> (src/web/app.py)."""
+    return bool(served) and (served == app_js_v or served.startswith(f"{app_js_v}-"))
+
+
 def format_report(
     *,
     tip: str,
@@ -248,6 +266,7 @@ def format_report(
     killed: Iterable[int],
     started: bool,
     dry_run: bool,
+    served: Optional[str] = None,
 ) -> str:
     lines = [
         f"branch={branch}",
@@ -259,8 +278,10 @@ def format_report(
         f"killed={list(killed)}",
         f"started={started}",
         f"dry_run={dry_run}",
-        f"verify=Ctrl+F5 then confirm Network shows app.js?v={app_js_v}",
     ]
+    if served is not None:
+        lines.append(f"served=app.js?v={served} matches_index={served_matches(app_js_v, served)}")
+    lines.append(f"verify=Ctrl+F5 then confirm Network shows app.js?v={app_js_v}-<page load time>")
     return "\n".join(lines)
 
 
@@ -288,6 +309,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     dry = bool(args.dry_run or args.status)
     killed: List[int] = []
     started = False
+    served: Optional[str] = None
 
     if args.status:
         print(
@@ -322,6 +344,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             started = True
             if not args.no_wait:
                 ok = wait_health(health_check_host(args.host), args.port)
+                if ok:
+                    served = served_app_js_version(health_check_host(args.host), args.port) or ""
                 if not ok:
                     print(
                         format_report(
@@ -350,6 +374,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             killed=killed,
             started=started,
             dry_run=dry,
+            served=served,
         )
     )
     return 0
