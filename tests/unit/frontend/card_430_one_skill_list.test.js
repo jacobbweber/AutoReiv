@@ -83,8 +83,6 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     expect(html).toContain('Direct mounts none');
     for (const name of [
       'ask_clarification',
-      'handoff_to_agent',
-      'lookup_agents',
       'get_session_info',
       'recall_agent_memory',
       'memorize_fact',

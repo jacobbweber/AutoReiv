@@ -62,8 +62,6 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     const toolsJs = read('src/web/static/modules/studios/forge/tools.js');
     for (const name of [
       'ask_clarification',
-      'handoff_to_agent',
-      'lookup_agents',
       'get_session_info',
       'recall_agent_memory',
       'memorize_fact',
