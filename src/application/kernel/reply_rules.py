@@ -117,7 +117,6 @@ def failed_tool_note(reply: str, last_failure: Optional[Tuple[str, str]]) -> str
 # ---------------- CARD-599 (b): a short no-tools check for skipped parts ----------------
 
 NOT_DONE_PREFIX = "Not done:"
-_ALL_DONE = "ALL DONE"
 _MAX_NOT_DONE_LINES = 6
 _PART_SPLIT = re.compile(
     r"\n\s*(?:\d+[.)]|[-*•])\s+|;|\?|,\s*(?:and\s+|then\s+|also\s+)?|\s+and then\s+|\s+then\s+|\s+and also\s+|\s+plus\s+",
@@ -147,12 +146,12 @@ def parts_check_prompt(user_text: str, tools_ran: list, reply: str) -> str:
         f"User's request:\n{user_text.strip()}\n\n"
         f"Tools that ran this turn:\n{ran}\n\n"
         f"Assistant's reply:\n{reply.strip()}\n\n"
-        "List each separate thing the user asked for. A part that asks for an action (remember, save, create, update, "
-        "send, search, read, list, look up) counts as done only when a tool above did it; a reply that only says it "
-        "was done does not count. A question counts as done when the reply answers it. For each part that is not "
-        "done, write one line exactly like:\n"
+        "Split the request into its separate parts and go through them in order. A part that asks for an action "
+        "(remember, save, create, update, send, search, read, list, look up) is done only when a tool above did "
+        "that action and did not fail; recalling something is not remembering it, and a reply that only says it was "
+        "done does not count. A question is done when the reply answers it. For each part write exactly one line:\n"
+        "Done: <the part in a few words> - <the tool that did it, or: answered>\n"
         f"{NOT_DONE_PREFIX} <the part in a few words>.\n"
-        f"If every part is done, write exactly: {_ALL_DONE}\n"
         "Write nothing else."
     )
 
