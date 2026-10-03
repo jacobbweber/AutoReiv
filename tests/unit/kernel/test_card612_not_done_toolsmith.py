@@ -6,7 +6,7 @@
 - The checker sees short tool arguments first, so register_native_tool(target_agent_id=...) is visible.
 - A "Not done" tool line is dropped when register_native_tool ran and succeeded; a result that reports a failure
   still counts as failed.
-- Toolsmith's domain line never tells it to end with "You can use Ask Developer to add this."
+- Toolsmith's domain line never tells it to end with "You can use Ask Developer to add this." (CARD-615: no agent's does).
 """
 
 from __future__ import annotations
@@ -76,6 +76,4 @@ def test_tool_lines_dropped_only_when_register_succeeded():
 
 def test_toolsmith_domain_line_has_no_ask_developer_ending():
     assert "Ask Developer" not in domain_line(platform_pack_profile("toolsmith"))
-    line = domain_line(platform_pack_profile("autoreiv"))
-    assert 'end your reply with "You can use Ask Developer to add this."' in line
-    assert "Only a reply that turns the request down ends with that line." in line
+    assert "Ask Developer" not in domain_line(platform_pack_profile("autoreiv"))  # CARD-615

@@ -78,8 +78,8 @@ def test_domain_line_from_ticked_skills_replaces_the_capability_block():
 
     assert "## Available Capabilities & Skills" not in content and "Demand-Paged" not in content
     assert "## Your domain" in content
-    # CARD-596: no handoff; the domain line names the agent to open in Chat, then Ask Developer.
-    assert "handoff_to_agent" not in content and "open Tutor in Chat" in content and "Ask Developer" in content
+    # CARD-596: no handoff; the domain line names the agent to open in Chat (CARD-615: the kernel adds Ask Developer).
+    assert "handoff_to_agent" not in content and "open Tutor in Chat" in content and "Ask Developer" not in content
 
 
 @pytest.mark.asyncio

@@ -47,7 +47,7 @@ def render_good_agent_instructions(
     identity_lines.extend(mission)
 
     domain_lines = [
-        f"Focus on {clean_domain}. For requests outside your skills, tell the user which agent to open in Chat; if no agent covers it, say so plainly and suggest Ask Developer.",
+        f"Focus on {clean_domain}. For requests outside your skills, tell the user which agent to open in Chat; if no agent covers it, say so plainly.",
     ]
 
     execution_lines = [

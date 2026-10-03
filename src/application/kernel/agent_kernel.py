@@ -43,6 +43,7 @@ from src.application.kernel.reply_rules import (  # CARD-599/600
     CLARIFICATION_SKIPPED_RESULT,
     MEMORIZE_TOOL,
     REPLY_RULES_BLOCK,
+    ask_developer_ending,
     clarification_question,
     clarification_reply,
     describe_tool_run,
@@ -418,12 +419,16 @@ class AgentKernel:
                 error="tool_policy_blocked:ToolPolicyGate missing",
             )
         if offered is not None and tc.name not in offered:
+            try:
+                exists = any(d.name == tc.name for d in self.tool_registry.list_tools())
+            except Exception:
+                exists = True
             return ToolResult(
                 call_id=tc.id,
                 tool_name=tc.name,
                 output=None,
                 success=False,
-                error=tool_not_offered_error(tc.name, offered),
+                error=tool_not_offered_error(tc.name, offered, exists=exists),  # CARD-615: says when none exists
             )
         registry_names = set()
         try:
@@ -1034,6 +1039,7 @@ class AgentKernel:
                 note = failed_tool_note(assistant_msg.content or "", last_failure)  # CARD-600
                 if note:
                     assistant_msg.content = f"{(assistant_msg.content or '').rstrip()}\n\n{note}"
+                assistant_msg.content = ask_developer_ending(assistant_msg.content or "", history, bool(gap))  # CARD-615
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
@@ -1546,6 +1552,11 @@ class AgentKernel:
                 if note:  # CARD-599 skipped parts, CARD-600 hidden failed tool
                     full_content = f"{full_content.rstrip()}\n\n{note}"
                     yield KernelEvent(event_type=KernelEventType.TOKEN, content=f"\n\n{note}")
+                # CARD-615: the saved reply (shown after the stream) keeps the Ask Developer line only if a tool is missing.
+                ended = ask_developer_ending(full_content, history, bool(gap))
+                if ended.startswith(full_content.rstrip()) and len(ended) > len(full_content.rstrip()):
+                    yield KernelEvent(event_type=KernelEventType.TOKEN, content=ended[len(full_content.rstrip()):])
+                full_content = ended
                 assistant_msg = ChatMessage(
                     role=Role.ASSISTANT,
                     content=full_content,

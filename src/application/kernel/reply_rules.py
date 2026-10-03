@@ -6,16 +6,74 @@
   answers it.
 - CARD-600 item 7: when the turn's last failed tool call is not mentioned in the final reply, one plain line is
   appended: "Note: <tool> failed: <short error>." No re-prompt.
+- CARD-615: the "You can use Ask Developer to add this." ending is added here, not by the prompt: only when a
+  tool is truly missing (a call refused as unknown or not the agent's, and nothing else ran OK) or the reply
+  turns the request down without using any tool. The model's own copy is dropped otherwise.
 """
 
 from __future__ import annotations
 
 import re
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Sequence, Tuple
 
-from src.application.kernel.tool_registry import is_self_correcting_refusal
+from src.application.kernel.tool_registry import NO_SUCH_TOOL, is_self_correcting_refusal
 
 CLARIFICATION_TOOL = "ask_clarification"
+
+# CARD-615
+ASK_DEVELOPER_LINE = "You can use Ask Developer to add this."
+_ASK_DEVELOPER_TEXT = re.compile(r"\b(?:use|try|via|through|with)\s+(?:the\s+)?[*_`\"']*Ask Developer\b", re.IGNORECASE)
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+_MISSING_TOOL_MARKERS = (NO_SUCH_TOOL, "not found in system registry", "is not authorized for agent")
+_FAILED_TOOL_PREFIXES = ("Tool Error:", "Rejected. Tool did not run.")
+_POINTS_TO_AGENT = re.compile(r"\bopen [\w' -]{1,40}? in Chat\b", re.IGNORECASE)
+
+
+def _role(message: Any) -> str:
+    return str(getattr(message, "role", "") or "").lower()
+
+
+def turn_tool_rows(history: Sequence[Any]) -> list:
+    """CARD-615: tool result texts since the latest user message (this request, incl. a resumed approval)."""
+    rows: list = []
+    for message in reversed(list(history or [])):
+        role = _role(message)
+        if role.endswith("user"):
+            break
+        if role.endswith("tool"):
+            rows.append(str(getattr(message, "content", "") or ""))
+    return rows
+
+
+def _strip_ask_developer(text: str) -> str:
+    """Drop each sentence that sends the user to Ask Developer; a line left empty goes too."""
+    lines = []
+    for line in text.split("\n"):
+        if not _ASK_DEVELOPER_TEXT.search(line):
+            lines.append(line)
+            continue
+        kept = " ".join(s for s in _SENTENCE_END.split(line.strip()) if not _ASK_DEVELOPER_TEXT.search(s))
+        if kept.strip(" *_-"):
+            lines.append(kept)
+    return "\n".join(lines)
+
+
+def ask_developer_ending(reply: str, history: Sequence[Any], declined: bool) -> str:
+    """CARD-615: the final reply with the Ask Developer line only when a tool is truly missing.
+
+    declined: the reply reads as "I can't do this" (capability-gap wording). It counts only when no tool was used
+    for the request and the reply does not point at another agent.
+    """
+    text = reply or ""
+    body = _strip_ask_developer(text).rstrip()
+    had_line = body != text.rstrip()
+    rows = turn_tool_rows(history)
+    missing = any(marker in row for row in rows for marker in _MISSING_TOOL_MARKERS)
+    succeeded = any(not row.lstrip().startswith(_FAILED_TOOL_PREFIXES) for row in rows)
+    turned_down = not rows and (declined or had_line) and not _POINTS_TO_AGENT.search(body)
+    if (missing and not succeeded) or turned_down:
+        return f"{body}\n\n{ASK_DEVELOPER_LINE}" if body else ASK_DEVELOPER_LINE
+    return body if had_line else text
 
 REPLY_RULES_BLOCK = (
     "## Answering\n"

@@ -65,7 +65,7 @@ def test_platform_prompts_hand_off_instead_of_refusing():
         text = json.dumps(json.loads(pack.read_text("utf-8")))
         assert "Refuse requests outside" not in text, pack
     rendered = render_good_agent_instructions(name="Notes", role="notes", domain_focus="wiki notes")
-    assert "Refuse" not in rendered and "Ask Developer" in rendered
+    assert "Refuse" not in rendered and "say so plainly" in rendered  # CARD-615: the kernel adds Ask Developer
 
 
 def test_domain_and_routing_text_come_from_ticked_skills():
@@ -102,8 +102,9 @@ def test_domain_line_carries_short_skill_blurbs_including_operator_skills(tmp_pa
     assert "Get Weather (Returns current weather for a given location)" in line
     assert "Search and read verified notes" in line  # platform metadata blurb
     assert "More text here" not in line  # first sentence only
-    # Live QA: a paraphrase ("use a travel service") left no Ask Developer button; the line gives the exact words.
-    assert 'end your reply with "You can use Ask Developer to add this."' in line
+    # CARD-615: the exact Ask Developer words (for the CARD-539 button) are added by the kernel, not the prompt.
+    assert "Ask Developer" not in line
+    assert "state that plainly" in line
 
 
 def test_directory_cards_route_by_skills_not_tools():
