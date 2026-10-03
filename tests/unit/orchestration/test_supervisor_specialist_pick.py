@@ -350,6 +350,7 @@ def test_req_super_004_journey_supervisor_pick_and_child_job_id(orch, resolver, 
 def test_req_super_004_chat_strip_parent_child_fields():
     """Chat strip API surfaces parent<->child when SSE/API fields exist."""
     chat_js = Path("src/web/static/modules/studios/chat.js").read_text(encoding="utf-8")
+    chat_js += Path("src/web/static/modules/studios/chat/job_strip.js").read_text(encoding="utf-8")  # CARD-490 move
     html = Path("src/web/templates/index.html").read_text(encoding="utf-8")
     assert "formatJobPhaseStrip" in chat_js
     assert "parentJobId" in chat_js or "parent_job_id" in chat_js

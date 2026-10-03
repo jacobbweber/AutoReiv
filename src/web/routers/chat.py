@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
+from src.application.gateway.generation_semaphore import slot_wait_listener
 from src.application.kernel.stopped_reply import PartialReply, stopped_message
 from src.application.orchestration.chat_job_binding import (
     latest_open_job_for_session,
@@ -22,6 +23,7 @@ from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
+from src.application.orchestration.kill_resume import job_stopped_by_operator
 from src.application.orchestration.phase_roles import (
     format_planning_phase_block,
     format_planning_repo_note,
@@ -45,6 +47,7 @@ from src.application.orchestration.research_before_plan import (
     is_research_phase,
     research_already_prepared,
 )
+from src.application.orchestration.session_activity import job_has_running_phase, session_activity
 from src.application.orchestration.standing_job_graph import (
     format_phase_llm_exhausted_reason,
     is_phase_llm_retryable,
@@ -107,6 +110,36 @@ async def sse_with_keepalive(queue: "asyncio.Queue[Optional[str]]", interval: Op
 # Active background generation tasks by session_id [REQ-RESIL-003, CARD-114 Finding 4]
 _active_stream_tasks: Dict[str, asyncio.Task] = {}
 _active_stream_agents: Dict[str, str] = {}
+# CARD-491: background tasks a chat turn started (memory extraction), by session, with the worker that started them.
+_turn_side_tasks: Dict[str, List[tuple]] = {}
+
+
+def spawn_turn_side_task(session_id: str, coro: Any) -> asyncio.Task:
+    """Start a background task for this chat turn; Stop on the turn cancels it [CARD-491 REQ-491-001]."""
+    owner = asyncio.current_task()
+    task = asyncio.create_task(coro)
+    entries = _turn_side_tasks.setdefault(session_id, [])
+    entries.append((owner, task))
+
+    def _forget(done: asyncio.Task) -> None:
+        left = [e for e in _turn_side_tasks.get(session_id, []) if e[1] is not done]
+        if left:
+            _turn_side_tasks[session_id] = left
+        else:
+            _turn_side_tasks.pop(session_id, None)
+
+    task.add_done_callback(_forget)
+    return task
+
+
+def cancel_turn_side_tasks(session_id: str, owner: Optional[asyncio.Task]) -> int:
+    """Cancel the unfinished background tasks ``owner`` (a stopped worker) started. Returns how many."""
+    n = 0
+    for own, task in list(_turn_side_tasks.get(session_id, [])):
+        if own is owner and not task.done():
+            task.cancel()
+            n += 1
+    return n
 
 
 async def _background_extract_turn_memory(
@@ -1366,7 +1399,8 @@ async def execute_goal_job_phases(
                 getattr(kernel, "gateway", None)
                 or getattr(kernel, "llm_service", None)
             )
-            asyncio.create_task(
+            spawn_turn_side_task(  # CARD-491
+                session_id,
                 _background_extract_turn_memory(
                     agent_id=profile.id,
                     user_text=job.goal,
@@ -1510,6 +1544,7 @@ async def list_sessions(
                 exclude_session_id=exclude_session_id,
             )
     sessions = store.list_sessions(agent_id=agent_id)
+    activity = session_activity(store, _live_stream_session_ids())  # CARD-493
     return [
         {
             "id": s.id,
@@ -1517,6 +1552,8 @@ async def list_sessions(
             "title": s.title,
             "created_at": s.created_at.isoformat(),
             "updated_at": s.updated_at.isoformat(),
+            "is_running": s.id in activity["running"],
+            "waiting_approval": s.id in activity["waiting_approval"],
         }
         for s in sessions
     ]
@@ -1739,6 +1776,7 @@ async def get_session_journey(request: Request, session_id: str):
                 "status": j.status.value if hasattr(j.status, "value") else str(j.status),
                 "created_at": j.created_at.isoformat() if hasattr(j.created_at, "isoformat") else str(j.created_at),
                 "phases": phases_list,
+                "stopped": job_stopped_by_operator(store, j, list(raw_phases or [])),  # CARD-490: Resume shows
             })
 
     # 2. Tool Executions (telemetry spans)
@@ -1912,6 +1950,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     async def worker():
         """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
         partial = PartialReply()  # CARD-489: words shown so far, kept if the reply is stopped
+        # CARD-494: a model call that has to wait for a generation slot says so on this stream.
+        slot_wait_listener.set(lambda kind, data: queue.put_nowait(_sse(kind, data)))
         try:
             resume = bool(req.resume)
             effective_content = ""
@@ -2440,7 +2480,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     getattr(request.app.state, "data_dir", None)
                     or getattr(kernel, "data_dir", None)
                 )
-                asyncio.create_task(
+                spawn_turn_side_task(  # CARD-491
+                    req.session_id,
                     _background_extract_turn_memory(
                         agent_id=profile.id,
                         user_text=effective_content,
@@ -2519,15 +2560,31 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     )
 
 
-def _job_has_running_phase(store: Any, job: Any) -> bool:
-    """True when a phase of ``job`` is RUNNING. Stores without phase listing keep the old job-level answer."""
-    if not hasattr(store, "list_phases_for_job"):
-        return True
-    for phase in store.list_phases_for_job(job.id) or []:
-        status_val = phase.status.value if hasattr(phase.status, "value") else str(phase.status)
-        if status_val == "running":
-            return True
+_job_has_running_phase = job_has_running_phase  # CARD-493: shared with Recent Chats
+
+
+def _live_stream_session_ids() -> List[str]:
+    return [sid for sid, task in list(_active_stream_tasks.items()) if task is not None and not task.done()]
+
+
+def _session_has_running_phase(store: Any, session_id: str) -> bool:
+    if not store or not hasattr(store, "list_jobs_for_session"):
+        return False
+    try:
+        for j in store.list_jobs_for_session(session_id) or []:
+            status_val = j.status.value if hasattr(j.status, "value") else str(j.status)
+            if status_val in ("in_progress", "running") and _job_has_running_phase(store, j):
+                return True
+    except Exception:  # noqa: BLE001
+        return False
     return False
+
+
+@router.get("/api/sessions/activity")
+async def get_sessions_activity(request: Request):
+    """CARD-493: chat ids replying now and chat ids with a pending approval (Recent Chats markers)."""
+    activity = session_activity(getattr(request.app.state, "store", None), _live_stream_session_ids())
+    return {"running": sorted(activity["running"]), "waiting_approval": sorted(activity["waiting_approval"])}
 
 
 @router.get("/api/sessions/{session_id}/status")
@@ -2565,6 +2622,7 @@ async def abort_stream_endpoint(request: Request, session_id: str):
     """Operator kill mid-LLM: checkpoint + stop worker; same job_id stays resumable [CARD-259]."""
     task = _active_stream_tasks.pop(session_id, None)
     _active_stream_agents.pop(session_id, None)
+    live = bool(task and not task.done())
 
     store = getattr(request.app.state, "store", None)
     orch = getattr(request.app.state, "job_orchestrator", None)
@@ -2575,8 +2633,17 @@ async def abort_stream_endpoint(request: Request, session_id: str):
         "phase_id": None,
         "reason": "operator_kill_mid_llm",
     }
+    message = None
     ck_fn = getattr(orch, "checkpoint_mid_llm_kill", None) if orch is not None else None
-    if callable(ck_fn):
+    if not live:
+        # CARD-491 REQ-491-002: no chat worker to cancel here. A RUNNING phase then belongs to work this
+        # server's chat did not start (or another process); marking it QUEUED would lie about it.
+        if _session_has_running_phase(store, session_id):
+            checkpoint["reason"] = "not_started_by_chat"
+            message = "This work was not started by a chat reply on this server, so Stop cannot end it. It was left running."
+        else:
+            checkpoint["reason"] = "nothing_running"
+    elif callable(ck_fn):
         try:
             checkpoint = ck_fn(session_id) or checkpoint
         except Exception as e:
@@ -2612,7 +2679,8 @@ async def abort_stream_endpoint(request: Request, session_id: str):
             logger.warning("Failed to leave jobs resumable on abort: %s", e)
 
     was_cancelled = False
-    if task and not task.done():
+    side_cancelled = cancel_turn_side_tasks(session_id, task) if task is not None else 0  # CARD-491
+    if live:
         task.cancel()
         was_cancelled = True
         try:
@@ -2640,6 +2708,8 @@ async def abort_stream_endpoint(request: Request, session_id: str):
         "job_id": checkpoint.get("job_id"),
         "phase_id": checkpoint.get("phase_id"),
         "reason": checkpoint.get("reason") or "operator_kill_mid_llm",
+        "side_tasks_cancelled": side_cancelled,
+        "message": message,
     }
 
 

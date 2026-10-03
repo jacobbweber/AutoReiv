@@ -1,9 +1,10 @@
 ---
 id: CARD-491
 title: "Stop leaves side work running: memory extraction and non-chat jobs are not cancelled"
-status: Ready
+status: Done
 created: 2026-09-25
-branch: qa
+completed: 2026-10-03
+branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-486
   - CARD-154
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-491] Stop leaves side work running: memory extraction and non-chat jobs are not cancelled
 
-> **Status**: Ready
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 planning (scratch server + slow fake gateway)
 > **Related**: CARD-486, CARD-154, CARD-259
@@ -67,3 +68,27 @@ Log every gateway call with its purpose on the scratch server plus the fake gate
 
 ## 4. Runbook
 Stop a long reply and send "hi" at once: it answers immediately, and the server log shows no model calls from the stopped turn after the abort.
+
+## Change (2026-10-03, branch `feat/card-490-494-stop-resume-recents`)
+
+- **REQ-491-001:** background tasks a turn starts (memory extraction, both call sites) go through `spawn_turn_side_task`, are registered per chat and owner, and `/abort` cancels them (`side_tasks_cancelled` in the answer). Memory extraction only starts after a reply finishes, so a stopped turn never starts it; tracking covers the race anyway.
+- **REQ-491-002:** `/abort` only checkpoints when it has a live chat worker to cancel. A RUNNING phase with no worker is left alone and the answer is `task_cancelled: false, checkpointed: false, reason: not_started_by_chat` with a plain message; the UI shows that message as a warning instead of "Stopped". With nothing running the reason is `nothing_running`.
+- **REQ-491-003:** already met by CARD-585 (background calls have their own slot pool, so a side call can't hold the user's slot). No change needed.
+
+## Results
+
+| Check | Result |
+|-------|--------|
+| Card tests | `tests/unit/web/test_card490_494_stop_resume_recents.py` 10 passed; `tests/unit/frontend/card_490_494_stop_resume_recents.test.js` 19 passed; smoke TC-50 passed |
+| Full pytest | 2350 passed, 12 skipped |
+| Full preflight (vitest + smoke) | GREEN: ruff, eslint (0 errors, 3 old warnings), pytest 2350 passed / 12 skipped, vitest 987 passed, smoke 79 passed |
+
+Live check on a throwaway :8770 (Spark nemotron-3.5-lightning, max 1 reply at a time), 2026-10-03 ~1:55-2:03 AM ET. Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003b\`.
+
+| Step | Result |
+|------|--------|
+| Long reply in chat A, send "hi" in B (waits), Stop A from the phone | B's first words 2.6 s after Stop (B waited 14.0 s in total); A's saved reply ends `_(Stopped)_` |
+
+Follow-up to check: a phase left RUNNING with no worker after a server restart is no longer re-queued by Stop; startup recovery (CARD-530 REQ-530-008) should cover it.
+
+Release note: Stop no longer marks work as stopped when it can't actually end it (for example work not started by a chat reply); it tells you instead.

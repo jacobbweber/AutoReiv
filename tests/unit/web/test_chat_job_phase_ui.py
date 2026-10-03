@@ -4,11 +4,16 @@ from pathlib import Path
 
 INDEX_HTML = Path("src/web/templates/index.html")
 CHAT_JS = Path("src/web/static/modules/studios/chat.js")
+JOB_STRIP_JS = Path("src/web/static/modules/studios/chat/job_strip.js")  # CARD-490: strip model moved out of chat.js
+
+
+def _chat_js() -> str:
+    return CHAT_JS.read_text(encoding="utf-8") + "\n" + JOB_STRIP_JS.read_text(encoding="utf-8")
 
 
 def test_goal_badge_is_multi_phase_job_not_plan_graph():
     html = INDEX_HTML.read_text(encoding="utf-8")
-    js = CHAT_JS.read_text(encoding="utf-8")
+    js = _chat_js()
     assert "Plan Graph Active" not in html
     assert "Plan Graph Active" not in js
     assert "Plan Graph" not in html
@@ -23,7 +28,7 @@ def test_goal_badge_is_multi_phase_job_not_plan_graph():
 
 def test_job_phase_status_strip_consumes_sse_and_names_parked_failed():
     html = INDEX_HTML.read_text(encoding="utf-8")
-    js = CHAT_JS.read_text(encoding="utf-8")
+    js = _chat_js()
     assert 'id="jobPhaseStatusStrip"' in html
     assert 'data-job-phase="status"' in html
     assert 'data-job-phase="phase"' in html
@@ -44,7 +49,7 @@ def test_job_phase_status_strip_consumes_sse_and_names_parked_failed():
 def test_job_phase_strip_shows_copyable_job_id_when_bound():
     """REQ-JOBMINT-005: Chat Job strip + Journey expose full copyable job_… id."""
     html = INDEX_HTML.read_text(encoding="utf-8")
-    js = CHAT_JS.read_text(encoding="utf-8")
+    js = _chat_js()
     assert 'data-job-phase="job-id"' in html
     assert 'data-job-phase="copy-job-id"' in html
     assert "copyJobBound" in js
@@ -57,7 +62,7 @@ def test_job_phase_strip_shows_copyable_job_id_when_bound():
 
 def test_job_phase_strip_hides_without_bound_job_id_card338():
     """CARD-338: Job phase status strip requires boundJobId and never outputs 'Job unknown'."""
-    js = CHAT_JS.read_text(encoding="utf-8")
+    js = _chat_js()
     assert "if (!boundJobId) {" in js
     assert 'jobPhaseStatusStrip.classList.add(\'hidden\');' in js
     assert 'if (!raw || raw.toLowerCase() === "unknown") return "";' in js

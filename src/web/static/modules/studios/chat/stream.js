@@ -205,12 +205,16 @@ export async function consumeChatStream(response, {
  */
 export function trackStreamOutcome() {
   let events = 0;
+  let tokens = 0;
   let error = null;
+  let stopped = false; // CARD-492: turn_end {status: "aborted"} - Stop pressed here or on another device
   const notices = []; // CARD-475: e.g. "This model can't view images..."
   return {
     note(eventType, ev = {}) {
       events += 1;
-      if (eventType === 'attachment_notice') {
+      if (eventType === 'token') tokens += 1;
+      if (eventType === 'turn_end' && String(ev?.status || '').toLowerCase() === 'aborted') stopped = true;
+      else if (eventType === 'attachment_notice') {
         const text = String(ev?.message || '').trim();
         if (text && !notices.includes(text)) notices.push(text);
       } else if (eventType === 'error') error = String(ev?.error || ev?.message || ev?.content || 'The reply failed.');
@@ -219,11 +223,39 @@ export function trackStreamOutcome() {
     notices() {
       return [...notices];
     },
+    stopped() {
+      return stopped;
+    },
+    /** CARD-492: "Stopped" when the reply was stopped before any words; with words the saved reply ends "(Stopped)". */
+    stoppedNotice() {
+      return stopped && tokens === 0 ? STOPPED_NOTICE : null;
+    },
     failureMessage() {
+      if (stopped) return null; // CARD-492: stopped on purpose is not a failure
       if (error) return error;
       return events === 0 ? 'The reply ended without a response.' : null;
     },
   };
+}
+
+export const STOPPED_NOTICE = 'Stopped';
+export const QUEUE_NOTE_TEXT = 'Waiting for another reply to finish.';
+
+/**
+ * CARD-494: the reply bubble says it is waiting while its model call queues for a slot.
+ * `queued` shows the note; `dequeued`, a token or reasoning hides it. Returns true when the note is showing.
+ */
+export function applyQueueNote(noteEl, eventType) {
+  if (!noteEl || !noteEl.classList) return false;
+  if (eventType === 'queued') {
+    noteEl.textContent = QUEUE_NOTE_TEXT;
+    noteEl.classList.remove('hidden');
+    return true;
+  }
+  if (eventType === 'dequeued' || eventType === 'token' || eventType === 'reasoning' || eventType === 'turn_end' || eventType === 'turn_done' || eventType === 'error') {
+    noteEl.classList.add('hidden');
+  }
+  return !noteEl.classList.contains('hidden');
 }
 
 /** Show a failed reply as a visible alert in the message list plus an error toast. Returns true when shown. */
@@ -233,7 +265,9 @@ export function reportStreamOutcome(outcome, {
   doc = typeof document !== 'undefined' ? document : null,
 } = {}) {
   // CARD-475: notices render after the finalize reload, like the CARD-469 error.
-  const notices = outcome && typeof outcome.notices === 'function' ? outcome.notices() : [];
+  const notices = outcome && typeof outcome.notices === 'function' ? [...outcome.notices()] : [];
+  const stoppedText = outcome && typeof outcome.stoppedNotice === 'function' ? outcome.stoppedNotice() : null;
+  if (stoppedText) notices.push(stoppedText); // CARD-492: same style as the CARD-475 notices
   if (messagesContainer && doc) {
     // CARD-482: the notice is saved as a chat note; skip it when the reloaded thread already shows it.
     const shown = new Set(Array.from(messagesContainer.querySelectorAll?.('.chat-attachment-notice') || []).map((n) => n.textContent));
@@ -242,6 +276,7 @@ export function reportStreamOutcome(outcome, {
       note.className = 'chat-attachment-notice mx-auto my-2 max-w-3xl px-3 py-2 rounded-xl border border-sky-900/60 bg-sky-950/40 text-sky-200 text-xs break-words';
       note.setAttribute('role', 'status');
       note.textContent = text;
+      if (text === STOPPED_NOTICE) note.setAttribute('data-stream-stopped', 'true'); // CARD-492
       messagesContainer.appendChild(note);
     });
   }

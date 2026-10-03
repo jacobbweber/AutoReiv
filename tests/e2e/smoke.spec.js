@@ -532,6 +532,47 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(box.locator('[data-tool-status="complete"]')).toHaveCount(1);
   });
 
+  test('TC-50: Recent Chats markers, Resume on a stopped job, Stopped from elsewhere [CARD-490, CARD-492, CARD-493]', async ({ page, request }) => {
+    const stamp = Date.now();
+    const a = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `TC-50 A ${stamp}` } })).json();
+    const b = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `TC-50 B ${stamp}` } })).json();
+    await page.route('**/api/sessions/activity', (route) => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ running: [a.id], waiting_approval: [b.id] }),
+    }));
+    await page.route(`**/api/chat/sessions/${a.id}/journey`, (route) => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({
+        session_id: a.id, jobs: [{ id: 'job_tc50', status: 'running', stopped: true, phases: [
+          { id: 'p0', index: 0, name: 'Research', status: 'done', assigned_agent_id: 'autoreiv' },
+          { id: 'p1', index: 1, name: 'Write', status: 'queued', assigned_agent_id: 'autoreiv' },
+        ] }], tool_executions: [], artifacts: [], facts: [], summary: {},
+      }),
+    }));
+    await page.route('**/api/chat/stream', (route) => route.fulfill({
+      status: 200, headers: { 'Content-Type': 'text/event-stream' },
+      body: 'event: turn_end\ndata: {"status": "aborted", "reason": "kill_checkpointed", "is_finished": true}\n\n',
+    }));
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    await page.locator('#toggleSidebarBtn').click();
+    const itemA = page.locator('#sessionList > div', { hasText: a.title });
+    const itemB = page.locator('#sessionList > div', { hasText: b.title });
+    await expect(itemA).toHaveAttribute('data-session-activity', 'running');
+    await expect(itemA).toContainText('Replying');
+    await expect(itemB).toHaveAttribute('data-session-activity', 'waiting');
+    await expect(itemB).toContainText('Needs approval');
+    await itemA.click();
+    const strip = page.locator('#jobPhaseStatusStrip');
+    await expect(strip.locator('[data-job-phase="status"]')).toHaveText('Job stopped');
+    await expect(strip.locator('[data-job-phase="resume"]')).toBeVisible();
+    const input = page.locator('#promptInput');
+    await input.click();
+    await input.type('hello');
+    await input.press('Enter');
+    await expect(page.locator('#messagesContainer [data-stream-stopped="true"]')).toHaveText('Stopped');
+    await expect(page.locator('#messagesContainer .chat-stream-error')).toHaveCount(0);
+  });
+
   test('TC-11: Quick Prompts picker opens and a pick fills the composer [CARD-469]', async ({ page }) => {
     await page.route('**/api/prompts', (route) =>
       route.fulfill({

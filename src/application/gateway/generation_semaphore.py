@@ -10,8 +10,9 @@ Policy:
 from __future__ import annotations
 
 import asyncio
+import contextvars
 from collections import deque
-from typing import Any, Deque, Dict, Optional
+from typing import Any, Callable, Deque, Dict, Optional
 from urllib.parse import urlsplit
 
 DEFAULT_MAX_CONCURRENT_GENERATIONS = 1
@@ -19,6 +20,14 @@ MIN_MAX_CONCURRENT_GENERATIONS = 1
 MAX_MAX_CONCURRENT_GENERATIONS = 3
 BACKGROUND_POOL = "background"
 BACKGROUND_MAX_CONCURRENT_GENERATIONS = 1
+
+
+# CARD-494: set by a chat stream worker; called with ("queued", {...}) when its model call has to wait for a slot
+# and ("dequeued", {}) when it gets one. Contextvars stay with the worker task, so other chats are not told.
+slot_wait_listener: contextvars.ContextVar[Optional[Callable[[str, Dict[str, Any]], None]]] = contextvars.ContextVar(
+    "slot_wait_listener", default=None
+)
+SLOT_WAIT_REASON = "another reply is running"
 
 
 class HandoffBatchExceedsCapError(ValueError):
@@ -89,6 +98,10 @@ class GenerationSemaphore:
     @property
     def waiting(self) -> int:
         return sum(1 for f in self._waiters if not f.done())
+
+    def would_wait(self) -> bool:
+        """CARD-494: True when an acquire now would queue (every slot taken, or others already waiting)."""
+        return self._in_use >= self._max or self.waiting > 0
 
     def set_max_concurrent(self, max_concurrent: int) -> None:
         self._max = clamp_max_concurrent_generations(max_concurrent)

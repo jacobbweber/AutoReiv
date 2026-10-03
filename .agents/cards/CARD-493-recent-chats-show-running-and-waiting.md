@@ -1,9 +1,10 @@
 ---
 id: CARD-493
 title: "Recent Chats doesn't show which chats are still replying or waiting for approval"
-status: Ready
+status: Done
 created: 2026-09-25
-branch: qa
+completed: 2026-10-03
+branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-488
   - CARD-485
@@ -20,7 +21,7 @@ milestone: Horizon
 
 # [CARD-493] Recent Chats doesn't show which chats are still replying or waiting for approval
 
-> **Status**: Ready (unparked 2026-09-30)
+> **Status**: Done (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-488 planning (decisions D4 and D6)
 > **Related**: CARD-488 (switching during a reply), CARD-485 (busy state for the open chat), CARD-487 (live replay)
@@ -67,3 +68,31 @@ Start a long reply in A and switch to B: A shows the "replying" dot and it clear
 ## Log
 
 - 2026-09-30: unparked to Ready (Jacob).
+
+## Change (2026-10-03, branch `feat/card-490-494-stop-resume-recents`)
+
+- New `session_activity.py` works out which chats are replying (a live chat worker, or a job with a running phase) and which need approval (a pending approval, including ones from that chat's phases and hand-offs).
+- `GET /api/sessions` rows carry `is_running` and `waiting_approval`; new `GET /api/sessions/activity` returns just the two lists.
+- Recent Chats shows a pulsing dot and "Replying", or an amber dot and "Needs approval" (approval wins). The list refreshes on the existing loads, when a turn starts, after Stop and on chat select, and every 5 s only while a listed chat is replying and the page is visible.
+
+## Results
+
+| Check | Result |
+|-------|--------|
+| Card tests | `tests/unit/web/test_card490_494_stop_resume_recents.py` 10 passed; `tests/unit/frontend/card_490_494_stop_resume_recents.test.js` 19 passed; smoke TC-50 passed |
+| Full pytest | 2350 passed, 12 skipped |
+| Full preflight (vitest + smoke) | GREEN: ruff, eslint (0 errors, 3 old warnings), pytest 2350 passed / 12 skipped, vitest 987 passed, smoke 79 passed |
+
+Live check on a throwaway :8770 (Spark nemotron-3.5-lightning, max 1 reply at a time), 2026-10-03 ~1:55-2:03 AM ET. Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003b\`.
+
+| Step | Result |
+|------|--------|
+| Long reply in A, switch to B | A shows "Replying" (B too while it waits for the slot) |
+| Stop A | A's marker cleared on the next refresh |
+| Wiki note create parks for approval in chat D, open another chat | D shows amber "Needs approval"; cleared after reject |
+
+Findings:
+- A job chat also showed "Needs approval" for an ACE skill proposal (`propose_skill`) raised by its Execute phase. That is consistent with the chat itself, which shows the Approve/Reject card for it.
+- Pre-existing, not changed here: job phase sessions (`<chat>::phase::<id>`, titled "Formulate", "Execute") are listed in Recent Chats as separate chats. Candidate for a small follow-up card.
+
+Release note: Recent Chats marks chats that are still replying and chats waiting for your approval.

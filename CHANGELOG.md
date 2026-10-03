@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+- CARD-490: a job stopped with Stop shows "Job stopped" with a Resume button on the job strip (also after reopening the chat); Resume continues the same job.
+- CARD-491: Stop cancels background work the reply started (memory extraction), and no longer marks work it could not end as stopped (reason not_started_by_chat, shown as a warning).
+- CARD-492: a reply stopped from another device before any words shows "Stopped" on the device that started it, not "Reply failed".
+- CARD-493: Recent Chats marks chats that are still replying (pulsing dot) and chats waiting for approval (amber dot); GET /api/sessions rows carry is_running and waiting_approval, and GET /api/sessions/activity lists both; smoke TC-50.
+- CARD-494: a Chat reply that has to wait for another reply shows "Waiting for another reply to finish." until it starts (new queued/dequeued stream events).
 - CARD-477: Chat tool rows show what happened: Waiting for approval, Asked for approval, Rejected, Failed, Not run or Complete (was always Complete); smoke TC-49.
 - CARD-606: a Chat reply that fails shows Failed instead of a STREAMING badge that never ends; smoke TC-48.
 - CARD-605: an agent makes at most 8 wiki searches or note lists per reply (Settings > Reply limits > Wiki look-ups per reply, 1-50), then answers with what it found and says plainly when nothing matched.

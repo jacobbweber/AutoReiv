@@ -22,6 +22,7 @@ export * from './chat/chrome.js';
 export * from './chat/workbench.js';
 export * from './chat/teach_modal.js'; // CARD-472
 export * from './chat/session_select.js'; // CARD-485 (hydrateJobPhaseStateFromJourney moved here)
+export * from './chat/job_strip.js'; // CARD-490: strip model moved out of chat.js
 
 import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD-470
 
@@ -34,11 +35,14 @@ import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
 import { sendDeveloperIntent } from './chat/developer_intent.js'; // CARD-497 REQ-497-016
 import { handleTurnRunning } from './chat/turn_running.js'; // CARD-530 REQ-530-003
 import { showFailedTurn } from './chat/failed_send.js'; // CARD-484: a failed send keeps the typed text
+import { createSessionActivityPoller } from './chat/session_activity.js'; // CARD-493
+import { formatJobPhaseStrip, reactStateToneClass, isHitlParkSseEvent, applyJobPhaseEvent, isJobPhaseChromeEvent } from './chat/job_strip.js'; // CARD-490
 
 import {
   buildChatStreamPayload,
   consumeChatStream,
   trackStreamOutcome, reportStreamOutcome, // CARD-469: failed replies are shown
+  applyQueueNote, // CARD-494: "Waiting for another reply to finish."
   querySessionStatus,
 } from './chat/stream.js';
 
@@ -70,6 +74,7 @@ import {
   createNewSession as createNewSessionDirect,
   setupChatChrome,
   closeChatOptionsDrawer,
+  renderSessionList, // CARD-493: re-render markers between list loads
   syncChatJobViewButton,
   bindChatJobViewShortcut,
 } from './chat/chrome.js';
@@ -104,173 +109,6 @@ export const DUAL_ENGINE_IDS = Object.freeze(['autoreiv', 'direct']);
 
 export function dualEngineAgentsVisibleInChat(agents) {
   return agentsVisibleInChat(agents).filter((a) => DUAL_ENGINE_IDS.includes(a.id));
-}
-
-export const JOB_PHASE_REACT_STATES = Object.freeze([
-  'THINKING',
-  'CALLING_TOOLS',
-  'PARKED',
-  'DONE',
-  'FAILED',
-]);
-
-/** SSE event types that drive the shared Job phase strip (Chat + Education origin). [CARD-240] */
-export const JOB_PHASE_CHROME_EVENTS = Object.freeze([
-  'job_created',
-  'resumed_from_checkpoint',
-  'phase_start',
-  'phase_complete',
-  'react_state',
-  'plan_formulated',
-  'approval_required',
-]);
-
-export function isJobPhaseChromeEvent(eventType) {
-  return JOB_PHASE_CHROME_EVENTS.includes(String(eventType || ''));
-}
-
-export function humanizeJobStatus(status) {
-  const raw = String(status || '').trim();
-  if (!raw || raw.toLowerCase() === "unknown") return "";
-  return raw.replace(/_/g, ' ');
-}
-
-export function formatJobPhaseStrip(state) {
-  const jobId = (state && (state.jobId || state.job_id)) || '';
-  const jobStatus = humanizeJobStatus(state && state.jobStatus);
-  const phaseName = (state && state.phaseName) || '';
-  const phaseIndex = state && state.phaseIndex;
-  const phaseCount = state && state.phaseCount;
-  let phaseLabel = phaseName || 'Phase';
-  if (phaseIndex != null && phaseIndex !== '') {
-    const n = Number(phaseIndex) + 1;
-    phaseLabel = phaseCount != null && phaseCount !== '' ? `Phase ${n}/${phaseCount} ${phaseName}`.trim() : `Phase ${n} ${phaseName}`.trim();
-  }
-  const agent = (state && (state.assignedAgentId || state.agentId)) || 'agent';
-  const reactState = String((state && state.reactState) || '').toUpperCase();
-  const failReason = String((state && state.failReason) || '').trim();
-  const failed = String((state && state.jobStatus) || '').toLowerCase() === 'failed';
-  const resumed = Boolean(state && state.resumedFromCheckpoint) && !failed;
-  let jobStatusLabel = jobStatus ? `Job ${jobStatus}` : (jobId ? "Job" : "");
-  if (failed && failReason) {
-    // CARD-530 REQ-530-007: say why, never DONE next to a failed job.
-    jobStatusLabel = `Job failed: ${failReason.length > 160 ? `${failReason.slice(0, 157)}...` : failReason}`;
-  }
-  if (resumed && jobStatusLabel) {
-    jobStatusLabel = `${jobStatusLabel} | Resumed (resumed_from_checkpoint)`;
-  }
-  const parentJobId = (state && (state.parentJobId || state.parent_job_id)) || '';
-  const childJobId = (state && (state.childJobId || state.child_job_id)) || '';
-  const childJobIds = (state && (state.childJobIds || state.child_job_ids)) || [];
-  let parentChildLabel = '';
-  if (parentJobId && (childJobId || (Array.isArray(childJobIds) && childJobIds.length))) {
-    parentChildLabel = `parent↔child ${parentJobId} ↔ ${childJobId || childJobIds[0]}`;
-  } else if (childJobId || (Array.isArray(childJobIds) && childJobIds.length)) {
-    parentChildLabel = `parent↔child → ${childJobId || childJobIds[0]}`;
-  } else if (parentJobId) {
-    parentChildLabel = `parent↔child ← ${parentJobId}`;
-  }
-  return {
-    jobStatusLabel,
-    phaseLabel,
-    agentLabel: agent,
-    reactState,
-    resumedFromCheckpoint: resumed,
-    jobId,
-    parentJobId,
-    childJobId,
-    childJobIds,
-    parentChildLabel,
-  };
-}
-
-export function reactStateToneClass(reactState) {
-  switch (String(reactState || '').toUpperCase()) {
-    case 'PARKED': return 'job-phase-react px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-semibold tracking-wide';
-    case 'FAILED': return 'job-phase-react px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800 text-rose-300 font-semibold tracking-wide';
-    case 'DONE': return 'job-phase-react px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-semibold tracking-wide';
-    case 'CALLING_TOOLS': return 'job-phase-react px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-semibold tracking-wide';
-    case 'THINKING': return 'job-phase-react px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-semibold tracking-wide';
-    default: return 'job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide';
-  }
-}
-
-export function isHitlParkSseEvent(eventType, ev = {}) {
-  const type = String(eventType || '');
-  if (type === 'approval_required') return true;
-  const data = ev || {};
-  const status = String(data.status || data.job_status || '').toLowerCase();
-  const react = String(data.react_state || '').toUpperCase();
-  if (type === 'phase_complete' || type === 'react_state' || type === 'turn_done') {
-    if (status === 'waiting_approval' || react === 'PARKED') return true;
-    if (data.waiting_approval || data.need_sources) return true;
-  }
-  return false;
-}
-
-export function applyJobPhaseEvent(current, eventType, ev) {
-  const next = { ...(current || {}) };
-  const data = ev || {};
-  if (data.job_id) next.jobId = data.job_id;
-  if (data.phase_id) next.phaseId = data.phase_id;
-  if (data.phase_name) next.phaseName = data.phase_name;
-  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
-  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
-  if (data.job_status) next.jobStatus = data.job_status;
-  if (data.react_state) next.reactState = data.react_state;
-  if (data.phase_count != null) next.phaseCount = data.phase_count;
-  if (data.index != null) next.phaseIndex = data.index;
-
-  if (eventType === 'job_created') {
-    next.jobId = data.job_id || next.jobId;
-    next.jobStatus = data.status || next.jobStatus || 'queued';
-    next.assignedAgentId = data.agent_id || next.assignedAgentId;
-    next.phaseCount = data.phase_count != null ? data.phase_count : next.phaseCount;
-    if (data.status === 'waiting_approval') next.reactState = next.reactState || 'PARKED';
-  } else if (eventType === 'phase_start') {
-    if (!next.jobStatus || next.jobStatus === 'queued') next.jobStatus = 'running';
-    if (!next.reactState) next.reactState = 'THINKING';
-  } else if (eventType === 'phase_complete') {
-    if (data.status) next.jobStatus = data.status;
-    if (data.react_state) next.reactState = data.react_state;
-    if (data.status === 'done' || data.status === 'failed') next.resumedFromCheckpoint = false; // CARD-530
-    if (data.status === 'failed' && (data.reason || data.last_fail_reason)) next.failReason = data.reason || data.last_fail_reason;
-  } else if (eventType === 'error' || (eventType === 'turn_done' && (data.error || data.job_failed))) {
-    // CARD-530 REQ-530-007: a failed turn shows Failed and the reason, not the last react_state.
-    next.jobStatus = 'failed';
-    next.reactState = 'FAILED';
-    next.resumedFromCheckpoint = false;
-    const reason = String(data.error || data.reason || '').trim();
-    if (reason) next.failReason = reason;
-  } else if (eventType === 'react_state') {
-    if (data.react_state) next.reactState = data.react_state;
-    if (data.job_status) next.jobStatus = data.job_status;
-  } else if (eventType === 'resumed_from_checkpoint') {
-    next.resumedFromCheckpoint = true;
-    if (data.job_id) next.jobId = data.job_id;
-    if (data.phase_index != null) next.phaseIndex = data.phase_index;
-    if (data.phase_id) next.phaseId = data.phase_id;
-    if (data.verifier_status) next.verifyStatus = data.verifier_status;
-    if (data.hitl_park_state) next.reactState = next.reactState || 'PARKED';
-    if (!next.jobStatus || next.jobStatus === 'queued') next.jobStatus = 'running';
-  } else if (eventType === 'plan_formulated') {
-    if (data.job_id) next.jobId = data.job_id;
-    if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
-    next.jobStatus = data.standing ? (next.jobStatus || data.status || 'queued') : (next.jobStatus || 'waiting_approval');
-    if (!data.standing) next.reactState = next.reactState || 'PARKED';
-  } else if (eventType === 'approval_required') {
-    next.reactState = data.react_state || next.reactState || 'PARKED';
-    next.jobStatus = data.job_status || next.jobStatus || 'waiting_approval';
-  } else if (eventType === 'supervisor_pick' || eventType === 'a2a_child') {
-    if (data.parent_job_id) next.parentJobId = data.parent_job_id;
-    if (data.child_job_id) next.childJobId = data.child_job_id;
-    if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
-    if (data.picked_agent_id) next.assignedAgentId = data.picked_agent_id;
-  }
-  if (data.parent_job_id) next.parentJobId = data.parent_job_id;
-  if (data.child_job_id) next.childJobId = data.child_job_id;
-  if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
-  return next;
 }
 
 export function initChatStudio(state, callbacks = {}) {
@@ -365,11 +203,21 @@ export function initChatStudio(state, callbacks = {}) {
     if (reactEl) { reactEl.textContent = view.reactState || ''; reactEl.className = reactStateToneClass(view.reactState); }
     jobPhaseStatusStrip.classList.remove('hidden');
     if (linkEl) { linkEl.textContent = view.parentChildLabel || ''; linkEl.classList.toggle('hidden', !view.parentChildLabel); }
+    const resumeBtn = jobPhaseStatusStrip.querySelector('[data-job-phase="resume"]'); // CARD-490
+    if (resumeBtn) resumeBtn.classList.toggle('hidden', !(view.stopped && !state.isStreaming && !state.sessionBusy));
   }
 
   if (jobPhaseStatusStrip && !jobPhaseStatusStrip.dataset.copyJobBound) {
     jobPhaseStatusStrip.dataset.copyJobBound = '1';
     jobPhaseStatusStrip.addEventListener('click', (ev) => {
+      const resume = ev.target && ev.target.closest ? ev.target.closest('[data-job-phase="resume"]') : null;
+      if (resume) { // CARD-490 REQ-490-002: a resume turn continues the same job id
+        if (state.isStreaming || state.sessionBusy || !state.activeSessionId) return;
+        if (jobPhaseState) jobPhaseState = { ...jobPhaseState, stopped: false, reactState: 'THINKING' };
+        renderJobPhaseStrip();
+        void executeChatTurn('', { isResume: true });
+        return;
+      }
       const btn = ev.target && ev.target.closest ? ev.target.closest('[data-job-phase="copy-job-id"]') : null;
       if (!btn) return;
       const id = btn.dataset.jobId || (jobPhaseState && jobPhaseState.jobId) || '';
@@ -581,7 +429,12 @@ export function initChatStudio(state, callbacks = {}) {
       createNewSessionFn: createNewSession, // CARD-476: an agent with no chats gets one (pre-split)
       showToastFn: showToast,
     }));
+    void sessionActivity.kick(); // CARD-493: keep the markers fresh while a chat replies
   }
+
+  const sessionActivity = createSessionActivityPoller(state, { // CARD-493
+    onChange: () => renderSessionList({ sessionList, sessions: state.sessions, activeSessionId: state.activeSessionId, onSelectSession: selectSession }),
+  });
 
   // Dual-Pane Workbench Canvas [CARD-138, CARD-306, CARD-472] /api/sessions/ /api/artifacts/
   const workbench = initWorkbench(collectWorkbenchElements(), { renderMarkdownFn: renderChatMarkdown, copyToClipboardFn: copyToClipboard,
@@ -601,6 +454,7 @@ export function initChatStudio(state, callbacks = {}) {
     loadMessages, refreshPendingHitl, refreshWorkbenchArtifactCount, jumpToLatest: jumpMessagesToLatest,
     setJobPhaseState: (next) => { jobPhaseState = next; renderJobPhaseStrip(); },
     setInlineJobChromeModel: (model) => { inlineJobChromeModel = model; remountInlineJobChrome(); },
+    refreshActivity: () => sessionActivity.kick(), // CARD-493
   });
 
   async function createNewSession() {
@@ -743,6 +597,7 @@ export function initChatStudio(state, callbacks = {}) {
           </button>
           <div class="reasoning-content hidden p-3 font-mono text-[11px] text-amber-100 whitespace-pre-wrap max-h-60 overflow-y-auto"></div>
         </div>
+        <div class="stream-queue-note hidden text-xs text-amber-200/90 italic" data-stream-queue-note="1" role="status"></div>
         <div class="stream-content text-sm leading-relaxed prose prose-invert max-w-none text-slate-100 break-words"></div>
         <div class="hitl-approval-card hidden p-3 rounded-xl border border-amber-500/50 bg-amber-950/30 text-slate-200 text-xs space-y-2"></div>
       </div>
@@ -754,6 +609,7 @@ export function initChatStudio(state, callbacks = {}) {
     }
 
     const streamContentEl = streamBubble.querySelector('.stream-content');
+    const queueNoteEl = streamBubble.querySelector('.stream-queue-note'); // CARD-494
     const reasoningDrawer = streamBubble.querySelector('.reasoning-drawer');
     const reasoningContent = streamBubble.querySelector('.reasoning-content');
     const reasoningToggle = streamBubble.querySelector('.reasoning-toggle');
@@ -802,6 +658,7 @@ export function initChatStudio(state, callbacks = {}) {
       if (!response.ok) throw new Error(`Stream error: HTTP ${response.status}`);
 
       clearStagedAttachments(state, $('chatAttachmentsPreviewList'));
+      void sessionActivity.kick(); // CARD-493: this chat now shows Replying in Recent Chats
 
       await consumeChatStream(response, {
         onToken: (text) => {
@@ -819,6 +676,7 @@ export function initChatStudio(state, callbacks = {}) {
         },
         onEvent: (eventType, ev) => {
           outcome.note(eventType, ev);
+          applyQueueNote(queueNoteEl, eventType); // CARD-494
           updateJobChromeFromEvent(eventType, ev);
           if (isHitlParkSseEvent(eventType, ev)) refreshPendingHitl(); // CARD-470: live Approve/Reject tray
 
@@ -900,6 +758,10 @@ export function initChatStudio(state, callbacks = {}) {
     getController: ownStream.controller, clearController: ownStream.detach, getStreamSessionId: ownStream.sessionId, // CARD-488
     stopWatching: sessionSelect.stopWatching, setBusy: sessionSelect.setBusy, sendBtn, stopBtn, loadMessages,
     recheckStatus: sessionSelect.watchSessionStatus, showToast,
+    afterStop: async (sessionId) => { // CARD-490: Resume on a stopped job; CARD-493: list markers
+      if (state.activeSessionId === sessionId) await sessionSelect.rehydrateJobChrome(sessionId);
+      void sessionActivity.kick();
+    },
   });
 
   setupComposerControls({
