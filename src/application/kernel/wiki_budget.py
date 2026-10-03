@@ -3,7 +3,8 @@
 AutoReiv sometimes made about 21 ``wiki_note_search`` / ``wiki_note_list`` calls in one reply while looking for
 notes that do not exist. The CARD-551 repeat guard does not catch it because the arguments differ each time.
 
-After ``WIKI_LOOKUP_BUDGET`` look-ups in one reply, further look-ups are not run; the model gets a short
+After the Settings > Reply limits "Wiki look-ups per reply" value (default 8) in one reply, further look-ups are
+not run; the model gets a short
 "Not run: ..." result telling it to answer with what it has and to say plainly when nothing matched.
 """
 
@@ -11,11 +12,11 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
+from src.application.kernel.reply_limits import DEFAULT_WIKI_LOOKUPS
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import ToolResult
 
 WIKI_LOOKUP_TOOLS = frozenset({"wiki_note_search", "wiki_note_list"})
-WIKI_LOOKUP_BUDGET = 4
 
 WIKI_BUDGET_RESULT = (
     "Not run: you already looked in the wiki {n} times in this reply. Do not search or list the wiki again now. "
@@ -28,7 +29,7 @@ WIKI_LOOKUP_HINT = " If two or three look-ups find nothing, stop and say plainly
 class WikiLookupBudget:
     """Counts wiki look-ups that really run in one reply; past the budget they are answered without running."""
 
-    def __init__(self, budget: int = WIKI_LOOKUP_BUDGET) -> None:
+    def __init__(self, budget: int = DEFAULT_WIKI_LOOKUPS) -> None:
         self.budget = budget
         self.used = 0
         self.refused = 0

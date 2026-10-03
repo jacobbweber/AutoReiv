@@ -5,6 +5,7 @@
  * CARD-585: the seconds count from the model's first token.
  * CARD-592: three more waits live in the same setting: provider silence, one job phase / developer turn, one helper
  * call. Defaults 7200 s per reply, 1800 s silence, 21600 s per phase, 1800 s per helper call.
+ * CARD-605: wiki look-ups per reply (1-50, default 8).
  */
 
 export const REPLY_LIMITS_URL = '/api/settings/reply-limits';
@@ -16,6 +17,7 @@ export const LIMIT_FIELDS = [
   { key: 'idle', field: 'provider_idle_seconds', label: 'Provider silence (s)', id: 'replyLimitProviderIdleInput' },
   { key: 'phase', field: 'phase_seconds', label: 'Job phase / developer turn (s)', id: 'replyLimitPhaseSecondsInput' },
   { key: 'helper', field: 'helper_seconds', label: 'Helper call (s)', id: 'replyLimitHelperSecondsInput' },
+  { key: 'wiki', field: 'wiki_lookups_per_reply', label: 'Wiki look-ups per reply', id: 'replyLimitWikiLookupsInput', min: 1, max: 50 }, // CARD-605
 ];
 
 function byId(doc, id) {
@@ -65,7 +67,9 @@ export async function saveReplyLimits(els, { fetchFn = typeof fetch !== 'undefin
     body = {};
     for (const f of LIMIT_FIELDS) {
       if (f.key === 'tokens' || f.key === 'seconds' || els[f.key]) {
-        body[f.field] = parseLimitField(els[f.key] && els[f.key].value, f.label);
+        const n = parseLimitField(els[f.key] && els[f.key].value, f.label);
+        if (n && f.max && (n < f.min || n > f.max)) throw new Error(`${f.label} must be between ${f.min} and ${f.max}.`);
+        body[f.field] = n;
       }
     }
   } catch (err) {

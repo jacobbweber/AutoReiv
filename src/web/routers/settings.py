@@ -860,13 +860,21 @@ async def get_reply_limits(request: Request):
 
 @router.put("/api/settings/reply-limits")
 async def put_reply_limits(request: Request):
-    """CARD-567/592: save any Reply limits field (positive integers; null or 0 clears back to env/default)."""
-    from src.application.kernel.reply_limits import SETTING_KEY, TIMEOUT_FIELDS, resolve_all_limits
+    """CARD-567/592: save any Reply limits field (positive integers; null or 0 clears back to env/default).
+    CARD-605: wiki_lookups_per_reply must be 1-50."""
+    from src.application.kernel.reply_limits import (
+        SETTING_KEY,
+        TIMEOUT_FIELDS,
+        WIKI_LOOKUPS_FIELD,
+        WIKI_LOOKUPS_MAX,
+        WIKI_LOOKUPS_MIN,
+        resolve_all_limits,
+    )
 
     body = await request.json()
     store = request.app.state.store
     saved = dict(store.get_setting(SETTING_KEY) or {})
-    for field in ("max_tokens", "max_seconds", *TIMEOUT_FIELDS):
+    for field in ("max_tokens", "max_seconds", *TIMEOUT_FIELDS, WIKI_LOOKUPS_FIELD):
         if field not in body:
             continue
         value = body.get(field)
@@ -876,6 +884,10 @@ async def put_reply_limits(request: Request):
             raise HTTPException(status_code=400, detail=f"{field} must be a positive integer") from None
         if n < 0:
             raise HTTPException(status_code=400, detail=f"{field} must be a positive integer")
+        if n and field == WIKI_LOOKUPS_FIELD and not WIKI_LOOKUPS_MIN <= n <= WIKI_LOOKUPS_MAX:
+            raise HTTPException(
+                status_code=400, detail=f"{field} must be between {WIKI_LOOKUPS_MIN} and {WIKI_LOOKUPS_MAX}"
+            )
         if n:
             saved[field] = n
         else:

@@ -13,6 +13,9 @@ think for a long time and queue behind other chats:
 
 Each resolves setting > env > default. ``bind_store`` lets code without a store handle (phase and helper calls) read
 the saved setting.
+
+CARD-605: ``wiki_lookups_per_reply`` (wiki searches / note lists one reply may make; 1-50, default 8) lives here too,
+read at the start of every reply.
 """
 
 from __future__ import annotations
@@ -32,6 +35,11 @@ TIMEOUT_FIELDS = {
     "phase_seconds": ("STANDING_PHASE_LLM_TIMEOUT_SECONDS", DEFAULT_PHASE_SECONDS),
     "helper_seconds": ("AUTOREIV_HELPER_CALL_SECONDS", DEFAULT_HELPER_SECONDS),
 }
+DEFAULT_WIKI_LOOKUPS = 8  # CARD-605 (Jacob 2026-10-03: 8, was 4)
+WIKI_LOOKUPS_MIN = 1
+WIKI_LOOKUPS_MAX = 50
+WIKI_LOOKUPS_FIELD = "wiki_lookups_per_reply"
+WIKI_LOOKUPS_ENV = "AUTOREIV_WIKI_LOOKUPS_PER_REPLY"
 _bound_store: Any = None
 MIN_TOKENS = 1024
 # CARD-586: helper calls (memory, detection, planning, Teach) ask for a few hundred tokens; a thinking model spends that
@@ -90,7 +98,22 @@ def resolve_all_limits(store: Any = None) -> dict:
     out = {"max_tokens": tokens, "max_seconds": seconds}
     for field in TIMEOUT_FIELDS:
         out[field] = resolve_timeout(field, store)
+    out[WIKI_LOOKUPS_FIELD] = resolve_wiki_lookups(store)
     return out
+
+
+def _in_wiki_range(value: Any) -> Optional[int]:
+    n = _positive_int(value)
+    return n if n is not None and WIKI_LOOKUPS_MIN <= n <= WIKI_LOOKUPS_MAX else None
+
+
+def resolve_wiki_lookups(store: Any = None) -> int:
+    """CARD-605: wiki look-ups allowed in one reply: setting > env > default 8 (values outside 1-50 are ignored)."""
+    return (
+        _in_wiki_range(_saved(store).get(WIKI_LOOKUPS_FIELD))
+        or _in_wiki_range(os.environ.get(WIKI_LOOKUPS_ENV))
+        or DEFAULT_WIKI_LOOKUPS
+    )
 
 
 def helper_call_seconds() -> float:

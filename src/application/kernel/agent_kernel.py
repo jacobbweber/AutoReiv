@@ -34,6 +34,7 @@ from src.application.kernel.reply_limits import (
     ReplyLimitStop,
     reply_token_limit,
     resolve_reply_limits,
+    resolve_wiki_lookups,
     time_limit_message,
     token_limit_message,
 )
@@ -832,7 +833,7 @@ class AgentKernel:
 
         cycle_detector = CycleDetector(max_repeats=3)
         repeat_guard = RepeatGuard()  # CARD-551/460
-        wiki_budget = WikiLookupBudget()  # CARD-605: at most 4 wiki look-ups per reply
+        wiki_budget = WikiLookupBudget(resolve_wiki_lookups(self.state_store))  # CARD-605: Settings > Reply limits
         react_ctx = {
             "phase_id": phase_id,
             "job_id": job_id,
@@ -1241,7 +1242,7 @@ class AgentKernel:
 
         cycle_detector = CycleDetector(max_repeats=3)
         repeat_guard = RepeatGuard()  # CARD-551/460
-        wiki_budget = WikiLookupBudget()  # CARD-605: at most 4 wiki look-ups per reply
+        wiki_budget = WikiLookupBudget(resolve_wiki_lookups(self.state_store))  # CARD-605: Settings > Reply limits
 
         trace_id = session_id or str(uuid.uuid4())
         provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)

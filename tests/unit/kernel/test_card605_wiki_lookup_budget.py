@@ -1,6 +1,7 @@
-"""CARD-605: at most 4 wiki look-ups (wiki_note_search / wiki_note_list) per reply.
+"""CARD-605: a per-reply limit on wiki look-ups (wiki_note_search / wiki_note_list).
 
-Past the budget, a look-up is not run; the model gets "Not run: ..." and is told to answer with what it has.
+The limit is Settings > Reply limits "Wiki look-ups per reply" (reply_limits.wiki_lookups_per_reply, 1-50, default 8),
+read at the start of every reply. Most kernel tests here save 4 so the scripts stay short. Past the limit, a look-up is not run; the model gets "Not run: ..." and is told to answer with what it has.
 """
 
 from __future__ import annotations
@@ -13,7 +14,8 @@ from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.gateway.ports import LLMProviderPort
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.kernel.wiki_budget import WIKI_LOOKUP_BUDGET, WIKI_LOOKUP_HINT, WikiLookupBudget
+from src.application.kernel.reply_limits import DEFAULT_WIKI_LOOKUPS, resolve_wiki_lookups
+from src.application.kernel.wiki_budget import WIKI_LOOKUP_HINT, WikiLookupBudget
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ChatMessage, CompletionRequest, CompletionResponse, Role, StreamChunk, ToolCall
 from src.domain.kernel.models import AgentProfile, KernelEventType
@@ -62,9 +64,11 @@ class ScriptLLM(LLMProviderPort):
         return True
 
 
-def _kernel(llm):
+def _kernel(llm, limit=4):
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
+    if limit is not None:
+        store.set_setting("reply_limits", {"wiki_lookups_per_reply": limit})
     ran = []
     reg = ScopedToolRegistry()
     reg.register_tool(name="wiki_note_search", description="s",
@@ -85,26 +89,27 @@ def _kernel(llm):
     return kernel, store, agent, ran
 
 
-def _churn(n):
+def _churn(n, tag=""):
     """n steps of look-ups with different arguments each time (the repeat guard does not catch these)."""
     steps = []
     for i in range(n):
         if i % 2:
-            steps.append([ToolCall(id=f"l{i}", name="wiki_note_list", arguments={"folder": f"folder-{i}"})])
+            steps.append([ToolCall(id=f"{tag}l{i}", name="wiki_note_list", arguments={"folder": f"folder-{tag}{i}"})])
         else:
-            steps.append([ToolCall(id=f"s{i}", name="wiki_note_search", arguments={"query": f"weekly planning {i}"})])
+            steps.append([ToolCall(id=f"{tag}s{i}", name="wiki_note_search",
+                                   arguments={"query": f"weekly planning {tag}{i}"})])
     return steps
 
 
 @pytest.mark.asyncio
-async def test_stream_runs_at_most_four_lookups_then_answers():
+async def test_stream_runs_at_most_the_saved_limit_then_answers():
     llm = ScriptLLM(_churn(7) + [REPLY])
     kernel, store, agent, ran = _kernel(llm)
     session = store.create_session(agent_id=agent.id, title="t")
     events = [e async for e in kernel.stream_turn(agent=agent, session_id=session.id, user_content="search the wiki")]
     end = [e for e in events if e.event_type == KernelEventType.TURN_END][-1]
     assert end.content == REPLY
-    assert len(ran) == WIKI_LOOKUP_BUDGET == 4
+    assert len(ran) == 4
     rows = [m for m in store.get_messages(session.id) if m.role == Role.TOOL]
     refused = [m for m in rows if m.content.startswith("Not run: you already looked in the wiki 4 times")]
     assert len(rows) == 7 and len(refused) == 3
@@ -174,3 +179,74 @@ async def test_a_repeated_lookup_counts_against_the_budget():
     rows = [m.content for m in store.get_messages(session.id) if m.role == Role.TOOL]
     assert len(ran) == 3  # the repeat was answered from the earlier result but still used a look-up
     assert len(rows) == 5 and "already_done" in rows[1] and rows[-1].startswith("Not run:"), rows
+
+
+@pytest.mark.asyncio
+async def test_default_is_eight_lookups_without_a_setting(monkeypatch):
+    monkeypatch.delenv("AUTOREIV_WIKI_LOOKUPS_PER_REPLY", raising=False)
+    llm = ScriptLLM(_churn(10) + [REPLY])
+    kernel, store, agent, ran = _kernel(llm, limit=None)
+    session = store.create_session(agent_id=agent.id, title="t")
+    _ = [e async for e in kernel.stream_turn(agent=agent, session_id=session.id, user_content="search the wiki")]
+    assert DEFAULT_WIKI_LOOKUPS == 8 and len(ran) == 8
+    rows = [m.content for m in store.get_messages(session.id) if m.role == Role.TOOL]
+    assert sum(r.startswith("Not run: you already looked in the wiki 8 times") for r in rows) == 2
+
+
+@pytest.mark.asyncio
+async def test_a_changed_setting_applies_to_the_next_reply():
+    llm = ScriptLLM(_churn(6) + [REPLY] + _churn(8, tag="b") + [REPLY])
+    kernel, store, agent, ran = _kernel(llm, limit=3)
+    session = store.create_session(agent_id=agent.id, title="t")
+    _ = [e async for e in kernel.stream_turn(agent=agent, session_id=session.id, user_content="search the wiki")]
+    assert len(ran) == 3
+    store.set_setting("reply_limits", {"wiki_lookups_per_reply": 6})  # no restart, no new kernel
+    _ = [e async for e in kernel.stream_turn(agent=agent, session_id=session.id, user_content="search again")]
+    assert len(ran) == 3 + 6
+
+
+def test_resolve_order_and_range(monkeypatch):
+    store = SQLiteStateStore(db_path=":memory:")
+    store.initialize_db()
+    monkeypatch.delenv("AUTOREIV_WIKI_LOOKUPS_PER_REPLY", raising=False)
+    assert resolve_wiki_lookups(store) == 8
+    monkeypatch.setenv("AUTOREIV_WIKI_LOOKUPS_PER_REPLY", "12")
+    assert resolve_wiki_lookups(store) == 12
+    store.set_setting("reply_limits", {"wiki_lookups_per_reply": 20})
+    assert resolve_wiki_lookups(store) == 20
+    store.set_setting("reply_limits", {"wiki_lookups_per_reply": 99})  # out of range: ignored
+    assert resolve_wiki_lookups(store) == 12
+    monkeypatch.setenv("AUTOREIV_WIKI_LOOKUPS_PER_REPLY", "0")
+    assert resolve_wiki_lookups(store) == 8
+
+
+def test_settings_api_reads_saves_validates_and_clears(monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from src.web.routers.settings import router
+
+    monkeypatch.delenv("AUTOREIV_WIKI_LOOKUPS_PER_REPLY", raising=False)
+    store = SQLiteStateStore(db_path=":memory:")
+    store.initialize_db()
+    app = FastAPI()
+    app.include_router(router)
+    app.state.store = store
+    client = TestClient(app)
+    assert client.get("/api/settings/reply-limits").json()["wiki_lookups_per_reply"] == 8
+    got = client.put("/api/settings/reply-limits", json={"wiki_lookups_per_reply": 50}).json()
+    assert got["wiki_lookups_per_reply"] == 50 and got["max_seconds"] == 7200
+    for bad in (51, -1, "many"):
+        assert client.put("/api/settings/reply-limits", json={"wiki_lookups_per_reply": bad}).status_code == 400
+    assert resolve_wiki_lookups(store) == 50
+    got = client.put("/api/settings/reply-limits", json={"wiki_lookups_per_reply": 0}).json()
+    assert got["wiki_lookups_per_reply"] == 8
+
+
+def test_settings_page_has_the_field():
+    from pathlib import Path
+
+    html = Path("src/web/templates/index.html").read_text(encoding="utf-8")
+    card = html[html.index('id="settingsReplyLimitsCard"'):html.index('id="replyLimitsSaveBtn"')]
+    assert 'id="replyLimitWikiLookupsInput"' in card and 'max="50"' in card and 'placeholder="8"' in card
+    assert "Wiki look-ups per reply" in card
