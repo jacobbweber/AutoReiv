@@ -767,15 +767,18 @@ class AgentKernel:
                 t for t in tools
                 if not planning_phase_block_reason(t.name, risk_of(t.name) if callable(risk_of) else None)
             ]
+        from src.application.safety.tool_policy_gate import _capability_tool_names
+
+        named = _capability_tool_names(ids) or set()
         if phase_skills:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
+            # CARD-617: a tool the job matched by name stays (the gate allows it): AutoReiv ticks wiki-knowledge
+            # (read-only) and gets wiki_note_create from wiki-inbox, so a job matched to both kept only the reads.
             tools = [
-                t for t in tools if phase_skills & set(allowed.skills_for(t.name)) or t.name in REQUIRED_PLATFORM_TOOLS
+                t for t in tools
+                if phase_skills & set(allowed.skills_for(t.name)) or t.name in REQUIRED_PLATFORM_TOOLS or t.name in named
             ]
         try:
-            from src.application.safety.tool_policy_gate import (
-                EDUCATION_FORBIDDEN_WIKI_TOOLS,
-                _capability_tool_names,
-            )
+            from src.application.safety.tool_policy_gate import EDUCATION_FORBIDDEN_WIKI_TOOLS
 
             subset = _capability_tool_names(ids)
             if subset is not None:
