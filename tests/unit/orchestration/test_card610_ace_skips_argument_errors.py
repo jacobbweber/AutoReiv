@@ -43,13 +43,13 @@ def env(tmp_path):
     store.initialize_db()
     data_dir = tmp_path / "data"
     catalog = UserSkillCatalog(skills_dir=data_dir / "skills")
-    catalog.save_skill("wiki", "wiki", "Wiki SOP.", "Search, then read.")
+    catalog.save_skill("c610-notes", "c610-notes", "Notes SOP.", "Search, then read.")  # not a platform id: save_skill would write the repo pack
     return {"store": store, "data_dir": data_dir, "catalog": catalog}
 
 
 def _record(env, errors, error_message=None):
     return record_failed_turn_delta(
-        env["store"], skill_id="wiki", data_dir=env["data_dir"], session_id="s610", agent_id="c610",
+        env["store"], skill_id="c610-notes", data_dir=env["data_dir"], session_id="s610", agent_id="c610",
         tool_errors=errors, error_message=error_message, catalog=env["catalog"],
     )
 
@@ -82,7 +82,7 @@ def test_a_refusal_drafts_no_approval(env, error):
     result = _record(env, [{"tool_name": "wiki_note_list", "error": error}])
     assert result["deltas"] == 0 and result["status"] is None
     assert env["store"].get_pending_approvals(session_id="s610") == []
-    assert "Tool error" not in reflect_failed_turn(skill_id="wiki", tool_errors=[{"tool_name": "x", "error": error}])["insight"]
+    assert "Tool error" not in reflect_failed_turn(skill_id="c610-notes", tool_errors=[{"tool_name": "x", "error": error}])["insight"]
 
 
 def test_a_real_failure_still_drafts_one(env):
