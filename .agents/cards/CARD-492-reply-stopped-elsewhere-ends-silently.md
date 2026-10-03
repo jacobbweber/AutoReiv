@@ -1,9 +1,9 @@
 ---
 id: CARD-492
 title: "A reply stopped from another device ends silently (or as \"Reply failed\") on the device that started it"
-status: Ready
+status: In Review
 created: 2026-09-25
-branch: qa
+branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-486
   - CARD-485
@@ -19,7 +19,7 @@ milestone: M24
 
 # [CARD-492] A reply stopped from another device ends silently (or as "Reply failed") on the device that started it
 
-> **Status**: Ready
+> **Status**: In Review (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-486 build (code reading after D2: Stop on a busy-elsewhere chat aborts the other device's reply)
 > **Related**: CARD-486 (Stop aborts on the server), CARD-485 (busy state), CARD-469 (failed reply is reported)
@@ -64,3 +64,26 @@ A misleading "Reply failed", or a reply that quietly disappears, when it was sto
 1. Start a long answer on the phone and keep it open.
 2. Open the same chat on the desktop and press Stop.
 3. The phone shows "Stopped", with no error.
+
+## Change (2026-10-03, branch `feat/card-490-494-stop-resume-recents`)
+
+- The stream outcome (`chat/stream.js` `trackStreamOutcome`) records `turn_end` with `status: aborted`. A stopped reply is never "Reply failed".
+- Stopped before any words: the device that started the reply shows a **Stopped** notice in the CARD-475 notice style (`data-stream-stopped="true"`).
+- Stopped after some words: the saved reply already ends `_(Stopped)_` (CARD-489), so no extra notice.
+
+## Results
+
+| Check | Result |
+|-------|--------|
+| Card tests | `tests/unit/web/test_card490_494_stop_resume_recents.py` 10 passed; `tests/unit/frontend/card_490_494_stop_resume_recents.test.js` 19 passed; smoke TC-50 passed |
+| Full pytest | 2350 passed, 12 skipped |
+| Full preflight (vitest + smoke) | GREEN: ruff, eslint (0 errors, 3 old warnings), pytest 2350 passed / 12 skipped, vitest 987 passed, smoke 79 passed |
+
+Live check on a throwaway :8770 (Spark nemotron-3.5-lightning, max 1 reply at a time), 2026-10-03 ~1:55-2:03 AM ET. Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003b\`.
+
+| Step | Result |
+|------|--------|
+| Phone starts a reply, desktop presses Stop before the first word | Phone shows "Stopped", no "Reply failed" |
+| Stop after words (CARD-491 run) | Phone shows the partial reply ending "(Stopped)" |
+
+Release note: A reply stopped from another device now says "Stopped" on the device that started it, instead of "Reply failed".

@@ -1,9 +1,9 @@
 ---
 id: CARD-494
 title: "A reply waiting behind another chat's reply just says \"Streaming...\" with nothing happening"
-status: Ready
+status: In Review
 created: 2026-09-25
-branch: qa
+branch: feat/card-490-494-stop-resume-recents
 related:
   - CARD-488
   - CARD-486
@@ -20,7 +20,7 @@ milestone: Horizon
 
 # [CARD-494] A reply waiting behind another chat's reply just says "Streaming..." with nothing happening
 
-> **Status**: Ready (unparked 2026-09-30)
+> **Status**: In Review (2026-10-03)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-486 repro (first driver run) and CARD-488 planning (decision D7)
 > **Related**: CARD-488 (send in B while A runs), CARD-486 (Stop frees the slot), CARD-491 (side calls hold the slot)
@@ -68,3 +68,24 @@ Start a long reply in A, switch to B and send "hi". B says it's waiting, then an
 ## Log
 
 - 2026-09-30: unparked to Ready (Jacob).
+
+## Change (2026-10-03, branch `feat/card-490-494-stop-resume-recents`)
+
+- The gateway sends `queued` `{position, reason: "another reply is running"}` on the chat stream before it waits for a generation slot and `dequeued` once it has one (contextvar listener set by the chat worker; background calls and listener errors never affect the model call).
+- The reply bubble shows "Waiting for another reply to finish." until `dequeued` or the first word.
+
+## Results
+
+| Check | Result |
+|-------|--------|
+| Card tests | `tests/unit/web/test_card490_494_stop_resume_recents.py` 10 passed; `tests/unit/frontend/card_490_494_stop_resume_recents.test.js` 19 passed; smoke TC-50 passed |
+| Full pytest | 2350 passed, 12 skipped |
+| Full preflight (vitest + smoke) | GREEN: ruff, eslint (0 errors, 3 old warnings), pytest 2350 passed / 12 skipped, vitest 987 passed, smoke 79 passed |
+
+Live check on a throwaway :8770 (Spark nemotron-3.5-lightning, max 1 reply at a time), 2026-10-03 ~1:55-2:03 AM ET. Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003b\`.
+
+| Step | Result |
+|------|--------|
+| Long reply in A, send "hi" in B | B shows "Waiting for another reply to finish."; the note was gone once B started writing |
+
+Release note: A reply that has to wait for another reply now says "Waiting for another reply to finish." instead of looking stuck.
