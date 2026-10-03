@@ -1,8 +1,9 @@
 ---
 id: CARD-601
 title: "Remove the stale studio_chrome_retained field from the education APIs"
-status: In Review
+status: Done
 created: 2026-10-01
+completed: 2026-10-02
 branch: feat/card-601-remove-studio-chrome-retained
 related:
   - CARD-441
@@ -18,7 +19,7 @@ milestone: M22
 
 # [CARD-601] Remove the stale studio_chrome_retained field from the education APIs
 
-> **Status**: In Review (2026-10-02)
+> **Status**: Done (2026-10-02)
 > **Labels**: `type:enhancement`, `area:education`, `area:api`, `P3`
 
 ## Why
