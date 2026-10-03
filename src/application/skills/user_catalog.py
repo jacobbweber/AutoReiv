@@ -16,8 +16,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import yaml
-
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.dynamic_loader import DynamicSkillLoader
 from src.domain.skills.user_skill import UserSkillManifest
@@ -124,20 +122,6 @@ def _skill_index_entry(catalog, skill_id: str, agent_id: Optional[str]) -> Optio
 
 class SkillJailError(ValueError):
     """Skill id is not a jailed path under $DATA_DIR/skills."""
-
-
-def render_skill_md(name: str, description: str, instructions: str) -> str:
-    """Serialize agentskills.io SKILL.md (frontmatter + playbook body)."""
-    dumped = yaml.safe_dump(
-        {"name": name, "description": description},
-        default_flow_style=False,
-        allow_unicode=True,
-        sort_keys=False,
-    ).strip()
-    body = (instructions or "").replace("\r\n", "\n").strip()
-    if body:
-        return f"---\n{dumped}\n---\n\n{body}\n"
-    return f"---\n{dumped}\n---\n"
 
 
 class UserSkillCatalog:
@@ -515,26 +499,34 @@ class UserSkillCatalog:
         description: str,
         instructions: str,
     ) -> Dict[str, Any]:
-        """Write SKILL.md inside the skills tree or skill tree. Creates the skill folder if needed."""
+        """Write the data copy ``skills_dir/<id>/SKILL.md``; never the shipped ``platform/skills`` file [CARD-611].
+
+        Name, description and body are replaced; other frontmatter (``tools:``, tier, ...) is kept from the
+        copy that is live now, so saving a shipped skill does not drop the tools it grants.
+        """
         clean_name = (name or "").strip()
         clean_description = (description or "").strip()
         if not clean_name or not clean_description:
             return {"success": False, "error": "name and description are required."}
+        from src.infrastructure.content.store import InvalidIdError, get_store, join_frontmatter, split_frontmatter
+
+        path = self.resolve_skill_md(skill_id)
+        live = path if path.is_file() else self.resolve_skill_scoped_skill_md(skill_id)
+        meta: Dict[str, Any] = {}
+        if live and live.is_file():
+            meta, _ = split_frontmatter(live.read_text(encoding="utf-8"))
+        meta = {"name": clean_name, "description": clean_description,
+                **{k: v for k, v in meta.items() if k not in ("name", "description", "based_on", "id")}}
+        body = (instructions or "").replace("\r\n", "\n").strip()
+        skills = get_store().skills
         try:
-            path = self.resolve_skill_md(skill_id)
-        except SkillJailError:
-            path = None
-        if not path or not path.is_file():
-            skill_scoped = self.resolve_skill_scoped_skill_md(skill_id)
-            if skill_scoped and skill_scoped.is_file():
-                path = skill_scoped
-            elif path is None:
-                path = self.resolve_skill_md(skill_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            render_skill_md(clean_name, clean_description, instructions or ""),
-            encoding="utf-8",
-        )
+            # Same file as the store's user copy: let the store write it (records based_on for a shipped id).
+            if skills.user_dir is None or skills.user_path(skill_id).resolve() != path:
+                raise InvalidIdError(skill_id)
+            skills.save(skill_id, meta, body)
+        except InvalidIdError:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(join_frontmatter(meta, body), encoding="utf-8", newline="\n")
         self.list_manifests()
         self.record_skill_use(skill_id)
         return self.read_skill(skill_id)
