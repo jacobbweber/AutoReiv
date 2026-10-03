@@ -2,7 +2,7 @@
 id: CARD-612
 title: "The CARD-599 'Not done' check adds false lines to Toolsmith replies, and a finished reply ends with the out-of-domain line"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-612-613-614-reply-honesty
 log: {minutes: 140, qa_runs: 7, findings: 2}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-599
   - CARD-604

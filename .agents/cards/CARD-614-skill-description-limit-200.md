@@ -2,7 +2,7 @@
 id: CARD-614
 title: "Skill Studio cuts a skill description to 60 characters on load; relax to about 200 and show the full text"
 type: improvement
-status: In Review
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-612-613-614-reply-honesty
 log: {minutes: 45, qa_runs: 1, findings: 1}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-611
   - CARD-418

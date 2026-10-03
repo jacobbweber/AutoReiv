@@ -2,7 +2,7 @@
 id: CARD-613
 title: "After a job's write card is rejected the model retries 4-5 times and asks why; the job is then marked done though the reply is a question"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-612-613-614-reply-honesty
 log: {minutes: 170, qa_runs: 4, findings: 4}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-600
   - CARD-572
