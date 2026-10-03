@@ -30,6 +30,7 @@ EXTRA_FIELDS = (
     "pinned_memory",
     "allowed_credentials",
     "mcp_servers",
+    "template_folder",  # CARD-603
 )
 _DEFAULTS = {name: f.default for name, f in AgentProfile.model_fields.items() if f.default is not None}
 

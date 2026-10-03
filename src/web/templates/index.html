@@ -1452,6 +1452,12 @@
                     </div>
                   </div>
                   <p class="text-[10px] text-slate-500">Max ReAct execution turns allowed per loop (1–1000 turns). Sessions older than cleanup threshold are purged. 0 means never.</p>
+                  <!-- CARD-603: per-agent wiki template folder -->
+                  <div class="pt-2 border-t border-white/[0.06]">
+                    <label for="forgeTemplateFolderInput" class="text-[11px] font-semibold text-slate-400 block mb-0.5">Template folder</label>
+                    <input id="forgeTemplateFolderInput" data-testid="forge-template-folder" type="text" placeholder="e.g. 02_Resources/_Templates/General" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                    <p class="text-[10px] text-slate-500 mt-0.5">Wiki folder (inside the vault) where this agent lists, reads, creates and uses templates. Empty means no template access.</p>
+                  </div>
                   <!-- CARD-573: Always auto-run (the agent sections start inert until Agent Studio shows an agent) -->
                   <label class="flex items-start space-x-2 pt-2 border-t border-white/[0.06] cursor-pointer select-none" title="Chat Auto-run starts checked for every chat with this agent; you can untick it per chat.">
                     <input type="checkbox" id="forgeAlwaysAutoRunInput" data-testid="forge-always-auto-run" class="mt-0.5 rounded bg-[#08090c] border-white/[0.08] text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
@@ -4433,7 +4439,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.96"></script>
+  <script type="module" src="/static/app.js?v=2.0.97"></script>
 </body>
 </html>
 

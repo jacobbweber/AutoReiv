@@ -5,6 +5,7 @@ tone: academic
 purpose: reasoning
 avatar: graduation-cap
 show_in_chat: true
+template_folder: 02_Resources/_Templates/Education
 skills:
 - socratic-tutoring
 - start-resume-topic

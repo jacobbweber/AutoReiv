@@ -134,6 +134,7 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMaxTurnsInput = $('forgeMaxTurnsInput');
   const forgeRetentionDaysInput = $('forgeRetentionDaysInput');
   const forgeAlwaysAutoRunInput = $('forgeAlwaysAutoRunInput'); // CARD-573
+  const forgeTemplateFolderInput = $('forgeTemplateFolderInput'); // CARD-603
   const forgeProviderSelect = $('forgeProviderSelect');
   const forgeApiBaseUrlInput = $('forgeApiBaseUrlInput');
   const forgeApiKeyInput = $('forgeApiKeyInput');
@@ -317,6 +318,7 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || DEFAULT_AGENT_MAX_TURNS;
     if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
     if (forgeAlwaysAutoRunInput) forgeAlwaysAutoRunInput.checked = agent.always_auto_run === true;
+    if (forgeTemplateFolderInput) forgeTemplateFolderInput.value = agent.template_folder || '';
     const agentProv = agent.provider || 'default';
     if (forgeProviderSelect) forgeProviderSelect.value = agentProv;
     if (forgeApiBaseUrlInput) {
@@ -503,6 +505,7 @@ export function initAgentForge(state, callbacks = {}) {
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : DEFAULT_AGENT_MAX_TURNS, 10) || DEFAULT_AGENT_MAX_TURNS,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
         always_auto_run: Boolean(forgeAlwaysAutoRunInput && forgeAlwaysAutoRunInput.checked), // CARD-573
+        template_folder: forgeTemplateFolderInput ? forgeTemplateFolderInput.value.trim() : null, // CARD-603
         storage_enabled: Boolean(forgeStorageEnabled && forgeStorageEnabled.checked),
         storage_type: forgeStorageType ? forgeStorageType.value : 'sqlite',
         memory_enabled: Boolean(forgeMemoryEnabled && forgeMemoryEnabled.checked),

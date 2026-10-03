@@ -38,6 +38,32 @@ _DUE_RELATED_PATTERN = re.compile(
 )
 
 
+# CARD-603: run/system state of the assistant itself (step limits, what it searched or found this reply).
+_RUN_STATE_ATTR_PATTERN = re.compile(
+    r"(?:max_steps|step_limit|steps_per_reply|turn_limit|max_turns|tool_call_limit|iteration_limit|"
+    r"retry_limit|context_(?:window|limit|budget)|token_(?:limit|budget)|search_progress|next_step|"
+    r"last_tool|last_action|_identified$|_located$|_searched$|_found$|_progress$)",
+    re.IGNORECASE,
+)
+_RUN_STATE_VAL_PATTERN = re.compile(
+    r"(?:^identified_in_|^found_in_|^located_in_|^searched|^not_yet_|keep going|step limit|"
+    r"^stopped|^in_progress$|^pending$)",
+    re.IGNORECASE,
+)
+
+
+def is_run_state_fact(entity: str, attribute: str, value: str) -> bool:
+    """Assistant/run/system bookkeeping, not knowledge about the user or their environment [CARD-603]."""
+    attr = (attribute or "").strip().lower()
+    val = (value or "").strip().lower().replace(" ", "_") if value else ""
+    raw_val = (value or "").strip().lower()
+    if _RUN_STATE_ATTR_PATTERN.search(attr):
+        return True
+    if _RUN_STATE_VAL_PATTERN.search(val) or _RUN_STATE_VAL_PATTERN.search(raw_val):
+        return True
+    return False
+
+
 def is_short_lived_fact(entity: str, attribute: str, value: str) -> bool:
     """Determine whether an extracted fact is momentary/transient state [CARD-597].
 
@@ -50,6 +76,9 @@ def is_short_lived_fact(entity: str, attribute: str, value: str) -> bool:
     ent = (entity or "").strip().lower()
     attr = (attribute or "").strip().lower()
     val = (value or "").strip().lower()
+
+    if is_run_state_fact(entity, attribute, value):  # CARD-603
+        return True
 
     if _TRANSIENT_ATTR_PATTERN.search(attr):
         return True
@@ -179,6 +208,8 @@ CRITICAL: DO NOT RECORD SHORT-LIVED STATE:
   * Empty results or "not found" status (e.g. "no items found", "0 flashcards due").
   * Temporary status or in-progress flags (e.g. "reviewing flashcards", "waiting for reply").
   * Current date, current time, or today's schedule status.
+  * The assistant's own run or system state: step or turn limits, tool budgets, context size, what it searched
+    or found during this reply, or its progress (e.g. "max_steps_per_reply: 50", "template identified_in_wiki_vault").
 - ONLY record enduring knowledge (preferences, environment, constraints, decisions).
 - If the turn only discusses transient status (such as "no flashcards due today" or "checked queue, it is empty"), output [].
 

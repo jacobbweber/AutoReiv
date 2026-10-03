@@ -10,7 +10,7 @@ import logging
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .frontmatter import (
     FrontmatterParser,
@@ -504,6 +504,20 @@ try:
 except ImportError:
     pass
 
+# CARD-603: where the shipped templates are seeded. These mirror the template_folder of the shipped agents
+# (platform/agents/autoreiv.md and tutor.md); tools never use them, they follow each agent's own setting.
+SEED_TEMPLATE_GROUPS: Dict[str, str] = {
+    "general": "02_Resources/_Templates/General",
+    "education": "02_Resources/_Templates/Education",
+}
+_EDUCATION_SEED_FILES = {"feynman-technique.md"}
+
+
+def template_seed_group(filename: str) -> str:
+    """'education' for the Learning OS templates and the Feynman study note, else 'general' [CARD-603]."""
+    name = filename.lower()
+    return "education" if name.startswith("education-") or name in _EDUCATION_SEED_FILES else "general"
+
 
 _CATEGORY_FOLDERS = {
     "inbox": ("00_inbox/", "inbox/"),
@@ -646,13 +660,18 @@ class WikiStore:
             )
             note_tmpl.write_text(tmpl_content, encoding="utf-8")
 
-        # Ensure structured templates exist [CARD-178, REQ-WIKI-030]
+        # Ensure structured templates exist [CARD-178, REQ-WIKI-030]. CARD-603: shipped templates are seeded into
+        # their group folder (the shipped agents' template folders) and never next to a copy that already exists
+        # anywhere under the templates root, so an unsorted vault gets no duplicates.
         templates_dir = self.root_dir / "02_Resources" / "_Templates"
         templates_dir.mkdir(parents=True, exist_ok=True)
+        existing_names = {f.name.lower() for f in templates_dir.rglob("*.md")}
         for filename, tmpl_meta in CORE_STRUCTURED_TEMPLATES.items():
-            tmpl_file = templates_dir / filename
-            if not tmpl_file.exists():
-                tmpl_file.write_text(tmpl_meta["content"], encoding="utf-8")
+            if filename.lower() in existing_names:
+                continue
+            group_dir = self.root_dir / SEED_TEMPLATE_GROUPS[template_seed_group(filename)]
+            group_dir.mkdir(parents=True, exist_ok=True)
+            (group_dir / filename).write_text(tmpl_meta["content"], encoding="utf-8")
 
         should_seed = self.auto_seed if seed_starter is None else seed_starter
         if should_seed:
@@ -1255,9 +1274,16 @@ class WikiStore:
         except Exception as e:
             return {"success": False, "error": f"Failed to delete folder '{clean_rel}': {e}"}
 
+    # --- Templates [CARD-178, CARD-349, CARD-603] ---
+    # A folder argument is a vault-relative template folder (an agent's Agent Studio setting, CARD-603):
+    # every lookup stays inside it. No folder = platform callers: every template under the templates root.
+
+    def _templates_root(self) -> Path:
+        return self.root_dir / "02_Resources" / "_Templates"
+
     def _resolve_templates_dir(self, create: bool = True) -> Path:
         self.scaffold()
-        p1 = self.root_dir / "02_Resources" / "_Templates"
+        p1 = self._templates_root()
         if create:
             p1.mkdir(parents=True, exist_ok=True)
             return p1
@@ -1268,24 +1294,54 @@ class WikiStore:
             return p2
         return p1
 
-    def list_templates(self) -> List[Dict[str, Any]]:
+    def template_folder_dir(self, folder: str) -> Optional[Path]:
+        """Absolute path of a vault-relative template folder, or None if it is invalid or leaves the vault [CARD-603]."""
+        from src.domain.wiki.template_folders import TemplateFolderError, normalize_template_folder
+
+        try:
+            clean = normalize_template_folder(folder)
+        except TemplateFolderError:
+            return None
+        if not clean:
+            return None
+        root = self.root_dir.resolve()
+        target = (root / clean).resolve()
+        if target != root and root not in target.parents:
+            return None
+        return target
+
+    def _template_files(self, folder: Optional[str] = None) -> List[Path]:
+        if folder is not None:
+            target = self.template_folder_dir(folder)
+            if target is None or not target.is_dir():
+                return []
+            files = sorted(target.glob("*.md"))
+        else:
+            templates_dir = self._templates_root()
+            if not templates_dir.exists():
+                templates_dir = self.root_dir / "resources" / "templates"
+                if not templates_dir.exists():
+                    return []
+            files = sorted(templates_dir.rglob("*.md"))
+        return [f for f in files if f.name.lower() not in ("tag-authority.md", "tag_authority.md")]
+
+    @staticmethod
+    def _clean_template_slug(slug: str) -> str:
+        clean_slug = str(slug or "").strip().lower().replace(" ", "-").replace("_", "-")
+        if clean_slug.endswith(".md"):
+            clean_slug = clean_slug[:-3]
+        return re.sub(r"[^a-z0-9\-]", "", clean_slug)
+
+    def list_templates(self, folder: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        List all available structured note templates in 02_Resources/_Templates/.
-        Excludes non-template authority files like tag-authority.md [REQ-WIKI-031].
+        List structured note templates (in ``folder`` when given) [REQ-WIKI-031, CARD-603].
+        Excludes non-template authority files like tag-authority.md.
         Returns lightweight index metadata only (slug, title, description, path, tags) [CARD-353].
         Full body skeleton is retrieved via get_template(slug).
         """
         self.scaffold()
-        templates_dir = self.root_dir / "02_Resources" / "_Templates"
-        if not templates_dir.exists():
-            templates_dir = self.root_dir / "resources" / "templates"
-            if not templates_dir.exists():
-                return []
-
         results = []
-        for file in sorted(templates_dir.glob("*.md")):
-            if file.name.lower() in ("tag-authority.md", "tag_authority.md"):
-                continue
+        for file in self._template_files(folder):
             slug = file.stem.replace("_", "-")
             content = file.read_text(encoding="utf-8", errors="replace")
             meta, _ = FrontmatterParser.parse(content)
@@ -1300,22 +1356,14 @@ class WikiStore:
             })
         return results
 
-    def get_template(self, slug: str) -> Optional[Dict[str, Any]]:
+    def get_template(self, slug: str, folder: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
-        Get a specific structured template by its slug or filename [REQ-WIKI-031].
-        Returns complete template metadata, skeleton content, and raw template text [CARD-353].
+        Get a specific structured template by its slug or filename (only inside ``folder`` when given)
+        [REQ-WIKI-031, CARD-603]. Returns complete metadata, skeleton content, and raw template text [CARD-353].
         """
         self.scaffold()
-        target_slug = slug.lower().replace("_", "-").replace(".md", "")
-        templates_dir = self.root_dir / "02_Resources" / "_Templates"
-        if not templates_dir.exists():
-            templates_dir = self.root_dir / "resources" / "templates"
-            if not templates_dir.exists():
-                return None
-
-        for file in sorted(templates_dir.glob("*.md")):
-            if file.name.lower() in ("tag-authority.md", "tag_authority.md"):
-                continue
+        target_slug = str(slug or "").lower().replace("_", "-").replace(".md", "")
+        for file in self._template_files(folder):
             file_slug = file.stem.replace("_", "-").lower()
             if file_slug == target_slug:
                 content = file.read_text(encoding="utf-8", errors="replace")
@@ -1340,21 +1388,33 @@ class WikiStore:
         description: str,
         content: str,
         tags: Optional[List[str]] = None,
+        folder: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Create a new structured note template strictly under the templates directory [CARD-349].
-        Fails closed if a template with this slug already exists.
+        Create a new structured note template strictly under the templates directory [CARD-349],
+        or inside ``folder`` when given [CARD-603]. Fails closed if a template with this slug already exists.
         """
-        clean_slug = str(slug or "").strip().lower().replace(" ", "-").replace("_", "-")
-        if clean_slug.endswith(".md"):
-            clean_slug = clean_slug[:-3]
-        clean_slug = re.sub(r"[^a-z0-9\-]", "", clean_slug)
+        clean_slug = self._clean_template_slug(slug)
         if not clean_slug:
             return {"success": False, "error": "Invalid or empty template slug."}
 
-        templates_dir = self._resolve_templates_dir(create=True)
+        if folder is not None:
+            self.scaffold()
+            templates_dir = self.template_folder_dir(folder)
+            if templates_dir is None:
+                return {"success": False, "error": f"Template folder '{folder}' is not a folder inside the wiki vault."}
+            templates_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            templates_dir = self._resolve_templates_dir(create=True)
         target_file = templates_dir / f"{clean_slug}.md"
         rel_path = str(target_file.relative_to(self.root_dir)).replace("\\", "/")
+        if folder is None and not target_file.exists():
+            # Platform callers see every template under the templates root, so a slug anywhere there is taken.
+            for existing in self._template_files(None):
+                if existing.stem.replace("_", "-").lower() == clean_slug:
+                    target_file = existing
+                    rel_path = str(existing.relative_to(self.root_dir)).replace("\\", "/")
+                    break
 
         if target_file.exists():
             return {
@@ -1406,26 +1466,24 @@ class WikiStore:
         description: Optional[str] = None,
         content: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        folder: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Update an existing structured note template [CARD-349].
+        Update an existing structured note template [CARD-349] (only inside ``folder`` when given, CARD-603).
         Fails closed if the template with this slug does not exist.
         """
-        clean_slug = str(slug or "").strip().lower().replace(" ", "-").replace("_", "-")
-        if clean_slug.endswith(".md"):
-            clean_slug = clean_slug[:-3]
-        clean_slug = re.sub(r"[^a-z0-9\-]", "", clean_slug)
+        clean_slug = self._clean_template_slug(slug)
         if not clean_slug:
             return {"success": False, "error": "Invalid or empty template slug."}
 
-        templates_dir = self._resolve_templates_dir(create=False)
-        target_file = templates_dir / f"{clean_slug}.md"
-        if not target_file.exists():
-            alt_dir = self.root_dir / "resources" / "templates"
-            if (alt_dir / f"{clean_slug}.md").exists():
-                target_file = alt_dir / f"{clean_slug}.md"
+        self.scaffold()
+        target_file: Optional[Path] = None
+        for file in self._template_files(folder):
+            if file.stem.replace("_", "-").lower() == clean_slug:
+                target_file = file
+                break
 
-        if not target_file.exists():
+        if target_file is None or not target_file.exists():
             return {
                 "success": False,
                 "error": f"Template with slug '{clean_slug}' not found. Use wiki_template_create to author new templates.",
@@ -1544,8 +1602,12 @@ class WikiStore:
         author: Optional[str] = None,
         pinned: Optional[bool] = None,
         priority: Optional[str] = None,
+        hidden: Optional[Callable[[str], bool]] = None,
     ) -> List[Dict[str, Any]]:
-        """List markdown notes across the wiki matching folder or frontmatter filters."""
+        """List markdown notes across the wiki matching folder or frontmatter filters.
+
+        ``hidden``: vault-relative paths it returns True for are skipped (other agents' template folders, CARD-603).
+        """
         if not self.root_dir.is_dir():
             return []
 
@@ -1553,6 +1615,8 @@ class WikiStore:
         for file_path in sorted(self.root_dir.rglob("*.md")):
             rel = str(file_path.relative_to(self.root_dir)).replace("\\", "/")
             if rel.startswith("."):
+                continue
+            if hidden is not None and hidden(rel):
                 continue
 
             # Category filter (e.g. inbox, notes, resources). CARD-589: the tool enum names the category, the scaffolded
@@ -1724,6 +1788,7 @@ class WikiStore:
         domain: Optional[str] = None,
         topic: Optional[str] = None,
         document_type: Optional[str] = None,
+        hidden: Optional[Callable[[str], bool]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Progressive search scoring terms across note titles, tags, and summary snippets,
@@ -1735,7 +1800,7 @@ class WikiStore:
 
         scored = []
         include_templates = document_type == "template" or (domain and "template" in domain.lower())
-        for note in self.list_notes():
+        for note in self.list_notes(hidden=hidden):
             note_path = str(note.get("path", "")).lower()
             if not include_templates and (
                 "_templates" in note_path
@@ -2033,11 +2098,11 @@ class WikiStore:
 
         return tree
 
-    def get_overview(self, max_items: int = 20) -> str:
+    def get_overview(self, max_items: int = 20, hidden: Optional[Callable[[str], bool]] = None) -> str:
         """
         Generate a compact, prompt-ready text inventory under 150 tokens.
         """
-        notes = self.list_notes()
+        notes = self.list_notes(hidden=hidden)
         if not notes:
             return "Wiki is currently empty. Direct the Librarian to file notes."
 

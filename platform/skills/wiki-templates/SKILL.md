@@ -1,6 +1,6 @@
 ---
 name: Wiki Templates Management
-description: Create, update, and manage structured note templates in 02_Resources/_Templates/.
+description: Create, update, and manage structured note templates in this agent's template folder.
 tools:
 - wiki_template_list
 - wiki_template_read
@@ -14,8 +14,8 @@ Author, update, and inspect reusable structured note templates in AutoReiv's Wik
 
 ## Template Location & Architecture
 
-All structured note templates reside strictly in the vault's template directory:
-* Canonical Path: `02_Resources/_Templates/<slug>.md`.
+Each agent has its own template folder (Agent Studio > Template folder; AutoReiv: `02_Resources/_Templates/General`, Tutor: `02_Resources/_Templates/Education`):
+* Path: `<template folder>/<slug>.md`. The template tools only see and write that folder; a template elsewhere answers as not found.
 * **NEVER** save templates in `00_Inbox/`, `01_Notes/`, or `notes/resources/`. Notes and templates are fundamentally different document types.
 
 ## Available Tools
@@ -58,5 +58,5 @@ tags: [wiki, template]
 
 ## Done-when
 
-- Requested note template is created, updated, or listed in 02_Resources/_Templates/.
+- Requested note template is created, updated, or listed in this agent's template folder.
 

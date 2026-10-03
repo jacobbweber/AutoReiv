@@ -18,17 +18,20 @@ def temp_wiki():
 
 
 def test_scaffold_seeds_core_templates(temp_wiki):
-    """Verify scaffold seeds the 6 core templates in 02_Resources/_Templates/ [REQ-WIKI-030]."""
+    """Verify scaffold seeds the 6 core templates under 02_Resources/_Templates/ [REQ-WIKI-030].
+
+    CARD-603: each lands in its group folder (General for AutoReiv, Education for Tutor).
+    """
     tmpl_dir = temp_wiki.root_dir / "02_Resources" / "_Templates"
     assert tmpl_dir.exists()
 
     expected_templates = [
-        "feynman-technique.md",
-        "concept-map-system-hub.md",
-        "dikw-pyramid-of-insight.md",
-        "zettelkasten-atomic.md",
-        "sop-runbook.md",
-        "adr-decision.md",
+        "Education/feynman-technique.md",
+        "General/concept-map-system-hub.md",
+        "General/dikw-pyramid-of-insight.md",
+        "General/zettelkasten-atomic.md",
+        "General/sop-runbook.md",
+        "General/adr-decision.md",
     ]
 
     for tmpl in expected_templates:

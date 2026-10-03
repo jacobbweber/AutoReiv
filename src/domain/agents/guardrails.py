@@ -240,6 +240,14 @@ class AgentProfileGuardrail:
         else:
             origin = AgentOrigin.FILE
 
+        # 15. Template folder [CARD-603]
+        from src.domain.wiki.template_folders import TemplateFolderError, normalize_template_folder
+
+        try:
+            template_folder = normalize_template_folder(payload.get("template_folder"))
+        except TemplateFolderError as e:
+            raise AgentValidationError(str(e))
+
         return AgentProfile(
             id=agent_id,
             name=name,
@@ -271,4 +279,5 @@ class AgentProfileGuardrail:
             max_training_retries=max_training_retries,
             allowed_credentials=allowed_credentials,
             mcp_servers=mcp_servers,
+            template_folder=template_folder,
         )

@@ -117,6 +117,11 @@ class AgentProfile(BaseModel):
     mcp_servers: List[MCPServerConfig] = Field(
         default_factory=list, description="Per-agent remote or local MCP server connections [CARD-183]"
     )
+    template_folder: Optional[str] = Field(
+        default=None,
+        description="CARD-603: vault-relative wiki template folder; template tools and template search stay in it. "
+        "Unset = no template access",
+    )
 
     # ADR-0056 / CARD-414: seed provenance + operator ownership
     user_modified: bool = Field(
