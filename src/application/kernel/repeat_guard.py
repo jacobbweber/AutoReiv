@@ -48,7 +48,7 @@ def rejection_text(tool_name: str) -> str:
     """CARD-613: the TOOL row the model reads after the operator rejects an approval card."""
     return (
         f"{REJECTED_PREFIX} The operator rejected this {tool_name} call. Do not call {tool_name} again for this "
-        "request: finish without it and say plainly what was not done."
+        "request: finish without it (give the result in your reply instead) and say plainly what was not done."
     )
 
 
