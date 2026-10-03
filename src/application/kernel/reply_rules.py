@@ -112,3 +112,62 @@ def failed_tool_note(reply: str, last_failure: Optional[Tuple[str, str]]) -> str
     if mentions_failure(reply, tool_name, error):
         return ""
     return f"Note: {tool_name} failed: {short_error(error)}."
+
+
+# ---------------- CARD-599 (b): a short no-tools check for skipped parts ----------------
+
+NOT_DONE_PREFIX = "Not done:"
+_ALL_DONE = "ALL DONE"
+_MAX_NOT_DONE_LINES = 6
+_PART_SPLIT = re.compile(
+    r"\n\s*(?:\d+[.)]|[-*•])\s+|;|\?|,\s*(?:and\s+|then\s+|also\s+)?|\s+and then\s+|\s+then\s+|\s+and also\s+|\s+plus\s+",
+    re.IGNORECASE,
+)
+_ALREADY_SAID_SKIPPED = re.compile(r"\b(not done|skipped|did ?n[o']?t do|could ?n[o']?t do|was ?n[o']?t able to)\b", re.IGNORECASE)
+
+
+def request_parts(text: str) -> int:
+    """Rough count of separate asks in a user message (numbered items, commas, "then", questions)."""
+    parts = [p.strip() for p in _PART_SPLIT.split(str(text or "")) if p and p.strip()]
+    return sum(1 for p in parts if len(p.split()) >= 2)
+
+
+def needs_parts_check(user_text: str, reply: str) -> bool:
+    """Only multi-part requests (3+ asks) whose reply does not already name a skipped part."""
+    if request_parts(user_text) < 3 or not str(reply or "").strip():
+        return False
+    return not _ALREADY_SAID_SKIPPED.search(reply)
+
+
+def parts_check_prompt(user_text: str, tools_ran: list, reply: str) -> str:
+    ran = "\n".join(f"- {t}" for t in tools_ran) if tools_ran else "- none"
+    return (
+        "You check whether an assistant's reply covered every part of the user's request. Do not call tools.\n\n"
+        f"User's request:\n{user_text.strip()}\n\n"
+        f"Tools that ran this turn:\n{ran}\n\n"
+        f"Assistant's reply:\n{reply.strip()}\n\n"
+        "List each separate thing the user asked for. A part counts as done when a tool above did it or the reply "
+        "answers it. For each part that is not done, write one line exactly like:\n"
+        f"{NOT_DONE_PREFIX} <the part in a few words>.\n"
+        f"If every part is done, write exactly: {_ALL_DONE}\n"
+        "Write nothing else."
+    )
+
+
+def parse_parts_check(text: str) -> str:
+    """The "Not done: ..." lines from the checker, or "" when it found nothing skipped."""
+    lines = []
+    for raw in str(text or "").splitlines():
+        line = raw.strip().lstrip("-*• ").strip()
+        if line.lower().startswith(NOT_DONE_PREFIX.lower()):
+            body = line[len(NOT_DONE_PREFIX):].strip().rstrip(".").strip()
+            if body:
+                lines.append(f"{NOT_DONE_PREFIX} {body[:160]}.")
+    return "\n".join(lines[:_MAX_NOT_DONE_LINES])
+
+
+def describe_tool_run(tool_name: str, arguments: Any, failed: bool) -> str:
+    args = ""
+    if isinstance(arguments, dict) and arguments:
+        args = ", ".join(f"{k}={str(v)[:60]}" for k, v in list(arguments.items())[:4])
+    return f"{tool_name}({args}) {'failed' if failed else 'ok'}"

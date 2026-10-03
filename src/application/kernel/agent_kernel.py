@@ -42,7 +42,11 @@ from src.application.kernel.reply_rules import (  # CARD-599/600
     REPLY_RULES_BLOCK,
     clarification_question,
     clarification_reply,
+    describe_tool_run,
     failed_tool_note,
+    needs_parts_check,
+    parse_parts_check,
+    parts_check_prompt,
     track_failure,
 )
 from src.application.kernel.telemetry_attribution import (
@@ -1171,12 +1175,15 @@ class AgentKernel:
         resume: bool = False,
         phase_id: Optional[str] = None,
         job_id: Optional[str] = None,
+        parts_request: Optional[str] = None,
     ) -> AsyncIterator[KernelEvent]:
         """
         Execute an asynchronous streaming agent turn with live token and tool lifecycle events.
 
         When resume=True or user_content is empty, continue from persisted history
         without appending a USER message [REQ-HITL-034].
+        parts_request: the operator's typed message; when given, a multi-part request gets the CARD-599
+        skipped-parts check after the final reply (Chat short turns only).
         """
         self._ace_tool_errors = []
         self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id, agent=agent)
@@ -1234,6 +1241,7 @@ class AgentKernel:
         self._ensure_agent_provider_adapter(agent)
         last_turn_end = None
         last_failure: Optional[Tuple[str, str]] = None  # CARD-600: (tool, error) of the turn's last failed call
+        tools_ran: List[str] = []  # CARD-599: what ran this turn, for the skipped-parts check
 
         for turn_idx in range(agent.max_turns):
             repeat_guard.next_step()
@@ -1499,8 +1507,13 @@ class AgentKernel:
                 done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if done_ev:
                     yield done_ev
-                note = failed_tool_note(full_content, last_failure)  # CARD-600
-                if note:
+                skipped = (
+                    await self._skipped_parts_note(model_name, parts_request, tools_ran, full_content, context_limit)
+                    if parts_request and not resume
+                    else ""
+                )
+                note = "\n".join(x for x in (skipped, failed_tool_note(full_content, last_failure)) if x)
+                if note:  # CARD-599 skipped parts, CARD-600 hidden failed tool
                     full_content = f"{full_content.rstrip()}\n\n{note}"
                     yield KernelEvent(event_type=KernelEventType.TOKEN, content=f"\n\n{note}")
                 assistant_msg = ChatMessage(
@@ -1725,6 +1738,7 @@ class AgentKernel:
                     )
                     return
                 last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error, tool_res.output)
+                tools_ran.append(describe_tool_run(tc.name, tc.arguments, not tool_res.success))
                 clarify_q = clarification_question(tc.name, tool_res.success, tool_res.output, tc.arguments)
 
             if clarify_q is not None:
@@ -1764,6 +1778,27 @@ class AgentKernel:
             content=limit_msg.content,
             is_finished=True,
         )
+
+    async def _skipped_parts_note(
+        self, model_name: str, user_text: str, tools_ran: List[str], reply: str, context_limit: int
+    ) -> str:
+        """CARD-599 (b): a short no-tools check on the same model; "Not done: ..." lines for skipped parts, else ""."""
+        if not needs_parts_check(user_text, reply):
+            return ""
+        try:
+            req = CompletionRequest(
+                model=model_name,
+                messages=[ChatMessage(role=Role.USER, content=parts_check_prompt(user_text, tools_ran, reply))],
+                tools=None,
+                num_ctx=context_limit,
+                max_tokens=reply_token_limit(2048, context_limit),
+            )
+            resp = await self.gateway.complete(req)
+            msg = getattr(resp, "message", None)
+            return parse_parts_check(getattr(msg, "content", None) or "")
+        except Exception as exc:  # noqa: BLE001 - the reply stands without the check
+            logger.warning("skipped-parts check failed: %s", exc)
+            return ""
 
     async def _final_answer_without_tools(
         self,
