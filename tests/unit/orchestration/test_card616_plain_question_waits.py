@@ -46,7 +46,21 @@ async def test_check_uses_the_given_model_with_no_tools():
     assert await reply_needs_answer(gw, "vllm/nemotron-3.5-lightning", ASKS, task="write a tomato note") is True
     req = gw.requests[0]
     assert req.model == "vllm/nemotron-3.5-lightning" and not req.tools and req.background
-    assert "write a tomato note" in req.messages[1].content
+    assert "write a tomato note" in req.messages[-1].content and req.think is False
+    assert [m.content for m in req.messages[1:-1:2]] and req.messages[2].content in ("yes", "no")  # worked examples
+
+
+def test_vllm_gets_enable_thinking_false_only_when_think_is_false():
+    from src.domain.gateway.models import CompletionRequest
+    from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
+
+    msg = [ChatMessage(role=Role.USER, content="hi")]
+    vllm = OpenAIProviderAdapter(base_url="http://x/v1", api_key="", provider_id="vllm")
+    off = vllm._build_payload(CompletionRequest(model="vllm/m", messages=msg, think=False), stream=False)
+    assert off["chat_template_kwargs"] == {"enable_thinking": False}
+    assert "chat_template_kwargs" not in vllm._build_payload(CompletionRequest(model="vllm/m", messages=msg), stream=False)
+    openai = OpenAIProviderAdapter(base_url="http://x/v1", api_key="k", provider_id="openai")
+    assert "chat_template_kwargs" not in openai._build_payload(CompletionRequest(model="m", messages=msg, think=False), stream=False)
 
 
 @pytest.mark.asyncio

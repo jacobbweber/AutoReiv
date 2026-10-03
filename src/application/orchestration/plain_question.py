@@ -18,11 +18,18 @@ from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
 logger = logging.getLogger(__name__)
 
 QUESTION_CHECK_PROMPT = (
-    "You read the last reply of an assistant that was working on a task step. Answer with one word: yes or no.\n"
-    "yes: the assistant stopped and needs the user's answer before the task can continue or be finished "
-    "(it asks for a choice, a missing detail, or permission to go ahead).\n"
-    "no: the work is done and the closing question is only an offer or a courtesy "
-    "(for example 'Anything else?' or 'Want me to expand it?' after the result was delivered)."
+    "You decide if a task step must wait for the user. Answer with one word: yes or no.\n"
+    "yes = the reply cannot finish the task without the user's answer (a missing detail, a choice, or permission).\n"
+    "no = the task's result is already in the reply; a closing question that only offers more help does not count."
+)
+# Worked examples: without them a no-thinking model reads every closing offer as a question (live, nemotron).
+QUESTION_CHECK_EXAMPLES = (
+    ("Task: Draft a packing list for my trip.\n\nReply:\nWhere are you travelling, and for how many days?", "yes"),
+    ("Task: Summarize the meeting notes.\n\nReply:\nSummary: budget approved, launch moved to May.\n\n"
+     "Would you like me to turn this into an email?", "no"),
+    ("Task: Rename the report file.\n\nReply:\nI can rename it to 'Q3 report' or 'Report Q3'. Which name do you prefer?", "yes"),
+    ("Task: Explain how compost works.\n\nReply:\nCompost is organic matter broken down by microbes...\n\n"
+     "Anything else I can help with?", "no"),
 )
 _TRAILING = " \t*_`)\"'\u201d"
 
@@ -41,13 +48,17 @@ async def reply_needs_answer(gateway: Any, model: Optional[str], reply: str, tas
     if gateway is None or not ends_with_question(reply):
         return False
     user = (f"Task: {task.strip()[:600]}\n\n" if task and task.strip() else "") + f"Reply:\n{reply.strip()[-2000:]}"
+    messages = [ChatMessage(role=Role.SYSTEM, content=QUESTION_CHECK_PROMPT)]
+    for example, answer in QUESTION_CHECK_EXAMPLES:
+        messages += [ChatMessage(role=Role.USER, content=example), ChatMessage(role=Role.ASSISTANT, content=answer)]
+    messages.append(ChatMessage(role=Role.USER, content=user))
     try:
         req = CompletionRequest(
             model=model or getattr(gateway, "default_model_id", None) or "default",
-            messages=[ChatMessage(role=Role.SYSTEM, content=QUESTION_CHECK_PROMPT), ChatMessage(role=Role.USER, content=user)],
+            messages=messages,
             temperature=0.0,
             max_tokens=600,  # a reasoning model spends some on thinking
-            think=False,
+            think=False,  # Ollama think=false; vLLM chat_template_kwargs.enable_thinking=false (a reasoning model overthinks)
             background=True,
         )
         resp = await asyncio.wait_for(gateway.complete(req), timeout=helper_call_seconds())
