@@ -49,8 +49,8 @@ Chats stuck busy after a restart.
 | Check | Result |
 |---|---|
 | Card tests | `tests/unit/web/test_card608_609_recents_restart.py` 7 passed (with CARD-259/530/490-494 neighbours: 34 passed) |
-| Full pytest | {PYTEST} |
-| Full preflight (vitest + smoke) | {PREFLIGHT} |
+| Full pytest | 2357 passed, 12 skipped |
+| Full preflight (vitest + smoke) | GREEN: ruff, eslint (0 errors, 3 old warnings), pytest 2357 passed / 12 skipped, vitest 987 passed, smoke 79 passed |
 
 Live check on a throwaway :8770 (Spark nemotron-3.5-lightning, no model swap), 2026-10-03 ~8:23-8:26 AM ET. Run as a job; the serve was hard-killed (taskkill /F, like a crash) while Execute was RUNNING, then started again on the same data.
 
