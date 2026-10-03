@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["Skill Studio"])
+SKILL_DESCRIPTION_LIMIT = 200  # CARD-614: soft limit; Skill Studio shows the full text and the API accepts any length
 
 
 class ScaffoldRunbookRequest(BaseModel):
@@ -115,11 +116,11 @@ async def scaffold_skill_runbook(req: ScaffoldRunbookRequest, request: Request) 
                     "parameters": defn.parameters,
                 })
 
-    system_prompt = (
+    system_prompt = (  # CARD-614: descriptions up to SKILL_DESCRIPTION_LIMIT (200) characters
         "You are the AutoReiv Principal Skill Architect. You write production-grade, standard Matt Pocock compliant "
         "SKILL.md runbooks for AI agents.\n"
         "A skill runbook is a procedural SOP (playbook) that teaches an agent:\n"
-        "1. When to use this skill (trigger description strictly <= 60 characters).\n"
+        "1. When to use this skill (one-line description, at most 200 characters).\n"
         "2. The ordered, step-by-step workflow.\n"
         "3. How to use and sequence the required tools (with exact parameters and expected payloads).\n"
         "4. Edge cases, failure modes, and recovery steps.\n"
@@ -127,7 +128,7 @@ async def scaffold_skill_runbook(req: ScaffoldRunbookRequest, request: Request) 
         "You MUST format the runbook with valid YAML frontmatter at the very top:\n"
         "---\n"
         "name: <Skill Name>\n"
-        "description: <Trigger description, strictly <= 60 chars>\n"
+        "description: <When to use this skill, one line, at most 200 chars>\n"
         "tools:\n"
         "  - <tool_name>\n"
         "---\n"
@@ -141,7 +142,7 @@ async def scaffold_skill_runbook(req: ScaffoldRunbookRequest, request: Request) 
         "CRITICAL: Do NOT write Python classes or synthetic executable code. A skill is a markdown runbook."
     )
 
-    clean_trigger = (req.trigger_description or "").strip()[:60]
+    clean_trigger = " ".join((req.trigger_description or "").split())[:SKILL_DESCRIPTION_LIMIT]  # CARD-614
     tools_summary = json.dumps(tool_definitions, indent=2) if tool_definitions else "None (Pure knowledge / runbook)"
 
     user_prompt = (
