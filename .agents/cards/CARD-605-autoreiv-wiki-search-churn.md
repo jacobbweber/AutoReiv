@@ -43,7 +43,7 @@ Search quality. Model changes.
 
 ## Acceptance criteria
 
-- 10 runs on nemotron: no more than 5 wiki search/list calls in any turn.
+- 10 runs on nemotron: no more than 5 wiki search/list calls in any turn. (Changed 2026-10-03 by Jacob: the limit is a setting, default 8; a simple search stays at or under 8.)
 - The reply says plainly that nothing matched, or that the note does not exist.
 - Full preflight is green.
 
@@ -58,6 +58,15 @@ Shared branch with CARD-604: `feat/card-604-605-memory-and-wiki-budget`.
 - The search and list descriptions now say: "If two or three look-ups find nothing, stop and say plainly that no matching note was found."
 - Tests: `tests/unit/kernel/test_card605_wiki_lookup_budget.py` (7).
 
+### Change 2 (2026-10-03, Jacob approved 1:04 AM): limit 8, and a setting
+
+- The limit is now **Settings > Reply limits > "Wiki look-ups per reply"**, next to the timeouts: 1 to 50, default 8 (was a hard-coded 4). Empty or 0 goes back to the default.
+- Stored as `reply_limits.wiki_lookups_per_reply`. Resolution: setting > env `AUTOREIV_WIKI_LOOKUPS_PER_REPLY` > 8. Values outside 1-50 are ignored.
+- Read at the start of every reply, so a saved change applies to the next reply with no restart.
+- `PUT /api/settings/reply-limits` refuses values outside 1-50 (400). The Settings page checks the range before saving.
+- The "Not run" text uses the live number ("you already looked in the wiki 8 times...").
+- Tests: `test_card605_wiki_lookup_budget.py` now has 12 (default 8, live change between replies, resolve order and range, API save/validate/clear, Settings field). Also new: `tests/unit/frontend/card_605_wiki_lookups_setting.test.js` (4). `test_card592_relaxed_timeouts.py` expects the new field in the resolved limits.
+
 ## Results
 
 | Check | Result | Notes |
@@ -70,10 +79,12 @@ Shared branch with CARD-604: `feat/card-604-605-memory-and-wiki-budget`.
 | Live after (final build), simple search x5 | PASS | 4 ran + 1 refused in every run (5 calls max); all 5 replies say no weekly planning notes were found |
 | Live after (final build), missing note x5 | PASS | 1, 1, 4, 2, 2 look-ups; all 5 say the note does not exist |
 | Live after, AutoReiv 4-ask prompt x5 | PASS | 4 ran + at most 1 refused (5 calls max) |
+| Live, limit 8 (default), simple search x3 | PASS | 8, 8 and 6 look-ups ran (never more than 8). Runs 1 and 2 also had 1 refused call each, which did not run. All 3 replies say no weekly planning notes were found (only the template). |
+| Screenshot | - | `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003\settings-wiki-limit.png` (copy in `scratch\ui1003\`) |
 
 An earlier build did not count repeats, and one 4-ask run made 6 calls (4 counted, 1 repeat, 1 refused). Fixed in `d2f3b84b`, which made repeats and failed calls count and stopped offering the tools after the budget. The final-build numbers above come after that fix.
 
-Live env: throwaway :8770, Spark nemotron-3.5-lightning only. Results: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003\c605_*_before.json`, `c605_*_after.json`, `c605_*_after2.json`.
+Live env: throwaway :8770, Spark nemotron-3.5-lightning only. Results: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003\c605_*_before.json`, `c605_*_after.json`, `c605_*_after2.json`, `c605_limit8.json`.
 
 ## Found while testing
 
@@ -82,4 +93,4 @@ Live env: throwaway :8770, Spark nemotron-3.5-lightning only. Results: `C:\Users
 
 ## Release note
 
-An agent now makes at most 4 wiki searches or lists per reply, then answers with what it found, and says plainly when nothing matched.
+An agent now makes at most 8 wiki searches or lists per reply (Settings > Reply limits > Wiki look-ups per reply, 1-50), then answers with what it found, and says plainly when nothing matched.
