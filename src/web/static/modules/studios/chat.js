@@ -33,6 +33,7 @@ import { createStopHandler } from './chat/stop.js'; // CARD-486
 import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
 import { sendDeveloperIntent } from './chat/developer_intent.js'; // CARD-497 REQ-497-016
 import { handleTurnRunning } from './chat/turn_running.js'; // CARD-530 REQ-530-003
+import { showFailedTurn } from './chat/failed_send.js'; // CARD-484: a failed send keeps the typed text
 
 import {
   buildChatStreamPayload,
@@ -884,8 +885,7 @@ export function initChatStudio(state, callbacks = {}) {
       await refreshWorkbenchArtifactCount();
     } catch (err) {
       if (err.name !== 'AbortError' && ownStream.isCurrent(turn)) {
-        showToast(`Chat turn failed: ${err.message}`, 'error');
-        if (streamContentEl) streamContentEl.innerHTML = `<span class="text-rose-400">Error: ${escapeHtml(err.message)}</span>`;
+        showFailedTurn({ err, showToast, streamContentEl, isResume: options.isResume, userPrompt, replyStarted: accumulatedContent.length > 0, promptInput, setText: setComposerText }); // CARD-484
       }
     } finally {
       if (ownStream.end(turn)) { // CARD-488: a detached turn leaves the view alone
