@@ -279,6 +279,11 @@
             <span data-job-phase="agent" class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300">agent</span>
             <span data-job-phase="link" class="hidden px-2 py-0.5 rounded-md bg-violet-950/80 border border-violet-800/80 text-violet-300 font-medium" title="parent child standing handoff">parent↔child</span>
             <span data-job-phase="react" class="job-phase-react px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300 font-semibold tracking-wide"></span>
+            <!-- CARD-490: a job paused by Stop continues from where it stopped -->
+            <button type="button" data-job-phase="resume" data-testid="chat-job-resume-btn" class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-950/70 hover:bg-amber-900/80 border border-amber-700/70 text-amber-100 font-semibold transition" title="Continue this job from the step where it was stopped" aria-label="Resume the stopped job">
+              <i data-lucide="play" class="w-3 h-3"></i>
+              <span>Resume</span>
+            </button>
           </div>
         </div>
 
@@ -4447,7 +4452,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.100"></script>
+  <script type="module" src="/static/app.js?v=2.0.101"></script>
 </body>
 </html>
 

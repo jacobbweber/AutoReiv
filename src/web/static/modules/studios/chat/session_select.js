@@ -37,9 +37,10 @@ export function hydrateJobPhaseStateFromJourney(journey) {
   const job = pickJourneyJob(journey);
   if (!job) return null;
   const phases = sortedPhases(job);
+  const stopped = job.stopped === true; // CARD-490: Stop paused it; Resume continues the same job
   const activePhase = phases.find((p) => {
     const s = String(p.status || '').toLowerCase();
-    return s === 'waiting_approval' || s === 'running' || s === 'in_progress';
+    return s === 'waiting_approval' || s === 'running' || s === 'in_progress' || (stopped && s === 'queued');
   }) || phases[phases.length - 1] || null;
   const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
   const next = {
@@ -51,7 +52,10 @@ export function hydrateJobPhaseStateFromJourney(journey) {
     phaseId: activePhase ? activePhase.id : undefined,
     assignedAgentId: activePhase ? activePhase.assigned_agent_id : undefined,
   };
-  if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
+  if (stopped) {
+    next.stopped = true;
+    next.reactState = 'STOPPED';
+  } else if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
     next.reactState = 'PARKED';
     next.jobStatus = 'waiting_approval';
   } else if (jobStatus === 'running' || jobStatus === 'in_progress') {
@@ -232,6 +236,7 @@ export function createSessionSelect(state, deps = {}) {
     fetchFn = null,
     queryStatusFn = querySessionStatus,
     isPageVisible = pageVisible,
+    refreshActivity = async () => {}, // CARD-493: Recent Chats replying / needs approval markers
     getStreamSessionId = () => null, // CARD-488: this tab's streaming chat, if any
     detachOwnStream = () => {},
     getEl = (id) => (typeof document !== 'undefined' ? document.getElementById(id) : null),
@@ -261,6 +266,7 @@ export function createSessionSelect(state, deps = {}) {
     if (streaming && streaming !== sessionId) detachOwnStream(); // CARD-488 D1: server keeps going
     watcher.stop();
     renderSessionList({ sessionList, sessions: state.sessions, activeSessionId: sessionId, onSelectSession });
+    void refreshActivity();
     if (userPick) collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
     await loadMessages(sessionId);
     if (stale(sessionId)) return;
@@ -285,6 +291,8 @@ export function createSessionSelect(state, deps = {}) {
     stopWatching: () => watcher.stop(),
     setBusy: (busy) => setSessionBusy(state, { sendBtn, stopBtn }, busy), // CARD-486: Stop clears busy
     watchSessionStatus: (sessionId = state.activeSessionId) => watcher.watch(sessionId),
+    // CARD-490: after Stop, read the job strip again so a stopped job shows Resume.
+    rehydrateJobChrome: (sessionId = state.activeSessionId) => hydrateJobChromeFromSession(state, sessionId, { fetchFn, setJobPhaseState, setInlineJobChromeModel }),
     watcher,
   };
 }

@@ -4,6 +4,7 @@
  */
 
 import { escapeHtml, formatSessionTimestamp } from '../../utils/formatters.js';
+import { sessionActivityMarker } from './session_activity.js'; // CARD-493
 import { $, safeCreateIcons } from '../../dom.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
 import { filterToolsList, formatContextBudgetBadge, querySessionContext } from './stream.js';
@@ -98,10 +99,19 @@ export function renderSessionList({
         : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent'
     }`;
     const timeStr = formatSessionTimestamp(sess.updated_at || sess.created_at);
+    const marker = sessionActivityMarker(sess); // CARD-493: replying / needs approval
+    if (marker) item.setAttribute('data-session-activity', marker.key);
+    const dot = marker
+      ? `<span class="w-2 h-2 rounded-full ${marker.cls} flex-shrink-0" title="${marker.label}" data-activity-dot="${marker.key}"></span>`
+      : `<span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-brand-400 ring-2 ring-brand-400/20' : 'bg-slate-600'} flex-shrink-0"></span>`;
+    const tag = marker
+      ? `<span class="ml-auto flex-shrink-0 text-[9px] font-mono uppercase tracking-wide ${marker.key === 'waiting' ? 'text-amber-300' : 'text-brand-300'}">${marker.label}</span>`
+      : '';
     item.innerHTML = `
       <div class="flex items-center space-x-2 min-w-0">
-        <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-brand-400 ring-2 ring-brand-400/20' : 'bg-slate-600'} flex-shrink-0"></span>
+        ${dot}
         <span class="truncate font-medium text-slate-200 text-xs">${escapeHtml(sess.title || 'Conversation')}</span>
+        ${tag}
       </div>
       ${timeStr ? `<div class="text-[10px] text-slate-500 font-mono pl-3.5 leading-none">${escapeHtml(timeStr)}</div>` : ''}
     `;
