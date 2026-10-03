@@ -213,9 +213,15 @@ def domain_line(agent: Any) -> str:
     covers = "; ".join(labels) if labels else "general conversation only"
     roster = _other_agents_roster(agent_id)
     roster_text = f" Covering agents: {'; '.join(roster)}." if roster else ""
+    # CARD-612: Toolsmith is the developer, so it never points at Ask Developer; others add the line only to a refusal.
+    if agent_id.strip().lower() == "toolsmith":
+        no_cover = "If no agent covers it and you cannot build it as a tool, say so plainly in 1-2 concise sentences."
+    else:
+        no_cover = ('If no agent covers it, state that plainly in 1-2 concise sentences and end your reply with "You '
+                    'can use Ask Developer to add this." Only a reply that turns the request down ends with that line.')
     return (
         f"{name} covers: {covers}. For requests outside your skills, tell the user plainly which agent to open in Chat (e.g. \"open Tutor in Chat\").{roster_text} "
-        'If no agent covers it, state that plainly in 1-2 concise sentences and end your reply with "You can use Ask Developer to add this."'
+        f"{no_cover}"
     )
 
 

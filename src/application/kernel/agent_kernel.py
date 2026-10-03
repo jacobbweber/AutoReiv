@@ -1763,7 +1763,7 @@ class AgentKernel:
                     )
                     return
                 last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error, tool_res.output)
-                tools_ran.append(describe_tool_run(tc.name, tc.arguments, not tool_res.success))
+                tools_ran.append(describe_tool_run(tc.name, tc.arguments, not tool_res.success, tool_res.output))
                 clarify_q = clarification_question(tc.name, tool_res.success, tool_res.output, tc.arguments)
 
             if clarify_q is not None:

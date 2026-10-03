@@ -130,6 +130,13 @@ _PART_SPLIT = re.compile(
     re.IGNORECASE,
 )
 _ALREADY_SAID_SKIPPED = re.compile(r"\b(not done|skipped|did ?n[o']?t do|could ?n[o']?t do|was ?n[o']?t able to)\b", re.IGNORECASE)
+# CARD-612: a platform-written brief (Ask Developer) puts its working notes after this line; they are not asks.
+BRIEF_NOTES_MARKER = "Notes for this work (not separate asks):"
+
+
+def request_text(user_text: str) -> str:
+    """The part of a user message that holds the asks: a platform brief's notes are cut off."""
+    return str(user_text or "").split(BRIEF_NOTES_MARKER, 1)[0].strip()
 
 
 def request_parts(text: str) -> int:
@@ -140,7 +147,7 @@ def request_parts(text: str) -> int:
 
 def needs_parts_check(user_text: str, reply: str) -> bool:
     """Only multi-part requests (3+ asks) whose reply does not already name a skipped part."""
-    if request_parts(user_text) < 3 or not str(reply or "").strip():
+    if request_parts(request_text(user_text)) < 3 or not str(reply or "").strip():
         return False
     return not _ALREADY_SAID_SKIPPED.search(reply)
 
@@ -150,14 +157,16 @@ def parts_check_prompt(user_text: str, tools_ran: list, reply: str) -> str:
     return (
         "You check whether an assistant's reply covered every part of the user's request. Do not call tools. "
         "Keep your thinking short.\n\n"
-        f"User's request:\n{user_text.strip()}\n\n"
+        f"User's request:\n{request_text(user_text)}\n\n"
         f"Tools that ran this turn:\n{ran}\n\n"
         f"Assistant's reply:\n{reply.strip()}\n\n"
         "Split the request into its separate parts and go through them in order. A part that asks for an action "
         "(remember, save, create, update, send, search, read, list, look up) is done only when a tool above did "
         "that action and did not fail; a reply that only says it was done does not count. Remembering or saving a "
         "fact is done only by memorize_fact (recall_agent_memory does not save anything); recalling or looking up "
-        "memory is done by recall_agent_memory. A question is done when the reply answers it. For each part write exactly one line:\n"
+        "memory is done by recall_agent_memory. Registering a tool is done by register_native_tool; with target_agent_id it "
+        "also proposes the tool for that agent. A question is done when the reply answers it. Details such as a name, "
+        "a hint or a path are not separate parts. For each part write exactly one line:\n"
         "Done: <the part in a few words> - <the tool that did it, or: answered>\n"
         f"{NOT_DONE_PREFIX} <the part in a few words>.\n"
         "Write nothing else."
@@ -176,10 +185,14 @@ def parse_parts_check(text: str) -> str:
     return "\n".join(lines[:_MAX_NOT_DONE_LINES])
 
 
-def describe_tool_run(tool_name: str, arguments: Any, failed: bool) -> str:
+def describe_tool_run(tool_name: str, arguments: Any, failed: bool, output: Any = None) -> str:
+    """One line for the skipped-parts checker; a result that reports a failure counts as failed [CARD-612]."""
+    failed = failed or output_failure(output) is not None
     args = ""
     if isinstance(arguments, dict) and arguments:
-        args = ", ".join(f"{k}={str(v)[:60]}" for k, v in list(arguments.items())[:4])
+        # CARD-612: short values first, so a target_agent_id is not hidden behind a long code argument.
+        items = sorted(arguments.items(), key=lambda kv: len(str(kv[1])))[:6]
+        args = ", ".join(f"{k}={str(v)[:60]}" for k, v in items)
     return f"{tool_name}({args}) {'failed' if failed else 'ok'}"
 
 
@@ -187,6 +200,8 @@ def describe_tool_run(tool_name: str, arguments: Any, failed: bool) -> str:
 
 MEMORIZE_TOOL = "memorize_fact"
 RECALL_TOOL = "recall_agent_memory"
+REGISTER_TOOL = "register_native_tool"  # CARD-612
+_TOOL_WORK = re.compile(r"\b(tool|register\w*|attach\w*|target agent)\b", re.IGNORECASE)
 _MEMORY_RECALL = re.compile(r"\b(recall|look ?up (?:my |the |your )?memor(?:y|ies)|what (?:do )?you remember)\b", re.IGNORECASE)
 _MEMORY_SAVE = re.compile(r"\b(remember|memori[sz]e|keep in mind)\b", re.IGNORECASE)
 
@@ -205,13 +220,16 @@ def _tool_ok(tools_ran: list, tool_name: str) -> bool:
 
 
 def drop_false_not_done(not_done: str, tools_ran: list) -> str:
-    """Drop a "Not done" memory line when the matching memory tool did run and succeed (checker false positive)."""
+    """Drop a "Not done" line when the tool that does it ran and succeeded (checker false positive):
+    memory lines after memorize_fact / recall_agent_memory, tool lines after register_native_tool [CARD-604/612]."""
     keep = []
     for line in str(not_done or "").splitlines():
         kind = _memory_kind(line)
         if kind == "recall" and _tool_ok(tools_ran, RECALL_TOOL):
             continue
         if kind == "save" and _tool_ok(tools_ran, MEMORIZE_TOOL):
+            continue
+        if _TOOL_WORK.search(line) and _tool_ok(tools_ran, REGISTER_TOOL):  # CARD-612: the tool was registered
             continue
         if line.strip():
             keep.append(line)

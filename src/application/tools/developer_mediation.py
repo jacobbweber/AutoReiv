@@ -14,6 +14,7 @@ import logging
 import re
 from typing import Any, Mapping, Optional
 
+from src.application.kernel.reply_rules import BRIEF_NOTES_MARKER
 from src.application.orchestration.chat_job_binding import output_packet_for_phase
 from src.application.orchestration.phase_llm_resilience import resolve_standing_phase_llm_timeout
 from src.application.tools.tool_check import tool_checks_for_job
@@ -105,23 +106,25 @@ def build_packet(intent: str, draft: Mapping[str, Any]) -> dict[str, Any]:
 
 def format_developer_prompt(packet: Mapping[str, Any]) -> str:
     draft = packet.get("draft") if isinstance(packet.get("draft"), Mapping) else {}
-    packaging = str(draft.get("packaging_preference") or "").strip() or "unspecified"
+    packaging = str(draft.get("packaging_preference") or "").strip()
     tool_name = str(draft.get("tool_name") or "").strip() or "(new tool)"
     target = str(draft.get("target_agent_id") or "").strip()
-    target_line = (
-        f"Target agent: {target}. Register with target_agent_id \"{target}\": that creates a pending proposal to "
-        f"attach the tool to a skill of {target}; {target} can call it after Jacob accepts.\n"
-        if target else ""
-    )
+    # CARD-612: only fields Jacob filled in; an empty hint line ("Language hint: none") read as an ask.
+    lines = [f"Tools Studio tool intent ({packet.get('intent')}).", "", f"Tool name: {tool_name}",
+             f"What it should do: {draft.get('behavior') or ''}"]
+    for label, key in (("Language hint", "language_hint"), ("Runtime hint", "runtime_hint"),
+                       ("Path or context", "path_context")):
+        if str(draft.get(key) or "").strip():
+            lines.append(f"{label}: {str(draft.get(key)).strip()}")
+    if packaging:
+        lines.append(f"Packaging preference (note only, not a completed package): {packaging}")
+    if target:
+        lines.append(
+            f"Target agent: {target}. Register with target_agent_id \"{target}\": that creates a pending proposal to "
+            f"attach the tool to a skill of {target}; {target} can call it after Jacob accepts."
+        )
     return (
-        f"Tools Studio tool intent ({packet.get('intent')}).\n\n"
-        f"Tool name: {tool_name}\n"
-        f"What it should do: {draft.get('behavior') or ''}\n"
-        f"Language hint: {draft.get('language_hint') or 'none'}\n"
-        f"Runtime hint: {draft.get('runtime_hint') or 'none'}\n"
-        f"Path or context: {draft.get('path_context') or 'none'}\n"
-        f"Packaging preference (note only, not a completed package): {packaging}\n"
-        f"{target_line}\n"
+        "\n".join(lines) + f"\n\n{BRIEF_NOTES_MARKER}\n"
         "Build it as a native tool with register_native_tool (skill native-tool-engineering); MCP servers are not "
         "built here. A filesystem path in this message is chat context, not a Tools Studio folder picker.\n\n"
         "Saving runs the tool check first. Code that uses the network, files, other programs or dynamic imports "
