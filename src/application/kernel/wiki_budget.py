@@ -9,7 +9,7 @@ After ``WIKI_LOOKUP_BUDGET`` look-ups in one reply, further look-ups are not run
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, List, Optional
 
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import ToolResult
@@ -33,8 +33,18 @@ class WikiLookupBudget:
         self.used = 0
         self.refused = 0
 
+    @property
+    def used_up(self) -> bool:
+        return self.used >= self.budget
+
+    def offer(self, tools: Optional[List[Any]]) -> Optional[List[Any]]:
+        """The tools to offer on the next model call: without the look-up tools once the budget is used up."""
+        if not tools or not self.used_up:
+            return tools
+        return [t for t in tools if getattr(t, "name", None) not in WIKI_LOOKUP_TOOLS]
+
     def check(self, tc: ToolCall) -> Optional[ToolResult]:
-        """None when the call may run (and counts it); a "Not run" result once the budget is used up."""
+        """None when the call may run (and counts it, even if it then errors or is a repeat); else "Not run"."""
         if tc.name not in WIKI_LOOKUP_TOOLS:
             return None
         if self.used >= self.budget:

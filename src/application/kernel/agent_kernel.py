@@ -865,7 +865,7 @@ class AgentKernel:
             req = CompletionRequest(
                 model=model_name,
                 messages=compacted_messages,
-                tools=active_tools or None,
+                tools=wiki_budget.offer(active_tools) or None,  # CARD-605: no wiki look-ups once used up
                 num_ctx=nested_ctx,
                 # CARD-586: child turns get the same generous reply cap as chat replies (was a fixed 8192)
                 max_tokens=reply_token_limit(resolve_reply_limits(self.state_store)[0], nested_ctx),
@@ -1068,7 +1068,7 @@ class AgentKernel:
                         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=skipped)
                     history.append(skipped)
                     continue
-                gated = repeat_guard.reuse(tc) or wiki_budget.check(tc) or self._gate_tool_call(
+                gated = wiki_budget.check(tc) or repeat_guard.reuse(tc) or self._gate_tool_call(
                     tc,
                     session_id,
                     agent,
@@ -1278,7 +1278,7 @@ class AgentKernel:
             req = CompletionRequest(
                 model=model_name,
                 messages=compacted_messages,
-                tools=active_tools or None,
+                tools=wiki_budget.offer(active_tools) or None,  # CARD-605: no wiki look-ups once used up
                 num_ctx=context_limit,
                 max_tokens=reply_max_tokens,
                 stream=True,
@@ -1620,7 +1620,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = repeat_guard.reuse(tc) or wiki_budget.check(tc) or self._gate_tool_call(
+                gated = wiki_budget.check(tc) or repeat_guard.reuse(tc) or self._gate_tool_call(
                     tc,
                     session_id,
                     agent,

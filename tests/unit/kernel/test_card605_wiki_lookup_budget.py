@@ -148,3 +148,29 @@ def test_search_and_list_descriptions_carry_the_hint():
     src = Path("src/application/skills/wiki_tools.py").read_text(encoding="utf-8")
     assert src.count("+ WIKI_LOOKUP_HINT") == 2
     assert "say plainly that no matching note was found" in WIKI_LOOKUP_HINT
+
+
+@pytest.mark.asyncio
+async def test_lookup_tools_are_not_offered_once_the_budget_is_used_up():
+    llm = ScriptLLM(_churn(5) + [REPLY])
+    kernel, store, agent, ran = _kernel(llm)
+    session = store.create_session(agent_id=agent.id, title="t")
+    _ = [e async for e in kernel.stream_turn(agent=agent, session_id=session.id, user_content="search the wiki")]
+    offered = [sorted(t.name for t in (r.tools or [])) for r in llm.streams]
+    assert "wiki_note_search" in offered[3] and "wiki_note_list" in offered[3]
+    for names in offered[4:]:
+        assert "wiki_note_search" not in names and "wiki_note_list" not in names
+        assert "wiki_note_read" in names
+
+
+@pytest.mark.asyncio
+async def test_a_repeated_lookup_counts_against_the_budget():
+    same = [ToolCall(id="s", name="wiki_note_search", arguments={"query": "weekly planning"})]
+    steps = [same, [ToolCall(id="rep", name="wiki_note_search", arguments={"query": "weekly planning"})]] + _churn(3) + [REPLY]
+    llm = ScriptLLM(steps)
+    kernel, store, agent, ran = _kernel(llm)
+    session = store.create_session(agent_id=agent.id, title="t")
+    _ = [e async for e in kernel.stream_turn(agent=agent, session_id=session.id, user_content="search the wiki")]
+    rows = [m.content for m in store.get_messages(session.id) if m.role == Role.TOOL]
+    assert len(ran) == 3  # the repeat was answered from the earlier result but still used a look-up
+    assert len(rows) == 5 and "already_done" in rows[1] and rows[-1].startswith("Not run:"), rows
