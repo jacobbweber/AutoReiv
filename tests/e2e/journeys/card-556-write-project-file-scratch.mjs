@@ -71,7 +71,7 @@ export default {
       }, { timeoutMs: 400000, intervalMs: 2000 });
       await waitReplyIdle(page, { timeoutMs: 60000 }).catch(() => {});
 
-      const listed = await getJson(request, `${base}/api/sessions`).catch(() => []);
+      const listed = await getJson(request, `${base}/api/sessions?include_steps=true`).catch(() => []);
       let sid = '';
       for (const x of (Array.isArray(listed) ? listed : []).filter((y) => y.agent_id === 'developer' && !String(y.id).includes('::'))) {
         const r = await getJson(request, `${base}/api/sessions/${encodeURIComponent(x.id)}/messages`).catch(() => []);

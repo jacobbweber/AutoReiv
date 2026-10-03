@@ -309,6 +309,15 @@ def create_app(
             logging.getLogger(__name__).warning("CARD-530: repaired stuck jobs %s", repaired)
     except Exception as exc:
         logging.getLogger(__name__).warning("stuck job repair skipped: %s", exc)
+    # Steps a restart cut off go back to resumable (chat shows Resume, not busy) [CARD-609].
+    try:
+        from src.application.orchestration.stuck_phase_reconciler import requeue_interrupted_phases
+
+        requeued = requeue_interrupted_phases(store)
+        if requeued:
+            logging.getLogger(__name__).warning("CARD-609: re-queued jobs cut off by a restart %s", requeued)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("restart re-queue skipped: %s", exc)
 
     # CARD-597: Deactivate any short-lived semantic facts stored across agent memory databases
     try:

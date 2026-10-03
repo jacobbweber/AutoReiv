@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 OPERATOR_KILL_REASON = "operator_kill_mid_llm"
+SERVER_RESTART_REASON = "server_restart"  # CARD-609: a restart cut the phase off; resumable like Stop
 KILL_CHECKPOINTED = "kill_checkpointed"
 
 
@@ -19,6 +20,7 @@ def is_operator_kill_reason(reason: Any) -> bool:
         return False
     return (
         text == OPERATOR_KILL_REASON
+        or text == SERVER_RESTART_REASON
         or text.startswith("operator_kill")
         or KILL_CHECKPOINTED in text
     )
@@ -29,8 +31,8 @@ def _status(value: Any) -> str:
 
 
 def job_stopped_by_operator(store: Any, job: Any, phases: Optional[list] = None) -> bool:
-    """CARD-490: an open job that Stop paused: nothing running or parked, a phase queued, and the latest
-    checkpoint was written by an operator kill. Resume (``resume: true``) continues it."""
+    """CARD-490: an open job that Stop (or, CARD-609, a server restart) paused: nothing running or parked, a
+    phase queued, and the latest checkpoint was written by that kill. Resume (``resume: true``) continues it."""
     if _status(getattr(job, "status", "")) not in ("running", "in_progress"):
         return False
     if phases is None:

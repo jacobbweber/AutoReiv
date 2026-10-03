@@ -12,7 +12,8 @@ from typing import Any, Dict, Iterable, Set
 
 logger = logging.getLogger(__name__)
 
-_CHILD_MARKERS = ("_child_", "::phase::")
+PHASE_SESSION_MARKER = "::phase::"
+_CHILD_MARKERS = ("_child_", PHASE_SESSION_MARKER)
 OPEN_JOB_STATUSES = ("running", "in_progress")
 
 
@@ -23,6 +24,11 @@ def parent_session_id(session_id: Any) -> str:
         if marker in sid:
             sid = sid.split(marker, 1)[0]
     return sid
+
+
+def is_job_step_session(session_id: Any) -> bool:
+    """CARD-608: ``<sid>::phase::<phase id>`` is a job step's own transcript, not a chat."""
+    return PHASE_SESSION_MARKER in str(session_id or "")
 
 
 def _status(value: Any) -> str:
