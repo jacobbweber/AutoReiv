@@ -477,6 +477,27 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     expect(streamPosts[0].content).toBe('from the phone');
   });
 
+  test('TC-48: a failed send puts the typed text back in the composer [CARD-484]', async ({ page }) => {
+    let streamHits = 0;
+    await page.route('**/api/chat/stream', async (route) => {
+      streamHits += 1;
+      await route.fulfill({ status: 500, contentType: 'text/plain', body: 'boom' });
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#view-chat')).toBeVisible();
+    const input = page.locator('#promptInput');
+    await expect(input).toBeVisible();
+    await input.click();
+    await input.type('hello');
+    await input.press('Enter');
+    await expect.poll(() => streamHits).toBe(1);
+    await expect(page.getByText('Chat turn failed: Stream error: HTTP 500').first()).toBeVisible();
+    await expect(input).toHaveValue('hello');
+    // the stubbed 500 is expected here; anything else still fails the afterEach guard
+    page.context()._consoleErrors = page.context()._consoleErrors.filter((t) => !t.includes('status of 500'));
+  });
+
   test('TC-11: Quick Prompts picker opens and a pick fills the composer [CARD-469]', async ({ page }) => {
     await page.route('**/api/prompts', (route) =>
       route.fulfill({

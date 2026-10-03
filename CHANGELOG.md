@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 - CARD-601: the education progress APIs no longer return the always-true studio_chrome_retained field.
+- CARD-484: a Chat message that fails to send (server error, network drop) is put back in the box when no reply had started, so it does not have to be retyped; Stop and a newer draft are left alone; smoke TC-48.
 - CARD-603: Each agent has its own wiki template folder (Agent Studio > Template folder; AutoReiv 02_Resources/_Templates/General, Tutor 02_Resources/_Templates/Education); template tools and template search stay in it, and an agent with no folder has no templates. AutoReiv sends study, flashcard and quiz questions to Tutor in one short reply, and memory no longer saves run state such as step limits.
 - CARD-524: Context compaction keeps the operator's latest answer and the loaded skill runbook verbatim in tool-heavy turns, never leaves a tool return without its call, and summarizes the newest earlier messages; an unconfigured model is budgeted at 32k (was 8192) and nemotron at 262k.
 - CARD-597: Memory extraction no longer records short-lived runtime state (such as due flashcards, queue counts, or empty queries) as durable facts. Facts now track observation and expiration dates, the newest-15 fallback injection is removed, and recalled notes are clearly marked with their seen date and a warning to verify live state with tools before relying on them.
