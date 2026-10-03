@@ -7,7 +7,7 @@ import json
 import logging
 import time
 import uuid
-from typing import Any, AsyncIterator, Collection, Dict, List, Optional
+from typing import Any, AsyncIterator, Collection, Dict, List, Optional, Tuple
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import (
@@ -36,6 +36,14 @@ from src.application.kernel.reply_limits import (
     resolve_reply_limits,
     time_limit_message,
     token_limit_message,
+)
+from src.application.kernel.reply_rules import (  # CARD-599/600
+    CLARIFICATION_SKIPPED_RESULT,
+    REPLY_RULES_BLOCK,
+    clarification_question,
+    clarification_reply,
+    failed_tool_note,
+    track_failure,
 )
 from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
@@ -684,6 +692,7 @@ class AgentKernel:
             from src.application.agent_skills.allowed_tools import domain_line
 
             base_prompt = f"{base_prompt}\n\n## Your domain\n{domain_line(agent)}"
+            base_prompt = f"{base_prompt}\n\n{REPLY_RULES_BLOCK}"  # CARD-599/600
 
         self._last_progressive_skills = [skill_block] if skill_block else []
         self._last_episodic_memory = [
@@ -824,6 +833,7 @@ class AgentKernel:
         turn_span_id = None
         self._ensure_agent_provider_adapter(agent)
         last_turn_end = None
+        last_failure: Optional[Tuple[str, str]] = None  # CARD-600: (tool, error) of the turn's last failed call
 
         for turn_idx in range(agent.max_turns):
             repeat_guard.next_step()
@@ -1004,6 +1014,9 @@ class AgentKernel:
                         logger.warning("Failed to record capability gap: %s", e)
 
                 self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
+                note = failed_tool_note(assistant_msg.content or "", last_failure)  # CARD-600
+                if note:
+                    assistant_msg.content = f"{(assistant_msg.content or '').rstrip()}\n\n{note}"
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
@@ -1016,7 +1029,9 @@ class AgentKernel:
                     model_name, system_msg, history, nested_ctx, LOOP_FINAL_INSTRUCTION
                 )
                 self._transition_react_state(ReactState.DONE if final_text else ReactState.FAILED, turn_idx, **react_ctx)
-                cycle_msg = ChatMessage(role=Role.ASSISTANT, content=final_text or LOOP_FALLBACK_MESSAGE)
+                cycle_text = final_text or LOOP_FALLBACK_MESSAGE
+                note = failed_tool_note(cycle_text, last_failure)  # CARD-600
+                cycle_msg = ChatMessage(role=Role.ASSISTANT, content=f"{cycle_text}\n\n{note}" if note else cycle_text)
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 self._ace_flush_failed_turn(
@@ -1034,7 +1049,14 @@ class AgentKernel:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
 
+            clarify_q: Optional[str] = None  # CARD-600: ask_clarification ends the turn
             for tc in assistant_msg.tool_calls:
+                if clarify_q is not None:
+                    skipped = ChatMessage(role=Role.TOOL, content=CLARIFICATION_SKIPPED_RESULT, name=tc.name, tool_call_id=tc.id)
+                    if save_to_history:
+                        self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=skipped)
+                    history.append(skipped)
+                    continue
                 gated = repeat_guard.reuse(tc) or self._gate_tool_call(
                     tc,
                     session_id,
@@ -1111,6 +1133,19 @@ class AgentKernel:
                         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=parked_msg)
                     self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
                     return parked_msg
+                last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error)
+                clarify_q = clarification_question(tc.name, tool_res.success, tool_res.output, tc.arguments)
+
+            if clarify_q is not None:
+                # CARD-600: show the question and stop; the next user message answers it.
+                self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
+                question_msg = ChatMessage(
+                    role=Role.ASSISTANT, content=clarification_reply(clarify_q, assistant_msg.content or "") or clarify_q
+                )
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=question_msg)
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
+                return question_msg
 
             last_turn_end = time.perf_counter()
 
@@ -1198,6 +1233,7 @@ class AgentKernel:
         turn_span_id = None
         self._ensure_agent_provider_adapter(agent)
         last_turn_end = None
+        last_failure: Optional[Tuple[str, str]] = None  # CARD-600: (tool, error) of the turn's last failed call
 
         for turn_idx in range(agent.max_turns):
             repeat_guard.next_step()
@@ -1463,6 +1499,10 @@ class AgentKernel:
                 done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if done_ev:
                     yield done_ev
+                note = failed_tool_note(full_content, last_failure)  # CARD-600
+                if note:
+                    full_content = f"{full_content.rstrip()}\n\n{note}"
+                    yield KernelEvent(event_type=KernelEventType.TOKEN, content=f"\n\n{note}")
                 assistant_msg = ChatMessage(
                     role=Role.ASSISTANT,
                     content=full_content,
@@ -1484,7 +1524,9 @@ class AgentKernel:
                 )
                 if end_ev:
                     yield end_ev
-                cycle_msg = ChatMessage(role=Role.ASSISTANT, content=final_text or LOOP_FALLBACK_MESSAGE)
+                cycle_text = final_text or LOOP_FALLBACK_MESSAGE
+                note = failed_tool_note(cycle_text, last_failure)  # CARD-600
+                cycle_msg = ChatMessage(role=Role.ASSISTANT, content=f"{cycle_text}\n\n{note}" if note else cycle_text)
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 self._ace_flush_failed_turn(
                     session_id=session_id,
@@ -1510,7 +1552,13 @@ class AgentKernel:
                 yield calling_ev
 
             # Execute tool calls
+            clarify_q: Optional[str] = None  # CARD-600: ask_clarification ends the turn
             for tc in collected_tool_calls:
+                if clarify_q is not None:
+                    skipped = ChatMessage(role=Role.TOOL, content=CLARIFICATION_SKIPPED_RESULT, tool_call_id=tc.id, name=tc.name)
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=skipped)
+                    history.append(skipped)
+                    continue
                 is_handoff_tool = tc.name in ("handoff_to_agent", "hand_off_card")
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
@@ -1676,6 +1724,25 @@ class AgentKernel:
                         is_finished=True,
                     )
                     return
+                last_failure = track_failure(last_failure, tc.name, tool_res.success, tool_res.error)
+                clarify_q = clarification_question(tc.name, tool_res.success, tool_res.output, tc.arguments)
+
+            if clarify_q is not None:
+                # CARD-600: show the question and stop; the next user message answers it.
+                done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
+                if done_ev:
+                    yield done_ev
+                question = clarification_reply(clarify_q, full_content)
+                if question:
+                    self.state_store.save_message(
+                        session_id=session_id, agent_id=agent.id, message=ChatMessage(role=Role.ASSISTANT, content=question)
+                    )
+                    yield KernelEvent(
+                        event_type=KernelEventType.TOKEN, content=f"\n\n{question}" if full_content.strip() else question
+                    )
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
+                yield KernelEvent(event_type=KernelEventType.TURN_END, content=question or full_content, is_finished=True)
+                return
 
             last_turn_end = time.perf_counter()
 
