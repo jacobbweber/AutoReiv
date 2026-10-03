@@ -2,7 +2,7 @@
 id: CARD-615
 title: "Job replies that could not finish a step end with the Ask Developer line even when the tool exists; add that line in code, not by prompt"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-615-617-ask-developer-line-and-job-tools
 log: {minutes: 150, qa_runs: 6, findings: 2}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-612
   - CARD-596

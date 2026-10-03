@@ -2,7 +2,7 @@
 id: CARD-617
 title: "Job Execute step is sometimes not given wiki_note_create; after an API reject the job card body still shows Execute RUNNING"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-615-617-ask-developer-line-and-job-tools
 log: {minutes: 120, qa_runs: 3, findings: 1}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-613
   - CARD-607
