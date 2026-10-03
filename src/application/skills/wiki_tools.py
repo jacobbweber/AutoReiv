@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.kernel.wiki_budget import WIKI_LOOKUP_HINT  # CARD-605
 from src.application.skills.template_scope import NO_FOLDER_MESSAGE, caller_template_scope
 from src.domain.wiki.frontmatter import FrontmatterParser, coerce_string_or_list_of_strings
 from src.domain.wiki.store import WikiStore
@@ -644,7 +645,7 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_note_search",
-            description="Search and filter markdown notes across the Wiki using keyword ranking and optional frontmatter metadata filters (tags, domain, topic, document_type). Returns concise metadata and summary snippets (never full note bodies) [CARD-353].",
+            description="Search and filter markdown notes across the Wiki using keyword ranking and optional frontmatter metadata filters (tags, domain, topic, document_type). Returns concise metadata and summary snippets (never full note bodies) [CARD-353]." + WIKI_LOOKUP_HINT,
             parameters={
                 "type": "object",
                 "properties": {
@@ -661,7 +662,7 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_note_list",
-            description="List markdown notes stored in the Wiki, optionally filtered by folder or YAML frontmatter metadata.",
+            description="List markdown notes stored in the Wiki, optionally filtered by folder or YAML frontmatter metadata." + WIKI_LOOKUP_HINT,
             parameters={
                 "type": "object",
                 "properties": {

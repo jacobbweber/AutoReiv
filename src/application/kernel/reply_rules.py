@@ -18,7 +18,9 @@ CLARIFICATION_TOOL = "ask_clarification"
 REPLY_RULES_BLOCK = (
     "## Answering\n"
     "- If the request has several parts, do each one. End by listing any part you did not do and why.\n"
-    "- If you call ask_clarification, that ends your turn: wait for the user's answer before doing anything else."
+    "- If you call ask_clarification, that ends your turn: wait for the user's answer before doing anything else.\n"
+    "- When asked to remember something, save it with memorize_fact in the same reply. Never say it is saved "
+    "without that call."
 )
 
 CLARIFICATION_SKIPPED_RESULT = "Not run: the turn ended to wait for the user's answer to the clarification question."
@@ -149,8 +151,9 @@ def parts_check_prompt(user_text: str, tools_ran: list, reply: str) -> str:
         f"Assistant's reply:\n{reply.strip()}\n\n"
         "Split the request into its separate parts and go through them in order. A part that asks for an action "
         "(remember, save, create, update, send, search, read, list, look up) is done only when a tool above did "
-        "that action and did not fail; recalling something is not remembering it, and a reply that only says it was "
-        "done does not count. A question is done when the reply answers it. For each part write exactly one line:\n"
+        "that action and did not fail; a reply that only says it was done does not count. Remembering or saving a "
+        "fact is done only by memorize_fact (recall_agent_memory does not save anything); recalling or looking up "
+        "memory is done by recall_agent_memory. A question is done when the reply answers it. For each part write exactly one line:\n"
         "Done: <the part in a few words> - <the tool that did it, or: answered>\n"
         f"{NOT_DONE_PREFIX} <the part in a few words>.\n"
         "Write nothing else."
@@ -174,3 +177,58 @@ def describe_tool_run(tool_name: str, arguments: Any, failed: bool) -> str:
     if isinstance(arguments, dict) and arguments:
         args = ", ".join(f"{k}={str(v)[:60]}" for k, v in list(arguments.items())[:4])
     return f"{tool_name}({args}) {'failed' if failed else 'ok'}"
+
+
+# ---------------- CARD-604: memory asks in multi-part requests ----------------
+
+MEMORIZE_TOOL = "memorize_fact"
+RECALL_TOOL = "recall_agent_memory"
+_MEMORY_RECALL = re.compile(r"\b(recall|look ?up (?:my |the |your )?memor(?:y|ies)|what (?:do )?you remember)\b", re.IGNORECASE)
+_MEMORY_SAVE = re.compile(r"\b(remember|memori[sz]e|keep in mind)\b", re.IGNORECASE)
+
+
+def _memory_kind(part: str) -> str:
+    """"recall", "save" or "" for one "Not done: ..." line."""
+    if _MEMORY_RECALL.search(part or ""):
+        return "recall"
+    if _MEMORY_SAVE.search(part or ""):
+        return "save"
+    return ""
+
+
+def _tool_ok(tools_ran: list, tool_name: str) -> bool:
+    return any(str(t).startswith(f"{tool_name}(") and str(t).endswith(" ok") for t in (tools_ran or []))
+
+
+def drop_false_not_done(not_done: str, tools_ran: list) -> str:
+    """Drop a "Not done" memory line when the matching memory tool did run and succeed (checker false positive)."""
+    keep = []
+    for line in str(not_done or "").splitlines():
+        kind = _memory_kind(line)
+        if kind == "recall" and _tool_ok(tools_ran, RECALL_TOOL):
+            continue
+        if kind == "save" and _tool_ok(tools_ran, MEMORIZE_TOOL):
+            continue
+        if line.strip():
+            keep.append(line)
+    return "\n".join(keep)
+
+
+def memory_not_done_lines(not_done: str) -> list:
+    """The "Not done" lines that ask to remember something (a memorize_fact call was missing)."""
+    return [line for line in str(not_done or "").splitlines() if _memory_kind(line) == "save"]
+
+
+def memory_retry_prompt(lines: list) -> str:
+    asks = "; ".join(line[len(NOT_DONE_PREFIX):].strip().rstrip(".") for line in lines if line.strip())
+    return (
+        f"(AutoReiv check) This part of my request was not done: {asks}. Call {MEMORIZE_TOOL} now to save it. "
+        "Then reply in one short sentence saying what you saved."
+    )
+
+
+def settle_memory_retry(pending_not_done: str, tools_since_retry: list) -> str:
+    """After the retry step: the memory lines go away when memorize_fact ran and succeeded; other lines stay."""
+    if not _tool_ok(tools_since_retry, MEMORIZE_TOOL):
+        return pending_not_done
+    return "\n".join(line for line in str(pending_not_done or "").splitlines() if _memory_kind(line) != "save")

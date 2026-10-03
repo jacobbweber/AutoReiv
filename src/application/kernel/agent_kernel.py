@@ -39,14 +39,19 @@ from src.application.kernel.reply_limits import (
 )
 from src.application.kernel.reply_rules import (  # CARD-599/600
     CLARIFICATION_SKIPPED_RESULT,
+    MEMORIZE_TOOL,
     REPLY_RULES_BLOCK,
     clarification_question,
     clarification_reply,
     describe_tool_run,
+    drop_false_not_done,
     failed_tool_note,
+    memory_not_done_lines,
+    memory_retry_prompt,
     needs_parts_check,
     parse_parts_check,
     parts_check_prompt,
+    settle_memory_retry,
     track_failure,
 )
 from src.application.kernel.telemetry_attribution import (
@@ -55,6 +60,7 @@ from src.application.kernel.telemetry_attribution import (
 )
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.kernel.turn_limit import TURN_LIMIT_INSTRUCTION, TURN_LIMIT_REASON, turn_limit_reply
+from src.application.kernel.wiki_budget import WikiLookupBudget
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
 from src.application.telemetry.collector import TelemetryCollector
@@ -826,6 +832,7 @@ class AgentKernel:
 
         cycle_detector = CycleDetector(max_repeats=3)
         repeat_guard = RepeatGuard()  # CARD-551/460
+        wiki_budget = WikiLookupBudget()  # CARD-605: at most 4 wiki look-ups per reply
         react_ctx = {
             "phase_id": phase_id,
             "job_id": job_id,
@@ -1061,7 +1068,7 @@ class AgentKernel:
                         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=skipped)
                     history.append(skipped)
                     continue
-                gated = repeat_guard.reuse(tc) or self._gate_tool_call(
+                gated = repeat_guard.reuse(tc) or wiki_budget.check(tc) or self._gate_tool_call(
                     tc,
                     session_id,
                     agent,
@@ -1234,6 +1241,7 @@ class AgentKernel:
 
         cycle_detector = CycleDetector(max_repeats=3)
         repeat_guard = RepeatGuard()  # CARD-551/460
+        wiki_budget = WikiLookupBudget()  # CARD-605: at most 4 wiki look-ups per reply
 
         trace_id = session_id or str(uuid.uuid4())
         provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
@@ -1242,6 +1250,8 @@ class AgentKernel:
         last_turn_end = None
         last_failure: Optional[Tuple[str, str]] = None  # CARD-600: (tool, error) of the turn's last failed call
         tools_ran: List[str] = []  # CARD-599: what ran this turn, for the skipped-parts check
+        pending_not_done: Optional[str] = None  # CARD-604: the check's lines while the memory retry step runs
+        tools_before_retry = 0
 
         for turn_idx in range(agent.max_turns):
             repeat_guard.next_step()
@@ -1504,14 +1514,26 @@ class AgentKernel:
                     except Exception as e:
                         logger.warning("Failed to record capability gap: %s", e)
 
+                skipped = ""
+                if pending_not_done is not None:
+                    skipped = settle_memory_retry(pending_not_done, tools_ran[tools_before_retry:])  # CARD-604
+                elif parts_request and not resume:
+                    skipped = await self._skipped_parts_note(
+                        model_name, parts_request, tools_ran, full_content, context_limit
+                    )
+                    memory_lines = memory_not_done_lines(skipped)
+                    if memory_lines and MEMORIZE_TOOL in offered_names and turn_idx + 2 < agent.max_turns:
+                        # CARD-604: a memory ask was skipped; one more step to save it before saying "Not done".
+                        pending_not_done, tools_before_retry = skipped, len(tools_ran)
+                        first_msg = ChatMessage(role=Role.ASSISTANT, content=full_content, reasoning=full_reasoning)
+                        self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=first_msg)
+                        history.append(first_msg)
+                        history.append(ChatMessage(role=Role.USER, content=memory_retry_prompt(memory_lines)))
+                        yield KernelEvent(event_type=KernelEventType.TOKEN, content="\n\n")
+                        continue
                 done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if done_ev:
                     yield done_ev
-                skipped = (
-                    await self._skipped_parts_note(model_name, parts_request, tools_ran, full_content, context_limit)
-                    if parts_request and not resume
-                    else ""
-                )
                 note = "\n".join(x for x in (skipped, failed_tool_note(full_content, last_failure)) if x)
                 if note:  # CARD-599 skipped parts, CARD-600 hidden failed tool
                     full_content = f"{full_content.rstrip()}\n\n{note}"
@@ -1598,7 +1620,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = repeat_guard.reuse(tc) or self._gate_tool_call(
+                gated = repeat_guard.reuse(tc) or wiki_budget.check(tc) or self._gate_tool_call(
                     tc,
                     session_id,
                     agent,
@@ -1795,7 +1817,7 @@ class AgentKernel:
             )
             resp = await self.gateway.complete(req)
             msg = getattr(resp, "message", None)
-            return parse_parts_check(getattr(msg, "content", None) or "")
+            return drop_false_not_done(parse_parts_check(getattr(msg, "content", None) or ""), tools_ran)  # CARD-604
         except Exception as exc:  # noqa: BLE001 - the reply stands without the check
             logger.warning("skipped-parts check failed: %s", exc)
             return ""
