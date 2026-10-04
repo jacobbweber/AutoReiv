@@ -2,7 +2,8 @@
 id: CARD-625
 title: "Document and text attachments are read from any path the chat request names, not only the attachments folder"
 type: security
-status: In Review
+status: Done
+completed: 2026-10-04
 priority: P2
 milestone: M24
 needs_decision: none
@@ -22,7 +23,7 @@ related:
 
 # CARD-625 Document and text attachments are read from any path the chat request names, not only the attachments folder
 
-> **Status**: In Review (2026-10-04, branch `feat/card-625-document-attachments-from-attachments-folder-only`, not merged). Found while building CARD-483, 2026-10-03.
+> **Status**: Done (2026-10-04, merged to qa from `feat/card-625-document-attachments-from-attachments-folder-only`). Found while building CARD-483, 2026-10-03.
 
 ## Problem
 Found while building CARD-483 (2026-10-03). `POST /api/chat/stream` takes an `attachments` list whose `path` comes from the client (the upload answer is echoed back). For documents and text files, `src/application/gateway/attachment_text.py` `build_attachment_prompt()` reads that path directly (`_extract` -> `extract_document` or `Path.read_text`) and inlines up to a quarter of the context window into the prompt. A request naming `C:\Users\jacob\...\some-file.txt` as an attachment would put that file's text in front of the model, and in the thread. CARD-483 closed this for images only.
