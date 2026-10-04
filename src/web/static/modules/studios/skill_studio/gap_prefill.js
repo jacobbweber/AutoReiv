@@ -50,16 +50,23 @@ function clip(text, limit) {
 
 /**
  * @param {object} gap  a capability gap row (id, turn_text, identified_capability, suggested_tool_name, context_summary)
- * @param {{ toolNames?: Set<string>, agentId?: string }} [opts]
- * @returns {{ gapId: string, name: string, skillId: string, description: string, intent: string, markdown: string, tools: string[], missingTool: string }}
+ * @param {{ toolNames?: Set<string>, agentId?: string, takenIds?: Set<string> }} [opts]
+ *   takenIds: skill ids that already exist; Save would overwrite one, so the draft picks "<name> 2" instead.
+ * @returns {{ gapId: string, name: string, skillId: string, takenSkillId: string, description: string, intent: string, markdown: string, tools: string[], missingTool: string }}
  */
-export function buildGapSkillDraft(gap = {}, { toolNames = new Set(), agentId = '' } = {}) {
+export function buildGapSkillDraft(gap = {}, { toolNames = new Set(), agentId = '', takenIds = new Set() } = {}) {
   const g = gap && typeof gap === 'object' ? gap : {};
   const asked = cleanDescription(g.turn_text || g.user_prompt || '');
   const context = String(g.context_summary || g.assistant_response || '').trim();
   const label = gapCapabilityLabel(g);
-  const name = titleCaseCapability(label) || clip(asked, 60) || 'New Skill';
-  const skillId = toSnakeCase(name);
+  const baseName = titleCaseCapability(label) || clip(asked, 60) || 'New Skill';
+  let name = baseName;
+  let skillId = toSnakeCase(name);
+  for (let n = 2; takenIds.has(skillId) && n < 100; n += 1) {
+    name = `${baseName} ${n}`;
+    skillId = toSnakeCase(name);
+  }
+  const takenSkillId = name === baseName ? '' : toSnakeCase(baseName);
   const suggested = String(g.suggested_tool_name || '').trim();
   const missingTool = gapToolIsMissing(g, toolNames) ? suggested : '';
   const tools = suggested && !missingTool ? [suggested] : [];
@@ -99,6 +106,7 @@ export function buildGapSkillDraft(gap = {}, { toolNames = new Set(), agentId = 
     gapId: String(g.id || ''),
     name,
     skillId,
+    takenSkillId,
     description,
     intent: intentLines.join('\n'),
     markdown,

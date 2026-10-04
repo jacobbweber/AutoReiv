@@ -159,10 +159,14 @@ export function initSkillStudio(_state, callbacks = {}) {
       return;
     }
     const label = escapeHtml(gapCapabilityLabel(gap) || draft.name);
+    const taken = draft.takenSkillId
+      ? `<p class="text-[11px] text-slate-300" data-testid="skill-studio-gap-renamed">A skill <span class="font-mono">${escapeHtml(draft.takenSkillId)}</span> already exists, so this new one is <span class="font-mono">${escapeHtml(draft.skillId)}</span>.</p>`
+      : '';
     if (draft.missingTool) {
       skillStudioGapNote.className = 'p-3 rounded-xl bg-amber-950/40 border border-amber-700/50 space-y-2';
       skillStudioGapNote.innerHTML = `
         <p class="text-[11px] text-amber-200" data-testid="skill-studio-gap-missing-tool">${escapeHtml(gapMissingToolNote(draft.missingTool))}</p>
+        ${taken}
         <button type="button" id="skillStudioGapAskDeveloperBtn" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-semibold">Ask Developer</button>`;
       const ask = $('skillStudioGapAskDeveloperBtn');
       if (ask) {
@@ -176,8 +180,8 @@ export function initSkillStudio(_state, callbacks = {}) {
         });
       }
     } else {
-      skillStudioGapNote.className = 'p-2.5 rounded-xl bg-sky-950/30 border border-sky-800/40';
-      skillStudioGapNote.innerHTML = `<p class="text-[11px] text-sky-200">Prefilled from the capability gap <span class="font-mono">${label}</span>. Review it, then Save.</p>`;
+      skillStudioGapNote.className = 'p-2.5 rounded-xl bg-sky-950/30 border border-sky-800/40 space-y-1';
+      skillStudioGapNote.innerHTML = `<p class="text-[11px] text-sky-200">Prefilled from the capability gap <span class="font-mono">${label}</span>. Review it, then Save.</p>${taken}`;
     }
   }
 
@@ -201,7 +205,11 @@ export function initSkillStudio(_state, callbacks = {}) {
         return false;
       }
     }
-    const draft = buildGapSkillDraft(gap, { toolNames: catalogToolNames(currentCapabilities), agentId: pinAgentId });
+    const draft = buildGapSkillDraft(gap, {
+      toolNames: catalogToolNames(currentCapabilities),
+      agentId: pinAgentId,
+      takenIds: new Set(skillScope.knownSkillIds()),
+    });
     resetNewSkillForm({ clearPicker: true });
     currentSkillId = '';
     fileStatus.render(null, '');

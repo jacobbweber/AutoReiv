@@ -67,6 +67,15 @@ describe('gap prefill draft [CARD-522]', () => {
     expect(buildGapSkillDraft({}).name).toBe('New Skill');
   });
 
+  it('never reuses an existing skill id (Save would overwrite it)', () => {
+    const draft = buildGapSkillDraft(GAP, { takenIds: new Set(['inventory_lookup', 'inventory_lookup_2']) });
+    expect(draft.name).toBe('Inventory Lookup 3');
+    expect(draft.skillId).toBe('inventory_lookup_3');
+    expect(draft.takenSkillId).toBe('inventory_lookup');
+    expect(draft.markdown).toContain('# Inventory Lookup 3');
+    expect(buildGapSkillDraft(GAP).takenSkillId).toBe('');
+  });
+
   it('a form with any text counts as a draft not to clobber', () => {
     expect(formHasDraft({ name: '', description: ' ', intent: '', markdown: '' })).toBe(false);
     expect(formHasDraft({ name: 'My edit' })).toBe(true);
