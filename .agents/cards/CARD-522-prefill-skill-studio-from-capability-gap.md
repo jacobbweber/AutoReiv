@@ -1,7 +1,8 @@
 ---
 id: CARD-522
 title: "Capability gap 'Open in Skill Studio' opens an empty form; prefill it from the gap and steer missing-tool gaps to Ask Developer"
-status: In Review
+status: Done
+completed: 2026-10-04
 created: 2026-09-26
 branch: feat/card-516-522-mcp-start-errors-and-gap-prefill
 related:
@@ -18,7 +19,7 @@ milestone: M25
 
 # [CARD-522] Prefill Skill Studio from a capability gap
 
-> **Status**: In Review (2026-10-03, branch `feat/card-516-522-mcp-start-errors-and-gap-prefill`, not merged). Found by Jacob live-testing CARD-497 on serve, 2026-09-26.
+> **Status**: Done (2026-10-04, merged to qa from `feat/card-516-522-mcp-start-errors-and-gap-prefill`). Found by Jacob live-testing CARD-497 on serve, 2026-09-26.
 > **Related**: CARD-496 (REQ-496-003 added the button), CARD-497 (runbook step corrected to point at Ask Developer), CARD-418 (Skill Studio fields)
 > **Labels**: `type:feature`, `area:studios`, `P3`
 

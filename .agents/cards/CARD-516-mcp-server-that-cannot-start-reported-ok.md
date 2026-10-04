@@ -1,7 +1,8 @@
 ---
 id: CARD-516
 title: "An MCP server that cannot start is reported as \"ok\" and \"mounted\" (0 tools) by Settings Test and Save"
-status: In Review
+status: Done
+completed: 2026-10-04
 created: 2026-09-26
 branch: feat/card-516-522-mcp-start-errors-and-gap-prefill
 related:
@@ -19,7 +20,7 @@ milestone: M25
 
 # [CARD-516] An MCP server that cannot start is reported as "ok" and "mounted"
 
-> **Status**: In Review (2026-10-03, branch `feat/card-516-522-mcp-start-errors-and-gap-prefill`, not merged). Found in the CARD-511 scratch reproduction, 2026-09-26.
+> **Status**: Done (2026-10-04, merged to qa from `feat/card-516-522-mcp-start-errors-and-gap-prefill`). Found in the CARD-511 scratch reproduction, 2026-09-26.
 > **Related**: CARD-511 (checks Developer's `register_mcp_service`; decision D9 leaves the Settings routes alone), CARD-424 (MCP save mounts and unmounts), CARD-394 (MCP engineering tools)
 > **Labels**: `type:bug`, `area:mcp`, `area:settings`, `P3`
 
