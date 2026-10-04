@@ -30,6 +30,7 @@ import { setupRuntimeModeToggles, setupRunAsJobToggle, setRunAsJob, takeRunAsJob
 import { setupChatScroll } from './chat/scroll.js';
 import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
 import { createSessionSelect } from './chat/session_select.js'; // CARD-485
+import { setupReturnResync } from './chat/return_resync.js'; // CARD-473
 import { createStopHandler } from './chat/stop.js'; // CARD-486
 import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
 import { sendDeveloperIntent } from './chat/developer_intent.js'; // CARD-497 REQ-497-016
@@ -532,6 +533,7 @@ export function initChatStudio(state, callbacks = {}) {
   // REQ-JOBMINT-005 journey markers: journey-copy-job-id, data-journey-job-id
   setupChatChrome(state, { promptInput }, {
     showToastFn: showToast,
+    reloadMessages: loadMessages, // CARD-471: Compact reloads the chat
     callbacks,
     getJobPhaseState: () => jobPhaseState,
   });
@@ -816,6 +818,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   // Initial startup
   pendingHitl.startPendingHitlPoll();
+  setupReturnResync(state, { watchStatus: sessionSelect.watchSessionStatus, loadMessages, refreshPendingHitl }); // CARD-473
   trackSessionsLoad(state, loadAgents()); // CARD-476: an early send waits for the first load
   syncActiveProjectIndicator();
 
