@@ -2,7 +2,7 @@
 id: CARD-618
 title: "Distilled skill descriptions are still cut to 60 characters; use the ~200 limit from CARD-614"
 type: improvement
-status: In Review
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-616-618-question-wait-and-distill-limit
 log: {minutes: 30, qa_runs: 1, findings: 0}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-614
 ---

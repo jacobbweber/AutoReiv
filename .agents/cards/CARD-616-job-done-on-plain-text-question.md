@@ -2,7 +2,7 @@
 id: CARD-616
 title: "A job step whose last reply asks a plain-text question is marked Done instead of waiting for the answer"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-616-618-question-wait-and-distill-limit
 log: {minutes: 140, qa_runs: 8, findings: 3}
 created: 2026-10-03
+completed: 2026-10-03
 related:
   - CARD-613
   - CARD-600
