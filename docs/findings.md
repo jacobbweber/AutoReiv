@@ -34,6 +34,8 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-10-03 | skill studio | a New skill whose slug is already a skill id silently replaces it on Save (a shipped skill is shadowed by the new data copy); gap drafts now avoid taken ids, the general path does not; carded as CARD-628 | from CARD-522 | skill_studio.js handleSaveSkill, application/skills/workshop.py
 - 2026-10-03 | capability gaps | POST /api/agents/{id}/gaps accepts context_summary but the gap row does not keep it, so a Skill Studio gap draft has only turn_text for intent; not carded (minor) | from CARD-522 | routers/gaps.py, repositories/capability_gaps.py
 - 2026-10-03 | smoke | TC-27 (desktop) failed once with net::ERR_NO_BUFFER_SPACE (Windows socket buffers) in the CARD-483/504 merge preflight; passed alone and in a full re-run (79/79); not carded | from the CARD-483/504 merge | tests/e2e/smoke.spec.js
+- 2026-10-04 | observability UI | on a phone the friction card header squeezes the summary to one or two words per line; carded as CARD-629 | from CARD-527 | src/web/static/modules/studios/observability.js
+- 2026-10-04 | observability friction | a runbook patch on a shipped-only skill always failed with "no longer exists" (patches edit only data-dir user copies); fixed on the CARD-527 branch (user copy written first) | from CARD-527 | src/application/routines/telemetry_friction_auditor.py, src/web/routers/observability.py
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
