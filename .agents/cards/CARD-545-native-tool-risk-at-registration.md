@@ -57,7 +57,7 @@ A read-only native tool runs without an approval card; a write tool still asks; 
 The rows above used the API and UI with no model call (Spark Nemotron returned no token between 12:52 and 1:11 AM ET on 2026-10-04). The live chat row below used Spark Nemotron (`nemotron-3.5-lightning`), set on :8770 from the start, at 3:30 PM ET the same day.
 
 ## Findings
-- Seen, not filed: the approval card lists the internal `_tool_call_id` with the tool arguments. This is in the shared approval card and was not changed by this card.
+- (carded as CARD-630) the approval card lists the internal `_tool_call_id` with the tool arguments. This is in the shared approval card and was not changed by this card.
 
 ## Release note
 A tool the Developer builds now declares what it does. A read-only tool runs without asking once you enable it; tools that write, send data out or delete still ask before each call. Your tool policy still overrides.

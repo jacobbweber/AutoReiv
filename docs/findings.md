@@ -36,6 +36,7 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-10-03 | smoke | TC-27 (desktop) failed once with net::ERR_NO_BUFFER_SPACE (Windows socket buffers) in the CARD-483/504 merge preflight; passed alone and in a full re-run (79/79); not carded | from the CARD-483/504 merge | tests/e2e/smoke.spec.js
 - 2026-10-04 | observability UI | on a phone the friction card header squeezes the summary to one or two words per line; carded as CARD-629 | from CARD-527 | src/web/static/modules/studios/observability.js
 - 2026-10-04 | observability friction | a runbook patch on a shipped-only skill always failed with "no longer exists" (patches edit only data-dir user copies); fixed on the CARD-527 branch (user copy written first) | from CARD-527 | src/application/routines/telemetry_friction_auditor.py, src/web/routers/observability.py
+- 2026-10-04 | chat approvals UI | the approval card's arguments box shows the internal `_tool_call_id` next to the tool's arguments (inline card and pinned tray); carded as CARD-630 | from CARD-545 | src/web/static/modules/studios/chat/hitl.js, src/application/kernel/hitl_engine.py
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
