@@ -1,7 +1,8 @@
 ---
 id: CARD-471
 title: "Chat options drawer and tools modal wiring lost in the CARD-397 split: Compact, View tools, close paths, Escape"
-status: In Review
+status: Done
+completed: 2026-10-03
 created: 2026-09-24
 branch: feat/card-471-473-chat-drawer-wiring-and-return-resync
 related:
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-471] Chat options drawer and tools modal wiring lost in the CARD-397 split: Compact, View tools, close paths, Escape
 
-> **Status**: In Review (2026-10-03, branch `feat/card-471-473-chat-drawer-wiring-and-return-resync`, not merged)
+> **Status**: Done (2026-10-03, merged to qa from `feat/card-471-473-chat-drawer-wiring-and-return-resync`)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning. I diffed every `addEventListener` in pre-split `chat.js` (`7b563003^`) against current `chat.js` and `chat/*`, and checked every looked-up ID against `src/web/templates/index.html`. `git blame` puts the broken lines on `7b563003` (CARD-397, 2026-09-20 11:06 PM ET). This was found by reading the code; it has **not** been checked live in a browser yet.
 > **Related**: CARD-397, CARD-469, CARD-466

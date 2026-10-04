@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-471: the Chat options drawer's Compact and View tools buttons work again (Compact shows how many turns it compacted, or that the chat is already compact, and reloads the chat); the tools window closes by X, Close or the backdrop; a click outside the drawer closes it; Escape closes the tools window, then the Quick Prompts picker, then the drawer, without also minimizing the Chat window.
+- CARD-473: coming back to the Chat tab or window (phone or desktop) catches the chat up without a reload: new messages and pending approvals appear, and a reply still running shows busy until it finishes; a tab streaming its own reply is left alone.
 - CARD-616: a job step whose reply ends by asking you something in plain text waits for your answer instead of showing Done (one short yes/no check on the same model, only when the last line ends with '?'; closing offers like 'Anything else?' still finish); when the next step asks after you answer, its question now shows in the chat. vLLM gets enable_thinking=false for that check.
 - CARD-618: skills made from a chat (Teach Agent) keep a description of up to about 200 characters, cut on a whole word, instead of 60.
 - CARD-615: 'You can use Ask Developer to add this.' is added by AutoReiv itself, once, only when a tool is really missing (no such tool, or the agent does not have it) or no agent covers the request; it no longer appears after you reject an action or when the agent's own tools did the work, and no agent prompt or new-agent template asks the model to write it.
