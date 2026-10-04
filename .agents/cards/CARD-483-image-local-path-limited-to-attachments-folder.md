@@ -1,9 +1,10 @@
 ---
 id: CARD-483
 title: "Only send images from the attachments folder, not any 'Local Path' written in a user message"
-status: Ready
+status: Done
+completed: 2026-10-03
 created: 2026-09-25
-branch: qa
+branch: feat/card-483-504-attachments-only-and-needs-tool-title
 related:
   - CARD-475
   - CARD-143
@@ -17,7 +18,7 @@ milestone: M24
 
 # [CARD-483] Only send images from the attachments folder, not any "Local Path" written in a user message
 
-> **Status**: Ready
+> **Status**: Done (2026-10-03, merged to qa from `feat/card-483-504-attachments-only-and-needs-tool-title`)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-475 build.
 > **Related**: CARD-475, CARD-143
@@ -52,3 +53,30 @@ Arbitrary local image paths going to a model.
 ## 2. Acceptance criteria (EARS)
 - **[REQ-483-001]** WHEN a user message names an image path outside the attachments folder, THE SYSTEM SHALL NOT send that file to any model.
 - **[REQ-483-002]** WHEN the image was uploaded through `/api/chat/upload`, THE SYSTEM SHALL keep attaching it as in CARD-475.
+
+## 3. Built (2026-10-03)
+
+- `src/application/gateway/attachment_images.py`: `current_turn_images(content, attachments_dir)` resolves each named path (following `..` and links) and keeps it only when it sits inside the attachments folder (`inside_attachments_dir`, case-insensitive on Windows, `commonpath` so `attachments-old/` is outside). Anything else is treated as missing: no bytes, no "can't view images" note, no notice. With no folder known, nothing is attached (fail closed). The folder may be a callable and is only resolved when a message actually names a path.
+- `MultiProviderGateway.set_attachments_dir_resolver()`; `_prepare_images` passes it on. `src/web/app.py` wires it to `data_dir_paths.root / "attachments"`, the folder `/api/chat/upload` writes to.
+- This also covers the client-supplied `path` in a chat request's `attachments` list, which before was trusted as is.
+- Tests: `tests/unit/gateway/test_card483_attachments_dir_only.py` (14) and `tests/integration/operator_contracts/test_oc483_attachments_dir_only.py` (3, through `/api/chat/stream` with a vision model). On the old code the forged attachment path and the typed path both reached the vision model ("images seen: 1"). The CARD-475/482 tests now pass the folder their images sit in.
+
+## 4. Results (live :8770, Spark nemotron-3.5-lightning, text-only, 2026-10-03 ET)
+
+Nemotron cannot view images, so the visible signal is the CARD-475 notice: an image AutoReiv treats as attached gets "This model can't view images, so it only saw the file name ...".
+
+| Check | Result |
+|---|---|
+| API: real upload (`attachments\<session>\..._qa_photo.jpg`) | notice sent (attached) |
+| API: forged attachment `path` = `C:\Windows\Web\Screen\img102.jpg` | no notice (not attached) |
+| API: typed `Local Path: C:\Windows\Web\Screen\img101.jpg` | no notice (not attached) |
+| UI desktop: attach a photo and send | notice under the message |
+| UI desktop: typed outside path | no notice; the reply says it cannot reach the file |
+
+Full suite on `8e38342c`: pytest 2460 passed, 12 skipped; preflight GREEN (ruff, eslint, vitest 1032 passed, smoke 79/79 incl. TC-36 desktop and phone).
+
+Screenshots in `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003j\`: `desktop-01`, `desktop-02`, `phone-03`.
+
+## 5. Findings
+
+- Document and text attachments still read whatever `path` the client sends (`attachment_text.py`), so any readable text file can be inlined into the prompt: CARD-625.

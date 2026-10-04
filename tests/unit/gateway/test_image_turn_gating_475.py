@@ -75,9 +75,11 @@ class RecordingProvider(LLMProviderPort):
         return []
 
 
-def _gateway(provider, settings=None) -> MultiProviderGateway:
+def _gateway(provider, settings=None, attachments_dir=None) -> MultiProviderGateway:
     gw = MultiProviderGateway()
     gw.register_provider(provider)
+    if attachments_dir is not None:
+        gw.set_attachments_dir_resolver(lambda: attachments_dir)  # CARD-483
     settings = settings or {}
     gw.set_capability_resolver(
         ModelCapabilityResolver(settings_getter=lambda key, default=None: settings.get(key, default))
@@ -96,7 +98,7 @@ def test_notice_wording_is_exactly_d6():
 @pytest.mark.asyncio
 async def test_text_only_model_gets_no_image_bytes_but_a_note_and_a_notice(tmp_path):
     provider = RecordingProvider()
-    gw = _gateway(provider)
+    gw = _gateway(provider, attachments_dir=tmp_path)
     req = CompletionRequest(
         model="vllm/nemotron-3.5-lightning",
         messages=[ChatMessage(role=Role.USER, content=_image_turn(_image(tmp_path)))],
@@ -116,7 +118,7 @@ async def test_text_only_model_gets_no_image_bytes_but_a_note_and_a_notice(tmp_p
 @pytest.mark.asyncio
 async def test_earlier_images_are_never_resent_even_to_vision_models(tmp_path):
     provider = RecordingProvider()
-    gw = _gateway(provider, {OVERRIDES_SETTING: {"vllm/gemma-4-26b-a4b": True}})
+    gw = _gateway(provider, {OVERRIDES_SETTING: {"vllm/gemma-4-26b-a4b": True}}, attachments_dir=tmp_path)
     old = _image(tmp_path, "old.png")
     req = CompletionRequest(
         model="vllm/gemma-4-26b-a4b",
@@ -135,7 +137,7 @@ async def test_earlier_images_are_never_resent_even_to_vision_models(tmp_path):
 async def test_not_multimodal_rejection_retries_once_without_images(tmp_path):
     provider = RecordingProvider(reject_images_times=1)
     resolver_settings = {OVERRIDES_SETTING: {}}
-    gw = _gateway(provider, resolver_settings)
+    gw = _gateway(provider, resolver_settings, attachments_dir=tmp_path)
     # Name guess says vision; the provider disagrees.
     req = CompletionRequest(
         model="vllm/fake-vision-model",
@@ -154,7 +156,7 @@ async def test_not_multimodal_rejection_retries_once_without_images(tmp_path):
 @pytest.mark.asyncio
 async def test_complete_path_gates_images_too(tmp_path):
     provider = RecordingProvider()
-    gw = _gateway(provider)
+    gw = _gateway(provider, attachments_dir=tmp_path)
     req = CompletionRequest(
         model="vllm/nemotron-3.5-lightning",
         messages=[ChatMessage(role=Role.USER, content=_image_turn(_image(tmp_path)))],

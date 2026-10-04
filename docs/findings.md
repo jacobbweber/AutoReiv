@@ -28,6 +28,8 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-10-03 | chat | header Save to Wiki shows "not available (session export unwired)"; chrome.js reads callbacks.exportSessionToWiki at the wrong level since CARD-397; carded as CARD-622 | from CARD-471 | src/web/static/modules/studios/chat/chrome.js, src/web/static/modules/studios/chat.js
 - 2026-10-03 | chat | Compact says "Compacted 1 turns (freed 0 tokens)" on every press; API reports applied with original = compacted tokens; carded as CARD-623 | from CARD-471 | src/application/kernel/context_compactor.py, src/web/routers/chat.py, src/web/static/modules/studios/chat/chrome.js
 - 2026-10-03 | ui | every toast renders under the desktop dock (toast z-50, dock z-index 10000) on desktop and phone; carded as CARD-624 | from CARD-471 | src/web/static/modules/ui/toast.js, src/web/static/css/desktop.css, src/web/templates/index.html
+- 2026-10-03 | security | document and text attachments are read from any client-supplied path (attachment_text.py), unlike images after CARD-483; carded as CARD-625 | from CARD-483 | src/application/gateway/attachment_text.py, src/web/routers/chat.py
+- 2026-10-03 | chat | on desktop the last Recent Chats rows sit under the composer and cannot be clicked (5th of 5 at 1024x640 and 1280x900; phone fine); carded as CARD-626 | from CARD-504 | src/web/templates/index.html (#chatSessionsDrawer), src/web/static/css
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js

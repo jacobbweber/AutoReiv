@@ -46,7 +46,7 @@ def test_model_history_and_compactor_skip_notes():
 @pytest.mark.asyncio
 async def test_stream_turn_saves_the_notice_as_a_chat_note_and_never_replays_it(store, tmp_path):  # noqa: F811
     llm = ScriptedLLM()
-    kernel = _kernel(store, llm)
+    kernel = _kernel(store, llm, attachments_dir=tmp_path)
     session = store.create_session(agent_id="general-assistant", title="notice")
     events = [e async for e in kernel.stream_turn(_profile(), session.id, _image_turn(tmp_path))]
     assert len([e for e in events if e.event_type == KernelEventType.NOTICE]) == 1

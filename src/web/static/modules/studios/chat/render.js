@@ -7,7 +7,7 @@ import { $, safeCreateIcons } from '../../dom.js';
 import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown } from '../../utils/formatters.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
 import { adoptResultMessage, adoptedBannerHtml } from './adopt_message.js';
-import { readToolEscalation } from '../tool_escalation.js';
+import { proposalCardTitle, readToolEscalation } from '../tool_escalation.js';
 import { renderCardToolRow } from './card_rows.js';
 import { toolRowStatus } from './tool_status.js';
 
@@ -270,7 +270,7 @@ export function renderSkillProposalCard(proposal, {
       <div class="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
         <div class="flex items-center space-x-2">
           <span class="text-base">💡</span>
-          <span class="font-bold text-amber-300 text-sm">Skill Proposal: ${escapeHtml(skillName)}</span>
+          <span class="font-bold text-amber-300 text-sm proposal-title">${escapeHtml(proposalCardTitle(proposal, skillName))}</span>
           <span class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[10px] text-amber-300 font-mono">In-Situ Distillation</span>
         </div>
         <span class="text-[11px] text-amber-400 font-mono">Target: <strong>${escapeHtml(targetAgent)}</strong></span>
@@ -281,13 +281,13 @@ export function renderSkillProposalCard(proposal, {
         <div><strong class="text-amber-300">Remedy:</strong> <span class="text-amber-200/90">${escapeHtml(remedy)}</span></div>
       </div>
 
-      <details class="group rounded-xl bg-slate-950/60 border border-amber-900/30 p-2 text-[11px]">
+      ${runbookMarkdown ? `<details class="group rounded-xl bg-slate-950/60 border border-amber-900/30 p-2 text-[11px]">
         <summary class="cursor-pointer font-medium text-amber-400 hover:text-amber-300 select-none list-none flex items-center justify-between">
           <span>View Raw Runbook (SKILL.md)</span>
           <span class="text-xs group-open:rotate-180 transition">&darr;</span>
         </summary>
         <pre class="mt-2 pt-2 border-t border-slate-800 font-mono text-[10px] text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed">${escapeHtml(runbookMarkdown)}</pre>
-      </details>
+      </details>` : ''}
 
       <div class="card-actions flex items-center justify-between gap-2 pt-1">
         ${isAdopted

@@ -1229,7 +1229,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         runbook_markdown: '---\nname: tc35-cite-sources\n---\n# TC35', message_id: 'p500new',
       };
       const needsTool = {
-        status: 'ok', needs_tool: true, target_agent_id: 'autoreiv', name: 'TC36 Needs Tool',
+        status: 'ok', needs_tool: true, target_agent_id: 'autoreiv', name: null, skill_id: null, // CARD-504: the real needs-tool shape
         tool_escalation: { target_agent_id: 'autoreiv', seed_intent: 'Look up TC36 things', suggested_tool_name: 'get_tc36_tool', starter_objectives: [] },
       };
       await page.route('**/api/sessions/*/messages', (route) => {
@@ -1288,7 +1288,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
 
     test(`TC-36 (${vp.name}): /learn opens Teach for the latest reply; a 422 reads as a sentence; needs-tool card shows only Ask Developer and Dismiss [CARD-500]`, async ({ page, request }) => {
       const t = await setup500(page, request, { distillStatus: 422 });
-      const needs = page.locator('.skill-proposal-card', { hasText: 'TC36 Needs Tool' });
+      const needs = page.locator('.skill-proposal-card', { hasText: 'Needs a tool: get_tc36_tool' });
+      await expect(needs).not.toContainText('Synthesized Skill'); // CARD-504
+      await expect(needs).not.toContainText('View Raw Runbook');
       await expect(needs.locator('.btn-escalate-developer')).toBeVisible();
       await expect(needs.locator('.btn-dismiss-proposal')).toBeVisible();
       await expect(needs.locator('.btn-adopt-skill')).toHaveCount(0);

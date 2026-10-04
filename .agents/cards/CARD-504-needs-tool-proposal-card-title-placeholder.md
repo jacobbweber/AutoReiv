@@ -1,9 +1,10 @@
 ---
 id: CARD-504
 title: "Needs-tool proposal card is titled \"Synthesized Skill\" instead of the missing tool"
-status: Ready
+status: Done
+completed: 2026-10-03
 created: 2026-09-25
-branch: qa
+branch: feat/card-483-504-attachments-only-and-needs-tool-title
 related:
   - CARD-500
   - CARD-472
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-504] Needs-tool proposal card is titled "Synthesized Skill" instead of the missing tool
 
-> **Status**: Ready
+> **Status**: Done (2026-10-03, merged to qa from `feat/card-483-504-attachments-only-and-needs-tool-title`)
 > **Created**: 2026-09-25 (found in the CARD-500 scratch repro)
 > **Related**: CARD-500 (card shows `name` and `plain_summary`), CARD-472 (Ask Developer handoff), CARD-497 (`factory_escalation` rename)
 > **Labels**: `type:bug`, `area:chat`, `area:skills`, `P3`
@@ -74,3 +75,27 @@ milestone: M24
 ## 6. Out of scope
 
 - Adopt going live: CARD-502. Distill timeout: CARD-503. Factory rename: CARD-497.
+
+## 7. Built (2026-10-03)
+
+- D1 as recommended: "Needs a tool: X". D2 is moot: since CARD-574 the only key is `tool_escalation`, read through `readToolEscalation()`.
+- `modules/studios/tool_escalation.js`: new `proposalCardTitle(proposal, skillName)` returns "Needs a tool: <suggested_tool_name>", "Needs a new tool" when the name is empty, or "Skill Proposal: <name>" for skill cards.
+- `chat/render.js`: the title uses it (escaped), and the "View Raw Runbook (SKILL.md)" section only renders when there is a runbook. render.js stays at its size (4 lines changed, 0 added). app.js `?v=2.0.106`.
+- Smoke TC-36 uses the real needs-tool shape (`name: null`) and checks "Needs a tool: get_tc36_tool", no "Synthesized Skill" and no "View Raw Runbook" (desktop and phone).
+- Tests: `tests/unit/frontend/card_504_needs_tool_title.test.js` (8; 6 fail on the old code).
+
+## 8. Results (live :8770, Spark nemotron-3.5-lightning, 2026-10-03 ET)
+
+| Check | Desktop 1024x640 | Phone 390x844 (from history) |
+|---|---|---|
+| Teach "look up the live weather for my city with a real weather tool" -> needs-tool card titled "Needs a tool: weather_lookup" (name chosen by the model) | pass | pass |
+| Needs-tool card has Ask Developer and Dismiss, no Adopt, no runbook section | pass | pass |
+| Skill lesson -> "Skill Proposal: Handle Weather Queries Procedurally" with runbook and Adopt (unchanged) | pass | pass |
+
+Full suite on `8e38342c`: pytest 2460 passed, 12 skipped; preflight GREEN (ruff, eslint, vitest 1032 passed, smoke 79/79 incl. TC-36 desktop and phone).
+
+Screenshots in `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003j\`: `desktop-03`, `desktop-04`, `phone-01`, `phone-02`.
+
+## 9. Findings
+
+- On desktop the last Recent Chats rows sit under the composer and cannot be clicked: CARD-626.

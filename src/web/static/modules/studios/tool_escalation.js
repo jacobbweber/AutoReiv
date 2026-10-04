@@ -16,6 +16,19 @@ export function readToolEscalation(obj) {
   return esc && typeof esc === 'object' ? esc : {};
 }
 
+/**
+ * Title of a Teach proposal card [CARD-504]. A needs-tool answer has no skill name, so the card names the
+ * missing tool ("Needs a tool: get_city_weather", or "Needs a new tool" without a name); skill cards keep
+ * "Skill Proposal: <name>".
+ */
+export function proposalCardTitle(proposal, skillName) {
+  if (proposal && proposal.needs_tool) {
+    const tool = String(readToolEscalation(proposal).suggested_tool_name || '').trim();
+    return tool ? `Needs a tool: ${tool}` : 'Needs a new tool';
+  }
+  return `Skill Proposal: ${skillName}`;
+}
+
 /** Escalation object from a rendered Teach proposal card (data-tool-escalation). */
 export function escalationFromCard(card) {
   if (!card || typeof card.getAttribute !== 'function') return {};

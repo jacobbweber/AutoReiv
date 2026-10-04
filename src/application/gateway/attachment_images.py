@@ -8,14 +8,20 @@ the bytes on every turn, to every model. Now the gateway decides, per request:
 * only the latest user message may carry images (earlier ones stay as text);
 * only a vision-capable model gets the bytes;
 * a text-only model gets a short note instead, and the user gets a notice.
+
+CARD-483: a path is only read when it resolves inside the data root's ``attachments/``
+folder (where ``/api/chat/upload`` writes). A typed ``Local Path:``, a client-supplied
+``path`` or a USER message built from other content cannot send any other local file.
+With no attachments folder known, nothing is attached (fail closed).
 """
 
 from __future__ import annotations
 
 import mimetypes
+import os
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 from src.domain.gateway.models import ChatMessage, Role
 
@@ -27,8 +33,34 @@ _NAMED_RE = re.compile(r"Attached Image:\s*`([^`]+)`[^\n]*?Local Path:\s*`([^`]+
 _PATH_RE = re.compile(r"Local Path:\s*[`\"]?([^`\"\r\n\)]+)[`\"]?")
 
 
-def current_turn_images(content: str) -> List[dict]:
-    """Image attachments named in one user message that still exist on disk."""
+AttachmentsDir = Union[Path, str, Callable[[], Union[Path, str, None]], None]
+
+
+def _resolve_root(attachments_dir: AttachmentsDir) -> Optional[str]:
+    try:
+        root = attachments_dir() if callable(attachments_dir) else attachments_dir
+        if not root:
+            return None
+        return os.path.normcase(str(Path(root).resolve()))
+    except Exception:  # noqa: BLE001 - an unknown folder attaches nothing
+        return None
+
+
+def inside_attachments_dir(path: Union[Path, str], root: Optional[str]) -> Optional[Path]:
+    """The resolved file when ``path`` (after ``..`` and links) sits inside ``root``, else None [CARD-483]."""
+    if not root:
+        return None
+    try:
+        resolved = Path(path).resolve(strict=True)
+        if os.path.commonpath([os.path.normcase(str(resolved)), root]) != root:
+            return None
+    except (OSError, ValueError, RuntimeError):  # missing file, other drive, link loop
+        return None
+    return resolved
+
+
+def current_turn_images(content: str, attachments_dir: AttachmentsDir = None) -> List[dict]:
+    """Image attachments named in one user message that exist inside the attachments folder."""
     if not content or "Local Path:" not in content:
         return []
     found: List[Tuple[str, str]] = [(n.strip(), p.strip()) for n, p in _NAMED_RE.findall(content)]
@@ -37,11 +69,14 @@ def current_turn_images(content: str) -> List[dict]:
         p = p.strip()
         if p not in named_paths:
             found.append((Path(p).name, p))
+    root = _resolve_root(attachments_dir) if found else None
     images: List[dict] = []
     for name, raw in found:
         try:
-            path = Path(raw)
-            if path.suffix.lower() not in IMAGE_SUFFIXES or not path.is_file():
+            if Path(raw).suffix.lower() not in IMAGE_SUFFIXES:
+                continue
+            path = inside_attachments_dir(raw, root)  # CARD-483 REQ-483-001
+            if path is None or not path.is_file():
                 continue
             if path.stat().st_size > MAX_IMAGE_BYTES:
                 continue
@@ -71,7 +106,7 @@ def _model_note(names: List[str]) -> str:
 
 
 def prepare_image_turn(
-    messages: List[ChatMessage], *, can_view_images: bool
+    messages: List[ChatMessage], *, can_view_images: bool, attachments_dir: AttachmentsDir = None
 ) -> Tuple[List[ChatMessage], Optional[List[str]], bool]:
     """Return (messages, dropped_image_names, images_attached).
 
@@ -86,7 +121,7 @@ def prepare_image_turn(
         if i != last_user:
             out.append(m.model_copy(update={"images": None}) if m.images else m)
             continue
-        images = current_turn_images(m.content or "")
+        images = current_turn_images(m.content or "", attachments_dir)
         if not images:
             out.append(m.model_copy(update={"images": None}) if m.images else m)
         elif can_view_images:
