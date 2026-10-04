@@ -8,11 +8,12 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Set, Tuple, Union
+from typing import Iterable, Optional, Set, Tuple, Union
 
 import yaml
 
 from src.domain.observability.models import (
+    CODE_CHANGE,
     TOOL_ESCALATION,
     FrictionIncident,
     FrictionSignatureType,
@@ -39,6 +40,9 @@ class ToolSkillResolver:
         "get_telemetry_spans",
         "list_sessions",
         "get_messages",
+        # CARD-527: built-in tools that take a limit and stay under 8 KB by default.
+        "get_recent_errors",
+        "list_available_skills_and_tools",
     }
 
     def __init__(self, data_dir: Union[str, Path], platform_dir: Optional[Union[str, Path]] = None):
@@ -47,16 +51,27 @@ class ToolSkillResolver:
         self.platform_dir = Path(platform_dir) if platform_dir else repo / "platform" / "skills"
 
     def resolve_tool_to_skill(
-        self, agent_id: str, tool_name: str
+        self, agent_id: str, tool_name: str, agent_skill_ids: Optional[Iterable[str]] = None
     ) -> Optional[Tuple[str, str]]:
         """(skill_id, relative_path) of the first skill whose SKILL.md ``tools:`` lists the tool.
 
-        User copies in the data dir win over shipped ``platform/skills`` [CARD-570].
+        The agent's own ticked skills come first [CARD-527]; then any skill. User copies in the data
+        dir win over shipped ``platform/skills`` [CARD-570].
         """
         clean_tool = (tool_name or "").strip()
         if not clean_tool:
             return None
         user_dir = self.data_dir / "skills"
+        for sid in agent_skill_ids or []:
+            sid = str(sid).strip()
+            if not sid or "/" in sid or "\\" in sid or sid.startswith("."):
+                continue
+            for base in (user_dir, self.platform_dir):
+                skill_md = base / sid / "SKILL.md"
+                if skill_md.is_file():
+                    if clean_tool in self._parse_skill_tools(skill_md):
+                        return sid, f"skills/{sid}/SKILL.md"
+                    break  # the user copy wins; do not read the shipped one
         seen: Set[str] = set()
         for base in (user_dir, self.platform_dir):
             if not base.is_dir():
@@ -86,12 +101,20 @@ class ToolSkillResolver:
         return set()
 
     def synthesize_recommendation(
-        self, incident: FrictionIncident
+        self,
+        incident: FrictionIncident,
+        *,
+        builtin_tools: Optional[Set[str]] = None,
+        agent_skill_ids: Optional[Iterable[str]] = None,
     ) -> RunbookRecommendation:
         """
         Synthesizes an actionable RunbookRecommendation from a FrictionIncident.
+
+        ``builtin_tools``: tools that are Python in this repo. Such a tool never gets an Ask Developer
+        remedy (Developer only builds runtime tools); it gets a runbook patch or "needs a code change"
+        [CARD-527]. None means unknown: the CARD-520 behaviour.
         """
-        resolved = self.resolve_tool_to_skill(incident.agent_id, incident.tool_name)
+        resolved = self.resolve_tool_to_skill(incident.agent_id, incident.tool_name, agent_skill_ids)
         skill_id = resolved[0] if resolved else None
         skill_path = resolved[1] if resolved else None
 
@@ -114,6 +137,15 @@ class ToolSkillResolver:
                 )
                 summary = f"Enforce pagination limit on {t_name} to curb payload bloat."
                 remedy = "runbook_patch"
+            elif builtin_tools is not None and t_name in builtin_tools:
+                # CARD-527: Python in this repo; neither Developer nor a runbook can change it.
+                patch = (
+                    f"Built-in tool: {t_name} needs a code change in AutoReiv (pagination, a limit or a "
+                    f"filter). It returned {incident.payload_bytes or 0} bytes (limit 8 KB). Developer "
+                    f"cannot change built-in tools, so card it for the AutoReiv repo, then dismiss this."
+                )
+                summary = f"Built-in tool {t_name} needs a code change in AutoReiv (unbounded payload)."
+                remedy = CODE_CHANGE
             else:
                 # CARD-520 D9: the tool needs changing; Ask Developer is the action.
                 patch = (
@@ -159,11 +191,13 @@ class ToolSkillResolver:
     def apply_with_reason(self, recommendation: RunbookRecommendation) -> Tuple[bool, str]:
         """
         Safely patches the targeted SKILL.md under user data and says why when it cannot [CARD-520 D8].
-        Reasons: applied, already_present, tool_escalation, no_skill, missing_file, not_a_patch.
+        Reasons: applied, already_present, tool_escalation, code_change, no_skill, missing_file, not_a_patch.
         Enforces that target file is strictly jailed within self.data_dir.
         """
         if recommendation.remedy_kind == TOOL_ESCALATION:
             return False, "tool_escalation"
+        if recommendation.remedy_kind == CODE_CHANGE:
+            return False, "code_change"
         if recommendation.remedy_kind != "runbook_patch":
             return False, "not_a_patch"
         if not recommendation.skill_path:

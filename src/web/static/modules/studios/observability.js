@@ -9,7 +9,7 @@ import { debounce } from '../utils/debounce.js';
 import { showToast } from '../ui/toast.js';
 import { initJourneyCanvas } from '../observability/journey_canvas.js';
 import { askDeveloperWithDraft } from './tools_studio_authoring.js';
-import { isToolEscalationRemedy } from './tool_escalation.js';
+import { isCodeChangeRemedy, isToolEscalationRemedy } from './tool_escalation.js';
 
 // CARD-520: callbacks from init (switchTab, getChatCtrl) and the rendered friction records by id.
 let obsCallbacks = {};
@@ -837,6 +837,7 @@ export function renderFrictionRecommendations(recs) {
     const isDismissed = r.status === 'dismissed';
     const isEscalated = r.status === 'escalated';
     const isToolFix = isToolEscalationRemedy(r.remedy_kind);
+    const isCodeChange = isCodeChangeRemedy(r.remedy_kind); // CARD-527: built-in tool, no runtime action
     let badgeColor = 'bg-amber-950/80 text-amber-300 border-amber-800';
     if (isApplied || isEscalated) {
       badgeColor = 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
@@ -844,9 +845,12 @@ export function renderFrictionRecommendations(recs) {
       badgeColor = 'bg-slate-800 text-slate-400 border-slate-700';
     }
 
-    const remedyBadge = isToolFix
-      ? '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-950/80 text-purple-300 border border-purple-800">Needs a tool</span>'
-      : '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800">Runbook SOP Patch</span>';
+    let remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800">Runbook SOP Patch</span>';
+    if (isToolFix) {
+      remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-950/80 text-purple-300 border border-purple-800">Needs a tool</span>';
+    } else if (isCodeChange) {
+      remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-orange-950/80 text-orange-300 border border-orange-800" title="Python in AutoReiv: Developer cannot change it">Built-in tool: code change</span>';
+    }
 
     const dismissBtn = `
         <button type="button" class="dismiss-friction-btn px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-slate-400 transition" data-rec-id="${escapeHtml(r.id)}">
@@ -857,6 +861,8 @@ export function renderFrictionRecommendations(recs) {
       actions = '<span class="text-xs font-mono text-emerald-300">Asked Developer</span>';
     } else if (isApplied || isDismissed) {
       actions = `<span class="text-xs font-mono text-slate-400 capitalize">${escapeHtml(r.status)}</span>`;
+    } else if (isCodeChange) {
+      actions = `<span class="text-xs text-orange-300" data-code-change-note="1">Needs a code change in AutoReiv</span>${dismissBtn}`;
     } else if (isToolFix) {
       actions = `
         <button type="button" class="ask-developer-friction-btn px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-xs font-medium text-white transition flex items-center space-x-1" data-rec-id="${escapeHtml(r.id)}">
@@ -870,7 +876,7 @@ export function renderFrictionRecommendations(recs) {
         </button>${dismissBtn}
       `;
     }
-    const target = isToolFix
+    const target = isToolFix || isCodeChange
       ? `Tool: ${escapeHtml(r.tool_name || 'unknown')} (Agent: ${escapeHtml(r.agent_id || 'autoreiv')})`
       : `Target: ${escapeHtml(r.skill_path || 'unknown')} (Agent: ${escapeHtml(r.agent_id || 'autoreiv')})`;
 

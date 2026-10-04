@@ -130,6 +130,19 @@ def runtime_tool_not_enabled(tool: str) -> Optional[str]:
     )
 
 
+def runtime_tool_safety(tool: str) -> Optional[dict[str, bool]]:
+    """Skill frontmatter safety copied from a runtime tool's declared risk [CARD-545]; None for built-ins."""
+    from src.application.tools.native_packaging import NativeToolError, runtime_tool_files
+
+    try:
+        row = runtime_tool_files().read(str(tool or "").strip())
+    except (NativeToolError, ValueError):
+        return None
+    if not row:
+        return None
+    return {"read_only": str(row.get("risk") or "") == "read_only", "requires_hitl": bool(row.get("requires_hitl"))}
+
+
 def pending_attach_proposals(store: Any, tool: str) -> list[dict[str, Any]]:
     """Pending attach proposals for one tool (all agents), for Tools Studio and the one-step enable."""
     out: list[dict[str, Any]] = []
@@ -187,6 +200,7 @@ def apply_tool_attachment(
             catalog_ids=catalog_tool_ids(tool_registry),
             name=sid.replace("-", " ").title(),
             description=str(args.get("description") or f"Use {tool}"),
+            safety=None if wildcard else runtime_tool_safety(tool),  # CARD-545: the tool's risk
             tools=[] if wildcard else [tool],
             db_path=db_path,
         )

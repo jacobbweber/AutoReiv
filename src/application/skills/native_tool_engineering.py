@@ -39,8 +39,9 @@ class NativeToolEngineeringTools:
         description: str,
         code: str,
         parameters: Optional[dict] = None,
-        requires_hitl: bool = True,
-        risk_level: str = "medium",
+        requires_hitl: Optional[bool] = None,
+        risk_level: str = "",
+        risk: str = "",
         target_agent_id: Optional[str] = None,
         target_skill_id: Optional[str] = None,
         sample_arguments: Optional[dict] = None,
@@ -55,6 +56,7 @@ class NativeToolEngineeringTools:
                     "parameters": parameters or {},
                     "requires_hitl": requires_hitl,
                     "risk_level": risk_level,
+                    "risk": risk,
                     "target_agent_id": target_agent_id or "",
                     "target_skill_id": target_skill_id or "",
                     "sample_arguments": sample_arguments,
@@ -90,7 +92,8 @@ class NativeToolEngineeringTools:
             description=(
                 "Save a native AutoReiv custom tool (no MCP server). It is saved disabled: only Jacob enables it "
                 "in Tools Studio, after reading the code. "
-                "Code must define run(**kwargs). requires_hitl defaults to true. "
+                "Code must define run(**kwargs). Declare risk: read_only (only reads or looks things up; runs "
+                "without asking once enabled), write, network or destructive (ask before each call). "
                 "Pass target_agent_id for the agent that needs it: this creates a pending proposal to attach the "
                 "tool to a skill of that agent (target_skill_id, or a new skill); the agent can use it only after "
                 "Jacob accepts. "
@@ -108,14 +111,22 @@ class NativeToolEngineeringTools:
                         "description": "Python source that defines run(**kwargs) and returns a JSON-friendly value.",
                     },
                     "parameters": {"type": "object", "description": "JSON Schema for the tool arguments."},
+                    "risk": {
+                        "type": "string",
+                        "enum": ["read_only", "write", "network", "destructive"],
+                        "description": (
+                            "What the tool does. read_only: reads only, runs without asking. write (changes files "
+                            "or data), network (sends data out) and destructive (deletes) ask before each call."
+                        ),
+                    },
                     "requires_hitl": {
                         "type": "boolean",
-                        "description": "When true (default), ToolPolicyGate parks the call until the operator runs it.",
+                        "description": "Override: true always asks. Default follows risk (read_only does not ask).",
                     },
                     "risk_level": {
                         "type": "string",
                         "enum": ["low", "medium", "high"],
-                        "description": "high always requires HITL.",
+                        "description": "Optional; derived from risk. high always requires HITL.",
                     },
                     "target_agent_id": {
                         "type": "string",

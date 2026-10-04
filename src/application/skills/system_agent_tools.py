@@ -4,6 +4,7 @@ System Agent Tools for Platform Health, Root-Cause Diagnostics & Telemetry Inspe
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from typing import Any, Dict, List, Optional
@@ -15,6 +16,11 @@ from src.application.observability.log_buffer import SystemLogBuffer
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.agents.profiles import BUILTIN_PROFILES
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+# CARD-527: a tool result over 8 KB is payload bloat; keep this built-in tool under it by default.
+RESULT_BYTE_BUDGET = 7500
+_ERROR_MESSAGE_CHARS = 300
+_MAX_ERRORS = 50
 
 
 class SystemAgentTools:
@@ -69,11 +75,30 @@ class SystemAgentTools:
         self,
         limit: int = 10,
         agent_id: Optional[str] = None,
+        include_metadata: bool = False,
     ) -> List[Dict[str, Any]]:
         """
         Retrieve recent failed execution spans, tool errors, and turn exceptions.
+
+        CARD-527: messages are cut to 300 characters, span metadata only on request, and the result is the
+        newest errors that fit in 7.5 KB (a real chat got 12,599 bytes and a payload-bloat card).
         """
-        return self.telemetry.get_recent_errors(limit=limit, agent_id=agent_id)
+        try:
+            count = max(1, min(int(limit or 10), _MAX_ERRORS))
+        except (TypeError, ValueError):
+            count = 10
+        rows: List[Dict[str, Any]] = []
+        for raw in self.telemetry.get_recent_errors(limit=count, agent_id=agent_id):
+            row = dict(raw)
+            message = str(row.get("error_message") or "")
+            if len(message) > _ERROR_MESSAGE_CHARS:
+                row["error_message"] = message[:_ERROR_MESSAGE_CHARS] + "..."
+            if not include_metadata:
+                row.pop("metadata", None)
+            rows.append(row)
+        while len(rows) > 1 and len(json.dumps(rows, default=str)) > RESULT_BYTE_BUDGET:
+            rows.pop()  # oldest last: keep the newest that fit
+        return rows
 
     def get_agent_sessions(
         self,
@@ -354,12 +379,20 @@ class SystemAgentTools:
 
         registry.register_tool(
             name="get_recent_errors",
-            description="Get recent runtime errors, tool failures, and turn exceptions with details.",
+            description=(
+                "Get recent runtime errors, tool failures, and turn exceptions. Newest first; messages are cut to "
+                "300 characters and the result stays under 8 KB (fewer rows when they are long)."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
-                    "limit": {"type": "integer", "description": "Max errors to return", "default": 10},
+                    "limit": {"type": "integer", "description": "Max errors to return (1-50)", "default": 10},
                     "agent_id": {"type": "string", "description": "Optional agent ID to filter"},
+                    "include_metadata": {
+                        "type": "boolean",
+                        "description": "Also return each span's metadata (bigger; use with a small limit).",
+                        "default": False,
+                    },
                 },
             },
             handler=self.get_recent_errors,

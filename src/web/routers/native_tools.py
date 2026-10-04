@@ -21,8 +21,10 @@ class NativeToolRegisterRequest(BaseModel):
     description: str
     code: str
     parameters: dict[str, Any] = Field(default_factory=dict)
-    requires_hitl: bool = True
-    risk_level: str = "medium"
+    # CARD-545: None = from risk (read_only runs without asking; anything else asks each call).
+    requires_hitl: Optional[bool] = None
+    risk_level: str = ""
+    risk: str = ""  # read_only / write / network / destructive (ADR-0061 D11)
     # CARD-539: propose attaching the tool to a skill of this agent (accepted by Jacob), never a grant.
     target_agent_id: str = ""
     target_skill_id: str = ""
