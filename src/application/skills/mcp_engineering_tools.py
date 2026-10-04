@@ -273,6 +273,9 @@ Register into AutoReiv using the `register_mcp_service` tool:
             "diagnostics": [
                 f"Scaffolded FastMCP project '{clean_name}' at {dest_dir}.",
                 "Contains typed schemas, non-root Dockerfile, and healthcheck.",
+                # CARD-516: the AutoReiv venv has no mcp SDK, so the default command cannot start it.
+                "server.py imports the MCP SDK: run it with a Python that has it (pip install mcp), "
+                "or the Docker image. The AutoReiv environment does not include it.",
             ],
         }
 

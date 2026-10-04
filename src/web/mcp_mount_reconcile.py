@@ -30,6 +30,18 @@ def _tool_names(active: Optional[dict], name: str) -> list:
     return list(tools)
 
 
+def mount_errors(mcp_manager: Any) -> dict:
+    """Last start error per server that failed to mount [CARD-516]. Empty when unknown."""
+    getter = getattr(mcp_manager, "get_mount_errors", None)
+    if not callable(getter):
+        return {}
+    try:
+        errors = getter()
+    except Exception:
+        return {}
+    return errors if isinstance(errors, dict) else {}
+
+
 def mcp_save_http_body(name: str, outcome: dict, *, mount_error: str) -> dict:
     """HTTP body for POST save. Mount-failure shape matches the pre-424 response."""
     if outcome.get("failure") == "mount":
@@ -38,6 +50,7 @@ def mcp_save_http_body(name: str, outcome: dict, *, mount_error: str) -> dict:
             "name": name,
             "mounted": False,
             "error": f"{mount_error}: {outcome.get('exc')}",
+            "last_error": str(outcome.get("exc")),  # CARD-516: the reason alone, for the badge
         }
     body = {
         "status": "saved",

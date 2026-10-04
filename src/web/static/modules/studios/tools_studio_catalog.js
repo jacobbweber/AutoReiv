@@ -287,10 +287,48 @@ export function renderCatalogMarkup(groups) {
 export function formatMcpAttachStatus(servers) {
   const list = Array.isArray(servers) ? servers : [];
   const mounted = list.filter((server) => server && server.is_mounted).length;
+  const failed = list.filter((server) => mcpServerFailedToStart(server)).length;
   if (!list.length) return 'No platform MCP servers attached.';
   const noun = list.length === 1 ? 'server' : 'servers';
-  return `${list.length} platform MCP ${noun} attached (${mounted} mounted).`;
+  const failedNote = failed ? `, ${failed} failed to start` : '';
+  return `${list.length} platform MCP ${noun} attached (${mounted} mounted${failedNote}).`;
 }
+
+/**
+ * CARD-516: enabled, not mounted, and the last mount said why.
+ * @param {object} server
+ * @returns {boolean}
+ */
+export function mcpServerFailedToStart(server) {
+  return Boolean(server && server.enabled !== false && !server.is_mounted && server.last_error);
+}
+
+/**
+ * CARD-516: one readable line from a start error. A Python traceback keeps its header and last line.
+ * @param {string} text
+ * @returns {string}
+ */
+export function mcpStartErrorSummary(text) {
+  let s = String(text || '').trim().replace(/^(RuntimeError|MCPMountError):\s*/, '');
+  if (!s) return '';
+  const tb = s.indexOf('Traceback (most recent call last)');
+  if (tb >= 0) {
+    const head = s.slice(0, tb).replace(/[:\s]+$/, '');
+    const lines = s.slice(tb).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const last = lines.length > 1 ? lines[lines.length - 1] : '';
+    s = [head, last].filter(Boolean).join(': ');
+  }
+  return s.length > 240 ? `${s.slice(0, 237)}...` : s;
+}
+
+function startErrorLineHtml(server) {
+  if (!mcpServerFailedToStart(server)) return '';
+  const full = String(server.last_error);
+  return `<div class="text-[11px] text-rose-300 break-words" data-testid="mcp-start-error" title="${escapeHtml(full)}">${escapeHtml(mcpStartErrorSummary(full))}</div>`;
+}
+
+const BADGE_OK = 'border-white/[0.08] text-slate-300';
+const BADGE_FAILED = 'border-rose-800/70 bg-rose-950/50 text-rose-300';
 
 /**
  * Read-only status rows. No attach actions.
@@ -308,17 +346,20 @@ export function renderMcpStatusRowsMarkup(servers, { emptyHtml = '', rowTestId =
     const mounted = Boolean(server.is_mounted);
     const enabled = server.enabled !== false;
     const count = Number(server.tool_count || (Array.isArray(server.tools) ? server.tools.length : 0)) || 0;
+    const failed = mcpServerFailedToStart(server);
     let badge = 'Configured';
     if (!enabled) badge = 'Disabled';
     else if (mounted) badge = `Mounted (${count})`;
+    else if (failed) badge = 'Failed to start';
     const target = server.url || (Array.isArray(server.command) ? server.command.join(' ') : server.command || '');
     return `
       <div class="p-2.5 rounded-lg bg-[#08090c]/70 border border-white/[0.06] flex items-center justify-between gap-2" data-testid="${escapeHtml(rowTestId)}" data-server-name="${escapeHtml(name)}">
         <div class="min-w-0">
           <div class="text-xs font-mono text-slate-100">${escapeHtml(name)}</div>
           ${target ? `<div class="text-[11px] font-mono text-slate-500 truncate">${escapeHtml(String(target))}</div>` : ''}
+          ${startErrorLineHtml(server)}
         </div>
-        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] text-slate-300 shrink-0">${escapeHtml(badge)}</span>
+        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border ${failed ? BADGE_FAILED : BADGE_OK} shrink-0" data-testid="mcp-status-badge">${escapeHtml(badge)}</span>
       </div>`;
   }).join('');
 }
@@ -363,7 +404,7 @@ export function renderMcpServerListMarkup(servers, { scope = 'platform' } = {}) 
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="min-w-0">
             <span class="text-xs font-mono font-semibold text-slate-100">${safe}</span>
-            <span class="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] text-slate-300" data-testid="tools-studio-mcp-status">${escapeHtml(badge)}</span>
+            <span class="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded border ${mcpServerFailedToStart(server) ? BADGE_FAILED : BADGE_OK}" data-testid="tools-studio-mcp-status">${escapeHtml(badge)}</span>
           </div>
           <div class="flex flex-wrap items-center gap-1">
             <button type="button" data-action="edit" data-server-name="${safe}" class="px-2 py-1 rounded bg-slate-800 text-slate-200 border border-white/[0.08] text-[11px]">Edit</button>
@@ -374,6 +415,7 @@ export function renderMcpServerListMarkup(servers, { scope = 'platform' } = {}) 
           </div>
         </div>
         ${target ? `<div class="text-[11px] font-mono text-slate-500 break-all">${escapeHtml(String(target))}</div>` : ''}
+        ${startErrorLineHtml(server)}
       </div>`;
   }).join('');
 }
@@ -456,6 +498,7 @@ export function mcpServerStatusBadge(server) {
   if (!enabled && mounted) return `Disabled (still mounted, ${count} tools)`;
   if (!enabled) return 'Disabled';
   if (mounted) return `Mounted (${count} tools)`;
+  if (mcpServerFailedToStart(server)) return 'Failed to start'; // CARD-516
   return 'Configured';
 }
 
@@ -477,6 +520,8 @@ export function describeMcpSaveNotice(body, data) {
     return { kind: 'warning', message: `Saved ${name}, but unmount failed.` };
   }
   if (error && payload.mounted === false) {
+    const reason = mcpStartErrorSummary(payload.last_error); // CARD-516: say why it did not start
+    if (reason) return { kind: 'warning', message: `Saved ${name}, but it did not start: ${reason}` };
     return { kind: 'warning', message: `Saved ${name}, mount failed.` };
   }
   if (disabling) return { kind: 'success', message: `Disabled ${name}.` };
