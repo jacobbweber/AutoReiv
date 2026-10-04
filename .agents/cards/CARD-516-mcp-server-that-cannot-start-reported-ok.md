@@ -66,3 +66,5 @@ Screenshots (`C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003k\`): `01-desk
 
 ## Release note
 An MCP server that cannot start now shows "Failed to start" with the reason in Settings and Tools Studio, instead of "ok" or "mounted (0 tools)".
+
+Full suite on `3ef03c3c`: pytest 2467 passed, 12 skipped (full sequential run on `f440f068`, the same code; the preflight's parallel pytest on `3ef03c3c` agrees); preflight GREEN: ruff, eslint (0 errors), vitest 1046, smoke 83/83. Earlier on this branch TC-39 (desktop) failed 5 of 8 runs (the CARD-621 flake, made more frequent here); the smoke's openGaps now reopens Agents when the restored layout minimized it, and TC-39 + TC-44 desktop passed 12 of 12.
