@@ -1,7 +1,8 @@
 ---
 id: CARD-525
 title: "Friction audit drops recommendations: the dedup key has no tool name, so a second tool with the same problem (or in no skill) never gets a card"
-status: In Review
+status: Done
+completed: 2026-10-04
 created: 2026-09-26
 branch: feat/card-525-527-545-friction-dedup-builtin-native-risk
 related:
@@ -17,7 +18,7 @@ milestone: M25
 
 # [CARD-525] Friction audit dedup drops recommendations for other tools
 
-> **Status**: In Review (2026-10-04, branch `feat/card-525-527-545-friction-dedup-builtin-native-risk`, not merged). Found in the CARD-520 reproduction, 2026-09-26.
+> **Status**: Done (2026-10-04, merged to qa from `feat/card-525-527-545-friction-dedup-builtin-native-risk`). Found in the CARD-520 reproduction, 2026-09-26.
 > **Related**: CARD-520 (tool escalation rename; decision D11 keeps this separate), CARD-354 (friction auditor)
 > **Labels**: `type:bug`, `area:observability`, `P3`
 

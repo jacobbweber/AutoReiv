@@ -1,7 +1,8 @@
 ---
 id: CARD-527
 title: "Built-in tools get tool-escalation cards that the Developer cannot act on (get_recent_errors, list_available_skills_and_tools)"
-status: In Review
+status: Done
+completed: 2026-10-04
 created: 2026-09-26
 branch: feat/card-525-527-545-friction-dedup-builtin-native-risk
 related:
@@ -19,7 +20,7 @@ milestone: M25
 
 # [CARD-527] Tool escalations for built-in tools point at the Developer, who only authors custom tools
 
-> **Status**: In Review (2026-10-04, branch `feat/card-525-527-545-friction-dedup-builtin-native-risk`, not merged). Found in the CARD-520 live-test seed, 2026-09-26.
+> **Status**: Done (2026-10-04, merged to qa from `feat/card-525-527-545-friction-dedup-builtin-native-risk`). Found in the CARD-520 live-test seed, 2026-09-26.
 > **Related**: CARD-520 (Ask Developer on friction cards), CARD-354 (friction auditor), CARD-525 (dedup)
 > **Labels**: `type:product`, `area:observability`, `area:tools`, `P3`
 

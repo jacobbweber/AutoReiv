@@ -1,7 +1,8 @@
 ---
 id: CARD-545
 title: "Native tools declare risk at registration (ADR-0061 D11, full)"
-status: In Review
+status: Done
+completed: 2026-10-04
 created: 2026-09-26
 branch: feat/card-525-527-545-friction-dedup-builtin-native-risk
 related:
@@ -16,7 +17,7 @@ milestone: M25
 
 # [CARD-545] Native tools declare risk at registration (ADR-0061 D11, full)
 
-> **Status**: In Review (2026-10-04, branch `feat/card-525-527-545-friction-dedup-builtin-native-risk`, not merged). Filed from CARD-539, 2026-09-26.
+> **Status**: Done (2026-10-04, merged to qa from `feat/card-525-527-545-friction-dedup-builtin-native-risk`). Filed from CARD-539, 2026-09-26.
 > **Related**: CARD-539 (ADR-0061)
 > **Labels**: `type:feature`, `area:tools`, `P3`
 
