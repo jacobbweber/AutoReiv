@@ -3,7 +3,6 @@ Observability, KPI Metrics & System Logs Router [REQ-WEB-005, REQ-OBS-001 - REQ-
 """
 
 import json
-import re
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -313,14 +312,19 @@ async def post_friction_audit(request: Request, payload: FrictionAuditRequest):
         data_dir=data_dir,
         routine=DummyRoutine(),
         lookback_hours=payload.lookback_hours,
+        tool_registry=getattr(request.app.state, "tool_registry", None),  # built-in vs runtime tools [CARD-527]
+        agent_registry=getattr(request.app.state, "registry", None),
     )
     return result
 
 
-_ESCALATE_RE = re.compile(r"Escalate (\S+) to")
-_BYTES_RE = re.compile(r"\((\d+) bytes\)")
 _APPLY_REASONS = {
     "tool_escalation": (409, "This recommendation needs a tool change, not a runbook patch. Use Ask Developer."),
+    "code_change": (
+        409,
+        "This is a built-in AutoReiv tool: it needs a code change in the AutoReiv repo, not a runbook patch, "
+        "and Developer cannot change it. Card it, then dismiss this.",
+    ),
 }
 
 
@@ -342,16 +346,9 @@ def _friction_ledger(data_dir: Any) -> Path:
 
 def _normalize_friction_rec(data: Dict[str, Any]) -> Dict[str, Any]:
     """Records without tool_name/payload_bytes get them derived from the text [CARD-520 REQ-520-004]."""
-    text = f"{data.get('summary') or ''} {data.get('proposed_patch') or ''}"
-    if not data.get("tool_name"):
-        m = _ESCALATE_RE.search(text)
-        if m:
-            data["tool_name"] = m.group(1)
-    if not data.get("payload_bytes"):
-        m = _BYTES_RE.search(text)
-        if m:
-            data["payload_bytes"] = int(m.group(1))
-    return data
+    from src.domain.observability.friction_dedup import normalize_friction_rec
+
+    return normalize_friction_rec(data)
 
 
 def _find_friction_rec(store: Any, data_dir: Any, rec_id: str) -> Tuple[Optional[Dict[str, Any]], bool]:
@@ -394,6 +391,8 @@ async def get_friction_recommendations(
     limit: int = 50,
 ):
     """List staged runbook recommendations [CARD-354, CARD-520]."""
+    from src.domain.observability.friction_dedup import recommendation_status
+
     store = request.app.state.store
     recs: list[dict[str, Any]] = []
 
@@ -407,10 +406,8 @@ async def get_friction_recommendations(
             ):
                 try:
                     data = _normalize_friction_rec(json.loads(p.payload_json))
-                    if p.status == "approved":
-                        data["status"] = "escalated" if data.get("status") == "escalated" else "applied"
-                    elif p.status == "rejected":
-                        data["status"] = "dismissed"
+                    if p.status in ("approved", "rejected"):
+                        data["status"] = recommendation_status(p.status, data.get("status"))
                     if status and data.get("status") != status:
                         continue
                     recs.append(data)
@@ -449,7 +446,11 @@ async def apply_friction_recommendation(request: Request, rec_id: str):
     if data is None:
         raise HTTPException(status_code=404, detail=f"Recommendation '{rec_id}' not found.")
     try:
+        from src.application.routines.telemetry_friction_auditor import seed_user_skill_copy
+
         target_rec = RunbookRecommendation(**data)
+        if target_rec.remedy_kind == "runbook_patch":
+            seed_user_skill_copy(data_dir, target_rec.skill_id)  # shipped-only skill [CARD-527]
         applied, reason = ToolSkillResolver(data_dir=data_dir).apply_with_reason(target_rec)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Could not apply the patch: {exc}") from exc

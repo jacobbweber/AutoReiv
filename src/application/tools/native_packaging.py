@@ -392,6 +392,7 @@ class NativeCustomToolService:
             description=description,
             parameters=parameters,
             handler=_handler,
+            origin="native_custom",  # not a built-in: Developer can change it [CARD-527]
         )
 
     def _sync_policy(self, name: str, requires_hitl: bool) -> None:

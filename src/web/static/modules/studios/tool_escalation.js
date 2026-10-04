@@ -9,6 +9,13 @@ export function isToolEscalationRemedy(kind) {
   return kind === TOOL_ESCALATION;
 }
 
+/** CARD-527: a built-in tool (Python in AutoReiv) needs a code change; Developer cannot fix it. */
+export const CODE_CHANGE = 'code_change';
+
+export function isCodeChangeRemedy(kind) {
+  return kind === CODE_CHANGE;
+}
+
 /** Escalation object from a distill result or stored proposal. */
 export function readToolEscalation(obj) {
   if (!obj || typeof obj !== 'object') return {};

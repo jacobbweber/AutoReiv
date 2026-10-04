@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 
 # CARD-520: the remedy for "this needs a tool" is tool_escalation (the pre-rename name is no longer read, CARD-574).
 TOOL_ESCALATION = "tool_escalation"
+# A built-in tool (Python in this repo) needs a code change; no runtime action fixes it [CARD-527].
+CODE_CHANGE = "code_change"
 
 
 class KPIDashboardSummary(BaseModel):
@@ -95,7 +97,7 @@ class RunbookRecommendation(BaseModel):
     summary: str = Field(description="One-sentence description of the problem and proposed rule")
     proposed_patch: str = Field(description="Markdown addition for ## Common Pitfalls & Forbidden Paths")
     original_snippet: Optional[str] = Field(default=None, description="Original section context")
-    remedy_kind: str = Field(default="runbook_patch", description="'runbook_patch' or 'tool_escalation' [CARD-520]")
+    remedy_kind: str = Field(default="runbook_patch", description="'runbook_patch', 'tool_escalation' [CARD-520] or 'code_change' [CARD-527]")
     status: str = Field(default="pending", description="'pending', 'applied', 'dismissed', 'escalated'")
     created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
     tool_name: Optional[str] = Field(default=None, description="Tool that caused the friction [CARD-520]")

@@ -4,13 +4,29 @@ Equips Developer with meta-tooling to inspect system capabilities and park
 HITL drafts for skills and tools. New agents are created in Agent Studio [CARD-569].
 """
 
+import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.domain.kernel.models import AgentTone
 from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
+
+# CARD-527: keep the authoring catalog under the 8 KB payload-bloat line by default (it was 20,146 bytes).
+CATALOG_BYTE_BUDGET = 7500
+_CATALOG_DEFAULT_LIMIT = 30
+_CATALOG_MAX_LIMIT = 200
+_CATALOG_DESCRIPTION_CHARS = 90
+
+
+def _short(text: Any, size: int = _CATALOG_DESCRIPTION_CHARS) -> str:
+    clean = " ".join(str(text or "").split())
+    return clean if len(clean) <= size else clean[: size - 3].rstrip() + "..."
+
+
+def _matches(query: str, *fields: Any) -> bool:
+    return not query or any(query in str(f or "").lower() for f in fields)
 
 
 class AgentBuilderTools:
@@ -43,10 +59,20 @@ class AgentBuilderTools:
         """Register agent builder tools on the provided ScopedToolRegistry."""
         registry.register_tool(
             name="list_available_skills_and_tools",
-            description="List all available platform tools, purposes, and tones to assist in agent construction.",
+            description=(
+                "Authoring catalog: platform tools, skills, purposes and tones. Pass query to find a tool or skill "
+                "by name or words in its description; results are paged (limit, offset) and stay under 8 KB."
+            ),
             parameters={
                 "type": "object",
-                "properties": {},
+                "properties": {
+                    "query": {"type": "string", "description": "Words to match in tool/skill names or descriptions."},
+                    "limit": {
+                        "type": "integer",
+                        "description": f"Max tools and max skills per page (default {_CATALOG_DEFAULT_LIMIT}).",
+                    },
+                    "offset": {"type": "integer", "description": "Skip this many tools and skills (paging)."},
+                },
             },
             handler=self.list_available_skills_and_tools,
         )
@@ -129,34 +155,58 @@ class AgentBuilderTools:
             handler=self.commit_skill,
         )
 
-    async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
-        """Authoring catalog: skills, platform tools, purposes and tones. Not a tool list for the caller."""
+    async def list_available_skills_and_tools(
+        self, query: str = "", limit: Optional[int] = None, offset: int = 0, **kwargs
+    ) -> Dict[str, Any]:
+        """Authoring catalog: skills, platform tools, purposes and tones. Not a tool list for the caller.
+
+        CARD-527: filtered by ``query``, paged by ``limit``/``offset``, descriptions shortened, and trimmed
+        to stay under 8 KB; the counts say how many matched so the caller can page or narrow.
+        """
         from src.application.kernel.tool_registry import get_tool_context
         from src.infrastructure.content.store import get_store
 
+        needle = str(query or "").strip().lower()
+        try:
+            size = max(1, min(int(limit or _CATALOG_DEFAULT_LIMIT), _CATALOG_MAX_LIMIT))
+        except (TypeError, ValueError):
+            size = _CATALOG_DEFAULT_LIMIT
+        try:
+            start = max(0, int(offset or 0))
+        except (TypeError, ValueError):
+            start = 0
         offered = get_tool_context().get("offered_tools")
         callable_now = set(offered or [])
-        tools_list = []
+        all_tools: List[Dict[str, Any]] = []
         if self.tool_registry:
             for t in self.tool_registry.list_tools():
-                row = {"name": t.name, "description": t.description}
+                if not _matches(needle, t.name, t.description):
+                    continue
+                row: Dict[str, Any] = {"name": t.name, "description": _short(t.description)}
                 if offered is not None:  # CARD-607: mark the few the caller can call on this turn
                     row["you_can_call"] = t.name in callable_now
-                tools_list.append(row)
-        skills = [
-            {"id": f.id, "name": f.meta.get("name") or f.id, "description": f.meta.get("description") or ""}
+                all_tools.append(row)
+        all_skills = [
+            {"id": f.id, "name": f.meta.get("name") or f.id, "description": _short(f.meta.get("description"))}
             for f in get_store().skills.list()
+            if _matches(needle, f.id, f.meta.get("name"), f.meta.get("description"))
         ]
+        tools_list = all_tools[start : start + size]
+        skills = all_skills[start : start + size]
 
         purposes = [p.value for p in ModelPurpose]
         tones = [t.value for t in AgentTone]
 
-        return {
+        result = {
             "note": (
                 "Authoring catalog only: use it to check whether a tool already exists. These tools are not "
                 "callable by you unless you_can_call is true; any other call is refused. Agents get tools by "
                 "ticking skills; propose a skill (or attaching a tool to one) for Jacob to accept."
             ),
+            "query": needle,
+            "total_tools": len(all_tools),
+            "total_skills": len(all_skills),
+            "offset": start,
             "skills": skills,
             "catalog_tools": tools_list,
             "purposes": purposes,
@@ -174,6 +224,22 @@ class AgentBuilderTools:
                 "sparkles",
             ],
         }
+        # Still over budget (long names): drop rows from the end of the longer list until it fits.
+        while (tools_list or skills) and len(json.dumps(result, default=str)) > CATALOG_BYTE_BUDGET:
+            (tools_list if len(tools_list) >= len(skills) else skills).pop()
+        # One offset pages both lists: advance by the shorter page among lists that still have rows left,
+        # so nothing is skipped (the other list may repeat a few rows).
+        unfinished = [
+            len(page) for page, rows in ((tools_list, all_tools), (skills, all_skills)) if start + len(page) < len(rows)
+        ]
+        next_offset = start + max(1, min(unfinished)) if unfinished else None
+        result["next_offset"] = next_offset
+        if next_offset is not None:
+            result["more"] = (
+                f"Showing {len(tools_list)} of {len(all_tools)} tools and {len(skills)} of {len(all_skills)} "
+                f"skills. Pass query to narrow, or offset={next_offset} for the next page."
+            )
+        return result
 
 
     def _draft_kwargs(self, **kwargs: Any) -> Dict[str, Any]:

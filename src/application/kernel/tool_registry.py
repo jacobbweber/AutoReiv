@@ -180,6 +180,14 @@ class ScopedToolRegistry:
         reg = self._tools.get(name)
         return reg.risk if reg else ""
 
+    def builtin_tool_names(self) -> set[str]:
+        """Tools that are Python in this repo: not runtime-built (native_custom) and not MCP [CARD-527]."""
+        return {
+            name
+            for name, reg in self._tools.items()
+            if str(reg.origin or "platform") == "platform" and not name.startswith("mcp_")
+        }
+
     def get_tool_origin(self, name: str) -> str:
         """Catalog origin for a registered tool. Empty when the name is absent."""
         reg = self._tools.get(name)
@@ -199,7 +207,7 @@ class ScopedToolRegistry:
         ToolPolicyGate + matched capability subset before execute.
         """
         tool_name = name or definition.name
-        self._tools[tool_name] = ToolRegistration(definition=definition, handler=handler)
+        self._tools[tool_name] = ToolRegistration(definition=definition, handler=handler, origin="mcp")
 
     def unmount_tool(self, name: str) -> bool:
         """Remove a tool registration from the registry."""

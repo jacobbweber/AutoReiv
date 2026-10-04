@@ -402,6 +402,8 @@ class RoutineExecutor:
                     routine=routine,
                     session_id=session.id,
                     agent_id=agent.id,
+                    tool_registry=getattr(self.kernel, "tool_registry", None),  # built-in vs runtime [CARD-527]
+                    agent_registry=self.agent_registry,
                 )
                 dur_ms = (time.perf_counter() - start_time) * 1000
                 status = (
