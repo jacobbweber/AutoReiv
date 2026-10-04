@@ -1,9 +1,10 @@
 ---
 id: CARD-516
 title: "An MCP server that cannot start is reported as \"ok\" and \"mounted\" (0 tools) by Settings Test and Save"
-status: Ready
+status: Done
+completed: 2026-10-04
 created: 2026-09-26
-branch: qa
+branch: feat/card-516-522-mcp-start-errors-and-gap-prefill
 related:
   - CARD-511
   - CARD-424
@@ -19,7 +20,7 @@ milestone: M25
 
 # [CARD-516] An MCP server that cannot start is reported as "ok" and "mounted"
 
-> **Status**: Ready (found in the CARD-511 scratch reproduction, 2026-09-26 ~1:20 AM ET, qa `6f066514`). Not next: it misleads the operator but damages no data and does not block CARD-511, which reads `last_error` itself. The queue is CARD-511, CARD-497, CARD-512, CARD-498, then Education Studio.
+> **Status**: Done (2026-10-04, merged to qa from `feat/card-516-522-mcp-start-errors-and-gap-prefill`). Found in the CARD-511 scratch reproduction, 2026-09-26.
 > **Related**: CARD-511 (checks Developer's `register_mcp_service`; decision D9 leaves the Settings routes alone), CARD-424 (MCP save mounts and unmounts), CARD-394 (MCP engineering tools)
 > **Labels**: `type:bug`, `area:mcp`, `area:settings`, `P3`
 
@@ -38,3 +39,33 @@ Test and Save report `status: error` / `mounted: false` with `last_error` when `
 ## Done when
 
 A server that cannot start shows an error in Settings Test and Save, with the reason; a working server is unchanged; tests cover both.
+
+## Built (2026-10-03, branch `feat/card-516-522-mcp-start-errors-and-gap-prefill`)
+- `MCPClientManager.mount_server` raises `MCPMountError` with the start error when `list_tools()` swallowed one (`adapter_start_error`), closes the process, mounts nothing and remembers the reason (`get_mount_errors()`). A good mount or an unmount clears it. A server that starts and lists no tools still mounts with 0 tools.
+- Save (platform and agent) keeps the config and returns `status: saved`, `mounted: false`, `error` and a new `last_error` (the reason alone). `GET /api/settings/mcp` and `GET /api/agents/{id}/mcp` carry `last_error` for a server that failed, including a failed auto-mount at startup.
+- Test (`/api/settings/mcp/test`, `/api/agents/{id}/mcp/test`) returns `status: error` with the reason instead of `ok, 0 tools`.
+- Settings and Tools Studio rows show a red **Failed to start** badge with a one-line reason (a Python traceback keeps its header and last line; the full text is the tooltip). The Settings line counts "N failed to start"; the save toast says "Saved X, but it did not start: <reason>". app.js v2.0.107.
+- Developer's `scaffold_mcp_server` diagnostics now say the server needs the MCP SDK (`pip install mcp`) or the Docker image; the AutoReiv environment does not have it.
+- Decision: Save keeps `status: "saved"` (the config is saved) and reports the failure through `mounted: false` plus `last_error`, rather than `status: "error"`. The Tools Studio toast and the CARD-424 tests key on that shape.
+- Tests: `tests/integration/test_card516_mcp_start_errors.py` (7, real subprocesses: a command that dies on import, the raw fixture server in good and empty modes; manager, platform Test/Save/list, disable clears the error, startup auto-mount failure, agent Test/Save/list), Vitest `card_516_mcp_start_error_badge.test.js` (5), smoke TC-52 desktop and phone.
+
+## Results
+| Journey | Viewport | Result | Notes |
+|---|---|---|---|
+| Test `python -c "import nonexistent_card516_mod"` (API) | API | pass | `status: error`, reason ends `ModuleNotFoundError: No module named 'nonexistent_card516_mod'`; the raw fixture server: `ok`, 2 tools |
+| Save the broken server, then the working one, then list (API) | API | pass | broken: saved, `mounted: false`, `last_error`; working: mounted, 2 tools; list: broken `is_mounted: false` + reason, working `is_mounted: true`, `last_error: null`; agent Test of the broken one: `error` |
+| Settings > Connections | desktop | pass | "2 platform MCP servers attached (1 mounted, 1 failed to start)."; c516-broken: Failed to start + one-line reason; c516-weather: Mounted (2) |
+| Tools Studio > MCP attach | desktop | pass | c516-broken: Failed to start + reason; c516-weather: Mounted (2 tools). The row's Test showed a SyntaxError because Tools Studio re-splits the stored command (CARD-627) |
+| Settings > Connections | phone | pass | same badge and reason, wrapped |
+
+Live on :8770 (sandbox of `fb89c37a`, then `15645c26`), nemotron-3.5-lightning (Spark), 2026-10-03 11:05-11:10 PM ET. No console errors.
+
+Screenshots (`C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003k\`): `01-desktop-settings-mcp-failed-to-start.png`, `02-desktop-tools-studio-mcp-rows.png`, `03-desktop-tools-studio-test-failed.png`, `10-phone-settings-mcp-failed-to-start.png`.
+
+## Findings
+- (from this build and live check, 2026-10-03; docs/findings.md) Tools Studio re-splits a saved MCP command on spaces on Test, Enable/Disable and Connect: CARD-627.
+
+## Release note
+An MCP server that cannot start now shows "Failed to start" with the reason in Settings and Tools Studio, instead of "ok" or "mounted (0 tools)".
+
+Full suite on `3ef03c3c`: pytest 2467 passed, 12 skipped (full sequential run on `f440f068`, the same code; the preflight's parallel pytest on `3ef03c3c` agrees); preflight GREEN: ruff, eslint (0 errors), vitest 1046, smoke 83/83. Earlier on this branch TC-39 (desktop) failed 5 of 8 runs (the CARD-621 flake, made more frequent here); the smoke's openGaps now reopens Agents when the restored layout minimized it, and TC-39 + TC-44 desktop passed 12 of 12.

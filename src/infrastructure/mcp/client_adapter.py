@@ -357,6 +357,16 @@ class MCPClientAdapter:
             pass
 
 
+class MCPMountError(RuntimeError):
+    """The server did not start or did not answer tools/list, so nothing was mounted [CARD-516]."""
+
+
+def adapter_start_error(adapter: Any) -> Optional[str]:
+    """The tools/list failure list_tools() swallowed, if any [CARD-516]."""
+    err = getattr(adapter, "last_error", None)
+    return err if isinstance(err, str) and err else None
+
+
 class MCPClientManager:
     """Manages active MCP server connections and dynamic tool mounting.
 
@@ -369,6 +379,7 @@ class MCPClientManager:
         self.tool_registry = tool_registry
         self._adapters: Dict[str, MCPClientAdapter] = {}
         self._mounted_tools: Dict[str, List[str]] = {}
+        self._mount_errors: Dict[str, str] = {}  # CARD-516: why the last mount failed
 
     async def mount_server(
         self,
@@ -397,6 +408,14 @@ class MCPClientManager:
             _http_transport=_http_transport,
         )
         tools = await adapter.list_tools()
+        start_error = adapter_start_error(adapter)
+        if start_error:
+            # CARD-516: a server that cannot start is not "mounted with 0 tools".
+            await adapter.close()
+            self._mount_errors[name] = start_error
+            logger.warning(f"MCP server '{name}' did not start: {start_error}")
+            raise MCPMountError(start_error)
+        self._mount_errors.pop(name, None)
         self._adapters[name] = adapter
         self._mounted_tools[name] = [t.name for t in tools]
 
@@ -419,6 +438,7 @@ class MCPClientManager:
 
     async def unmount_server(self, name: str) -> None:
         """Unmount an MCP server and remove its tools from ScopedToolRegistry."""
+        self._mount_errors.pop(name, None)
         adapter = self._adapters.pop(name, None)
         if adapter:
             await adapter.close()
@@ -428,6 +448,10 @@ class MCPClientManager:
             self.tool_registry.unmount_tool(tool_name)
 
         logger.info(f"Unmounted MCP server '{name}'.")
+
+    def get_mount_errors(self) -> Dict[str, str]:
+        """Last start error per server whose mount failed; cleared by a good mount or an unmount [CARD-516]."""
+        return dict(self._mount_errors)
 
     def get_mounted_servers(self) -> Dict[str, Dict[str, Any]]:
         """List all active mounted MCP servers and tool counts."""

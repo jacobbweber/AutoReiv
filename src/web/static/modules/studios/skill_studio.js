@@ -14,6 +14,10 @@ import {
 } from './skill_studio/workshop_meta.js';
 import { createSkillScopeUI } from './skill_studio/skill_scope.js';
 import { mountSkillFileStatus } from './skill_studio/skill_file_status.js';
+import {
+  buildGapSkillDraft, catalogToolNames, formHasDraft, gapCapabilityLabel, gapMissingToolNote,
+} from './skill_studio/gap_prefill.js';
+import { askDeveloperAboutGap } from './forge/tools.js';
 
 export const SKILL_STUDIO_TAB = 'skill-studio';
 export const SKILL_STUDIO_LABEL = 'Skill Studio';
@@ -33,9 +37,10 @@ const COMMON_STOP_WORDS = new Set([
 
 /**
  * Agent Studio / dock handoff into Skill Studio.
- * @param {{ agentId?: string|null, skillId?: string|null }} [link]
+ * CARD-522: a gap (and no skill id) means "prefill a new skill from this capability gap".
+ * @param {{ agentId?: string|null, skillId?: string|null, gap?: object|null }} [link]
  */
-export function planSkillStudioDeepLink({ agentId = null, skillId = null } = {}) {
+export function planSkillStudioDeepLink({ agentId = null, skillId = null, gap = null } = {}) {
   const skill = String(skillId || '').trim();
   const agent = String(agentId || '').trim();
   return {
@@ -43,6 +48,7 @@ export function planSkillStudioDeepLink({ agentId = null, skillId = null } = {})
     label: SKILL_STUDIO_LABEL,
     agentId: agent || null,
     skillId: skill || null,
+    gap: !skill && gap && typeof gap === 'object' ? gap : null,
     writeSurface: SKILL_STUDIO_TAB,
   };
 }
@@ -76,6 +82,7 @@ export function initSkillStudio(_state, callbacks = {}) {
   const factorySelectedToolCountBadge = $('factorySelectedToolCountBadge');
   const factorySourceContextInput = $('factorySourceContextInput');
   const factoryRefreshBtn = $('factoryRefreshBtn');
+  const skillStudioGapNote = $('skillStudioGapNote');
 
   let currentCapabilities = [];
   let selectedTools = new Set();
@@ -86,6 +93,7 @@ export function initSkillStudio(_state, callbacks = {}) {
   let pinRolePersona = '';
   let queuedLink = null;
   let pendingSkillId = '';
+  let pendingGap = null; // CARD-522: applied by the next load that finishes, like pendingSkillId
   let loadGen = 0;
   let skillDeletable = false;
 
@@ -136,9 +144,89 @@ export function initSkillStudio(_state, callbacks = {}) {
   });
   skillScope.bindEvents();
 
-  function queueDeepLink(agentId, skillId) {
-    queuedLink = planSkillStudioDeepLink({ agentId, skillId });
+  function queueDeepLink(agentId, skillId, { gap = null } = {}) {
+    queuedLink = planSkillStudioDeepLink({ agentId, skillId, gap });
     if (queuedLink.skillId) pendingSkillId = queuedLink.skillId;
+    pendingGap = queuedLink.gap;
+  }
+
+  /** CARD-522: the gap note above the form; hidden when the form is not from a gap. */
+  function renderGapNote(gap = null, draft = null) {
+    if (!skillStudioGapNote) return;
+    if (!gap || !draft) {
+      skillStudioGapNote.classList.add('hidden');
+      skillStudioGapNote.innerHTML = '';
+      return;
+    }
+    const label = escapeHtml(gapCapabilityLabel(gap) || draft.name);
+    const taken = draft.takenSkillId
+      ? `<p class="text-[11px] text-slate-300" data-testid="skill-studio-gap-renamed">A skill <span class="font-mono">${escapeHtml(draft.takenSkillId)}</span> already exists, so this new one is <span class="font-mono">${escapeHtml(draft.skillId)}</span>.</p>`
+      : '';
+    if (draft.missingTool) {
+      skillStudioGapNote.className = 'p-3 rounded-xl bg-amber-950/40 border border-amber-700/50 space-y-2';
+      skillStudioGapNote.innerHTML = `
+        <p class="text-[11px] text-amber-200" data-testid="skill-studio-gap-missing-tool">${escapeHtml(gapMissingToolNote(draft.missingTool))}</p>
+        ${taken}
+        <button type="button" id="skillStudioGapAskDeveloperBtn" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-semibold">Ask Developer</button>`;
+      const ask = $('skillStudioGapAskDeveloperBtn');
+      if (ask) {
+        ask.addEventListener('click', async () => {
+          ask.disabled = true;
+          try {
+            await askDeveloperAboutGap(gap, pinAgentId || gap.agent_id || '', { callbacks });
+          } finally {
+            ask.disabled = false;
+          }
+        });
+      }
+    } else {
+      skillStudioGapNote.className = 'p-2.5 rounded-xl bg-sky-950/30 border border-sky-800/40 space-y-1';
+      skillStudioGapNote.innerHTML = `<p class="text-[11px] text-sky-200">Prefilled from the capability gap <span class="font-mono">${label}</span>. Review it, then Save.</p>${taken}`;
+    }
+  }
+
+  /**
+   * CARD-522: fill a NEW skill from a capability gap. Asks before replacing what the form holds.
+   * @returns {boolean} true when the draft was applied
+   */
+  function applyGapDraft(gap) {
+    const current = {
+      name: factorySkillNameInput && factorySkillNameInput.value,
+      description: factorySkillTriggerInput && factorySkillTriggerInput.value,
+      intent: factorySkillIntentInput && factorySkillIntentInput.value,
+      markdown: factorySkillMarkdownEditor && factorySkillMarkdownEditor.value,
+    };
+    if (formHasDraft(current)) {
+      const replace = typeof window !== 'undefined' && typeof window.confirm === 'function'
+        ? window.confirm('Replace what is in Skill Studio now with a new skill for this capability gap? Unsaved changes will be lost.')
+        : false;
+      if (!replace) {
+        showToast('Kept your draft. The capability gap is still listed in Agent Studio.', 'info');
+        return false;
+      }
+    }
+    const draft = buildGapSkillDraft(gap, {
+      toolNames: catalogToolNames(currentCapabilities),
+      agentId: pinAgentId,
+      takenIds: new Set(skillScope.knownSkillIds()),
+    });
+    resetNewSkillForm({ clearPicker: true });
+    currentSkillId = '';
+    fileStatus.render(null, '');
+    if (factorySkillNameInput) factorySkillNameInput.value = draft.name;
+    if (factorySkillIdInput) factorySkillIdInput.value = draft.skillId;
+    if (factorySkillTriggerInput) {
+      factorySkillTriggerInput.value = draft.description;
+      if (factorySkillTriggerCharCount) factorySkillTriggerCharCount.textContent = descriptionCounter(draft.description).text;
+    }
+    if (factorySkillIntentInput) factorySkillIntentInput.value = draft.intent;
+    if (factorySkillMarkdownEditor) factorySkillMarkdownEditor.value = draft.markdown;
+    selectedTools = new Set(draft.tools);
+    renderCapabilities((factoryToolSearchInput && factoryToolSearchInput.value) || '');
+    syncFrontmatter();
+    skillScope.setWorkshopBadge('New skill from gap');
+    renderGapNote(gap, draft);
+    return true;
   }
 
   function syncAgentScope(snapshot = {}, { refreshPicker = true } = {}) {
@@ -153,6 +241,7 @@ export function initSkillStudio(_state, callbacks = {}) {
   }
 
   function resetNewSkillForm({ clearPicker = true } = {}) {
+    renderGapNote(null);
     if (factorySkillNameInput) factorySkillNameInput.value = '';
     if (factorySkillIdInput) {
       factorySkillIdInput.value = '';
@@ -186,6 +275,7 @@ export function initSkillStudio(_state, callbacks = {}) {
   async function loadExistingSkill(skillId, agentId) {
     const view = await loadWorkshopSkill(skillId, agentId || pinAgentId);
     if (view && view.ok) {
+      renderGapNote(null);
       skillScope.selectSkillInPicker(skillId);
       syncDeleteButton(view.deletable);
       currentSkillId = skillId;
@@ -637,6 +727,10 @@ export function initSkillStudio(_state, callbacks = {}) {
     if (plan.skillId) {
       await loadExistingSkill(plan.skillId, plan.agentId);
       if (gen === loadGen) pendingSkillId = '';
+    } else if (pendingGap) {
+      const gap = pendingGap;
+      pendingGap = null;
+      applyGapDraft(gap);
     }
   }
 

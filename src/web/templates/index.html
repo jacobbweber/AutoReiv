@@ -3534,6 +3534,9 @@
                 <p class="text-[10px] text-slate-500">Loads one runbook into the form below. Assign skills to agents in Agent Studio.</p>
               </div>
 
+              <!-- CARD-522: set when Skill Studio was opened from a capability gap -->
+              <div id="skillStudioGapNote" class="hidden" data-testid="skill-studio-gap-note"></div>
+
               <!-- Author Skill Form -->
               <div class="space-y-3 pt-2 border-t border-white/[0.04]">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4452,7 +4455,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.106"></script>
+  <script type="module" src="/static/app.js?v=2.0.107"></script>
 </body>
 </html>
 

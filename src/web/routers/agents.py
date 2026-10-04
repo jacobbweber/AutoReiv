@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentTone
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.settings.models import MCPServerConfig, ModelPurpose
-from src.web.mcp_mount_reconcile import mcp_save_http_body, reconcile_saved_mcp_server
+from src.web.mcp_mount_reconcile import mcp_save_http_body, mount_errors, reconcile_saved_mcp_server
 
 logger = logging.getLogger(__name__)
 
@@ -521,6 +521,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
     active_map = mcp_manager.get_mounted_servers() if mcp_manager else {}
+    errors = mount_errors(mcp_manager)
 
     servers = [s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []]
     result = []
@@ -535,6 +536,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
                 "is_mounted": active_info is not None,
                 "tool_count": active_info.get("tool_count", 0) if active_info else 0,
                 "tools": active_info.get("tools", []) if active_info else [],
+                "last_error": None if active_info else errors.get(name),  # CARD-516
             }
         )
     return result
@@ -638,7 +640,7 @@ async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
     """Test connection to an MCP server without persisting [REQ-MCP-AGENT-003]."""
     import time
 
-    from src.infrastructure.mcp.client_adapter import MCPClientAdapter
+    from src.infrastructure.mcp.client_adapter import MCPClientAdapter, MCPMountError, adapter_start_error
 
     start_time = time.perf_counter()
     adapter = MCPClientAdapter(
@@ -652,6 +654,9 @@ async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
     )
     try:
         tools = await adapter.list_tools()
+        start_error = adapter_start_error(adapter)
+        if start_error:
+            raise MCPMountError(start_error)  # CARD-516: not "ok, 0 tools"
         latency_ms = (time.perf_counter() - start_time) * 1000
         return {
             "status": "ok",

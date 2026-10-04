@@ -206,5 +206,6 @@ export function createSkillScopeUI({
     setWorkshopBadge,
     setEditableOptions,
     mergeEditableSkillOptions,
+    knownSkillIds: () => editableOptions.map((opt) => opt.id), // CARD-522: a gap draft must not reuse one
   };
 }

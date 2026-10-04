@@ -270,9 +270,9 @@ export function initApp() {
         await forgeCtrl.loadAgentForge(agentId);
       }
     },
-    openSkillStudio: (agentId = null, skillId = null) => {
+    openSkillStudio: (agentId = null, skillId = null, opts = {}) => {
       if (skillCtrl && typeof skillCtrl.queueDeepLink === 'function') {
-        skillCtrl.queueDeepLink(agentId, skillId);
+        skillCtrl.queueDeepLink(agentId, skillId, opts); // CARD-522: opts.gap prefills a new skill
       }
       switchTab('skill-studio');
     },

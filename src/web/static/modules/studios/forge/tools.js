@@ -8,6 +8,7 @@ import { escapeHtml } from '../../utils/formatters.js';
 import { showToast } from '../../ui/toast.js';
 import { renderMcpStatusRowsMarkup } from '../tools_studio_catalog.js';
 import { askDeveloperWithDraft } from '../tools_studio_authoring.js';
+import { catalogToolNames, gapToolIsMissing } from '../skill_studio/gap_prefill.js';
 
 export function renderToolBadgeHtml(tool, activeAgent = null) {
   const tObj = typeof tool === 'string' ? { name: tool } : (tool || {});
@@ -53,31 +54,39 @@ export function renderBaselineTools(gridEl = null) {
   safeCreateIcons();
 }
 
-/** One capability gap row: Open in Skill Studio, Ask Developer, Dismiss [CARD-496 D2]. */
-export function capabilityGapRowHtml(gap = {}) {
+/**
+ * One capability gap row: Open in Skill Studio, Ask Developer, Dismiss [CARD-496 D2].
+ * CARD-522: when the suggested tool does not exist yet, Ask Developer comes first and is the primary button.
+ */
+export function capabilityGapRowHtml(gap = {}, { toolMissing = false } = {}) {
   const id = escapeHtml(gap.id || '');
   const label = escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability');
   const btn = 'px-2 py-0.5 rounded text-[10px] font-semibold transition';
+  const primary = 'bg-brand-600 hover:bg-brand-500 text-white';
+  const secondary = 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700';
+  const openBtn = `<button type="button" class="btn-gap-open-skill-studio ${btn} ${toolMissing ? secondary : primary}" data-gap-id="${id}" title="Write a skill for this gap in Skill Studio">Open in Skill Studio</button>`;
+  const askBtn = `<button type="button" class="btn-gap-ask-developer ${btn} ${toolMissing ? primary : 'bg-indigo-600 hover:bg-indigo-500 text-white'}" data-gap-id="${id}" data-primary="${toolMissing ? 'true' : 'false'}" title="Ask Toolsmith to build a tool for this gap">Ask Developer</button>`;
+  const toolNote = toolMissing ? ' <span class="text-amber-400">(not built yet)</span>' : '';
   return `
-      <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${id}">
+      <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${id}" data-tool-missing="${toolMissing ? 'true' : 'false'}">
         <div class="flex flex-wrap items-center justify-between gap-1.5">
           <span class="text-xs font-semibold text-amber-300 font-mono">${label}</span>
           <div class="flex flex-wrap items-center gap-1.5">
-            <button type="button" class="btn-gap-open-skill-studio ${btn} bg-brand-600 hover:bg-brand-500 text-white" data-gap-id="${id}" title="Write a skill for this gap in Skill Studio">Open in Skill Studio</button>
-            <button type="button" class="btn-gap-ask-developer ${btn} bg-indigo-600 hover:bg-indigo-500 text-white" data-gap-id="${id}" title="Ask Toolsmith to build a tool for this gap">Ask Developer</button>
+            ${toolMissing ? `${askBtn}\n            ${openBtn}` : `${openBtn}\n            ${askBtn}`}
             <button type="button" class="btn-dismiss-gap ${btn} bg-slate-800 hover:bg-slate-700 text-slate-400 font-medium" data-gap-id="${id}">Dismiss</button>
           </div>
         </div>
-        ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span></div>` : ''}
+        ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span>${toolNote}</div>` : ''}
         <p class="text-[11px] text-slate-400 whitespace-pre-wrap">${escapeHtml(gap.turn_text || gap.user_prompt || '')}</p>
       </div>
     `;
 }
 
-/** Open Skill Studio for the gap's agent [CARD-496 REQ-496-003]. */
-export function openGapInSkillStudio(agentId, callbacks = {}, toastFn = showToast) {
+/** Open Skill Studio for the gap's agent [CARD-496 REQ-496-003]; with the gap, Skill Studio prefills a new skill [CARD-522]. */
+export function openGapInSkillStudio(agentId, callbacks = {}, gap = null, toastFn = showToast) {
   if (typeof callbacks.openSkillStudio === 'function') {
-    callbacks.openSkillStudio(agentId || null);
+    if (gap && typeof gap === 'object') callbacks.openSkillStudio(agentId || null, null, { gap });
+    else callbacks.openSkillStudio(agentId || null);
     return true;
   }
   toastFn('Open Skill Studio from the dock to write a skill for this gap.', 'info');
@@ -117,6 +126,23 @@ export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callb
   }
 }
 
+/**
+ * CARD-522: catalog tool names, only when some gap suggests a tool. Null when unknown (no steering then).
+ * @param {object[]} gaps
+ * @returns {Promise<Set<string>|null>}
+ */
+async function loadCatalogToolNames(gaps) {
+  if (!gaps.some((gap) => gap && gap.suggested_tool_name)) return null;
+  try {
+    const res = await fetch('/api/tools_studio/capabilities');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return catalogToolNames(data && data.namespaces);
+  } catch {
+    return null;
+  }
+}
+
 export async function loadAgentCapabilityGaps(agentId, callbacks = {}) {
   const agentBacklogList = $('agentBacklogList');
   const agentBacklogCountBadge = $('agentBacklogCountBadge');
@@ -135,12 +161,16 @@ export async function loadAgentCapabilityGaps(agentId, callbacks = {}) {
       agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
       return;
     }
-    agentBacklogList.innerHTML = items.map((gap) => capabilityGapRowHtml(gap)).join('');
+    const toolNames = await loadCatalogToolNames(items);
+    agentBacklogList.innerHTML = items
+      .map((gap) => capabilityGapRowHtml(gap, { toolMissing: Boolean(toolNames) && gapToolIsMissing(gap, toolNames) }))
+      .join('');
     const byId = new Map(items.map((gap) => [String(gap.id), gap]));
 
     agentBacklogList.querySelectorAll('.btn-gap-open-skill-studio').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        openGapInSkillStudio(agentId, callbacks);
+      btn.addEventListener('click', (e) => {
+        const gap = byId.get(String(e.currentTarget.dataset.gapId)) || null;
+        openGapInSkillStudio(agentId, callbacks, gap);
       });
     });
 

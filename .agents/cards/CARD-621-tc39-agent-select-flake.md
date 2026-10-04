@@ -37,6 +37,7 @@ A red preflight that is not about the change under test.
 ## Plan and decisions
 
 ## Findings
+- 2026-10-03 (CARD-516/522 branch): the failure screenshot shows the empty desktop with the Agents dock button active: after the second `openGaps` reload the restored layout leaves Agents focused, so the dock click minimizes it and `selectOption` on the hidden select never succeeds. On `feat/card-516-522-...` TC-39 desktop failed 5 of 8 (qa 4564d411: 1 of 6). Test-side mitigation landed on that branch: inside the poll, reopen Agents when `#forgeAgentSelect` is hidden and give `selectOption` a 3 s timeout; TC-39 + TC-44 desktop then passed 12 of 12 (`--repeat-each 6`). Still open: whether the dock click should race the layout restore at all.
 - (from the CARD-616/618 preflight, 2026-10-03; docs/findings.md)
 
 ## Results
