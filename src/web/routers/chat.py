@@ -545,6 +545,21 @@ async def complete_phase_or_fail(*, orch, queue, job, phase, output_packet) -> b
         return False
 
 
+async def _plain_question_waits(kernel, profile, job, reply: str) -> bool:
+    """CARD-616: same model, no tools, only for a final reply whose last line ends with '?'."""
+    from src.application.orchestration.plain_question import ends_with_question, reply_needs_answer
+
+    if not ends_with_question(reply):
+        return False
+    gateway = getattr(kernel, "gateway", None)
+    resolve = getattr(kernel, "_resolve_model", None)
+    try:
+        model = resolve(profile) if callable(resolve) else None
+    except Exception:  # noqa: BLE001
+        model = None
+    return await reply_needs_answer(gateway, model if isinstance(model, str) else None, reply, getattr(job, "goal", "") or "")
+
+
 async def _stream_turn_bound(
     *,
     queue,
@@ -790,6 +805,8 @@ async def _stream_turn_bound(
         await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
         return "failed"
 
+    if outcome == "done" and await _plain_question_waits(kernel, profile, job, last_content):
+        outcome = "question"  # CARD-616: asked in plain text instead of ask_clarification
     if outcome == "question":
         # CARD-613: a step that asks Jacob a question is not done; it waits for his answer in the chat.
         orch.wait_for_answer(phase.id)
@@ -2241,6 +2258,15 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                         step_index=started.index,
                                         emit_step_events=True,
                                     )
+                                    if nxt_outcome == "question":
+                                        # CARD-616: a later step asked; show the finished step's reply and the question, then wait.
+                                        shown = [
+                                            relay_phase_reply_to_parent(store, req.session_id, s, profile.id)
+                                            for s in (last_phase_session, phase_session)
+                                        ]
+                                        text = "\n\n".join(t for t in shown if t)
+                                        await queue.put(_sse("token", {"text": f"{text}\n\n{WAITING_FOR_ANSWER_NOTE}\n"}))
+                                        await queue.put(_sse("turn_done", {"waiting_answer": True, "job_id": job.id}))
                                     if nxt_outcome != "done":
                                         last_phase_session = ""
                                         break

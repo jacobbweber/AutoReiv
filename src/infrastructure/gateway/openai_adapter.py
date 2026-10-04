@@ -317,6 +317,8 @@ class OpenAIProviderAdapter(LLMProviderPort):
         }
         if request.max_tokens:
             payload["max_tokens"] = request.max_tokens
+        if request.think is False and self.provider_id == "vllm":
+            payload["chat_template_kwargs"] = {"enable_thinking": False}  # CARD-616: short yes/no checks
 
         tools = self._format_tools(request.tools)
         if tools:

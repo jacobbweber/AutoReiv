@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Union
 from src.application.kernel.reply_limits import helper_call_seconds
 from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
 from src.domain.observability.models import TOOL_ESCALATION
+from src.domain.skills.user_skill import SKILL_DESCRIPTION_LIMIT, clip_description, yaml_scalar
 
 # CARD-520 REQ-520-015: guidance that says a tool is missing ("has no weather tool", "needs a tool").
 _NAMED_TOOL_RE = re.compile(
@@ -261,7 +262,7 @@ class SkillDistillationService:
             '  "needs_tool": false,\n'
             '  "skill_id": "kebab-case-slug",\n'
             '  "name": "Title Case Name",\n'
-            '  "description": "Short summary under 60 characters",\n'
+            f'  "description": "When to use this skill, at most {SKILL_DESCRIPTION_LIMIT} characters",\n'
             '  "plain_summary": {\n'
             '    "observed_slip": "Plain sentence describing what went wrong",\n'
             '    "remedy": "Plain sentence describing what the new rule teaches"\n'
@@ -363,7 +364,7 @@ class SkillDistillationService:
 
         skill_id = self._slugify(llm_data.get("skill_id") or llm_data.get("name") or "agent-procedural-rule")
         name = llm_data.get("name") or skill_id.replace("-", " ").title()
-        desc = (llm_data.get("description") or f"Procedural guidance for {target_agent_id}")[:60]
+        desc = clip_description(llm_data.get("description") or f"Procedural guidance for {target_agent_id}")
 
         when_to_use = llm_data.get("when_to_use") or "When executing operations relevant to this domain."
         procedure = llm_data.get("procedure") or ["Follow the approved steps.", "Verify the result."]
@@ -377,7 +378,7 @@ class SkillDistillationService:
         runbook_markdown = (
             f"---\n"
             f"name: {skill_id}\n"
-            f"description: {desc}\n"
+            f"description: {yaml_scalar(desc)}\n"
             f"---\n\n"
             f"# {name}\n\n"
             f"## When to Use\n{when_to_use}\n\n"
@@ -434,7 +435,7 @@ class SkillDistillationService:
         hint = guidance or turn_data["user_prompt"] or "procedural-rule"
         slug = self._slugify(hint[:30]) or "operational-guidance"
         name = slug.replace("-", " ").title()
-        desc = f"Procedural instructions for {name}"[:60]
+        desc = clip_description(f"Procedural instructions for {name}")
 
         plain_summary = {
             "observed_slip": f"Agent drifted on '{turn_data['user_prompt'][:100]}'."
@@ -446,7 +447,7 @@ class SkillDistillationService:
         runbook_markdown = (
             f"---\n"
             f"name: {slug}\n"
-            f"description: {desc}\n"
+            f"description: {yaml_scalar(desc)}\n"
             f"---\n\n"
             f"# {name}\n\n"
             f"## When to Use\nWhen performing actions guided by this runbook.\n\n"
@@ -480,4 +481,9 @@ class SkillDistillationService:
         m_desc = re.search(r"description:\s*(.+)$", md, re.MULTILINE)
         if m_desc:
             desc = m_desc.group(1).strip()
-        return title, desc[:60]
+            if len(desc) > 1 and desc[0] == desc[-1] and desc[0] in "\"'":
+                try:
+                    desc = json.loads(desc) if desc[0] == '"' else desc[1:-1].replace("''", "'")
+                except ValueError:
+                    desc = desc[1:-1]
+        return title, clip_description(desc)
