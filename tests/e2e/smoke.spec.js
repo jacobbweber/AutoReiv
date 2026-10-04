@@ -1389,6 +1389,80 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+  // CARD-522: Open in Skill Studio prefills a new skill from the gap; a missing tool is steered to Ask Developer;
+  // an edited draft is only replaced when the operator says so.
+  for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
+    test(`TC-51 (${vp.name}): Open in Skill Studio fills a new skill from the capability gap [CARD-522]`, async ({ page }) => {
+      const GAP = { id: 'gap-tc51', agent_id: 'autoreiv', status: 'pending', identified_capability: 'inventory_lookup', suggested_tool_name: 'get_tc51_inventory', turn_text: 'Look up TC51 inventory counts' };
+      await page.route('**/api/agents/autoreiv/gaps*', (route) => {
+        if (route.request().method() !== 'GET') return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([GAP]) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      const openGap = async () => {
+        await page.locator('#dock-agents').click();
+        await expect.poll(async () => {
+          await page.selectOption('#forgeAgentSelect', 'autoreiv');
+          await page.waitForTimeout(700);
+          return page.inputValue('#forgeNameInput');
+        }, { timeout: 20000 }).toBe('AutoReiv');
+        await page.evaluate(() => { const d = document.getElementById('agentTrainingBacklogCard'); if (d) d.open = true; });
+        const row = page.locator('#agentTrainingBacklogCard [data-gap-id="gap-tc51"]').first();
+        await expect(row).toHaveAttribute('data-tool-missing', 'true', { timeout: 20000 });
+        await expect(row.locator('.btn-gap-ask-developer')).toHaveAttribute('data-primary', 'true');
+        await row.locator('.btn-gap-open-skill-studio').evaluate((b) => b.click());
+        await expect(page.locator('#view-skill-studio')).toBeVisible();
+      };
+
+      await openGap();
+      await expect.poll(() => page.inputValue('#factorySkillNameInput'), { timeout: 20000 }).toBe('Inventory Lookup');
+      await expect(page.locator('#factorySkillIdInput')).toHaveValue('inventory_lookup');
+      await expect(page.locator('#factorySkillTriggerInput')).toHaveValue(/Look up TC51 inventory counts/);
+      await expect(page.locator('#factorySkillIntentInput')).toHaveValue(/The user asked: "Look up TC51 inventory counts"/);
+      await expect(page.locator('#factorySkillMarkdownEditor')).toHaveValue(/# Inventory Lookup/);
+      const note = page.locator('#skillStudioGapNote');
+      await expect(note).toBeVisible();
+      await expect(note).toContainText('This gap needs a tool that does not exist yet (get_tc51_inventory)');
+      await expect(note.locator('#skillStudioGapAskDeveloperBtn')).toBeVisible();
+      expect(await page.locator('#factoryCapabilitiesContainer input[type="checkbox"]:checked').count()).toBe(0);
+
+      // An edited draft is kept when the operator declines, replaced when they accept.
+      await page.locator('#factorySkillNameInput').fill('My own draft');
+      page.once('dialog', (d) => d.dismiss());
+      await openGap();
+      await page.waitForTimeout(800);
+      await expect(page.locator('#factorySkillNameInput')).toHaveValue('My own draft');
+      page.once('dialog', (d) => d.accept());
+      await openGap();
+      await expect.poll(() => page.inputValue('#factorySkillNameInput'), { timeout: 20000 }).toBe('Inventory Lookup');
+    });
+
+    // CARD-516: an MCP server that cannot start shows "Failed to start" and why, not "Configured" or mounted.
+    test(`TC-52 (${vp.name}): Settings shows an MCP server that cannot start as failed, with the reason [CARD-516]`, async ({ page }) => {
+      const TRACE = "RuntimeError: MCP server 'c516' process terminated unexpectedly (exit code 1): Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'nonexistent_card516_mod'";
+      const servers = [
+        { name: 'c516', enabled: true, is_mounted: false, tool_count: 0, tools: [], transport: 'stdio', command: ['python', '-c', 'import nonexistent_card516_mod'], last_error: TRACE },
+        { name: 'weather', enabled: true, is_mounted: true, tool_count: 2, tools: ['mcp_weather_lookup', 'mcp_weather_ping'], transport: 'stdio', command: ['python', 'server.py'], last_error: null },
+      ];
+      await page.route('**/api/settings/mcp', (route) => {
+        if (route.request().method() !== 'GET') return route.continue();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(servers) });
+      });
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await page.locator('#dock-settings').click();
+      await page.locator('[data-settings-section="connections"] summary').evaluate((s) => s.click());
+      await expect(page.locator('#settingsMcpAttachStatus')).toHaveText('2 platform MCP servers attached (1 mounted, 1 failed to start).', { timeout: 20000 });
+      const bad = page.locator('#mcpServerList [data-server-name="c516"]');
+      await expect(bad.locator('[data-testid="mcp-status-badge"]')).toHaveText('Failed to start');
+      await expect(bad.locator('[data-testid="mcp-start-error"]')).toContainText("No module named 'nonexistent_card516_mod'");
+      const good = page.locator('#mcpServerList [data-server-name="weather"]');
+      await expect(good.locator('[data-testid="mcp-status-badge"]')).toHaveText('Mounted (2)');
+      await expect(good.locator('[data-testid="mcp-start-error"]')).toHaveCount(0);
+    });
+  }
+
   // CARD-496: the Factory UI is retired (ADR-0060). Gaps open Skill Studio or Developer; old layouts drop the Factory window;
   // the app never calls Factory jobs or the scaffold queue; Skill Studio still lists tools through its current routes.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
