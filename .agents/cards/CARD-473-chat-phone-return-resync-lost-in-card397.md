@@ -87,6 +87,8 @@ Two pages on the same chat: desktop page A sends, phone page B (390x844) is "awa
 | Phone comes back in the middle of a longer reply: question shown, composer busy (Stop button) | pass |
 | Phone then gets the finished reply without a reload | pass |
 
+Full suite on `4bd42074`: pytest 2443 passed, 12 skipped; preflight GREEN (ruff, eslint, vitest 1024 passed, smoke 79/79).
+
 Not checked live: pending approvals on return (unit-tested); a real phone backgrounding the browser (simulated through the visibility API).
 
 Screenshots: `phone-01..04*.png` in `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003i\`.

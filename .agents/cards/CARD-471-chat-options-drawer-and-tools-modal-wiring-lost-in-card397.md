@@ -95,6 +95,8 @@ Open the options drawer. Click Compact (a toast appears) and View tools (the mod
 | Escape 2: drawer closed, Chat not minimized | pass | pass |
 | Outside click closes drawer | pass | pass |
 
+Full suite on `4bd42074`: pytest 2443 passed, 12 skipped; preflight GREEN (ruff, eslint, vitest 1024 passed, smoke 79/79).
+
 Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003i\desktop-0*.png`, `phone-05..09*.png`.
 
 ## 6. Findings
