@@ -37,7 +37,7 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-10-04 | observability UI | on a phone the friction card header squeezes the summary to one or two words per line; carded as CARD-629 | from CARD-527 | src/web/static/modules/studios/observability.js
 - 2026-10-04 | observability friction | a runbook patch on a shipped-only skill always failed with "no longer exists" (patches edit only data-dir user copies); fixed on the CARD-527 branch (user copy written first) | from CARD-527 | src/application/routines/telemetry_friction_auditor.py, src/web/routers/observability.py
 - 2026-10-04 | chat approvals UI | the approval card's arguments box shows the internal `_tool_call_id` next to the tool's arguments (inline card and pinned tray); carded as CARD-630 | from CARD-545 | src/web/static/modules/studios/chat/hitl.js, src/application/kernel/hitl_engine.py
-- 2026-10-04 | chat UI phone | a user message with an attachment line (long unbroken `Local Path`) is 602 px wide on a 390 px screen and runs 224 px off the left edge; desktop fine | from CARD-625 | src/web/static/modules/studios/chat/render.js, src/application/gateway/attachment_text.py
+- 2026-10-04 | chat UI phone | a user message with an attachment line (long unbroken `Local Path`) is 602 px wide on a 390 px screen and runs 224 px off the left edge; desktop fine; carded as CARD-631 | from CARD-625 | src/web/static/modules/studios/chat/render.js, src/application/gateway/attachment_text.py
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
