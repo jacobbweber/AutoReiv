@@ -1476,7 +1476,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await page.locator('#dock-agents').click();
       await expect.poll(async () => {
-        await page.selectOption('#forgeAgentSelect', 'autoreiv');
+        // CARD-621: after the reload the restored layout can leave Agents focused, so the dock click minimizes it.
+        if (!(await page.locator('#forgeAgentSelect').isVisible())) await page.locator('#dock-agents').click();
+        await page.selectOption('#forgeAgentSelect', 'autoreiv', { timeout: 3000 }).catch(() => {});
         await page.waitForTimeout(700);
         return page.inputValue('#forgeNameInput');
       }, { timeout: 20000 }).toBe('AutoReiv');
