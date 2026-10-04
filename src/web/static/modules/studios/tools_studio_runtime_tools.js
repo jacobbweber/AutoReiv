@@ -13,6 +13,17 @@ export function runtimeToolApprovalText(row) {
   return 'Not enabled. No agent can use it until you enable it.';
 }
 
+/** CARD-545: the risk the tool declared at registration, and whether calls ask first. Jacob sees it before enabling. */
+export function runtimeToolRiskText(row) {
+  const risk = String((row && row.risk) || '');
+  const asks = Boolean(row && row.requires_hitl);
+  if (risk === 'read_only') {
+    return asks ? 'Declared read-only, but set to ask before each call.' : 'Declared read-only: runs without asking.';
+  }
+  if (risk) return `Declared ${risk.replace('_', ' ')}: asks before each call.`;
+  return asks ? 'No risk declared: asks before each call.' : 'No risk declared.';
+}
+
 /** What enabling will also do: attach proposals it accepts [CARD-571 D5]. */
 export function runtimeToolAttachText(row) {
   const items = (row && Array.isArray(row.pending_attach)) ? row.pending_attach : [];
@@ -91,7 +102,11 @@ export function mountRuntimeTools({ host, fetchImpl = (...a) => fetch(...a), toa
       label.textContent = name;
       const state = document.createElement('span');
       state.textContent = runtimeToolApprovalText(row);
-      line.append(label, state);
+      const risk = document.createElement('span');
+      risk.className = row.risk === 'read_only' && !row.requires_hitl ? 'text-emerald-300' : 'text-amber-200';
+      risk.dataset.testid = `runtime-tool-risk-${name}`;
+      risk.textContent = runtimeToolRiskText(row);
+      line.append(label, state, risk);
       const id = encodeURIComponent(name);
       const codeBox = document.createElement('pre');
       codeBox.className = 'hidden w-full max-h-64 overflow-auto rounded-lg bg-slate-950/80 border border-slate-700 p-2 text-[11px] text-slate-200 font-mono whitespace-pre';

@@ -49,6 +49,11 @@ class HITLApprovalEngine:
         """Add a tool name to the high risk enforcement set."""
         self.high_risk_tools.add(tool_name)
 
+    def unregister_high_risk_tool(self, tool_name: str) -> None:
+        """Drop a runtime tool that no longer asks (declared read_only) [CARD-545]; defaults stay."""
+        if tool_name not in DEFAULT_HIGH_RISK_TOOLS:
+            self.high_risk_tools.discard(tool_name)
+
     def requires_approval(self, tool_call: ToolCall) -> bool:
         """Check whether a tool call requires human-in-the-loop authorization."""
         return tool_call.name in self.high_risk_tools

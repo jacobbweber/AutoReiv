@@ -41,6 +41,11 @@ _NAME_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
 _RUN_DEF_RE = re.compile(r"def\s+run\s*\(")
 _MAX_CODE_CHARS = 40_000
 _RISK_LEVELS = frozenset({"low", "medium", "high"})
+# CARD-545 (ADR-0061 D11): what the tool does. read_only runs without asking; the rest ask each call.
+NATIVE_RISKS = ("read_only", "write", "network", "destructive")
+_RISK_TO_LEVEL = {"read_only": "low", "write": "medium", "network": "medium", "destructive": "high"}
+# tool_policy key: require_confirm entries this service added, so it never removes one Jacob added.
+NATIVE_MANAGED_CONFIRM_KEY = "native_managed_confirm_tools"
 
 _RUNNER = NATIVE_RUNNER  # the tool check calls tools through this same exec-and-call path [CARD-511]
 
@@ -125,6 +130,7 @@ class NativeCustomToolService:
         options = _check_options(raw)
         name = record["name"]
         self._reject_foreign_collision(name)
+        previous = self.get(name)
         # CARD-511: run the tool once in the sandbox before anything is saved.
         check = await self.checker.check_native(
             name=name,
@@ -140,11 +146,18 @@ class NativeCustomToolService:
         record["check"] = check.to_dict()
         files = runtime_tool_files()
         saved = files.save(record)
+        relaxed = previous is not None and _relaxes_confirmation(previous, record)
+        if relaxed and saved.get("approval") == "enabled":
+            # CARD-545: Jacob approved it as asking-each-call; running without asking needs his approval again.
+            files.disable(name)
+            saved = files.read(name) or saved
         if saved.get("approval") == "enabled":
             self._mount(record)  # same code as the approved hash
         else:
             self._unmount(name)  # new or changed code: not mounted until Jacob enables it
-        self._sync_policy(name, bool(record["requires_hitl"]))
+        self._sync_policy(
+            name, bool(record["requires_hitl"]), previously_hitl=bool(previous and previous.get("requires_hitl"))
+        )
         proposal = self._propose(record)
         logger.info("Registered native custom tool %s (hitl=%s)", name, record["requires_hitl"])
         body = _public_record(saved)
@@ -154,6 +167,8 @@ class NativeCustomToolService:
             message = (
                 f"{message} Saved to the data dir; Jacob must enable it in Tools Studio before any agent can use it."
             )
+        if relaxed:
+            message = f"{message} It no longer asks before each call, so Jacob must enable it again."
         warning = access_warning(list(check.access or []))
         if warning:
             message = f"{message} {warning}"
@@ -192,7 +207,7 @@ class NativeCustomToolService:
         if not removed:
             raise NativeToolError(f"Native tool '{key}' was not found.", 404)
         self._unmount(key)
-        self._sync_policy(key, False)
+        self._sync_policy(key, False, force=True)
         logger.info("Removed native custom tool %s", key)
         return {"success": True, "name": key, "persisted": False, "packaging": "native", "mcp_required": False}
 
@@ -343,11 +358,18 @@ class NativeCustomToolService:
         parameters = raw.get("parameters") or {"type": "object", "properties": {}, "additionalProperties": True}
         if not isinstance(parameters, dict):
             raise NativeToolError("parameters must be a JSON schema object")
-        risk = str(raw.get("risk_level") or "medium").strip().lower()
+        declared = str(raw.get("risk") or "").strip().lower()
+        if declared and declared not in NATIVE_RISKS:
+            raise NativeToolError("risk must be read_only, write, network or destructive")
+        risk = str(raw.get("risk_level") or _RISK_TO_LEVEL.get(declared, "medium")).strip().lower()
         if risk not in _RISK_LEVELS:
             raise NativeToolError("risk_level must be low, medium, or high")
-        requires_hitl = bool(raw.get("requires_hitl", True))
-        if risk == "high":
+        if declared == "read_only" and risk == "high":
+            raise NativeToolError("A read_only tool cannot have risk_level high; declare what it changes instead.")
+        # CARD-545: read_only runs without asking unless the caller asks for HITL; everything else asks.
+        hitl_raw = raw.get("requires_hitl")
+        requires_hitl = declared != "read_only" if hitl_raw is None else bool(hitl_raw)
+        if risk == "high" or declared == "destructive":
             requires_hitl = True
         if raw.get("grant_agent_ids"):
             raise NativeToolError(
@@ -364,6 +386,7 @@ class NativeCustomToolService:
             "code": code,
             "requires_hitl": requires_hitl,
             "risk_level": risk,
+            "risk": declared,
             "source": "native_custom",
             "packaging": "native",
             "mcp_required": False,
@@ -393,17 +416,32 @@ class NativeCustomToolService:
             parameters=parameters,
             handler=_handler,
             origin="native_custom",  # not a built-in: Developer can change it [CARD-527]
+            risk=str(record.get("risk") or ""),  # ToolPolicyGate asks for write/network/destructive [CARD-545]
         )
 
-    def _sync_policy(self, name: str, requires_hitl: bool) -> None:
+    def _sync_policy(
+        self, name: str, requires_hitl: bool, *, previously_hitl: bool = False, force: bool = False
+    ) -> None:
+        """Add/remove the tool in require_confirm_tools. Never removes an entry Jacob added [CARD-545].
+
+        ``previously_hitl``: the saved record asked for HITL, so the entry is ours (records from before the
+        managed list). ``force``: the tool is deleted; drop the entry.
+        """
         raw = self.store.get_setting(TOOL_POLICY_SETTING)
         policy = dict(raw) if isinstance(raw, dict) else {}
         require = [str(item).strip() for item in (policy.get("require_confirm_tools") or []) if str(item).strip()]
-        if requires_hitl and name not in require:
-            require.append(name)
-        if not requires_hitl:
+        managed = {str(item) for item in (policy.get(NATIVE_MANAGED_CONFIRM_KEY) or []) if str(item).strip()}
+        if previously_hitl:
+            managed.add(name)
+        if requires_hitl:
+            if name not in require:
+                require.append(name)
+            managed.add(name)
+        elif force or name in managed:
             require = [item for item in require if item != name]
+            managed.discard(name)
         policy["require_confirm_tools"] = require
+        policy[NATIVE_MANAGED_CONFIRM_KEY] = sorted(managed)
         policy.setdefault("block_tools", list(policy.get("block_tools") or []))
         policy.setdefault("safe_tools", list(policy.get("safe_tools") or []))
         self.store.set_setting(TOOL_POLICY_SETTING, policy)
@@ -414,6 +452,10 @@ class NativeCustomToolService:
             register = getattr(self.hitl_engine, "register_high_risk_tool", None)
             if callable(register):
                 register(name)
+        elif name not in require:
+            unregister = getattr(self.hitl_engine, "unregister_high_risk_tool", None)
+            if callable(unregister):
+                unregister(name)
 
     def _propose(self, record: Mapping[str, Any]) -> Optional[dict[str, Any]]:
         """Pending attach-tool-to-skill proposal for the target agent; no permission change (CARD-539)."""
@@ -459,6 +501,13 @@ def _check_options(raw: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _relaxes_confirmation(old: Mapping[str, Any], new: Mapping[str, Any]) -> bool:
+    """True when the new record asks less often than the one Jacob approved [CARD-545]."""
+    if bool(old.get("requires_hitl")) and not bool(new.get("requires_hitl")):
+        return True
+    return str(old.get("risk") or "") != "read_only" and str(new.get("risk") or "") == "read_only"
+
+
 def _public_record(row: Mapping[str, Any]) -> dict[str, Any]:
     check = row.get("check")
     return {
@@ -467,6 +516,7 @@ def _public_record(row: Mapping[str, Any]) -> dict[str, Any]:
         "parameters": row.get("parameters") or {},
         "requires_hitl": bool(row.get("requires_hitl")),
         "risk_level": row.get("risk_level") or "medium",
+        "risk": row.get("risk") or "",  # CARD-545: declared at registration; empty = undeclared (asks)
         "source": "native_custom",
         "packaging": "native",
         "mcp_required": False,
