@@ -1,7 +1,8 @@
 ---
 id: CARD-504
 title: "Needs-tool proposal card is titled \"Synthesized Skill\" instead of the missing tool"
-status: In Review
+status: Done
+completed: 2026-10-03
 created: 2026-09-25
 branch: feat/card-483-504-attachments-only-and-needs-tool-title
 related:
@@ -19,7 +20,7 @@ milestone: M24
 
 # [CARD-504] Needs-tool proposal card is titled "Synthesized Skill" instead of the missing tool
 
-> **Status**: In Review (2026-10-03, branch `feat/card-483-504-attachments-only-and-needs-tool-title`, not merged)
+> **Status**: Done (2026-10-03, merged to qa from `feat/card-483-504-attachments-only-and-needs-tool-title`)
 > **Created**: 2026-09-25 (found in the CARD-500 scratch repro)
 > **Related**: CARD-500 (card shows `name` and `plain_summary`), CARD-472 (Ask Developer handoff), CARD-497 (`factory_escalation` rename)
 > **Labels**: `type:bug`, `area:chat`, `area:skills`, `P3`

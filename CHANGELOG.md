@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-483: a picture is only sent to a model when it is a file uploaded to the chat (the data folder's attachments/); a path typed into a message, a path named in the chat request, or one that steps out of that folder is treated as missing.
+- CARD-504: when Teach finds the agent needs a new tool, the card is titled 'Needs a tool: <tool name>' (or 'Needs a new tool') instead of 'Skill Proposal: Synthesized Skill', and the empty runbook section is hidden.
 ## [0.44.0] - 2026-10-03
 
 - CARD-471: the Chat options drawer's Compact and View tools buttons work again (Compact shows how many turns it compacted, or that the chat is already compact, and reloads the chat); the tools window closes by X, Close or the backdrop; a click outside the drawer closes it; Escape closes the tools window, then the Quick Prompts picker, then the drawer, without also minimizing the Chat window.

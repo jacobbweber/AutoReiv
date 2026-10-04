@@ -1,7 +1,8 @@
 ---
 id: CARD-483
 title: "Only send images from the attachments folder, not any 'Local Path' written in a user message"
-status: In Review
+status: Done
+completed: 2026-10-03
 created: 2026-09-25
 branch: feat/card-483-504-attachments-only-and-needs-tool-title
 related:
@@ -17,7 +18,7 @@ milestone: M24
 
 # [CARD-483] Only send images from the attachments folder, not any "Local Path" written in a user message
 
-> **Status**: In Review (2026-10-03, branch `feat/card-483-504-attachments-only-and-needs-tool-title`, not merged)
+> **Status**: Done (2026-10-03, merged to qa from `feat/card-483-504-attachments-only-and-needs-tool-title`)
 > **Created**: 2026-09-25
 > **Observed during**: the CARD-475 build.
 > **Related**: CARD-475, CARD-143
