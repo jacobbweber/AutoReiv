@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.44.0] - 2026-10-03
+
 - CARD-471: the Chat options drawer's Compact and View tools buttons work again (Compact shows how many turns it compacted, or that the chat is already compact, and reloads the chat); the tools window closes by X, Close or the backdrop; a click outside the drawer closes it; Escape closes the tools window, then the Quick Prompts picker, then the drawer, without also minimizing the Chat window.
 - CARD-473: coming back to the Chat tab or window (phone or desktop) catches the chat up without a reload: new messages and pending approvals appear, and a reply still running shows busy until it finishes; a tab streaming its own reply is left alone.
 - CARD-616: a job step whose reply ends by asking you something in plain text waits for your answer instead of showing Done (one short yes/no check on the same model, only when the last line ends with '?'; closing offers like 'Anything else?' still finish); when the next step asks after you answer, its question now shows in the chat. vLLM gets enable_thinking=false for that check.
