@@ -61,6 +61,11 @@ class MultiProviderGateway:
         self._generation_pools = GenerationPools(max_concurrent_generations)
         self._capability_resolver: Optional[ModelCapabilityResolver] = None
         self._reply_cap_resolver: Optional[Callable[[], int]] = None
+        self._attachments_dir_resolver: Optional[Callable[[], object]] = None
+
+    def set_attachments_dir_resolver(self, resolver: Callable[[], object]) -> None:
+        """CARD-483: the only folder images may be read from (data root ``attachments/``). Unset: no images."""
+        self._attachments_dir_resolver = resolver
 
     def set_reply_cap_resolver(self, resolver: Callable[[], int]) -> None:
         """CARD-586: where a request without max_tokens gets its cap (Settings > Reply limits max tokens)."""
@@ -97,7 +102,9 @@ class MultiProviderGateway:
     def _prepare_images(self, request: CompletionRequest, *, force_text_only: bool = False):
         """Current-turn images only, and only for vision models [CARD-475, REQ-475-001/002]."""
         can_view = (not force_text_only) and self.capability_resolver.can_view_images(request.model)
-        messages, dropped, attached = prepare_image_turn(request.messages, can_view_images=can_view)
+        messages, dropped, attached = prepare_image_turn(
+            request.messages, can_view_images=can_view, attachments_dir=self._attachments_dir_resolver
+        )
         return request.model_copy(update={"messages": messages}), dropped, attached
 
     @property

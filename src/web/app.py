@@ -509,6 +509,17 @@ def create_app(
 
     if hasattr(gateway, "set_capability_resolver"):
         gateway.set_capability_resolver(ModelCapabilityResolver(settings_getter=store.get_setting))
+    if hasattr(gateway, "set_attachments_dir_resolver"):
+        # CARD-483: images only from the folder /api/chat/upload writes to (routers/chat.get_attachments_dir).
+        def _attachments_dir():
+            paths = getattr(app.state, "data_dir_paths", None)
+            if paths is not None and hasattr(paths, "root"):
+                return Path(paths.root) / "attachments"
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            return Path(DataDirResolver().resolve().root) / "attachments"
+
+        gateway.set_attachments_dir_resolver(_attachments_dir)
     app.state.hw_calc = hw_calc
     app.state.settings_service = settings_service
     app.state.obs_service = obs_service

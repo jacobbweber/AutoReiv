@@ -66,9 +66,11 @@ def store():
     return s
 
 
-def _kernel(store, llm) -> AgentKernel:
+def _kernel(store, llm, attachments_dir=None) -> AgentKernel:
     gw = MultiProviderGateway()
     gw.register_provider(llm)
+    if attachments_dir is not None:
+        gw.set_attachments_dir_resolver(lambda: attachments_dir)  # CARD-483
     gw.set_capability_resolver(ModelCapabilityResolver(settings_getter=lambda k, d=None: d))
     return AgentKernel(
         gateway=gw,
@@ -160,7 +162,7 @@ async def test_stream_turn_forwards_attachment_notice(store, tmp_path):
     )
     content = f"what is this?\n*(Attached Image: `shot.png`, 68 bytes, format: `image/png`, Local Path: `{png}`)*"
     llm = ScriptedLLM()
-    kernel = _kernel(store, llm)
+    kernel = _kernel(store, llm, attachments_dir=tmp_path)
     session = store.create_session(agent_id="general-assistant", title="notice")
     events = [e async for e in kernel.stream_turn(_profile(), session.id, content)]
 
