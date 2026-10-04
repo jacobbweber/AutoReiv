@@ -91,6 +91,8 @@ milestone: M24
 | Needs-tool card has Ask Developer and Dismiss, no Adopt, no runbook section | pass | pass |
 | Skill lesson -> "Skill Proposal: Handle Weather Queries Procedurally" with runbook and Adopt (unchanged) | pass | pass |
 
+Full suite on `8e38342c`: pytest 2460 passed, 12 skipped; preflight GREEN (ruff, eslint, vitest 1032 passed, smoke 79/79 incl. TC-36 desktop and phone).
+
 Screenshots in `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003j\`: `desktop-03`, `desktop-04`, `phone-01`, `phone-02`.
 
 ## 9. Findings

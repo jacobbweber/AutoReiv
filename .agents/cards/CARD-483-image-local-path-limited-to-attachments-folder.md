@@ -72,6 +72,8 @@ Nemotron cannot view images, so the visible signal is the CARD-475 notice: an im
 | UI desktop: attach a photo and send | notice under the message |
 | UI desktop: typed outside path | no notice; the reply says it cannot reach the file |
 
+Full suite on `8e38342c`: pytest 2460 passed, 12 skipped; preflight GREEN (ruff, eslint, vitest 1032 passed, smoke 79/79 incl. TC-36 desktop and phone).
+
 Screenshots in `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\ui1003j\`: `desktop-01`, `desktop-02`, `phone-03`.
 
 ## 5. Findings
