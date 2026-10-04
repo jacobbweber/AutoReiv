@@ -122,7 +122,10 @@ export function setupQuickPromptPicker({
       close();
     });
     doc.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && isOpen()) close();
+      if (e.key === 'Escape' && isOpen()) {
+        e.stopPropagation?.(); // CARD-471: the picker is the topmost layer; the desktop must not minimize Chat
+        close();
+      }
     });
   }
 

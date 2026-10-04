@@ -7,7 +7,7 @@ import { escapeHtml, formatSessionTimestamp } from '../../utils/formatters.js';
 import { sessionActivityMarker } from './session_activity.js'; // CARD-493
 import { $, safeCreateIcons } from '../../dom.js';
 import { copyToClipboard } from '../../utils/clipboard.js';
-import { filterToolsList, formatContextBudgetBadge, querySessionContext } from './stream.js';
+import { filterToolsList, formatContextBudgetBadge, postSessionCompaction, querySessionContext } from './stream.js';
 import { loadJourneyTimeline } from './journey.js';
 import { openObserveJob } from '../observability.js';
 import { setupQuickPromptPicker } from './quick_prompts.js';
@@ -439,8 +439,49 @@ export function closeChatOptionsDrawer(getEl = $) {
   });
 }
 
+/**
+ * Compact the open chat's earlier turns, report it in a toast and reload the messages and context meter
+ * (pre-split chat.js L2757-2790) [CARD-471 REQ-471-001].
+ */
+export async function compactSession(state, {
+  button = null,
+  showToastFn = () => {},
+  postCompactionFn = postSessionCompaction,
+  reloadMessagesFn = async () => {},
+  reloadContextFn = async () => {},
+} = {}) {
+  const sessionId = state.activeSessionId;
+  if (!sessionId) {
+    showToastFn('No active chat session to compact.', 'info');
+    return null;
+  }
+  if (button) button.disabled = true;
+  try {
+    const res = await postCompactionFn(sessionId);
+    if (!res || !res.success) throw new Error((res && res.error) || 'Compaction failed');
+    if (res.compaction_applied) {
+      const saved = Math.max(0, (res.original_tokens || 0) - (res.compacted_tokens || 0));
+      showToastFn(`Compacted ${res.turns_compacted} turns (freed ${saved.toLocaleString()} tokens)`, 'success');
+      await reloadMessagesFn(sessionId);
+    } else {
+      showToastFn('Conversation is already compact. No earlier turns to compress.', 'info');
+    }
+    await reloadContextFn();
+    return res;
+  } catch (err) {
+    showToastFn(err.message || 'Failed to compact context', 'error');
+    return null;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+const isOpenLayer = (el) => Boolean(el) && !el.classList.contains('hidden');
+
 export function setupChatChrome(state, elements = {}, callbacks = {}) {
   const getEl = (key) => elements[key] || $(key);
+  const doc = elements.doc || (typeof document !== 'undefined' ? document : null);
+  const win = elements.win || (typeof window !== 'undefined' ? window : null);
   const chatOptionsToggleBtn = getEl('chatOptionsToggleBtn');
   const chatOptionsDrawer = getEl('chatOptionsDrawer');
   const chatOptionsCloseBtn = getEl('chatOptionsCloseBtn');
@@ -448,10 +489,12 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
   const chatContextTokensBadge = getEl('chatContextTokensBadge');
   const chatContextProgressBar = getEl('chatContextProgressBar');
   const chatToolsCountBadge = getEl('chatToolsCountBadge');
-  const chatCompactBtn = getEl('chatCompactBtn');
-  const chatInspectToolsBtn = getEl('chatInspectToolsBtn');
+  const chatCompactBtn = getEl('chatManualCompactBtn'); // CARD-471: the template's real IDs
+  const chatViewToolsBtn = getEl('chatViewToolsBtn');
   const chatToolsModal = getEl('chatToolsModal');
   const chatToolsModalCloseBtn = getEl('chatToolsModalCloseBtn');
+  const chatToolsModalDismissBtn = getEl('chatToolsModalDismissBtn');
+  const chatPromptsQuickPicker = getEl('chatPromptsQuickPicker');
   const chatToolsModalList = getEl('chatToolsModalList');
   const chatToolsModalTitle = getEl('chatToolsModalTitle');
   const chatToolsModalBadge = getEl('chatToolsModalBadge');
@@ -503,51 +546,79 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
     });
   }
 
+  const refreshContext = () => loadChatSessionContext(state, { chatContextTokensBadge, chatContextProgressBar, chatToolsCountBadge });
+  const closeDrawer = () => toggleChatOptionsDrawer(false, { chatOptionsDrawer, chatOptionsToggleBtn, chatOptionsToggleIcon });
+
+  // CARD-471: Compact and View tools on the real IDs; the tools modal closes by X, Close and backdrop.
   if (chatCompactBtn) {
-    chatCompactBtn.addEventListener('click', async () => {
-      await loadChatSessionContext(state.activeSessionId, {
-        chatContextTokensBadge,
-        chatContextProgressBar,
-        chatToolsCountBadge,
-        isCompact: true,
-        showToastFn: showToast,
+    chatCompactBtn.addEventListener('click', () => compactSession(state, {
+      button: chatCompactBtn,
+      showToastFn: showToast,
+      reloadMessagesFn: callbacks.reloadMessages || (async () => {}),
+      reloadContextFn: refreshContext,
+    }));
+  }
+
+  let toolsContext = null;
+  const renderTools = (filter = '') => renderToolsModal(toolsContext, { chatToolsModalList, filter });
+  const closeToolsModal = () => toggleToolsModal({ chatToolsModal, open: false });
+
+  if (chatViewToolsBtn) {
+    chatViewToolsBtn.addEventListener('click', async () => {
+      toolsContext = await refreshContext();
+      if (chatToolsSearchInput) chatToolsSearchInput.value = '';
+      toggleToolsModal({
+        chatToolsModal, chatToolsModalTitle, chatToolsModalBadge, cachedSessionContext: toolsContext, state,
+        open: true, renderToolsModalFn: () => renderTools(''),
       });
     });
   }
 
-  if (chatInspectToolsBtn) {
-    chatInspectToolsBtn.addEventListener('click', () => {
-      toggleToolsModal(true, {
-        chatToolsModal,
-        chatToolsModalList,
-        chatToolsModalTitle,
-        chatToolsModalBadge,
-        chatToolsSearchInput,
-        state,
-        showToastFn: showToast,
-      });
-    });
-  }
-
-  if (chatToolsModalCloseBtn) {
-    chatToolsModalCloseBtn.addEventListener('click', () => {
-      toggleToolsModal(false, { chatToolsModal });
+  [chatToolsModalCloseBtn, chatToolsModalDismissBtn].forEach((btn) => btn && btn.addEventListener('click', closeToolsModal));
+  if (chatToolsModal) {
+    chatToolsModal.addEventListener('click', (e) => {
+      if (e.target === chatToolsModal) closeToolsModal(); // backdrop
     });
   }
 
   if (chatToolsSearchInput) {
-    chatToolsSearchInput.addEventListener('input', (e) => {
-      renderToolsModal(e.target.value, {
-        chatToolsModalList,
-        chatToolsModalBadge,
-        state,
-        showToastFn: showToast,
-      });
+    chatToolsSearchInput.addEventListener('input', (e) => renderTools(e.target.value));
+  }
+
+  // CARD-471 REQ-471-004: a click outside the open drawer closes it (pre-split L2656-2662).
+  if (doc) {
+    doc.addEventListener('click', (e) => {
+      if (!isOpenLayer(chatOptionsDrawer)) return;
+      const t = e.target;
+      if (!t || t.isConnected === false) return; // a button that re-rendered itself
+      const inside = [chatOptionsDrawer, chatOptionsToggleBtn, chatToolsModal, chatPromptsQuickPicker].some((el) => el && el.contains(t));
+      if (!inside) closeDrawer();
     });
   }
 
+  // CARD-471: Escape closes the topmost layer: tools modal, then picker (closes itself, CARD-469), then drawer.
+  // Capture phase, so the desktop does not also minimize the Chat window.
+  if (win) {
+    win.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (isOpenLayer(chatToolsModal)) {
+        closeToolsModal();
+      } else if (isOpenLayer(chatPromptsQuickPicker)) {
+        return;
+      } else if (isOpenLayer(chatOptionsDrawer)) {
+        const focus = doc && doc.querySelector ? doc.querySelector('[data-desktop-focus]') : null;
+        const focused = focus ? focus.getAttribute('data-desktop-focus') : null;
+        if (focused && focused !== 'chat') return; // another desktop window has the keyboard
+        closeDrawer();
+      } else {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+  }
+
   // Quick Prompts picker on the real template IDs [CARD-152, CARD-469]
-  const closeDrawer = () => toggleChatOptionsDrawer(false, { chatOptionsDrawer, chatOptionsToggleBtn, chatOptionsToggleIcon });
   setupQuickPromptPicker({
     chatPromptsBtn: getEl('chatPromptsBtn'),
     chatPromptsQuickPicker: getEl('chatPromptsQuickPicker'),
