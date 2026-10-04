@@ -51,11 +51,12 @@ A read-only native tool runs without an approval card; a write tool still asks; 
 | Live: re-save the enabled write tool as read_only | PASS | approval disabled, "It no longer asks before each call, so Jacob must enable it again"; managed policy entry removed; invoke 409 |
 | Live: accepted skills | PASS | `c545-weather` safety read_only true / requires_hitl false; `c545-note-save` false / true |
 | Screenshots | PASS | `autoreiv-qa\ui1003l\545-tools-studio-risk-before-*.png` (write asks / read-only runs), `545-tools-studio-risk-after-*.png` (re-saved tool back to Enable) |
+| Live chat, Spark Nemotron (fresh session each) | PASS | "Use the c545_weather tool ... Paris": tool card `c545_weather` Complete, reply "The current temperature in Paris is 18°C.", no approval card, nothing pending. "Use the c545_note_save tool to save the note ""buy milk""": `c545_note_save` Waiting for approval, card with Approve/Reject, `GET /api/approvals/pending` has only `appr_9e7f784c8afa` (c545_note_save, text "buy milk"). Screenshots `545-chat-weather-{desktop,phone}.png`, `545-chat-note-{desktop,phone}.png` |
 
-These checks used the API and UI with no model call (Spark Nemotron returned no token between 12:52 and 1:11 AM ET on 2026-10-04; :8770 was configured for it from the start).
+The rows above used the API and UI with no model call (Spark Nemotron returned no token between 12:52 and 1:11 AM ET on 2026-10-04). The live chat row below used Spark Nemotron (`nemotron-3.5-lightning`), set on :8770 from the start, at 3:30 PM ET the same day.
 
 ## Findings
-- None new.
+- Seen, not filed: the approval card lists the internal `_tool_call_id` with the tool arguments. This is in the shared approval card and was not changed by this card.
 
 ## Release note
 A tool the Developer builds now declares what it does. A read-only tool runs without asking once you enable it; tools that write, send data out or delete still ask before each call. Your tool policy still overrides.
