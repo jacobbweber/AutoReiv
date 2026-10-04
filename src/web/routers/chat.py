@@ -179,12 +179,18 @@ def format_prompt_with_attachments(
     *,
     char_budget: Optional[int] = None,
     direct: bool = False,
+    attachments_dir: Any = None,
 ) -> str:
-    """Format user prompt together with uploaded media and file attachments [CARD-143, CARD-479]."""
+    """Format user prompt together with uploaded media and file attachments [CARD-143, CARD-479].
+
+    CARD-625: documents and text files are read only from ``attachments_dir`` (the upload folder);
+    without it they are not read.
+    """
     from src.application.gateway.attachment_text import MIN_BUDGET_CHARS, build_attachment_prompt
 
     return build_attachment_prompt(
-        content, attachments, char_budget=char_budget or MIN_BUDGET_CHARS, direct=direct
+        content, attachments, char_budget=char_budget or MIN_BUDGET_CHARS, direct=direct,
+        attachments_dir=attachments_dir,
     ).text
 
 
@@ -2009,6 +2015,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     req.attachments,
                     char_budget=attachment_char_budget(resolve_agent_context_limit(profile, store)) if req.attachments else 0,
                     direct=req.agent_id == "direct",
+                    # CARD-625: documents and text files only from the folder /api/chat/upload writes to.
+                    attachments_dir=(lambda: get_attachments_dir(request)) if req.attachments else None,
                 )
                 effective_content = built.text
                 for failure in built.failures:  # REQ-479-003: the user is told too

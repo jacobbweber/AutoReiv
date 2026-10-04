@@ -10,13 +10,23 @@ file size, and Direct mode (no tools) gets the content itself instead of a note 
   rest was not included.
 * A file that cannot be read is named to the model and returned in ``failures`` so the chat can
   tell the user (REQ-479-003).
+
+CARD-625: a document or text file is only read when its path resolves inside the data root's
+``attachments/`` folder (where ``/api/chat/upload`` writes), with the same check images use
+(CARD-483, ``inside_attachments_dir``). Any other path, including a forged ``path`` in the chat
+request, is "not an uploaded file": nothing is read and the path is not repeated to the model.
+An unknown folder reads nothing (fail closed). Callers in ``src`` always pass ``attachments_dir``;
+leaving it out (only the CARD-479 unit tests do) skips the folder check.
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+from src.application.gateway.attachment_images import AttachmentsDir, _resolve_root, inside_attachments_dir
 
 CHARS_PER_TOKEN = 4
 CONTEXT_SHARE = 0.25
@@ -31,6 +41,10 @@ AGENT_NOTE = (
     "`read_document_file` or filesystem tools if needed.)*"
 )
 DIRECT_NOTE = "*(The user attached the files above. Their text is included here; there are no tools in this chat.)*"
+
+NOT_UPLOADED = "not an uploaded file"
+MISSING = "the uploaded file is missing"
+_UNCHECKED: Any = object()  # no folder given: CARD-479 unit tests only (see module note)
 
 
 def attachment_char_budget(context_tokens: Optional[int]) -> int:
@@ -60,6 +74,26 @@ def _extract(path: str, is_doc: bool) -> str:
     return Path(path).read_text(encoding="utf-8", errors="replace")
 
 
+def _lexically_inside(path: str, root: Optional[str]) -> bool:
+    try:
+        lexical = os.path.normcase(str(Path(path).resolve(strict=False)))
+        return bool(root) and os.path.commonpath([lexical, root]) == root
+    except (OSError, ValueError, RuntimeError):
+        return False
+
+
+def _readable_path(local_path: str, root: Optional[str], checked: bool) -> Tuple[Optional[str], Optional[str]]:
+    """``(path to read, None)`` or ``(None, reason)``; only uploads are read when ``checked`` [CARD-625]."""
+    if not checked:
+        return (local_path, None) if local_path and Path(local_path).exists() else (None, MISSING)
+    found = inside_attachments_dir(local_path, root) if local_path else None
+    if found is not None and found.is_file():
+        return str(found), None
+    if local_path and _lexically_inside(local_path, root):
+        return None, MISSING  # an upload that is gone
+    return None, NOT_UPLOADED  # never says whether an outside file exists
+
+
 def _cut(text: str, share: int, direct: bool) -> str:
     if len(text) <= share:
         return text
@@ -73,10 +107,13 @@ def build_attachment_prompt(
     *,
     char_budget: int = MIN_BUDGET_CHARS,
     direct: bool = False,
+    attachments_dir: AttachmentsDir = _UNCHECKED,
 ) -> AttachmentPrompt:
     text = (content or "").strip()
     if not attachments:
         return AttachmentPrompt(text)
+    checked = attachments_dir is not _UNCHECKED
+    root = _resolve_root(attachments_dir) if checked else None
 
     readable = [
         a for a in attachments
@@ -98,14 +135,19 @@ def build_attachment_prompt(
             )
             continue
         is_doc = str(fname).lower().endswith(DOC_SUFFIXES)
+        read_path, reason = _readable_path(local_path, root, checked)
+        if reason == NOT_UPLOADED:  # REQ-625-001: nothing read, and the forged path is not repeated
+            blocks.append(f"\U0001F4CE {fname}\n\n*(Could not read `{fname}`: {NOT_UPLOADED}.)*")
+            failures.append(f"Couldn't read `{fname}`: {NOT_UPLOADED}.")
+            continue
         if is_doc:
             block = f"\U0001F4C4 [{fname} ({size} bytes)]({url})\n*(Attached Document: `{fname}`, {size} bytes, Local Path: `{local_path}`)*"
         else:
             block = f"\U0001F4CE [{fname} ({size} bytes)]({url}) (Local Path: `{local_path}`)"
         try:
-            if not local_path or not Path(local_path).exists():
-                raise FileNotFoundError("the uploaded file is missing")
-            body = _extract(local_path, is_doc)
+            if read_path is None:
+                raise FileNotFoundError(reason)
+            body = _extract(read_path, is_doc)
             if body.strip():
                 body = _cut(body, share, direct)
                 block += f"\n\n**Document Content:**\n{body}" if is_doc else f"\n```\n{body}\n```"
