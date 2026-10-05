@@ -24,6 +24,7 @@ import {
   describeMcpSaveNotice,
   renderMcpServerListMarkup,
   serverToSaveBody,
+  formatMcpCommandText,
 } from './tools_studio_catalog.js';
 import { mountRuntimeTools } from './tools_studio_runtime_tools.js';
 import {
@@ -204,7 +205,7 @@ export function initToolsStudio(_state, callbacks = {}) {
     const transport = server.transport || (server.url ? 'sse' : 'stdio');
     if (transportEl) transportEl.value = transport === 'sse' ? 'sse' : 'stdio';
     if (commandEl) {
-      commandEl.value = Array.isArray(server.command) ? server.command.join(' ') : String(server.command || '');
+      commandEl.value = formatMcpCommandText(server.command); // CARD-627: quotes keep spaces
     }
     if (urlEl) urlEl.value = server.url || '';
     if (headersEl) headersEl.value = server.headers ? JSON.stringify(server.headers) : '';

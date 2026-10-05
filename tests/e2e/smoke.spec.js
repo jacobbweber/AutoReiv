@@ -870,6 +870,66 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+  // CARD-627: a saved MCP command with a spaced argument survives Disable → Enable → Test without being re-split.
+  test('TC-54 (desktop): MCP command with spaced -c arg survives Disable, Enable and Test [CARD-627]', async ({ page }) => {
+    const CMD = ['python', '-c', 'import nonexistent_card627_mod'];
+    let stored = {
+      name: 'c627',
+      enabled: true,
+      is_mounted: false,
+      tool_count: 0,
+      tools: [],
+      transport: 'stdio',
+      command: CMD.slice(),
+      env: {},
+      headers: null,
+      last_error: null,
+    };
+    const saves = [];
+    const tests = [];
+    await page.route('**/api/settings/mcp', async (route) => {
+      const req = route.request();
+      if (req.method() === 'GET') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([stored]) });
+      }
+      if (req.method() === 'POST') {
+        const body = req.postDataJSON();
+        saves.push(body);
+        stored = { ...stored, ...body, command: Array.isArray(body.command) ? body.command : stored.command, is_mounted: false, tool_count: 0, tools: [] };
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'ok', ...stored }) });
+      }
+      return route.continue();
+    });
+    await page.route('**/api/settings/mcp/test', async (route) => {
+      const body = route.request().postDataJSON();
+      tests.push(body);
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'error', error: "ModuleNotFoundError: No module named 'nonexistent_card627_mod'", latency_ms: 12 }),
+      });
+    });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-tools-studio').click();
+    await expect(page.locator('#view-tools-studio')).toBeVisible({ timeout: 20000 });
+    // Scope platform MCP list
+    const row = page.locator('#toolsStudioMcpList [data-testid="tools-studio-mcp-row"][data-server-name="c627"]');
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await row.locator('[data-action="toggle"]').click();
+    await expect.poll(() => saves.length).toBe(1);
+    expect(saves[0].command).toEqual(CMD);
+    expect(saves[0].enabled).toBe(false);
+    await row.locator('[data-action="toggle"]').click();
+    await expect.poll(() => saves.length).toBe(2);
+    expect(saves[1].command).toEqual(CMD);
+    expect(saves[1].enabled).toBe(true);
+    await row.locator('[data-action="test-saved"]').click();
+    await expect.poll(() => tests.length).toBe(1);
+    expect(tests[0].command).toEqual(CMD);
+    await expect(page.locator('#toolsStudioMcpTestResult')).toContainText('nonexistent_card627_mod');
+  });
+
   // CARD-624: a toast's centre must hit-test to the toast, not a dock icon.
   test('TC-53 (desktop): toast centre is above the dock [CARD-624]', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 640 });
