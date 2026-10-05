@@ -79,22 +79,21 @@ def scheduler(store, tmp_path):
 
 @pytest.mark.asyncio
 async def test_scheduler_bootstrap_defaults(store, scheduler):
-    # Seed default Day-1 routines
-    RoutineScheduler.seed_default_routines(store)
+    # CARD-636: the single shared seed creates the five shipped routines
+    from src.application.routines.seed import seed_builtin_routines
+
+    seed_builtin_routines(store)
 
     routines = store.list_routines()
-    assert len(routines) == 10
-    ids = [r.id for r in routines]
-    assert "morning-briefing" in ids
-    assert "daily-sysinfo" in ids
-    assert "nightly-hygiene" in ids
-    assert "hourly-sre-pulse" in ids
-    assert "weekly-note-rollover" in ids
-    assert "skill-eval-sleep" in ids
-    assert "skill-curator" in ids
-    assert "wiki-curation" in ids
-    assert "education-retrieval-retention" in ids
-    assert "telemetry-friction-auditor" in ids
+    assert len(routines) == 5
+    assert {r.id for r in routines} == {
+        "hourly-sre-pulse",
+        "education-retrieval-retention",
+        "wiki-curation",
+        "weekly-note-rollover",
+        "telemetry-friction-auditor",
+    }
+    assert all(r.next_run_at is not None for r in routines)
 
 
 

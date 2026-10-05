@@ -25,9 +25,8 @@ from src.application.skills.skill_curator import (
 from src.application.skills.user_catalog import ARCHIVE_DIRNAME, UserSkillCatalog
 from src.domain.routines.manifests import (
     BUILTIN_ROUTINES,
-    SKILL_CURATOR_ROUTINE,
-    SKILL_EVAL_SLEEP_ROUTINE,
-    get_builtin_routine,
+    REMOVED_BUILTIN_ROUTINE_IDS,
+    TELEMETRY_FRICTION_AUDITOR_ROUTINE,
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
@@ -200,7 +199,7 @@ def test_auto_archive_default_is_not_destructive(env):
     assert result["auto_archive"] is False
     assert result["archived_count"] == 0
     assert (env["skills"] / "old-experiment" / "SKILL.md").is_file()
-    hooked = maybe_curate_from_routine(env["catalog"], SKILL_EVAL_SLEEP_ROUTINE, now=env["now"])
+    hooked = maybe_curate_from_routine(env["catalog"], TELEMETRY_FRICTION_AUDITOR_ROUTINE, now=env["now"])
     assert hooked.get("auto_archive") is False
     assert hooked.get("archived_count", 0) == 0
     assert (env["skills"] / "old-experiment" / "SKILL.md").is_file()
@@ -269,7 +268,7 @@ def test_skill_eval_sleep_default_does_not_archive(env):
     result = run_skill_eval_job(
         env["store"],
         env["data_dir"],
-        routine=SKILL_EVAL_SLEEP_ROUTINE,
+        routine=TELEMETRY_FRICTION_AUDITOR_ROUTINE,
         now=env["now"],
         catalog=env["catalog"],
     )
@@ -279,18 +278,11 @@ def test_skill_eval_sleep_default_does_not_archive(env):
     assert curator.get("archived_count", 0) == 0
 
 
-def test_skill_curator_routine_is_paused_sibling():
-    assert SKILL_CURATOR_ROUTINE in BUILTIN_ROUTINES
-    assert SKILL_CURATOR_ROUTINE.enabled is False
-    assert SKILL_CURATOR_ROUTINE.agent_id == "developer"
-    assert SKILL_CURATOR_ROUTINE.id == ROUTINE_ID
-    assert SKILL_CURATOR_ROUTINE.metadata.get("auto_archive") is True
-    assert SKILL_CURATOR_ROUTINE.metadata.get("stale_days") == 30
-    assert SKILL_CURATOR_ROUTINE.metadata.get("archive_days") == 90
-    assert SKILL_EVAL_SLEEP_ROUTINE.metadata.get("auto_archive") is False
-    seeded = get_builtin_routine("skill-curator")
-    assert seeded is not None
-    assert seeded.enabled is False
+def test_skill_curator_routine_is_retired_and_host_never_archives():
+    """CARD-636: the paused skill-curator routine is gone; the auditor that hosts skill eval never archives."""
+    assert ROUTINE_ID in REMOVED_BUILTIN_ROUTINE_IDS
+    assert ROUTINE_ID not in {r.id for r in BUILTIN_ROUTINES}
+    assert TELEMETRY_FRICTION_AUDITOR_ROUTINE.metadata.get("auto_archive") is False
 
 
 def test_last_used_uses_mtime_and_sidecar(env):
