@@ -495,8 +495,8 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
   bubble.innerHTML = `
     <div class="${
       isUser
-        ? 'max-w-3xl rounded-2xl p-3.5 md:p-4 shadow-md bg-brand-600 text-white rounded-br-sm border border-brand-500/40'
-        : 'max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm'
+        ? 'min-w-0 max-w-full md:max-w-3xl rounded-2xl p-3.5 md:p-4 shadow-md bg-brand-600 text-white rounded-br-sm border border-brand-500/40'
+        : 'min-w-0 max-w-full md:max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm'
     }">
       <div class="text-xs font-bold uppercase tracking-wider mb-1 opacity-70">
         ${isUser ? 'You' : escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}
