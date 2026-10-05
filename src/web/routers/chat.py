@@ -27,6 +27,7 @@ from src.application.orchestration.external_verifier_policy import (
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
 from src.application.orchestration.kill_resume import job_stopped_by_operator, job_waiting_for_answer
+from src.application.orchestration.operator_answer import operator_answer_note_for_session, prepend_operator_answers
 from src.application.orchestration.phase_roles import (
     format_planning_phase_block,
     format_planning_repo_note,
@@ -2158,6 +2159,15 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                     for p in store.list_phases_for_job(job.id)
                                     if p.status == PhaseStatus.QUEUED
                                 ]
+                                # CARD-619: when this finish was Jacob's answer to a question, keep
+                                # Q&A as a durable note so every later step sees it (ahead of other notes).
+                                answer_notes: List[str] = []
+                                if answer_job is not None and (effective_content or "").strip():
+                                    note = operator_answer_note_for_session(
+                                        store, resume_session, effective_content
+                                    )
+                                    if note:
+                                        answer_notes.append(note)
                                 # CARD-226/229: rebuild memory facts; prior phases as durable notes only.
                                 memory_facts = list(
                                     prior_lines_from_job_memory(
@@ -2181,7 +2191,17 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                         )
                                     )
                                 matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
-                                durable_notes: List[str] = []
+                                # CARD-619: answer notes first, then the finished step's distilled note.
+                                durable_notes: List[str] = prepend_operator_answers([], *answer_notes)
+                                if answer_notes:
+                                    refreshed_answered = store.get_phase(phase.id)
+                                    durable_notes.append(
+                                        distill_durable_note(
+                                            phase_name=phase.name,
+                                            phase_index=phase.index,
+                                            raw_output=refreshed_answered.output_packet_json or "",
+                                        )
+                                    )
                                 for nxt in remaining:
                                     started = orch.start_phase(nxt.id)
                                     bound_skill_id = None

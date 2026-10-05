@@ -2,7 +2,7 @@
 id: CARD-619
 title: "A later job step does not see Jacob's answer to an earlier step's question, so it can ask the same question again"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-619-later-step-sees-the-answer]
   checks: [tests/unit/orchestration/test_card619_answer_reaches_later_steps.py]
 branch: feat/card-619-answer-reaches-later-steps
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 40, qa_runs: 1, findings: 0}
 created: 2026-10-03
+completed: 2026-10-05
 related:
   - CARD-613
   - CARD-616
@@ -19,30 +20,30 @@ related:
 
 # CARD-619 A later job step does not see Jacob's answer to an earlier step's question, so it can ask the same question again
 
+> **Status**: Done (2026-10-05, merged to qa from `feat/card-619-answer-reaches-later-steps`). Found in the CARD-616 live run, 2026-10-03.
+
 ## Problem
-In the CARD-616 live run (2026-10-03, nemotron, job "write a note on my vegetable garden plan; ask me which vegetables first"), Formulate asked "Which vegetables are you growing?", Jacob answered "Tomatoes, peppers and garlic; about 100 words; do not save it", Formulate finished, and then Execute asked the same question again. Jacob had to answer twice.
+Formulate asked which vegetables; Jacob answered with extras ("about 100 words; do not save it"); Execute asked again / lost the extras.
 
-## Cause
-The answer is sent only into the waiting step's own session (`src/web/routers/chat.py`, the answer path that resumes `resume_session`). The next step's assignment carries the job goal (which still says "ask me") and the prior step's durable notes (a truncated copy of Formulate's reply), not the question and Jacob's answer, so the extra instructions in the answer ("do not save it", "about 100 words") are lost too.
-
-## Change
-- When a step that waited for an answer finishes, keep the question and Jacob's answer as one durable line ("Jacob answered <question>: <answer>") and add it to the assignment of every later step of the job, ahead of the prior-phase notes.
-
-## What dies
-Asking Jacob the same question twice in one job; instructions given in an answer being dropped by later steps.
-
-## Proof
-- Journey `card-619-later-step-sees-the-answer`: the vegetable-garden job on nemotron asks once; after the answer the job finishes without a second question and the note follows the answer (about 100 words, not saved).
-- Checks: a later step's assignment includes the earlier question and answer; a job with no question has no such line (negative).
+## Built
+- `operator_answer.py`: `format_operator_answer_note` / `operator_answer_note_for_session` build `Jacob answered <question>: <answer>`.
+- When a waiting step finishes because Jacob answered, that note is seeded into `durable_notes` (ahead of the distilled step note) so every later phase assignment includes it.
 
 ## Plan and decisions
-
-## Findings
-- (from the CARD-616 live run, 2026-10-03; docs/findings.md)
+- Display-time durable note on the resume path (no new DB table). Crash-resume still rebuilds from memory; a follow-up could persist the note into job memory if needed.
+- Engineering only; no product decision.
 
 ## Results
-| Journey | Viewport | Result | Notes |
-|---|---|---|---|
+| Check | Result | Notes |
+|---|---|---|
+| Unit (5) | PASS | note format, question extract, assignment includes note first, negative no note |
+| CARD-616 tests | PASS | unchanged |
+| Full pytest | PASS | 2533 passed / 12 skipped |
+| Release preflight | PASS | GREEN; vitest 1054; smoke 83/83 |
+| Live :8770 Spark Nemotron | PASS | Asked once; after answer wrote ~98-word tomato/pepper/garlic note, no second wait, did not save. Screenshots `sprint1005/619-*.png` |
+
+## Findings
+- None new.
 
 ## Release note
 Once you answer a job's question, later steps of the job know the answer and do not ask again.
