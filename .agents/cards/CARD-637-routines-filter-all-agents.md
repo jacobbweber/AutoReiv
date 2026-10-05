@@ -2,7 +2,7 @@
 id: CARD-637
 title: "Routines Studio Agent filter cannot show All agents; it snaps back to the first agent"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-637-routines-filter-all-agents
 log: {minutes: 25, qa_runs: 3, findings: 1}
 created: 2026-10-05
+completed: 2026-10-05
 related:
   - CARD-635
   - CARD-636
