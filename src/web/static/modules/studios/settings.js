@@ -7,6 +7,7 @@ import { escapeHtml } from '../utils/formatters.js';
 import { renderSettingsMcpStatus } from './tools_studio_catalog.js';
 import { modelVisionCell, wireModelVisionToggles } from './settings_model_vision.js';
 import { setupReplyLimits } from './settings_reply_limits.js'; // CARD-574
+import { setupAllowedOrigins } from './settings_allowed_origins.js'; // CARD-602
 
 export const PRESETS_DEFAULTS = {
   ollama: { url: 'http://127.0.0.1:11434', keyPlaceholder: 'Optional for Local' },
@@ -669,6 +670,7 @@ export function initSettingsStudio(state, callbacks = {}) {
   async function loadSettings() {
     loadDataDir();
     setupReplyLimits(); // CARD-574: reply limits fields
+    setupAllowedOrigins(); // CARD-602: extra browser origins
     loadBackupCatalogAndConfig();
     if (!state.vaultCredentials || state.vaultCredentials.length === 0) {
       await loadCredentials();

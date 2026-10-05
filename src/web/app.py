@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -587,13 +586,21 @@ def create_app(
             orch_state._skill_catalog = _catalog
 
     # 8. Middleware
+    # CARD-602: CORS only for this host / LAN / configured extras (not "*").
+    from src.web.origin_guard import OriginGuardMiddleware, SettingsAwareCORSMiddleware, cors_allow_origin_regex
+
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
+        SettingsAwareCORSMiddleware,
+        store_getter=lambda: store,
+        allow_origins=[],
+        allow_origin_regex=cors_allow_origin_regex(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # CARD-602: mutating requests with a foreign Origin/Referer are rejected (curl with no Origin stays allowed).
+    # Added after CORS so it runs first on the way in.
+    app.add_middleware(OriginGuardMiddleware, store_getter=lambda: store)
 
     @app.middleware("http")
     async def add_cache_control_headers(request: Request, call_next):

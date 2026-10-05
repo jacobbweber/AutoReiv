@@ -1943,6 +1943,24 @@
         <details class="settings-section" data-card="313" data-settings-section="data">
           <summary>Data</summary>
           <div class="settings-section-body">
+
+        <!-- CARD-602: extra browser origins for owner routes -->
+        <div id="settingsAllowedOriginsCard" data-testid="settings-allowed-origins" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="shield" class="w-4 h-4 text-emerald-400"></i>
+            <span>Allowed browser origins</span>
+          </h3>
+          <p class="text-xs text-slate-400">This PC and your LAN (127.0.0.1, 192.168.x.x) can already open AutoReiv. Add one extra origin per line only when a phone or reverse proxy uses a different address. Other websites cannot call AutoReiv. Leave empty for none.</p>
+          <label class="block">
+            <span class="text-xs font-semibold text-slate-300 block mb-1">Extra origins (one per line)</span>
+            <textarea id="allowedOriginsInput" rows="3" placeholder="https://phone.example:8443" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500"></textarea>
+          </label>
+          <div class="flex items-center gap-3">
+            <button type="button" id="allowedOriginsSaveBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save allowed origins</button>
+            <span id="allowedOriginsStatus" class="text-[11px] text-slate-400"></span>
+          </div>
+        </div>
+
         <!-- Data Directory -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <h3 class="text-sm font-bold text-white flex items-center space-x-2">
@@ -4455,7 +4473,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.108"></script>
+  <script type="module" src="/static/app.js?v=2.0.109"></script>
 </body>
 </html>
 
