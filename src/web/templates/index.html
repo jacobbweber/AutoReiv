@@ -141,7 +141,7 @@
 
       <!-- CARD-296: sessions live in Chat in-studio drawer; sidebar keeps studio nav only -->
       <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
-        <p class="text-[11px] text-slate-500 leading-relaxed">Open Chat → Sessions (panel) for New Conversation and recent chats. Agent picker lives in Chat.</p>
+        <p class="text-[11px] text-slate-500 leading-relaxed">Open Chat → + Options for New chat; Sessions (panel) for recent chats. Agent picker lives in Chat.</p>
       </div>
 
       <!-- Studio Tabs (Pinned at the bottom with consistent sizes) [REQ-SURFACE-005] -->
@@ -372,17 +372,13 @@
             <div class="px-3 py-2.5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
               <div>
                 <h3 class="text-xs font-bold text-white">Sessions</h3>
-                <p class="text-[10px] text-slate-500 font-mono">New + recent</p>
+                <p class="text-[10px] text-slate-500 font-mono">Recent</p>
               </div>
               <button type="button" id="chatSessionsDrawerCloseBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close sessions" aria-label="Close sessions drawer">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
             <div class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
-              <button id="newChatBtn" type="button" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition flex-shrink-0">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                <span>New Conversation</span>
-              </button>
               <div class="flex items-center justify-between pt-1 flex-shrink-0">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
               </div>
@@ -430,6 +426,15 @@
                     </div>
                     <button type="button" id="chatOptionsCloseBtn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close Options">
                       <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+
+                  <!-- CARD-466: New chat under + Options -->
+                  <div data-card="466">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Conversation</span>
+                    <button id="newChatBtn" type="button" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition">
+                      <i data-lucide="plus" class="w-4 h-4"></i>
+                      <span>New chat</span>
                     </button>
                   </div>
 
@@ -4473,7 +4478,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed right-4 z-[11000] bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0" data-card-624="above-dock"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.120"></script>
+  <script type="module" src="/static/app.js?v=2.0.121"></script>
 </body>
 </html>
 

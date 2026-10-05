@@ -38,13 +38,17 @@ describe('CARD-296 DOM contract — one agent picker + in-studio sessions drawer
     expect(drawerSlice).not.toMatch(/Active Agent/i);
   });
 
-  it('sessions control is an in-studio left drawer with New Conversation + recent only', () => {
+  it('sessions control is an in-studio left drawer with recent chats only (New chat is under + Options) [CARD-466]', () => {
     expect(html).toContain('id="chatSessionsDrawer"');
-    expect(html).toContain('id="newChatBtn"');
-    expect(html).toContain('New Conversation');
     expect(html).toContain('id="sessionList"');
     expect(html).toContain('id="toggleSidebarBtn"');
     expect(html).toContain('id="chatSessionsDrawerCloseBtn"');
+    const start = html.indexOf('id="chatSessionsDrawer"');
+    const end = html.indexOf('</aside>', start);
+    const drawerSlice = html.slice(start, end);
+    expect(drawerSlice).not.toContain('id="newChatBtn"');
+    expect(drawerSlice).not.toContain('New Conversation');
+    expect(drawerSlice).toContain('Recent');
   });
 
   it('removes Sessions as a dedicated dock launcher', () => {
