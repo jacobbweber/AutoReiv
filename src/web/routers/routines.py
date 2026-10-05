@@ -31,6 +31,17 @@ class RoutinePayload(BaseModel):
 router = APIRouter(tags=["Routines"])
 
 
+def _recompute_next_run(store, routine_id: str) -> None:
+    """CARD-635: enabling a routine schedules its next slot from now."""
+    from src.application.routines.matcher import ScheduleMatcher
+
+    routine = store.get_routine(routine_id)
+    if routine is None:
+        return
+    routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
+    store.save_routine(routine)
+
+
 @router.get("/api/routines")
 async def list_routines(request: Request, agent_id: Optional[str] = None):
     from src.application.routines.humanizer import compute_next_run_eta, cron_to_human
@@ -167,6 +178,16 @@ async def update_routine(request: Request, routine_id: str, payload: RoutinePayl
         if cron:
             routine.cron_expression = cron
         routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
+    elif routine.enabled and (
+        not existing.enabled
+        or routine.schedule_type != existing.schedule_type
+        or routine.interval_seconds != existing.interval_seconds
+        or routine.cron_expression != existing.cron_expression
+    ):
+        # CARD-635: resumed or rescheduled -> next slot from now, never the stale one.
+        from src.application.routines.matcher import ScheduleMatcher
+
+        routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
 
     store.save_routine(routine)
     return {"status": "updated", "routine": routine.model_dump(mode="json")}
@@ -178,6 +199,8 @@ async def toggle_routine(request: Request, routine_id: str):
     new_state = store.toggle_routine(routine_id)
     if new_state is None:
         raise HTTPException(status_code=404, detail=f"Routine '{routine_id}' not found")
+    if new_state:
+        _recompute_next_run(store, routine_id)  # CARD-635: a stale slot never fires on resume
     return {"status": "toggled", "id": routine_id, "enabled": new_state}
 
 

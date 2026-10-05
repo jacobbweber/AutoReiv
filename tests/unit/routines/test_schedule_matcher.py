@@ -19,7 +19,8 @@ def test_disabled_routine_is_not_due():
     assert ScheduleMatcher.is_routine_due(r) is False
 
 
-def test_first_time_routine_is_due():
+def test_first_time_routine_is_not_due_until_scheduled():
+    """CARD-635: no 'never ran so it's due' fallback; the scheduler computes next_run_at first."""
     r = Routine(
         id="r-first",
         name="First Time",
@@ -28,7 +29,7 @@ def test_first_time_routine_is_due():
         enabled=True,
         last_run_at=None,
     )
-    assert ScheduleMatcher.is_routine_due(r) is True
+    assert ScheduleMatcher.is_routine_due(r) is False
 
 
 def test_interval_schedule_evaluation():
@@ -43,10 +44,11 @@ def test_interval_schedule_evaluation():
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
         last_run_at=now - timedelta(minutes=30),
+        next_run_at=now + timedelta(minutes=30),
     )
     assert ScheduleMatcher.is_routine_due(r1, current_time=now) is False
 
-    # Run 65 minutes ago with 1 hour interval -> Due
+    # Slot 5 minutes ago (inside the CARD-635 grace window) -> Due
     r2 = Routine(
         id="r-int2",
         name="Interval 1hr Due",
@@ -55,6 +57,7 @@ def test_interval_schedule_evaluation():
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
         last_run_at=now - timedelta(minutes=65),
+        next_run_at=now - timedelta(minutes=5),
     )
     assert ScheduleMatcher.is_routine_due(r2, current_time=now) is True
 

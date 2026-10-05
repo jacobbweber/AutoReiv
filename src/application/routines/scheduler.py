@@ -4,7 +4,8 @@ Routine Scheduler & Background Execution Loop [REQ-ROUTINE-003, REQ-ROUTINE-004]
 
 import asyncio
 import logging
-from typing import List
+from datetime import datetime, timezone
+from typing import List, Optional
 
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.matcher import ScheduleMatcher
@@ -36,10 +37,37 @@ class RoutineScheduler:
     def is_running(self) -> bool:
         return self._running
 
+    def skip_missed_runs(self, now: Optional[datetime] = None, *, reason: str = "on tick") -> List[str]:
+        """
+        Move every enabled routine with no next run, or a slot past the grace window,
+        to its next scheduled time without running it [CARD-635]. Returns skipped ids.
+        """
+        now = now or datetime.now(timezone.utc)
+        skipped: List[str] = []
+        for routine in self.state_store.list_routines(enabled_only=True):
+            if not ScheduleMatcher.needs_reschedule(routine, now):
+                continue
+            was = routine.next_run_at
+            routine.next_run_at = ScheduleMatcher.compute_next_run(routine, base_time=now)
+            self.state_store.save_routine(routine)
+            if was is None:
+                logger.info(
+                    "Routine '%s' had no next run; scheduled for %s (%s).",
+                    routine.id, routine.next_run_at.isoformat(), reason,
+                )
+            else:
+                skipped.append(routine.id)
+                logger.info(
+                    "Routine '%s' skipped missed run due %s (%s); next run %s.",
+                    routine.id, was.isoformat(), reason, routine.next_run_at.isoformat(),
+                )
+        return skipped
+
     async def tick(self) -> List[RoutineRun]:
         """
-        Evaluate all enabled routines and execute any that are due.
+        Skip missed runs, then execute enabled routines whose slot is now [CARD-635].
         """
+        self.skip_missed_runs(reason="on tick")
         enabled_routines = self.state_store.list_routines(enabled_only=True)
         executed_runs: List[RoutineRun] = []
 
@@ -59,6 +87,11 @@ class RoutineScheduler:
         """
         self._running = True
         logger.info("RoutineScheduler started.")
+        try:
+            # CARD-635: nothing fires because the app started; missed slots move to the next time.
+            self.skip_missed_runs(reason="at start")
+        except Exception as e:
+            logger.error(f"Error skipping missed runs at start: {e}", exc_info=True)
         while self._running:
             try:
                 await self.tick()

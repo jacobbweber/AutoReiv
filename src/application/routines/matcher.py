@@ -7,6 +7,9 @@ from typing import Optional
 
 from src.domain.routines.models import Routine, ScheduleType
 
+# CARD-635: a run more than this late is skipped (never caught up) and rescheduled.
+MISSED_RUN_GRACE = timedelta(minutes=30)
+
 
 def _try_zoneinfo(name: str):
     try:
@@ -74,8 +77,6 @@ def uses_local_clock(routine: Routine) -> bool:
 def compute_next_local_weekday_run(
     routine: Routine,
     base_time: datetime,
-    *,
-    inclusive: bool = False,
 ) -> datetime:
     """
     Next weekday local_time in routine.metadata timezone, stored as UTC.
@@ -91,8 +92,7 @@ def compute_next_local_weekday_run(
     now = base_time if base_time.tzinfo else base_time.replace(tzinfo=timezone.utc)
     local_now = to_local(now, tz_name)
     cand = local_now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    past = local_now > cand if inclusive else local_now >= cand
-    if past:
+    if local_now >= cand:
         cand = cand + timedelta(days=1)
     if weekdays_only:
         while cand.weekday() >= 5:
@@ -173,14 +173,12 @@ def _rule_matches_local_day(rule: dict, local_dt: datetime) -> bool:
 def compute_next_from_schedule_rule(
     rule: dict,
     base_time: datetime,
-    *,
-    inclusive: bool = False,
 ) -> datetime:
     """Next fire from structured schedule_rule (UTC instant)."""
     explicit_tz = str(rule.get("timezone") or "").strip()
     if not explicit_tz:
         from src.domain.routines.schedule_rule import compute_next_structured_run
-        nxt = compute_next_structured_run(rule, base_time=base_time, inclusive=inclusive)
+        nxt = compute_next_structured_run(rule, base_time=base_time, inclusive=False)
         if nxt is not None:
             return nxt
 
@@ -190,8 +188,7 @@ def compute_next_from_schedule_rule(
     now = base_time if base_time.tzinfo else base_time.replace(tzinfo=timezone.utc)
     local_now = to_local(now, tz_name)
     start = local_now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    past = local_now > start if inclusive else local_now >= start
-    if past:
+    if local_now >= start:
         start = start + timedelta(days=1)
         start = start.replace(hour=hour, minute=minute, second=0, microsecond=0)
     for _ in range(400):
@@ -200,6 +197,10 @@ def compute_next_from_schedule_rule(
         start = (start + timedelta(days=1)).replace(hour=hour, minute=minute, second=0, microsecond=0)
     # fallback: one day later
     return from_local_civil(start, tz_name)
+
+
+def _aware(dt: datetime) -> datetime:
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
 class ScheduleMatcher:
@@ -212,44 +213,36 @@ class ScheduleMatcher:
         cls,
         routine: Routine,
         current_time: Optional[datetime] = None,
+        *,
+        grace: timedelta = MISSED_RUN_GRACE,
     ) -> bool:
-        """Check if a routine is ready to be executed."""
+        """
+        Due only from next_run_at until next_run_at + grace [CARD-635].
+
+        No next_run_at is never due (the scheduler computes one first), and a slot more
+        than ``grace`` in the past is a missed run: skipped, never caught up.
+        """
+        if not routine.enabled or routine.next_run_at is None:
+            return False
+        now = _aware(current_time or datetime.now(timezone.utc))
+        nxt = _aware(routine.next_run_at)
+        return nxt <= now <= nxt + grace
+
+    @classmethod
+    def needs_reschedule(
+        cls,
+        routine: Routine,
+        current_time: Optional[datetime] = None,
+        *,
+        grace: timedelta = MISSED_RUN_GRACE,
+    ) -> bool:
+        """Enabled routine with no next_run_at, or whose slot passed more than ``grace`` ago [CARD-635]."""
         if not routine.enabled:
             return False
-
-        now = current_time or datetime.now(timezone.utc)
-        if now.tzinfo is None:
-            now = now.replace(tzinfo=timezone.utc)
-
-        if routine.next_run_at is not None:
-            nxt = routine.next_run_at
-            if nxt.tzinfo is None:
-                nxt = nxt.replace(tzinfo=timezone.utc)
-            return now >= nxt
-
-        rule = get_schedule_rule(routine)
-        if rule is not None:
-            slot = compute_next_from_schedule_rule(rule, now, inclusive=True)
-            return now >= slot
-
-        if uses_local_clock(routine):
-            slot = compute_next_local_weekday_run(routine, now, inclusive=True)
-            return now >= slot
-
-        if routine.schedule_type == ScheduleType.CRON:
-            if routine.last_run_at is None:
-                return False
-            elapsed = (now - routine.last_run_at).total_seconds()
-            return elapsed >= (routine.interval_seconds or 3600)
-
-        if routine.last_run_at is None:
+        if routine.next_run_at is None:
             return True
-
-        if routine.schedule_type == ScheduleType.INTERVAL:
-            elapsed = (now - routine.last_run_at).total_seconds()
-            return elapsed >= routine.interval_seconds
-
-        return False
+        now = _aware(current_time or datetime.now(timezone.utc))
+        return now > _aware(routine.next_run_at) + grace
 
     @classmethod
     def compute_next_run(
@@ -264,10 +257,10 @@ class ScheduleMatcher:
 
         rule = get_schedule_rule(routine)
         if rule is not None:
-            return compute_next_from_schedule_rule(rule, now, inclusive=False)
+            return compute_next_from_schedule_rule(rule, now)
 
         if uses_local_clock(routine):
-            return compute_next_local_weekday_run(routine, now, inclusive=False)
+            return compute_next_local_weekday_run(routine, now)
 
         if routine.schedule_type == ScheduleType.CRON and routine.cron_expression:
             from src.application.routines.humanizer import compute_next_run_eta

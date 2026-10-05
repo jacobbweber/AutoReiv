@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- CARD-635: routines fire only at their scheduled time: a run missed while the app was closed, asleep or more than 30 minutes late is skipped and logged instead of caught up at start-up, a failed run waits for its next slot instead of retrying every 10 seconds, and resuming a paused routine schedules it from now.
+
 ## [0.45.0] - 2026-10-05
 
 - CARD-634: Projects Studio lists live QA journey runs and opens their summaries and screenshots.
