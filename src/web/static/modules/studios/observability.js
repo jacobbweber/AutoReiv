@@ -882,15 +882,17 @@ export function renderFrictionRecommendations(recs) {
 
     return `
       <div class="p-3.5 rounded-xl bg-[#12151e]/90 border border-white/[0.08] space-y-2 shadow-sm" data-rec-id="${escapeHtml(r.id)}">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div class="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-            <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border whitespace-nowrap ${badgeColor}">${escapeHtml(r.friction_type)}</span>
-            ${remedyBadge}
-            <span class="friction-rec-summary text-xs font-bold text-white basis-full min-w-0">${escapeHtml(r.summary)}</span>
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 flex-wrap min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border whitespace-nowrap ${badgeColor}">${escapeHtml(r.friction_type)}</span>
+              ${remedyBadge}
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+              ${actions}
+            </div>
           </div>
-          <div class="flex items-center space-x-2 shrink-0">
-            ${actions}
-          </div>
+          <div class="friction-rec-summary text-xs font-bold text-white w-full min-w-0">${escapeHtml(r.summary)}</div>
         </div>
         <div class="text-xs text-slate-300 font-mono bg-black/40 p-2.5 rounded-lg border border-white/[0.04] whitespace-pre-wrap">${escapeHtml(r.proposed_patch)}</div>
         <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">

@@ -48,7 +48,7 @@ describe('CARD-629 friction phone header', () => {
     const { renderFrictionRecommendations } = await import('../../../src/web/static/modules/studios/observability.js');
     renderFrictionRecommendations(RECS);
     expect(list.innerHTML).toContain('friction-rec-summary');
-    expect(list.innerHTML).toContain('basis-full');
+    expect(list.innerHTML).toContain('w-full');
     const summaries = (list.innerHTML.match(/friction-rec-summary/g) || []).length;
     expect(summaries).toBe(3);
     expect(list.innerHTML).toContain('whitespace-nowrap');
@@ -56,5 +56,6 @@ describe('CARD-629 friction phone header', () => {
     expect(list.innerHTML).toContain('Needs a tool');
     expect(list.innerHTML).toContain('Runbook SOP Patch');
     expect(list.innerHTML).toMatch(/whitespace-nowrap[\s\S]*friction-rec-summary/);
+    expect(list.innerHTML).toContain('friction-rec-summary text-xs font-bold text-white w-full');
   });
 });
