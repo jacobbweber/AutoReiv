@@ -2,7 +2,7 @@
 id: CARD-635
 title: "Routines fire only at their scheduled time; missed runs are skipped"
 type: bug
-status: In Progress
+status: In Review
 priority: P1
 milestone: M25
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-635-routines-fire-on-schedule]
   checks: [tests/unit/routines/test_card635_fire_on_schedule.py, tests/unit/routines/test_schedule_matcher.py, tests/unit/routines/test_routine_scheduler.py]
 branch: feat/card-635-routines-fire-on-schedule
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 50, qa_runs: 5, findings: 1}
 created: 2026-10-05
 related:
   - CARD-636
@@ -51,10 +51,20 @@ Jacob's routines run when the app starts, not at their time. On 2026-10-05 all 7
 ## Findings
 - (fixed) retry storm on failure; stale slot fires on resume.
 - (CARD-636) built-ins still use INTERVAL/UTC cron and come back after delete.
+- (CARD-637, Ready) Routines Studio Agent filter cannot keep "All agents": `resolvePickerSelection` drops the `''` fallback and snaps to the first agent (Architect), hiding Jacob's autoreiv/tutor routines. The journey filters by autoreiv instead.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-635-routines-fire-on-schedule | desktop | pass | live_qa :8770, Spark nemotron endpoint check; routine never fired in 25 s, next run +1 h; missing-agent run failed once, no re-fire in 22 s |
+| card-635-routines-fire-on-schedule | phone | pass | same; pause/resume in Studio rescheduled from now |
+| preflight --release | - | GREEN | ruff, eslint, pytest 2566 passed, vitest 1084, smoke 86 |
+| preflight --fast --base qa | - | GREEN | guard 188, changed 25, mapped 44 |
+
+Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\sprint1005\card-635\`
+- `card-635-routines-fire-on-schedule-desktop-01-a-new-enabled-routine-waits-for-its-scheduled-ti.png`
+- `card-635-routines-fire-on-schedule-desktop-03-pausing-and-resuming-a-routine-in-routines-studi.png`
+- `card-635-routines-fire-on-schedule-phone-03-pausing-and-resuming-a-routine-in-routines-studi.png`
 
 ## Release note
 Routines fire only at their scheduled time: missed runs (app closed, asleep, more than 30 minutes late) are skipped and logged instead of caught up at start-up, a failed run waits for its next slot instead of retrying every 10 seconds, and resuming a paused routine schedules it from now.
