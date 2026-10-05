@@ -1,7 +1,8 @@
 ---
 id: CARD-542
 title: "Own-skill search when an agent ticks more than 20 skills (ADR-0061 D9)"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-26
 branch: qa
 related:
@@ -16,7 +17,7 @@ milestone: Horizon
 
 # [CARD-542] Own-skill search when an agent ticks more than 20 skills (ADR-0061 D9)
 
-> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Related**: CARD-539 (ADR-0061)
 > **Labels**: `type:feature`, `area:agents`, `P3`
 

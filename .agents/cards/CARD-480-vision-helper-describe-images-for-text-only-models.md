@@ -1,7 +1,8 @@
 ---
 id: CARD-480
 title: "Vision helper: describe images with a configured vision model when the chat model is text-only"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-25
 branch: qa
 related:
@@ -17,7 +18,7 @@ milestone: M24
 
 # [CARD-480] Vision helper: describe images with a configured vision model when the chat model is text-only
 
-> **Status**: Parked (Jacob, 2026-09-30).
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-475 planning, decision D1(c).
 > **Related**: CARD-475

@@ -1,7 +1,8 @@
 ---
 id: CARD-331
 title: 'Help Studio'
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-14
 adr: none
 labels:
@@ -15,7 +16,7 @@ labels:
 
 # [CARD-331] Help Studio
 
-> **Status**: Parked
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-studio-finish`
 > **Locked Decisions**: Option A on both — (a) New dock Studio, (b) In-app interactive panels.

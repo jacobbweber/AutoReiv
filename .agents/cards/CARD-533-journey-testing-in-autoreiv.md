@@ -1,7 +1,7 @@
 ---
 id: CARD-533
 title: "Journey testing inside AutoReiv: a Developer skill and tools to run journeys, and a Projects Studio view of journey runs"
-status: Parked
+status: Ready
 created: 2026-09-26
 branch: qa
 depends_on:
@@ -21,7 +21,7 @@ milestone: M25
 
 # [CARD-533] Journey testing built into AutoReiv
 
-> **Status**: Parked (Jacob, 2026-09-30).
+> **Status**: Ready
 > **Related**: CARD-532 (runner, environment, journey format)
 > **Labels**: `type:product`, `area:developer`, `area:projects`, `P2`
 

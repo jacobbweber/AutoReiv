@@ -1,7 +1,8 @@
 ---
 id: CARD-289
 title: "Horizon \u2014 visual DAG / long-workflow canvas"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-13
 adr: none
 labels:
@@ -14,7 +15,7 @@ labels:
 
 # [CARD-289] Horizon — visual DAG / long-workflow canvas
 
-> **Status**: Parked
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `canvas`, `flows`

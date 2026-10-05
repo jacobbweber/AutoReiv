@@ -1,7 +1,8 @@
 ---
 id: CARD-280
 title: "UI \u2014 in-app doc viewers"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-13
 adr: none
 labels:
@@ -13,7 +14,7 @@ labels:
 
 # [CARD-280] UI — in-app doc viewers
 
-> **Status**: Parked
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:feature`, `ui`, `track-b`, `docs-viewer`

@@ -1,7 +1,8 @@
 ---
 id: CARD-286
 title: "Horizon \u2014 Homelab MCP server"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-13
 adr: none
 labels:
@@ -14,7 +15,7 @@ labels:
 
 # [CARD-286] Horizon — Homelab MCP server
 
-> **Status**: Parked
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `homelab`, `mcp`

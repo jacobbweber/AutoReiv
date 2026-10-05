@@ -1,7 +1,7 @@
 ---
 id: CARD-602
 title: "Owner-only routes accept requests from any website origin; add an Origin/Host check"
-status: Parked
+status: Ready
 created: 2026-10-01
 branch: qa
 related:
@@ -17,7 +17,7 @@ milestone: M24
 
 # [CARD-602] Owner-only routes accept requests from any website origin; add an Origin/Host check
 
-> **Status**: Parked (parked 2026-10-01 before 1.0)
+> **Status**: Ready
 > **Labels**: `type:security`, `area:web`, `area:security`, `P2`
 
 ## Why

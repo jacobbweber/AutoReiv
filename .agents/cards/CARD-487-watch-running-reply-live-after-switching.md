@@ -1,7 +1,8 @@
 ---
 id: CARD-487
 title: "Watch a reply that is still running live after switching chats, reloading, or moving to another device"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-25
 branch: qa
 related:
@@ -20,7 +21,7 @@ milestone: Horizon
 
 # [CARD-487] Watch a reply that is still running live after switching chats, reloading, or moving to another device
 
-> **Status**: Parked (CARD-561 triage: keep Ready P3 at or below 30)
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-25
 > **Observed during**: CARD-485 planning (decision D2).
 > **Related**: CARD-485 (busy state + poll), CARD-473 (phone return), CARD-154 (background work survives disconnect)

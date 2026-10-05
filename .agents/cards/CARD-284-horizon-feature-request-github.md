@@ -1,7 +1,8 @@
 ---
 id: CARD-284
 title: "Horizon \u2014 feature-request \u2192 GitHub issue"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-13
 adr: none
 labels:
@@ -13,7 +14,7 @@ labels:
 
 # [CARD-284] Horizon — feature-request → GitHub issue
 
-> **Status**: Parked
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `github`
