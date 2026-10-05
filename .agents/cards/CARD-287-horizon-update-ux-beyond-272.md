@@ -1,7 +1,8 @@
 ---
 id: CARD-287
 title: "Horizon \u2014 update UX polish beyond CARD-272"
-status: Parked
+status: Done
+completed: 2026-10-05
 created: 2026-09-13
 adr: none
 labels:
@@ -14,7 +15,7 @@ labels:
 
 # [CARD-287] Horizon — update UX polish beyond CARD-272
 
-> **Status**: Parked
+> **Status**: Done (closed from Parked 2026-10-05, not pursuing)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `ui`, `update`
