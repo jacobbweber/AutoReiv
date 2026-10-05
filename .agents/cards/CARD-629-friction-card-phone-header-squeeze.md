@@ -2,7 +2,7 @@
 id: CARD-629
 title: "On a phone, the friction recommendation card header squeezes the summary into a narrow column"
 type: bug
-status: Ready
+status: In Review
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-629-friction-card-phone-header]
   checks: []
 branch: feat/card-629-friction-card-phone-header
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 25, qa_runs: 0, findings: 0}
 created: 2026-10-04
 related:
   - CARD-527
