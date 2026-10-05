@@ -266,3 +266,44 @@ def test_removed_routine_handlers_are_gone():
     assert not hasattr(ex_mod, "SKILL_CURATOR_ID")
     assert not hasattr(ex_mod, "SKILL_EVAL_SLEEP_ID")
     assert not hasattr(skill_curator, "run_curator_job")
+
+
+def test_edited_cron_moves_the_local_slot():
+    """A Studio cron edit on a local-clock routine is honoured, not overridden by the old slot."""
+    from src.application.routines.matcher import sync_local_slot_to_cron
+
+    base = get_builtin_routine("hourly-sre-pulse").metadata
+    moved = sync_local_slot_to_cron(base, "15 5 * * 1-5")
+    assert (moved["hour"], moved["minute"], moved["weekdays"]) == (5, 15, [1, 2, 3, 4, 5])
+    assert moved["timezone"] == "America/New_York"
+    daily = sync_local_slot_to_cron(moved, "0 6 * * *")
+    assert (daily["hour"], daily["minute"]) == (6, 0) and "weekdays" not in daily
+    # Negative: a cron the slot cannot express drops the slot so the cron itself is used.
+    raw = sync_local_slot_to_cron(base, "*/15 * * * *")
+    assert not any(k in raw for k in ("timezone", "hour", "minute", "weekdays"))
+
+
+@pytest.mark.asyncio
+async def test_api_put_cron_reschedules_local_routine():
+    from src.web.app import create_app
+
+    s = SQLiteStateStore(db_path=":memory:")
+    app = create_app(state_store=s)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        pulse = get_builtin_routine("hourly-sre-pulse")
+        form = {
+            "name": pulse.name,
+            "agent_id": pulse.agent_id,
+            "prompt_template": pulse.prompt,
+            "schedule_type": "cron",
+            "cron_expr": "15 5 * * *",
+            "enabled": True,
+        }
+        assert (await ac.put("/api/routines/hourly-sre-pulse", json=form)).status_code == 200
+        row = next(r for r in (await ac.get("/api/routines")).json() if r["id"] == "hourly-sre-pulse")
+    assert row["human_schedule"] == "Daily at 05:15 ET"
+    nxt = s.get_routine("hourly-sre-pulse").next_run_at
+    from src.application.routines.matcher import to_local
+
+    local = to_local(nxt, "America/New_York")
+    assert (local.hour, local.minute) == (5, 15)

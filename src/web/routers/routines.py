@@ -174,16 +174,20 @@ async def update_routine(request: Request, routine_id: str, payload: RoutinePayl
         if cron:
             routine.cron_expression = cron
         routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
-    elif routine.enabled and (
-        not existing.enabled
-        or routine.schedule_type != existing.schedule_type
-        or routine.interval_seconds != existing.interval_seconds
-        or routine.cron_expression != existing.cron_expression
-    ):
-        # CARD-635: resumed or rescheduled -> next slot from now, never the stale one.
-        from src.application.routines.matcher import ScheduleMatcher
+    else:
+        from src.application.routines.matcher import ScheduleMatcher, sync_local_slot_to_cron, uses_local_clock
 
-        routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
+        if routine.cron_expression != existing.cron_expression and uses_local_clock(existing):
+            # CARD-636: the local slot follows an edited cron instead of silently overriding it.
+            routine.metadata = sync_local_slot_to_cron(routine.metadata, routine.cron_expression or "")
+        if routine.enabled and (
+            not existing.enabled
+            or routine.schedule_type != existing.schedule_type
+            or routine.interval_seconds != existing.interval_seconds
+            or routine.cron_expression != existing.cron_expression
+        ):
+            # CARD-635: resumed or rescheduled -> next slot from now, never the stale one.
+            routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
 
     store.save_routine(routine)
     return {"status": "updated", "routine": routine.model_dump(mode="json")}

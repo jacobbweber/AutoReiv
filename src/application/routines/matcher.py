@@ -3,7 +3,7 @@ Schedule Matcher & Due Date Calculator for Routines [REQ-ROUTINE-003] [REQ-IMPRO
 """
 
 from datetime import date, datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from src.domain.routines.models import Routine, ScheduleType
 
@@ -63,6 +63,57 @@ def from_local_civil(local_civil: datetime, tz_name: str) -> datetime:
         label = "EDT" if hours == -4 else "EST"
         return naive.replace(tzinfo=timezone(timedelta(hours=hours), name=label)).astimezone(timezone.utc)
     return naive.replace(tzinfo=timezone.utc)
+
+
+_LOCAL_SLOT_KEYS = ("timezone", "hour", "minute", "weekdays_only", "weekdays")
+
+
+def _cron_days(field: str) -> Optional[list]:
+    days: set = set()
+    for part in field.split(","):
+        if "-" in part:
+            lo, hi = part.split("-", 1)
+            if not (lo.isdigit() and hi.isdigit()) or int(lo) > int(hi):
+                return None
+            days.update(range(int(lo), int(hi) + 1))
+        elif part.isdigit():
+            days.add(int(part))
+        else:
+            return None
+    return sorted({d % 7 for d in days})
+
+
+def sync_local_slot_to_cron(metadata: Optional[Dict[str, Any]], cron: str) -> Dict[str, Any]:
+    """CARD-636: a cron edited in the Studio on a local-clock routine moves the local slot with it.
+
+    Simple "M H * * DOW" crons map onto hour/minute/weekdays in the routine's timezone; anything
+    the slot cannot express drops the slot keys so the cron itself is used (never silently ignored).
+    """
+    meta = dict(metadata or {})
+    fields = (cron or "").split()
+    days = _cron_days(fields[4]) if len(fields) == 5 and fields[4] != "*" else []
+    simple = (
+        len(fields) == 5
+        and fields[0].isdigit()
+        and fields[1].isdigit()
+        and int(fields[0]) < 60
+        and int(fields[1]) < 24
+        and fields[2] == "*"
+        and fields[3] == "*"
+        and days is not None
+    )
+    if not simple:
+        for key in _LOCAL_SLOT_KEYS:
+            meta.pop(key, None)
+        return meta
+    meta["timezone"] = str(meta.get("timezone") or "America/New_York")
+    meta["hour"], meta["minute"] = int(fields[1]), int(fields[0])
+    meta["weekdays_only"] = False
+    if days and len(days) < 7:
+        meta["weekdays"] = days
+    else:
+        meta.pop("weekdays", None)
+    return meta
 
 
 def uses_local_clock(routine: Routine) -> bool:
