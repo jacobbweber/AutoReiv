@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-621: after a saved layout restores an open studio, the first dock click on it focuses that studio instead of minimizing it; smoke Agent Studio picks no longer flake on that race.
 - CARD-483: a picture is only sent to a model when it is a file uploaded to the chat (the data folder's attachments/); a path typed into a message, a path named in the chat request, or one that steps out of that folder is treated as missing.
 - CARD-504: when Teach finds the agent needs a new tool, the card is titled 'Needs a tool: <tool name>' (or 'Needs a new tool') instead of 'Skill Proposal: Synthesized Skill', and the empty runbook section is hidden.
 - CARD-516: an MCP server that cannot start is reported as an error with the reason (Test says error; Save keeps the settings but says it is not mounted) and Settings and Tools Studio show a red 'Failed to start' badge with a one-line reason, instead of 'ok' or 'mounted (0 tools)'.
