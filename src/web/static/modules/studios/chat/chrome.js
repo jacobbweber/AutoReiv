@@ -737,13 +737,17 @@ export function setupChatChrome(state, elements = {}, callbacks = {}) {
 
   if (exportThreadWikiBtn) {
     exportThreadWikiBtn.addEventListener('click', () => {
-      // Save to Wiki
+      // Save to Wiki [CARD-622]: app callbacks nest under callbacks.callbacks (same pattern as CARD-471 Compact).
       if (!state.messages || state.messages.length === 0) {
         showToast('No messages to export', 'warning');
         return;
       }
-      if (typeof callbacks.exportSessionToWiki === 'function') {
-        callbacks.exportSessionToWiki(state.activeSessionId);
+      const exportFn =
+        (typeof callbacks.exportSessionToWiki === 'function' && callbacks.exportSessionToWiki)
+        || (typeof callbacks.callbacks?.exportSessionToWiki === 'function' && callbacks.callbacks.exportSessionToWiki)
+        || null;
+      if (exportFn) {
+        exportFn(state.activeSessionId);
       } else {
         showToast('Save to Wiki is not available (session export unwired)', 'error');
       }
