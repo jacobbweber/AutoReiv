@@ -94,9 +94,10 @@ def test_compact_session_early_compaction(client):
 
     # 2. Populate 8 turns (16 messages)
     store = client.app.state.store
+    fat = "padding " * 60  # CARD-623: short lines do not shrink under force; fat ones do
     for i in range(1, 9):
-        store.save_message(session_id, "assistant", ChatMessage(role=Role.USER, content=f"User question {i} in conversation"))
-        store.save_message(session_id, "assistant", ChatMessage(role=Role.ASSISTANT, content=f"Assistant detailed reply {i} in conversation"))
+        store.save_message(session_id, "assistant", ChatMessage(role=Role.USER, content=f"User question {i} in conversation {fat}"))
+        store.save_message(session_id, "assistant", ChatMessage(role=Role.ASSISTANT, content=f"Assistant detailed reply {i} in conversation {fat}"))
 
     initial_msgs = store.get_messages(session_id)
     assert len(initial_msgs) == 16
@@ -117,3 +118,10 @@ def test_compact_session_early_compaction(client):
     # Check that summary is present
     has_summary = any("[Summary of earlier conversation:" in m.content for m in compacted_msgs)
     assert has_summary is True
+
+    assert data["compacted_tokens"] < data["original_tokens"]
+    # CARD-623: pressing Compact again reports already compact
+    res2 = client.post(f"/api/sessions/{session_id}/compact")
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["compaction_applied"] is False
