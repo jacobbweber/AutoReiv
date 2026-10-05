@@ -646,6 +646,11 @@ export function initAgentDesktop(opts = {}) {
         openWindow(tab, {});
       }
     });
+    // CARD-621: leave restored windows open but unfocused so the first dock click
+    // focuses/opens that studio instead of minimizing the last restored one.
+    root.removeAttribute('data-desktop-focus');
+    windows.forEach((w) => w.el.classList.remove('is-focused'));
+    updateDockActiveState();
   }
 
   // CARD-301: strip any legacy titlebar agent picker; do not recreate it.

@@ -1470,6 +1470,30 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+
+  /** CARD-621: open/focus Agents without racing layout restore (dock toggle minimize), then pick an agent by id.
+   *  Playwright isVisible() is true even when another desktop window covers the select, so we also require
+   *  data-desktop-focus === 'agents' (raises z-order) before interacting.
+   */
+  async function ensureAgentStudioPicked(page, agentId, expectedName) {
+    await expect.poll(async () => {
+      const focus = await page.evaluate(() => document.body.getAttribute('data-desktop-focus'));
+      const selectVisible = await page.locator('#forgeAgentSelect').isVisible().catch(() => false);
+      if (focus !== 'agents') {
+        // Unfocused or another studio on top: dock click focuses/opens (CARD-621 restore leaves focus cleared).
+        await page.locator('#dock-agents').click();
+      } else if (!selectVisible) {
+        // Focused but minimized/hidden: dock click restores.
+        await page.locator('#dock-agents').click();
+      }
+      const focus2 = await page.evaluate(() => document.body.getAttribute('data-desktop-focus'));
+      return focus2 === 'agents' && (await page.locator('#forgeAgentSelect').isVisible().catch(() => false));
+    }, { timeout: 20000 }).toBeTruthy();
+    await expect.poll(async () => page.locator(`#forgeAgentSelect option[value="${agentId}"]`).count(), { timeout: 20000 }).toBeGreaterThan(0);
+    await page.selectOption('#forgeAgentSelect', agentId);
+    await expect.poll(async () => page.inputValue('#forgeNameInput'), { timeout: 20000 }).toBe(expectedName);
+  }
+
   // CARD-509: a Studio Save keeps skills without a pill; coding and proposals now have pills. CARD-544: coding is unticked on AutoReiv.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
     test(`TC-38 (${vp.name}): Studio shows coding and proposals pills; a Max Turns save keeps proposals, coding stays unticked; Developer ticks implement-change [CARD-509, CARD-544, CARD-570]`, async ({ page }) => {
@@ -1481,13 +1505,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       });
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.locator('#dock-agents').click();
       const pick = async (id, name) => {
-        await expect.poll(async () => {
-          await page.selectOption('#forgeAgentSelect', id);
-          await page.waitForTimeout(700);
-          return page.inputValue('#forgeNameInput');
-        }, { timeout: 20000 }).toBe(name);
+        await ensureAgentStudioPicked(page, id, name);
       };
       await pick('autoreiv', 'AutoReiv');
       // CARD-544 D1: AutoReiv no longer ticks coding, but the shipped runbook keeps a pill so it can be re-ticked.
@@ -1520,12 +1539,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       const openGap = async () => {
-        await page.locator('#dock-agents').click();
-        await expect.poll(async () => {
-          await page.selectOption('#forgeAgentSelect', 'autoreiv');
-          await page.waitForTimeout(700);
-          return page.inputValue('#forgeNameInput');
-        }, { timeout: 20000 }).toBe('AutoReiv');
+        await ensureAgentStudioPicked(page, 'autoreiv', 'AutoReiv');
         await page.evaluate(() => { const d = document.getElementById('agentTrainingBacklogCard'); if (d) d.open = true; });
         const row = page.locator('#agentTrainingBacklogCard [data-gap-id="gap-tc51"]').first();
         await expect(row).toHaveAttribute('data-tool-missing', 'true', { timeout: 20000 });
@@ -1593,14 +1607,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       });
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.locator('#dock-agents').click();
-      await expect.poll(async () => {
-        // CARD-621: after the reload the restored layout can leave Agents focused, so the dock click minimizes it.
-        if (!(await page.locator('#forgeAgentSelect').isVisible())) await page.locator('#dock-agents').click();
-        await page.selectOption('#forgeAgentSelect', 'autoreiv', { timeout: 3000 }).catch(() => {});
-        await page.waitForTimeout(700);
-        return page.inputValue('#forgeNameInput');
-      }, { timeout: 20000 }).toBe('AutoReiv');
+      await ensureAgentStudioPicked(page, 'autoreiv', 'AutoReiv');
       await page.evaluate(() => { const d = document.getElementById('agentTrainingBacklogCard'); if (d) d.open = true; });
       const card = page.locator('#agentTrainingBacklogCard');
       await expect(card.locator('summary')).toContainText('Capability gaps');
@@ -1612,6 +1619,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     }
 
     test(`TC-39 (${vp.name}): a capability gap opens Skill Studio or a Developer chat, never the Factory [CARD-496]`, async ({ page, request }) => {
+      test.setTimeout(60000);
       const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'toolsmith', title: `D 496 ${vp.name}-${Date.now()}` } })).json();
       const talks = [];
       let devPrompt = '';
