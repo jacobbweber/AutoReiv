@@ -2,7 +2,7 @@
 id: CARD-620
 title: "The job strip shows a STOPPED badge while the job is only waiting for Jacob's answer"
 type: bug
-status: Ready
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-620-waiting-badge]
   checks: [tests/unit/frontend/card_620_waiting_badge.test.js]
 branch: feat/card-620-waiting-badge
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 25, qa_runs: 1, findings: 0}
 created: 2026-10-03
 related:
   - CARD-613
@@ -43,6 +43,8 @@ The STOPPED badge on a job that only waits for a reply.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-620-waiting-badge | desktop+phone | pass | live_qa Spark sprint1005/card-620 |
+| vitest card_620 | - | pass | 2/2 + CARD-613 3/3 |
 
 ## Release note
 A job that waits for your answer says WAITING on the strip, not STOPPED.

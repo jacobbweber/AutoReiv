@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-620: a job that waits for your answer shows WAITING on the strip, not STOPPED.
 - CARD-632: Developer can list, read and summarize live QA journey reports from Chat (it still cannot start a journey run).
 - CARD-621: after a saved layout restores an open studio, the first dock click on it focuses that studio instead of minimizing it; smoke Agent Studio picks no longer flake on that race.
 - CARD-483: a picture is only sent to a model when it is a file uploaded to the chat (the data folder's attachments/); a path typed into a message, a path named in the chat request, or one that steps out of that folder is treated as missing.

@@ -58,7 +58,7 @@ export function hydrateJobPhaseStateFromJourney(journey) {
     next.reactState = 'STOPPED';
   } else if (waitingAnswer) {
     next.jobStatus = 'waiting_for_answer';
-    next.reactState = 'STOPPED';
+    next.reactState = 'WAITING'; // CARD-620: not STOPPED (no Resume; a reply continues)
   } else if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
     next.reactState = 'PARKED';
     next.jobStatus = 'waiting_approval';

@@ -7,6 +7,7 @@ export const JOB_PHASE_REACT_STATES = Object.freeze([
   'THINKING',
   'CALLING_TOOLS',
   'PARKED',
+  'WAITING',
   'DONE',
   'FAILED',
 ]);
@@ -58,6 +59,7 @@ export function formatJobPhaseStrip(state) {
   }
   const stopped = Boolean(state && state.stopped) && !failed; // CARD-490
   if (stopped) jobStatusLabel = 'Job stopped';
+  const waitingAnswer = !stopped && !failed && String((state && state.jobStatus) || '').toLowerCase() === 'waiting_for_answer';
   const parentJobId = (state && (state.parentJobId || state.parent_job_id)) || '';
   const childJobId = (state && (state.childJobId || state.child_job_id)) || '';
   const childJobIds = (state && (state.childJobIds || state.child_job_ids)) || [];
@@ -73,7 +75,7 @@ export function formatJobPhaseStrip(state) {
     jobStatusLabel,
     phaseLabel,
     agentLabel: agent,
-    reactState: stopped ? 'STOPPED' : reactState,
+    reactState: stopped ? 'STOPPED' : (waitingAnswer ? 'WAITING' : reactState),
     resumedFromCheckpoint: resumed,
     stopped,
     jobId,
@@ -92,6 +94,7 @@ export function reactStateToneClass(reactState) {
     case 'CALLING_TOOLS': return 'job-phase-react px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-semibold tracking-wide';
     case 'THINKING': return 'job-phase-react px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-semibold tracking-wide';
     case 'STOPPED': return 'job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-amber-800/70 text-amber-200 font-semibold tracking-wide'; // CARD-490
+    case 'WAITING': return 'job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-amber-800/70 text-amber-200 font-semibold tracking-wide'; // CARD-620
     default: return 'job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide';
   }
 }
@@ -131,7 +134,7 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   } else if (eventType === 'phase_start') {
     next.stopped = false; // CARD-490: running again
     if (!next.jobStatus || next.jobStatus === 'queued' || next.jobStatus === 'waiting_for_answer') next.jobStatus = 'running'; // CARD-613
-    if (!next.reactState || String(next.reactState).toUpperCase() === 'STOPPED') next.reactState = 'THINKING';
+    if (!next.reactState || ['STOPPED', 'WAITING'].includes(String(next.reactState).toUpperCase())) next.reactState = 'THINKING'; // CARD-620: leave WAITING too
   } else if (eventType === 'phase_complete') {
     if (data.status) next.jobStatus = data.status;
     if (data.react_state) next.reactState = data.react_state;
@@ -174,5 +177,9 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   if (data.parent_job_id) next.parentJobId = data.parent_job_id;
   if (data.child_job_id) next.childJobId = data.child_job_id;
   if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
+  // CARD-620: waiting for an answer is WAITING, never STOPPED (Resume is only for stopped jobs).
+  if (String(next.jobStatus || '').toLowerCase() === 'waiting_for_answer' && !next.stopped) {
+    next.reactState = 'WAITING';
+  }
   return next;
 }
