@@ -51,27 +51,36 @@ export default {
       if (later.last_run_at !== after.last_run_at) throw new Error('the failed routine re-fired (retry storm)');
     }, { timeoutMs: 60000 });
 
-    await j.step('Pausing and resuming it in Routines Studio schedules the next slot from now', async () => {
+    await j.step('Pausing and resuming a routine in Routines Studio schedules the next slot from now', async () => {
+      // The Studio filter cannot show "All agents" (CARD-637), so this one belongs to autoreiv.
+      // Its next slot is an hour out and the step deletes it, so it never reaches the model.
+      const uiId = `${id}-ui`;
+      const uiName = `${name} UI`;
+      const madeUi = await request.post(`${base}/api/routines`, {
+        data: { id: uiId, name: uiName, agent_id: 'autoreiv', schedule_type: 'interval', interval_seconds: 3600,
+          prompt_template: 'never sent', enabled: true },
+      });
+      if (!madeUi.ok()) throw new Error(`create UI routine -> ${madeUi.status()}`);
       await openApp(page, base);
       await page.locator('#dock-routines').click();
       await page.locator('#view-routines').waitFor({ state: 'visible', timeout: 20000 });
-      // The Agent filter can start on a remembered agent; pick All agents (Clear does not stick: CARD-637).
-      await page.selectOption('#routinesFilterAgent', '');
-      await page.locator('#routinesFilterSearch').fill(id);
-      const card = () => page.locator('#routinesGrid > *').filter({ hasText: name }).first();
+      await page.selectOption('#routinesFilterAgent', 'autoreiv');
+      await page.locator('#routinesFilterSearch').fill(uiId);
+      const card = () => page.locator('#routinesGrid > *').filter({ hasText: uiName }).first();
       await card().waitFor({ state: 'visible', timeout: 15000 });
       await clickExpect(card().locator('.toggle-routine-btn'), async () => {
-        await waitFor(async () => (await find(request, base, id)).enabled === false, { timeoutMs: 10000 });
+        await waitFor(async () => (await find(request, base, uiId)).enabled === false, { timeoutMs: 10000 });
       }, { label: 'Pause', what: 'routine paused' });
       await card().waitFor({ state: 'visible', timeout: 15000 });
       await clickExpect(card().locator('.toggle-routine-btn'), async () => {
-        await waitFor(async () => (await find(request, base, id)).enabled === true, { timeoutMs: 10000 });
+        await waitFor(async () => (await find(request, base, uiId)).enabled === true, { timeoutMs: 10000 });
       }, { label: 'Resume', what: 'routine resumed' });
-      const r = await find(request, base, id);
+      const r = await find(request, base, uiId);
       j.note(`resumed: next_run_at ${r.next_run_at}`);
       if (msUntil(r.next_run_at) < 0.8 * HOUR_MS) throw new Error(`resume kept a stale or immediate slot: ${r.next_run_at}`);
       await j.screenshot('routines-studio-resumed');
       await request.delete(`${base}/api/routines/${encodeURIComponent(id)}`).catch(() => {});
+      await request.delete(`${base}/api/routines/${encodeURIComponent(uiId)}`).catch(() => {});
     }, { timeoutMs: 90000 });
   },
 };
