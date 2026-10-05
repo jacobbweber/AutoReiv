@@ -450,6 +450,12 @@ body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaSendToCourseBt
   display: block;
 }
 
+/* CARD-624: toasts must paint above the dock (z-index 10000) and sit clear of it. */
+#toastContainer {
+  z-index: 11000;
+  bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
 /* --- Dock (full-width bar + scroll strip) --- */
 #desktopDock,
 .desktop-dock {
