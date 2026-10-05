@@ -1,8 +1,9 @@
 ---
 id: CARD-466
 title: "Chat Studio: move the New chat button into the + Options menu"
-status: In Review
+status: Done
 created: 2026-09-24
+completed: 2026-10-05
 branch: feat/card-466-chat-new-chat-button-into-options-menu
 adr: none
 related:
@@ -21,7 +22,7 @@ milestone: Horizon
 
 # [CARD-466] Chat Studio: move the New chat button into the + Options menu
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-24
 > **Observed during**: Jacob using Chat Studio on Jarvis - starting a new chat should not require opening the session-history drawer.
 > **ADR Reference**: none
@@ -119,8 +120,10 @@ Correction to Beat 2 item 3: automatic new-session creation on an empty list is 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
-| card-466-new-chat-in-options | desktop+phone | pending | |
-| vitest options + 296 | - | pass | |
+| card-466-new-chat-in-options | desktop+phone | pass | live_qa Spark |
+| vitest options + 296 | - | pass | 23 tests |
+
+Screenshots: %LOCALAPPDATA%\\Temp\\autoreiv-qa\\sprint1005\\card-466\\
 
 ## Release note
 New chat is under the Chat + Options menu.
