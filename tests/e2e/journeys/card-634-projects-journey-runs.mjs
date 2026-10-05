@@ -75,6 +75,11 @@ export default {
       await page.locator('#projectsJourneyRunDetail').waitFor({ state: 'visible', timeout: 10000 });
       const title = await page.locator('#projectsJourneyRunDetailTitle').innerText();
       if (!/card-634-seed/.test(title)) throw new Error('detail title ' + title);
+      const ready = await waitFor(async () => {
+        const summ = (await page.locator('#projectsJourneyRunDetailSummary').innerText()).trim();
+        return summ && !/^Loading/i.test(summ);
+      }, { timeoutMs: 15000 });
+      if (!ready) throw new Error('detail summary stayed on Loading');
       const summ = await page.locator('#projectsJourneyRunDetailSummary').innerText();
       if (!/Expect green|seeded for CARD-634/i.test(summ)) throw new Error('summary missing fail: ' + summ);
       const shot = page.locator('#projectsJourneyRunScreenshots', { hasText: 'seed.png' });
