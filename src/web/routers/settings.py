@@ -896,6 +896,37 @@ async def put_reply_limits(request: Request):
     return {"key": SETTING_KEY, **resolve_all_limits(store)}
 
 
+
+@router.get("/api/settings/allowed-origins")
+async def get_allowed_origins(request: Request):
+    """CARD-602: extra browser origins allowed to call owner routes (phone reverse proxy, etc.)."""
+    from src.web.origin_guard import SETTING_KEY, parse_extra_origins
+
+    store = request.app.state.store
+    try:
+        origins = parse_extra_origins(store.get_setting(SETTING_KEY) or [])
+    except ValueError:
+        origins = []
+    return {"key": SETTING_KEY, "origins": origins}
+
+
+@router.put("/api/settings/allowed-origins")
+async def put_allowed_origins(request: Request):
+    """CARD-602: replace the extra-origins list. Empty strings are dropped; bad URLs return 400."""
+    from src.web.origin_guard import SETTING_KEY, parse_extra_origins
+
+    body = await request.json()
+    raw = body.get("origins", [])
+    if raw is not None and not isinstance(raw, list):
+        raise HTTPException(status_code=400, detail="origins must be a list of http(s) URLs")
+    try:
+        origins = parse_extra_origins(raw or [])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    request.app.state.store.set_setting(SETTING_KEY, origins)
+    return {"key": SETTING_KEY, "origins": origins}
+
+
 @router.get("/api/settings/mcp")
 @router.get("/api/mcp/servers")
 async def list_mcp_servers(request: Request):
