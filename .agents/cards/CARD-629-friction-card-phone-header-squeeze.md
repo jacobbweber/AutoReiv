@@ -2,7 +2,7 @@
 id: CARD-629
 title: "On a phone, the friction recommendation card header squeezes the summary into a narrow column"
 type: bug
-status: In Review
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-629-friction-card-phone-header]
   checks: []
 branch: feat/card-629-friction-card-phone-header
-log: {minutes: 25, qa_runs: 0, findings: 0}
+log: {minutes: 35, qa_runs: 2, findings: 0}
 created: 2026-10-04
+completed: 2026-10-05
 related:
   - CARD-527
   - CARD-520
@@ -44,6 +45,10 @@ One-word-per-line summaries on phone friction cards.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-629-friction-card-phone-header | desktop+phone | pass | live_qa Spark; summary width >= 250px |
+| vitest card629 | - | pass | 1/1 |
+
+Screenshots: %LOCALAPPDATA%\Temp\autoreiv-qa\sprint1005\card-629\
 
 ## Release note
 Friction recommendation cards are readable on a phone: the summary gets its own full-width line.
