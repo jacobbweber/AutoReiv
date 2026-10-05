@@ -2,7 +2,7 @@
 id: CARD-631
 title: "On a phone, a user message with an attachment line runs off the screen because the long file path does not wrap"
 type: bug
-status: In Review
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-631-phone-user-message-attachment-path]
   checks: [tests/unit/frontend/card631_user_bubble_wraps_long_paths.test.js]
 branch: feat/card-631-phone-user-message-attachment-path-overflow
-log: {minutes: 25, qa_runs: 0, findings: 0}
+log: {minutes: 30, qa_runs: 1, findings: 0}
 created: 2026-10-04
+completed: 2026-10-05
 related:
   - CARD-625
   - CARD-479
@@ -46,8 +47,10 @@ User bubbles wider than the screen on a phone.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-631-phone-user-message-attachment-path | desktop+phone | pass | live_qa Spark; no overflow |
+| vitest card631 | - | pass | 3/3 |
 
-Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-631\...`
+Screenshots: %LOCALAPPDATA%\Temp\autoreiv-qa\sprint1005\card-631\
 
 ## Release note
 On a phone, a message with an attached file or a long link fits the screen: long paths and links wrap instead of pushing the message off the edge.
