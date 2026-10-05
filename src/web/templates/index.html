@@ -2980,6 +2980,36 @@
             </div>
             <div id="projectsList" class="space-y-1.5"></div>
           </div>
+
+          <!-- CARD-634: live QA journey runs (CARD-532 reports) -->
+          <div id="projectsJourneyRuns" class="space-y-2" data-card="634">
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">
+              <div>
+                <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-cyan-400"></i>
+                  <span>Journey runs</span>
+                </h3>
+                <p class="text-[10px] text-slate-500">CARD-532 live QA reports on this machine (local time, pass/fail).</p>
+              </div>
+              <button type="button" id="projectsJourneyRunsRefreshBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition">Refresh</button>
+            </div>
+            <div id="projectsJourneyRunsList" class="space-y-1.5 max-h-64 overflow-y-auto">
+              <div class="text-xs text-slate-500 italic p-2">Loading journey runs…</div>
+            </div>
+            <div id="projectsJourneyRunDetail" class="hidden space-y-2 p-3 rounded-xl bg-[#08090c]/80 border border-white/[0.06]">
+              <div class="flex items-center justify-between gap-2">
+                <span id="projectsJourneyRunDetailTitle" class="text-xs font-bold text-white font-mono"></span>
+                <button type="button" id="projectsJourneyRunDetailClose" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" aria-label="Close run detail">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+              <pre id="projectsJourneyRunDetailSummary" class="text-[11px] text-slate-300 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto bg-black/30 p-2 rounded-lg border border-white/[0.04]"></pre>
+              <div>
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Screenshots</span>
+                <div id="projectsJourneyRunScreenshots" class="flex flex-wrap gap-2 mt-1"></div>
+              </div>
+            </div>
+          </div>
         </div>
         </div>
 
@@ -4478,7 +4508,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed right-4 z-[11000] bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0" data-card-624="above-dock"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.121"></script>
+  <script type="module" src="/static/app.js?v=2.0.122"></script>
 </body>
 </html>
 
