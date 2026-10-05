@@ -10,7 +10,7 @@ proof:
   journeys: [card-623-compact-honest]
   checks: []
 branch: feat/card-623-compact-no-op-reported-as-success
-log: {minutes: 35, qa_runs: 1, findings: 0}
+log: {minutes: 55, qa_runs: 3, findings: 0}
 created: 2026-10-03
 related:
   - CARD-161
@@ -43,8 +43,10 @@ A success toast for a compaction that changed nothing.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
-| card-623-compact-honest | desktop+phone | pending | |
-| unit test_card623 + compact suite | - | pass | |
+| card-623-compact-honest | desktop+phone | pass | live_qa Spark; empty API + already-compact toast |
+| unit test_card623 + compact suite | - | pass | force no-op, empty session, singular turn |
+
+Screenshots: %LOCALAPPDATA%\Temp\autoreiv-qa\sprint1005\card-623\
 
 ## Release note
 Compact only reports success when it actually made the conversation smaller.
