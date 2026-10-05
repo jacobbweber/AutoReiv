@@ -12,6 +12,7 @@ proof:
 branch: feat/card-623-compact-no-op-reported-as-success
 log: {minutes: 55, qa_runs: 3, findings: 0}
 created: 2026-10-03
+completed: 2026-10-05
 related:
   - CARD-161
   - CARD-471
