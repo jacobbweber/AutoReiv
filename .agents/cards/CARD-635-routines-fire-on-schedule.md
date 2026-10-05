@@ -2,7 +2,7 @@
 id: CARD-635
 title: "Routines fire only at their scheduled time; missed runs are skipped"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-635-routines-fire-on-schedule
 log: {minutes: 50, qa_runs: 5, findings: 1}
 created: 2026-10-05
+completed: 2026-10-05
 related:
   - CARD-636
   - CARD-406
