@@ -366,6 +366,9 @@ class BuiltinAgentRegistry:
             selected_info=projects_service.get_selected,
         )
         project_dev_tools.register_tools(tool_registry)
+        from src.application.skills.journey_qa_tools import JourneyQaTools
+
+        JourneyQaTools().register_tools(tool_registry)  # CARD-632: read CARD-532 journey reports
         agent_registry.projects_service = projects_service
         from src.application.skills.card_handoff_tools import CardHandoffTools
 

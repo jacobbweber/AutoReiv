@@ -1,7 +1,7 @@
 ---
 id: CARD-533
 title: "Journey testing inside AutoReiv: a Developer skill and tools to run journeys, and a Projects Studio view of journey runs"
-status: Ready
+status: Parked
 created: 2026-09-26
 branch: qa
 depends_on:
@@ -56,3 +56,10 @@ The Developer can run a journey from a chat, read its report and explain a failu
 ## Log
 - 2026-09-30: Parked per Jacob's class-b approval.
 - 2026-10-01: status set to Parked to match the 2026-09-30 decision (the field had stayed Ready).
+
+## Split (2026-10-05)
+Parent parked (Jacob 2026-09-30). Built as Ready slices:
+- **CARD-632** (first slice, building now): list/read/summarize journey reports (no run).
+- **CARD-633**: `run_journey` throwaway-only + HITL.
+- **CARD-634**: Projects Studio journey runs view.
+REQ-533-005 (capability-scoping summary in Developer self-work) stays on the parent until a later slice if still needed after ADR-0062/0064 notes.
