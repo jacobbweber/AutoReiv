@@ -1,7 +1,8 @@
 ---
 id: CARD-409
 title: "Wiki Architecture Overhaul: Single-Lever Wiki Tools, wiki_tasks Runbook, Granular Skills Split, RAG Grounding Poisoning Fix, and Goal Phase Dedup"
-status: Complete
+status: Done
+completed: 2026-10-05
 created: 2026-09-21
 adr: none
 labels:
@@ -17,7 +18,7 @@ labels:
 
 # [CARD-409] Wiki Architecture Overhaul: Single-Lever Wiki Tools, wiki_tasks Runbook, Granular Skills Split, RAG Grounding Poisoning Fix, and Goal Phase Dedup
 
-> **Status**: Complete  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:feat`, `type:bug`, `type:refactor`, `area:wiki`, `area:orchestration`, `area:agents`, `area:skills`, `area:ux`  

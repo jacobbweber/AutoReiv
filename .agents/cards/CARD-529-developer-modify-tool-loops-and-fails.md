@@ -1,7 +1,7 @@
 ---
 id: CARD-529
 title: "A job phase stopped by a repeat-cycle or policy block says only \"phase failed\" in chat (items 1, 2, 4 done elsewhere)"
-status: Superseded
+status: Done (Superseded)
 completed: 2026-09-30
 created: 2026-09-26
 branch: qa
@@ -24,7 +24,7 @@ milestone: M25
 
 > **Partly superseded (2026-09-26)** by [CARD-539](CARD-539-capability-scoping-one-allowed-tools-function.md) / [ADR-0061](../adr/0061-capability-scoping-skills-only-permission-one-enforcement-point.md): change items 2 (tools offered outside the allowlist) and 4 (keyword-family catalog routing) moved there. This card keeps items 1 and 3, which are separate concerns (Developer tooling and honest stop reasons). Build after CARD-539.
 
-> **Status**: Superseded (closed 2026-09-30)
+> **Status**: Done (Superseded; closed 2026-09-30)
 > **Related**: CARD-520 (Ask Developer from Observability), CARD-422 (Tools Studio Talk), CARD-523 (tool-argument robustness and honest failures), CARD-527 (built-in tools)
 > **Labels**: `type:bug`, `area:developer`, `area:tools`, `P2`
 

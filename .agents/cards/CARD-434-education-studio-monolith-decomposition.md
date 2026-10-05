@@ -1,7 +1,8 @@
 ---
 id: CARD-434
 title: "Education Studio Monolith Decomposition and Submodule Refactoring"
-status: Superseded
+status: Done (Superseded by CARD-435)
+completed: 2026-10-05
 created: 2026-09-23
 adr: none
 labels:
@@ -13,7 +14,7 @@ labels:
 
 # [CARD-434] Education Studio Monolith Decomposition and Submodule Refactoring
 
-> **Status**: Superseded
+> **Status**: Done (Superseded by CARD-435)
 > **Created**: 2026-09-23
 > **Baseline**: `qa` / `main` @ `881cb276` (v0.42.0)
 > **Prior attempt**: local `feat/card-400-education-monolith-decomposition` @ `ed1f6a6f` (not merged; 146 commits behind tip)

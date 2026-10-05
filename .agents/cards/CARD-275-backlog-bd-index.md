@@ -1,7 +1,7 @@
 ---
 id: CARD-275
 title: "Backlog capture \u2014 Track B (UI marathon) + Track D (horizon)"
-status: Superseded
+status: Done (Superseded)
 completed: 2026-09-30
 created: 2026-09-13
 adr: none
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-275] Backlog capture — Track B (UI marathon) + Track D (horizon)
 
-> **Status**: Superseded (stale, closed 2026-09-30)
+> **Status**: Done (Superseded; stale, closed 2026-09-30)
 > **Created**: 2026-09-13
 > **Spec Reference**: Design-room 2026-09-13 — Jacob dump was track-sorted in memory, not repo cards. Architect ask: capture B/D before UI dig-in. Research adds Training Factory suggest-path + visual DAG canvas.
 > **Labels**: `type:docs`, `backlog`, `track-b`, `track-d`

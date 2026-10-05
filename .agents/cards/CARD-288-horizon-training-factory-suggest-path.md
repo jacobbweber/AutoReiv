@@ -1,7 +1,7 @@
 ---
 id: CARD-288
 title: "Horizon \u2014 Training Factory tool-fix suggest path"
-status: Superseded
+status: Done (Superseded)
 completed: 2026-09-30
 created: 2026-09-13
 adr: none
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-288] Horizon — Training Factory tool-fix suggest path
 
-> **Status**: Superseded (stale, closed 2026-09-30)
+> **Status**: Done (Superseded; stale, closed 2026-09-30)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `training-factory`

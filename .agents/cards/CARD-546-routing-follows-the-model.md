@@ -1,7 +1,7 @@
 ---
 id: CARD-546
 title: "Out-of-domain routing and the Ask Developer button still depend on the model following the prompt"
-status: Superseded
+status: Done (Superseded by CARD-596)
 superseded_by: CARD-596
 completed: 2026-10-01
 created: 2026-09-26
@@ -18,7 +18,7 @@ milestone: M25
 
 # [CARD-546] Out-of-domain routing still depends on the model following the prompt
 
-> **Status**: Superseded by CARD-596 (2026-10-01: Jacob chose deliberate agent scopes and direct chat instead of routing)
+> **Status**: Done (Superseded by CARD-596)
 > **Related**: CARD-539 (ADR-0061, D6)
 > **Labels**: `type:bug`, `area:agents`, `P2`
 

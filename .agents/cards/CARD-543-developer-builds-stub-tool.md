@@ -1,7 +1,8 @@
 ---
 id: CARD-543
 title: "Developer can register a stub tool (\"real API integration pending\") that the agent then declines to use"
-status: Superseded
+status: Done (Superseded by CARD-571)
+completed: 2026-10-05
 created: 2026-09-26
 branch: qa
 related:
@@ -16,7 +17,7 @@ milestone: M25
 
 # [CARD-543] Developer can register a stub tool ("real API integration pending") that the agent then declines to use
 
-> **Status**: Superseded (2026-09-29 battery triage: superseded by CARD-571: the Developer no longer builds tools, and a Toolsmith-built tool (stub or not) stays disabled until Jacob reads the code in Tools Studio and enables it (D3))
+> **Status**: Done (Superseded by CARD-571)
 > **Related**: CARD-539 (ADR-0061)
 > **Labels**: `type:bug`, `area:tools`, `P2`
 

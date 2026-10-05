@@ -1,7 +1,8 @@
 ---
 id: CARD-558
 title: "cli_exec, git and card tools default to the AutoReiv checkout when no project is selected"
-status: Superseded
+status: Done (Superseded by CARD-562)
+completed: 2026-10-05
 created: 2026-09-27
 branch: qa
 related:
@@ -18,7 +19,7 @@ superseded_by: CARD-562
 
 # [CARD-558] Other project tools default to the checkout with no project selected
 
-> **Status**: Superseded by CARD-562 (merged to qa 2026-09-28).
+> **Status**: Done (Superseded by CARD-562)
 > **Related**: CARD-556, CARD-555
 > **Labels**: `type:product`, `area:tools`, `P3`
 

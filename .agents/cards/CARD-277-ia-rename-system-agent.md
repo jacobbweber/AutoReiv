@@ -1,7 +1,7 @@
 ---
 id: CARD-277
 title: "IA \u2014 rename AutoReiv-agent \u2192 System"
-status: Superseded
+status: Done (Superseded)
 completed: 2026-09-30
 created: 2026-09-13
 adr: none
@@ -14,7 +14,7 @@ labels:
 
 # [CARD-277] IA — rename AutoReiv-agent → System
 
-> **Status**: Superseded (stale, closed 2026-09-30)
+> **Status**: Done (Superseded; stale, closed 2026-09-30)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:chore`, `ui`, `track-b`, `ia`

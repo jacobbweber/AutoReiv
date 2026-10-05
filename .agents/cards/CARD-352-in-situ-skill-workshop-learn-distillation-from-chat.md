@@ -1,6 +1,6 @@
 # [CARD-352] In-Situ Skill Workshop: /learn Distillation from Chat
 
-> **Status**: Complete  
+> **Status**: Done
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/specs/in-situ-skill-distillation/`, `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, Nous Hermes `/learn`, SkillOpt  
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Chat`, `domain:skills`, `domain:learning`  

@@ -1,6 +1,6 @@
 # [CARD-336] Specialist Intake Dispatch and Standing Job Delegation
 
-> **Status**: Superseded by CARD-339
+> **Status**: Done (Superseded by CARD-339)
 > **Created**: 2026-09-15
 > **Superseded By**: [CARD-339](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-339-skill-and-tool-architecture-and-scoping-strategy.md)
 > **Spec Reference**: none

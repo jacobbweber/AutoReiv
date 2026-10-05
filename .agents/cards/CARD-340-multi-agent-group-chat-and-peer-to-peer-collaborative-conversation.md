@@ -1,6 +1,6 @@
 # [CARD-340] Multi-Agent Group Chat and Peer-to-Peer Collaborative Conversation
 
-> **Status**: Superseded / Retired (Anti-Pattern per ADR-0054)
+> **Status**: Done (Superseded / Retired per ADR-0054)
 > **Created**: 2026-09-16
 > **Superseded By**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-361](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md)
 > **Spec Reference**: docs/specs/multi-agent-group-chat/

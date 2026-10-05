@@ -1,7 +1,8 @@
 ---
 id: CARD-534
 title: "A resumed job phase runs its model turn on the parent chat session instead of its ::phase:: session"
-status: Superseded
+status: Done (Superseded by CARD-548)
+completed: 2026-10-05
 created: 2026-09-26
 branch: qa
 related:
@@ -18,7 +19,7 @@ needs_decision: none
 
 # [CARD-534] Resumed phase turns land in the parent session
 
-> **Status**: Superseded by CARD-548. Fixed by CARD-548: resume runs in the phase session.
+> **Status**: Done (Superseded by CARD-548)
 > **Related**: CARD-530, CARD-219 (resume an open job), CARD-259 (kill/resume)
 > **Labels**: `type:bug`, `area:jobs`, `P3`
 

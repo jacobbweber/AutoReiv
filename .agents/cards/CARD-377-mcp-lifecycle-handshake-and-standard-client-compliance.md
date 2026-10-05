@@ -1,6 +1,6 @@
 # [CARD-377] MCP Lifecycle Handshake and Standard Client Compliance
 
-> **Status**: Completed
+> **Status**: Done
 > **Created**: 2026-09-19
 > **Spec Reference**: `docs/specs/mcp-lifecycle-handshake/requirements.md`
 > **Labels**: `type:feature`, `domain:mcp`, `domain:kernel`, `domain:ui`

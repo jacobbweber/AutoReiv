@@ -1,7 +1,8 @@
 ---
 id: CARD-442
 title: "Retire Education Studio Landing (Last; After Tutor+Wiki Cover the Program)"
-status: Superseded
+status: Done (Superseded)
+completed: 2026-10-05
 created: 2026-09-23
 adr: ADR-0059
 labels:
@@ -14,7 +15,7 @@ parent: CARD-435
 
 # [CARD-442] Retire Education Studio Landing (Last; After Tutor+Wiki Cover the Program)
 
-> **Status**: Superseded
+> **Status**: Done (Superseded)
 > **Created**: 2026-09-23
 > **Baseline**: qa @ 9f2e7b14 (after CARD-435 docs tip)
 > **ADR Reference**: [ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)

@@ -1,7 +1,7 @@
 ---
 id: CARD-474
 title: "Phone keyboard Enter inserts a newline in Chat; tap Send to send"
-status: Superseded
+status: Done (Superseded by CARD-469)
 completed: 2026-09-30
 created: 2026-09-24
 branch: qa
@@ -20,7 +20,7 @@ milestone: M24
 
 # [CARD-474] Phone keyboard Enter inserts a newline in Chat; tap Send to send
 
-> **Status**: Superseded by CARD-469 (closed 2026-09-30)
+> **Status**: Done (Superseded by CARD-469)
 > **Created**: 2026-09-24
 > **Observed during**: CARD-469 planning, decision D1. Jacob chose to restore the pre-split rule (Enter sends everywhere). This card records the phone-newline option that was offered and not chosen.
 > **Related**: CARD-469 (Enter-to-send restored), CARD-465 (composer sizing)

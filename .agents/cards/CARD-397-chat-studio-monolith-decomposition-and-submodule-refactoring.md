@@ -1,7 +1,8 @@
 ---
 id: CARD-397
 title: "Chat Studio Monolith Decomposition and Submodule Refactoring"
-status: Completed
+status: Done
+completed: 2026-10-05
 created: 2026-09-21
 adr: none
 labels:
@@ -12,7 +13,7 @@ labels:
 
 # [CARD-397] Chat Studio Monolith Decomposition and Submodule Refactoring
 
-> **Status**: Completed  
+> **Status**: Done
 > **Created**: 2026-09-21  
 > **ADR Reference**: none  
 > **Labels**: `type:refactor`, `area:frontend`, `domain:chat`  

@@ -1,6 +1,6 @@
 # [CARD-355] Forge Platform Specialist: Conversational Intake Partner for Factory Studio
 
-> **Status**: Complete  
+> **Status**: Done
 > **Created**: 2026-09-18  
 > **Closed**: 2026-09-18  
 > **Spec Reference**: `docs/specs/agent-pack-factory/`, CARD-351  
