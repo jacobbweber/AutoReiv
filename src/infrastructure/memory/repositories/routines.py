@@ -171,6 +171,18 @@ class RoutineRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+    def delete_routine_runs(self, routine_id: str) -> int:
+        """Delete a routine's run history; returns rows removed [CARD-636]."""
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM routine_runs WHERE routine_id = ?", (routine_id,))
+            conn.commit()
+            return cur.rowcount
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
     def toggle_routine(self, routine_id: str) -> Optional[bool]:
         """Toggle enabled flag of a routine and return the new enabled state."""
         routine = self.get_routine(routine_id)
