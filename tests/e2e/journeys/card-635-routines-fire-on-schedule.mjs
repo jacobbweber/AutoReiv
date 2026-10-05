@@ -4,7 +4,7 @@
  * the routine targets a missing agent, so even a wrong fire fails fast without loading Spark/Nimo.
  */
 import { getJson, openApp } from './lib/app.mjs';
-import { clickExpect, waitFor } from './lib/runner.mjs';
+import { clickExpect } from './lib/runner.mjs';
 
 const HOUR_MS = 3600 * 1000;
 
@@ -68,13 +68,9 @@ export default {
       await page.locator('#routinesFilterSearch').fill(uiId);
       const card = () => page.locator('#routinesGrid > *').filter({ hasText: uiName }).first();
       await card().waitFor({ state: 'visible', timeout: 15000 });
-      await clickExpect(card().locator('.toggle-routine-btn'), async () => {
-        await waitFor(async () => (await find(request, base, uiId)).enabled === false, { timeoutMs: 10000 });
-      }, { label: 'Pause', what: 'routine paused' });
+      await clickExpect(card().locator('.toggle-routine-btn'), async () => (await find(request, base, uiId)).enabled === false, { label: 'Pause', what: 'routine paused' });
       await card().waitFor({ state: 'visible', timeout: 15000 });
-      await clickExpect(card().locator('.toggle-routine-btn'), async () => {
-        await waitFor(async () => (await find(request, base, uiId)).enabled === true, { timeoutMs: 10000 });
-      }, { label: 'Resume', what: 'routine resumed' });
+      await clickExpect(card().locator('.toggle-routine-btn'), async () => (await find(request, base, uiId)).enabled === true, { label: 'Resume', what: 'routine resumed' });
       const r = await find(request, base, uiId);
       j.note(`resumed: next_run_at ${r.next_run_at}`);
       if (msUntil(r.next_run_at) < 0.8 * HOUR_MS) throw new Error(`resume kept a stale or immediate slot: ${r.next_run_at}`);
