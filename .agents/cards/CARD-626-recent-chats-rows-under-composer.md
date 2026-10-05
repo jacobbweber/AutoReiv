@@ -2,15 +2,15 @@
 id: CARD-626
 title: "On desktop the last Recent Chats rows sit under the chat composer and cannot be clicked"
 type: bug
-status: Ready
+status: In Progress
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
   journeys: [card-626-recent-chats-reachable]
-  checks: []
+  checks: [tests/unit/frontend/chat_sessions_drawer_above_composer_626.test.js]
 branch: feat/card-626-recent-chats-rows-under-composer
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 20, qa_runs: 0, findings: 0}
 created: 2026-10-03
 related:
   - CARD-296
@@ -40,6 +40,9 @@ Chats you can see in the list but cannot open.
 - Journey `card-626-recent-chats-reachable`: with 8 chats, the last row opens by click on desktop (1024x640 and 1280x900) and phone.
 
 ## Plan and decisions
+- Raise `#chatSessionsDrawer` from `z-30` to `z-50` so it sits above `#chatInputWrapper` (`z-20`); the composer was winning hit-tests on the left band.
+- Add `pb-28` on `#sessionList` so the last row can scroll clear of the composer band.
+- Smoke TC-52 hit-tests the last row at 1024x640; journey covers desktop+phone with 8 seeded chats.
 
 ## Findings
 - (from the CARD-483/504 build and live check, 2026-10-03; docs/findings.md)

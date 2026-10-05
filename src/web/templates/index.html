@@ -368,7 +368,7 @@
         <!-- Chat Workspace Area (Dual-Pane on Desktop, Pop-Out Drawer on Mobile) [CARD-138] -->
         <div class="flex-1 flex overflow-hidden relative min-h-0">
           <!-- CARD-296: in-studio Sessions drawer (not Agent Desktop window) -->
-          <aside id="chatSessionsDrawer" class="hidden absolute inset-y-0 left-0 z-30 w-72 max-w-[85%] flex flex-col bg-[#0e1015]/98 border-r border-white/[0.08] shadow-2xl shadow-black/60 backdrop-blur-xl" aria-label="Chat sessions" data-card="296">
+          <aside id="chatSessionsDrawer" class="hidden absolute inset-y-0 left-0 z-50 w-72 max-w-[85%] flex flex-col bg-[#0e1015]/98 border-r border-white/[0.08] shadow-2xl shadow-black/60 backdrop-blur-xl" aria-label="Chat sessions" data-card="296" data-card-626="drawer-above-composer">
             <div class="px-3 py-2.5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
               <div>
                 <h3 class="text-xs font-bold text-white">Sessions</h3>
@@ -386,7 +386,7 @@
               <div class="flex items-center justify-between pt-1 flex-shrink-0">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
               </div>
-              <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
+              <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 pb-28" data-card-626="list-clears-composer">
                 <!-- Populated via API -->
               </div>
             </div>
@@ -4473,7 +4473,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.110"></script>
+  <script type="module" src="/static/app.js?v=2.0.111"></script>
 </body>
 </html>
 
