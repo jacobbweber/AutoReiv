@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-466: New chat is under the Chat + Options menu (not in the sessions drawer).
 - CARD-631: on a phone, a chat message with a long attachment path or link wraps to fit the screen instead of running off the edge.
 - CARD-629: on a phone, friction recommendation cards put badges on one line and the summary on its own full-width line.
 - CARD-623: Compact only reports success when it actually made the chat smaller; otherwise it says the conversation is already compact (and uses singular 'turn').

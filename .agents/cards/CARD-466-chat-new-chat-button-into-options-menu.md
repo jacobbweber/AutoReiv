@@ -1,9 +1,10 @@
 ---
 id: CARD-466
 title: "Chat Studio: move the New chat button into the + Options menu"
-status: Ready
+status: Done
 created: 2026-09-24
-branch: qa
+completed: 2026-10-05
+branch: feat/card-466-chat-new-chat-button-into-options-menu
 adr: none
 related:
   - CARD-142
@@ -21,7 +22,7 @@ milestone: Horizon
 
 # [CARD-466] Chat Studio: move the New chat button into the + Options menu
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-24
 > **Observed during**: Jacob using Chat Studio on Jarvis - starting a new chat should not require opening the session-history drawer.
 > **ADR Reference**: none
@@ -115,3 +116,14 @@ Starting a new chat belongs in the **+** menu next to the chat box, not at the t
 ## Note (2026-09-25 ET, CARD-476 planning)
 
 Correction to Beat 2 item 3: automatic new-session creation on an empty list is **not wired today**. The `chat.js` `loadSessions` wrapper (L601-607) does not pass `createNewSessionFn`, so `chrome.js` L143-145 never runs. CARD-476 restores it, so REQ-466-005 depends on CARD-476 landing first (or together). No code conflict with this card.
+
+## Results
+| Journey | Viewport | Result | Notes |
+|---|---|---|---|
+| card-466-new-chat-in-options | desktop+phone | pass | live_qa Spark |
+| vitest options + 296 | - | pass | 23 tests |
+
+Screenshots: %LOCALAPPDATA%\\Temp\\autoreiv-qa\\sprint1005\\card-466\\
+
+## Release note
+New chat is under the Chat + Options menu.

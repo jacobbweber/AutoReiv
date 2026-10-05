@@ -166,3 +166,41 @@ describe('Chat Context & Tools Helpers [CARD-161]', () => {
     expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
   });
 });
+
+
+describe('New chat under + Options [CARD-466]', () => {
+  let html;
+  beforeEach(() => {
+    html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
+  });
+
+  it('places exactly one newChatBtn inside chatOptionsDrawer, not sessions drawer', () => {
+    expect((html.match(/id="newChatBtn"/g) || []).length).toBe(1);
+    const optStart = html.indexOf('id="chatOptionsDrawer"');
+    const optEnd = html.indexOf('</div>', html.indexOf('data-card="307"', optStart)); // loose
+    // Prefer slicing by finding the drawer open tag through Inspectors section end is fragile; use contains order
+    const optionsIdx = html.indexOf('id="chatOptionsDrawer"');
+    const sessionsIdx = html.indexOf('id="chatSessionsDrawer"');
+    const btnIdx = html.indexOf('id="newChatBtn"');
+    expect(btnIdx).toBeGreaterThan(optionsIdx);
+    expect(html).toContain('>New chat<');
+    expect(html).toContain('Conversation');
+    // sessions drawer slice before options must not contain the button
+    const sessEnd = html.indexOf('</aside>', sessionsIdx);
+    expect(html.slice(sessionsIdx, sessEnd)).not.toContain('id="newChatBtn"');
+    expect(btnIdx).toBeLessThan(html.indexOf('id="verifyToggle"')); // before Runtime Modes controls
+  });
+});
+
+describe('CARD-466 newChatBtn click closes options drawer', () => {
+  it('chat.js closes the options drawer before createNewSession', () => {
+    const chatJs = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/static/modules/studios/chat.js'),
+      'utf-8',
+    );
+    expect(chatJs).toMatch(/newChatBtn\.addEventListener\(\s*['"]click['"]\s*,\s*async\s*\(\)\s*=>\s*\{/);
+    expect(chatJs).toMatch(/closeChatOptionsDrawer\(\)/);
+    expect(chatJs).toMatch(/await createNewSession\(\)/);
+  });
+});
+

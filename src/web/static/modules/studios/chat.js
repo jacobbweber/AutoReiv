@@ -780,7 +780,11 @@ export function initChatStudio(state, callbacks = {}) {
   });
 
   if (newChatBtn) {
-    newChatBtn.addEventListener('click', createNewSession);
+    // CARD-466: New chat lives in + Options; close the drawer then start a session.
+    newChatBtn.addEventListener('click', async () => {
+      closeChatOptionsDrawer();
+      await createNewSession();
+    });
   }
 
   // CARD-571: Ask Developer chats belong to Toolsmith; the agent comes from the Talk reply.
