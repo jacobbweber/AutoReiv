@@ -55,6 +55,11 @@ export default {
       await openApp(page, base);
       await page.locator('#dock-routines').click();
       await page.locator('#view-routines').waitFor({ state: 'visible', timeout: 20000 });
+      // The Agent filter starts on the active agent; show every agent, then find this routine.
+      await clickExpect(page.locator('#routinesFilterClearBtn'), async () => {
+        await waitFor(async () => (await page.locator('#routinesFilterAgent').inputValue()) === '', { timeoutMs: 5000 });
+      }, { label: 'Clear', what: 'filters cleared' });
+      await page.locator('#routinesFilterSearch').fill(id);
       const card = () => page.locator('#routinesGrid > *').filter({ hasText: name }).first();
       await card().waitFor({ state: 'visible', timeout: 15000 });
       await clickExpect(card().locator('.toggle-routine-btn'), async () => {
