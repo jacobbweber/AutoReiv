@@ -2,7 +2,7 @@
 id: CARD-631
 title: "On a phone, a user message with an attachment line runs off the screen because the long file path does not wrap"
 type: bug
-status: Ready
+status: In Review
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-631-phone-user-message-attachment-path]
   checks: [tests/unit/frontend/card631_user_bubble_wraps_long_paths.test.js]
 branch: feat/card-631-phone-user-message-attachment-path-overflow
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 25, qa_runs: 0, findings: 0}
 created: 2026-10-04
 related:
   - CARD-625
