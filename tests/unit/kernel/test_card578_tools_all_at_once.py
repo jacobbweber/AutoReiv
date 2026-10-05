@@ -67,9 +67,9 @@ def test_developer_turn_one_gets_its_full_set():
     dev = platform_pack_profile("developer")
     names = resolve_allowed_tools(dev).names
     sent = [t.name for t in _kernel(_registry_with(names))._resolve_active_tools(dev, user_content="hi")]
-    assert len(sent) == len(names) == 26, sorted(sent)  # CARD-632: +3 journey-qa report tools (was 23 after CARD-596)
+    assert len(sent) == len(names) == 27, sorted(sent)  # CARD-633: +run_journey (was 26 after CARD-632)
     for tool in ("read_project_file", "patch_project_file", "search_project", "run_project_checks", "skill_view",
-                 "list_journey_reports", "read_journey_report", "summarize_journey_failures"):
+                 "list_journey_reports", "read_journey_report", "summarize_journey_failures", "run_journey"):
         assert tool in sent
 
 

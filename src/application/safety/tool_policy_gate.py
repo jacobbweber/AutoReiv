@@ -45,6 +45,7 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "repo_create_worktree",
         "repo_remove_worktree",
         "hand_off_card",  # CARD-563
+        "run_journey",  # CARD-633
     }
 )
 
