@@ -110,4 +110,5 @@ def test_developer_ticks_journey_qa_skill():
     assert "- journey-qa" in text
     skill = Path("platform/skills/journey-qa/SKILL.md").read_text(encoding="utf-8")
     assert "list_journey_reports" in skill
-    assert "Does not start a journey run" in skill or "does not start" in skill.lower()
+    # CARD-633: skill now includes run_journey (throwaway + HITL); still documents report readers.
+    assert "run_journey" in skill or "Does not start a journey run" in skill or "does not start" in skill.lower()

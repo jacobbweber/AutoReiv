@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.application.kernel.hitl_engine import DEFAULT_HIGH_RISK_TOOLS, HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.safety.tool_policy_gate import RISKS_NEEDING_CONFIRM
@@ -80,7 +78,7 @@ def test_run_journey_timeout_kills_subprocess(tmp_path: Path):
 
     with patch("src.application.skills.journey_qa_tools.subprocess.Popen", return_value=proc):
         with patch("src.application.skills.journey_qa_tools._kill_process_tree") as kill:
-            with patch("src.application.skills.journey_qa_tools.subprocess.run") as run:
+            with patch("src.application.skills.journey_qa_tools.subprocess.run"):
                 out = tools.run_journey("card-demo", timeout_seconds=3, port=8770)
     assert out["success"] is False
     assert "timed out" in out["error"].lower()
