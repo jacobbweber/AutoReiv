@@ -2,7 +2,7 @@
 id: CARD-636
 title: "Five shipped routines on New York local times; deleted ones stay deleted"
 type: feature
-status: In Progress
+status: In Review
 priority: P1
 milestone: M25
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-636-cut-routines-local-times]
   checks: [tests/unit/routines/test_card636_routine_cut.py, tests/unit/routines/test_routine_scheduler.py, tests/unit/routines/test_skill_eval_sleep.py, tests/unit/skills/test_skill_curator.py, tests/unit/web/test_routine_management_api.py]
 branch: feat/card-636-cut-routines-local-times
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 90, qa_runs: 2, findings: 3}
 created: 2026-10-05
 related:
   - CARD-635
@@ -58,9 +58,20 @@ A fresh or upgraded install has exactly five shipped routines, all enabled, each
 ## Findings
 - (fixed here) `/api/routines` humanized the UTC cron even for local-clock routines, and a Studio cron edit on a local-clock routine was silently ignored.
 - The live serve runs with `--reload` from the main checkout, so uncommitted branch edits there hot-load into Jacob's running app. CARD-636 was built in a separate worktree for that reason.
-- `tests/unit/orchestration/test_fleet_coordinator.py::test_fleet_coordinator_delegates_to_specialist` depends on the untracked `notes/homelab` tree, so it fails in any clean worktree or CI checkout.
+- `tests/unit/orchestration/test_fleet_coordinator.py::test_fleet_coordinator_delegates_to_specialist` depends on the untracked `notes/homelab` tree, so it fails in any clean worktree or CI checkout; the release preflight's honesty validate also needs `notes/honesty-smoke-261-fixtures.json` from that untracked tree.
 
 ## Results
+| Journey | Viewport | Result | Notes |
+|---|---|---|---|
+| card-636-cut-routines-local-times | desktop | pass | live_qa :8770, Spark nemotron endpoint check; exactly the five; next runs Tue 02:00 / 02:30 / 03:00 / 04:30 ET and Mon Oct 12 04:00 ET; all enabled; none ran in 25 s; Studio shows "Daily at 02:00 ET" etc.; wiki-curation delete removed it from API and Studio |
+| card-636-cut-routines-local-times | phone | pass | same |
+| preflight --release | - | GREEN | ruff, eslint, pytest 2588 passed, vitest 1084, smoke 86 (worktree with `notes` junction to the main checkout, see Findings) |
+| preflight --fast --base qa | - | GREEN | guard 188, changed 80, mapped 426 |
+
+Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\sprint1005\card-636\`
+- `card-636-cut-routines-local-times-desktop-02-routines-studio-five-local.png`
+- `card-636-cut-routines-local-times-phone-02-routines-studio-five-local.png`
+- `card-636-cut-routines-local-times-desktop-03-deleting-a-shipped-routine-removes-it-from-the-l.png`
 
 ## Release note
 Shipped routines are cut to five that run overnight on New York time (SRE pulse 2:00, education retention 2:30, wiki curation 3:00, weekly note rollover Mondays 4:00, telemetry and skill audit 4:30). Daily System Info, Morning Briefing, Nightly Hygiene and the two paused skill routines are removed with their run history, and a shipped routine you delete stays deleted.
