@@ -870,6 +870,34 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+  // CARD-626: last Recent Chats row must hit-test to the row on desktop (not under #promptInput).
+  test('TC-52 (desktop): last Recent Chats row centre is the row, not the composer [CARD-626]', async ({ page, request }) => {
+    const tag = `626-${Date.now()}`;
+    const made = [];
+    for (let i = 0; i < 8; i += 1) {
+      made.push(await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `626 smoke ${i + 1} ${tag}` } })).json());
+    }
+    const last = made[made.length - 1];
+    await page.setViewportSize({ width: 1024, height: 640 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible();
+    await expect(page.locator('#sessionList > div', { hasText: last.title })).toHaveCount(1);
+    await page.locator('#toggleSidebarBtn').click();
+    await expect(page.locator('#chatSessionsDrawer')).toBeVisible();
+    const row = page.locator('#sessionList > div', { hasText: last.title }).first();
+    await row.scrollIntoViewIfNeeded();
+    const box = await row.boundingBox();
+    expect(box).toBeTruthy();
+    const hitId = await page.evaluate(({ x, y }) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return null;
+      if (el.closest('#sessionList > div')) return 'session-row';
+      return el.id || el.tagName;
+    }, { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+    expect(hitId).toBe('session-row');
+  });
+
   // CARD-485: picking a chat moves the highlight, closes the drawer, restores the job strip and busy state.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
     async function seed485(request) {
