@@ -12,7 +12,6 @@ import pytest
 
 from src.application.gateway.generation_semaphore import DEFAULT_MAX_CONCURRENT_GENERATIONS
 from src.application.routines.matcher import ScheduleMatcher
-from src.application.routines.scheduler import RoutineScheduler
 from src.application.routines.skill_eval_sleep import (
     AGENT_ID,
     ROUTINE_ID,
@@ -20,13 +19,39 @@ from src.application.routines.skill_eval_sleep import (
     run_skill_eval_job,
 )
 from src.application.skills.user_catalog import UserSkillCatalog
-from src.domain.routines.manifests import BUILTIN_ROUTINES, SKILL_EVAL_SLEEP_ROUTINE, get_builtin_routine
-from src.domain.routines.models import ScheduleType
+from src.domain.routines.manifests import (
+    BUILTIN_ROUTINES,
+    REMOVED_BUILTIN_ROUTINE_IDS,
+    TELEMETRY_FRICTION_AUDITOR_ROUTINE,
+)
+from src.domain.routines.models import Routine, ScheduleType
 from src.domain.telemetry.models import TelemetrySpan
 from src.infrastructure.data.resolver import DataDirResolver
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 SRC_ROOT = Path(__file__).resolve().parents[3] / "src"
+
+# CARD-636 retired the skill-eval-sleep routine (skill eval now runs inside the nightly auditor).
+# The job itself is unchanged, so these tests drive it with a local routine of the old shape.
+SKILL_EVAL_SLEEP_ROUTINE = Routine(
+    id=ROUTINE_ID,
+    name="Nightly skill eval (test fixture)",
+    agent_id=AGENT_ID,
+    prompt="Harvest + gate + propose_skill HITL only. Do not write SKILL.md.",
+    schedule_type=ScheduleType.CRON,
+    cron_expression="0 21 * * 1-5",
+    enabled=False,
+    metadata={
+        "timezone": "America/New_York",
+        "hour": 21,
+        "minute": 0,
+        "weekdays_only": True,
+        "lookback_hours": 72,
+        "replay": False,
+        "auto_commit": False,
+        "auto_archive": False,
+    },
+)
 
 
 @pytest.fixture
@@ -75,27 +100,15 @@ def _failed_turn(store, *, created_at=None, skill_id="okta-admin"):
     )
 
 
-def test_skill_eval_sleep_manifest_paused_agent_builder():
-    assert SKILL_EVAL_SLEEP_ROUTINE in BUILTIN_ROUTINES
-    assert SKILL_EVAL_SLEEP_ROUTINE.id == ROUTINE_ID
-    assert SKILL_EVAL_SLEEP_ROUTINE.agent_id == AGENT_ID
-    assert SKILL_EVAL_SLEEP_ROUTINE.agent_id not in {"coding", "review", "conductor"}
-    assert SKILL_EVAL_SLEEP_ROUTINE.enabled is False
-    assert SKILL_EVAL_SLEEP_ROUTINE.schedule_type == ScheduleType.CRON
-    assert SKILL_EVAL_SLEEP_ROUTINE.cron_expression == "0 21 * * 1-5"
-    meta = SKILL_EVAL_SLEEP_ROUTINE.metadata
-    assert meta["timezone"] == "America/New_York"
-    assert meta["hour"] == 21
-    assert meta["minute"] == 0
-    assert meta["weekdays_only"] is True
-    assert meta["lookback_hours"] == 72
-    assert meta["replay"] is False
-    assert meta["auto_commit"] is False
-    prompt = SKILL_EVAL_SLEEP_ROUTINE.prompt.lower()
-    assert "harvest" in prompt
-    assert "propose_skill" in prompt or "propose" in prompt
-    assert "do not write skill.md" in prompt
-    assert "02:00" in SKILL_EVAL_SLEEP_ROUTINE.description or "2am" in SKILL_EVAL_SLEEP_ROUTINE.description.lower()
+def test_skill_eval_is_hosted_by_the_auditor_with_no_new_dependency():
+    """CARD-636: no standalone skill-eval routine; the enabled nightly auditor hosts it, replay and commit off."""
+    assert ROUTINE_ID in REMOVED_BUILTIN_ROUTINE_IDS
+    host = TELEMETRY_FRICTION_AUDITOR_ROUTINE
+    assert host in BUILTIN_ROUTINES
+    assert host.enabled is True
+    assert host.metadata["timezone"] == "America/New_York"
+    assert host.metadata["replay"] is False
+    assert host.metadata["auto_commit"] is False
     src = Path("src/application/routines/skill_eval_sleep.py").read_text(encoding="utf-8")
     assert "import skillopt" not in src
     assert "from skillopt" not in src
@@ -104,30 +117,9 @@ def test_skill_eval_sleep_manifest_paused_agent_builder():
     assert "skillopt" not in pyproject.lower()
 
 
-def test_seed_default_routines_creates_paused_row():
-    store = SQLiteStateStore(db_path=":memory:")
-    store.initialize_db()
-    RoutineScheduler.seed_default_routines(store)
-    seeded = store.get_routine(ROUTINE_ID)
-    assert seeded is not None
-    assert seeded.enabled is False
-    assert seeded.agent_id == AGENT_ID
-    assert seeded.metadata.get("timezone") == "America/New_York"
-    assert seeded.metadata.get("hour") == 21
-    assert ScheduleMatcher.is_routine_due(seeded) is False
-    seeded.enabled = True
-    seeded.name = "Operator edited"
-    store.save_routine(seeded)
-    RoutineScheduler.seed_default_routines(store)
-    again = store.get_routine(ROUTINE_ID)
-    assert again.enabled is True
-    assert again.name == "Operator edited"
-
-
 def test_enabled_next_run_is_weekday_2100_et_not_0200_or_utc_2100():
     base = datetime(2026, 9, 1, 0, 0, tzinfo=timezone.utc)
-    routine = get_builtin_routine(ROUTINE_ID)
-    assert routine is not None
+    routine = SKILL_EVAL_SLEEP_ROUTINE
     enabled = routine.model_copy(update={"enabled": True, "last_run_at": None, "next_run_at": None})
     nxt = ScheduleMatcher.compute_next_run(enabled, base_time=base)
     assert nxt.tzinfo is not None
@@ -272,7 +264,6 @@ def test_refuses_checkout_data_when_live_is_localappdata(env, tmp_path):
     assert "checkout" in check["reason"].lower() or "LocalAppData" in check["reason"]
 
 
-def test_builtin_count_includes_skill_eval_sleep():
+def test_builtins_no_longer_include_skill_eval_sleep():
     ids = [r.id for r in BUILTIN_ROUTINES]
-    assert ROUTINE_ID in ids
-    assert get_builtin_routine(ROUTINE_ID) is SKILL_EVAL_SLEEP_ROUTINE
+    assert ROUTINE_ID not in ids

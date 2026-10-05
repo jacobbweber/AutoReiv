@@ -77,13 +77,20 @@ def test_compute_next_run_interval():
 
 def test_timezone_aware_next_run_not_utc_cron():
     """CARD-111: 21:00 ET weekdays, not 21:00 UTC, not 02:00 local."""
-    from src.domain.routines.manifests import SKILL_EVAL_SLEEP_ROUTINE
-
-    routine = SKILL_EVAL_SLEEP_ROUTINE.model_copy(update={"enabled": True})
+    paused = Routine(
+        id="weekday-2100-et",
+        name="Weekday 21:00 ET",
+        agent_id="developer",
+        prompt="noop",
+        schedule_type=ScheduleType.CRON,
+        cron_expression="0 21 * * 1-5",
+        enabled=False,
+        metadata={"timezone": "America/New_York", "hour": 21, "minute": 0, "weekdays_only": True},
+    )
+    routine = paused.model_copy(update={"enabled": True})
     base = datetime(2026, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
     nxt = ScheduleMatcher.compute_next_run(routine, base_time=base)
     assert nxt == datetime(2026, 9, 1, 1, 0, 0, tzinfo=timezone.utc)
-    paused = SKILL_EVAL_SLEEP_ROUTINE
     assert paused.enabled is False
     assert ScheduleMatcher.is_routine_due(paused, current_time=nxt) is False
 

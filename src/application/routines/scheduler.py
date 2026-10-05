@@ -9,7 +9,6 @@ from typing import List, Optional
 
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.matcher import ScheduleMatcher
-from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.domain.routines.models import RoutineRun
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -106,27 +105,3 @@ class RoutineScheduler:
         """
         self._running = False
         logger.info("RoutineScheduler stopped.")
-
-    @classmethod
-    def seed_default_routines(cls, store: SQLiteStateStore) -> None:
-        """
-        Seed the standard Day-1 agent routines into the database if not present.
-        """
-        for r in BUILTIN_ROUTINES:
-            existing = store.get_routine(r.id) if hasattr(store, "get_routine") else None
-            if not existing:
-                if r.next_run_at is None:
-                    r.next_run_at = ScheduleMatcher.compute_next_run(r)
-                store.save_routine(r)
-            else:
-                updated = False
-                if existing.agent_id in ("assistant", "wiki", "agent-builder"):
-                    existing.agent_id = r.agent_id
-                    updated = True
-                if existing.next_run_at is None and existing.last_run_at is None:
-                    existing.next_run_at = ScheduleMatcher.compute_next_run(existing)
-                    updated = True
-                if updated:
-                    store.save_routine(existing)
-        if getattr(store, "set_setting", None):
-            store.set_setting("day1_routines_seeded", True)

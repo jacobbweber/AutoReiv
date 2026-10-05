@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-636: shipped routines are cut to five that run overnight on New York time (SRE pulse 2:00, education retention 2:30, wiki curation 3:00, weekly note rollover Mondays 4:00, telemetry and skill audit 4:30). Daily System Info, Morning Briefing, Nightly Hygiene and the two paused skill routines are removed with their run history, and a shipped routine you delete stays deleted.
 - CARD-635: routines fire only at their scheduled time: a run missed while the app was closed, asleep or more than 30 minutes late is skipped and logged instead of caught up at start-up, a failed run waits for its next slot instead of retrying every 10 seconds, and resuming a paused routine schedules it from now.
 
 ## [0.45.0] - 2026-10-05

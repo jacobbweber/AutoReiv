@@ -29,6 +29,7 @@ from src.application.observability.log_buffer import setup_system_logging
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.scheduler import RoutineScheduler
+from src.application.routines.seed import seed_builtin_routines
 from src.application.sdlc.projects_service import ProjectsService
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
@@ -39,7 +40,6 @@ from src.application.system.update_scheduler import SoftwareUpdateScheduler
 from src.application.system.update_service import UpdateService
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.wiki.service import WikiService
-from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.data.resolver import bootstrap_data_dir
 from src.infrastructure.gateway.factory import GatewayProviderFactory
@@ -611,26 +611,8 @@ def create_app(
             response.headers["Expires"] = "0"
         return response
 
-    # 9. Seed / Sync Default Routines
-    from src.application.routines.matcher import ScheduleMatcher
-
-    for r in BUILTIN_ROUTINES:
-        existing_r = store.get_routine(r.id)
-        if not existing_r:
-            if r.next_run_at is None:
-                r.next_run_at = ScheduleMatcher.compute_next_run(r)
-            store.save_routine(r)
-        else:
-            updated = False
-            if existing_r.agent_id in ("assistant", "wiki", "agent-builder"):
-                existing_r.agent_id = r.agent_id
-                updated = True
-            if existing_r.next_run_at is None and existing_r.last_run_at is None:
-                existing_r.next_run_at = ScheduleMatcher.compute_next_run(existing_r)
-                updated = True
-            if updated:
-                store.save_routine(existing_r)
-    store.set_setting("day1_routines_seeded", True)
+    # 9. Seed shipped routines (one shared seed + one-time CARD-636 migration)
+    seed_builtin_routines(store)
 
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)

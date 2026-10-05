@@ -44,20 +44,16 @@ def _recompute_next_run(store, routine_id: str) -> None:
 
 @router.get("/api/routines")
 async def list_routines(request: Request, agent_id: Optional[str] = None):
-    from src.application.routines.humanizer import compute_next_run_eta, cron_to_human
-    from src.domain.routines.manifests import BUILTIN_ROUTINES
+    from src.application.routines.matcher import describe_schedule, next_run_eta
+    from src.application.routines.seed import BUILTIN_ROUTINE_IDS as builtin_ids
 
-    builtin_ids = {r.id for r in BUILTIN_ROUTINES}
     store = request.app.state.store
     routines = store.list_routines(agent_id=agent_id)
     result = []
     for r in routines:
-        if r.cron_expression:
-            human_sched = cron_to_human(r.cron_expression)
-            _, next_eta = compute_next_run_eta(r.cron_expression)
-        else:
-            human_sched = f"Every {r.interval_seconds}s"
-            next_eta = f"in {r.interval_seconds // 60}m" if r.interval_seconds else "hourly"
+        # CARD-636: describe what the scheduler actually uses, and the ETA of the stored next run.
+        human_sched = describe_schedule(r)
+        next_eta = next_run_eta(r)
 
         result.append(
             {
@@ -178,16 +174,20 @@ async def update_routine(request: Request, routine_id: str, payload: RoutinePayl
         if cron:
             routine.cron_expression = cron
         routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
-    elif routine.enabled and (
-        not existing.enabled
-        or routine.schedule_type != existing.schedule_type
-        or routine.interval_seconds != existing.interval_seconds
-        or routine.cron_expression != existing.cron_expression
-    ):
-        # CARD-635: resumed or rescheduled -> next slot from now, never the stale one.
-        from src.application.routines.matcher import ScheduleMatcher
+    else:
+        from src.application.routines.matcher import ScheduleMatcher, sync_local_slot_to_cron, uses_local_clock
 
-        routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
+        if routine.cron_expression != existing.cron_expression and uses_local_clock(existing):
+            # CARD-636: the local slot follows an edited cron instead of silently overriding it.
+            routine.metadata = sync_local_slot_to_cron(routine.metadata, routine.cron_expression or "")
+        if routine.enabled and (
+            not existing.enabled
+            or routine.schedule_type != existing.schedule_type
+            or routine.interval_seconds != existing.interval_seconds
+            or routine.cron_expression != existing.cron_expression
+        ):
+            # CARD-635: resumed or rescheduled -> next slot from now, never the stale one.
+            routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
 
     store.save_routine(routine)
     return {"status": "updated", "routine": routine.model_dump(mode="json")}
@@ -219,6 +219,9 @@ async def delete_routine(request: Request, routine_id: str):
             status_code=400,
             detail=f"Cannot delete routine '{routine_id}'.",
         )
+    from src.application.routines.seed import remember_deleted_builtin
+
+    remember_deleted_builtin(store, routine_id)  # CARD-636: a deleted shipped routine stays deleted
     return {"status": "deleted", "id": routine_id}
 
 
