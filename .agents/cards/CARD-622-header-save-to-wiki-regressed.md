@@ -2,7 +2,7 @@
 id: CARD-622
 title: "Chat header Save to Wiki says 'not available' again (callbacks read at the wrong level since CARD-397)"
 type: bug
-status: Ready
+status: In Progress
 priority: P2
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-622-header-save-to-wiki]
   checks: []
 branch: feat/card-622-header-save-to-wiki-regressed
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 15, qa_runs: 0, findings: 0}
 created: 2026-10-03
 related:
   - CARD-415
@@ -36,6 +36,9 @@ A header button that only shows an error.
 - Journey `card-622-header-save-to-wiki`: after one reply, the header Save to Wiki creates an Inbox note with the whole thread (desktop and phone).
 
 ## Plan and decisions
+- Pass `exportSessionToWiki` at the top level into `setupChatChrome` (CARD-471 Compact pattern) and also resolve `callbacks.callbacks.exportSessionToWiki` defensively in chrome.js.
+- Vitest covers nested, top-level, empty, and missing wiring.
+- Journey `card-622-header-save-to-wiki` clicks the header button after one reply.
 
 ## Findings
 - (from the CARD-471/473 live check, 2026-10-03; docs/findings.md)

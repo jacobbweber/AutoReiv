@@ -534,6 +534,7 @@ export function initChatStudio(state, callbacks = {}) {
   setupChatChrome(state, { promptInput }, {
     showToastFn: showToast,
     reloadMessages: loadMessages, // CARD-471: Compact reloads the chat
+    exportSessionToWiki: callbacks?.exportSessionToWiki, // CARD-622: top-level like reloadMessages
     callbacks,
     getJobPhaseState: () => jobPhaseState,
   });
