@@ -10,7 +10,7 @@ proof:
   journeys: [card-621-tc39-stable]
   checks: [tests/e2e/smoke.spec.js]
 branch: feat/card-621-tc39-agent-select-flake
-log: {minutes: 45, qa_runs: 1, findings: 1}
+log: {minutes: 45, qa_runs: 2, findings: 1}
 created: 2026-10-03
 related:
   - CARD-496
@@ -44,9 +44,9 @@ A red preflight that is not about the change under test.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
-| card-621-tc39-stable | desktop+phone | pending live | product+smoke done |
+| card-621-tc39-stable | desktop+phone | pass | live_qa Spark nemotron; screenshots under sprint1005/card-621 |
 | smoke TC-39 | desktop+phone | pass | 20/20 with --repeat-each 10 |
-| smoke full | all | pass | 86/86 (run 1) |
+| smoke full | all | pass | 86/86 twice |
 
 ## Release note
 After a saved layout restores open studios, the first dock click focuses that studio instead of minimizing it. Smoke's Agent Studio picks no longer fail at random on that race.
