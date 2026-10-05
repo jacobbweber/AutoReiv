@@ -43,8 +43,8 @@ The STOPPED badge on a job that only waits for a reply.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
-| card-620-waiting-badge | desktop+phone | pending | |
-| vitest card_620 | - | pass | |
+| card-620-waiting-badge | desktop+phone | pass | live_qa Spark sprint1005/card-620 |
+| vitest card_620 | - | pass | 2/2 + CARD-613 3/3 |
 
 ## Release note
 A job that waits for your answer says WAITING on the strip, not STOPPED.
