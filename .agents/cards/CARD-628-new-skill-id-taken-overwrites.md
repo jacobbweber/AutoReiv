@@ -2,15 +2,15 @@
 id: CARD-628
 title: "Skill Studio: saving a New skill whose id already exists silently replaces that skill (a shipped one is shadowed by the new copy)"
 type: bug
-status: Ready
+status: In Progress
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
   journeys: [card-628-new-skill-id-taken]
-  checks: []
+  checks: [tests/unit/web/test_card628_new_skill_id_taken.py]
 branch: feat/card-628-new-skill-id-taken
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 30, qa_runs: 0, findings: 0}
 created: 2026-10-03
 related:
   - CARD-522
@@ -42,6 +42,8 @@ New skills that silently replace a built-in or saved skill.
 - pytest: the route refuses a taken id for a new skill and accepts an edit of the same id.
 
 ## Plan and decisions
+- Save payload sends `is_new`; route returns 409 with existing name + `suggested_id` (`<id>_2`).
+- Form offers Use id / Open existing; editing a loaded skill still overwrites as today.
 
 ## Findings
 - (from the CARD-522 build, 2026-10-03; docs/findings.md)
