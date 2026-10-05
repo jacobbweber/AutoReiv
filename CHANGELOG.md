@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-633: Developer can start a throwaway live QA journey from Chat after you approve (never your live serve or AppData).
 - CARD-466: New chat is under the Chat + Options menu (not in the sessions drawer).
 - CARD-631: on a phone, a chat message with a long attachment path or link wraps to fit the screen instead of running off the edge.
 - CARD-629: on a phone, friction recommendation cards put badges on one line and the summary on its own full-width line.

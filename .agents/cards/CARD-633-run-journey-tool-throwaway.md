@@ -2,15 +2,15 @@
 id: CARD-633
 title: "Developer tool to run a CARD-532 journey (throwaway env only, with HITL)"
 type: feature
-status: Ready
+status: In Review
 priority: P2
 milestone: M25
 needs_decision: none
 proof:
-  journeys: []
-  checks: []
+  journeys: [card-633-run-journey-tool]
+  checks: [tests/unit/skills/test_card633_run_journey_tool.py]
 branch: feat/card-633-run-journey-tool
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 45, qa_runs: 0, findings: 0}
 created: 2026-10-05
 related:
   - CARD-533
@@ -30,6 +30,15 @@ Second slice of CARD-533 (REQ-533-002 run half). Locked defaults from CARD-533 r
 
 ## Blocked until
 CARD-632 Done (report reader exists to consume the run).
+
+## Release note
+Developer can start a throwaway live QA journey from Chat after you approve.
+
+## Results
+| Journey | Viewport | Result | Notes |
+|---|---|---|---|
+| card-633-run-journey-tool | desktop+phone | pending | |
+| unit test_card633 | - | pending | |
 
 ## Release note
 Developer can start a throwaway live QA journey from Chat after you approve.

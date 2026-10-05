@@ -28,6 +28,7 @@ DEFAULT_HIGH_RISK_TOOLS: tuple[str, ...] = (
     "repo_file_patch",
     "repo_file_rollback",
     "hand_off_card",  # CARD-563: asks once per hand-off; CARD-566: autorun (run mode) skips it like any other tool
+    "run_journey",  # CARD-633: throwaway live QA journey; approve every run
 )
 
 
