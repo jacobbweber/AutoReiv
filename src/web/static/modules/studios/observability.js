@@ -845,11 +845,11 @@ export function renderFrictionRecommendations(recs) {
       badgeColor = 'bg-slate-800 text-slate-400 border-slate-700';
     }
 
-    let remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800">Runbook SOP Patch</span>';
+    let remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold whitespace-nowrap bg-cyan-950/80 text-cyan-300 border border-cyan-800">Runbook SOP Patch</span>';
     if (isToolFix) {
-      remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-950/80 text-purple-300 border border-purple-800">Needs a tool</span>';
+      remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold whitespace-nowrap bg-purple-950/80 text-purple-300 border border-purple-800">Needs a tool</span>';
     } else if (isCodeChange) {
-      remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-orange-950/80 text-orange-300 border border-orange-800" title="Python in AutoReiv: Developer cannot change it">Built-in tool: code change</span>';
+      remedyBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold whitespace-nowrap bg-orange-950/80 text-orange-300 border border-orange-800" title="Python in AutoReiv: Developer cannot change it">Built-in tool: code change</span>';
     }
 
     const dismissBtn = `
@@ -882,15 +882,17 @@ export function renderFrictionRecommendations(recs) {
 
     return `
       <div class="p-3.5 rounded-xl bg-[#12151e]/90 border border-white/[0.08] space-y-2 shadow-sm" data-rec-id="${escapeHtml(r.id)}">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="flex items-center space-x-2">
-            <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${badgeColor}">${escapeHtml(r.friction_type)}</span>
-            ${remedyBadge}
-            <span class="text-xs font-bold text-white">${escapeHtml(r.summary)}</span>
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 flex-wrap min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border whitespace-nowrap ${badgeColor}">${escapeHtml(r.friction_type)}</span>
+              ${remedyBadge}
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+              ${actions}
+            </div>
           </div>
-          <div class="flex items-center space-x-2">
-            ${actions}
-          </div>
+          <div class="friction-rec-summary text-xs font-bold text-white w-full min-w-0">${escapeHtml(r.summary)}</div>
         </div>
         <div class="text-xs text-slate-300 font-mono bg-black/40 p-2.5 rounded-lg border border-white/[0.04] whitespace-pre-wrap">${escapeHtml(r.proposed_patch)}</div>
         <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">
