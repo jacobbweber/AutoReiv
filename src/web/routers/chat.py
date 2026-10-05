@@ -1729,9 +1729,10 @@ async def compact_session(request: Request, session_id: str):
     msgs = list(store.get_messages(session_id=session_id))
 
     if not msgs:
+        # CARD-623: empty chat is already compact (toast), not a hard failure.
         return {
             "session_id": session_id,
-            "success": False,
+            "success": True,
             "compaction_applied": False,
             "turns_compacted": 0,
             "message": "No messages to compact.",
