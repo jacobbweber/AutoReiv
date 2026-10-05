@@ -870,6 +870,37 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
+  // CARD-624: a toast's centre must hit-test to the toast, not a dock icon.
+  test('TC-53 (desktop): toast centre is above the dock [CARD-624]', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 640 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#dock-chat').click();
+    await expect(page.locator('#promptInput')).toBeVisible({ timeout: 15000 });
+    // Real showToast path (no dynamic import — that flakes under the full smoke suite).
+    await page.locator('#exportThreadWikiBtn').click();
+    await expect(page.locator('#toastContainer > div').first()).toContainText(/No messages to export|Save to Wiki|Wiki/i, { timeout: 5000 });
+    await page.waitForTimeout(100);
+    const hit = await page.evaluate(() => {
+      const toast = document.querySelector('#toastContainer > div');
+      if (!toast) return { inToast: false, dockHit: true, aboveDock: false, z: '0' };
+      const r = toast.getBoundingClientRect();
+      const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const dock = document.querySelector('#desktopDock, .desktop-dock');
+      const dockTop = dock ? dock.getBoundingClientRect().top : null;
+      const cs = window.getComputedStyle(document.getElementById('toastContainer'));
+      return {
+        inToast: !!(el && el.closest && el.closest('#toastContainer > div')),
+        dockHit: !!(el && el.closest && (el.closest('.desktop-dock') || el.closest('#desktopDock'))),
+        aboveDock: dockTop == null || r.bottom <= dockTop + 2,
+        z: cs.zIndex,
+        toastBottom: r.bottom,
+        dockTop,
+      };
+    });
+    expect(hit, JSON.stringify(hit)).toMatchObject({ inToast: true, dockHit: false, aboveDock: true });
+    expect(Number(hit.z)).toBeGreaterThanOrEqual(11000);
+  });
+
   // CARD-626: last Recent Chats row must hit-test to the row on desktop (not under #promptInput).
   test('TC-52 (desktop): last Recent Chats row centre is the row, not the composer [CARD-626]', async ({ page, request }) => {
     const tag = `626-${Date.now()}`;

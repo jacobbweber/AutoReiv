@@ -12,6 +12,7 @@ function getToastDocument() {
  * Returns or creates the fixed toast container in the DOM.
  * @returns {HTMLElement|null}
  */
+/** CARD-624: above .desktop-dock (z-index 10000) and clear of the dock band. */
 export function getOrCreateToastContainer() {
   const doc = getToastDocument();
   if (!doc) return null;
@@ -21,7 +22,7 @@ export function getOrCreateToastContainer() {
     container = doc.createElement('div');
     container.id = 'toastContainer';
     container.className =
-      'fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0';
+      'fixed right-4 z-[11000] bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0';
     container.setAttribute('aria-live', 'polite');
     container.setAttribute('aria-atomic', 'true');
     doc.body.appendChild(container);

@@ -2,15 +2,15 @@
 id: CARD-624
 title: "Toasts appear underneath the desktop dock, so you cannot see them (desktop and phone)"
 type: bug
-status: Ready
+status: In Progress
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
   journeys: [card-624-toast-visible]
-  checks: []
+  checks: [tests/unit/frontend/toast_above_dock_624.test.js]
 branch: feat/card-624-toasts-hidden-under-dock
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 15, qa_runs: 0, findings: 0}
 created: 2026-10-03
 related:
   - CARD-471
@@ -35,6 +35,9 @@ Messages nobody can read.
 - Journey `card-624-toast-visible`: trigger a toast on desktop and phone; `elementFromPoint` at its centre is inside the toast and the screenshot shows it above the dock.
 
 ## Plan and decisions
+- Raise `#toastContainer` to `z-index: 11000` (dock is 10000) and set `bottom: calc(4.75rem + safe-area)` so the stack clears the dock band on desktop and phone.
+- Same classes in `toast.js` + `index.html`; CSS rule in `desktop.css` as the hard floor.
+- Vitest + smoke TC-53 + journey `card-624-toast-visible`.
 
 ## Findings
 - (from the CARD-471/473 live check, 2026-10-03; docs/findings.md)
