@@ -2,7 +2,7 @@
 id: CARD-630
 title: "The approval card shows the internal _tool_call_id in the arguments box"
 type: bug
-status: Ready
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-630-approval-card-hides-tool-call-id]
   checks: [tests/unit/frontend/card630_hitl_args_hide_tool_call_id.test.js]
 branch: feat/card-630-approval-card-hides-tool-call-id
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 20, qa_runs: 1, findings: 0}
 created: 2026-10-04
 related:
   - CARD-545
@@ -55,6 +55,8 @@ The `_tool_call_id` line in approval cards.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-630-approval-card-hides-tool-call-id | desktop+phone | pass | live_qa Spark; formatHitlArgs probe |
+| vitest card630 | - | pass | 5/5 |
 
 Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-630\...`
 
