@@ -63,6 +63,22 @@ def cron_to_human(cron_expr: str) -> str:
     return f"Cron ({expr})"
 
 
+def format_eta(total_seconds: int) -> str:
+    """'in 45s' / 'in 12m' / 'in 3h 5m' / 'in 2d 4h' for a positive number of seconds."""
+    total_seconds = max(0, int(total_seconds))
+    if total_seconds < 60:
+        return f"in {total_seconds}s"
+    if total_seconds < 3600:
+        return f"in {total_seconds // 60}m"
+    if total_seconds < 86400:
+        hrs = total_seconds // 3600
+        rem_mins = (total_seconds % 3600) // 60
+        return f"in {hrs}h {rem_mins}m" if rem_mins > 0 else f"in {hrs}h"
+    days = total_seconds // 86400
+    rem_hrs = (total_seconds % 86400) // 3600
+    return f"in {days}d {rem_hrs}h" if rem_hrs > 0 else f"in {days}d"
+
+
 def _matches_cron_field(val: int, field: str) -> bool:
     """Check if an integer value matches a cron field component."""
     if field == "*":
@@ -118,24 +134,7 @@ def compute_next_run_eta(
             and _matches_cron_field(candidate.month, mon_f)
             and (_matches_cron_field(dow_val, dow_f) or _matches_cron_field(7 if dow_val == 0 else dow_val, dow_f))
         ):
-            delta = candidate - now
-            total_seconds = int(delta.total_seconds())
-
-            if total_seconds < 60:
-                eta_str = f"in {total_seconds}s"
-            elif total_seconds < 3600:
-                mins = total_seconds // 60
-                eta_str = f"in {mins}m"
-            elif total_seconds < 86400:
-                hrs = total_seconds // 3600
-                rem_mins = (total_seconds % 3600) // 60
-                eta_str = f"in {hrs}h {rem_mins}m" if rem_mins > 0 else f"in {hrs}h"
-            else:
-                days = total_seconds // 86400
-                rem_hrs = (total_seconds % 86400) // 3600
-                eta_str = f"in {days}d {rem_hrs}h" if rem_hrs > 0 else f"in {days}d"
-
-            return candidate, eta_str
+            return candidate, format_eta(int((candidate - now).total_seconds()))
 
         candidate += timedelta(minutes=1)
 

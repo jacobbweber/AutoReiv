@@ -89,15 +89,65 @@ def compute_next_local_weekday_run(
     hour = int(meta.get("hour", 21))
     minute = int(meta.get("minute", 0))
     weekdays_only = bool(meta.get("weekdays_only", True))
+    # CARD-636: optional day list in cron convention (0=Sun .. 6=Sat), e.g. [1] = Mondays only.
+    days = {int(d) % 7 for d in (meta.get("weekdays") or [])}
     now = base_time if base_time.tzinfo else base_time.replace(tzinfo=timezone.utc)
     local_now = to_local(now, tz_name)
     cand = local_now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if local_now >= cand:
         cand = cand + timedelta(days=1)
-    if weekdays_only:
-        while cand.weekday() >= 5:
+    for _ in range(8):
+        if weekdays_only and cand.weekday() >= 5:
             cand = cand + timedelta(days=1)
+            continue
+        if days and (cand.weekday() + 1) % 7 not in days:
+            cand = cand + timedelta(days=1)
+            continue
+        break
     return from_local_civil(cand, tz_name)
+
+
+_TZ_LABELS = {"America/New_York": "ET", "US/Eastern": "ET"}
+_DAY_PLURALS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"]
+
+
+def describe_schedule(routine: Routine) -> str:
+    """CARD-636: the schedule the scheduler actually uses, in plain words (not the unused cron)."""
+    rule = get_schedule_rule(routine)
+    if rule is not None:
+        from src.domain.routines.schedule_rule import rule_to_human
+
+        return rule_to_human(rule)
+    if uses_local_clock(routine):
+        meta = routine.metadata or {}
+        tz_name = str(meta.get("timezone") or "America/New_York").strip() or "America/New_York"
+        at = f"{int(meta.get('hour', 21)):02d}:{int(meta.get('minute', 0)):02d} {_TZ_LABELS.get(tz_name, tz_name)}"
+        days = sorted({int(d) % 7 for d in (meta.get("weekdays") or [])})
+        if days:
+            return f"{', '.join(_DAY_PLURALS[d] for d in days)} at {at}"
+        if meta.get("weekdays_only", True):
+            return f"Weekdays at {at}"
+        return f"Daily at {at}"
+    if routine.schedule_type == ScheduleType.CRON and routine.cron_expression:
+        from src.application.routines.humanizer import cron_to_human
+
+        return cron_to_human(routine.cron_expression)
+    secs = int(routine.interval_seconds or 3600)
+    for unit, size in (("day", 86400), ("hour", 3600), ("minute", 60)):
+        if secs % size == 0:
+            n = secs // size
+            return f"Every {n} {unit}" + ("" if n == 1 else "s")
+    return f"Every {secs} seconds"
+
+
+def next_run_eta(routine: Routine, now: Optional[datetime] = None) -> str:
+    """CARD-636: ETA from the stored next_run_at (what will actually fire)."""
+    if routine.next_run_at is None:
+        return "not scheduled"
+    from src.application.routines.humanizer import format_eta
+
+    now = _aware(now or datetime.now(timezone.utc))
+    return format_eta(int((_aware(routine.next_run_at) - now).total_seconds()))
 
 
 
