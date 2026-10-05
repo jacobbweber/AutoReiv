@@ -11,10 +11,10 @@ from typing import List, Optional
 
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.routines.executor import RoutineExecutor
+from src.application.routines.seed import seed_builtin_routines
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.kernel.models import KernelEventType
-from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.data.backup import DataDirBackupService, DataDirRestoreError
 from src.infrastructure.data.resolver import bootstrap_data_dir
@@ -79,7 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_p = routine_sub.add_parser(
         "run", parents=[common_parser], help="Trigger a single routine execution immediately"
     )
-    run_p.add_argument("routine_id", help="ID of the routine to execute (e.g. morning-briefing)")
+    run_p.add_argument("routine_id", help="ID of the routine to execute (e.g. hourly-sre-pulse)")
 
     # chat
     chat_p = subparsers.add_parser(
@@ -213,18 +213,8 @@ def cmd_routine(args: argparse.Namespace) -> int:
     store = SQLiteStateStore(db_path=str(paths.db_path))
     store.initialize_db()
 
-    # Ensure default routines seeded
-    from src.application.routines.matcher import ScheduleMatcher
-
-    for r in BUILTIN_ROUTINES:
-        existing_r = store.get_routine(r.id)
-        if not existing_r:
-            if r.next_run_at is None:
-                r.next_run_at = ScheduleMatcher.compute_next_run(r)
-            store.save_routine(r)
-        elif existing_r.next_run_at is None and existing_r.last_run_at is None:
-            existing_r.next_run_at = ScheduleMatcher.compute_next_run(existing_r)
-            store.save_routine(existing_r)
+    # Ensure shipped routines are seeded (shared seed, CARD-636)
+    seed_builtin_routines(store)
 
     if args.routine_command == "list" or not args.routine_command:
         routines = store.list_routines()

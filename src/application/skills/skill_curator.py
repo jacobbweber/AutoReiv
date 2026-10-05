@@ -11,7 +11,6 @@ skill-eval-sleep metadata.auto_archive).
 
 from __future__ import annotations
 
-import json
 import logging
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -603,41 +602,4 @@ def maybe_curate_from_routine(
         last_used_by_id=last_used_by_id,
         stale_days=stale_days,
         archive_days=archive_days,
-    )
-
-
-def run_curator_job(
-    catalog: UserSkillCatalog,
-    *,
-    routine: Any = None,
-    now: Optional[datetime] = None,
-    last_used_by_id: Optional[Dict[str, Optional[datetime]]] = None,
-) -> Dict[str, Any]:
-    """Sibling routine entry. Still honors metadata.auto_archive (seeded True, routine paused)."""
-    meta = dict(getattr(routine, "metadata", None) or {}) if routine is not None else {}
-    auto = bool(meta.get("auto_archive", True)) if routine is not None else True
-    stale_days = int(meta.get("stale_days", STALE_AFTER_DAYS) or STALE_AFTER_DAYS)
-    archive_days = int(meta.get("archive_days", ARCHIVE_AFTER_DAYS) or ARCHIVE_AFTER_DAYS)
-    result = curate_user_skills(
-        catalog,
-        now=now,
-        auto_archive=auto,
-        last_used_by_id=last_used_by_id,
-        stale_days=stale_days,
-        archive_days=archive_days,
-    )
-    result["routine_id"] = ROUTINE_ID
-    return result
-
-
-def job_output_text(result: Dict[str, Any]) -> str:
-    return json.dumps(
-        {
-            "status": "success" if result.get("success") else "failed",
-            "auto_archive": result.get("auto_archive"),
-            "archived_count": result.get("archived_count"),
-            "archived": [row.get("skill_id") for row in (result.get("archived") or [])],
-            "skill_md_deleted": False,
-        },
-        indent=2,
     )
