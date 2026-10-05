@@ -5,8 +5,8 @@
 Unused user skill_rows: active --(30d)--> stale --(90d)--> archive (move).
 Never deletes SKILL.md. Never auto-archives shipped skill ids (platform/skills)
 (empty after CARD-118; no product seeds ship). Never touches repo src/infrastructure/skills/seeds/.
-Unknown last-used fails closed. Auto-archive is opt-in (paused routine /
-skill-eval-sleep metadata.auto_archive).
+Unknown last-used fails closed. Auto-archive is opt-in (routine metadata.auto_archive;
+the nightly telemetry-friction-auditor that hosts skill eval since CARD-636 keeps it False).
 """
 
 from __future__ import annotations
@@ -581,7 +581,7 @@ def maybe_curate_from_routine(
     now: Optional[datetime] = None,
     last_used_by_id: Optional[Dict[str, Optional[datetime]]] = None,
 ) -> Dict[str, Any]:
-    """Hook from skill-eval-sleep / sibling routine. Off unless metadata.auto_archive."""
+    """Hook from the skill-eval job (run by the nightly auditor). Off unless metadata.auto_archive."""
     meta = dict(getattr(routine, "metadata", None) or {}) if routine is not None else {}
     auto = bool(meta.get("auto_archive", False))
     stale_days = int(meta.get("stale_days", STALE_AFTER_DAYS) or STALE_AFTER_DAYS)

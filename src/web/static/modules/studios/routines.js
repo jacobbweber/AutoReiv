@@ -51,18 +51,13 @@ export function isBuiltinRoutine(routine) {
   if (routine.is_builtin !== undefined && routine.is_builtin !== null) {
     return Boolean(routine.is_builtin);
   }
+  // CARD-636: the five shipped routines (the API's is_builtin above is authoritative).
   const BUILTIN_IDS = [
-    'routine-sre-health',
-    'morning-briefing',
-    'daily-sysinfo',
-    'nightly-hygiene',
     'hourly-sre-pulse',
-    'weekly-note-rollover',
-    'skill-eval-sleep',
-    'skill-curator',
+    'education-retrieval-retention',
     'wiki-curation',
-    'routine-daily-brief',
-    'routine-wiki-prune',
+    'weekly-note-rollover',
+    'telemetry-friction-auditor',
   ];
   return BUILTIN_IDS.includes(routine.id);
 }
