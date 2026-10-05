@@ -408,6 +408,7 @@ export function initSkillStudio(_state, callbacks = {}) {
       factorySaveSkillBtn.classList.add('opacity-50', 'cursor-not-allowed');
     }
 
+    const isNew = !currentSkillId || currentSkillId !== skillId; // CARD-628: New skill / id change
     const payload = {
       skill_id: skillId,
       skill_content: content,
@@ -417,6 +418,7 @@ export function initSkillStudio(_state, callbacks = {}) {
       tier: fields.tier,
       safety: fields.safety,
       tools: fields.tools,
+      is_new: isNew,
     };
     if (pinAgentId) {
       payload.agent_id = pinAgentId;
@@ -433,7 +435,47 @@ export function initSkillStudio(_state, callbacks = {}) {
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.detail || `Server returned ${resp.status}`);
+        const detail = errData && errData.detail;
+        if (resp.status === 409 && detail && typeof detail === 'object' && detail.code === 'skill_id_taken') {
+          const msg = String(detail.message || 'That skill id is already taken.');
+          const suggested = String(detail.suggested_id || '');
+          const existingId = String(detail.skill_id || skillId);
+          const existingName = String(detail.existing_name || existingId);
+          if (factorySaveFeedbackMsg) {
+            factorySaveFeedbackMsg.classList.remove('hidden');
+            factorySaveFeedbackMsg.innerHTML = `
+              <div data-testid="skill-studio-id-taken" class="space-y-2 text-amber-100">
+                <p class="text-xs">${escapeHtml(msg)}</p>
+                <div class="flex flex-wrap gap-2">
+                  ${suggested ? `<button type="button" data-action="use-suggested-id" data-id="${escapeHtml(suggested)}" class="px-2 py-1 rounded bg-amber-700/40 border border-amber-500/40 text-[11px]">Use id ${escapeHtml(suggested)}</button>` : ''}
+                  <button type="button" data-action="open-existing-skill" data-id="${escapeHtml(existingId)}" class="px-2 py-1 rounded bg-slate-800 border border-white/10 text-[11px]">Open ${escapeHtml(existingName)}</button>
+                </div>
+              </div>`;
+            const useBtn = factorySaveFeedbackMsg.querySelector('[data-action="use-suggested-id"]');
+            const openBtn = factorySaveFeedbackMsg.querySelector('[data-action="open-existing-skill"]');
+            if (useBtn) {
+              useBtn.addEventListener('click', () => {
+                if (factorySkillIdInput) factorySkillIdInput.value = suggested;
+                if (factorySkillNameInput && suggested.endsWith('_2') && skillName) {
+                  // keep human name; id alone is enough for the next Save
+                }
+                showToast(`Id set to ${suggested}. Click Save again.`, 'info');
+              });
+            }
+            if (openBtn) {
+              openBtn.addEventListener('click', async () => {
+                await loadExistingSkill(existingId, pinAgentId);
+                factorySaveFeedbackMsg.classList.add('hidden');
+              });
+            }
+          }
+          showToast(msg, 'warning');
+          return;
+        }
+        const flat = typeof detail === 'string' ? detail
+          : (detail && detail.message) ? String(detail.message)
+          : `Server returned ${resp.status}`;
+        throw new Error(flat);
       }
 
       const saved = await resp.json();
@@ -443,18 +485,19 @@ export function initSkillStudio(_state, callbacks = {}) {
       if (pinAgentId && !assignedSkills.includes(skillId)) {
         assignedSkills.push(skillId);
       }
+      currentSkillId = skillId; // CARD-628: further saves are edits of this id
       await skillScope.refreshEditableSkillOptions(skillId);
       skillScope.selectSkillInPicker(skillId);
 
       const pinnedNote = pinAgentId ? ` and pinned to ${pinAgentId}` : '';
       if (factorySaveFeedbackMsg) {
-        factorySaveFeedbackMsg.textContent = `✓ Saved ${skillId}${pinnedNote}`;
+        factorySaveFeedbackMsg.textContent = `Saved ${skillId}${pinnedNote}`;
         factorySaveFeedbackMsg.classList.remove('hidden');
         setTimeout(() => {
           if (factorySaveFeedbackMsg) factorySaveFeedbackMsg.classList.add('hidden');
         }, 4000);
       }
-      showToast(`💾 Skill ${skillId} saved${pinnedNote}.`, 'success');
+      showToast(`Skill ${skillId} saved${pinnedNote}.`, 'success');
     } catch (err) {
       console.error('[SkillStudio] Failed to save skill:', err);
       showToast(`Save failed: ${err.message}`, 'error');

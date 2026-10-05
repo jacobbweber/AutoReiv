@@ -42,6 +42,7 @@ class SaveScaffoldRequest(BaseModel):
     tier: Optional[str] = None
     safety: Optional[Dict[str, Any]] = None
     tools: Optional[List[str]] = None
+    is_new: Optional[bool] = None  # CARD-628: True = refuse when id is taken
 
 
 @router.get("/api/tools_studio/capabilities")
@@ -240,11 +241,36 @@ async def save_scaffolded_skill(req: SaveScaffoldRequest, request: Request) -> D
     data_root = _workshop_data_root(request)  # app data dir, not the env [CARD-497 D11]
 
     from src.application.skills.runbook_frontmatter import InvalidSkillTierError, UnknownCatalogToolError
-    from src.application.skills.workshop import catalog_tool_ids, persist_workshop_skill
+    from src.application.skills.workshop import (
+        catalog_tool_ids,
+        persist_workshop_skill,
+        suggest_free_skill_id,
+        workshop_skill_occupancy,
+    )
 
     tool_registry = getattr(request.app.state, "tool_registry", None) or getattr(request.app.state, "tool_reg", None)
     store = getattr(request.app.state, "store", None)
     db_path = getattr(store, "db_path", None)
+
+    # CARD-628: a New skill must not silently replace an existing id (shipped or user).
+    if req.is_new is True:
+        occupied = workshop_skill_occupancy(data_root, clean_skill_id)
+        if occupied is not None:
+            suggested = suggest_free_skill_id(data_root, clean_skill_id)
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "skill_id_taken",
+                    "skill_id": clean_skill_id,
+                    "existing_name": occupied["name"],
+                    "suggested_id": suggested,
+                    "message": (
+                        f"A skill named '{occupied['name']}' already uses id '{clean_skill_id}'. "
+                        f"Save as '{suggested}' or open the existing skill."
+                    ),
+                },
+            )
+
     try:
         persisted = persist_workshop_skill(
             data_root=data_root,

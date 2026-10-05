@@ -183,6 +183,33 @@ def load_workshop_skill(
     return view
 
 
+
+def workshop_skill_occupancy(data_root: Path, skill_id: str) -> Optional[dict[str, str]]:
+    """Return {id, name} when a workshop-visible skill already uses this id [CARD-628]."""
+    clean = accept_skill_id(skill_id)
+    if not clean:
+        return None
+    view = load_workshop_skill(data_root, clean)
+    if not view:
+        return None
+    name = str(view.get("name") or "").strip() or clean
+    return {"id": clean, "name": name}
+
+
+def suggest_free_skill_id(data_root: Path, skill_id: str) -> str:
+    """Next free id: base, then base_2, base_3, ... [CARD-628]."""
+    clean = accept_skill_id(skill_id) or str(skill_id or "").strip().lower()
+    if not clean:
+        return "skill"
+    if workshop_skill_occupancy(data_root, clean) is None:
+        return clean
+    for n in range(2, 100):
+        cand = f"{clean}_{n}"
+        if workshop_skill_occupancy(data_root, cand) is None:
+            return cand
+    return f"{clean}_new"
+
+
 def persist_workshop_skill(
     *,
     data_root: Path,

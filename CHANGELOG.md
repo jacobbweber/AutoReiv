@@ -9,6 +9,7 @@
 - CARD-545: a tool the Developer builds declares what it does (read-only, write, network or destructive); a read-only tool runs without asking once you enable it, the others ask before each call, destructive ones always ask, and your tool policy still overrides. Tools Studio shows the declared risk; re-saving an enabled tool with a lower risk turns it off until you enable it again.
 - CARD-625: a document or text attachment is read into a chat message only when it is a file uploaded to the chat (the data folder's attachments/); any other path named in the chat request, or one that steps out of that folder, is not read and the chat says 'Couldn't read <name>: not an uploaded file'.
 - CARD-602: other websites can no longer call AutoReiv from your browser; only this PC, your LAN, and any extra origins you list under Settings > Data > Allowed browser origins are allowed on state-changing requests.
+- CARD-628: Skill Studio no longer lets a new skill silently replace an existing skill with the same name.
 - CARD-627: MCP server commands with spaces in an argument (quoted code, paths under Program Files) keep working after Test, Enable or Disable in Tools Studio.
 - CARD-624: notifications show above the dock instead of hiding behind it.
 - CARD-626: every chat in Recent Chats can be opened on desktop; none hide behind the message box.

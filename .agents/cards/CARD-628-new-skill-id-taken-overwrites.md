@@ -2,16 +2,17 @@
 id: CARD-628
 title: "Skill Studio: saving a New skill whose id already exists silently replaces that skill (a shipped one is shadowed by the new copy)"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
   journeys: [card-628-new-skill-id-taken]
-  checks: []
+  checks: [tests/unit/web/test_card628_new_skill_id_taken.py]
 branch: feat/card-628-new-skill-id-taken
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 55, qa_runs: 1, findings: 0}
 created: 2026-10-03
+completed: 2026-10-05
 related:
   - CARD-522
   - CARD-611
@@ -19,6 +20,8 @@ related:
 ---
 
 # CARD-628 Skill Studio: saving a New skill whose id already exists silently replaces that skill
+
+> **Status**: Done (2026-10-05, merged to qa from `feat/card-628-new-skill-id-taken`).
 
 ## Problem
 Found while building CARD-522 (2026-10-03). In Skill Studio, **+ New Skill** derives the read-only slug from the name (`toSnakeCase`). If that slug is already a skill id, Save writes over it with no warning:
@@ -42,6 +45,8 @@ New skills that silently replace a built-in or saved skill.
 - pytest: the route refuses a taken id for a new skill and accepts an edit of the same id.
 
 ## Plan and decisions
+- Save payload sends `is_new`; route returns 409 with existing name + `suggested_id` (`<id>_2`).
+- Form offers Use id / Open existing; editing a loaded skill still overwrites as today.
 
 ## Findings
 - (from the CARD-522 build, 2026-10-03; docs/findings.md)
@@ -49,6 +54,17 @@ New skills that silently replace a built-in or saved skill.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-628-new-skill-id-taken | desktop | PASS | 409 + diagnostics_2 save; shipped unchanged |
+| card-628-new-skill-id-taken | phone | PASS | same |
+Screenshots: `sprint1005\628-id-taken-desktop.png`, `628-saved-as-2-desktop.png`, `628-id-taken-phone.png`.
+
+## Built
+- `is_new` on save; 409 with `suggested_id` (`<id>_2`); form Use id / Open existing.
+- `workshop_skill_occupancy` / `suggest_free_skill_id`; pytest 3; journey; cache `app.js?v=2.0.114`.
+
+## Tests
+- Pytest 2536/12; vitest 1068; smoke 86; release preflight GREEN.
+- Live QA Spark: desktop+phone PASS.
 
 ## Release note
 Skill Studio no longer lets a new skill silently replace an existing skill with the same name.
