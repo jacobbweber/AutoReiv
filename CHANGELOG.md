@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-623: Compact only reports success when it actually made the chat smaller; otherwise it says the conversation is already compact (and uses singular 'turn').
 - CARD-630: approval cards hide the internal tool call id; only the tool's own arguments are shown.
 - CARD-620: a job that waits for your answer shows WAITING on the strip, not STOPPED.
 - CARD-632: Developer can list, read and summarize live QA journey reports from Chat (it still cannot start a journey run).

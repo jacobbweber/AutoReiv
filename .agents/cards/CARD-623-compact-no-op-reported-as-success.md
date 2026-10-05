@@ -2,7 +2,7 @@
 id: CARD-623
 title: "Chat Compact says 'Compacted 1 turns (freed 0 tokens)' on every press when nothing shrank"
 type: bug
-status: Ready
+status: Done
 priority: P3
 milestone: M24
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-623-compact-honest]
   checks: []
 branch: feat/card-623-compact-no-op-reported-as-success
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 55, qa_runs: 3, findings: 0}
 created: 2026-10-03
+completed: 2026-10-05
 related:
   - CARD-161
   - CARD-471
@@ -43,6 +44,10 @@ A success toast for a compaction that changed nothing.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-623-compact-honest | desktop+phone | pass | live_qa Spark; empty API + already-compact toast |
+| unit test_card623 + compact suite | - | pass | force no-op, empty session, singular turn |
+
+Screenshots: %LOCALAPPDATA%\Temp\autoreiv-qa\sprint1005\card-623\
 
 ## Release note
 Compact only reports success when it actually made the conversation smaller.

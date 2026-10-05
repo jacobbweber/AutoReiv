@@ -261,6 +261,8 @@ def resolve_max_tool_chars(
 
 
 class ContextCompactor:
+    SUMMARY_MARKER = "[Summary of earlier conversation:"
+
     """
     Manages conversational working memory to prevent context overflow.
     Preserves system instructions, root intent, condenses intermediate turns,
@@ -464,6 +466,21 @@ class ContextCompactor:
         # runbook stay verbatim even when a tool-heavy turn pushes them out of the recent window.
         pinned = cls._pinned_intermediate(intermediate_turns)
 
+        # CARD-623: if every unpinned intermediate message is already a compaction summary, nothing to do.
+        def _is_summary(m: ChatMessage) -> bool:
+            return bool((m.content or "").lstrip().startswith(cls.SUMMARY_MARKER))
+
+        unpinned = [m for idx, m in enumerate(intermediate_turns) if idx not in pinned]
+        if unpinned and all(_is_summary(m) for m in unpinned):
+            return pruned_messages, CompactionMetrics(
+                original_tokens=original_tokens,
+                compacted_tokens=current_tokens,
+                turns_compacted=0,
+                tools_truncated=tools_truncated_count,
+                compression_ratio=current_tokens / max(1, original_tokens),
+                compaction_applied=False,
+            )
+
         # 4. Summarize unpinned runs of intermediate turns (newest lines win)
         compacted_prefix: List[ChatMessage] = []
         run: List[ChatMessage] = []
@@ -508,6 +525,24 @@ class ContextCompactor:
         compacted.extend(recent_turns)
 
         compacted_tokens = cls.estimate_tokens(compacted)
+
+        # CARD-623: the Compact button (force=True) only reports success when tokens actually dropped
+        # (or tools were truncated). Auto over-budget compaction still applies a structural summary.
+        # Re-compacting an already-summarized prefix that frees 0 tokens is "already compact".
+        shrunk = compacted_tokens < original_tokens
+        if force:
+            applied = (summarized > 0 and shrunk) or tools_truncated_count > 0
+        else:
+            applied = summarized > 0 or tools_truncated_count > 0
+        if not applied:
+            return pruned_messages, CompactionMetrics(
+                original_tokens=original_tokens,
+                compacted_tokens=current_tokens,
+                turns_compacted=0,
+                tools_truncated=tools_truncated_count,
+                compression_ratio=current_tokens / max(1, original_tokens),
+                compaction_applied=False,
+            )
 
         return compacted, CompactionMetrics(
             original_tokens=original_tokens,

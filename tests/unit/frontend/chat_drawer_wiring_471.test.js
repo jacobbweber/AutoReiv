@@ -137,6 +137,19 @@ describe('CARD-471 Compact (REQ-471-001)', () => {
     expect(calls).toEqual([['post', 's9'], ['messages', 's9'], ['context']]);
   });
 
+  it('CARD-623: singular turn when turns_compacted is 1', async () => {
+    const toasts = [];
+    const button = { disabled: false };
+    await compactSession({ activeSessionId: 's1' }, {
+      button,
+      showToastFn: (m, k) => toasts.push([m, k]),
+      postCompactionFn: async () => ({ success: true, compaction_applied: true, turns_compacted: 1, original_tokens: 100, compacted_tokens: 80 }),
+      reloadMessagesFn: async () => {},
+      reloadContextFn: async () => {},
+    });
+    expect(toasts).toEqual([['Compacted 1 turn (freed 20 tokens)', 'success']]);
+  });
+
   it('says the chat is already compact when nothing was compressed, without reloading messages', async () => {
     const toasts = [];
     const reloaded = [];

@@ -461,7 +461,9 @@ export async function compactSession(state, {
     if (!res || !res.success) throw new Error((res && res.error) || 'Compaction failed');
     if (res.compaction_applied) {
       const saved = Math.max(0, (res.original_tokens || 0) - (res.compacted_tokens || 0));
-      showToastFn(`Compacted ${res.turns_compacted} turns (freed ${saved.toLocaleString()} tokens)`, 'success');
+      const n = Number(res.turns_compacted) || 0;
+      const turnWord = n === 1 ? 'turn' : 'turns'; // CARD-623
+      showToastFn(`Compacted ${n} ${turnWord} (freed ${saved.toLocaleString()} tokens)`, 'success');
       await reloadMessagesFn(sessionId);
     } else {
       showToastFn('Conversation is already compact. No earlier turns to compress.', 'info');

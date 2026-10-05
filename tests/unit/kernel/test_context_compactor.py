@@ -112,31 +112,39 @@ def test_context_compactor_empty_messages():
 
 
 def test_context_compactor_force_early_compaction():
+    # CARD-623: force only reports applied when tokens shrink — use fat middle turns.
+    fat = "detail " * 80
     messages = [
         ChatMessage(role=Role.SYSTEM, content="System Directive"),
         ChatMessage(role=Role.USER, content="Initial Goal"),
         ChatMessage(role=Role.ASSISTANT, content="Initial Ack"),
-        ChatMessage(role=Role.USER, content="Middle question 1"),
-        ChatMessage(role=Role.ASSISTANT, content="Middle answer 1"),
-        ChatMessage(role=Role.USER, content="Middle question 2"),
-        ChatMessage(role=Role.ASSISTANT, content="Middle answer 2"),
+        ChatMessage(role=Role.USER, content="Middle question 1 " + fat),
+        ChatMessage(role=Role.ASSISTANT, content="Middle answer 1 " + fat),
+        ChatMessage(role=Role.USER, content="Middle question 2 " + fat),
+        ChatMessage(role=Role.ASSISTANT, content="Middle answer 2 " + fat),
         ChatMessage(role=Role.USER, content="Recent question"),
         ChatMessage(role=Role.ASSISTANT, content="Recent answer"),
     ]
-    # Under budget with default force=False -> no compaction
     compacted_normal, metrics_normal = ContextCompactor.compact_with_stats(
         messages, max_tokens=100000, keep_last_n_turns=2, force=False
     )
     assert not metrics_normal.compaction_applied
     assert len(compacted_normal) == len(messages)
 
-    # Under budget with force=True -> compacts intermediate turns
     compacted_forced, metrics_forced = ContextCompactor.compact_with_stats(
         messages, max_tokens=100000, keep_last_n_turns=2, force=True
     )
     assert metrics_forced.compaction_applied
     assert metrics_forced.turns_compacted > 0
+    assert metrics_forced.compacted_tokens < metrics_forced.original_tokens
     assert "[Summary of earlier conversation:" in compacted_forced[2].content
+
+    # Second force on an already-summarized history is a no-op (CARD-623).
+    again, metrics_again = ContextCompactor.compact_with_stats(
+        compacted_forced, max_tokens=100000, keep_last_n_turns=2, force=True
+    )
+    assert metrics_again.compaction_applied is False
+    assert metrics_again.turns_compacted == 0
 
 
 class DummyAgent:
