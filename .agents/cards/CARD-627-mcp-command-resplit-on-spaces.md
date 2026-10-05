@@ -2,15 +2,15 @@
 id: CARD-627
 title: "Tools Studio re-splits a saved MCP command on spaces, so Test, Enable/Disable and Connect break any argument that contains a space"
 type: bug
-status: Ready
+status: In Progress
 priority: P2
 milestone: M24
 needs_decision: none
 proof:
   journeys: [card-627-mcp-command-round-trip]
-  checks: []
+  checks: [tests/unit/frontend/mcp_command_round_trip_627.test.js]
 branch: feat/card-627-mcp-command-round-trip
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 25, qa_runs: 0, findings: 0}
 created: 2026-10-03
 related:
   - CARD-516
@@ -39,6 +39,9 @@ Saved MCP commands that a click on Enable or Test silently rewrites.
 - Journey `card-627-mcp-command-round-trip`: save `python -c "import sys; print(1)"`-style and `C:\Program Files\...` commands; Disable, Enable, Test and Edit, Save keep the stored array byte-identical (desktop and phone).
 
 ## Plan and decisions
+- `serverToSaveBody` copies the stored `command` array (no join→split).
+- Form path uses `splitMcpCommandText` / `formatMcpCommandText` (quotes keep spaces; backslashes literal).
+- Vitest + smoke TC-54 + journey `card-627-mcp-command-round-trip`.
 
 ## Findings
 - (from the CARD-516/522 live check, 2026-10-03; docs/findings.md)

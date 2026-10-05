@@ -445,6 +445,69 @@ export function mcpEndpoints(scope, agentId = '') {
   };
 }
 
+
+/**
+ * Split an MCP command line like a simple shell [CARD-627].
+ * Quoted segments keep spaces; Windows backslashes stay literal (not escapes).
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function splitMcpCommandText(text) {
+  const raw = String(text || '');
+  const out = [];
+  let cur = '';
+  let inToken = false;
+  let quote = null;
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (quote) {
+      if (ch === quote) {
+        quote = null;
+      } else {
+        cur += ch;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      inToken = true;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (inToken) {
+        out.push(cur);
+        cur = '';
+        inToken = false;
+      }
+      continue;
+    }
+    inToken = true;
+    cur += ch;
+  }
+  if (inToken) out.push(cur);
+  return out;
+}
+
+/**
+ * Show a stored command array in the form so Edit → Save round-trips [CARD-627].
+ * Args with whitespace (or quotes) are wrapped; Windows paths keep literal backslashes.
+ * @param {string[]|string|null|undefined} command
+ * @returns {string}
+ */
+export function formatMcpCommandText(command) {
+  if (Array.isArray(command)) {
+    return command.map((part) => {
+      const s = String(part);
+      if (s === '') return '""';
+      if (!/[\s"']/.test(s)) return s;
+      if (!s.includes('"')) return `"${s}"`;
+      if (!s.includes("'")) return `'${s}'`;
+      return `"${s.replace(/"/g, "'")}"`;
+    }).join(' ');
+  }
+  return String(command || '');
+}
+
 /**
  * @param {{ name?: string, transport?: string, commandText?: string, url?: string, headersText?: string, env?: object, enabled?: boolean }} fields
  * @returns {{ ok: true, body: object }|{ ok: false, error: string }}
@@ -476,7 +539,7 @@ export function buildMcpSaveBody(fields = {}) {
     body: {
       name,
       transport,
-      command: commandText ? commandText.split(/\s+/) : null,
+      command: commandText ? splitMcpCommandText(commandText) : null,
       url: url || null,
       headers,
       env,
@@ -535,31 +598,23 @@ export function describeMcpSaveNotice(body, data) {
  * @returns {object}
  */
 export function serverToSaveBody(server, enabled) {
-  const commandText = Array.isArray(server && server.command)
-    ? server.command.join(' ')
-    : String((server && server.command) || '');
+  // CARD-627: keep the stored command array unchanged (no join→split).
   const headers = server && server.headers && typeof server.headers === 'object' ? server.headers : null;
-  const built = buildMcpSaveBody({
+  let command = null;
+  if (Array.isArray(server && server.command)) {
+    command = server.command.slice();
+  } else if (server && server.command != null && String(server.command).trim()) {
+    command = splitMcpCommandText(String(server.command));
+  }
+  return {
     name: server && server.name,
     transport: (server && server.transport) || (server && server.url ? 'sse' : 'stdio'),
-    commandText,
-    url: (server && server.url) || '',
-    headersText: headers ? JSON.stringify(headers) : '',
+    command,
+    url: (server && server.url) || null,
+    headers,
     env: (server && server.env) || {},
-    enabled,
-  });
-  if (!built.ok) {
-    return {
-      name: server && server.name,
-      transport: (server && server.transport) || 'stdio',
-      command: Array.isArray(server && server.command) ? server.command : null,
-      url: (server && server.url) || null,
-      headers,
-      env: (server && server.env) || {},
-      enabled: Boolean(enabled),
-    };
-  }
-  return built.body;
+    enabled: Boolean(enabled),
+  };
 }
 
 /**
