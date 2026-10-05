@@ -55,8 +55,8 @@ The `_tool_call_id` line in approval cards.
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
-| card-630-approval-card-hides-tool-call-id | desktop+phone | pending | |
-| vitest card630 | - | pending | |
+| card-630-approval-card-hides-tool-call-id | desktop+phone | pass | live_qa Spark; formatHitlArgs probe |
+| vitest card630 | - | pass | 5/5 |
 
 Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-630\...`
 
