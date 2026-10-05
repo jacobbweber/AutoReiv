@@ -4,6 +4,7 @@ Standing Job/Phase path for multi-step routines [CARD-222 / REQ-ROUTSTAND-*].
 """
 
 import asyncio
+import logging
 import time
 import uuid
 from datetime import datetime, timezone
@@ -64,6 +65,16 @@ from src.domain.routines.models import Routine, RoutineRun, RoutineStatus, routi
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+logger = logging.getLogger(__name__)
+
+
+def _advance_next_run(routine: Routine, now: datetime) -> None:
+    """CARD-635: always move next_run_at past ``now``, even when the run failed."""
+    try:
+        routine.next_run_at = ScheduleMatcher.compute_next_run(routine, base_time=now)
+    except Exception:
+        logger.exception("Could not compute next run for routine '%s'", routine.id)
 
 
 class RoutineExecutor:
@@ -267,6 +278,7 @@ class RoutineExecutor:
             )
             routine.last_status = RoutineStatus.FAILED
             routine.last_run_at = now
+            _advance_next_run(routine, now)  # CARD-635: no re-fire on every tick
             self.state_store.save_routine(routine)
             self.state_store.record_routine_run(run)
             return run
@@ -539,6 +551,7 @@ class RoutineExecutor:
             )
             routine.last_status = RoutineStatus.FAILED
             routine.last_run_at = now
+            _advance_next_run(routine, now)  # CARD-635: a failure waits for the next slot (no retry storm)
             self.state_store.save_routine(routine)
             self.state_store.record_routine_run(run)
             return run

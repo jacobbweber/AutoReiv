@@ -111,7 +111,8 @@ async def test_scheduler_tick_executes_due_routines(store, scheduler):
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
         enabled=True,
-        last_run_at=now - timedelta(hours=2),
+        last_run_at=now - timedelta(hours=1),
+        next_run_at=now - timedelta(minutes=1),
     )
     # 2. Not due routine (last_run was 10 mins ago with 1hr interval)
     r_not_due = Routine(
@@ -123,6 +124,7 @@ async def test_scheduler_tick_executes_due_routines(store, scheduler):
         interval_seconds=3600,
         enabled=True,
         last_run_at=now - timedelta(minutes=10),
+        next_run_at=now + timedelta(minutes=50),
     )
     store.save_routine(r_due)
     store.save_routine(r_not_due)
@@ -145,6 +147,7 @@ async def test_scheduler_background_start_and_stop(store, scheduler):
         interval_seconds=1,
         enabled=True,
         last_run_at=None,
+        next_run_at=datetime.now(timezone.utc),
     )
     store.save_routine(r)
 
