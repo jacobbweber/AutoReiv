@@ -41,8 +41,14 @@ export function formatHitlArgs(args) {
     return String(obj);
   }
 
+  // CARD-630: hide internal keys (e.g. _tool_call_id) from the approval card; resume still has them on the server.
+  if (!Array.isArray(obj)) {
+    obj = Object.fromEntries(Object.entries(obj).filter(([k]) => !String(k).startsWith('_')));
+  }
+
   // Check if obj contains a primary code or command key
   const keys = Object.keys(obj);
+  if (keys.length === 0) return ''; // CARD-630: only internal keys were present
   const primaryKey = keys.find((k) => CODE_KEYS.includes(k.toLowerCase()));
 
   if (primaryKey && typeof obj[primaryKey] === 'string') {

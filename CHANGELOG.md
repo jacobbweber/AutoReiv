@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-630: approval cards hide the internal tool call id; only the tool's own arguments are shown.
 - CARD-620: a job that waits for your answer shows WAITING on the strip, not STOPPED.
 - CARD-632: Developer can list, read and summarize live QA journey reports from Chat (it still cannot start a journey run).
 - CARD-621: after a saved layout restores an open studio, the first dock click on it focuses that studio instead of minimizing it; smoke Agent Studio picks no longer flake on that race.
