@@ -2,7 +2,8 @@
 id: CARD-602
 title: "Owner-only routes accept requests from any website origin; add an Origin/Host check"
 type: security
-status: In Review
+status: Done
+completed: 2026-10-05
 priority: P2
 milestone: M24
 needs_decision: none
@@ -23,7 +24,7 @@ labels:
 
 # [CARD-602] Owner-only routes accept requests from any website origin; add an Origin/Host check
 
-> **Status**: In Review (2026-10-05, branch `feat/card-602-owner-routes-origin-check`, not merged). Moved from findings (CARD-578), 2026-09-29.
+> **Status**: Done (2026-10-05, merged to qa from `feat/card-602-owner-routes-origin-check`). Moved from findings (CARD-578), 2026-09-29.
 
 ## Why
 The app is unauthenticated and CORS allowed any origin (`allow_origins=["*"]`). A web page open in Jacob's browser could call owner-only routes (for example runtime tool enable/disable).
