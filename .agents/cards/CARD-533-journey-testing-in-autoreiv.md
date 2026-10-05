@@ -1,8 +1,9 @@
 ---
 id: CARD-533
 title: "Journey testing inside AutoReiv: a Developer skill and tools to run journeys, and a Projects Studio view of journey runs"
-status: Parked
+status: Done
 created: 2026-09-26
+completed: 2026-10-05
 branch: qa
 depends_on:
   - CARD-532
@@ -21,7 +22,7 @@ milestone: M25
 
 # [CARD-533] Journey testing built into AutoReiv
 
-> **Status**: Ready
+> **Status**: Done (slices 632/633/634 complete; REQ-533-005 deferred)
 > **Related**: CARD-532 (runner, environment, journey format)
 > **Labels**: `type:product`, `area:developer`, `area:projects`, `P2`
 
@@ -63,3 +64,6 @@ Parent parked (Jacob 2026-09-30). Built as Ready slices:
 - **CARD-633**: `run_journey` throwaway-only + HITL.
 - **CARD-634**: Projects Studio journey runs view.
 REQ-533-005 (capability-scoping summary in Developer self-work) stays on the parent until a later slice if still needed after ADR-0062/0064 notes.
+
+## Split complete (2026-10-05)
+All Ready slices shipped: CARD-632 (read), CARD-633 (run throwaway+HITL), CARD-634 (Projects Studio view). Parent marked Done. REQ-533-005 (capability-scoping summary in Developer self-work) remains for a later card if still needed after ADR-0062/0064.
