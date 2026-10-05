@@ -2,7 +2,7 @@
 id: CARD-636
 title: "Five shipped routines on New York local times; deleted ones stay deleted"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M25
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-636-cut-routines-local-times
 log: {minutes: 90, qa_runs: 2, findings: 3}
 created: 2026-10-05
+completed: 2026-10-05
 related:
   - CARD-635
   - CARD-637
