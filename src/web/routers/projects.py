@@ -2,6 +2,7 @@
 Projects studio API [REQ-SDLC-050, REQ-SDLC-051, REQ-SDLC-052].
 """
 
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -243,3 +244,64 @@ async def get_project_file_content(request: Request, path: str):
         "is_markdown": is_markdown,
     }
 
+
+# --- CARD-634: journey runs (CARD-532 reports via CARD-632 reader) -----------------
+
+
+@router.get("/api/projects/journey-runs")
+async def list_journey_runs(request: Request, limit: int = 30):
+    """List CARD-532 live QA journey report folders (local mtime, pass/fail, failing step)."""
+    from src.application.skills.journey_qa_tools import JourneyQaTools
+
+    tools = JourneyQaTools()
+    listed = tools.list_journey_reports(limit=limit)
+    rows = []
+    for r in listed.get("reports") or []:
+        failing = ""
+        if r.get("overall") == "fail":
+            summ = tools.summarize_journey_failures(r.get("card") or "")
+            fails = summ.get("failures") or []
+            if fails:
+                failing = str(fails[0].get("step") or "")
+        rows.append(
+            {
+                "card": r.get("card"),
+                "mtime": r.get("mtime"),
+                "started_at": r.get("started_at"),
+                "overall": r.get("overall"),
+                "failed_runs": r.get("failed_runs"),
+                "run_count": r.get("run_count"),
+                "failing_step": failing,
+                "path": r.get("path"),
+            }
+        )
+    return {"success": True, "report_root": listed.get("report_root"), "runs": rows}
+
+
+@router.get("/api/projects/journey-runs/{card}")
+async def get_journey_run(card: str, request: Request):
+    """One journey report plus screenshot file names under its folder."""
+    from src.application.skills.journey_qa_tools import JourneyQaTools
+
+    tools = JourneyQaTools()
+    read = tools.read_journey_report(card)
+    if not read.get("success"):
+        raise HTTPException(status_code=404, detail=read.get("error", "not found"))
+    folder = Path(read["path"]).parent
+    shots = []
+    try:
+        for p in sorted(folder.iterdir()):
+            if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".gif"} and p.is_file():
+                shots.append({"name": p.name, "path": str(p), "mtime": p.stat().st_mtime})
+    except OSError:
+        shots = []
+    summ = tools.summarize_journey_failures(card)
+    return {
+        "success": True,
+        "card": folder.name,
+        "report": read,
+        "summary": summ.get("summary") if summ.get("success") else "",
+        "failures": summ.get("failures") if summ.get("success") else [],
+        "screenshots": shots,
+        "report_root": tools.report_root.as_posix() if hasattr(tools.report_root, "as_posix") else str(tools.report_root),
+    }
