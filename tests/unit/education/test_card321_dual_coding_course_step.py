@@ -25,6 +25,18 @@ from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.web.app import app
 
+# CARD-640: dual coding content now comes from the learner's notes via the model; tests hand it in.
+GROUNDED_DUAL_CODING = {
+    "ok": True,
+    "skip_reason": None,
+    "prose": "The leader appends each command to its log and replicates it to followers with AppendEntries.",
+    "mermaid": "flowchart TD\n  A[Leader log] --> B[AppendEntries]\n  B --> C[Majority stored]\n  C --> D[Commit index]",
+    "steps": ["Leader appends", "Followers store", "Leader commits"],
+    "question": "When does the leader advance the commit index?",
+    "answer": "When a majority has stored the entry",
+    "sources": [{"path": "Distributed/raft-log-replication.md", "title": "Raft log replication"}],
+}
+
 
 def _assert_memory_db_path(db: Path) -> None:
     path_s = str(db).replace("\\", "/").lower()
@@ -42,14 +54,10 @@ def test_req_edu_dual_001_ordered_course_step():
 
 
 def test_req_edu_dual_002_player_diagram_preview_contract():
-    """[REQ-EDU-DUAL-002] Player / diagram path provides usable prose and Mermaid structure for topic."""
-    from src.application.education.course import build_dual_coding_preview
+    """[REQ-EDU-DUAL-002] The fixed template preview is gone; content is grounded or skipped [CARD-640]."""
+    import src.application.education.course as course_mod
 
-    preview = build_dual_coding_preview(topic="Distributed Consensus")
-    assert preview["topic"] == "Distributed Consensus"
-    assert "prose" in preview and len(preview["prose"]) > 0
-    assert "mermaid" in preview and "flowchart" in preview["mermaid"]
-    assert "step_through" in preview and isinstance(preview["step_through"], list)
+    assert not hasattr(course_mod, "build_dual_coding_preview")
 
 
 def test_req_edu_dual_003_complete_writes_wiki_and_ledger_anchors(tmp_path: Path):
@@ -78,7 +86,7 @@ def test_req_edu_dual_003_complete_writes_wiki_and_ledger_anchors(tmp_path: Path
 
     # Complete dual_coding step
     dual_done = complete_course_step(
-        repo, course_id=course["course_id"], wiki_tools_or_store=tools
+        repo, course_id=course["course_id"], wiki_tools_or_store=tools, dual_coding=GROUNDED_DUAL_CODING
     )
     assert dual_done["success"] is True
     assert dual_done["completed_step"] == "dual_coding"
@@ -165,5 +173,7 @@ def test_req_edu_dual_005_restart_safe_and_api(tmp_path: Path):
     assert resp.status_code == 200
     data = resp.json()
     assert data["topic"] == "Paxos Lease"
-    assert "mermaid" in data
-    assert "prose" in data
+    # CARD-640: no notes on the topic (or no model) means an honest skip, never the old template.
+    assert data["ok"] is False
+    assert data["skip_reason"] in ("no_wiki_notes", "model_unavailable")
+    assert "mermaid" not in data

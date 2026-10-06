@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-640: the dual coding course step now builds its explanation, diagram and quiz question from your own wiki notes on the topic (one call to the configured model, checked against those notes and linking back to them); with no notes on the topic, no model, or an answer not grounded in the notes, it writes nothing instead of the old generic template.
 - CARD-638: Lumina Studio is removed: its dock icon, header tab, window, built-in lessons, styles and the /api/lumina/* routes are gone. A saved desktop layout that still lists the Lumina window opens without it.
 - CARD-639: Education courses no longer have a visual amplifier step, so they stop writing generic 'visual amplifier' wiki notes and quiz items; a course already on that step moves straight to retention. The Lumina 'Send to Education Course' button is gone.
 - CARD-637: Routines Studio's Agent filter starts on All agents and keeps it, instead of snapping back to the first agent and hiding every other agent's routines.

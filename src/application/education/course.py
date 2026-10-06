@@ -63,33 +63,6 @@ JUMPABLE_STEPS: frozenset[str] = frozenset(
 )
 
 
-def build_dual_coding_preview(topic: str) -> Dict[str, Any]:
-    """Generate dual coding representation: prose explanation + structured Mermaid diagram [CARD-321]."""
-    topic_clean = _normalize_topic(topic)
-    prose = (
-        f"Dual Coding for {topic_clean} pairs verbal concept definitions with visual relational models. "
-        "The prose code establishes domain concepts and causal flow, while the visual code renders "
-        "hierarchical and sequential interactions."
-    )
-    mermaid = (
-        "flowchart TD\n"
-        f"    A[{topic_clean}] --> B[Key Concepts & Invariants]\n"
-        "    B --> C[Concrete Implementation Flow]\n"
-        "    C --> D[Verified Mastery & Application]\n"
-    )
-    step_through = [
-        {"step": 1, "action": "Deconstruct core definitions and invariants in prose"},
-        {"step": 2, "action": "Trace relational structure and decision branches in the Mermaid diagram"},
-        {"step": 3, "action": "Synthesize verbal and visual codes to form durable mental anchors"},
-    ]
-    return {
-        "topic": topic_clean,
-        "prose": prose,
-        "mermaid": mermaid,
-        "step_through": step_through,
-    }
-
-
 def is_course_pipeline_default() -> bool:
     """Course pipeline is the DEFAULT Studio path (mode-picker = jump-to-step)."""
     return True
@@ -186,6 +159,21 @@ def _next_step(steps: Sequence[str], current: str) -> Optional[str]:
     return None
 
 
+def _nothing_written(step_name: str, reason: str, knowledge_type: Optional[str] = None) -> Dict[str, Any]:
+    """A completed step that writes no wiki note, quiz item or memory fact, with the reason [CARD-640]."""
+    return {
+        "success": True,
+        "step": step_name,
+        "wiki_path": None,
+        "artifact": {},
+        "ledger": {"success": True, "count": 0, "item_ids": []},
+        "item_ids": [],
+        "tools_used": [],
+        "knowledge_type": knowledge_type,
+        "skip_reason": reason,
+    }
+
+
 def _write_step_artifact(
     *,
     step: str,
@@ -197,6 +185,7 @@ def _write_step_artifact(
     lab_submission: Optional[str] = None,
     course_id: Optional[str] = None,
     knowledge_type: Optional[str] = None,
+    dual_coding: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Write Wiki artifact + ledger anchors for a completed step.
@@ -250,8 +239,17 @@ def _write_step_artifact(
     stamp = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if step_name == "dual_coding":
-        preview = build_dual_coding_preview(topic_clean)
+        # CARD-640: only content grounded in the learner's own wiki notes is written; otherwise nothing.
+        composed = dual_coding or {}
+        if not composed.get("ok"):
+            return _nothing_written(step_name, composed.get("skip_reason") or "not_composed", ktype)
         title = f"Course Dual Coding: {topic_clean}"
+        sources = [s for s in (composed.get("sources") or []) if isinstance(s, dict) and s.get("path")]
+        source_links = "\n".join(
+            f"- [[{str(s['path'])[:-3] if str(s['path']).endswith('.md') else s['path']}]] {s.get('title') or ''}".rstrip()
+            for s in sources
+        )
+        steps_md = "\n".join(f"- {i}. {s}" for i, s in enumerate(composed.get("steps") or [], start=1))
         content = (
             f"# {title}\n\n"
             f"tags: [education, course, dual_coding]\n"
@@ -259,17 +257,17 @@ def _write_step_artifact(
             f"step: dual_coding\n"
             f"topic: {topic_clean}\n"
             f"created: {stamp}\n\n"
-            f"## Verbal Code (Concept Prose)\n"
-            f"{preview['prose']}\n\n"
-            f"## Visual Code (Mermaid Flow)\n"
+            f"## Verbal Code\n"
+            f"{composed['prose']}\n\n"
+            f"## Visual Code\n"
             f"```mermaid\n"
-            f"{preview['mermaid'].strip()}\n"
+            f"{str(composed['mermaid']).strip()}\n"
             f"```\n\n"
-            f"## Step-through\n"
-            + "\n".join(f"- {s['step']}. {s['action']}" for s in preview["step_through"])
-            + f"\n\n## Quiz\n"
-            f"Q: What are the two representations used in Dual Coding for {topic_clean}?\n"
-            f"A: verbal prose and visual diagrams\n"
+            + (f"## Step-through\n{steps_md}\n\n" if steps_md else "")
+            + f"## Sources\n{source_links}\n\n"
+            f"## Quiz\n"
+            f"Q: {composed['question']}\n"
+            f"A: {composed['answer']}\n"
         )
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
@@ -278,7 +276,7 @@ def _write_step_artifact(
             content=content,
             topic=topic_clean,
             tags=["education", "course", "dual_coding"],
-            summary=f"Dual Coding study note with prose + Mermaid for {topic_clean}",
+            summary=f"Dual coding from your notes on {topic_clean}",
             template=tpl,
         )
         path = str(create_res.get("path") or "")
@@ -289,14 +287,12 @@ def _write_step_artifact(
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
             item_id = f"course_{slug_topic(topic_clean)}_dual_coding"[:48]
-            prompt = f"What are the two representations used in Dual Coding for {topic_clean}?"
-            expected = "verbal prose and visual diagrams"
             mid = memory_repo.upsert_education_mastery(
                 item_id=item_id,
                 topic=topic_clean,
                 wiki_path=path,
-                prompt=prompt,
-                expected_answer=expected,
+                prompt=str(composed["question"]),
+                expected_answer=str(composed["answer"]),
                 grade="unseen",
             )
             try:
@@ -323,10 +319,12 @@ def _write_step_artifact(
                 "path": path,
                 "kind": "course_dual_coding",
                 "title": title,
+                "sources": sources,
             },
             "ledger": ledger,
             "item_ids": list(ledger.get("item_ids") or []),
             "tools_used": ["wiki_note_create"] if note_ok else [],
+            "skip_reason": None,
         }
 
     if step_name == "elaboration":
@@ -736,9 +734,14 @@ def complete_course_step(
     learner_explanation: Optional[str] = None,
     lab_submission: Optional[str] = None,
     knowledge_type: Optional[str] = None,
+    dual_coding: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
-    """Complete current step: Wiki + ledger anchors, then advance (or mark completed)."""
+    """Complete current step: Wiki + ledger anchors, then advance (or mark completed).
+
+    `dual_coding` is the grounded content from `dual_coding.compose_dual_coding` [CARD-640]; without
+    it the dual coding step writes nothing.
+    """
     course = memory_repo.get_education_course(course_id)
     if not course:
         raise KeyError(f"education course not found: {course_id}")
@@ -760,6 +763,7 @@ def complete_course_step(
             "success": True,
             "passed": True,
             "skipped": True,
+            "skip_reason": "retired_step",
             "completed_step": step,
             "knowledge_type": None,
             "course": updated,
@@ -781,6 +785,7 @@ def complete_course_step(
         lab_submission=lab_submission,
         course_id=course_id,
         knowledge_type=knowledge_type,
+        dual_coding=dual_coding,
         now=now,
     )
 
@@ -820,6 +825,7 @@ def complete_course_step(
         "success": bool(artifact.get("success")),
         "passed": artifact.get("passed", True),
         "skipped": False,
+        "skip_reason": artifact.get("skip_reason"),
         "completed_step": step,
         "knowledge_type": artifact.get("knowledge_type"),
         "course": updated,
