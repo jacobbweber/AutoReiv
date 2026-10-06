@@ -47,8 +47,8 @@ Passing a criterion on one shared word.
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2666 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 Lab grading now needs each criterion to be genuinely covered in your submission (about half its key terms, any word form), instead of passing on a single matching word. It tells you which terms a missed criterion still needs.
