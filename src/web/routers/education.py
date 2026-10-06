@@ -1665,8 +1665,8 @@ class CourseLabPreviewPayload(BaseModel):
 
 @router.post("/api/education/course/lab/preview")
 async def course_lab_preview(request: Request, payload: CourseLabPreviewPayload):
-    """Generate structured lab specification for construction or application step [CARD-324]."""
-    from src.application.education.labs import build_lab_specification
+    """Lab built from your wiki notes on the topic, or the reason it was skipped [CARD-324, CARD-643]."""
+    from src.application.education.grounded_steps import compose_step_content
 
     topic = (payload.topic or "").strip()
     step = (payload.step or "construction").strip()
@@ -1679,9 +1679,13 @@ async def course_lab_preview(request: Request, payload: CourseLabPreviewPayload)
 
     if not topic:
         raise HTTPException(status_code=400, detail="topic or valid course_id is required")
+    if step not in ("construction", "application"):
+        step = "construction"
 
-    data = build_lab_specification(topic=topic, step=step)
-    return {"success": True, "agent_id": payload.agent_id, **data}
+    composed = await compose_step_content(
+        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), topic, step
+    )
+    return {"success": True, "agent_id": payload.agent_id, **composed, "step": step}
 
 
 class CourseLabGradePayload(BaseModel):
@@ -1709,6 +1713,8 @@ async def course_lab_grade(request: Request, payload: CourseLabGradePayload):
         request.app.state, "wiki_root", None
     )
     tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    # CARD-643: graded only against a lab grounded in the learner's notes.
+    composed = await _compose_current_step(request, repo, payload.course_id, tools)
 
     try:
         result = complete_course_step(
@@ -1716,6 +1722,7 @@ async def course_lab_grade(request: Request, payload: CourseLabGradePayload):
             course_id=payload.course_id,
             wiki_tools_or_store=tools,
             lab_submission=payload.submission,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

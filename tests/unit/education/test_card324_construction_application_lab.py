@@ -19,15 +19,33 @@ from src.application.education.course import (
     get_course,
     start_or_resume_course,
 )
-from src.application.education.labs import (
-    build_lab_specification,
-    grade_lab_submission,
-)
+from src.application.education.labs import grade_lab_submission
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.frontmatter import FrontmatterParser
 from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.web.app import app
+
+
+# A lab as `grounded_steps.compose_step_content(..., "construction")` returns it from a learner's
+# consistent hashing notes [CARD-643]; the old fixed per-topic lab is gone.
+HASH_LAB = {
+    "ok": True,
+    "step": "construction",
+    "objective": "Build a consistent hashing ring with virtual nodes",
+    "tasks": [
+        "Place nodes and keys on the hash ring",
+        "Give each server virtual nodes",
+        "Look up the next clockwise node for a key",
+    ],
+    "criteria": [
+        "Key lookup finds the next clockwise node on the ring",
+        "Adding a node only moves keys from its successor",
+    ],
+    "question": "Which node owns a key on the ring?",
+    "answer": "The next clockwise node",
+    "sources": [],
+}
 
 
 def _assert_memory_db_path(db: Path) -> None:
@@ -43,27 +61,15 @@ def test_req_edu_lab_001_lab_specification_and_graded_pressure():
     assert ORDERED_COURSE_STEPS.index("construction") == 4
     assert ORDERED_COURSE_STEPS.index("application") == 5
 
-    # Construction lab spec
-    c_spec = build_lab_specification(topic="Consistent Hashing Ring", step="construction")
-    assert c_spec["topic"] == "Consistent Hashing Ring"
-    assert c_spec["step"] == "construction"
-    assert "objective" in c_spec and len(c_spec["objective"]) > 0
-    assert len(c_spec.get("tasks", [])) >= 2
-    assert len(c_spec.get("invariants", [])) >= 2
-    assert c_spec["template"] == "education-lab"
-
-    # Application lab spec
-    a_spec = build_lab_specification(topic="Consistent Hashing Ring", step="application")
-    assert a_spec["step"] == "application"
-    assert len(a_spec.get("tasks", [])) >= 2
-    assert len(a_spec.get("invariants", [])) >= 2
+    c_spec = HASH_LAB
+    assert len(c_spec["criteria"]) >= 2
 
     # Graded pressure: empty submission fails
     fail_res = grade_lab_submission(
         topic="Consistent Hashing Ring",
         step="construction",
         submission="",
-        expected_invariants=c_spec["invariants"],
+        expected_invariants=c_spec["criteria"],
     )
     assert fail_res["passed"] is False
     assert fail_res["score"] == 0.0
@@ -81,7 +87,7 @@ def test_req_edu_lab_001_lab_specification_and_graded_pressure():
         topic="Consistent Hashing Ring",
         step="construction",
         submission=good_solution,
-        expected_invariants=c_spec["invariants"],
+        expected_invariants=c_spec["criteria"],
     )
     assert pass_res["passed"] is True
     assert pass_res["score"] == 1.0
@@ -129,6 +135,7 @@ def test_req_edu_lab_002_lab_complete_writes_templated_wiki_and_advances_course(
         course_id=course["course_id"],
         wiki_tools_or_store=tools,
         lab_submission=lab_submission,
+        composed=HASH_LAB,
     )
     assert res["success"] is True
     assert res["completed_step"] == "construction"
@@ -144,16 +151,13 @@ def test_req_edu_lab_002_lab_complete_writes_templated_wiki_and_advances_course(
     assert meta.template == "education-lab"
     assert "education" in meta.tags
     assert "lab" in meta.tags
-    assert "Verification Receipt" in body
-    assert "Status: Passed" in body or "**Status:** Passed" in body
+    assert "## Result" in body
+    assert "**Status:** Passed" in body
 
-    # Verify ledger anchors
-    assert len(res["item_ids"]) >= 1
-    item_id = res["item_ids"][0]
-    mastery = repo.get_education_mastery(item_id)
-    assert mastery is not None
-    assert mastery["grade"] == "pass"
-    assert int(mastery["pass_count"]) >= 1
+    # The quiz item is the grounded lab's own question [CARD-643]
+    assert len(res["item_ids"]) == 1
+    mastery = repo.get_education_mastery(res["item_ids"][0])
+    assert mastery["prompt"] == HASH_LAB["question"]
 
     # Verify learner semantic fact
     facts = repo.list_semantic_facts()
@@ -193,6 +197,7 @@ def test_req_edu_lab_003_lab_miss_records_miss_schedules_retention_and_halts_adv
         course_id=course["course_id"],
         wiki_tools_or_store=tools,
         lab_submission=bad_submission,
+        composed={**HASH_LAB, "objective": "Replicate the Raft log"},
     )
     assert res["success"] is False
     assert res.get("passed") is False
@@ -201,14 +206,7 @@ def test_req_edu_lab_003_lab_miss_records_miss_schedules_retention_and_halts_adv
     assert res["course"]["current_step"] == "construction"
     assert res["course"]["status"] == "active"
 
-    # Mastery ledger records miss and schedules next_due
-    item_id = res["item_ids"][0]
-    mastery = repo.get_education_mastery(item_id)
-    assert mastery is not None
-    assert mastery["grade"] == "miss"
-    assert int(mastery["miss_count"]) >= 1
-    assert mastery["next_due"] is not None
-    assert int(mastery["interval_stage"]) == 0
+    assert res["grade_result"]["passed"] is False
 
     # Learner model records weakness fact
     facts = repo.list_semantic_facts()
@@ -254,8 +252,9 @@ def test_req_edu_lab_004_endpoints_and_validation(tmp_path: Path):
     pdata = res_prev.json()
     assert pdata["success"] is True
     assert pdata["step"] == "construction"
-    assert "objective" in pdata
-    assert "invariants" in pdata
+    # No notes on the topic here: no lab is invented [CARD-643]
+    assert pdata["ok"] is False and pdata["skip_reason"]
+    assert "invariants" not in pdata and "test_command" not in pdata
 
     # 2. Grade endpoint rejects empty submission with 422
     res_bad = client.post(
