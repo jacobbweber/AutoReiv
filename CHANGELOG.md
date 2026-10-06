@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-653: course priming keeps a grounded model reply and just leaves out prerequisites not taken from your notes, instead of discarding the whole reply.
 - CARD-650: course steps are shown the questions you already have and skip a quiz item that nearly repeats one, so a course no longer fills the quiz with near-identical questions.
 - CARD-651: the growth portfolio note shows your real level and quiz items, keeps its details in front matter, and no longer adds a quiz question about its own level.
 - CARD-649: lab grading needs each criterion genuinely covered (about half its key terms, any word form) instead of one matching word, and names the missing terms.

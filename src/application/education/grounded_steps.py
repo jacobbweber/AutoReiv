@@ -8,6 +8,7 @@ a refused reply the step writes nothing and only records progress. There is no f
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -26,6 +27,8 @@ from src.application.education.grounded import (
     topic_keywords,
     vocab_of,
 )
+
+logger = logging.getLogger(__name__)
 
 _RULES = (
     "Use ONLY facts stated in the notes. Do not add outside knowledge, do not write generic study "
@@ -50,6 +53,9 @@ class StepSpec:
     needs_learner_text: bool = False
     # Text fields that must use words from the learner's own text, not just the notes.
     learner_grounded: Tuple[str, ...] = ()
+    # Optional context lists (priming prerequisites): items not taken from the notes are dropped
+    # instead of refusing the whole reply [CARD-653].
+    filtered_lists: Tuple[str, ...] = ()
 
 
 STEP_SPECS: Dict[str, StepSpec] = {
@@ -66,6 +72,7 @@ STEP_SPECS: Dict[str, StepSpec] = {
         lists=(("outline", 3, 6), ("prerequisites", 0, 3)),
         texts=(("question", 0), ("answer", 1)),
         main_list="outline",
+        filtered_lists=("prerequisites",),
     ),
     "elaboration": StepSpec(
         step="elaboration",
@@ -158,6 +165,8 @@ def validate_step_content(
         items = lists[key]
         if len(items) < lo:
             return f"too few {key}"
+        if key in spec.filtered_lists:
+            continue  # ungrounded items are dropped after validation, not a reason to refuse
         grounded_items = sum(1 for i in items if grounded_count(i, vocab, topic_stems) >= 1)
         if items and grounded_items * 2 < len(items):
             return f"{key} are not taken from the notes"
@@ -216,14 +225,19 @@ async def compose_step_content(
     if "error" in reply:
         return skip(topic, "model_unavailable", sources, reply["error"])
     data = parse_reply(reply["text"])
-    if data is None:
-        return skip(topic, "model_output_invalid", sources, "reply was not a JSON object")
-    problem = validate_step_content(spec, data, sources, topic, learner)
+    problem = "reply was not a JSON object" if data is None else validate_step_content(spec, data, sources, topic, learner)
     if problem:
+        # CARD-653: say which check refused the reply, so a live refusal can be diagnosed.
+        logger.info("grounded %s reply refused for %r: %s", step, topic, problem)
         return skip(topic, "model_output_invalid", sources, problem)
 
     content: Dict[str, Any] = {key: " ".join(str(data.get(key) or "").split()) for key, _ in spec.texts}
     content.update({key: _clean_list(data.get(key), hi) for key, _lo, hi in spec.lists})
+    if spec.filtered_lists:
+        vocab = source_vocab(sources) | (vocab_of([learner]) if learner else set())
+        topic_stems = {stem(w) for w in topic_keywords(topic)}
+        for key in spec.filtered_lists:
+            content[key] = [i for i in content.get(key) or [] if grounded_count(i, vocab, topic_stems) >= 1]
     return {
         "ok": True,
         "topic": topic,
