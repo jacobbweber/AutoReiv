@@ -158,7 +158,9 @@ def _next_step(steps: Sequence[str], current: str) -> Optional[str]:
     return None
 
 
-def _nothing_written(step_name: str, reason: str, knowledge_type: Optional[str] = None) -> Dict[str, Any]:
+def _nothing_written(
+    step_name: str, reason: str, knowledge_type: Optional[str] = None, detail: str = ""
+) -> Dict[str, Any]:
     """A completed step that writes no wiki note, quiz item or memory fact, with the reason [CARD-640]."""
     return {
         "success": True,
@@ -170,6 +172,7 @@ def _nothing_written(step_name: str, reason: str, knowledge_type: Optional[str] 
         "tools_used": [],
         "knowledge_type": knowledge_type,
         "skip_reason": reason,
+        "skip_detail": detail or "",  # which check refused the model's reply [CARD-653]
     }
 
 
@@ -254,7 +257,9 @@ def _write_step_artifact_body(
             now=now,
         )
         if result.get("skipped"):
-            return _nothing_written(step_name, result.get("skip_reason") or "not_composed", ktype)
+            return _nothing_written(
+                step_name, result.get("skip_reason") or "not_composed", ktype, str(result.get("detail") or "")
+            )
         return {
             "success": bool(result.get("success")),
             "step": step_name,
@@ -284,7 +289,9 @@ def _write_step_artifact_body(
         # CARD-640: only content grounded in the learner's own wiki notes is written; otherwise nothing.
         composed = dual_coding or composed or {}
         if not composed.get("ok"):
-            return _nothing_written(step_name, composed.get("skip_reason") or "not_composed", ktype)
+            return _nothing_written(
+                step_name, composed.get("skip_reason") or "not_composed", ktype, str(composed.get("detail") or "")
+            )
         title = f"Course Dual Coding: {topic_clean}"
         sources = [s for s in (composed.get("sources") or []) if isinstance(s, dict) and s.get("path")]
         source_links = "\n".join(
@@ -449,7 +456,9 @@ def _write_step_artifact_body(
         spec = composed if (composed or {}).get("ok") else None
         sub = (lab_submission or "").strip()
         if not spec and not sub:
-            return _nothing_written(step_name, (composed or {}).get("skip_reason") or "not_composed", ktype)
+            return _nothing_written(
+                step_name, (composed or {}).get("skip_reason") or "not_composed", ktype, str((composed or {}).get("detail") or "")
+            )
 
         grade_res: Dict[str, Any] = {}
         if spec and sub:
@@ -632,7 +641,9 @@ def _write_step_artifact_body(
 
         grounded_env = composed if (composed or {}).get("ok") else None
         if not grounded_env:
-            return _nothing_written(step_name, (composed or {}).get("skip_reason") or "not_composed", ktype)
+            return _nothing_written(
+                step_name, (composed or {}).get("skip_reason") or "not_composed", ktype, str((composed or {}).get("detail") or "")
+            )
         active_profile = get_active_delivery_profile(memory_repo) if memory_repo is not None else {}
         title = f"Course Environment: {topic_clean}"
         content = build_environment_note_content(topic=topic_clean, composed=grounded_env, profile=active_profile or None)
@@ -809,6 +820,7 @@ def complete_course_step(
         "passed": artifact.get("passed", True),
         "skipped": False,
         "skip_reason": artifact.get("skip_reason"),
+        "skip_detail": artifact.get("skip_detail") or "",
         "completed_step": step,
         "knowledge_type": artifact.get("knowledge_type"),
         "course": updated,
