@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-642: the environment course step suggests where to practise from your own notes, or records progress only; no more fixed framing note and filler quiz item. Backlog CARD-648 to CARD-652 filed.
 - CARD-643: construction and application labs are now built from your own wiki notes (objective, tasks and criteria checked against those notes, linking back) and your submission is graded only against those criteria; with no notes on the topic your submission is kept ungraded, or nothing is written if there is none, instead of the same template lab, fake test command and self-graded baseline for every topic.
 - CARD-644: the elaboration course step now saves your own explanation, and adds follow-up questions and a quiz question only when they can be drawn from what you wrote (one call to the configured model, checked against your words and notes); without an explanation it saves nothing instead of a placeholder note with the topic name as the quiz answer.
 - CARD-646: the priming course step now outlines a topic from your own wiki notes (one call to the configured model, checked against those notes and linking back to them); with no notes on the topic, no model, or an ungrounded answer it writes nothing instead of the same outline and 'In one sentence, what is X?' / 'Where should Priming write durable knowledge?' quiz items for every topic.

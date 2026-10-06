@@ -1787,12 +1787,13 @@ class CourseEnvironmentPreviewPayload(BaseModel):
 
 @router.post("/api/education/course/environment/preview")
 async def course_environment_preview(request: Request, payload: CourseEnvironmentPreviewPayload):
-    """Generate environment framing and delivery constraints [CARD-325]."""
-    from src.application.education.environment import build_environment_framing
+    """Where to practise the topic, from your wiki notes, with your delivery profile [CARD-325, CARD-642]."""
+    from src.application.education.environment import get_active_delivery_profile, get_delivery_profile
+    from src.application.education.grounded_steps import compose_step_content
 
+    repo = _memory_repo(request, payload.agent_id)
     topic = (payload.topic or "").strip()
     if not topic and payload.course_id:
-        repo = _memory_repo(request, payload.agent_id)
         course = repo.get_education_course(payload.course_id)
         if course:
             topic = course.get("topic_id") or ""
@@ -1800,11 +1801,11 @@ async def course_environment_preview(request: Request, payload: CourseEnvironmen
     if not topic:
         raise HTTPException(status_code=400, detail="topic or valid course_id is required")
 
-    framing = build_environment_framing(
-        topic=topic,
-        profile_id=payload.profile_id,
+    profile = get_delivery_profile(payload.profile_id) if payload.profile_id else get_active_delivery_profile(repo)
+    composed = await compose_step_content(
+        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), topic, "environment"
     )
-    return {"success": True, "agent_id": payload.agent_id, **framing}
+    return {"success": True, "agent_id": payload.agent_id, **composed, "profile": profile}
 
 
 class CourseEnvironmentCompletePayload(BaseModel):
@@ -1831,12 +1832,14 @@ async def course_environment_complete(request: Request, payload: CourseEnvironme
         request.app.state, "wiki_root", None
     )
     tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    composed = await _compose_current_step(request, repo, payload.course_id, tools)
 
     try:
         result = complete_course_step(
             repo,
             course_id=payload.course_id,
             wiki_tools_or_store=tools,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -84,6 +84,21 @@ STEP_SPECS: Dict[str, StepSpec] = {
         needs_learner_text=True,
         learner_grounded=("answer",),
     ),
+    "environment": StepSpec(
+        step="environment",
+        system=(
+            "You suggest where and how a learner can practise or observe a topic, using only situations, "
+            "examples and mechanisms described in their own notes. "
+            + _RULES
+            + '"practice" (2 to 4 concrete things to try or watch for, each naming terms from the notes), '
+            '"question" (one question the learner can answer from the notes), '
+            '"answer" (the short answer, taken from the notes).'
+        ),
+        lists=(("practice", 2, 4),),
+        texts=(("question", 0), ("answer", 1)),
+        main_list="practice",
+        main_min_grounded=3,
+    ),
     **{
         lab_step: StepSpec(
             step=lab_step,
