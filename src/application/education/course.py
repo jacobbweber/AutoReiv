@@ -31,7 +31,6 @@ DEFAULT_COURSE_STEPS: tuple[str, ...] = (
     "application",
     "analysis",
     "environment",
-    "amplifiers",
     "retention",
 )
 
@@ -45,9 +44,18 @@ ORDERED_COURSE_STEPS: tuple[str, ...] = (
     "application",
     "analysis",
     "environment",
-    "amplifiers",
     "retention",
 )
+
+# Steps that no longer exist. Courses stored before their removal may still list them; they are skipped
+# without writing anything. "amplifiers" wrote filler wiki notes and filler quiz items [CARD-639].
+RETIRED_COURSE_STEPS: frozenset[str] = frozenset({"amplifiers"})
+
+
+def _live_steps(steps: Sequence[str]) -> List[str]:
+    """Step names with blanks and retired steps removed [CARD-639]."""
+    return [str(s).strip() for s in steps if str(s).strip() and str(s).strip() not in RETIRED_COURSE_STEPS]
+
 
 # Steps allowed via mode-picker jump (includes all ordered steps + custom).
 JUMPABLE_STEPS: frozenset[str] = frozenset(
@@ -102,7 +110,7 @@ def start_or_resume_course(
     topic = _normalize_topic(topic_id)
     if not topic:
         raise ValueError("topic_id required")
-    step_list = [str(s).strip() for s in (steps or DEFAULT_COURSE_STEPS) if str(s).strip()]
+    step_list = _live_steps(steps or DEFAULT_COURSE_STEPS)
     if not step_list:
         step_list = list(DEFAULT_COURSE_STEPS)
 
@@ -151,6 +159,8 @@ def jump_to_course_step(
     target = (step or "").strip().lower()
     if not target:
         raise ValueError("step required")
+    if target in RETIRED_COURSE_STEPS:
+        raise ValueError(f"course step removed: {target}")
     steps = list(course.get("steps") or DEFAULT_COURSE_STEPS)
     if target not in JUMPABLE_STEPS and target not in steps:
         raise ValueError(f"unknown course step: {target}")
@@ -164,14 +174,16 @@ def jump_to_course_step(
 
 
 def _next_step(steps: Sequence[str], current: str) -> Optional[str]:
+    """Next step after current, skipping retired steps a stored course may still list [CARD-639]."""
     cur = (current or "").strip()
     ordered = [str(s).strip() for s in steps if str(s).strip()]
+    live = _live_steps(ordered)
     if cur not in ordered:
-        return ordered[0] if ordered else None
-    idx = ordered.index(cur)
-    if idx + 1 >= len(ordered):
-        return None
-    return ordered[idx + 1]
+        return live[0] if live else None
+    for candidate in ordered[ordered.index(cur) + 1:]:
+        if candidate not in RETIRED_COURSE_STEPS:
+            return candidate
+    return None
 
 
 def _write_step_artifact(
@@ -652,95 +664,6 @@ def _write_step_artifact(
             "framing": framing,
         }
 
-    if step_name == "amplifiers":
-        from src.application.education.lumina import build_visual_amplifier_for_course
-
-        amp = build_visual_amplifier_for_course(topic_clean)
-        title = f"Course Visual Amplifiers: {topic_clean}"
-        steps_md = "\n".join(f"- {s['step']}. {s['action']}" for s in amp.get("step_through", []))
-        content = (
-            f"# {title}\n\n"
-            f"tags: [education, course, amplifiers, lumina]\n"
-            f"kind: education_course_step\n"
-            f"step: amplifiers\n"
-            f"topic: {topic_clean}\n"
-            f"created: {stamp}\n\n"
-            f"## Concept Overview\n"
-            f"Lumina visual amplifier and dynamic concept topology for **{topic_clean}**.\n\n"
-            f"## Mermaid Diagram\n"
-            f"```mermaid\n"
-            f"{amp.get('mermaid', '').strip()}\n"
-            f"```\n\n"
-            f"## Step-through\n"
-            f"{steps_md}\n\n"
-            f"## Visual Archetype\n"
-            f"- Archetype Kind: `{amp.get('kind')}`\n"
-            f"- Node Count: {len(amp.get('visual_spec', {}).get('nodes', []))}\n\n"
-            f"## Quiz\n"
-            f"Q: How does the visual amplifier model the core flow of {topic_clean}?\n"
-            f"A: Through {amp.get('kind')} topology connecting constituent mechanisms\n"
-        )
-        tpl = get_template_for_step(step_name)
-        create_res = create_priming_note(
-            wiki_tools_or_store,
-            title=title,
-            content=content,
-            topic=topic_clean,
-            tags=["education", "course", "amplifiers", "lumina"],
-            summary=f"Visual amplifiers and Lumina concept diagram for {topic_clean}",
-            template=tpl,
-        )
-        path = str(create_res.get("path") or "")
-        note_ok = bool(create_res.get("success")) and (
-            bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
-        )
-
-        ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
-        if note_ok and memory_repo is not None:
-            item_id = f"course_{slug_topic(topic_clean)}_amplifiers"[:48]
-            prompt = f"How does the visual amplifier model the core flow of {topic_clean}?"
-            expected = f"Through {amp.get('kind')} topology connecting constituent mechanisms"
-            mid = memory_repo.upsert_education_mastery(
-                item_id=item_id,
-                topic=topic_clean,
-                wiki_path=path,
-                prompt=prompt,
-                expected_answer=expected,
-                grade="unseen",
-            )
-            try:
-                from src.application.education.learner_model import LEARNER_ENTITY
-
-                memory_repo.add_semantic_fact(
-                    entity=LEARNER_ENTITY,
-                    attribute="course_step_amplifiers",
-                    value=f"{topic_clean}|{path}|{stamp}|kind={amp.get('kind')}",
-                    category="education_learner",
-                    confidence=1.0,
-                    decay_half_life_days=90.0,
-                    fact_id=f"edu_course_{slug_topic(topic_clean)}_amplifiers"[:64],
-                )
-            except Exception:
-                pass
-            ledger = {"success": True, "count": 1, "item_ids": [mid]}
-
-        return {
-            "success": note_ok,
-            "step": step_name,
-            "wiki_path": path,
-            "artifact": {
-                "path": path,
-                "kind": "course_amplifiers",
-                "title": title,
-                "visual_spec": amp.get("visual_spec"),
-                "mermaid": amp.get("mermaid"),
-                "step_through": amp.get("step_through"),
-            },
-            "ledger": ledger,
-            "item_ids": list(ledger.get("item_ids") or []),
-            "tools_used": ["wiki_note_create"] if note_ok else [],
-        }
-
     title = f"Course {step_name.title()}: {topic_clean}"
     tpl = get_template_for_step(step_name)
     k_art = build_knowledge_artifact(topic_clean, ktype)
@@ -824,6 +747,30 @@ def complete_course_step(
     topic = course.get("topic_id") or ""
     steps = list(course.get("steps") or DEFAULT_COURSE_STEPS)
 
+    if step in RETIRED_COURSE_STEPS:
+        # A stored course sitting on a removed step moves on and writes nothing [CARD-639].
+        nxt = _next_step(steps, step)
+        updated = memory_repo.update_education_course_step(
+            course_id=course_id,
+            current_step=nxt or step,
+            status="active" if nxt else "completed",
+            now=now,
+        )
+        return {
+            "success": True,
+            "passed": True,
+            "skipped": True,
+            "completed_step": step,
+            "knowledge_type": None,
+            "course": updated,
+            "wiki_path": None,
+            "artifact": {},
+            "ledger": {},
+            "item_ids": [],
+            "tools_used": [],
+            "grade_result": {},
+        }
+
     artifact = _write_step_artifact(
         step=step,
         topic=topic,
@@ -872,6 +819,7 @@ def complete_course_step(
     return {
         "success": bool(artifact.get("success")),
         "passed": artifact.get("passed", True),
+        "skipped": False,
         "completed_step": step,
         "knowledge_type": artifact.get("knowledge_type"),
         "course": updated,
@@ -966,7 +914,7 @@ def course_chrome_snapshot(
         "default_steps": list(DEFAULT_COURSE_STEPS),
         "course": course,
         "topic": resolved_topic,
-        "steps": list((course or {}).get("steps") or DEFAULT_COURSE_STEPS),
+        "steps": _live_steps((course or {}).get("steps") or DEFAULT_COURSE_STEPS),
         "current_step": cur_step,
         "knowledge_type": ktype,
         "available_knowledge_types": list(VALID_KNOWLEDGE_TYPES),

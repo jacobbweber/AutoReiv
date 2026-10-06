@@ -53,7 +53,7 @@ describe('Lumina Cinema Studio [CARD-328 / REQ-LUMINA-SHELL-001..005]', () => {
     expect(html).toContain('id="luminaStageVisual"');
     expect(html).toContain('id="luminaPlayPauseBtn"');
     expect(html).toContain('id="luminaBackToComposeBtn"');
-    expect(html).toContain('id="luminaSendToCourseBtn"');
+    expect(html).not.toContain('id="luminaSendToCourseBtn"');
   });
 
   it('guarantees pointer-events: auto for Lumina hosted window controls [REQ-LUMINA-SHELL-004]', () => {

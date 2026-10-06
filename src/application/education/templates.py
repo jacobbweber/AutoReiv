@@ -486,7 +486,6 @@ STEP_TO_TEMPLATE_MAP: Dict[str, str] = {
     "analysis": "education-score",
     "score": "education-score",
     "environment": "education-priming",
-    "amplifiers": "education-dual-coding",
     "retention": "education-quiz",
     "portfolio": "education-portfolio",
     "growth": "education-portfolio",
