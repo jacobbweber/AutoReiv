@@ -1414,11 +1414,12 @@ async def _compose_current_step(
     # CARD-650: show the model the questions already asked on this topic (not this step's own item,
     # which a re-run replaces) so it asks about something different.
     own = f"course_{slug_topic(topic.strip())}_{step}"[:48]
-    avoid = [
-        str(r.get("prompt") or "")
+    asked = [
+        (str(r.get("prompt") or ""), str(r.get("expected_answer") or ""))
         for r in ledger_items(repo)
         if (r.get("topic") or "").strip() == topic.strip() and r.get("item_id") != own
     ]
+    avoid = [q for q, _ in asked]
     return await compose_course_step(
         getattr(request.app.state, "gateway", None),
         tools,
@@ -1429,6 +1430,7 @@ async def _compose_current_step(
         avoid_questions=avoid,
         # CARD-654: a question that repeats any saved item is asked about once more, naming the repeat.
         duplicate_of=lambda q, a: _repeat_of(find_duplicate_item(repo, q, a, own_item_id=own)),
+        asked=asked,
     )
 
 

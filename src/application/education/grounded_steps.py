@@ -198,6 +198,7 @@ async def compose_step_content(
     timeout: Optional[float] = None,
     avoid_questions: Optional[List[str]] = None,
     duplicate_of: Optional[DuplicateCheck] = None,
+    asked: Optional[List[Tuple[str, str]]] = None,
 ) -> Dict[str, Any]:
     """Grounded content for course `step` on `topic`, or a skip with its reason (never a template).
 
@@ -252,7 +253,8 @@ async def compose_step_content(
         return skip(topic, "model_output_invalid", sources, problem or "")
     content = await ask_again_if_repeated(
         gateway, spec.system, user, reply["text"], content, lambda text: build(text)[0],
-        duplicate_of or avoid_checker(avoid_questions), model=model, timeout=timeout,
+        duplicate_of or avoid_checker(avoid_questions), sources=sources,
+        asked=asked or [(q, "") for q in avoid_questions or []], model=model, timeout=timeout,
     )
     return {
         "ok": True,
@@ -275,6 +277,7 @@ async def compose_course_step(
     lab_submission: Optional[str] = None,  # accepted for symmetry; labs never ground in it
     avoid_questions: Optional[List[str]] = None,
     duplicate_of: Optional[DuplicateCheck] = None,
+    asked: Optional[List[Tuple[str, str]]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Grounded content for whichever course step is current, or None for steps that need none."""
     step = (step or "").strip().lower()
@@ -282,7 +285,7 @@ async def compose_course_step(
         from src.application.education.dual_coding import compose_dual_coding
 
         return await compose_dual_coding(
-            gateway, wiki_tools, topic, avoid_questions=avoid_questions, duplicate_of=duplicate_of
+            gateway, wiki_tools, topic, avoid_questions=avoid_questions, duplicate_of=duplicate_of, asked=asked
         )
     if step in STEP_SPECS:
         # Labs are designed from the notes only; the submission is graded against them, never used to build them.
@@ -290,5 +293,6 @@ async def compose_course_step(
         return await compose_step_content(
             gateway, wiki_tools, topic, step, learner_text=learner, avoid_questions=avoid_questions,
             duplicate_of=duplicate_of,
+            asked=asked,
         )
     return None

@@ -10,7 +10,7 @@ search, model call and grounding helpers live in `grounded.py` [CARD-646].
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from src.application.education.grounded import (
     MAX_SOURCES,
@@ -94,6 +94,7 @@ async def compose_dual_coding(
     timeout: Optional[float] = None,
     avoid_questions: Optional[List[str]] = None,
     duplicate_of: Optional[DuplicateCheck] = None,
+    asked: Optional[List[Tuple[str, str]]] = None,
 ) -> Dict[str, Any]:
     """Build grounded dual coding content for `topic`, or a skip with its reason (never a template)."""
     topic = (topic or "").strip()
@@ -134,7 +135,8 @@ async def compose_dual_coding(
     content = await ask_again_if_repeated(  # CARD-654
         gateway, SYSTEM_PROMPT, user, reply["text"], content,
         lambda text: None if "problem" in (c := build(text)) else c,
-        duplicate_of or avoid_checker(avoid_questions), model=model, timeout=timeout,
+        duplicate_of or avoid_checker(avoid_questions), sources=sources,
+        asked=asked or [(q, "") for q in avoid_questions or []], model=model, timeout=timeout,
     )
     return {
         "ok": True,

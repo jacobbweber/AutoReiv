@@ -340,14 +340,38 @@ def avoid_checker(questions: Optional[Iterable[str]]) -> Optional[DuplicateCheck
     return lambda q, a: next(((x, "") for x in qs if is_near_duplicate(q, a, x, "")), None)
 
 
-def retry_note(question: str, repeats: str, repeats_answer: str = "") -> str:
-    # Naming the earlier answer and asking for a different sentence moved Spark off the repeated fact
-    # in 12 of 12 probe replies; naming only the question did in 9 of 12.
+def note_sentences(sources: Iterable[Dict[str, Any]]) -> List[str]:
+    """The notes' sentences (and ;-clauses) with at least four content words, headings skipped."""
+    out: List[str] = []
+    for s in sources or []:
+        body = " ".join(ln.strip() for ln in str(s.get("text") or "").splitlines() if ln.strip() and not ln.lstrip().startswith("#"))
+        out.extend(p.strip() for p in re.split(r"(?<=[.!?;])\s+", body) if len(_qstems(p)) >= 4)
+    return out
+
+
+def least_covered_sentence(sources: Iterable[Dict[str, Any]], asked: Iterable[Tuple[str, str]]) -> str:
+    """The note sentence whose words the saved questions and answers cover least ("" without notes)."""
+    sentences = note_sentences(sources)
+    if not sentences:
+        return ""
+    covered: set = set()
+    for q, a in asked or []:
+        covered |= _qstems(q) | _qstems(a)
+    return min(sentences, key=lambda s: len(_qstems(s) & covered) / len(_qstems(s)))
+
+
+def retry_note(question: str, repeats: str, repeats_answer: str = "", sentence: str = "") -> str:
+    # Spark ignored "ask something different" once two items were saved (0 of 12 probe retries), but
+    # pointing it at the note sentence least covered by the saved items gave 5-6 distinct items a course.
     answer = f' (answer: "{repeats_answer}")' if repeats_answer.strip() else ""
+    where = (
+        f'Write the new question and answer about a different sentence of the notes: "{sentence}"'
+        if sentence
+        else "Pick a different sentence of the notes, one that is not about that answer, and write a new question and answer from it."
+    )
     return (
         f'Your question "{question}" asks the same thing as one the learner has already been asked: '
-        f'"{repeats}"{answer}. Pick a different sentence of the notes, one that is not about that answer, '
-        "and write a new question and answer from it. Keep everything else. Return the whole JSON object again."
+        f'"{repeats}"{answer}. {where} Keep everything else. Return the whole JSON object again.'
     )
 
 
@@ -360,6 +384,8 @@ async def ask_again_if_repeated(
     build: Callable[[str], Optional[Dict[str, Any]]],
     duplicate_of: Optional[DuplicateCheck],
     *,
+    sources: Optional[List[Dict[str, Any]]] = None,
+    asked: Optional[List[Tuple[str, str]]] = None,
     model: Optional[str] = None,
     timeout: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -373,7 +399,8 @@ async def ask_again_if_repeated(
     repeats = duplicate_of(question, str(content.get("answer") or "")) if question and duplicate_of else None
     if not repeats:
         return content
-    note = retry_note(question, repeats[0], repeats[1])
+    sentence = least_covered_sentence(sources or [], [*(asked or []), repeats])
+    note = retry_note(question, repeats[0], repeats[1], sentence)
     reply = await call_model(gateway, system, user, model=model, timeout=timeout, retry=(first_text, note))
     second = None if "error" in reply else build(reply["text"])
     if second is None:
