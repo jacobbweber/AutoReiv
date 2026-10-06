@@ -328,7 +328,8 @@ def avoid_block(questions: Optional[Iterable[str]]) -> str:
 # Live, Spark ignored the avoid list (10 of 10 replies asked the priming question again), but a
 # follow-up turn naming the repeat got a new question most of the time. One extra call, only then.
 
-DuplicateCheck = Callable[[str, str], Optional[str]]
+# (question, answer) -> the earlier (question, answer) it repeats, or None.
+DuplicateCheck = Callable[[str, str], Optional[Tuple[str, str]]]
 
 
 def avoid_checker(questions: Optional[Iterable[str]]) -> Optional[DuplicateCheck]:
@@ -336,14 +337,17 @@ def avoid_checker(questions: Optional[Iterable[str]]) -> Optional[DuplicateCheck
     qs = [str(q) for q in (questions or []) if str(q).strip()]
     if not qs:
         return None
-    return lambda q, a: next((x for x in qs if is_near_duplicate(q, a, x, "")), None)
+    return lambda q, a: next(((x, "") for x in qs if is_near_duplicate(q, a, x, "")), None)
 
 
-def retry_note(question: str, repeats: str) -> str:
+def retry_note(question: str, repeats: str, repeats_answer: str = "") -> str:
+    # Naming the earlier answer and asking for a different sentence moved Spark off the repeated fact
+    # in 12 of 12 probe replies; naming only the question did in 9 of 12.
+    answer = f' (answer: "{repeats_answer}")' if repeats_answer.strip() else ""
     return (
-        f'Your question "{question}" repeats one the learner has already been asked ("{repeats}"). '
-        "Keep everything else, but replace the question and answer with a new pair about a different fact "
-        "from the notes. Return the whole JSON object again."
+        f'Your question "{question}" asks the same thing as one the learner has already been asked: '
+        f'"{repeats}"{answer}. Pick a different sentence of the notes, one that is not about that answer, '
+        "and write a new question and answer from it. Keep everything else. Return the whole JSON object again."
     )
 
 
@@ -369,7 +373,8 @@ async def ask_again_if_repeated(
     repeats = duplicate_of(question, str(content.get("answer") or "")) if question and duplicate_of else None
     if not repeats:
         return content
-    reply = await call_model(gateway, system, user, model=model, timeout=timeout, retry=(first_text, retry_note(question, repeats)))
+    note = retry_note(question, repeats[0], repeats[1])
+    reply = await call_model(gateway, system, user, model=model, timeout=timeout, retry=(first_text, note))
     second = None if "error" in reply else build(reply["text"])
     if second is None:
         outcome, result = "refused", content
@@ -377,5 +382,5 @@ async def ask_again_if_repeated(
         outcome, result = "repeated", content
     else:
         outcome, result = "new_question", second
-    logger.info("grounded quiz question repeated %r; asked again: %s", repeats, outcome)
+    logger.info("grounded quiz question repeated %r; asked again: %s", repeats[0], outcome)
     return {**result, "quiz_retry": outcome}

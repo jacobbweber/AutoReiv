@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -1428,8 +1428,13 @@ async def _compose_current_step(
         lab_submission=lab_submission,
         avoid_questions=avoid,
         # CARD-654: a question that repeats any saved item is asked about once more, naming the repeat.
-        duplicate_of=lambda q, a: (find_duplicate_item(repo, q, a, own_item_id=own) or {}).get("prompt"),
+        duplicate_of=lambda q, a: _repeat_of(find_duplicate_item(repo, q, a, own_item_id=own)),
     )
+
+
+def _repeat_of(row: Optional[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
+    """The saved (question, answer) a new course question repeats [CARD-654]."""
+    return (str(row.get("prompt") or ""), str(row.get("expected_answer") or "")) if row else None
 
 
 @router.post("/api/education/course/complete-step")
