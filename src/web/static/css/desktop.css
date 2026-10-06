@@ -325,26 +325,6 @@ body.radical-desktop-demo #view-education.desktop-view-hosted #educationTopicInp
   z-index: 1;
 }
 
-/* CARD-328 / REQ-LUMINA-SHELL-001: Lumina Cinema controls must receive clicks in hosted windows */
-body.radical-desktop-demo #view-lumina.desktop-view-hosted,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaStudio,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeView,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeForm,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaTopicInput,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaComposeBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted .lumina-starter-chip,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaBackToComposeBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaStageView,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaPlayPauseBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaPrevBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaNextBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaVoiceToggleBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaSendToCourseBtn {
-  pointer-events: auto;
-  position: relative;
-  z-index: 1;
-}
-
 .desktop-win-resize {
   position: absolute;
   z-index: 20;

@@ -1,5 +1,32 @@
 ## [Unreleased]
 
+## [0.46.0] - 2026-10-06
+
+- Course labs drop grading criteria whose key terms are mostly not in your notes, so a submission that covers what you wrote is graded against facts your notes actually state [CARD-655].
+- When a course step's quiz question repeats a saved one, the retry now points the model at the sentence of your notes that no saved question covers yet, so a course on one note saves several distinct questions [CARD-654 follow-up 2].
+- Course quiz retries now name the earlier question's answer and ask for a different sentence of your notes, so the second question moves to a new fact more often [CARD-654 follow-up].
+- Course steps whose quiz question repeats one already saved now ask the model once more for a different question (naming the repeat); if it repeats again the note is saved without a quiz item [CARD-654].
+- Course labs: the grader ignores rubric words (response, states, mention) and no longer fails a correct submission on "the response does not ..." checks; course results and the full-course journey now name a dropped duplicate quiz question and the item it repeats [CARD-649, CARD-650 follow-ups].
+- CARD-653: course priming keeps a grounded model reply and just leaves out prerequisites not taken from your notes, instead of discarding the whole reply.
+- CARD-650: course steps are shown the questions you already have and skip a quiz item that nearly repeats one, so a course no longer fills the quiz with near-identical questions.
+- CARD-651: the growth portfolio note shows your real level and quiz items, keeps its details in front matter, and no longer adds a quiz question about its own level.
+- CARD-649: lab grading needs each criterion genuinely covered (about half its key terms, any word form) instead of one matching word, and names the missing terms.
+- CARD-652: removed the unused knowledge-artifact endpoint that returned the same template teaching sections for every topic.
+- CARD-648: removed the unused construction generate endpoint that wrote the same template study note for every topic.
+- CARD-642: the environment course step suggests where to practise from your own notes, or records progress only; no more fixed framing note and filler quiz item. Backlog CARD-648 to CARD-652 filed.
+- CARD-643: construction and application labs are now built from your own wiki notes (objective, tasks and criteria checked against those notes, linking back) and your submission is graded only against those criteria; with no notes on the topic your submission is kept ungraded, or nothing is written if there is none, instead of the same template lab, fake test command and self-graded baseline for every topic.
+- CARD-644: the elaboration course step now saves your own explanation, and adds follow-up questions and a quiz question only when they can be drawn from what you wrote (one call to the configured model, checked against your words and notes); without an explanation it saves nothing instead of a placeholder note with the topic name as the quiz answer.
+- CARD-646: the priming course step now outlines a topic from your own wiki notes (one call to the configured model, checked against those notes and linking back to them); with no notes on the topic, no model, or an ungrounded answer it writes nothing instead of the same outline and 'In one sentence, what is X?' / 'Where should Priming write durable knowledge?' quiz items for every topic.
+- CARD-645: course notes no longer start with a run-on paragraph of tags, step and dates; that information lives in the note's properties, and each course note carries its own step as its document type instead of 'priming_schema'.
+- CARD-647: the analysis course step no longer adds a quiz question asking for its own pass rate and weak-item count (an app number that went stale with the next grade); it still writes your scorecard note and schedules your reviews.
+- CARD-641: course steps that have nothing real to write (retrieval, retention, custom) now just record your progress instead of saving a generic 'Course X' note, a 'What Learning OS step did you just complete' quiz item and a memory fact.
+- CARD-640: the dual coding course step now builds its explanation, diagram and quiz question from your own wiki notes on the topic (one call to the configured model, checked against those notes and linking back to them); with no notes on the topic, no model, or an answer not grounded in the notes, it writes nothing instead of the old generic template.
+- CARD-638: Lumina Studio is removed: its dock icon, header tab, window, built-in lessons, styles and the /api/lumina/* routes are gone. A saved desktop layout that still lists the Lumina window opens without it.
+- CARD-639: Education courses no longer have a visual amplifier step, so they stop writing generic 'visual amplifier' wiki notes and quiz items; a course already on that step moves straight to retention. The Lumina 'Send to Education Course' button is gone.
+- CARD-637: Routines Studio's Agent filter starts on All agents and keeps it, instead of snapping back to the first agent and hiding every other agent's routines.
+- CARD-636: shipped routines are cut to five that run overnight on New York time (SRE pulse 2:00, education retention 2:30, wiki curation 3:00, weekly note rollover Mondays 4:00, telemetry and skill audit 4:30). Daily System Info, Morning Briefing, Nightly Hygiene and the two paused skill routines are removed with their run history, and a shipped routine you delete stays deleted.
+- CARD-635: routines fire only at their scheduled time: a run missed while the app was closed, asleep or more than 30 minutes late is skipped and logged instead of caught up at start-up, a failed run waits for its next slot instead of retrying every 10 seconds, and resuming a paused routine schedules it from now.
+
 ## [0.45.0] - 2026-10-05
 
 - CARD-634: Projects Studio lists live QA journey runs and opens their summaries and screenshots.

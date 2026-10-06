@@ -14,6 +14,7 @@ from pathlib import Path
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+from tests.unit.education._grounded_fixtures import GROUNDED_PRIMING
 
 
 def _assert_memory_db_path(db: Path) -> None:
@@ -143,6 +144,7 @@ def test_complete_step_writes_wiki_and_ledger_anchors(tmp_path: Path):
         course_id=course["course_id"],
         wiki_tools_or_store=tools,
         teach_style="schema first",
+        composed=GROUNDED_PRIMING,
     )
     assert result["success"] is True
     assert result.get("wiki_path") or (result.get("artifact") or {}).get("path")
@@ -176,7 +178,7 @@ def test_mastery_gate_binary_external_miss_sets_next_due(tmp_path: Path):
 
     course = start_or_resume_course(repo, topic_id="Binary Gate")
     priming = complete_course_step(
-        repo, course_id=course["course_id"], wiki_tools_or_store=wiki
+        repo, course_id=course["course_id"], wiki_tools_or_store=wiki, composed=GROUNDED_PRIMING
     )
     assert priming["success"] is True
 

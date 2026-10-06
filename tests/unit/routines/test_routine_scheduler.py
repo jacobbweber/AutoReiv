@@ -79,22 +79,21 @@ def scheduler(store, tmp_path):
 
 @pytest.mark.asyncio
 async def test_scheduler_bootstrap_defaults(store, scheduler):
-    # Seed default Day-1 routines
-    RoutineScheduler.seed_default_routines(store)
+    # CARD-636: the single shared seed creates the five shipped routines
+    from src.application.routines.seed import seed_builtin_routines
+
+    seed_builtin_routines(store)
 
     routines = store.list_routines()
-    assert len(routines) == 10
-    ids = [r.id for r in routines]
-    assert "morning-briefing" in ids
-    assert "daily-sysinfo" in ids
-    assert "nightly-hygiene" in ids
-    assert "hourly-sre-pulse" in ids
-    assert "weekly-note-rollover" in ids
-    assert "skill-eval-sleep" in ids
-    assert "skill-curator" in ids
-    assert "wiki-curation" in ids
-    assert "education-retrieval-retention" in ids
-    assert "telemetry-friction-auditor" in ids
+    assert len(routines) == 5
+    assert {r.id for r in routines} == {
+        "hourly-sre-pulse",
+        "education-retrieval-retention",
+        "wiki-curation",
+        "weekly-note-rollover",
+        "telemetry-friction-auditor",
+    }
+    assert all(r.next_run_at is not None for r in routines)
 
 
 
@@ -111,7 +110,8 @@ async def test_scheduler_tick_executes_due_routines(store, scheduler):
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
         enabled=True,
-        last_run_at=now - timedelta(hours=2),
+        last_run_at=now - timedelta(hours=1),
+        next_run_at=now - timedelta(minutes=1),
     )
     # 2. Not due routine (last_run was 10 mins ago with 1hr interval)
     r_not_due = Routine(
@@ -123,6 +123,7 @@ async def test_scheduler_tick_executes_due_routines(store, scheduler):
         interval_seconds=3600,
         enabled=True,
         last_run_at=now - timedelta(minutes=10),
+        next_run_at=now + timedelta(minutes=50),
     )
     store.save_routine(r_due)
     store.save_routine(r_not_due)
@@ -145,6 +146,7 @@ async def test_scheduler_background_start_and_stop(store, scheduler):
         interval_seconds=1,
         enabled=True,
         last_run_at=None,
+        next_run_at=datetime.now(timezone.utc),
     )
     store.save_routine(r)
 

@@ -11,6 +11,9 @@ def test_weekly_note_rollover_routine_manifest():
     assert WEEKLY_NOTE_ROLLOVER_ROUTINE.id == "weekly-note-rollover"
     assert WEEKLY_NOTE_ROLLOVER_ROUTINE.agent_id == "autoreiv"
     assert WEEKLY_NOTE_ROLLOVER_ROUTINE.schedule_type == ScheduleType.CRON
-    assert WEEKLY_NOTE_ROLLOVER_ROUTINE.cron_expression == "0 0 * * 1"
+    # CARD-636: Mondays 04:00 America/New_York (was midnight UTC = 20:00 ET Sunday)
+    assert WEEKLY_NOTE_ROLLOVER_ROUTINE.cron_expression == "0 4 * * 1"
+    assert WEEKLY_NOTE_ROLLOVER_ROUTINE.metadata["timezone"] == "America/New_York"
+    assert WEEKLY_NOTE_ROLLOVER_ROUTINE.metadata["weekdays"] == [1]
     assert WEEKLY_NOTE_ROLLOVER_ROUTINE.enabled is True
     assert "weekly" in WEEKLY_NOTE_ROLLOVER_ROUTINE.prompt.lower()

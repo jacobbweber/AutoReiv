@@ -452,10 +452,7 @@ def build_analysis_note_content(
 
     return (
         f"# Scorecard: {topic_clean}\n\n"
-        f"> **Topic:** {topic_clean}\n"
-        f"> **Pedagogy Phase:** Analysis & Metacognitive Review\n"
-        f"> **Generated:** {stamp}\n\n"
-        f"---\n\n"
+        f"Scored {stamp}.\n\n"
         f"## 1. Mastery Status\n"
         f"- **Current Step:** analysis\n"
         f"- **Mastery Items Count:** {total}\n"

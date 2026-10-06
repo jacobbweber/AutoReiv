@@ -55,10 +55,10 @@ def test_cli_parser_subcommands():
     assert args.routine_command == "list"
 
     # Routine run
-    args = parser.parse_args(["routine", "run", "morning-briefing"])
+    args = parser.parse_args(["routine", "run", "hourly-sre-pulse"])
     assert args.command == "routine"
     assert args.routine_command == "run"
-    assert args.routine_id == "morning-briefing"
+    assert args.routine_id == "hourly-sre-pulse"
 
     # Chat
     args = parser.parse_args(["chat"])
@@ -97,22 +97,22 @@ def test_cli_routine_list_and_run(mem_store, capsys):
     ret = main(["routine", "list", "--db-path", ":memory:"])
     assert ret == 0
     captured = capsys.readouterr()
-    assert "morning-briefing" in captured.out
+    assert "hourly-sre-pulse" in captured.out
 
     # Mock execute_routine for routine run
     with patch("src.cli.main.RoutineExecutor.execute_routine", new_callable=AsyncMock) as mock_exec:
         mock_exec.return_value = RoutineRun(
             id="run-123",
-            routine_id="morning-briefing",
+            routine_id="hourly-sre-pulse",
             agent_id="autoreiv",
             status=RoutineStatus.SUCCESS,
-            output="Morning Briefing Completed: 3 tasks active.",
+            output="SRE pulse completed: all green.",
             duration_ms=120.5,
         )
-        ret = main(["routine", "run", "morning-briefing", "--db-path", ":memory:"])
+        ret = main(["routine", "run", "hourly-sre-pulse", "--db-path", ":memory:"])
         assert ret == 0
         captured = capsys.readouterr()
-        assert "Morning Briefing Completed" in captured.out
+        assert "SRE pulse completed" in captured.out
 
 
 def test_cli_chat_command(capsys):

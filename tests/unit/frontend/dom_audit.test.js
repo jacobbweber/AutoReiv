@@ -73,7 +73,6 @@ describe('Dead UI Pruning Audit [CARD-369]', () => {
         'view-settings',
         'view-prompts',
         'view-education',
-        'view-lumina',
       ];
       for (const studioId of studios) {
         expect(html).toContain(`id="${studioId}"`);

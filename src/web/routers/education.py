@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -78,14 +78,6 @@ class ElaborationGradePayload(BaseModel):
     required_concepts: Optional[List[str]] = None
     write_wiki: bool = True
     write_memory: bool = True
-
-
-class ConstructionGeneratePayload(BaseModel):
-    agent_id: str = "autoreiv"
-    topic: str
-    wiki_path: Optional[str] = None
-    teach_style: Optional[str] = None
-    search_first: bool = True
 
 
 class SelectedEducationContextPayload(BaseModel):
@@ -501,7 +493,6 @@ async def quiz_next(
         "amplifiers": {
             "amplified_count": amplified["amplified_count"],
             "retrieval_required": True,
-            "lumina_film": False,
         },
     }
 
@@ -787,38 +778,6 @@ async def grade_elaboration(request: Request, payload: ElaborationGradePayload):
         write_memory=payload.write_memory,
     )
     return result
-
-
-@router.post("/api/education/construction/generate")
-async def construction_generate(request: Request, payload: ConstructionGeneratePayload):
-    """Generate a Construction study artifact into Wiki 00_Inbox via wiki_note_* only [CARD-245]."""
-    from src.application.education.construction import construct_study_artifact
-    from src.application.skills.wiki_tools import WikiTools
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-
-    result = construct_study_artifact(
-        topic=topic,
-        wiki_tools_or_store=tools,
-        wiki_path=(payload.wiki_path or None),
-        teach_style=(payload.teach_style or "") or "generate durable study artifact",
-        search_first=bool(payload.search_first),
-    )
-    if not result.get("success"):
-        # Still return structured body so Studio can show fail-soft details; 422 only if create failed hard.
-        raise HTTPException(status_code=422, detail=result)
-    return {
-        "agent_id": payload.agent_id,
-        "kind": "construction",
-        **result,
-    }
 
 
 @router.post("/api/education/construction/ask-clause")
@@ -1158,7 +1117,6 @@ async def amplifiers_extract(payload: AmplifierExtractPayload):
         "count": len(amps),
         "shippable": False,
         "retrieval_required": True,
-        "lumina_film": False,
         "note": "Candidates are not shippable until attached to a mastery/quiz item_id",
     }
 
@@ -1220,7 +1178,6 @@ async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
             "retrieval_required": True,
             "item_id": None,
             "shippable": False,
-            "lumina_film": False,
         }
     try:
         attached = attach_amplifier_to_retrieval(amplifier, payload.item_id, repo=repo)
@@ -1230,7 +1187,6 @@ async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
         "agent_id": payload.agent_id,
         "attached": attached,
         "retrieval_required": True,
-        "lumina_film": False,
         "replaces_srs": False,
         "replaces_ledger": False,
     }
@@ -1269,7 +1225,6 @@ async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "a
         "item_id": item_id,
         "amplifier": amp,
         "retrieval_required": True,
-        "lumina_film": False,
     }
 
 
@@ -1324,12 +1279,6 @@ class CourseMasteryGradePayload(BaseModel):
     answer: str = ""
 
 
-class KnowledgeArtifactPayload(BaseModel):
-    topic: str
-    knowledge_type: str = "concept"
-    custom_data: Optional[Dict[str, Any]] = None
-
-
 @router.get("/api/education/knowledge-types")
 async def education_knowledge_types():
     """List available knowledge types and artifact shape specifications [CARD-334]."""
@@ -1339,30 +1288,6 @@ async def education_knowledge_types():
         "knowledge_types": list(VALID_KNOWLEDGE_TYPES),
         "shapes": KNOWLEDGE_SHAPES,
     }
-
-
-@router.post("/api/education/knowledge-artifact")
-async def education_knowledge_artifact(payload: KnowledgeArtifactPayload):
-    """Generate specialized teaching artifact shape for knowledge type [CARD-334]."""
-    from src.application.education.knowledge_types import (
-        build_knowledge_artifact,
-        render_knowledge_note_markdown,
-    )
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-    try:
-        art = build_knowledge_artifact(
-            topic=topic,
-            knowledge_type=payload.knowledge_type,
-            custom_data=payload.custom_data,
-        )
-        md = render_knowledge_note_markdown(art)
-        return {"ok": True, "artifact": art, "markdown": md}
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
 
 
 class WikiCuratePayload(BaseModel):
@@ -1462,19 +1387,70 @@ async def course_get(
     return {"agent_id": agent_id, "course": course, "chrome": chrome, "pipeline_default": True}
 
 
+def _course_wiki_tools(request: Request):
+    from src.application.skills.wiki_tools import WikiTools
+
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(request.app.state, "wiki_root", None)
+    return WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+
+
+async def _compose_current_step(
+    request: Request,
+    repo: Any,
+    course_id: str,
+    tools: Any,
+    learner_explanation: Optional[str] = None,
+    lab_submission: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Grounded content for the course's current step, built from the learner's wiki notes via one
+    model call [CARD-640, CARD-646]. None for steps that need none; a skip dict when it can't be grounded."""
+    from src.application.education.grounded import find_duplicate_item, ledger_items
+    from src.application.education.grounded_steps import compose_course_step
+    from src.application.education.priming_schema import slug_topic
+
+    current = repo.get_education_course(course_id) or {}
+    topic = current.get("topic_id") or ""
+    step = current.get("current_step") or ""
+    # CARD-650: show the model the questions already asked on this topic (not this step's own item,
+    # which a re-run replaces) so it asks about something different.
+    own = f"course_{slug_topic(topic.strip())}_{step}"[:48]
+    asked = [
+        (str(r.get("prompt") or ""), str(r.get("expected_answer") or ""))
+        for r in ledger_items(repo)
+        if (r.get("topic") or "").strip() == topic.strip() and r.get("item_id") != own
+    ]
+    avoid = [q for q, _ in asked]
+    return await compose_course_step(
+        getattr(request.app.state, "gateway", None),
+        tools,
+        topic,
+        step,
+        learner_explanation=learner_explanation,
+        lab_submission=lab_submission,
+        avoid_questions=avoid,
+        # CARD-654: a question that repeats any saved item is asked about once more, naming the repeat.
+        duplicate_of=lambda q, a: _repeat_of(find_duplicate_item(repo, q, a, own_item_id=own)),
+        asked=asked,
+    )
+
+
+def _repeat_of(row: Optional[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
+    """The saved (question, answer) a new course question repeats [CARD-654]."""
+    return (str(row.get("prompt") or ""), str(row.get("expected_answer") or "")) if row else None
+
+
 @router.post("/api/education/course/complete-step")
 async def course_complete_step(request: Request, payload: CourseCompletePayload):
     """Complete current course step: Wiki + ledger anchors, advance [CARD-320, CARD-334]."""
     from src.application.education.course import complete_course_step, course_chrome_snapshot
-    from src.application.skills.wiki_tools import WikiTools
 
     if not (payload.course_id or "").strip():
         raise HTTPException(status_code=400, detail="course_id is required")
     repo = _memory_repo(request, payload.agent_id)
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
+    tools = _course_wiki_tools(request)
+    composed = await _compose_current_step(
+        request, repo, payload.course_id, tools, payload.learner_explanation, payload.lab_submission
     )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
     try:
         result = complete_course_step(
             repo,
@@ -1484,6 +1460,7 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
             learner_explanation=payload.learner_explanation,
             lab_submission=payload.lab_submission,
             knowledge_type=payload.knowledge_type,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1544,30 +1521,49 @@ class DualCodingPreviewPayload(BaseModel):
 
 
 @router.post("/api/education/course/dual-coding/preview")
-async def course_dual_coding_preview(payload: DualCodingPreviewPayload):
-    """Generate dual coding prose + Mermaid diagram for topic [CARD-321]."""
-    from src.application.education.course import build_dual_coding_preview
+async def course_dual_coding_preview(request: Request, payload: DualCodingPreviewPayload):
+    """Dual coding built from your wiki notes on the topic, or the reason it was skipped [CARD-321, CARD-640]."""
+    from src.application.education.dual_coding import compose_dual_coding
 
     if not (payload.topic or "").strip():
         raise HTTPException(status_code=400, detail="topic is required")
-    data = build_dual_coding_preview(payload.topic)
-    return {"agent_id": payload.agent_id, **data}
+    composed = await compose_dual_coding(
+        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), payload.topic
+    )
+    return {"agent_id": payload.agent_id, **composed}
 
 
 class CourseElaborationPreviewPayload(BaseModel):
     topic: str
+    learner_explanation: Optional[str] = None
     agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/elaboration/preview")
-async def course_elaboration_preview(payload: CourseElaborationPreviewPayload):
-    """Generate Socratic elaboration prompts and probing questions for topic [CARD-323]."""
+async def course_elaboration_preview(request: Request, payload: CourseElaborationPreviewPayload):
+    """The elaboration ask; follow-up questions only from the learner's own explanation [CARD-323, CARD-644]."""
     from src.application.education.elaboration import build_elaboration_preview
+    from src.application.education.grounded_steps import compose_step_content
 
     if not (payload.topic or "").strip():
         raise HTTPException(status_code=400, detail="topic is required")
     data = build_elaboration_preview(payload.topic)
-    return {"success": True, "agent_id": payload.agent_id, **data}
+    composed = await compose_step_content(
+        getattr(request.app.state, "gateway", None),
+        _course_wiki_tools(request),
+        payload.topic,
+        "elaboration",
+        learner_text=payload.learner_explanation,
+    )
+    if composed.get("ok"):
+        data["probing_questions"] = list(composed.get("probes") or [])
+    return {
+        "success": True,
+        "agent_id": payload.agent_id,
+        **data,
+        "skip_reason": composed.get("skip_reason"),
+        "sources": composed.get("sources") or [],
+    }
 
 
 class CourseElaborationCompletePayload(BaseModel):
@@ -1590,12 +1586,14 @@ async def course_elaboration_complete(request: Request, payload: CourseElaborati
         request.app.state, "wiki_root", None
     )
     tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    composed = await _compose_current_step(request, repo, payload.course_id, tools, payload.learner_explanation)
     try:
         result = complete_course_step(
             repo,
             course_id=payload.course_id,
             wiki_tools_or_store=tools,
             learner_explanation=payload.learner_explanation,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1619,8 +1617,8 @@ class CourseLabPreviewPayload(BaseModel):
 
 @router.post("/api/education/course/lab/preview")
 async def course_lab_preview(request: Request, payload: CourseLabPreviewPayload):
-    """Generate structured lab specification for construction or application step [CARD-324]."""
-    from src.application.education.labs import build_lab_specification
+    """Lab built from your wiki notes on the topic, or the reason it was skipped [CARD-324, CARD-643]."""
+    from src.application.education.grounded_steps import compose_step_content
 
     topic = (payload.topic or "").strip()
     step = (payload.step or "construction").strip()
@@ -1633,9 +1631,13 @@ async def course_lab_preview(request: Request, payload: CourseLabPreviewPayload)
 
     if not topic:
         raise HTTPException(status_code=400, detail="topic or valid course_id is required")
+    if step not in ("construction", "application"):
+        step = "construction"
 
-    data = build_lab_specification(topic=topic, step=step)
-    return {"success": True, "agent_id": payload.agent_id, **data}
+    composed = await compose_step_content(
+        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), topic, step
+    )
+    return {"success": True, "agent_id": payload.agent_id, **composed, "step": step}
 
 
 class CourseLabGradePayload(BaseModel):
@@ -1663,6 +1665,8 @@ async def course_lab_grade(request: Request, payload: CourseLabGradePayload):
         request.app.state, "wiki_root", None
     )
     tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    # CARD-643: graded only against a lab grounded in the learner's notes.
+    composed = await _compose_current_step(request, repo, payload.course_id, tools)
 
     try:
         result = complete_course_step(
@@ -1670,6 +1674,7 @@ async def course_lab_grade(request: Request, payload: CourseLabGradePayload):
             course_id=payload.course_id,
             wiki_tools_or_store=tools,
             lab_submission=payload.submission,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1734,12 +1739,13 @@ class CourseEnvironmentPreviewPayload(BaseModel):
 
 @router.post("/api/education/course/environment/preview")
 async def course_environment_preview(request: Request, payload: CourseEnvironmentPreviewPayload):
-    """Generate environment framing and delivery constraints [CARD-325]."""
-    from src.application.education.environment import build_environment_framing
+    """Where to practise the topic, from your wiki notes, with your delivery profile [CARD-325, CARD-642]."""
+    from src.application.education.environment import get_active_delivery_profile, get_delivery_profile
+    from src.application.education.grounded_steps import compose_step_content
 
+    repo = _memory_repo(request, payload.agent_id)
     topic = (payload.topic or "").strip()
     if not topic and payload.course_id:
-        repo = _memory_repo(request, payload.agent_id)
         course = repo.get_education_course(payload.course_id)
         if course:
             topic = course.get("topic_id") or ""
@@ -1747,11 +1753,11 @@ async def course_environment_preview(request: Request, payload: CourseEnvironmen
     if not topic:
         raise HTTPException(status_code=400, detail="topic or valid course_id is required")
 
-    framing = build_environment_framing(
-        topic=topic,
-        profile_id=payload.profile_id,
+    profile = get_delivery_profile(payload.profile_id) if payload.profile_id else get_active_delivery_profile(repo)
+    composed = await compose_step_content(
+        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), topic, "environment"
     )
-    return {"success": True, "agent_id": payload.agent_id, **framing}
+    return {"success": True, "agent_id": payload.agent_id, **composed, "profile": profile}
 
 
 class CourseEnvironmentCompletePayload(BaseModel):
@@ -1778,12 +1784,14 @@ async def course_environment_complete(request: Request, payload: CourseEnvironme
         request.app.state, "wiki_root", None
     )
     tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    composed = await _compose_current_step(request, repo, payload.course_id, tools)
 
     try:
         result = complete_course_step(
             repo,
             course_id=payload.course_id,
             wiki_tools_or_store=tools,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1899,116 +1907,3 @@ async def course_portfolio_create(request: Request, payload: CoursePortfolioCrea
         raise HTTPException(status_code=500, detail="Failed to create growth portfolio note")
 
     return {"agent_id": payload.agent_id, **result}
-
-
-# --- CARD-328 Lumina Cinema & Amplifiers ---------------------------------------
-
-
-class LuminaComposePayload(BaseModel):
-    topic: str
-    agent_id: str = "autoreiv"
-
-
-class LuminaSendToCoursePayload(BaseModel):
-    topic: str
-    agent_id: str = "autoreiv"
-
-
-@router.get("/api/lumina/starters")
-async def lumina_starters():
-    """List available Lumina starter lessons [CARD-328]."""
-    from src.application.education.lumina import list_starter_topics
-
-    return {"starters": list_starter_topics()}
-
-
-@router.get("/api/lumina/lesson/{lesson_id}")
-async def lumina_lesson(lesson_id: str):
-    """Retrieve full Lumina lesson specification by ID or topic [CARD-328]."""
-    from src.application.education.lumina import get_starter_lesson
-
-    lesson = get_starter_lesson(lesson_id)
-    if not lesson:
-        raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found")
-    return {"lesson": lesson}
-
-
-@router.post("/api/lumina/compose")
-async def lumina_compose(request: Request, payload: LuminaComposePayload):
-    """Compose a 3-6 scene Lumina concept lesson [CARD-328]."""
-    from src.application.education.lumina import (
-        extract_json_from_llm,
-        get_starter_lesson,
-        normalize_lesson,
-    )
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-
-    existing = get_starter_lesson(topic)
-    if existing:
-        return {"ok": True, "lesson": existing, "cached": True}
-
-    # Attempt LLM composition via gateway if configured
-    gateway = getattr(request.app.state, "gateway", None)
-    lesson = None
-    if gateway:
-        prompt = (
-            f"You are Lumina, a visual concept director. Create a 4-scene educational storyboard for: '{topic}'.\n"
-            "Return JSON matching:\n"
-            "{\n"
-            '  "title": "...",\n'
-            '  "essence": "...",\n'
-            '  "scenes": [\n'
-            "    {\n"
-            '      "headline": "...",\n'
-            '      "whisper": "...",\n'
-            '      "narration": "...",\n'
-            '      "imagePrompt": "...",\n'
-            '      "durationMs": 11000,\n'
-            '      "visual": {\n'
-            '        "kind": "flow|cycle|compare|orbit|stack|split|wave|network|scale|balance|grow|transform|pipeline|system",\n'
-            '        "title": "...",\n'
-            '        "nodes": [{"id": "...", "label": "...", "caption": "...", "role": "in|work|store|out", "emphasis": true}],\n'
-            '        "links": [{"from": "...", "to": "...", "label": "..."}]\n'
-            "      }\n"
-            "    }\n"
-            "  ]\n"
-            "}"
-        )
-        try:
-            from src.domain.gateway.models import ChatMessage
-            res = await gateway.chat_complete(
-                messages=[ChatMessage(role="user", content=prompt)],
-                temperature=0.7,
-            )
-            raw = extract_json_from_llm(res.content)
-            lesson = normalize_lesson(raw, topic)
-        except Exception:
-            pass
-
-    if not lesson:
-        lesson = normalize_lesson({}, topic)
-
-    return {"ok": True, "lesson": lesson, "cached": False}
-
-
-@router.post("/api/lumina/send-to-course")
-async def lumina_send_to_course(request: Request, payload: LuminaSendToCoursePayload):
-    """Bridge Lumina lesson into an active education_course in tutor_memory.db [CARD-328]."""
-    from src.application.education.course import (
-        course_chrome_snapshot,
-        start_or_resume_course,
-    )
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-
-    repo = _memory_repo(request, payload.agent_id)
-    course = start_or_resume_course(repo, topic_id=topic)
-    snapshot = course_chrome_snapshot(repo, topic_id=topic, course_id=course.get("course_id", ""))
-    return {"ok": True, "course": course, "snapshot": snapshot}
-
-

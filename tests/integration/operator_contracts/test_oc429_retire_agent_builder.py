@@ -2,7 +2,7 @@
 
 REQ-429-007: get_agent('agent-builder') is absent from the roster and from GET /api/agents.
 REQ-429-008: Developer can use propose/commit/scaffold tools. save_agent_specification is not allowlisted.
-REQ-429-009: skill-eval-sleep and skill-curator point at developer and stay paused.
+REQ-429-009: (CARD-636) skill-eval-sleep and skill-curator are retired; skill eval runs in the nightly auditor.
 REQ-429-003: shipped capability groups are labeled Platform.
 
 Temp user-data only [ADR-0055].
@@ -67,10 +67,8 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
     assert (wiki.parent / "packs" / "developer" / "skills" / "capability-authoring" / "SKILL.md").is_file()
 
     routines = {row["id"]: row for row in client.get("/api/routines").json()}
-    assert routines["skill-eval-sleep"]["agent_id"] == "developer"
-    assert routines["skill-eval-sleep"]["enabled"] is False
-    assert routines["skill-curator"]["agent_id"] == "developer"
-    assert routines["skill-curator"]["enabled"] is False
+    assert "skill-eval-sleep" not in routines
+    assert "skill-curator" not in routines
 
     caps = client.get("/api/tools_studio/capabilities").json()
     group_names = [ns["name"] for ns in caps["namespaces"]]

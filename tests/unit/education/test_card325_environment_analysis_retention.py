@@ -25,7 +25,6 @@ from src.application.education.course import (
     start_or_resume_course,
 )
 from src.application.education.environment import (
-    build_environment_framing,
     get_active_delivery_profile,
     select_delivery_profile,
 )
@@ -61,11 +60,15 @@ def test_req_edu_env_001_environment_framing_participates_in_course(tmp_path: Pa
     active = get_active_delivery_profile(repo)
     assert active["id"] == "calm_focus"
 
-    framing = build_environment_framing(topic=topic, profile_id=active["id"])
-    assert framing["topic"] == topic
-    assert framing["profile"]["id"] == "calm_focus"
-    assert "constraints" in framing and len(framing["constraints"]) >= 2
-    assert "framing_markdown" in framing and len(framing["framing_markdown"]) > 0
+    # Environment content comes only from the learner's notes [CARD-642]; this is what
+    # grounded_steps.compose_step_content(..., "environment") returns for tracing notes.
+    env_content = {
+        "ok": True,
+        "practice": ["Follow one request's span context across two RPC boundaries", "Compare trace IDs in the logs"],
+        "question": "What crosses RPC boundaries in distributed tracing?",
+        "answer": "The span context",
+        "sources": [],
+    }
 
     # Fast forward course to environment step (index 7)
     course = start_or_resume_course(repo, topic_id=topic, steps=ORDERED_COURSE_STEPS)
@@ -109,10 +112,11 @@ def test_req_edu_env_001_environment_framing_participates_in_course(tmp_path: Pa
         repo,
         course_id=course["course_id"],
         wiki_tools_or_store=tools,
+        composed=env_content,
     )
     assert c_env["success"] is True
     assert c_env["completed_step"] == "environment"
-    assert c_env["course"]["current_step"] == "amplifiers"
+    assert c_env["course"]["current_step"] == "retention"
 
     # Verify Wiki note
     wiki_path = c_env.get("wiki_path") or c_env["artifact"]["path"]
@@ -296,7 +300,8 @@ def test_req_edu_env_004_endpoints_and_validation(tmp_path: Path):
     assert pdata["success"] is True
     assert pdata["topic"] == topic
     assert pdata["profile"]["id"] == "pomodoro"
-    assert "constraints" in pdata
+    # No notes on the topic: nothing is invented [CARD-642]
+    assert pdata["ok"] is False and "constraints" not in pdata
 
     # 2. Analysis Handoff endpoint
     res_handoff = client.post(

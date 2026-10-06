@@ -62,7 +62,8 @@ export function sortStudioAgentsAlphabetically(agents = []) {
 
 /**
  * Choose which option stays selected across a roster refresh.
- * A placeholder currently sitting in the control (fresh HTML default) loses to a stored id.
+ * A placeholder currently sitting in the control (fresh HTML default) loses to a stored id,
+ * but a stored or fallback placeholder is kept (CARD-637: "All agents" must not snap to the first agent).
  * @param {{ currentValue?: string, storedValue?: string|null, stateValue?: string|null, validIds?: string[], placeholders?: string[], fallback?: string }} spec
  * @returns {string}
  */
@@ -81,9 +82,10 @@ export function resolvePickerSelection({
   const stored = storedValue == null ? '' : String(storedValue);
   const fromState = stateValue == null ? '' : String(stateValue);
   if (real(current)) return current;
-  if (stored && (valid.has(stored) || placeholder.has(stored))) return stored;
+  // CARD-637: a placeholder (Routines/Observe "All agents") is a real choice, stored or as the fallback.
+  if ((stored && valid.has(stored)) || placeholder.has(stored)) return stored;
   if (real(fromState)) return fromState;
-  if (fallback && (valid.has(fallback) || placeholder.has(fallback))) return fallback;
+  if ((fallback && valid.has(fallback)) || placeholder.has(fallback)) return fallback;
   const firstReal = validIds.find((id) => id && !placeholder.has(id));
   return firstReal || '';
 }

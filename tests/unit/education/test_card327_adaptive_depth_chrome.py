@@ -142,7 +142,8 @@ def test_req_edu_depth_002_wiki_growth_portfolio_note(tmp_path: Path):
     assert "portfolio" in meta.tags
     assert "growth" in meta.tags
     assert "CRDT State Sync" in body
-    assert "Mastery Level" in body
+    assert "## Where you are" in body  # CARD-651: level in the body, metadata in front matter
+    assert (meta.model_extra or {}).get("mastery_level") is not None
 
     # Verify semantic fact anchored
     facts = repo.list_semantic_facts()

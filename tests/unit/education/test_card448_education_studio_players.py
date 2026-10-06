@@ -69,5 +69,5 @@ def test_card448_players_module_and_console_exist():
     assert "fake_pass: false" in players
     assert 'id="educationPlayersConsole"' in html
     assert 'id="tab-education"' in html
-    assert 'id="tab-lumina"' in html
+    assert 'id="tab-lumina"' not in html  # Lumina removed [CARD-638]
     assert 'id="educationOperatorConsole"' in html

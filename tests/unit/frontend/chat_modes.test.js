@@ -839,9 +839,11 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
       });
 
       it('returns true for known builtin routine IDs', () => {
-        expect(isBuiltinRoutine({ id: 'daily-sysinfo' })).toBe(true);
-        expect(isBuiltinRoutine({ id: 'morning-briefing' })).toBe(true);
+        expect(isBuiltinRoutine({ id: 'wiki-curation' })).toBe(true);
+        expect(isBuiltinRoutine({ id: 'telemetry-friction-auditor' })).toBe(true);
         expect(isBuiltinRoutine({ id: 'hourly-sre-pulse' })).toBe(true);
+        // CARD-636: retired routines are no longer builtin
+        expect(isBuiltinRoutine({ id: 'morning-briefing' })).toBe(false);
       });
 
       it('returns false for custom routines when is_builtin is false', () => {

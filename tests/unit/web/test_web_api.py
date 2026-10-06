@@ -168,11 +168,11 @@ def test_routines_endpoints(client):
     resp = client.get("/api/routines")
     assert resp.status_code == 200
     routines = resp.json()
-    assert len(routines) >= 4
-    morning_brief = next(r for r in routines if r["name"] == "Morning Briefing")
+    assert len(routines) == 5
+    pulse = next(r for r in routines if r["id"] == "hourly-sre-pulse")
 
     # Trigger routine manually
-    resp = client.post(f"/api/routines/{morning_brief['id']}/trigger")
+    resp = client.post(f"/api/routines/{pulse['id']}/trigger")
     assert resp.status_code == 200
     run_result = resp.json()
     assert run_result["status"] in ["success", "error"]

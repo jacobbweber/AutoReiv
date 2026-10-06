@@ -85,7 +85,7 @@ async def test_routine_crud_and_agent_filter_api(app):
         assert del_res.json()["status"] == "deleted"
 
         # 7. Can delete built-in baseline routine
-        del_baseline = await ac.delete("/api/routines/morning-briefing")
+        del_baseline = await ac.delete("/api/routines/wiki-curation")
         assert del_baseline.status_code == 200
         assert del_baseline.json()["status"] == "deleted"
 

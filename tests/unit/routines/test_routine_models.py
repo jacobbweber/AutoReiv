@@ -53,40 +53,19 @@ def test_routine_run_model():
     assert run.duration_ms == 125.5
 
 
-def test_builtin_day1_routines_manifests():
-    assert len(BUILTIN_ROUTINES) == 10
+def test_builtin_routines_are_the_card636_five():
     ids = [r.id for r in BUILTIN_ROUTINES]
-    assert "morning-briefing" in ids
-    assert "daily-sysinfo" in ids
-    assert "nightly-hygiene" in ids
-    assert "hourly-sre-pulse" in ids
-    assert "weekly-note-rollover" in ids
-    assert "skill-eval-sleep" in ids
-    assert "skill-curator" in ids
-    assert "wiki-curation" in ids
-    assert "education-retrieval-retention" in ids
-    assert "telemetry-friction-auditor" in ids
-
-
-    # Check Morning Briefing
-    mb = get_builtin_routine("morning-briefing")
-    assert mb is not None
-    assert mb.agent_id == "autoreiv"
-    assert "task tracker" in mb.prompt.lower() or "tasks" in mb.prompt.lower()
-
-    # Check Daily Sysinfo
-    ds = get_builtin_routine("daily-sysinfo")
-    assert ds is not None
-    assert ds.agent_id == "autoreiv"
-    assert "system" in ds.prompt.lower()
-
-    # Check Nightly Hygiene
-    nh = get_builtin_routine("nightly-hygiene")
-    assert nh is not None
-    assert nh.agent_id == "autoreiv"
-
-    # Check Hourly SRE Pulse
+    assert ids == [
+        "hourly-sre-pulse",
+        "education-retrieval-retention",
+        "wiki-curation",
+        "weekly-note-rollover",
+        "telemetry-friction-auditor",
+    ]
+    for gone in ("morning-briefing", "daily-sysinfo", "nightly-hygiene", "skill-eval-sleep", "skill-curator"):
+        assert get_builtin_routine(gone) is None
     sp = get_builtin_routine("hourly-sre-pulse")
     assert sp is not None
     assert sp.agent_id == "autoreiv"
-    assert sp.interval_seconds == 3600
+    assert sp.metadata["timezone"] == "America/New_York"
+    assert (sp.metadata["hour"], sp.metadata["minute"]) == (2, 0)

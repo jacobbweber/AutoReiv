@@ -4,7 +4,7 @@ Tests:
 1. Four distinct knowledge types (concept, tool, method, problem) with unique artifact shapes.
 2. Template catalog contains templates for all 4 knowledge types.
 3. Step-to-knowledge-type resolution with defaults and explicit overrides.
-4. Artifact generation builds proper shape sections without collapsing into generic step shape.
+4. (Template artifact builder removed in CARD-652.)
 5. Course chrome snapshot includes knowledge_type and available_knowledge_types.
 6. Course step completion persists knowledge-type front matter and memory anchors.
 7. Remains separate from CARD-324 Construction/Application graded lab pressure.
@@ -23,8 +23,6 @@ from src.application.education.course import (
 from src.application.education.knowledge_types import (
     KNOWLEDGE_SHAPES,
     VALID_KNOWLEDGE_TYPES,
-    build_knowledge_artifact,
-    render_knowledge_note_markdown,
     resolve_step_knowledge_type,
 )
 from src.application.education.templates import (
@@ -91,44 +89,6 @@ def test_step_knowledge_type_resolution():
         resolve_step_knowledge_type("priming", explicit="invalid_unknown")
 
 
-def test_build_knowledge_artifact_shapes():
-    """REQ-EDU-KTYPE-001: Artifact builder generates distinct payload shapes per type."""
-    topic = "PostgreSQL Indexes"
-
-    art_concept = build_knowledge_artifact(topic, "concept")
-    assert art_concept["knowledge_type"] == "concept"
-    assert art_concept["shape_kind"] == "concept_brief"
-    assert "mental_model" in art_concept["sections"]
-    assert "invariants" in art_concept["sections"]
-    assert "analogy" in art_concept["sections"]
-
-    art_tool = build_knowledge_artifact(topic, "tool")
-    assert art_tool["knowledge_type"] == "tool"
-    assert art_tool["shape_kind"] == "tool_reference"
-    assert "interface_signature" in art_tool["sections"]
-    assert "flags_and_arguments" in art_tool["sections"]
-    assert "minimal_invocation" in art_tool["sections"]
-
-    art_method = build_knowledge_artifact(topic, "method")
-    assert art_method["knowledge_type"] == "method"
-    assert art_method["shape_kind"] == "method_runbook"
-    assert "procedure_steps" in art_method["sections"]
-    assert "prerequisites" in art_method["sections"]
-    assert "verification_checkpoint" in art_method["sections"]
-
-    art_problem = build_knowledge_artifact(topic, "problem")
-    assert art_problem["knowledge_type"] == "problem"
-    assert art_problem["shape_kind"] == "problem_scenario"
-    assert "symptom_signature" in art_problem["sections"]
-    assert "hypothesis_space" in art_problem["sections"]
-    assert "remediation_rubric" in art_problem["sections"]
-
-    # Rendered markdown contains template front matter
-    md = render_knowledge_note_markdown(art_concept)
-    assert 'template: "education-concept"' in md
-    assert "## 1. Mental Model" in md or "## Mental Model" in md
-
-
 def test_course_chrome_snapshot_includes_knowledge_type():
     """REQ-EDU-KTYPE-002: Course chrome snapshot surfaces knowledge type for current step."""
     repo = MagicMock()
@@ -174,6 +134,16 @@ def test_complete_course_step_preserves_card324_separation():
         repo,
         course_id="crs_456",
         wiki_tools_or_store=tools,
+        lab_submission="I defined two coroutines and used gather so the event loop awaits both results together.",
+        composed={
+            "ok": True,
+            "objective": "Run two coroutines concurrently on the asyncio event loop",
+            "tasks": ["Define two coroutines", "Schedule both with gather", "Await the event loop result"],
+            "criteria": ["Uses gather to schedule coroutines", "Awaits results on the event loop"],
+            "question": "What schedules several coroutines at once?",
+            "answer": "gather",
+            "sources": [],
+        },
     )
 
     assert res["success"] is True
