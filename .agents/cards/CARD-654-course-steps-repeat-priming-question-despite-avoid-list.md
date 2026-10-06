@@ -61,3 +61,6 @@ A course on a note keeping one quiz item because the model asks the same questio
 
 ## Release note
 Course steps that come back with a quiz question you've already been asked now ask the model once more for a different one, so a course on your note saves several distinct quiz questions instead of one.
+
+## Follow-up (first live check, 2026-10-06 11:40 ET)
+The first full-course run after merge got a new question on 1 of 4 retries (elaboration); dual coding, construction and application came back on the same fact rephrased and saved no quiz item. Read-only probe with the full duplicate check (12 repeats): naming the earlier question only got a new question 9 of 12 times; also naming the earlier answer and asking for "a different sentence of the notes, one that is not about that answer" got 12 of 12. The retry now uses that wording; `duplicate_of` returns the earlier (question, answer). One test added.
