@@ -129,3 +129,15 @@ def test_model_is_shown_the_questions_already_asked(env):
     user = gateway.requests[0].messages[-1].content
     assert LIVE[0][0] in user and LIVE[2][0] in user
     assert "different" in user.lower()
+
+
+def test_result_says_which_question_was_dropped_and_what_it_repeats(env):
+    # Follow-up from the course-filler-3 live check: the dropped question was invisible, so a reviewer
+    # could not tell a real repeat from an over-eager match.
+    repo, tools, wiki_root = env
+    _seed(repo, *LIVE[0])
+    done = complete_course_step(
+        repo, course_id=_course(repo), wiki_tools_or_store=tools,
+        composed={**ENV, "question": LIVE[1][0], "answer": LIVE[1][1]},
+    )
+    assert done["quiz_duplicate"] == {"question": LIVE[1][0], "duplicate_of": LIVE[0][0]}
