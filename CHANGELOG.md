@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Course steps whose quiz question repeats one already saved now ask the model once more for a different question (naming the repeat); if it repeats again the note is saved without a quiz item [CARD-654].
 - Course labs: the grader ignores rubric words (response, states, mention) and no longer fails a correct submission on "the response does not ..." checks; course results and the full-course journey now name a dropped duplicate quiz question and the item it repeats [CARD-649, CARD-650 follow-ups].
 - CARD-653: course priming keeps a grounded model reply and just leaves out prerequisites not taken from your notes, instead of discarding the whole reply.
 - CARD-650: course steps are shown the questions you already have and skip a quiz item that nearly repeats one, so a course no longer fills the quiz with near-identical questions.

@@ -13,7 +13,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.application.education.grounded import (
+    DuplicateCheck,
+    ask_again_if_repeated,
     avoid_block,
+    avoid_checker,
     call_model,
     find_sources,
     grounded_count,
@@ -194,10 +197,13 @@ async def compose_step_content(
     model: Optional[str] = None,
     timeout: Optional[float] = None,
     avoid_questions: Optional[List[str]] = None,
+    duplicate_of: Optional[DuplicateCheck] = None,
 ) -> Dict[str, Any]:
     """Grounded content for course `step` on `topic`, or a skip with its reason (never a template).
 
     `learner_text` is what the learner wrote for the step (elaboration explanation, lab submission).
+    `duplicate_of(question, answer)` names an earlier question this one repeats (default: the avoid list);
+    a repeat is asked about once more [CARD-654].
     """
     topic = (topic or "").strip()
     step = (step or "").strip().lower()
@@ -224,20 +230,30 @@ async def compose_step_content(
     reply = await call_model(gateway, spec.system, user, model=model, timeout=timeout)
     if "error" in reply:
         return skip(topic, "model_unavailable", sources, reply["error"])
-    data = parse_reply(reply["text"])
-    problem = "reply was not a JSON object" if data is None else validate_step_content(spec, data, sources, topic, learner)
-    if problem:
+
+    def build(text: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+        data = parse_reply(text)
+        problem = "reply was not a JSON object" if data is None else validate_step_content(spec, data, sources, topic, learner)
+        if problem:
+            return None, problem
+        content: Dict[str, Any] = {key: " ".join(str(data.get(key) or "").split()) for key, _ in spec.texts}
+        content.update({key: _clean_list(data.get(key), hi) for key, _lo, hi in spec.lists})
+        if spec.filtered_lists:
+            vocab = source_vocab(sources) | (vocab_of([learner]) if learner else set())
+            topic_stems = {stem(w) for w in topic_keywords(topic)}
+            for key in spec.filtered_lists:
+                content[key] = [i for i in content.get(key) or [] if grounded_count(i, vocab, topic_stems) >= 1]
+        return content, None
+
+    content, problem = build(reply["text"])
+    if content is None:
         # CARD-653: say which check refused the reply, so a live refusal can be diagnosed.
         logger.info("grounded %s reply refused for %r: %s", step, topic, problem)
-        return skip(topic, "model_output_invalid", sources, problem)
-
-    content: Dict[str, Any] = {key: " ".join(str(data.get(key) or "").split()) for key, _ in spec.texts}
-    content.update({key: _clean_list(data.get(key), hi) for key, _lo, hi in spec.lists})
-    if spec.filtered_lists:
-        vocab = source_vocab(sources) | (vocab_of([learner]) if learner else set())
-        topic_stems = {stem(w) for w in topic_keywords(topic)}
-        for key in spec.filtered_lists:
-            content[key] = [i for i in content.get(key) or [] if grounded_count(i, vocab, topic_stems) >= 1]
+        return skip(topic, "model_output_invalid", sources, problem or "")
+    content = await ask_again_if_repeated(
+        gateway, spec.system, user, reply["text"], content, lambda text: build(text)[0],
+        duplicate_of or avoid_checker(avoid_questions), model=model, timeout=timeout,
+    )
     return {
         "ok": True,
         "topic": topic,
@@ -258,17 +274,21 @@ async def compose_course_step(
     learner_explanation: Optional[str] = None,
     lab_submission: Optional[str] = None,  # accepted for symmetry; labs never ground in it
     avoid_questions: Optional[List[str]] = None,
+    duplicate_of: Optional[DuplicateCheck] = None,
 ) -> Optional[Dict[str, Any]]:
     """Grounded content for whichever course step is current, or None for steps that need none."""
     step = (step or "").strip().lower()
     if step == "dual_coding":
         from src.application.education.dual_coding import compose_dual_coding
 
-        return await compose_dual_coding(gateway, wiki_tools, topic, avoid_questions=avoid_questions)
+        return await compose_dual_coding(
+            gateway, wiki_tools, topic, avoid_questions=avoid_questions, duplicate_of=duplicate_of
+        )
     if step in STEP_SPECS:
         # Labs are designed from the notes only; the submission is graded against them, never used to build them.
         learner = learner_explanation if step == "elaboration" else None
         return await compose_step_content(
-            gateway, wiki_tools, topic, step, learner_text=learner, avoid_questions=avoid_questions
+            gateway, wiki_tools, topic, step, learner_text=learner, avoid_questions=avoid_questions,
+            duplicate_of=duplicate_of,
         )
     return None

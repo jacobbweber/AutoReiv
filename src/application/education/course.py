@@ -207,6 +207,8 @@ def _write_step_artifact(
     own = None if step_name == "priming" else f"course_{slug_topic(_normalize_topic(topic))}_{step_name}"[:48]
     quiz_skip = None
     quiz_dup = None
+    # CARD-654: whether the composer asked again because its question repeated an earlier one.
+    quiz_retry = next((c.get("quiz_retry") for c in (dual_coding, composed) if (c or {}).get("quiz_retry")), None)
     deduped = []
     for content in (dual_coding, composed):
         out = drop_duplicate_quiz(content, memory_repo, own_item_id=own)
@@ -222,6 +224,7 @@ def _write_step_artifact(
     )
     result["quiz_skip_reason"] = quiz_skip if result.get("wiki_path") else None
     result["quiz_duplicate"] = quiz_dup if result.get("wiki_path") else None
+    result["quiz_retry"] = quiz_retry if result.get("wiki_path") else None
     return result
 
 
@@ -804,6 +807,7 @@ def complete_course_step(
             "grounding_skip_reason": artifact.get("grounding_skip_reason"),
             "quiz_skip_reason": artifact.get("quiz_skip_reason"),
             "quiz_duplicate": artifact.get("quiz_duplicate"),
+            "quiz_retry": artifact.get("quiz_retry"),
         }
 
     nxt = _next_step(steps, step)
@@ -841,6 +845,7 @@ def complete_course_step(
         "grounding_skip_reason": artifact.get("grounding_skip_reason"),
         "quiz_skip_reason": artifact.get("quiz_skip_reason"),
         "quiz_duplicate": artifact.get("quiz_duplicate"),
+        "quiz_retry": artifact.get("quiz_retry"),
     }
 
 

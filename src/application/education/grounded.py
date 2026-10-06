@@ -12,7 +12,7 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -194,8 +194,12 @@ async def call_model(
     model: Optional[str] = None,
     timeout: Optional[float] = None,
     max_tokens: int = 1500,
+    retry: Optional[Tuple[str, str]] = None,
 ) -> Dict[str, Any]:
-    """One background call to the configured model. Returns {"text", "model"} or {"error"}."""
+    """One background call to the configured model. Returns {"text", "model"} or {"error"}.
+
+    `retry` is (the model's earlier reply, a correction): the call becomes a follow-up turn [CARD-654].
+    """
     if gateway is None:
         return {"error": "no model gateway"}
     from src.application.kernel.reply_limits import helper_call_seconds
@@ -208,6 +212,11 @@ async def call_model(
             messages=[
                 ChatMessage(role=Role.SYSTEM, content=system),
                 ChatMessage(role=Role.USER, content=user),
+                *(
+                    [ChatMessage(role=Role.ASSISTANT, content=retry[0]), ChatMessage(role=Role.USER, content=retry[1])]
+                    if retry
+                    else []
+                ),
             ],
             temperature=0.2,
             max_tokens=max_tokens,
@@ -313,3 +322,60 @@ def avoid_block(questions: Optional[Iterable[str]]) -> str:
         "Questions the learner has already been asked on this topic. Your question must ask about a "
         "different fact from the notes:\n" + "\n".join(f"- {q}" for q in qs)
     )
+
+
+# --- One more ask when the question repeats [CARD-654] -----------------------------------------
+# Live, Spark ignored the avoid list (10 of 10 replies asked the priming question again), but a
+# follow-up turn naming the repeat got a new question most of the time. One extra call, only then.
+
+DuplicateCheck = Callable[[str, str], Optional[str]]
+
+
+def avoid_checker(questions: Optional[Iterable[str]]) -> Optional[DuplicateCheck]:
+    """A check returning the avoided question that (question, answer) nearly repeats, or None."""
+    qs = [str(q) for q in (questions or []) if str(q).strip()]
+    if not qs:
+        return None
+    return lambda q, a: next((x for x in qs if is_near_duplicate(q, a, x, "")), None)
+
+
+def retry_note(question: str, repeats: str) -> str:
+    return (
+        f'Your question "{question}" repeats one the learner has already been asked ("{repeats}"). '
+        "Keep everything else, but replace the question and answer with a new pair about a different fact "
+        "from the notes. Return the whole JSON object again."
+    )
+
+
+async def ask_again_if_repeated(
+    gateway: Any,
+    system: str,
+    user: str,
+    first_text: str,
+    content: Dict[str, Any],
+    build: Callable[[str], Optional[Dict[str, Any]]],
+    duplicate_of: Optional[DuplicateCheck],
+    *,
+    model: Optional[str] = None,
+    timeout: Optional[float] = None,
+) -> Dict[str, Any]:
+    """`content`, or the model's second reply when the first question repeats an earlier one.
+
+    `build` turns a reply into validated content (None when unusable). When the second question
+    repeats too, or the second reply is unusable, the first content is kept; the course writer then
+    drops its question, so the step saves no quiz item. `quiz_retry` records which happened.
+    """
+    question = str(content.get("question") or "").strip()
+    repeats = duplicate_of(question, str(content.get("answer") or "")) if question and duplicate_of else None
+    if not repeats:
+        return content
+    reply = await call_model(gateway, system, user, model=model, timeout=timeout, retry=(first_text, retry_note(question, repeats)))
+    second = None if "error" in reply else build(reply["text"])
+    if second is None:
+        outcome, result = "refused", content
+    elif duplicate_of(str(second.get("question") or ""), str(second.get("answer") or "")):
+        outcome, result = "repeated", content
+    else:
+        outcome, result = "new_question", second
+    logger.info("grounded quiz question repeated %r; asked again: %s", repeats, outcome)
+    return {**result, "quiz_retry": outcome}

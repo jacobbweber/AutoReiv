@@ -1404,7 +1404,7 @@ async def _compose_current_step(
 ) -> Optional[Dict[str, Any]]:
     """Grounded content for the course's current step, built from the learner's wiki notes via one
     model call [CARD-640, CARD-646]. None for steps that need none; a skip dict when it can't be grounded."""
-    from src.application.education.grounded import ledger_items
+    from src.application.education.grounded import find_duplicate_item, ledger_items
     from src.application.education.grounded_steps import compose_course_step
     from src.application.education.priming_schema import slug_topic
 
@@ -1427,6 +1427,8 @@ async def _compose_current_step(
         learner_explanation=learner_explanation,
         lab_submission=lab_submission,
         avoid_questions=avoid,
+        # CARD-654: a question that repeats any saved item is asked about once more, naming the repeat.
+        duplicate_of=lambda q, a: (find_duplicate_item(repo, q, a, own_item_id=own) or {}).get("prompt"),
     )
 
 

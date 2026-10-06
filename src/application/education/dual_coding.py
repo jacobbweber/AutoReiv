@@ -14,7 +14,10 @@ from typing import Any, Dict, List, Optional
 
 from src.application.education.grounded import (
     MAX_SOURCES,
+    DuplicateCheck,
+    ask_again_if_repeated,
     avoid_block,
+    avoid_checker,
     call_model,
     find_sources,
     grounded_count,
@@ -90,6 +93,7 @@ async def compose_dual_coding(
     model: Optional[str] = None,
     timeout: Optional[float] = None,
     avoid_questions: Optional[List[str]] = None,
+    duplicate_of: Optional[DuplicateCheck] = None,
 ) -> Dict[str, Any]:
     """Build grounded dual coding content for `topic`, or a skip with its reason (never a template)."""
     topic = (topic or "").strip()
@@ -109,22 +113,34 @@ async def compose_dual_coding(
     if "error" in reply:
         return skip(topic, "model_unavailable", sources, reply["error"])
 
-    data = parse_reply(reply["text"])
-    if data is None:
-        return skip(topic, "model_output_invalid", sources, "reply was not a JSON object")
-    problem = validate_dual_coding(data, sources, topic)
-    if problem:
-        return skip(topic, "model_output_invalid", sources, problem)
-    steps = [str(s).strip() for s in (data.get("steps") or []) if str(s).strip()][:6]
+    def build(text: str) -> Dict[str, Any]:
+        data = parse_reply(text)
+        if data is None:
+            return {"problem": "reply was not a JSON object"}
+        problem = validate_dual_coding(data, sources, topic)
+        if problem:
+            return {"problem": problem}
+        return {
+            "prose": str(data["prose"]).strip(),
+            "mermaid": _clean_mermaid(data["mermaid"]),
+            "steps": [str(s).strip() for s in (data.get("steps") or []) if str(s).strip()][:6],
+            "question": str(data["question"]).strip(),
+            "answer": str(data["answer"]).strip(),
+        }
+
+    content = build(reply["text"])
+    if "problem" in content:
+        return skip(topic, "model_output_invalid", sources, content["problem"])
+    content = await ask_again_if_repeated(  # CARD-654
+        gateway, SYSTEM_PROMPT, user, reply["text"], content,
+        lambda text: None if "problem" in (c := build(text)) else c,
+        duplicate_of or avoid_checker(avoid_questions), model=model, timeout=timeout,
+    )
     return {
         "ok": True,
         "topic": topic,
         "skip_reason": None,
-        "prose": str(data["prose"]).strip(),
-        "mermaid": _clean_mermaid(data["mermaid"]),
-        "steps": steps,
-        "question": str(data["question"]).strip(),
-        "answer": str(data["answer"]).strip(),
+        **content,
         "sources": public_sources(sources),
         "model": reply.get("model"),
     }
