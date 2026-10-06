@@ -17,7 +17,19 @@ _STOP_WORDS = frozenset({
     "it", "its", "this", "that", "these", "those", "we", "you", "they", "i", "he", "she",
     "1", "2", "3", "4", "5", "invariant", "task", "step", "must", "only", "all", "each",
     "from", "after", "before", "when", "then", "into", "onto", "not",
+    # Rubric words models use in criteria ("The response states ...") are not topic terms.
+    "response", "responses", "submission", "answer", "learner", "student", "states", "stated",
+    "mention", "mentions", "mentioned", "explain", "explains", "describe", "describes", "show", "shows",
+    "identify", "identifies", "include", "includes", "correctly", "clearly",
 })
+# "The response does not mention X" can't be shown by covering its words; such checks are not graded.
+# Only rubric negatives about the submission itself; "a follower rejects entries when the terms do not
+# match" is a topic fact and is graded like any other criterion.
+_NEGATIVE = re.compile(
+    r"^\s*(?:(?:the|a|your)\s+)?(?:response|submission|answer|learner|student|lab)\s+"
+    r"(?:does not|doesn't|must not|should not|never)\b|^\s*(?:does not|do not|don't|never|avoid)\b",
+    re.IGNORECASE,
+)
 
 
 _WORD = re.compile(r"[a-z][a-z0-9\-]{2,}")
@@ -112,6 +124,9 @@ def grade_lab_submission(
     missing_terms: Dict[str, List[str]] = {}
 
     for inv in invariants:
+        if _NEGATIVE.search(inv):
+            passed_invariants.append(inv)
+            continue
         terms = _key_terms(inv)
         if not terms:
             failed_invariants.append(inv)
