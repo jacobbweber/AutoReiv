@@ -83,5 +83,6 @@ def build_grounded_priming_markdown(*, topic: str, composed: Dict[str, Any]) -> 
             *(f"- [[{_wikilink(s['path'])}]] {s.get('title') or ''}".rstrip() for s in sources),
             "",
         ]
-    parts += ["## Quiz", f"- Q: {composed['question']}", f"  A: {composed['answer']}", ""]
+    if composed.get("question"):  # dropped when it repeats an existing quiz item [CARD-650]
+        parts += ["## Quiz", f"- Q: {composed['question']}", f"  A: {composed['answer']}", ""]
     return "\n".join(parts)

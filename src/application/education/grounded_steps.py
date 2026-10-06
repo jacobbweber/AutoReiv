@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.application.education.grounded import (
+    avoid_block,
     call_model,
     find_sources,
     grounded_count,
@@ -183,6 +184,7 @@ async def compose_step_content(
     learner_text: Optional[str] = None,
     model: Optional[str] = None,
     timeout: Optional[float] = None,
+    avoid_questions: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Grounded content for course `step` on `topic`, or a skip with its reason (never a template).
 
@@ -206,6 +208,9 @@ async def compose_step_content(
     if learner:
         parts.append(f"What the learner wrote:\n\n{learner}")
     parts.append(f"The learner's notes:\n\n{notes_block(sources)}" if sources else "The learner has no notes on this topic.")
+    avoid = avoid_block(avoid_questions)  # CARD-650: don't ask what the ledger already asks
+    if avoid:
+        parts.append(avoid)
     user = "\n\n".join(parts) + "\n\nReturn the JSON object now."
     reply = await call_model(gateway, spec.system, user, model=model, timeout=timeout)
     if "error" in reply:
@@ -238,15 +243,18 @@ async def compose_course_step(
     *,
     learner_explanation: Optional[str] = None,
     lab_submission: Optional[str] = None,  # accepted for symmetry; labs never ground in it
+    avoid_questions: Optional[List[str]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Grounded content for whichever course step is current, or None for steps that need none."""
     step = (step or "").strip().lower()
     if step == "dual_coding":
         from src.application.education.dual_coding import compose_dual_coding
 
-        return await compose_dual_coding(gateway, wiki_tools, topic)
+        return await compose_dual_coding(gateway, wiki_tools, topic, avoid_questions=avoid_questions)
     if step in STEP_SPECS:
         # Labs are designed from the notes only; the submission is graded against them, never used to build them.
         learner = learner_explanation if step == "elaboration" else None
-        return await compose_step_content(gateway, wiki_tools, topic, step, learner_text=learner)
+        return await compose_step_content(
+            gateway, wiki_tools, topic, step, learner_text=learner, avoid_questions=avoid_questions
+        )
     return None

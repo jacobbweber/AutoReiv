@@ -202,7 +202,8 @@ def build_lab_note_content(
         sources = [x for x in (spec.get("sources") or []) if isinstance(x, dict) and x.get("path")]
         if sources:
             parts += ["## Sources", *(f"- [[{_wikilink(x['path'])}]] {x.get('title') or ''}".rstrip() for x in sources), ""]
-        parts += ["## Quiz", f"Q: {spec['question']}", f"A: {spec['answer']}", ""]
+        if spec.get("question"):  # dropped when it repeats an existing quiz item [CARD-650]
+            parts += ["## Quiz", f"Q: {spec['question']}", f"A: {spec['answer']}", ""]
     sub = (submission or "").strip()
     if sub:
         parts += ["## Your submission", "```text", sub, "```", ""]
