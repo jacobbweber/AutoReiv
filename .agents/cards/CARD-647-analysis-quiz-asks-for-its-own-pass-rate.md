@@ -7,7 +7,7 @@ priority: P2
 milestone: M23
 needs_decision: none
 proof:
-  journeys: [course-filler-2-full-course-grounded-or-empty]
+  journeys: [card-642-full-course-grounded-or-empty]
   checks: [tests/unit/education/test_card647_analysis_no_pass_rate_quiz.py]
 branch: feat/card-647-analysis-no-pass-rate-quiz
 log: {minutes: 15, qa_runs: 0, findings: 0}
@@ -28,7 +28,7 @@ The analysis step keeps its scorecard note and retention handoff but writes no q
 
 ## Plan and decisions
 - Backlog card from the CARD-641 live course run; Jacob approved the build on 2026-10-05.
-- Built first of the six (642-647) because it is the smallest change; live proof is the shared full-course check run after CARD-642 (journey course-filler-2-full-course-grounded-or-empty).
+- Built first of the six (642-647) because it is the smallest change; live proof is the shared full-course check run after CARD-642 (journey card-642-full-course-grounded-or-empty).
 
 ## Change
 - `course.py` analysis writer: no `course_<topic>_analysis` mastery item. The scorecard note, the `course_step_analysis` progress fact and the retention handoff (next_due for every item on the topic) stay; the step result's ledger reports `count: 0` with the handoff attached.
