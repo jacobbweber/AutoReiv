@@ -224,10 +224,14 @@ def build_portfolio_note_content(
     depth: Dict[str, Any],
     course: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
+    items: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
-    """Format markdown for Growth Portfolio Wiki note matching education-portfolio template."""
+    """Growth portfolio body: only the learner's real level, numbers and quiz items [CARD-651].
+
+    Metadata (topic, level, rank, course step, date) goes in front matter, not the body, and there
+    are no per-topic template lines.
+    """
     topic_clean = (topic or "Untitled Topic").strip()
-    stamp = _iso_now(now)
     level = depth.get("level", 0)
     label = depth.get("label", "Explorer")
     rank = depth.get("academic_rank", "Kindergarten")
@@ -236,37 +240,33 @@ def build_portfolio_note_content(
     missed = depth.get("missed_count", 0)
     pass_rate = depth.get("pass_rate", 0.0)
     progress = depth.get("progress_percent", 0)
-    milestone = depth.get("next_milestone", "")
-    current_step = (course or {}).get("current_step", "course_active")
+    milestone = str(depth.get("next_milestone") or "").strip()
 
-    return (
-        f"# Growth Portfolio: {topic_clean}\n\n"
-        f"> **Topic:** {topic_clean}\n"
-        f"> **Pedagogy Phase:** Growth Portfolio & Adaptive Depth\n"
-        f"> **Mastery Level:** Level {level} — {label} ({rank})\n"
-        f"> **Course Step:** {current_step}\n"
-        f"> **Generated:** {stamp}\n\n"
-        f"---\n\n"
-        f"## 1. Mastery Level & Academic Ladder\n"
-        f"- **Level Index:** {level} of 4\n"
-        f"- **Academic Rank:** {rank}\n"
-        f"- **Designation:** {label}\n"
-        f"- **Progress to Next Rung:** {progress}%\n"
-        f"- **Target Milestone:** {milestone}\n\n"
-        f"## 2. Mastery Statistics & Receipts\n"
-        f"- **Total Ledger Items:** {total}\n"
-        f"- **Passed Items:** {passed}\n"
-        f"- **Missed / Review Items:** {missed}\n"
-        f"- **Pass Rate:** {pass_rate}%\n\n"
-        f"## 3. Milestones & Growth Trajectory\n"
-        f"### Current Cognitive Capabilities\n"
-        f"- Verified definitions and mental models for {topic_clean}.\n"
-        f"- Grounded with dual coding, retrieval practice, and active invariants.\n"
-        f"- Ledger items tracked under single-brain assistant_memory.db.\n\n"
-        f"### Next Growth Action\n"
-        f"- {milestone}\n"
-        f"- Continue through active course pipeline and scheduled routine retention.\n"
-    )
+    rows = list(items or [])
+    passed_rows = [r for r in rows if str(r.get("grade") or "").lower() == "pass"]
+    review_rows = [
+        r for r in rows if str(r.get("grade") or "").lower() == "miss" or int(r.get("miss_count") or 0) > 0
+    ]
+
+    def _lines(group: List[Dict[str, Any]]) -> str:
+        return "\n".join(f"- {str(r.get('prompt') or '').strip()}" for r in group[:12] if str(r.get("prompt") or "").strip())
+
+    parts = [
+        f"# Growth Portfolio: {topic_clean}",
+        "",
+        "## Where you are",
+        f"Level {level} of 4: {label} ({rank}), {progress}% of the way to the next level.",
+        "",
+        "## Your quiz items",
+        f"{passed} of {total} passed ({pass_rate}%), {missed} to review." if total else "No quiz items on this topic yet.",
+    ]
+    if passed_rows:
+        parts += ["", "### Passed", _lines(passed_rows)]
+    if review_rows:
+        parts += ["", "### To review", _lines(review_rows)]
+    if milestone:
+        parts += ["", "## Next milestone", milestone]
+    return "\n".join(parts).rstrip() + "\n"
 
 
 def create_growth_portfolio_note(
@@ -285,8 +285,17 @@ def create_growth_portfolio_note(
     if course_id and hasattr(memory_repo, "get_education_course"):
         course = memory_repo.get_education_course(course_id)
 
+    items: List[Dict[str, Any]] = []
+    if hasattr(memory_repo, "list_education_mastery"):
+        try:
+            items = list(memory_repo.list_education_mastery(topic=topic_clean, limit=500) or [])
+        except TypeError:
+            items = [r for r in (memory_repo.list_education_mastery(limit=500) or []) if (r.get("topic") or "").strip() == topic_clean]
+        except Exception:  # noqa: BLE001
+            items = []
+
     title = f"Growth Portfolio: {topic_clean}"
-    content = build_portfolio_note_content(topic_clean, depth, course=course, now=now)
+    content = build_portfolio_note_content(topic_clean, depth, course=course, now=now, items=items)
 
     create_res = create_priming_note(
         wiki_tools_or_store,
@@ -297,6 +306,15 @@ def create_growth_portfolio_note(
         summary=f"Growth portfolio and adaptive mastery trajectory for {topic_clean}",
         template="education-portfolio",
         document_type="growth_portfolio",
+        extra_frontmatter={
+            "kind": "education_growth_portfolio",
+            "course_topic": topic_clean,
+            "mastery_level": depth.get("level", 0),
+            "mastery_label": depth.get("label", ""),
+            "academic_rank": depth.get("academic_rank", ""),
+            "course_step": (course or {}).get("current_step") or "",
+            "generated": stamp,
+        },
     )
 
     path = str(create_res.get("path") or "")
@@ -305,17 +323,8 @@ def create_growth_portfolio_note(
     )
 
     if note_ok and memory_repo is not None:
-        item_id = f"course_{slug_topic(topic_clean)}_portfolio"[:48]
-        prompt = f"What is the current growth portfolio depth level for {topic_clean}?"
-        expected = f"Level {depth['level']} ({depth['label']}, {depth['academic_rank']})"
-        memory_repo.upsert_education_mastery(
-            item_id=item_id,
-            topic=topic_clean,
-            wiki_path=path,
-            prompt=prompt,
-            expected_answer=expected,
-            grade="pass",
-        )
+        # CARD-651: no quiz item here. The old one asked for this note's own level, already graded
+        # pass; a fact about the app, not the topic, that went stale with the next grade.
         try:
             from src.application.education.learner_model import LEARNER_ENTITY
 
