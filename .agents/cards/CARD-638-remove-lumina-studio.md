@@ -2,7 +2,7 @@
 id: CARD-638
 title: "Remove Lumina Studio completely"
 type: chore
-status: Ready
+status: In Progress
 priority: P2
 milestone: M23
 needs_decision: none
