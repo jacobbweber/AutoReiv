@@ -41,7 +41,7 @@ The retirement end-state in CARD-442 remains dead. The "players only" reading of
 * Mirror Projects Studio → Developer active-project awareness for Education Studio → Tutor topic/course awareness.
 * Avoid silent contradiction with CARD-435 / CARD-442 retirement language and with the earlier players-only ADR wording.
 * Do not revive CARD-434 monolith-split-as-first-build theatre; operator+player work is focused UI ownership cards.
-* Lumina stays separate.
+* Lumina stays separate. (Lumina Studio was later removed entirely in CARD-638.)
 
 ---
 

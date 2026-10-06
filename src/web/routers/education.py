@@ -501,7 +501,6 @@ async def quiz_next(
         "amplifiers": {
             "amplified_count": amplified["amplified_count"],
             "retrieval_required": True,
-            "lumina_film": False,
         },
     }
 
@@ -1158,7 +1157,6 @@ async def amplifiers_extract(payload: AmplifierExtractPayload):
         "count": len(amps),
         "shippable": False,
         "retrieval_required": True,
-        "lumina_film": False,
         "note": "Candidates are not shippable until attached to a mastery/quiz item_id",
     }
 
@@ -1220,7 +1218,6 @@ async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
             "retrieval_required": True,
             "item_id": None,
             "shippable": False,
-            "lumina_film": False,
         }
     try:
         attached = attach_amplifier_to_retrieval(amplifier, payload.item_id, repo=repo)
@@ -1230,7 +1227,6 @@ async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
         "agent_id": payload.agent_id,
         "attached": attached,
         "retrieval_required": True,
-        "lumina_film": False,
         "replaces_srs": False,
         "replaces_ledger": False,
     }
@@ -1269,7 +1265,6 @@ async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "a
         "item_id": item_id,
         "amplifier": amp,
         "retrieval_required": True,
-        "lumina_film": False,
     }
 
 
@@ -1899,93 +1894,3 @@ async def course_portfolio_create(request: Request, payload: CoursePortfolioCrea
         raise HTTPException(status_code=500, detail="Failed to create growth portfolio note")
 
     return {"agent_id": payload.agent_id, **result}
-
-
-# --- CARD-328 Lumina Cinema & Amplifiers ---------------------------------------
-
-
-class LuminaComposePayload(BaseModel):
-    topic: str
-    agent_id: str = "autoreiv"
-
-
-@router.get("/api/lumina/starters")
-async def lumina_starters():
-    """List available Lumina starter lessons [CARD-328]."""
-    from src.application.education.lumina import list_starter_topics
-
-    return {"starters": list_starter_topics()}
-
-
-@router.get("/api/lumina/lesson/{lesson_id}")
-async def lumina_lesson(lesson_id: str):
-    """Retrieve full Lumina lesson specification by ID or topic [CARD-328]."""
-    from src.application.education.lumina import get_starter_lesson
-
-    lesson = get_starter_lesson(lesson_id)
-    if not lesson:
-        raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found")
-    return {"lesson": lesson}
-
-
-@router.post("/api/lumina/compose")
-async def lumina_compose(request: Request, payload: LuminaComposePayload):
-    """Compose a 3-6 scene Lumina concept lesson [CARD-328]."""
-    from src.application.education.lumina import (
-        extract_json_from_llm,
-        get_starter_lesson,
-        normalize_lesson,
-    )
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-
-    existing = get_starter_lesson(topic)
-    if existing:
-        return {"ok": True, "lesson": existing, "cached": True}
-
-    # Attempt LLM composition via gateway if configured
-    gateway = getattr(request.app.state, "gateway", None)
-    lesson = None
-    if gateway:
-        prompt = (
-            f"You are Lumina, a visual concept director. Create a 4-scene educational storyboard for: '{topic}'.\n"
-            "Return JSON matching:\n"
-            "{\n"
-            '  "title": "...",\n'
-            '  "essence": "...",\n'
-            '  "scenes": [\n'
-            "    {\n"
-            '      "headline": "...",\n'
-            '      "whisper": "...",\n'
-            '      "narration": "...",\n'
-            '      "imagePrompt": "...",\n'
-            '      "durationMs": 11000,\n'
-            '      "visual": {\n'
-            '        "kind": "flow|cycle|compare|orbit|stack|split|wave|network|scale|balance|grow|transform|pipeline|system",\n'
-            '        "title": "...",\n'
-            '        "nodes": [{"id": "...", "label": "...", "caption": "...", "role": "in|work|store|out", "emphasis": true}],\n'
-            '        "links": [{"from": "...", "to": "...", "label": "..."}]\n'
-            "      }\n"
-            "    }\n"
-            "  ]\n"
-            "}"
-        )
-        try:
-            from src.domain.gateway.models import ChatMessage
-            res = await gateway.chat_complete(
-                messages=[ChatMessage(role="user", content=prompt)],
-                temperature=0.7,
-            )
-            raw = extract_json_from_llm(res.content)
-            lesson = normalize_lesson(raw, topic)
-        except Exception:
-            pass
-
-    if not lesson:
-        lesson = normalize_lesson({}, topic)
-
-    return {"ok": True, "lesson": lesson, "cached": False}
-
-

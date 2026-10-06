@@ -107,7 +107,7 @@ def test_extract_amplifiers_not_shippable_until_retrieval():
     assert amp["shippable"] is False
     assert amp["item_id"] is None
     assert amp["retrieval_required"] is True
-    assert amp["lumina_film"] is False
+    assert "lumina_film" not in amp
     assert amp["step_count"] >= 3
 
 
@@ -149,7 +149,7 @@ def test_attach_amplifier_requires_mastery_and_persists(tmp_path):
     summary = summarize_amplifiers(repo)
     assert summary["count"] >= 1
     assert summary["retrieval_required"] is True
-    assert summary["lumina_film"] is False
+    assert "lumina_film" not in summary
     assert summary["entity"] == AMPLIFIER_ENTITY
     assert summary["category"] == AMPLIFIER_CATEGORY
 
@@ -190,7 +190,7 @@ def test_amplify_quiz_items_attaches_without_mutating_ledger(tmp_path):
     assert result["items"][1]["has_visual_amplifier"] is False
 
 
-def test_amplifier_module_does_not_own_srs_or_lumina():
+def test_amplifier_module_does_not_own_srs():
     import src.application.education.visual_amplifiers as mod
 
     assert assert_amplifier_does_not_touch_srs(inspect.getsource(mod)) is True
@@ -207,6 +207,6 @@ def test_ask_clause_pairs_visual_with_retrieval():
     )
     assert "edu_va_1" in clause
     assert "Retrieval" in clause
-    assert "Lumina" in clause
+    assert "Lumina" not in clause
     bare = build_amplifier_ask_clause(None)
     assert "edutainment" in bare.lower() or "Retrieval-backed" in bare

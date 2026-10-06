@@ -165,14 +165,6 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
     subtitle: 'Wiki-backed study',
     defaultSize: { w: 760, h: 560 },
   },
-  {
-    id: 'dock-lumina',
-    tab: 'lumina',
-    label: 'Lumina',
-    icon: 'tv',
-    subtitle: 'Concept cinema',
-    defaultSize: { w: 840, h: 620 },
-  },
   // CARD-296/305: Sessions is Chat in-studio drawer only — never a dock launcher.
 ]);
 
@@ -188,7 +180,6 @@ export const VIEW_BY_TAB = {
   settings: 'view-settings',
   prompts: 'view-prompts',
   education: 'view-education',
-  lumina: 'view-lumina',
 };
 
 export const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];

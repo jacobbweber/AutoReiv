@@ -61,7 +61,7 @@ Sources walked: `src/web/static/modules/studios/education.js`, `#view-education`
 | Application lab | `#educationApplicationPanel` | application.py | `/api/education/application/*`, course application complete | exercise jobs + mastery | education-lab, education-problem | seed `education-application` | **keep** Studio; later rails |
 | Analysis panel | `#educationAnalysisPanel` | analysis.py | `/api/education/analysis*`, course analysis/handoff | analysis + mastery | education-score | `progress-summary` (partial) | **re-home** partial via 441 |
 | Environment panel | `#educationEnvironmentPanel` | environment.py | `/api/education/environment*` | delivery profiles | education-priming | — | **re-home** later |
-| Amplifiers panel | `#educationAmplifiersPanel` (+ Lumina) | visual_amplifiers.py, lumina.py | `/api/education/amplifiers*`, `/api/lumina/*` | amplifier attachments | education-dual-coding | — | Lumina **stays** (CARD-435); amplifiers later |
+| Amplifiers panel | `#educationAmplifiersPanel` | visual_amplifiers.py | `/api/education/amplifiers*` | amplifier attachments | education-dual-coding | — | amplifiers later; Lumina Studio and `/api/lumina/*` removed (CARD-638) |
 | Education Jobs / sessions | `#educationSessionList` | jobs mint (CARD-236/315) | job APIs | jobs store + localStorage | — | `start-resume-topic` (continuity) | **re-home** CARD-437 |
 
 `EDUCATION_SECTION_KEYS` (education.js): quiz, elaboration, construction, application, analysis, environment, amplifiers.  

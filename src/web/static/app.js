@@ -108,7 +108,6 @@ export function initApp() {
   let skillCtrl = null;
   let toolsCtrl = null;
   let educationCtrl = null;
-  let luminaCtrl = null;
   let desktopCtrl = null;
 
   // Mobile Surface Elements [CARD-139]
@@ -194,8 +193,6 @@ export function initApp() {
         promptsCtrl.loadPrompts();
       } else if (tabName === 'education' && educationCtrl) {
         educationCtrl.loadEducationStudio();
-      } else if (tabName === 'lumina' && luminaCtrl) {
-        luminaCtrl.loadLuminaStudio();
       }
     } catch (err) {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
@@ -314,7 +311,6 @@ export function initApp() {
     switchTab: (tab) => switchTab(tab),
     getChatCtrl: () => chatCtrl,
     getObsCtrl: () => obsCtrl,
-    getLuminaCtrl: () => luminaCtrl,
   };
 
   // Isolated Initialization Ring [REQ-FE-002]
@@ -404,18 +400,6 @@ export function initApp() {
           });
       },
     },
-    {
-      name: 'Lumina Studio',
-      init: () => {
-        import('./modules/studios/lumina.js')
-          .then((m) => {
-            luminaCtrl = m.initLuminaStudio(state, sharedCallbacks);
-          })
-          .catch((err) => {
-            console.error('[AutoReiv UI] Failed to initialize Lumina Studio:', err);
-          });
-      },
-    },
   ];
 
   moduleInitializers.forEach((mod) => {
@@ -462,9 +446,6 @@ export function initApp() {
   });
   studioRegistry.register('education', {
     getController: () => educationCtrl,
-  });
-  studioRegistry.register('lumina', {
-    getController: () => luminaCtrl,
   });
   try {
     desktopCtrl = initAgentDesktop({

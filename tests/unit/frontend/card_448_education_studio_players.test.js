@@ -76,9 +76,9 @@ describe('CARD-448 Education Studio players', () => {
     expect(educationJs).toContain('education_players.js');
   });
 
-  it('[REQ-448-007] Lumina Studio remains available', () => {
-    expect(html).toContain('id="tab-lumina"');
-    expect(html).toContain('id="view-lumina"');
+  it('[REQ-448-007] Lumina Studio is removed (CARD-638)', () => {
+    expect(html).not.toContain('id="tab-lumina"');
+    expect(html).not.toContain('id="view-lumina"');
   });
 
   it('flashcard player is front-only until reveal (not both-sides dump only)', () => {
