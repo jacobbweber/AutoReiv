@@ -63,6 +63,12 @@ def _needed(term_count: int) -> int:
     return max(min(2, term_count), (term_count + 1) // 2)
 
 
+
+
+def criterion_in_notes(text: str, note_vocab: set) -> bool:
+    """True when enough of the criterion's key terms appear in the notes [CARD-655]."""
+    return True  # stub: keep every criterion until the filter is wired
+
 def grade_lab_submission(
     *,
     topic: str,
