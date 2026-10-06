@@ -47,8 +47,8 @@ The template knowledge artifact and its route. It never wrote a note.
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2660 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 Removed an unused endpoint that returned the same template teaching sections for every topic.
