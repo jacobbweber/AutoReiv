@@ -1279,12 +1279,6 @@ class CourseMasteryGradePayload(BaseModel):
     answer: str = ""
 
 
-class KnowledgeArtifactPayload(BaseModel):
-    topic: str
-    knowledge_type: str = "concept"
-    custom_data: Optional[Dict[str, Any]] = None
-
-
 @router.get("/api/education/knowledge-types")
 async def education_knowledge_types():
     """List available knowledge types and artifact shape specifications [CARD-334]."""
@@ -1294,30 +1288,6 @@ async def education_knowledge_types():
         "knowledge_types": list(VALID_KNOWLEDGE_TYPES),
         "shapes": KNOWLEDGE_SHAPES,
     }
-
-
-@router.post("/api/education/knowledge-artifact")
-async def education_knowledge_artifact(payload: KnowledgeArtifactPayload):
-    """Generate specialized teaching artifact shape for knowledge type [CARD-334]."""
-    from src.application.education.knowledge_types import (
-        build_knowledge_artifact,
-        render_knowledge_note_markdown,
-    )
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-    try:
-        art = build_knowledge_artifact(
-            topic=topic,
-            knowledge_type=payload.knowledge_type,
-            custom_data=payload.custom_data,
-        )
-        md = render_knowledge_note_markdown(art)
-        return {"ok": True, "artifact": art, "markdown": md}
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
 
 
 class WikiCuratePayload(BaseModel):
