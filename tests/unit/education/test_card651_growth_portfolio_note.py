@@ -10,9 +10,9 @@ from pathlib import Path
 
 from src.application.education.depth import create_growth_portfolio_note
 from src.application.skills.wiki_tools import WikiTools
-from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.domain.wiki.frontmatter import FrontmatterParser
 from src.domain.wiki.store import WikiStore
+from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 
 TOPIC = "Raft log replication"
 TEMPLATE_LINES = (
