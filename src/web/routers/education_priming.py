@@ -48,15 +48,20 @@ async def priming_writeback_api(request: Request, payload: PrimingWritebackPaylo
     if forbidden is None:
         forbidden = ["wiki_overview"]
 
+    # CARD-646: grounded in the learner's wiki notes via one model call, or nothing is written.
+    from src.application.education.grounded_steps import compose_step_content
+
+    composed = await compose_step_content(getattr(request.app.state, "gateway", None), tools, topic, "priming")
     result = priming_writeback(
         topic=topic,
         wiki_tools_or_store=tools,
         memory_repo=repo,
-        teach_style=(payload.teach_style or "") or "schema first",
-        search_first=bool(payload.search_first),
+        composed=composed,
         attempt_forbidden_tools=forbidden,
         write_learner_fact=bool(payload.write_learner_fact),
     )
+    if result.get("skipped"):
+        return {"agent_id": payload.agent_id, "kind": "priming", **result}
     if not result.get("success"):
         raise HTTPException(status_code=422, detail=result)
     return {

@@ -64,17 +64,7 @@ def seed_ledger_anchors_from_priming_note(
     topic_clean = (topic or "").strip() or path or "Education"
     items = extract_quiz_items_from_note(content or "", wiki_path=path, topic=topic_clean)
 
-    if not items:
-        iid = topic_anchor_id(topic_clean, path)
-        items = [
-            {
-                "item_id": iid,
-                "topic": topic_clean,
-                "wiki_path": path,
-                "prompt": f"What is the Priming schema outline for {topic_clean}?",
-                "expected_answer": f"Outline + prerequisites + learning goals in Wiki for {topic_clean}",
-            }
-        ]
+    # CARD-646: a note without a Quiz section seeds nothing (no made-up "outline" item).
 
     persisted: List[Dict[str, Any]] = []
     ids: List[str] = []

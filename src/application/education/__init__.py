@@ -64,8 +64,8 @@ from src.application.education.learner_model import (
 from src.application.education.priming import (
     PRIMING_KIND,
     PRIMING_WIKI_TOOLS,
+    build_grounded_priming_markdown,
     build_priming_ask_clause,
-    build_priming_schema_markdown,
     priming_writeback,
     seed_ledger_anchors_from_priming_note,
     soft_fail_unregistered_tool,
@@ -117,7 +117,7 @@ __all__ = [
     "PRIMING_WIKI_TOOLS",
     "priming_writeback",
     "build_priming_ask_clause",
-    "build_priming_schema_markdown",
+    "build_grounded_priming_markdown",
     "seed_ledger_anchors_from_priming_note",
     "soft_fail_unregistered_tool",
     "APPLICATION_ENTITY",

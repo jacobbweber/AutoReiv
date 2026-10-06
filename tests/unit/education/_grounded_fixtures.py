@@ -60,3 +60,21 @@ def md_files(wiki_root: Path) -> set:
 
 def mastery(repo) -> list:
     return repo.list_education_mastery(limit=500)
+
+
+# A priming result as `grounded_steps.compose_step_content(..., "priming")` returns it for USER_NOTE [CARD-646].
+GROUNDED_PRIMING = {
+    "ok": True,
+    "step": "priming",
+    "skip_reason": None,
+    "outline": [
+        "The leader appends client commands to its log",
+        "AppendEntries carries entries to every follower",
+        "A follower accepts entries only when its log matches the previous index and term",
+        "An entry commits once a majority has stored it",
+    ],
+    "prerequisites": ["Leader election with votes from a majority"],
+    "question": "When does the leader advance the commit index?",
+    "answer": "When a majority of followers have stored the entry",
+    "sources": [{"path": "00_Inbox/raft-log-replication.md", "title": "Raft log replication"}],
+}

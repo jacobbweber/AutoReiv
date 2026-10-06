@@ -198,6 +198,7 @@ def _write_step_artifact(
     course_id: Optional[str] = None,
     knowledge_type: Optional[str] = None,
     dual_coding: Optional[Dict[str, Any]] = None,
+    composed: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Write Wiki artifact + ledger anchors for a completed step that has its own writer.
@@ -212,16 +213,18 @@ def _write_step_artifact(
     ktype = resolve_step_knowledge_type(step_name, explicit=knowledge_type)
 
     if step_name == "priming":
+        # CARD-646: priming is written only from content grounded in the learner's notes.
         from src.application.education.priming import priming_writeback
 
         result = priming_writeback(
             topic=topic_clean,
             wiki_tools_or_store=wiki_tools_or_store,
             memory_repo=memory_repo,
-            teach_style=teach_style or "schema first",
-            search_first=True,
+            composed=composed,
             now=now,
         )
+        if result.get("skipped"):
+            return _nothing_written(step_name, result.get("skip_reason") or "not_composed", ktype)
         return {
             "success": bool(result.get("success")),
             "step": step_name,
@@ -230,10 +233,12 @@ def _write_step_artifact(
                 "path": result.get("path"),
                 "kind": result.get("kind") or "priming",
                 "title": result.get("title"),
+                "sources": result.get("sources") or [],
             },
             "ledger": result.get("ledger") or {},
             "item_ids": list((result.get("ledger") or {}).get("item_ids") or []),
             "tools_used": result.get("tools_used") or [],
+            "skip_reason": None,
         }
 
     from src.application.education.priming_schema import slug_topic
@@ -247,7 +252,7 @@ def _write_step_artifact(
 
     if step_name == "dual_coding":
         # CARD-640: only content grounded in the learner's own wiki notes is written; otherwise nothing.
-        composed = dual_coding or {}
+        composed = dual_coding or composed or {}
         if not composed.get("ok"):
             return _nothing_written(step_name, composed.get("skip_reason") or "not_composed", ktype)
         title = f"Course Dual Coding: {topic_clean}"
@@ -675,12 +680,14 @@ def complete_course_step(
     lab_submission: Optional[str] = None,
     knowledge_type: Optional[str] = None,
     dual_coding: Optional[Dict[str, Any]] = None,
+    composed: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Complete current step: Wiki + ledger anchors, then advance (or mark completed).
 
-    `dual_coding` is the grounded content from `dual_coding.compose_dual_coding` [CARD-640]; without
-    it the dual coding step writes nothing.
+    `composed` is the grounded content for the current step from
+    `grounded_steps.compose_course_step` [CARD-640, CARD-646] (`dual_coding` is the older name for
+    the dual coding step). Without it, steps built from the learner's notes write nothing.
     """
     course = memory_repo.get_education_course(course_id)
     if not course:
@@ -726,6 +733,7 @@ def complete_course_step(
         course_id=course_id,
         knowledge_type=knowledge_type,
         dual_coding=dual_coding,
+        composed=composed,
         now=now,
     )
 
