@@ -170,11 +170,10 @@ def test_req_edu_wiki_tpl_004_course_steps_produce_valid_template_frontmatter(tm
     meta_d, _ = FrontmatterParser.parse(path_dual.read_text(encoding="utf-8"))
     assert meta_d.template == "education-dual-coding"
 
-    # 3. Complete retrieval
+    # 3. Complete retrieval: no writer of its own, so it records progress only [CARD-641]
     res_retrieval = complete_course_step(repo, course_id=course["course_id"], wiki_tools_or_store=tools)
-    path_retrieval = wiki_root / res_retrieval["wiki_path"]
-    meta_r, _ = FrontmatterParser.parse(path_retrieval.read_text(encoding="utf-8"))
-    assert meta_r.template == "education-quiz"
+    assert res_retrieval["wiki_path"] is None
+    assert res_retrieval["skip_reason"] == "no_writer"
 
     # 4. Complete elaboration
     res_elab = complete_course_step(repo, course_id=course["course_id"], wiki_tools_or_store=tools)
