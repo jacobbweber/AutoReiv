@@ -188,17 +188,12 @@ def _write_step_artifact(
     dual_coding: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
-    """Write Wiki artifact + ledger anchors for a completed step.
+    """Write Wiki artifact + ledger anchors for a completed step that has its own writer.
 
-    Reuses Priming writeback for priming; other steps get a lightweight Inbox
-    note + mastery/learner anchors (same memory.db brain).
-    Specializes artifact shapes by knowledge type (concept/tool/method/problem).
+    Priming, dual coding, elaboration, construction, application, analysis and environment have
+    writers. Any other step records progress only and writes nothing [CARD-641].
     """
-    from src.application.education.knowledge_types import (
-        build_knowledge_artifact,
-        render_knowledge_note_markdown,
-        resolve_step_knowledge_type,
-    )
+    from src.application.education.knowledge_types import resolve_step_knowledge_type
 
     step_name = (step or "").strip().lower()
     topic_clean = _normalize_topic(topic)
@@ -662,67 +657,9 @@ def _write_step_artifact(
             "framing": framing,
         }
 
-    title = f"Course {step_name.title()}: {topic_clean}"
-    tpl = get_template_for_step(step_name)
-    k_art = build_knowledge_artifact(topic_clean, ktype)
-    content = render_knowledge_note_markdown(k_art, stamp=stamp, template_slug=tpl)
-    create_res = create_priming_note(
-        wiki_tools_or_store,
-        title=title,
-        content=content,
-        topic=topic_clean,
-        tags=["education", "course", step_name, ktype],
-        summary=f"Course step {step_name} ({ktype}) for {topic_clean}",
-        template=tpl,
-    )
-    path = str(create_res.get("path") or "")
-    note_ok = bool(create_res.get("success")) and (
-        bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
-    )
-
-    ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
-    if note_ok and memory_repo is not None:
-        item_id = f"course_{slug_topic(topic_clean)}_{step_name}"[:48]
-        prompt = f"What Learning OS step did you just complete for {topic_clean}?"
-        expected = step_name
-        mid = memory_repo.upsert_education_mastery(
-            item_id=item_id,
-            topic=topic_clean,
-            wiki_path=path,
-            prompt=prompt,
-            expected_answer=expected,
-            grade="unseen",
-        )
-        try:
-            from src.application.education.learner_model import LEARNER_ENTITY
-
-            memory_repo.add_semantic_fact(
-                entity=LEARNER_ENTITY,
-                attribute=f"course_step_{step_name}",
-                value=f"{topic_clean}|{path}|{stamp}",
-                category="education_learner",
-                confidence=1.0,
-                decay_half_life_days=90.0,
-                fact_id=f"edu_course_{slug_topic(topic_clean)}_{step_name}"[:64],
-            )
-        except Exception:
-            pass
-        ledger = {"success": True, "count": 1, "item_ids": [mid]}
-
-    return {
-        "success": note_ok,
-        "step": step_name,
-        "wiki_path": path,
-        "artifact": {
-            "path": path,
-            "kind": f"course_{step_name}",
-            "title": title,
-        },
-        "ledger": ledger,
-        "item_ids": list(ledger.get("item_ids") or []),
-        "tools_used": ["wiki_note_create"] if note_ok else [],
-        "knowledge_type": ktype,
-    }
+    # CARD-641: a step without its own writer records progress only. No wiki note, no quiz or
+    # mastery-ledger item and no memory fact (the old generic writer saved filler for all three).
+    return _nothing_written(step_name, "no_writer", ktype)
 
 
 def complete_course_step(
