@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-651: the growth portfolio note shows your real level and quiz items, keeps its details in front matter, and no longer adds a quiz question about its own level.
 - CARD-649: lab grading needs each criterion genuinely covered (about half its key terms, any word form) instead of one matching word, and names the missing terms.
 - CARD-652: removed the unused knowledge-artifact endpoint that returned the same template teaching sections for every topic.
 - CARD-648: removed the unused construction generate endpoint that wrote the same template study note for every topic.
