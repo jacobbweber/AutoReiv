@@ -64,7 +64,7 @@ async function runCourse(j, request, base, topic) {
   for (const step of STEPS) {
     const done = await post(request, `${base}/api/education/course/complete-step`, { agent_id: AGENT, course_id: courseId, ...(EXTRA(topic)[step] || {}) });
     written[step] = done;
-    j.note(`[${topic}] ${step}: wrote ${done.wiki_path || 'nothing'}; quiz ${(done.item_ids || []).length}; skip ${done.skip_reason || done.grounding_skip_reason || '-'}${done.skip_detail ? ` (${done.skip_detail})` : ''}; quiz skip ${done.quiz_skip_reason || '-'}${done.quiz_duplicate ? ` ("${done.quiz_duplicate.question}" repeats "${done.quiz_duplicate.duplicate_of}")` : ''}; graded ${done.graded ?? '-'}; passed ${done.passed}; next ${done.course.current_step} (${done.course.status})`);
+    j.note(`[${topic}] ${step}: wrote ${done.wiki_path || 'nothing'}; quiz ${(done.item_ids || []).length}; skip ${done.skip_reason || done.grounding_skip_reason || '-'}${done.skip_detail ? ` (${done.skip_detail})` : ''}; quiz retry ${done.quiz_retry || '-'}; quiz skip ${done.quiz_skip_reason || '-'}${done.quiz_duplicate ? ` ("${done.quiz_duplicate.question}" repeats "${done.quiz_duplicate.duplicate_of}")` : ''}; graded ${done.graded ?? '-'}; passed ${done.passed}; next ${done.course.current_step} (${done.course.status})`);
     if (done.completed_step !== step) throw new Error(`expected to complete ${step}, completed ${done.completed_step}`);
     if (done.passed === false) throw new Error(`[${topic}] ${step} lab failed: ${JSON.stringify(done.grade_result).slice(0, 300)}`);
   }
