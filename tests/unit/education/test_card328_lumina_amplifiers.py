@@ -88,63 +88,8 @@ def test_lumina_lesson_normalization():
     assert lesson["scenes"][0]["visual"]["kind"] == "split"
 
 
-def test_complete_course_step_amplifiers_wires_ledger(tmp_path: Path):
-    """Verify course pipeline step 'amplifiers' produces a real visual amplifier note and ledger anchor."""
-    from src.application.education.course import complete_course_step, jump_to_course_step, start_or_resume_course
-
-    repo = _repo(tmp_path)
-    tools = _wiki(tmp_path)
-
-    course = start_or_resume_course(repo, topic_id="Neural Networks")
-    jump_to_course_step(repo, course_id=course["course_id"], step="amplifiers")
-
-    result = complete_course_step(
-        repo,
-        course_id=course["course_id"],
-        wiki_tools_or_store=tools,
-    )
-
-    assert result["success"] is True
-    assert result["completed_step"] == "amplifiers"
-    assert "00_Inbox/" in result["wiki_path"]
-    assert len(result["item_ids"]) == 1
-
-    item_id = result["item_ids"][0]
-    mastery = repo.get_education_mastery(item_id)
-    assert mastery is not None
-    assert mastery["topic"] == "Neural Networks"
-    assert "amplifier" in mastery["prompt"].lower()
-
-    fact = repo.get_semantic_fact("edu_course_neural_networks_amplifiers")
-    assert fact is not None
-    assert fact["entity"] == "education_learner"
-    assert "course_step_amplifiers" in fact["attribute"]
-
-    artifact = result.get("artifact", {})
-    assert artifact.get("kind") == "course_amplifiers"
-    assert "visual_spec" in artifact or "mermaid" in artifact
-
-
-def test_lumina_send_to_course_bridge(tmp_path: Path):
-    """Verify that a Lumina lesson can be converted into an active education_course."""
-    from src.application.education.course import course_chrome_snapshot, start_or_resume_course
-    from src.application.education.lumina import get_starter_lesson
-
-    repo = _repo(tmp_path)
-    starter = get_starter_lesson("photosynthesis")
-    assert starter is not None
-
-    course = start_or_resume_course(repo, topic_id=starter["topic"])
-    assert course["status"] == "active"
-    assert course["topic_id"] == "Photosynthesis"
-
-    snapshot = course_chrome_snapshot(repo, topic_id="Photosynthesis")
-    assert snapshot["status"] == "active"
-    assert "amplifiers" in snapshot["steps"]
-
-
 def test_lumina_api_endpoints(tmp_path: Path):
-    """Verify Lumina starters, lesson retrieval, compose, and send-to-course API endpoints."""
+    """Verify Lumina starters, lesson retrieval, and compose API endpoints."""
     from fastapi.testclient import TestClient
 
     from src.web.app import app
@@ -172,12 +117,4 @@ def test_lumina_api_endpoints(tmp_path: Path):
     cdata = res_compose.json()
     assert cdata["ok"] is True
     assert cdata["lesson"]["topic"] == "Black holes"
-
-    # 4. Send to course
-    res_bridge = client.post("/api/lumina/send-to-course", json={"topic": "Photosynthesis"})
-    assert res_bridge.status_code == 200
-    bdata = res_bridge.json()
-    assert bdata["ok"] is True
-    assert bdata["course"]["topic_id"] == "Photosynthesis"
-    assert bdata["snapshot"]["status"] == "active"
 

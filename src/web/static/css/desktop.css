@@ -338,8 +338,7 @@ body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaStageView,
 body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaPlayPauseBtn,
 body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaPrevBtn,
 body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaNextBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaVoiceToggleBtn,
-body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaSendToCourseBtn {
+body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaVoiceToggleBtn {
   pointer-events: auto;
   position: relative;
   z-index: 1;

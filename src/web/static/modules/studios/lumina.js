@@ -17,7 +17,7 @@ export function calculateEstimatedDuration(narrationText, postSpeechPauseMs = PO
   return Math.max(minDurationMs, estimatedSpeechMs + postSpeechPauseMs);
 }
 
-export function initLuminaStudio(state, callbacks = {}) {
+export function initLuminaStudio(state, _callbacks = {}) {
 
   // Studio Containers
   const composeView = $('luminaComposeView');
@@ -43,7 +43,6 @@ export function initLuminaStudio(state, callbacks = {}) {
   const voiceToggleBtn = $('luminaVoiceToggleBtn');
   const sceneIndicators = $('luminaSceneIndicators');
   const backToComposeBtn = $('luminaBackToComposeBtn');
-  const sendToCourseBtn = $('luminaSendToCourseBtn');
   const timeDisplay = $('luminaTimeDisplay');
 
   let currentLesson = null;
@@ -332,30 +331,6 @@ export function initLuminaStudio(state, callbacks = {}) {
 
   if (backToComposeBtn) {
     backToComposeBtn.addEventListener('click', () => setView('compose'));
-  }
-
-  if (sendToCourseBtn) {
-    sendToCourseBtn.addEventListener('click', async () => {
-      if (!currentLesson) return;
-      try {
-        const res = await fetch('/api/lumina/send-to-course', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic: currentLesson.topic }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (data.ok) {
-          toast(`Course created for "${currentLesson.topic}" on mastery ledger`, 'success');
-          // Switch tab to education if switcher available
-          if (typeof callbacks.switchTab === 'function') {
-            callbacks.switchTab('education');
-          }
-        }
-      } catch (err) {
-        toast(`Failed to bridge to course: ${err.message}`, 'error');
-      }
-    });
   }
 
   // Load initial starters immediately on studio initialization

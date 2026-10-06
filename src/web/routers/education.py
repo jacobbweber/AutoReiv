@@ -1909,11 +1909,6 @@ class LuminaComposePayload(BaseModel):
     agent_id: str = "autoreiv"
 
 
-class LuminaSendToCoursePayload(BaseModel):
-    topic: str
-    agent_id: str = "autoreiv"
-
-
 @router.get("/api/lumina/starters")
 async def lumina_starters():
     """List available Lumina starter lessons [CARD-328]."""
@@ -1992,23 +1987,5 @@ async def lumina_compose(request: Request, payload: LuminaComposePayload):
         lesson = normalize_lesson({}, topic)
 
     return {"ok": True, "lesson": lesson, "cached": False}
-
-
-@router.post("/api/lumina/send-to-course")
-async def lumina_send_to_course(request: Request, payload: LuminaSendToCoursePayload):
-    """Bridge Lumina lesson into an active education_course in tutor_memory.db [CARD-328]."""
-    from src.application.education.course import (
-        course_chrome_snapshot,
-        start_or_resume_course,
-    )
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-
-    repo = _memory_repo(request, payload.agent_id)
-    course = start_or_resume_course(repo, topic_id=topic)
-    snapshot = course_chrome_snapshot(repo, topic_id=topic, course_id=course.get("course_id", ""))
-    return {"ok": True, "course": course, "snapshot": snapshot}
 
 

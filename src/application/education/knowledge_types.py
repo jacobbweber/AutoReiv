@@ -81,7 +81,6 @@ DEFAULT_STEP_KNOWLEDGE_MAP: Dict[str, str] = {
     "application": "problem",
     "analysis": "method",
     "environment": "tool",
-    "amplifiers": "concept",
     "retention": "problem",
     "portfolio": "concept",
     "custom": "concept",

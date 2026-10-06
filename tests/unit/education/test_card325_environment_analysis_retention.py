@@ -112,7 +112,7 @@ def test_req_edu_env_001_environment_framing_participates_in_course(tmp_path: Pa
     )
     assert c_env["success"] is True
     assert c_env["completed_step"] == "environment"
-    assert c_env["course"]["current_step"] == "amplifiers"
+    assert c_env["course"]["current_step"] == "retention"
 
     # Verify Wiki note
     wiki_path = c_env.get("wiki_path") or c_env["artifact"]["path"]
