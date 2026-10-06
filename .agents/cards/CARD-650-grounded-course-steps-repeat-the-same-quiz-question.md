@@ -50,8 +50,8 @@ Near-identical quiz items from one course. Items already in a learner's ledger a
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2678 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 A course no longer fills your quiz with near-identical questions: each step is told which questions you already have, and a question that still repeats one is left out (the step's note is kept).
