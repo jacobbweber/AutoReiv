@@ -2,7 +2,8 @@
 id: CARD-639
 title: "Courses skip the removed visual amplifier step; no filler wiki notes or quiz items"
 type: bug
-status: In Review
+status: Done
+completed: 2026-10-05
 priority: P1
 milestone: M23
 needs_decision: none
@@ -54,6 +55,7 @@ The course "amplifiers" step and its filler note and filler quiz item.
 | card-639-course-skips-amplifier-step | desktop | pass | live_qa :8770; Education Set active creates a course whose steps end environment > retention; completing environment moves to retention; jump to amplifiers gives 422 "course step removed"; retention completes the course; ledger has 2 items, 0 amplifier filler |
 | card-639-course-skips-amplifier-step | phone | pass | same |
 | tests/unit/education | - | pass | 222 passed (7 new checks, failing first) |
+| preflight --fast --base qa | - | GREEN | ruff, eslint, guard 188, vitest 1092 |
 
 Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-639\`
 - `card-639-course-skips-amplifier-step-desktop-01-education-course-active.png`
