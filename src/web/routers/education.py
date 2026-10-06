@@ -1464,7 +1464,14 @@ def _course_wiki_tools(request: Request):
     return WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
 
 
-async def _compose_current_step(request: Request, repo: Any, course_id: str, tools: Any) -> Optional[Dict[str, Any]]:
+async def _compose_current_step(
+    request: Request,
+    repo: Any,
+    course_id: str,
+    tools: Any,
+    learner_explanation: Optional[str] = None,
+    lab_submission: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
     """Grounded content for the course's current step, built from the learner's wiki notes via one
     model call [CARD-640, CARD-646]. None for steps that need none; a skip dict when it can't be grounded."""
     from src.application.education.grounded_steps import compose_course_step
@@ -1475,6 +1482,8 @@ async def _compose_current_step(request: Request, repo: Any, course_id: str, too
         tools,
         current.get("topic_id") or "",
         current.get("current_step") or "",
+        learner_explanation=learner_explanation,
+        lab_submission=lab_submission,
     )
 
 
@@ -1487,7 +1496,9 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
         raise HTTPException(status_code=400, detail="course_id is required")
     repo = _memory_repo(request, payload.agent_id)
     tools = _course_wiki_tools(request)
-    composed = await _compose_current_step(request, repo, payload.course_id, tools)
+    composed = await _compose_current_step(
+        request, repo, payload.course_id, tools, payload.learner_explanation, payload.lab_submission
+    )
     try:
         result = complete_course_step(
             repo,
@@ -1572,18 +1583,35 @@ async def course_dual_coding_preview(request: Request, payload: DualCodingPrevie
 
 class CourseElaborationPreviewPayload(BaseModel):
     topic: str
+    learner_explanation: Optional[str] = None
     agent_id: str = "autoreiv"
 
 
 @router.post("/api/education/course/elaboration/preview")
-async def course_elaboration_preview(payload: CourseElaborationPreviewPayload):
-    """Generate Socratic elaboration prompts and probing questions for topic [CARD-323]."""
+async def course_elaboration_preview(request: Request, payload: CourseElaborationPreviewPayload):
+    """The elaboration ask; follow-up questions only from the learner's own explanation [CARD-323, CARD-644]."""
     from src.application.education.elaboration import build_elaboration_preview
+    from src.application.education.grounded_steps import compose_step_content
 
     if not (payload.topic or "").strip():
         raise HTTPException(status_code=400, detail="topic is required")
     data = build_elaboration_preview(payload.topic)
-    return {"success": True, "agent_id": payload.agent_id, **data}
+    composed = await compose_step_content(
+        getattr(request.app.state, "gateway", None),
+        _course_wiki_tools(request),
+        payload.topic,
+        "elaboration",
+        learner_text=payload.learner_explanation,
+    )
+    if composed.get("ok"):
+        data["probing_questions"] = list(composed.get("probes") or [])
+    return {
+        "success": True,
+        "agent_id": payload.agent_id,
+        **data,
+        "skip_reason": composed.get("skip_reason"),
+        "sources": composed.get("sources") or [],
+    }
 
 
 class CourseElaborationCompletePayload(BaseModel):
@@ -1606,12 +1634,14 @@ async def course_elaboration_complete(request: Request, payload: CourseElaborati
         request.app.state, "wiki_root", None
     )
     tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    composed = await _compose_current_step(request, repo, payload.course_id, tools, payload.learner_explanation)
     try:
         result = complete_course_step(
             repo,
             course_id=payload.course_id,
             wiki_tools_or_store=tools,
             learner_explanation=payload.learner_explanation,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

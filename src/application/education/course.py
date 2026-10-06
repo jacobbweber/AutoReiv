@@ -336,11 +336,17 @@ def _write_step_artifact(
         }
 
     if step_name == "elaboration":
+        # CARD-644: nothing without the learner's explanation; with one, the note holds it, and the
+        # follow-ups and quiz item are added only when grounded in what the learner wrote.
+        explanation = (learner_explanation or "").strip()
+        if not explanation:
+            return _nothing_written(step_name, "no_learner_explanation", ktype)
+        grounded_elab = composed if (composed or {}).get("ok") else None
         title = f"Course Elaboration: {topic_clean}"
         content = build_elaboration_note_content(
             topic_clean,
-            learner_explanation=learner_explanation,
-            now=now,
+            learner_explanation=explanation,
+            composed=grounded_elab,
         )
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
@@ -350,7 +356,7 @@ def _write_step_artifact(
             content=content,
             topic=topic_clean,
             tags=["education", "course", "elaboration"],
-            summary=f"Elaboration study note (explain in own words) for {topic_clean}",
+            summary=f"Your explanation of {topic_clean}",
             template=tpl,
         )
         path = str(create_res.get("path") or "")
@@ -360,24 +366,25 @@ def _write_step_artifact(
 
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
-            item_id = f"course_{slug_topic(topic_clean)}_elaboration"[:48]
-            prompt = f"How would you explain the core mechanism of {topic_clean} in your own words?"
-            expected = learner_explanation or topic_clean
-            mid = memory_repo.upsert_education_mastery(
-                item_id=item_id,
-                topic=topic_clean,
-                wiki_path=path,
-                prompt=prompt,
-                expected_answer=expected,
-                grade="unseen",
-            )
+            ids: List[str] = []
+            if grounded_elab:
+                ids.append(
+                    memory_repo.upsert_education_mastery(
+                        item_id=f"course_{slug_topic(topic_clean)}_elaboration"[:48],
+                        topic=topic_clean,
+                        wiki_path=path,
+                        prompt=str(grounded_elab["question"]),
+                        expected_answer=str(grounded_elab["answer"]),
+                        grade="unseen",
+                    )
+                )
             try:
                 from src.application.education.learner_model import LEARNER_ENTITY
 
                 memory_repo.add_semantic_fact(
                     entity=LEARNER_ENTITY,
                     attribute="course_step_elaboration",
-                    value=f"{topic_clean}|{path}|{stamp}|{(learner_explanation or '')[:120]}",
+                    value=f"{topic_clean}|{path}|{stamp}|{explanation[:120]}",
                     category="education_learner",
                     confidence=1.0,
                     decay_half_life_days=90.0,
@@ -385,7 +392,7 @@ def _write_step_artifact(
                 )
             except Exception:
                 pass
-            ledger = {"success": True, "count": 1, "item_ids": [mid]}
+            ledger = {"success": True, "count": len(ids), "item_ids": ids}
 
         return {
             "success": note_ok,
@@ -395,10 +402,14 @@ def _write_step_artifact(
                 "path": path,
                 "kind": "course_elaboration",
                 "title": title,
+                "sources": (grounded_elab or {}).get("sources") or [],
             },
             "ledger": ledger,
             "item_ids": list(ledger.get("item_ids") or []),
             "tools_used": ["wiki_note_create"] if note_ok else [],
+            "skip_reason": None,
+            # Why follow-ups and the quiz item were left out (the explanation itself is still saved).
+            "grounding_skip_reason": None if grounded_elab else ((composed or {}).get("skip_reason") or "not_composed"),
         }
     if step_name in ("construction", "application"):
         from src.application.education.construction import create_study_artifact_note

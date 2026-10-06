@@ -23,6 +23,7 @@ from src.application.education.grounded import (
     source_vocab,
     stem,
     topic_keywords,
+    vocab_of,
 )
 
 _RULES = (
@@ -44,6 +45,10 @@ class StepSpec:
     main_list: str = ""
     main_min_grounded: int = 4
     banned: Tuple[str, ...] = field(default_factory=tuple)
+    # Steps built on what the learner wrote (elaboration explanation, lab submission) [CARD-644].
+    needs_learner_text: bool = False
+    # Text fields that must use words from the learner's own text, not just the notes.
+    learner_grounded: Tuple[str, ...] = ()
 
 
 STEP_SPECS: Dict[str, StepSpec] = {
@@ -60,6 +65,24 @@ STEP_SPECS: Dict[str, StepSpec] = {
         lists=(("outline", 3, 6), ("prerequisites", 0, 3)),
         texts=(("question", 0), ("answer", 1)),
         main_list="outline",
+    ),
+    "elaboration": StepSpec(
+        step="elaboration",
+        system=(
+            "You help a learner go deeper on their own explanation of a topic. Use ONLY what the learner "
+            "wrote and facts stated in their notes (there may be no notes). "
+            + _RULES
+            + '"probes" (2 to 4 follow-up questions that push the learner further on what they wrote, '
+            "using terms from their explanation or notes), "
+            '"question" (one question that the learner\'s explanation answers), '
+            '"answer" (the short answer, in words taken from the learner\'s explanation).'
+        ),
+        lists=(("probes", 2, 4),),
+        texts=(("question", 0), ("answer", 1)),
+        main_list="probes",
+        main_min_grounded=2,
+        needs_learner_text=True,
+        learner_grounded=("answer",),
     ),
 }
 
@@ -78,14 +101,16 @@ def validate_step_content(
     payload: Dict[str, Any],
     sources: List[Dict[str, Any]],
     topic: str,
+    learner_text: str = "",
 ) -> Optional[str]:
-    """Return why `payload` is not grounded in `sources`, or None when it is."""
+    """Return why `payload` is not grounded in `sources` (and the learner's text), or None when it is."""
     texts = {key: " ".join(str(payload.get(key) or "").split()) for key, _ in spec.texts}
     lists = {key: _clean_list(payload.get(key), hi) for key, _lo, hi in spec.lists}
     every = [*texts.values(), *(i for items in lists.values() for i in items)]
     if has_banned(every, spec.banned):
         return "generic template text"
-    vocab = source_vocab(sources)
+    learner_vocab = vocab_of([learner_text]) if learner_text else set()
+    vocab = source_vocab(sources) | learner_vocab
     topic_stems = {stem(w) for w in topic_keywords(topic)}
     for key, lo, _hi in spec.lists:
         items = lists[key]
@@ -102,6 +127,9 @@ def validate_step_content(
             return f"missing {key}"
         if grounded_count(texts[key], vocab, topic_stems) < min_grounded:
             return f"{key} is not taken from the notes"
+    for key in spec.learner_grounded:
+        if grounded_count(texts.get(key, ""), learner_vocab, topic_stems) < 1:
+            return f"{key} is not taken from what the learner wrote"
     return None
 
 
@@ -111,29 +139,40 @@ async def compose_step_content(
     topic: str,
     step: str,
     *,
+    learner_text: Optional[str] = None,
     model: Optional[str] = None,
     timeout: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Grounded content for course `step` on `topic`, or a skip with its reason (never a template)."""
+    """Grounded content for course `step` on `topic`, or a skip with its reason (never a template).
+
+    `learner_text` is what the learner wrote for the step (elaboration explanation, lab submission).
+    """
     topic = (topic or "").strip()
     step = (step or "").strip().lower()
     spec = STEP_SPECS.get(step)
     if spec is None:
         return skip(topic, "no_writer")
+    learner = (learner_text or "").strip()
+    if spec.needs_learner_text and not learner:
+        return skip(topic, "no_learner_explanation")
     sources = find_sources(wiki_tools, topic)
-    if not sources:
+    if not sources and not learner:
         return skip(topic, "no_wiki_notes")
     if gateway is None:
         return skip(topic, "model_unavailable", sources, "no model gateway")
 
-    user = f"Topic: {topic}\n\nThe learner's notes:\n\n{notes_block(sources)}\n\nReturn the JSON object now."
+    parts = [f"Topic: {topic}"]
+    if learner:
+        parts.append(f"What the learner wrote:\n\n{learner}")
+    parts.append(f"The learner's notes:\n\n{notes_block(sources)}" if sources else "The learner has no notes on this topic.")
+    user = "\n\n".join(parts) + "\n\nReturn the JSON object now."
     reply = await call_model(gateway, spec.system, user, model=model, timeout=timeout)
     if "error" in reply:
         return skip(topic, "model_unavailable", sources, reply["error"])
     data = parse_reply(reply["text"])
     if data is None:
         return skip(topic, "model_output_invalid", sources, "reply was not a JSON object")
-    problem = validate_step_content(spec, data, sources, topic)
+    problem = validate_step_content(spec, data, sources, topic, learner)
     if problem:
         return skip(topic, "model_output_invalid", sources, problem)
 
@@ -155,6 +194,9 @@ async def compose_course_step(
     wiki_tools: Any,
     topic: str,
     step: str,
+    *,
+    learner_explanation: Optional[str] = None,
+    lab_submission: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Grounded content for whichever course step is current, or None for steps that need none."""
     step = (step or "").strip().lower()
@@ -163,5 +205,6 @@ async def compose_course_step(
 
         return await compose_dual_coding(gateway, wiki_tools, topic)
     if step in STEP_SPECS:
-        return await compose_step_content(gateway, wiki_tools, topic, step)
+        learner = lab_submission if step in ("construction", "application") else learner_explanation
+        return await compose_step_content(gateway, wiki_tools, topic, step, learner_text=learner)
     return None
