@@ -191,7 +191,12 @@ def test_req_edu_wiki_tpl_004_course_steps_produce_valid_template_frontmatter(tm
     assert meta_e.template == "education-elaboration"
 
     # 5. Complete construction
-    res_const = complete_course_step(repo, course_id=course["course_id"], wiki_tools_or_store=tools)
+    res_const = complete_course_step(
+        repo,
+        course_id=course["course_id"],
+        wiki_tools_or_store=tools,
+        lab_submission="My lab: the leader replicates log entries to followers and commits after a majority.",
+    )
     path_const = wiki_root / res_const["wiki_path"]
     meta_c, _ = FrontmatterParser.parse(path_const.read_text(encoding="utf-8"))
     assert meta_c.template == "education-lab"

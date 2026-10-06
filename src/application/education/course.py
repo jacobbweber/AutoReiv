@@ -15,7 +15,6 @@ from src.application.education.elaboration import (
 )
 from src.application.education.labs import (
     build_lab_note_content,
-    build_lab_specification,
     grade_lab_submission,
 )
 from src.application.education.quiz_engine import grade_answer_binary
@@ -412,39 +411,33 @@ def _write_step_artifact(
             "grounding_skip_reason": None if grounded_elab else ((composed or {}).get("skip_reason") or "not_composed"),
         }
     if step_name in ("construction", "application"):
+        # CARD-643: the lab comes only from the learner's notes (grounded spec) and the submission is
+        # graded only against that spec's criteria. No template lab, no made-up baseline submission.
         from src.application.education.construction import create_study_artifact_note
 
-        lab_spec = build_lab_specification(topic_clean, step=step_name)
-        if lab_submission is None:
-            sub = (
-                f"Course baseline specification for {topic_clean} ({step_name}):\n"
-                + "\n".join(f"- {inv}" for inv in lab_spec.get("invariants", []))
-            )
-            grade_res = grade_lab_submission(
-                topic=topic_clean,
-                step=step_name,
-                submission=sub,
-                expected_invariants=lab_spec.get("invariants"),
-                now=now,
-            )
-        else:
-            sub = lab_submission
-            grade_res = grade_lab_submission(
-                topic=topic_clean,
-                step=step_name,
-                submission=sub,
-                expected_invariants=lab_spec.get("invariants"),
-                now=now,
-            )
+        spec = composed if (composed or {}).get("ok") else None
+        sub = (lab_submission or "").strip()
+        if not spec and not sub:
+            return _nothing_written(step_name, (composed or {}).get("skip_reason") or "not_composed", ktype)
 
-        passed = bool(grade_res.get("passed"))
+        grade_res: Dict[str, Any] = {}
+        if spec and sub:
+            grade_res = grade_lab_submission(
+                topic=topic_clean,
+                step=step_name,
+                submission=sub,
+                expected_invariants=spec.get("criteria"),
+                now=now,
+            )
+        graded = bool(grade_res)
+        passed = bool(grade_res.get("passed")) if graded else True
         title = f"Course Lab {step_name.title()}: {topic_clean}"
         content = build_lab_note_content(
             topic=topic_clean,
             step=step_name,
-            lab_spec=lab_spec,
-            submission=sub,
-            grade_result=grade_res,
+            lab_spec=spec,
+            submission=sub or None,
+            grade_result=grade_res or None,
             now=now,
         )
         tpl = get_template_for_step(step_name)
@@ -455,7 +448,7 @@ def _write_step_artifact(
             content=content,
             topic=topic_clean,
             tags=["education", "course", "lab", step_name],
-            summary=f"Course lab {step_name} for {topic_clean}",
+            summary=f"{step_name.title()} lab on {topic_clean}",
             template=tpl,
         )
         path = str(create_res.get("path") or "")
@@ -465,36 +458,27 @@ def _write_step_artifact(
 
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
-            item_id = f"course_{slug_topic(topic_clean)}_{step_name}"[:48]
-            prompt = f"Perform {step_name} lab for {topic_clean} with verified invariants."
-            expected = "; ".join(lab_spec.get("invariants") or [])
-            mid = memory_repo.upsert_education_mastery(
-                item_id=item_id,
-                topic=topic_clean,
-                wiki_path=path,
-                prompt=prompt,
-                expected_answer=expected,
-                grade="unseen",
-            )
-            # Record grade with graded pressure
-            memory_repo.record_education_grade(
-                item_id=item_id,
-                correct=passed,
-                now=now,
-            )
+            ids: List[str] = []
+            if spec:
+                ids.append(
+                    memory_repo.upsert_education_mastery(
+                        item_id=f"course_{slug_topic(topic_clean)}_{step_name}"[:48],
+                        topic=topic_clean,
+                        wiki_path=path,
+                        prompt=str(spec["question"]),
+                        expected_answer=str(spec["answer"]),
+                        grade="unseen",
+                    )
+                )
             try:
                 from src.application.education.learner_model import LEARNER_ENTITY
 
+                outcome = ("passed" if passed else "failed:weakness") if graded else "ungraded"
                 attr_name = f"course_step_{step_name}" if passed else f"course_step_{step_name}_miss"
-                val_text = (
-                    f"{topic_clean}|{path}|{stamp}|passed"
-                    if passed
-                    else f"{topic_clean}|{path}|{stamp}|failed:weakness"
-                )
                 memory_repo.add_semantic_fact(
                     entity=LEARNER_ENTITY,
                     attribute=attr_name,
-                    value=val_text,
+                    value=f"{topic_clean}|{path}|{stamp}|{outcome}",
                     category="education_learner",
                     confidence=1.0,
                     decay_half_life_days=90.0,
@@ -502,11 +486,17 @@ def _write_step_artifact(
                 )
             except Exception:
                 pass
-            ledger = {"success": True, "count": 1, "item_ids": [mid], "grade": "pass" if passed else "miss"}
+            ledger = {
+                "success": True,
+                "count": len(ids),
+                "item_ids": ids,
+                "grade": ("pass" if passed else "miss") if graded else None,
+            }
 
         return {
             "success": note_ok and passed,
             "passed": passed,
+            "graded": graded,
             "grade_result": grade_res,
             "step": step_name,
             "knowledge_type": ktype,
@@ -515,10 +505,13 @@ def _write_step_artifact(
                 "path": path,
                 "kind": f"course_{step_name}",
                 "title": title,
+                "sources": (spec or {}).get("sources") or [],
             },
             "ledger": ledger,
             "item_ids": list(ledger.get("item_ids") or []),
             "tools_used": ["wiki_note_create"] if note_ok else [],
+            "skip_reason": None,
+            "grounding_skip_reason": None if spec else ((composed or {}).get("skip_reason") or "not_composed"),
         }
 
     if step_name == "analysis":

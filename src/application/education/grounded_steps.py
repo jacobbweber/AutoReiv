@@ -84,6 +84,32 @@ STEP_SPECS: Dict[str, StepSpec] = {
         needs_learner_text=True,
         learner_grounded=("answer",),
     ),
+    **{
+        lab_step: StepSpec(
+            step=lab_step,
+            system=(
+                (
+                    "You design a hands-on construction lab: the learner builds or models the mechanism "
+                    "described in their own notes. "
+                    if lab_step == "construction"
+                    else "You design a hands-on application lab: the learner applies what their own notes "
+                    "describe to a concrete situation or failure taken from those notes. "
+                )
+                + _RULES
+                + '"objective" (one sentence using concrete terms from the notes), '
+                '"tasks" (3 to 5 short concrete steps the learner does), '
+                '"criteria" (2 to 4 checkable statements a correct submission must cover, each naming a '
+                "concrete term from the notes), "
+                '"question" (one question the learner can answer from the notes), '
+                '"answer" (the short answer, taken from the notes).'
+            ),
+            lists=(("tasks", 3, 5), ("criteria", 2, 4)),
+            texts=(("objective", 1), ("question", 0), ("answer", 1)),
+            main_list="tasks",
+            main_min_grounded=3,
+        )
+        for lab_step in ("construction", "application")
+    },
 }
 
 GROUNDED_STEPS = frozenset({"dual_coding", *STEP_SPECS})
@@ -196,7 +222,7 @@ async def compose_course_step(
     step: str,
     *,
     learner_explanation: Optional[str] = None,
-    lab_submission: Optional[str] = None,
+    lab_submission: Optional[str] = None,  # accepted for symmetry; labs never ground in it
 ) -> Optional[Dict[str, Any]]:
     """Grounded content for whichever course step is current, or None for steps that need none."""
     step = (step or "").strip().lower()
@@ -205,6 +231,7 @@ async def compose_course_step(
 
         return await compose_dual_coding(gateway, wiki_tools, topic)
     if step in STEP_SPECS:
-        learner = lab_submission if step in ("construction", "application") else learner_explanation
+        # Labs are designed from the notes only; the submission is graded against them, never used to build them.
+        learner = learner_explanation if step == "elaboration" else None
         return await compose_step_content(gateway, wiki_tools, topic, step, learner_text=learner)
     return None

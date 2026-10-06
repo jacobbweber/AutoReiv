@@ -174,6 +174,16 @@ def test_complete_course_step_preserves_card324_separation():
         repo,
         course_id="crs_456",
         wiki_tools_or_store=tools,
+        lab_submission="I defined two coroutines and used gather so the event loop awaits both results together.",
+        composed={
+            "ok": True,
+            "objective": "Run two coroutines concurrently on the asyncio event loop",
+            "tasks": ["Define two coroutines", "Schedule both with gather", "Await the event loop result"],
+            "criteria": ["Uses gather to schedule coroutines", "Awaits results on the event loop"],
+            "question": "What schedules several coroutines at once?",
+            "answer": "gather",
+            "sources": [],
+        },
     )
 
     assert res["success"] is True
