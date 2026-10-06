@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-647: the analysis course step no longer adds a quiz question asking for its own pass rate and weak-item count (an app number that went stale with the next grade); it still writes your scorecard note and schedules your reviews.
 - CARD-641: course steps that have nothing real to write (retrieval, retention, custom) now just record your progress instead of saving a generic 'Course X' note, a 'What Learning OS step did you just complete' quiz item and a memory fact.
 - CARD-640: the dual coding course step now builds its explanation, diagram and quiz question from your own wiki notes on the topic (one call to the configured model, checked against those notes and linking back to them); with no notes on the topic, no model, or an answer not grounded in the notes, it writes nothing instead of the old generic template.
 - CARD-638: Lumina Studio is removed: its dock icon, header tab, window, built-in lessons, styles and the /api/lumina/* routes are gone. A saved desktop layout that still lists the Lumina window opens without it.

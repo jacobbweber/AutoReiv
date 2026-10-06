@@ -526,17 +526,8 @@ def _write_step_artifact(
 
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
-            item_id = f"course_{slug_topic(topic_clean)}_analysis"[:48]
-            prompt = f"What is the analysis pass rate and weak item status for {topic_clean}?"
-            expected = f"Pass rate {scorecard.get('pass_rate', 0)}% with {scorecard.get('missed_count', 0)} weak items"
-            mid = memory_repo.upsert_education_mastery(
-                item_id=item_id,
-                topic=topic_clean,
-                wiki_path=path,
-                prompt=prompt,
-                expected_answer=expected,
-                grade="unseen",
-            )
+            # CARD-647: no quiz item here. The old one asked for this step's own pass rate, a fact
+            # about the app (not the topic) whose answer went stale with the next grade.
             # Execute retention handoff across all mastery items for topic
             handoff_res = execute_analysis_retention_handoff(
                 memory_repo,
@@ -560,8 +551,8 @@ def _write_step_artifact(
                 pass
             ledger = {
                 "success": True,
-                "count": 1,
-                "item_ids": [mid],
+                "count": 0,
+                "item_ids": [],
                 "handoff": handoff_res,
             }
 
