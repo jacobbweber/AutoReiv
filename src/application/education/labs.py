@@ -1,7 +1,7 @@
 """Education Learning OS — Construction & Application Labs with Graded Pressure [CARD-324].
 
-Provides lab specification generation, objective invariant-based grading,
-verification receipts, and Wiki artifact formatting using the education-lab template.
+Grades a lab submission against the criteria of a grounded lab (each criterion needs real
+coverage of its key terms, CARD-649), issues verification receipts and formats the lab note.
 """
 
 from __future__ import annotations
@@ -16,7 +16,39 @@ _STOP_WORDS = frozenset({
     "did", "shall", "will", "should", "would", "may", "might", "must", "can", "could",
     "it", "its", "this", "that", "these", "those", "we", "you", "they", "i", "he", "she",
     "1", "2", "3", "4", "5", "invariant", "task", "step", "must", "only", "all", "each",
+    "from", "after", "before", "when", "then", "into", "onto", "not",
 })
+
+
+_WORD = re.compile(r"[a-z][a-z0-9\-]{2,}")
+_MIN_OWN_WORDS = 3  # distinct words of the learner's own beyond the criteria's terms
+
+
+def _stem(word: str) -> str:
+    return word[:5]
+
+
+def _key_terms(text: str) -> List[str]:
+    """Distinct significant words of a criterion, in order."""
+    from src.application.education.grounded import words
+
+    seen: List[str] = []
+    for w in words(text):
+        if w in _STOP_WORDS or w in seen:
+            continue
+        seen.append(w)
+    return seen
+
+
+def _stems(text: str) -> set:
+    from src.application.education.grounded import words
+
+    return {_stem(w) for w in words(text) if w not in _STOP_WORDS}
+
+
+def _needed(term_count: int) -> int:
+    """Generous but not trivial: half the terms, rounded up, and at least two when there are two."""
+    return max(min(2, term_count), (term_count + 1) // 2)
 
 
 def grade_lab_submission(
@@ -72,32 +104,56 @@ def grade_lab_submission(
             },
         }
 
-    sub_lower = sub.lower()
+    # CARD-649: a criterion needs meaningful coverage, not one shared word. About half of its key terms
+    # (at least two when it has two or more) must appear in the submission, matched across word forms.
+    sub_stems = _stems(sub)
     passed_invariants: List[str] = []
     failed_invariants: List[str] = []
+    missing_terms: Dict[str, List[str]] = {}
 
     for inv in invariants:
-        # Extract meaningful concept keywords from invariant
-        words = [
-            w.lower()
-            for w in re.findall(r"[A-Za-z][A-Za-z0-9_\-]{2,}", inv)
-            if w.lower() not in _STOP_WORDS
-        ]
-        # An invariant passes if at least 1 significant key phrase/concept from it appears in the submission
-        matched = any(w in sub_lower for w in words)
-
-        if matched:
+        terms = _key_terms(inv)
+        if not terms:
+            failed_invariants.append(inv)
+            missing_terms[inv] = []
+            continue
+        hit = [w for w in terms if _stem(w) in sub_stems]
+        if len(hit) >= _needed(len(terms)):
             passed_invariants.append(inv)
         else:
             failed_invariants.append(inv)
+            missing_terms[inv] = [w for w in terms if w not in hit]
+
+    criteria_stems = set().union(*(_stems(i) for i in invariants))
+    own_words = sub_stems - criteria_stems
+    if len(own_words) < _MIN_OWN_WORDS:
+        return {
+            "passed": False,
+            "score": 0.0,
+            "passed_invariants": [],
+            "failed_invariants": list(invariants),
+            "feedback": "This repeats the criteria instead of describing what you built. "
+            "Explain your lab in your own words.",
+            "receipt": {
+                "status": "Failed",
+                "score": 0.0,
+                "timestamp": stamp,
+                "step": step_clean,
+                "topic": topic_clean,
+            },
+        }
 
     # Graded pressure threshold: must pass all invariants and have substance
     passed = len(failed_invariants) == 0 and len(sub) >= 40
     score = 1.0 if passed else 0.0
     feedback = (
-        "All verification criteria and invariants satisfied. Graded 1.0."
+        "All criteria covered. Graded 1.0."
         if passed
-        else f"Verification failed. Missing required invariants: {'; '.join(failed_invariants)}."
+        else "Not every criterion is covered yet. "
+        + " ".join(
+            f"\"{inv}\"" + (f" (mention: {', '.join(missing_terms.get(inv) or [])})" if missing_terms.get(inv) else "")
+            for inv in failed_invariants
+        )
     )
 
     return {
