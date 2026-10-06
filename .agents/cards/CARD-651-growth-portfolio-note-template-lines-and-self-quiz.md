@@ -48,8 +48,8 @@ The template portfolio lines, the body metadata block and the self-referential q
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2668 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 The growth portfolio note now shows your real level and the quiz items you have passed or need to review, keeps its details in the note's properties, and no longer adds a quiz question about its own level.
