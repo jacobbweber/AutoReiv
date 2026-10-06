@@ -218,10 +218,6 @@ def build_lab_note_content(
 
     return (
         f"# Lab: {step_clean.title()} — {topic_clean}\n\n"
-        f"> **Topic:** {topic_clean}\n"
-        f"> **Pedagogy Phase:** {step_clean.title()}\n"
-        f"> **Status:** {status}\n\n"
-        f"---\n\n"
         f"## 1. Objective & Invariants\n"
         f"{lab_spec.get('objective', '')}\n\n"
         f"### Required Invariants\n"

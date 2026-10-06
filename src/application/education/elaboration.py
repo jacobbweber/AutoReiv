@@ -444,17 +444,8 @@ def build_elaboration_note_content(
         (learner_explanation or "").strip()
         or "Self-explanation: [Learner self-explanation to be added during review]"
     )
-    base = now or datetime.now(timezone.utc)
-    if base.tzinfo is None:
-        base = base.replace(tzinfo=timezone.utc)
-    stamp = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
     return (
         f"# Elaboration: {clean_topic}\n\n"
-        f"> **Topic:** {clean_topic}\n"
-        f"> **Pedagogy Phase:** Elaboration (Mechanistic Interrogation)\n"
-        f"> **Created:** {stamp}\n\n"
-        f"---\n\n"
         f"## 1. Deep Mechanism & Learner Explanation\n"
         f"**Learner's Explanation (Own Words):**\n"
         f"> {user_exp}\n\n"

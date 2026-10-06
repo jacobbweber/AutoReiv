@@ -386,17 +386,11 @@ def build_environment_note_content(
     topic_clean = (topic or "Untitled Topic").strip() or "Untitled Topic"
     profile = framing.get("profile") or get_delivery_profile()
     constraints = framing.get("constraints") or []
-    stamp = _iso_now(now)
-
     constraints_md = "\n".join(f"- {c}" for c in constraints)
     return (
         f"# Environment Framing: {topic_clean}\n\n"
-        f"> **Topic:** {topic_clean}\n"
-        f"> **Pedagogy Phase:** Environment\n"
-        f"> **Delivery Profile:** {profile.get('label', 'Default')} ({profile.get('tone', 'clear_stepwise')})\n"
-        f"> **Timer:** {profile.get('timer_seconds', 'Untimed')}s\n"
-        f"> **Generated:** {stamp}\n\n"
-        f"---\n\n"
+        f"Delivery profile: {profile.get('label', 'Default')} ({profile.get('tone', 'clear_stepwise')}), "
+        f"timer {profile.get('timer_seconds', 'Untimed')}s.\n\n"
         f"## 1. Operational Context\n"
         f"{framing.get('framing_markdown', '')}\n\n"
         f"## 2. Runtime Constraints & Boundary Invariants\n"

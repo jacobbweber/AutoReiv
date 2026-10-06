@@ -271,6 +271,8 @@ def create_study_artifact_note(
     tags: Optional[Sequence[str]] = None,
     summary: str = "",
     template: Optional[str] = "education-lab",
+    document_type: str = "study_artifact",
+    extra_frontmatter: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Stage study artifact via wiki_note_create path (One-Door -> 00_Inbox/)."""
     assert_construction_tool_allowed("wiki_note_create")
@@ -285,6 +287,7 @@ def create_study_artifact_note(
     if clean_template not in tag_list:
         tag_list.append(clean_template)
 
+    extra_fm = dict(extra_frontmatter or {})  # CARD-645: course step metadata goes to front matter
     topic_slug = _slug_topic(topic)
     summary_text = summary or f"Construction study artifact for {topic}"
     try:
@@ -297,9 +300,9 @@ def create_study_artifact_note(
                 category="inbox",
                 tags=tag_list,
                 summary=summary_text,
-                document_type="study_artifact",
+                document_type=document_type,
                 template=clean_template,
-                extra_frontmatter={"template": clean_template},
+                extra_frontmatter={**extra_fm, "template": clean_template},
             )
         elif hasattr(wiki_tools_or_store, "file_note"):
             result = wiki_tools_or_store.file_note(
@@ -310,9 +313,9 @@ def create_study_artifact_note(
                 category="inbox",
                 tags=tag_list,
                 summary=summary_text,
-                document_type="study_artifact",
+                document_type=document_type,
                 status="inbox",
-                extra_meta={"template": clean_template},
+                extra_meta={**extra_fm, "template": clean_template},
             )
         else:
             return {

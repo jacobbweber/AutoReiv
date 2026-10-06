@@ -296,6 +296,7 @@ def create_growth_portfolio_note(
         tags=["education", "course", "portfolio", "growth"],
         summary=f"Growth portfolio and adaptive mastery trajectory for {topic_clean}",
         template="education-portfolio",
+        document_type="growth_portfolio",
     )
 
     path = str(create_res.get("path") or "")
