@@ -72,6 +72,9 @@ def priming_writeback(
             "error": None,
         }
 
+    from src.application.education.grounded import drop_duplicate_quiz
+
+    composed = drop_duplicate_quiz(composed, memory_repo) or composed  # CARD-650
     tools_used: List[str] = ["wiki_note_search"]
     content = build_grounded_priming_markdown(topic=topic_clean, composed=composed)
     title = f"Priming: {topic_clean}"
@@ -121,5 +124,6 @@ def priming_writeback(
         "ledger": ledger,
         "sources": composed.get("sources") or [],
         "grader": "priming_wiki_note_plus_ledger",
+        "quiz_skip_reason": composed.get("quiz_skip_reason"),
         "error": create_res.get("error") if not note_ok else None,
     }

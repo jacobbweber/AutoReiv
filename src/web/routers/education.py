@@ -1404,16 +1404,29 @@ async def _compose_current_step(
 ) -> Optional[Dict[str, Any]]:
     """Grounded content for the course's current step, built from the learner's wiki notes via one
     model call [CARD-640, CARD-646]. None for steps that need none; a skip dict when it can't be grounded."""
+    from src.application.education.grounded import ledger_items
     from src.application.education.grounded_steps import compose_course_step
+    from src.application.education.priming_schema import slug_topic
 
     current = repo.get_education_course(course_id) or {}
+    topic = current.get("topic_id") or ""
+    step = current.get("current_step") or ""
+    # CARD-650: show the model the questions already asked on this topic (not this step's own item,
+    # which a re-run replaces) so it asks about something different.
+    own = f"course_{slug_topic(topic.strip())}_{step}"[:48]
+    avoid = [
+        str(r.get("prompt") or "")
+        for r in ledger_items(repo)
+        if (r.get("topic") or "").strip() == topic.strip() and r.get("item_id") != own
+    ]
     return await compose_course_step(
         getattr(request.app.state, "gateway", None),
         tools,
-        current.get("topic_id") or "",
-        current.get("current_step") or "",
+        topic,
+        step,
         learner_explanation=learner_explanation,
         lab_submission=lab_submission,
+        avoid_questions=avoid,
     )
 
 

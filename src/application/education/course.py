@@ -189,6 +189,37 @@ def _write_step_artifact(
     *,
     step: str,
     topic: str,
+    memory_repo: Any,
+    dual_coding: Optional[Dict[str, Any]] = None,
+    composed: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """Write a completed step, first dropping a quiz question that nearly repeats a ledger item [CARD-650]."""
+    from src.application.education.grounded import drop_duplicate_quiz
+    from src.application.education.priming_schema import slug_topic
+
+    step_name = (step or "").strip().lower()
+    # Re-running a step overwrites its own item, so that one is not a duplicate. Priming items are
+    # keyed by note path, so a re-run priming question that repeats the old one is dropped instead.
+    own = None if step_name == "priming" else f"course_{slug_topic(_normalize_topic(topic))}_{step_name}"[:48]
+    quiz_skip = None
+    deduped = []
+    for content in (dual_coding, composed):
+        out = drop_duplicate_quiz(content, memory_repo, own_item_id=own)
+        if out is not content and (out or {}).get("quiz_skip_reason"):
+            quiz_skip = out["quiz_skip_reason"]
+        deduped.append(out)
+    result = _write_step_artifact_body(
+        step=step, topic=topic, memory_repo=memory_repo, dual_coding=deduped[0], composed=deduped[1], **kwargs
+    )
+    result["quiz_skip_reason"] = quiz_skip if result.get("wiki_path") else None
+    return result
+
+
+def _write_step_artifact_body(
+    *,
+    step: str,
+    topic: str,
     wiki_tools_or_store: Any,
     memory_repo: Any,
     teach_style: str = "",
@@ -270,10 +301,8 @@ def _write_step_artifact(
             f"{str(composed['mermaid']).strip()}\n"
             f"```\n\n"
             + (f"## Step-through\n{steps_md}\n\n" if steps_md else "")
-            + f"## Sources\n{source_links}\n\n"
-            f"## Quiz\n"
-            f"Q: {composed['question']}\n"
-            f"A: {composed['answer']}\n"
+            + f"## Sources\n{source_links}\n"
+            + (f"\n## Quiz\nQ: {composed['question']}\nA: {composed['answer']}\n" if composed.get("question") else "")
         )
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
@@ -294,14 +323,16 @@ def _write_step_artifact(
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
             item_id = f"course_{slug_topic(topic_clean)}_dual_coding"[:48]
-            mid = memory_repo.upsert_education_mastery(
-                item_id=item_id,
-                topic=topic_clean,
-                wiki_path=path,
-                prompt=str(composed["question"]),
-                expected_answer=str(composed["answer"]),
-                grade="unseen",
-            )
+            mid = None
+            if composed.get("question"):
+                mid = memory_repo.upsert_education_mastery(
+                    item_id=item_id,
+                    topic=topic_clean,
+                    wiki_path=path,
+                    prompt=str(composed["question"]),
+                    expected_answer=str(composed["answer"]),
+                    grade="unseen",
+                )
             try:
                 from src.application.education.learner_model import LEARNER_ENTITY
 
@@ -316,7 +347,7 @@ def _write_step_artifact(
                 )
             except Exception:
                 pass
-            ledger = {"success": True, "count": 1, "item_ids": [mid]}
+            ledger = {"success": True, "count": 1 if mid else 0, "item_ids": [mid] if mid else []}
 
         return {
             "success": note_ok,
@@ -366,7 +397,7 @@ def _write_step_artifact(
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
             ids: List[str] = []
-            if grounded_elab:
+            if grounded_elab and grounded_elab.get("question"):
                 ids.append(
                     memory_repo.upsert_education_mastery(
                         item_id=f"course_{slug_topic(topic_clean)}_elaboration"[:48],
@@ -459,7 +490,7 @@ def _write_step_artifact(
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
             ids: List[str] = []
-            if spec:
+            if spec and spec.get("question"):
                 ids.append(
                     memory_repo.upsert_education_mastery(
                         item_id=f"course_{slug_topic(topic_clean)}_{step_name}"[:48],
@@ -623,14 +654,16 @@ def _write_step_artifact(
 
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
-            mid = memory_repo.upsert_education_mastery(
-                item_id=f"course_{slug_topic(topic_clean)}_environment"[:48],
-                topic=topic_clean,
-                wiki_path=path,
-                prompt=str(grounded_env["question"]),
-                expected_answer=str(grounded_env["answer"]),
-                grade="unseen",
-            )
+            mid = None
+            if grounded_env.get("question"):
+                mid = memory_repo.upsert_education_mastery(
+                    item_id=f"course_{slug_topic(topic_clean)}_environment"[:48],
+                    topic=topic_clean,
+                    wiki_path=path,
+                    prompt=str(grounded_env["question"]),
+                    expected_answer=str(grounded_env["answer"]),
+                    grade="unseen",
+                )
             try:
                 from src.application.education.learner_model import LEARNER_ENTITY
 
@@ -645,7 +678,7 @@ def _write_step_artifact(
                 )
             except Exception:
                 pass
-            ledger = {"success": True, "count": 1, "item_ids": [mid]}
+            ledger = {"success": True, "count": 1 if mid else 0, "item_ids": [mid] if mid else []}
 
         return {
             "success": note_ok,
@@ -750,6 +783,9 @@ def complete_course_step(
             "item_ids": artifact.get("item_ids") or [],
             "tools_used": artifact.get("tools_used") or [],
             "grade_result": artifact.get("grade_result") or {},
+            "graded": artifact.get("graded"),
+            "grounding_skip_reason": artifact.get("grounding_skip_reason"),
+            "quiz_skip_reason": artifact.get("quiz_skip_reason"),
         }
 
     nxt = _next_step(steps, step)
@@ -782,6 +818,9 @@ def complete_course_step(
         "item_ids": artifact.get("item_ids") or [],
         "tools_used": artifact.get("tools_used") or [],
         "grade_result": artifact.get("grade_result") or {},
+        "graded": artifact.get("graded"),
+        "grounding_skip_reason": artifact.get("grounding_skip_reason"),
+        "quiz_skip_reason": artifact.get("quiz_skip_reason"),
     }
 
 

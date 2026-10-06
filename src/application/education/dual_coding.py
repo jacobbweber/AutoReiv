@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from src.application.education.grounded import (
     MAX_SOURCES,
+    avoid_block,
     call_model,
     find_sources,
     grounded_count,
@@ -88,6 +89,7 @@ async def compose_dual_coding(
     *,
     model: Optional[str] = None,
     timeout: Optional[float] = None,
+    avoid_questions: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Build grounded dual coding content for `topic`, or a skip with its reason (never a template)."""
     topic = (topic or "").strip()
@@ -97,7 +99,12 @@ async def compose_dual_coding(
     if gateway is None:
         return skip(topic, "model_unavailable", sources, "no model gateway")
 
-    user = f"Topic: {topic}\n\nThe learner's notes:\n\n{notes_block(sources)}\n\nReturn the JSON object now."
+    avoid = avoid_block(avoid_questions)  # CARD-650: don't ask what the ledger already asks
+    user = (
+        f"Topic: {topic}\n\nThe learner's notes:\n\n{notes_block(sources)}\n\n"
+        + (f"{avoid}\n\n" if avoid else "")
+        + "Return the JSON object now."
+    )
     reply = await call_model(gateway, SYSTEM_PROMPT, user, model=model, timeout=timeout)
     if "error" in reply:
         return skip(topic, "model_unavailable", sources, reply["error"])
