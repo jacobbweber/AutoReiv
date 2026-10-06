@@ -85,12 +85,12 @@ export default {
         await page.waitForTimeout(1500);
       }
       const hit = page.getByText(`Course Dual Coding: ${TOPIC}`).first();
-      if (await hit.isVisible().catch(() => false)) {
-        await hit.click();
-        await page.waitForTimeout(2000);
-      } else {
-        j.note('note title not visible in the Wiki list; screenshot shows the Wiki Studio');
-      }
+      // On a phone the list re-renders as the note opens, so check the opened note instead of the click.
+      if (await hit.isVisible().catch(() => false)) await hit.click({ timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(2000);
+      const opened = await page.getByText('Verbal Code').first().isVisible().catch(() => false);
+      j.note(`dual coding note open in the Wiki Studio: ${opened}`);
+      if (!opened) throw new Error('the dual coding note did not open in the Wiki Studio');
       await j.screenshot('dual-coding-note-in-wiki');
     }, { timeoutMs: 60000 });
   },
