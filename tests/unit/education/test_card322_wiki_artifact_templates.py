@@ -155,7 +155,11 @@ def test_req_edu_wiki_tpl_004_course_steps_produce_valid_template_frontmatter(tm
     )
 
     # 1. Complete priming
-    res_priming = complete_course_step(repo, course_id=course["course_id"], wiki_tools_or_store=tools)
+    from tests.unit.education._grounded_fixtures import GROUNDED_PRIMING
+
+    res_priming = complete_course_step(
+        repo, course_id=course["course_id"], wiki_tools_or_store=tools, composed=GROUNDED_PRIMING
+    )
     path_priming = wiki_root / res_priming["wiki_path"]
     meta_p, _ = FrontmatterParser.parse(path_priming.read_text(encoding="utf-8"))
     assert meta_p.template == "education-priming"

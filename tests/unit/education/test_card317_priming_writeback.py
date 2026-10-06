@@ -14,8 +14,8 @@ from src.application.education.priming import (
     PRIMING_LEARNER_ATTR,
     PRIMING_WIKI_TOOLS,
     assert_priming_tool_allowed,
+    build_grounded_priming_markdown,
     build_priming_ask_clause,
-    build_priming_schema_markdown,
     priming_writeback,
     seed_ledger_anchors_from_priming_note,
     soft_fail_unregistered_tool,
@@ -25,6 +25,7 @@ from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from tests.unit.agent_skills.catalog import bundled_skill_md
+from tests.unit.education._grounded_fixtures import GROUNDED_PRIMING
 
 
 def _assert_memory_db_path(db: Path) -> None:
@@ -55,17 +56,14 @@ def test_soft_fail_unregistered_does_not_abort():
     assert soft2["fail_soft"] is True
 
 
-def test_build_priming_schema_has_outline_and_quiz():
-    body = build_priming_schema_markdown(topic="Standing Jobs", teach_style="bite-size")
+def test_grounded_priming_markdown_has_key_ideas_sources_and_quiz():
+    body = build_grounded_priming_markdown(topic="Raft log replication", composed=GROUNDED_PRIMING)
+    assert "## Key ideas" in body
+    assert "AppendEntries carries entries to every follower" in body
+    assert "[[00_Inbox/raft-log-replication]]" in body
+    assert "## Quiz" in body and "When does the leader advance the commit index?" in body
     low = body.lower()
-    assert "## outline" in low
-    assert "## prerequisites" in low
-    assert "## learning goals" in low
-    assert "## quiz" in low
-    assert "wiki_note_create" in body
-    assert "never wiki_overview" in low
-    assert PRIMING_KIND in body
-    assert "memory.db" in body or "ledger" in low
+    assert "learning goals" not in low and "wiki_note_create" not in body and PRIMING_KIND not in body
 
 
 def test_writeback_wiki_and_ledger_anchors(tmp_path: Path):
@@ -84,8 +82,7 @@ def test_writeback_wiki_and_ledger_anchors(tmp_path: Path):
         topic="Standing Jobs",
         wiki_tools_or_store=tools,
         memory_repo=repo,
-        teach_style="schema first",
-        search_first=True,
+        composed=GROUNDED_PRIMING,
         attempt_forbidden_tools=["wiki_overview", "wiki_graph"],
     )
     assert result["success"] is True
@@ -101,7 +98,7 @@ def test_writeback_wiki_and_ledger_anchors(tmp_path: Path):
     assert note.get("success") is not False
     content = note.get("content") or ""
     assert "Standing Jobs" in content or "standing jobs" in content.lower()
-    assert "## Outline" in content
+    assert "## Key ideas" in content
     assert "## Quiz" in content
 
     ledger = result["ledger"]
@@ -129,6 +126,7 @@ def test_soft_fail_does_not_block_note_when_create_succeeds(tmp_path: Path):
         topic="Soft Fail Topic",
         wiki_tools_or_store=tools,
         memory_repo=repo,
+        composed=GROUNDED_PRIMING,
         attempt_forbidden_tools=["wiki_overview", "not_a_real_tool", "wiki_graph"],
     )
     assert result["success"] is True
@@ -149,6 +147,7 @@ def test_reopen_memory_db_preserves_topic_anchors(tmp_path: Path):
         topic="Restart Priming",
         wiki_tools_or_store=tools,
         memory_repo=repo1,
+        composed=GROUNDED_PRIMING,
     )
     assert result["success"] is True
     path = result["path"]
@@ -179,7 +178,7 @@ def test_seed_from_existing_note_body(tmp_path: Path):
     db = tmp_path / "assistant_memory.db"
     repo = AgentMemoryRepository(db_path=db)
     repo.initialize_schema()
-    body = build_priming_schema_markdown(topic="Seed Only")
+    body = build_grounded_priming_markdown(topic="Seed Only", composed=GROUNDED_PRIMING)
     out = seed_ledger_anchors_from_priming_note(
         repo,
         content=body,

@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-646: the priming course step now outlines a topic from your own wiki notes (one call to the configured model, checked against those notes and linking back to them); with no notes on the topic, no model, or an ungrounded answer it writes nothing instead of the same outline and 'In one sentence, what is X?' / 'Where should Priming write durable knowledge?' quiz items for every topic.
 - CARD-645: course notes no longer start with a run-on paragraph of tags, step and dates; that information lives in the note's properties, and each course note carries its own step as its document type instead of 'priming_schema'.
 - CARD-647: the analysis course step no longer adds a quiz question asking for its own pass rate and weak-item count (an app number that went stale with the next grade); it still writes your scorecard note and schedules your reviews.
 - CARD-641: course steps that have nothing real to write (retrieval, retention, custom) now just record your progress instead of saving a generic 'Course X' note, a 'What Learning OS step did you just complete' quiz item and a memory fact.

@@ -1464,6 +1464,20 @@ def _course_wiki_tools(request: Request):
     return WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
 
 
+async def _compose_current_step(request: Request, repo: Any, course_id: str, tools: Any) -> Optional[Dict[str, Any]]:
+    """Grounded content for the course's current step, built from the learner's wiki notes via one
+    model call [CARD-640, CARD-646]. None for steps that need none; a skip dict when it can't be grounded."""
+    from src.application.education.grounded_steps import compose_course_step
+
+    current = repo.get_education_course(course_id) or {}
+    return await compose_course_step(
+        getattr(request.app.state, "gateway", None),
+        tools,
+        current.get("topic_id") or "",
+        current.get("current_step") or "",
+    )
+
+
 @router.post("/api/education/course/complete-step")
 async def course_complete_step(request: Request, payload: CourseCompletePayload):
     """Complete current course step: Wiki + ledger anchors, advance [CARD-320, CARD-334]."""
@@ -1473,15 +1487,7 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
         raise HTTPException(status_code=400, detail="course_id is required")
     repo = _memory_repo(request, payload.agent_id)
     tools = _course_wiki_tools(request)
-    dual_coding = None
-    current = repo.get_education_course(payload.course_id) or {}
-    if (current.get("current_step") or "").strip().lower() == "dual_coding":
-        # CARD-640: grounded in the learner's wiki notes via one model call, or nothing is written.
-        from src.application.education.dual_coding import compose_dual_coding
-
-        dual_coding = await compose_dual_coding(
-            getattr(request.app.state, "gateway", None), tools, current.get("topic_id") or ""
-        )
+    composed = await _compose_current_step(request, repo, payload.course_id, tools)
     try:
         result = complete_course_step(
             repo,
@@ -1491,7 +1497,7 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
             learner_explanation=payload.learner_explanation,
             lab_submission=payload.lab_submission,
             knowledge_type=payload.knowledge_type,
-            dual_coding=dual_coding,
+            composed=composed,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

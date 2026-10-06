@@ -15,7 +15,7 @@ from src.application.education.learner_model import (
     summarize_learner_model,
 )
 from src.application.education.priming import (
-    build_priming_schema_markdown,
+    build_grounded_priming_markdown,
     priming_writeback,
     seed_ledger_anchors_from_priming_note,
 )
@@ -24,6 +24,7 @@ from src.application.education.srs import SRS_INTERVALS_DAYS
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+from tests.unit.education._grounded_fixtures import GROUNDED_PRIMING
 
 
 def _assert_memory_db_path(db: Path) -> None:
@@ -76,8 +77,7 @@ def test_priming_seeded_wrong_grade_sets_miss_and_next_due(tmp_path: Path):
         topic="CARD318 Retrieval",
         wiki_tools_or_store=tools,
         memory_repo=repo,
-        teach_style="schema first",
-        search_first=False,
+        composed=GROUNDED_PRIMING,
     )
     assert result["success"] is True
     ledger = result["ledger"]
@@ -116,7 +116,7 @@ def test_pass_advances_interval_stage(tmp_path: Path):
     repo.initialize_schema()
     now = datetime(2026, 9, 14, 14, 30, 0, tzinfo=timezone.utc)
 
-    body = build_priming_schema_markdown(topic="Pass Advance")
+    body = build_grounded_priming_markdown(topic="Pass Advance", composed=GROUNDED_PRIMING)
     seeded = seed_ledger_anchors_from_priming_note(
         repo,
         content=body,
@@ -155,7 +155,7 @@ def test_quiz_next_prefers_priming_unseen_over_strong_pass(tmp_path: Path):
     )
     repo.record_education_grade(item_id="edu_strong_pass", correct=True)
 
-    body = build_priming_schema_markdown(topic="Priming Prefer")
+    body = build_grounded_priming_markdown(topic="Priming Prefer", composed=GROUNDED_PRIMING)
     seeded = seed_ledger_anchors_from_priming_note(
         repo,
         content=body,
@@ -183,7 +183,7 @@ def test_restart_safe_same_row_and_learner_summary(tmp_path: Path):
 
     repo1 = AgentMemoryRepository(db_path=db)
     repo1.initialize_schema()
-    body = build_priming_schema_markdown(topic="Restart Safe")
+    body = build_grounded_priming_markdown(topic="Restart Safe", composed=GROUNDED_PRIMING)
     seeded = seed_ledger_anchors_from_priming_note(
         repo1,
         content=body,
@@ -272,7 +272,7 @@ def test_priming_unseen_outranks_other_unseen(tmp_path: Path):
         expected_answer="plain",
         grade="unseen",
     )
-    body = build_priming_schema_markdown(topic="Priming Prefer Unseen")
+    body = build_grounded_priming_markdown(topic="Priming Prefer Unseen", composed=GROUNDED_PRIMING)
     seeded = seed_ledger_anchors_from_priming_note(
         repo,
         content=body,

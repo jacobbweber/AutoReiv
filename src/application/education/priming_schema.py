@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict
 
 from src.application.safety.tool_policy_gate import (
     EDUCATION_FORBIDDEN_WIKI_TOOLS,
@@ -61,81 +60,28 @@ def topic_anchor_id(topic: str, wiki_path: str = "") -> str:
     return f"edu_prim_{digest}"
 
 
-def build_priming_schema_markdown(
-    *,
-    topic: str,
-    teach_style: str = "",
-    source_excerpts: Optional[Sequence[Dict[str, Any]]] = None,
-    now: Optional[datetime] = None,
-) -> str:
-    """Build Priming schema/outline note body with Quiz section for ledger seeding."""
-    topic_clean = (topic or "Untitled topic").strip() or "Untitled topic"
-    style = (teach_style or "schema first, then detail").strip()
-    base = now or datetime.now(timezone.utc)
-    if base.tzinfo is None:
-        base = base.replace(tzinfo=timezone.utc)
-    stamp = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    excerpts = list(source_excerpts or [])
+def _wikilink(path: str) -> str:
+    p = str(path or "").strip()
+    return p[:-3] if p.endswith(".md") else p
 
-    grounding_lines: List[str] = []
-    for ex in excerpts[:5]:
-        path = str(ex.get("path") or ex.get("wiki_path") or "").strip()
-        title = str(ex.get("title") or path or "note").strip()
-        snip = re.sub(r"\s+", " ", str(ex.get("snippet") or ex.get("content") or "").strip())[:180]
-        if path:
-            grounding_lines.append(f"- [[{path}|{title}]] - {snip or '(no snippet)'}")
-        elif snip:
-            grounding_lines.append(f"- {title}: {snip}")
-    if not grounding_lines:
-        grounding_lines.append("- (no prior Wiki grounding — primed from topic alone)")
 
-    outline = [
-        f"What is {topic_clean}?",
-        "Why it matters (AutoReiv / your vault)",
-        "Key parts / moving pieces",
-        "Prerequisites and priors",
-        "How you will prove understanding",
-    ]
+def build_grounded_priming_markdown(*, topic: str, composed: Dict[str, Any]) -> str:
+    """Priming note body from content grounded in the learner's own notes [CARD-646].
 
-    quiz_q1 = f"In one sentence, what is {topic_clean}?"
-    quiz_a1 = (
-        f"{topic_clean} is a durable concept learned via Priming schema "
-        "(outline + prerequisites + goals) before deep detail."
-    )
-    quiz_q2 = f"Where should Priming write durable knowledge for {topic_clean}?"
-    quiz_a2 = "Wiki schema/outline note and memory.db ledger anchors"
-
-    parts = [
-        f"# Priming: {topic_clean}",
-        "",
-        f"> Generated {stamp} — teach style: {style}",
-        f"> Kind: {PRIMING_KIND}",
-        "> Tools: wiki_note_search / wiki_note_list / wiki_note_read / wiki_note_create only (never wiki_overview)",
-        "",
-        "## Grounding",
-        "\n".join(grounding_lines),
-        "",
-        "## Outline",
-        "\n".join(f"- {b}" for b in outline),
-        "",
-        "## Prerequisites",
-        "- Ability to open Wiki notes in Education Studio",
-        "- Willing to retrieve later (quiz) instead of chat-only toast",
-        "",
-        "## Learning goals",
-        f"- Activate priors for {topic_clean} before deep detail",
-        f"- Hold a clear outline of {topic_clean} in Wiki",
-        "- Leave ledger anchors in memory.db so Retrieval can practice the same topic",
-        "",
-        "## Quiz",
-        f"- Q: {quiz_q1}",
-        f"  A: {quiz_a1}",
-        f"- Q: {quiz_q2}",
-        f"  A: {quiz_a2}",
-        "",
-        "## Done-when",
-        f"- Priming schema note exists in Wiki for \"{topic_clean}\" (outline + prerequisites + goals)",
-        "- Ledger anchors for the topic exist in agent memory.db (education_mastery and/or learner facts)",
-        "",
-    ]
+    `composed` comes from `grounded_steps.compose_step_content(..., "priming")`; there is no template.
+    """
+    topic_clean = (topic or "").strip()
+    outline = [str(i) for i in (composed.get("outline") or []) if str(i).strip()]
+    prereqs = [str(i) for i in (composed.get("prerequisites") or []) if str(i).strip()]
+    sources = [s for s in (composed.get("sources") or []) if isinstance(s, dict) and s.get("path")]
+    parts = [f"# Priming: {topic_clean}", "", "## Key ideas", *(f"- {i}" for i in outline), ""]
+    if prereqs:
+        parts += ["## Before you start", *(f"- {i}" for i in prereqs), ""]
+    if sources:
+        parts += [
+            "## Sources",
+            *(f"- [[{_wikilink(s['path'])}]] {s.get('title') or ''}".rstrip() for s in sources),
+            "",
+        ]
+    parts += ["## Quiz", f"- Q: {composed['question']}", f"  A: {composed['answer']}", ""]
     return "\n".join(parts)
