@@ -55,3 +55,6 @@ Near-identical quiz items from one course. Items already in a learner's ledger a
 
 ## Release note
 A course no longer fills your quiz with near-identical questions: each step is told which questions you already have, and a question that still repeats one is left out (the step's note is kept).
+
+## Follow-up (course-filler-3 live check, 2026-10-06)
+The dropped question was invisible, so a reviewer could not tell a real repeat from an over-eager match. Course results now carry `quiz_duplicate` (the dropped question and the existing prompt it repeats), and the full-course journey prints it. One test added.
