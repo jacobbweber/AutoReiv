@@ -174,6 +174,18 @@ def _nothing_written(step_name: str, reason: str, knowledge_type: Optional[str] 
     }
 
 
+def _course_note_meta(step_name: str, topic: str) -> Dict[str, Any]:
+    """Front matter for a course step note: its own document type plus kind/step/topic [CARD-645]."""
+    return {
+        "document_type": f"course_{step_name}",
+        "extra_frontmatter": {
+            "kind": "education_course_step",
+            "step": step_name,
+            "course_topic": topic,
+        },
+    }
+
+
 def _write_step_artifact(
     *,
     step: str,
@@ -247,11 +259,6 @@ def _write_step_artifact(
         steps_md = "\n".join(f"- {i}. {s}" for i, s in enumerate(composed.get("steps") or [], start=1))
         content = (
             f"# {title}\n\n"
-            f"tags: [education, course, dual_coding]\n"
-            f"kind: education_course_step\n"
-            f"step: dual_coding\n"
-            f"topic: {topic_clean}\n"
-            f"created: {stamp}\n\n"
             f"## Verbal Code\n"
             f"{composed['prose']}\n\n"
             f"## Visual Code\n"
@@ -267,6 +274,7 @@ def _write_step_artifact(
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
             wiki_tools_or_store,
+            **_course_note_meta(step_name, topic_clean),
             title=title,
             content=content,
             topic=topic_clean,
@@ -332,6 +340,7 @@ def _write_step_artifact(
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
             wiki_tools_or_store,
+            **_course_note_meta(step_name, topic_clean),
             title=title,
             content=content,
             topic=topic_clean,
@@ -425,6 +434,7 @@ def _write_step_artifact(
         tpl = get_template_for_step(step_name)
         create_res = create_study_artifact_note(
             wiki_tools_or_store,
+            **_course_note_meta(step_name, topic_clean),
             title=title,
             content=content,
             topic=topic_clean,
@@ -512,6 +522,7 @@ def _write_step_artifact(
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
             wiki_tools_or_store,
+            **_course_note_meta(step_name, topic_clean),
             title=title,
             content=content,
             topic=topic_clean,
@@ -592,6 +603,7 @@ def _write_step_artifact(
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
             wiki_tools_or_store,
+            **_course_note_meta(step_name, topic_clean),
             title=title,
             content=content,
             topic=topic_clean,

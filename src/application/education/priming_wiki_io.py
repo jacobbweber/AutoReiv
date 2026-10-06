@@ -62,6 +62,8 @@ def create_priming_note(
     tags: Optional[Sequence[str]] = None,
     summary: str = "",
     template: Optional[str] = "education-priming",
+    document_type: str = "priming_schema",
+    extra_frontmatter: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Stage Priming schema via wiki_note_create (One-Door to 00_Inbox/)."""
     assert_priming_tool_allowed("wiki_note_create")
@@ -76,6 +78,7 @@ def create_priming_note(
     if clean_template not in tag_list:
         tag_list.append(clean_template)
 
+    extra_fm = dict(extra_frontmatter or {})  # CARD-645: course step metadata goes to front matter
     topic_slug = slug_topic(topic)
     summary_text = summary or f"Priming schema for {topic}"
     try:
@@ -88,9 +91,9 @@ def create_priming_note(
                 category="inbox",
                 tags=tag_list,
                 summary=summary_text,
-                document_type="priming_schema",
+                document_type=document_type,
                 template=clean_template,
-                extra_frontmatter={"template": clean_template},
+                extra_frontmatter={**extra_fm, "template": clean_template},
             )
         elif hasattr(wiki_tools_or_store, "file_note"):
             result = wiki_tools_or_store.file_note(
@@ -101,9 +104,9 @@ def create_priming_note(
                 category="inbox",
                 tags=tag_list,
                 summary=summary_text,
-                document_type="priming_schema",
+                document_type=document_type,
                 status="inbox",
-                extra_meta={"template": clean_template},
+                extra_meta={**extra_fm, "template": clean_template},
             )
         else:
             return {
