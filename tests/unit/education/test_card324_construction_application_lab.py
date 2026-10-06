@@ -26,7 +26,6 @@ from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.web.app import app
 
-
 # A lab as `grounded_steps.compose_step_content(..., "construction")` returns it from a learner's
 # consistent hashing notes [CARD-643]; the old fixed per-topic lab is gone.
 HASH_LAB = {
