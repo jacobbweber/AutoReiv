@@ -56,8 +56,8 @@ A course on a note keeping one quiz item because the model asks the same questio
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2692 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 Course steps that come back with a quiz question you've already been asked now ask the model once more for a different one, so a course on your note saves several distinct quiz questions instead of one.
