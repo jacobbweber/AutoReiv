@@ -11,7 +11,7 @@ const TOPIC = 'TCP three-way handshake';
 
 async function post(request, url, data) {
   const res = await request.post(url, { data });
-  let body = null;
+  let body;
   try { body = await res.json(); } catch { body = null; }
   return { status: res.status(), body };
 }

@@ -17,7 +17,7 @@ export function calculateEstimatedDuration(narrationText, postSpeechPauseMs = PO
   return Math.max(minDurationMs, estimatedSpeechMs + postSpeechPauseMs);
 }
 
-export function initLuminaStudio(state, callbacks = {}) {
+export function initLuminaStudio(state, _callbacks = {}) {
 
   // Studio Containers
   const composeView = $('luminaComposeView');
