@@ -65,3 +65,29 @@ def test_single_term_criterion_needs_that_term():
     ok = "The leader sends heartbeats on a timer so followers do not start an election while it is alive."
     assert _grade(ok, crit)["passed"] is True
     assert _grade("The leader sends periodic messages so that followers stay quiet while it lives.", crit)["passed"] is False
+
+
+# Follow-up from the course-filler-3 live check: Spark phrases criteria as "The response states ..." and
+# adds negative checks ("The response does not mention acceptance when the term check fails"). Rubric
+# words are not topic terms, and a "does not" criterion cannot be shown by covering its words.
+SPARK_CRITERIA = [
+    "The response states the follower's log term at the previous index differs from the leader's term.",
+    "The response states the follower rejects the AppendEntries message.",
+    "The response states the leader retries with an earlier index after rejection.",
+    "The response does not mention acceptance when the term check fails.",
+]
+LIVE_SUBMISSION = (
+    "My Raft log replication lab: the leader appends each client command to its log with the current term and sends "
+    "AppendEntries with the previous log index and term to every follower. A follower rejects entries when its log has "
+    "no entry at the previous index with the same term, and the leader retries with an earlier index."
+)
+
+
+def test_rubric_words_and_negative_checks_do_not_fail_a_real_submission():
+    res = _grade(LIVE_SUBMISSION, SPARK_CRITERIA)
+    assert res["passed"] is True, res["feedback"]
+
+
+def test_rubric_phrased_criteria_still_need_their_topic_terms():
+    res = _grade("My lab response states things and mentions the response clearly, as the response should state.", SPARK_CRITERIA)
+    assert res["passed"] is False
