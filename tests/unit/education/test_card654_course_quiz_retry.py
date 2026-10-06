@@ -127,3 +127,18 @@ def test_only_one_extra_call_per_step(env):
     gateway = SeqGateway(_reply(ENV, ASKED), _reply(ENV, ASKED), _reply(ENV, NEW))
     _compose(gateway, tools)
     assert len(gateway.requests) == 2
+
+
+def test_the_retry_names_the_earlier_answer_and_asks_for_a_different_sentence(env):
+    # Live follow-up: a retry that only named the earlier question still came back on the same fact in
+    # 3 of 4 steps; naming the earlier answer and asking for a different sentence of the notes got a new
+    # question in 12 of 12 probe replies (vs 9 of 12).
+    _, tools, _ = env
+    gateway = SeqGateway(_reply(ENV, ASKED), _reply(ENV, NEW))
+    out = asyncio.run(compose_course_step(
+        gateway, tools, TOPIC, "environment",
+        duplicate_of=lambda q, a: ASKED if "follower's log" in q else None,
+    ))
+    note = gateway.requests[1].messages[-1].content
+    assert ASKED[0] in note and ASKED[1] in note and "different sentence" in note
+    assert out["question"] == NEW[0] and out["quiz_retry"] == "new_question"
