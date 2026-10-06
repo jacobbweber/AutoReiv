@@ -66,8 +66,17 @@ def _needed(term_count: int) -> int:
 
 
 def criterion_in_notes(text: str, note_vocab: set) -> bool:
-    """True when enough of the criterion's key terms appear in the notes [CARD-655]."""
-    return True  # stub: keep every criterion until the filter is wired
+    """True when enough of the criterion's key terms appear in the notes [CARD-655].
+
+    Same generous-but-not-trivial bar as the grader: about half the key terms (at least two when
+    there are two or more) must be in the notes. A criterion that names a note term and invents the
+    rest ("The follower responds ... indicating success") is dropped when the lab is written.
+    """
+    terms = _key_terms(text)
+    if not terms:
+        return False
+    hit = sum(1 for w in terms if _stem(w) in note_vocab)
+    return hit >= _needed(len(terms))
 
 def grade_lab_submission(
     *,

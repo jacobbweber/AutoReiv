@@ -124,8 +124,9 @@ STEP_SPECS: Dict[str, StepSpec] = {
                 + _RULES
                 + '"objective" (one sentence using concrete terms from the notes), '
                 '"tasks" (3 to 5 short concrete steps the learner does), '
-                '"criteria" (2 to 4 checkable statements a correct submission must cover, each naming a '
-                "concrete term from the notes), "
+                '"criteria" (2 to 4 checkable statements a correct submission must cover; each statement must '
+                "be a fact stated in the notes, naming concrete terms from the notes — do not invent outcomes, "
+                "responses or checks the notes do not describe), "
                 '"question" (one question the learner can answer from the notes), '
                 '"answer" (the short answer, taken from the notes).'
             ),
@@ -133,6 +134,8 @@ STEP_SPECS: Dict[str, StepSpec] = {
             texts=(("objective", 1), ("question", 0), ("answer", 1)),
             main_list="tasks",
             main_min_grounded=3,
+            # CARD-655: criteria that invent facts not in the notes are dropped; keep 2+.
+            filtered_lists=("criteria",),
         )
         for lab_step in ("construction", "application")
     },
@@ -243,7 +246,16 @@ async def compose_step_content(
             vocab = source_vocab(sources) | (vocab_of([learner]) if learner else set())
             topic_stems = {stem(w) for w in topic_keywords(topic)}
             for key in spec.filtered_lists:
-                content[key] = [i for i in content.get(key) or [] if grounded_count(i, vocab, topic_stems) >= 1]
+                if key == "criteria":
+                    # CARD-655: drop criteria whose key terms are mostly not in the notes.
+                    from src.application.education.labs import criterion_in_notes
+
+                    content[key] = [i for i in content.get(key) or [] if criterion_in_notes(i, vocab)]
+                else:
+                    content[key] = [i for i in content.get(key) or [] if grounded_count(i, vocab, topic_stems) >= 1]
+            for key, lo, _hi in spec.lists:
+                if key in spec.filtered_lists and len(content.get(key) or []) < lo:
+                    return None, f"too few {key}"
         return content, None
 
     content, problem = build(reply["text"])
