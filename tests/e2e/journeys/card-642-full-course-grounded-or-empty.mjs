@@ -85,7 +85,7 @@ async function checkNote(j, request, base, topic, step, path) {
 }
 
 export default {
-  id: 'course-filler-2-full-course-grounded-or-empty',
+  id: 'card-642-full-course-grounded-or-empty',
   card: 'CARD-642',
   title: 'A full course with and without topic notes writes no template quiz items or generic notes',
   async run(j, { page, request, base }) {
@@ -123,11 +123,17 @@ export default {
         const { body } = await checkNote(j, request, base, BARE, step, d.wiki_path);
         const own = step === 'elaboration' ? EXTRA(BARE).elaboration.learner_explanation : SUBMISSION(BARE);
         if (!body.includes(own.slice(0, 60))) throw new Error(`${step} note does not hold the learner's own text`);
-        if (/^## (Quiz|Objective|Tasks|Questions to push further)/m.test(body)) throw new Error(`${step} note has invented sections`);
+        // Elaboration may add probes and a quiz item grounded in the learner's own explanation (CARD-644); labs may not invent anything.
+        const invented = step === 'elaboration' ? /^## (Objective|Tasks)/m : /^## (Quiz|Objective|Tasks|Questions to push further)/m;
+        if (invented.test(body)) throw new Error(`${step} note has invented sections`);
       }
       if (bare.analysis.wiki_path) await checkNote(j, request, base, BARE, 'analysis', bare.analysis.wiki_path);
       const items = ((await getJson(request, `${base}/api/education/mastery?agent_id=${AGENT}`)).items || []).filter((r) => r.topic === BARE);
-      if (items.length) throw new Error(`quiz items were written for a topic with no notes: ${items.map((r) => r.prompt).join(' | ')}`);
+      const words = (t) => new Set(String(t).toLowerCase().match(/[a-z]{4,}/g) || []);
+      const own = words(EXTRA(BARE).elaboration.learner_explanation);
+      const foreign = items.filter((r) => !String(r.item_id).includes('elaboration') || ![...words(r.expected_answer)].some((w) => own.has(w)));
+      j.note(`[${BARE}] quiz items: ${items.map((r) => `${r.item_id}: ${r.prompt} -> ${r.expected_answer}`).join(' | ') || 'none'}`);
+      if (foreign.length) throw new Error(`quiz items not grounded in the learner's own words for a topic with no notes: ${foreign.map((r) => r.prompt).join(' | ')}`);
     }, { timeoutMs: 600000 });
 
     await j.step('No template quiz items or generic course notes exist anywhere', async () => {

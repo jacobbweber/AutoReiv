@@ -7,7 +7,7 @@ priority: P2
 milestone: M23
 needs_decision: none
 proof:
-  journeys: [course-filler-2-full-course-grounded-or-empty]
+  journeys: [card-642-full-course-grounded-or-empty]
   checks: [tests/unit/education/test_card642_grounded_environment.py]
 branch: feat/card-642-grounded-environment
 log: {minutes: 25, qa_runs: 1, findings: 5}
@@ -37,7 +37,7 @@ The environment step writes only content about the topic and Jacob's real setup,
 - `environment.py`: `build_environment_framing` (the same framing text for every topic) removed; `build_environment_note_content(topic, composed, profile)` writes the profile line, Where to practise, Sources and Quiz from the grounded content.
 - `course.py`: the environment writer records progress only unless the step is grounded; its quiz item is the grounded question.
 - Router: `/course/environment/preview` returns grounded content (with `profile`) or the skip reason; `environment/complete` composes the current step.
-- New journey `course-filler-2-full-course-grounded-or-empty` runs a whole course with and without topic notes and checks every written note and quiz item against the retired templates.
+- New journey `card-642-full-course-grounded-or-empty` runs a whole course with and without topic notes and checks every written note and quiz item against the retired templates.
 
 ## What dies
 The per-topic environment framing note and the "What delivery profile and runtime constraints frame learning for X?" quiz item. Items already in a learner's ledger are left alone.
@@ -45,7 +45,7 @@ The per-topic environment framing note and the "What delivery profile and runtim
 ## Proof
 - Checks (failing first): template framing gone; no notes records progress only; template and ungrounded replies refused; a grounded reply writes a note with practice, profile line, source link and one grounded quiz item; environment preview API never returns a template.
 - Spark probe (nemotron-3.5-lightning, 3 runs on a Raft note): all grounded and accepted.
-- Live: full-course check on :8770 after merge.
+- Live (2026-10-05 23:58 ET, :8770, Spark nemotron-3.5-lightning, desktop): card-642-full-course-grounded-or-empty PASS. Topic with a note: dual coding, elaboration, both labs and environment grounded in the note (priming skipped, model_output_invalid, filed as CARD-653); retrieval/retention progress only. Topic without notes: priming, dual coding and environment wrote nothing (no_wiki_notes); elaboration and labs kept only the learner's own text (one quiz item from the learner's explanation); no template quiz items or notes anywhere. Screenshots in %TEMP%\autoreiv-qa\course-filler-2.
 
 ## Findings
 Filed as backlog CARD-648 to CARD-652: construction/generate template study artifact; lenient lab grader; near-duplicate quiz questions across grounded steps; growth portfolio template lines and self-quiz; knowledge-artifact template sections.

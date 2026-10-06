@@ -7,7 +7,7 @@ priority: P3
 milestone: M23
 needs_decision: none
 proof:
-  journeys: [course-filler-2-full-course-grounded-or-empty]
+  journeys: [card-642-full-course-grounded-or-empty]
   checks: [tests/unit/education/test_card645_course_note_front_matter.py]
 branch: feat/card-645-course-note-front-matter
 log: {minutes: 20, qa_runs: 0, findings: 0}
