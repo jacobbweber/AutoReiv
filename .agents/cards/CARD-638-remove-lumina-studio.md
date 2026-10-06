@@ -2,7 +2,8 @@
 id: CARD-638
 title: "Remove Lumina Studio completely"
 type: chore
-status: Ready
+status: Done
+completed: 2026-10-05
 priority: P2
 milestone: M23
 needs_decision: none
@@ -10,7 +11,7 @@ proof:
   journeys: [card-638-lumina-removed]
   checks: [tests/unit/frontend/card_638_lumina_removed.test.js, tests/unit/education/test_card638_lumina_removed.py]
 branch: feat/card-638-remove-lumina-studio
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 50, qa_runs: 1, findings: 2}
 created: 2026-10-05
 related:
   - CARD-328
@@ -27,7 +28,7 @@ Jacob reviewed the Lumina assessment and chose to abandon Lumina Studio. Its exp
 AutoReiv has no Lumina Studio: no dock icon, no window or tab, no Lumina front-end files, no `/api/lumina/*` routes, no built-in Lumina lessons, no Lumina styles, settings, docs references or tests. This is a development-only clean removal with no migration.
 
 ## Change
-- Remove the Lumina dock icon, desktop window registration, presets entry and theme entries (`agent-desktop.js`, `agent_desktop/presets.js`, `theme-engine.js`).
+- Remove the Lumina dock icon, header tab, desktop window registration and presets entry (`agent-desktop.js`, `agent_desktop/presets.js`). `theme-engine.js` only mentions "luminance", a colour term, and is unchanged.
 - Remove the Lumina view markup in `index.html`, the Lumina wiring in `app.js`, and `src/web/static/modules/lumina/` plus `src/web/static/modules/studios/lumina.js`.
 - Remove the Lumina rules in `desktop.css` and `studios.css`.
 - Remove `/api/lumina/starters`, `/api/lumina/lesson/{id}`, `/api/lumina/compose` and `/api/lumina/send-to-course` from `routers/education.py`, and `src/application/education/lumina.py` with its built-in lessons.
@@ -46,10 +47,23 @@ Lumina Studio, its four built-in lessons (photosynthesis, black holes, neural ne
 - Built after CARD-639, which removes the only other user of `lumina.py` (the course amplifier step), so each merge leaves a working system.
 
 ## Findings
+- No Lumina settings existed, and Lumina lessons were never stored, so nothing in the data directory needed cleaning. The live data check (read only) found no Lumina rows in the four agent memory databases or `database\autoreiv.db`, and no Lumina note in the wiki.
+- The `/api/lumina/send-to-course` route and its button had already gone in CARD-639.
+- Historical mentions stay in `docs/archive_artifacts/`, older cards and the CHANGELOG; the two ADRs and the Learning OS inventory now say Lumina was removed.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-638-lumina-removed | desktop | pass | live_qa :8770; dock has 11 launchers (Chat ... Education), no Lumina; no `#dock-lumina`, `#tab-lumina`, `#view-lumina`; a saved layout naming the Lumina window reloads with no console error and no Lumina window; the four `/api/lumina/*` routes answer 404; Education opens |
+| card-638-lumina-removed | phone | pass | same |
+| card-639-course-skips-amplifier-step | desktop + phone | pass | re-run on this branch: course goes environment > retention, no filler |
+| tests | - | pass | education + skills 231 passed; vitest 1091 (lumina_studio suite removed, 5 new checks) |
+| preflight --fast --base qa | - | GREEN | ruff, eslint, guard 188, vitest 1091 |
+
+Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\lumina-removed\`
+- `card-638-lumina-removed-desktop-dock.png`
+- `card-638-lumina-removed-phone-dock.png`
+- `card-638-lumina-removed-desktop-04-education-opens.png`
 
 ## Release note
 Lumina Studio is removed: the dock icon, its window, its built-in lessons and its `/api/lumina/*` routes are gone.

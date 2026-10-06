@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-638: Lumina Studio is removed: its dock icon, header tab, window, built-in lessons, styles and the /api/lumina/* routes are gone. A saved desktop layout that still lists the Lumina window opens without it.
 - CARD-639: Education courses no longer have a visual amplifier step, so they stop writing generic 'visual amplifier' wiki notes and quiz items; a course already on that step moves straight to retention. The Lumina 'Send to Education Course' button is gone.
 - CARD-637: Routines Studio's Agent filter starts on All agents and keeps it, instead of snapping back to the first agent and hiding every other agent's routines.
 - CARD-636: shipped routines are cut to five that run overnight on New York time (SRE pulse 2:00, education retention 2:30, wiki curation 3:00, weekly note rollover Mondays 4:00, telemetry and skill audit 4:30). Daily System Info, Morning Briefing, Nightly Hygiene and the two paused skill routines are removed with their run history, and a shipped routine you delete stays deleted.

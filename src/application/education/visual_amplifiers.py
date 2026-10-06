@@ -3,7 +3,6 @@
 Dual Coding Mermaid / step-through deepens real quiz/mastery pedagogy.
 An amplifier NEVER ships without a Retrieval path (item_id + mastery ledger).
 Amplifiers without Retrieval = edutainment and are refused.
-Lumina / concept-player film is OUT of P0.
 """
 
 from __future__ import annotations
@@ -181,7 +180,6 @@ def extract_amplifiers_from_note(
                 "retrieval_required": True,
                 "item_id": None,
                 "shippable": False,
-                "lumina_film": False,
             }
         )
     # Explicit step-through without Mermaid still needs a diagram OR is incomplete;
@@ -204,7 +202,6 @@ def extract_amplifiers_from_note(
                     "retrieval_required": True,
                     "item_id": None,
                     "shippable": False,
-                    "lumina_film": False,
                 }
             )
     return amplifiers
@@ -252,7 +249,6 @@ def attach_amplifier_to_retrieval(
     attached["shippable"] = True
     attached["retrieval_required"] = True
     attached["retrieval_path"] = "mastery_ledger_quiz"
-    attached["lumina_film"] = False
     attached["attached_at"] = _iso_now(now)
 
     fact_id = _fact_id_for_item(item_id)
@@ -266,7 +262,6 @@ def attach_amplifier_to_retrieval(
             "steps": attached.get("steps") or [],
             "attached_at": attached["attached_at"],
             "retrieval_path": "mastery_ledger_quiz",
-            "lumina_film": False,
         },
         ensure_ascii=False,
     )
@@ -334,7 +329,6 @@ def get_amplifier_for_item(repo: Any, item_id: str) -> Optional[Dict[str, Any]]:
     payload["fact_id"] = fact_id
     payload["shippable"] = True
     payload["retrieval_required"] = True
-    payload["lumina_film"] = False
     return payload
 
 
@@ -374,7 +368,6 @@ def amplify_quiz_items(
         "amplified_count": with_amp,
         "count": len(amplified),
         "retrieval_required": True,
-        "lumina_film": False,
         "replaces_srs": False,
         "replaces_ledger": False,
     }
@@ -397,7 +390,7 @@ def build_amplifier_ask_clause(amplifier: Optional[Dict[str, Any]] = None) -> st
     if not amplifier or not amplifier.get("item_id"):
         return (
             " Visual amplifiers: only attach Mermaid/step-through to Retrieval-backed quiz items;"
-            " never ship visuals-only (edutainment guard CARD-249). Lumina film is OUT."
+            " never ship visuals-only (edutainment guard CARD-249)."
         )
     steps = amplifier.get("steps") or []
     step_bit = ""
@@ -409,13 +402,12 @@ def build_amplifier_ask_clause(amplifier: Optional[Dict[str, Any]] = None) -> st
         f" `{amplifier.get('item_id')}` (kind={amplifier.get('kind')})."
         f" Show Mermaid Dual Coding visual beside the quiz prompt; do not skip Retrieval."
         f"{step_bit}"
-        " Lumina / concept-player film is OUT of P0."
         " Do NOT change next_due / interval_stage / Routine->Job SRS based on the amplifier."
     )
 
 
 def assert_amplifier_does_not_touch_srs(module_source: Optional[str] = None) -> bool:
-    """Static guard: amplifiers must not own SRS/due writes or Lumina film runtime."""
+    """Static guard: amplifiers must not own SRS/due writes or a concept-player film runtime."""
     src = module_source
     if src is None:
         import src.application.education.visual_amplifiers as mod
@@ -450,17 +442,12 @@ def assert_amplifier_does_not_touch_srs(module_source: Optional[str] = None) -> 
     for bit in banned_bits:
         if bit in low:
             return False
-    # Lumina / concept-player film runtime is OUT of P0. Docs + lumina_film:False flags OK;
-    # ban actual imports / player wiring only.
-    runtime_lumina = (
-        r"from\s+[\w.]*lumina",
-        r"import\s+[\w.]*lumina",
+    # A concept-player film runtime is out of scope; ban player wiring only.
+    runtime_player = (
         r"concept_player\s*\(",
         r"ConceptPlayer",
-        r"lumina_film_player",
-        r"play_lumina",
     )
-    for pat in runtime_lumina:
+    for pat in runtime_player:
         if re.search(pat, src_wo_guard, re.IGNORECASE):
             return False
     return True
@@ -491,7 +478,6 @@ def summarize_amplifiers(repo: Any, *, limit: int = 50) -> Dict[str, Any]:
         "amplifiers": facts,
         "count": len(facts),
         "retrieval_required": True,
-        "lumina_film": False,
         "replaces_srs": False,
         "replaces_ledger": False,
     }

@@ -29,7 +29,6 @@ const PRIORITY_TABS = [
   'settings',
   'prompts',
   'education',
-  'lumina',
 ];
 
 /**

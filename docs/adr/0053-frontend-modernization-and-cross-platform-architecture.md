@@ -10,7 +10,7 @@
 
 ## 1. Context & Problem Statement
 
-AutoReiv has grown from a simple single-page web view into a rich, autonomous personal agent operating system featuring 11 integrated studios (Chat, Wiki, Projects, Agents/Forge, Factory, Routines, Observability, Settings, Prompts, Education, Lumina), real-time Server-Sent Event (SSE) token streaming at 60–120 tokens/sec, an OS-style multi-window desktop environment, and Human-in-the-Loop (HITL) approval workflows.
+AutoReiv has grown from a simple single-page web view into a rich, autonomous personal agent operating system featuring 11 integrated studios (Chat, Wiki, Projects, Agents/Forge, Factory, Routines, Observability, Settings, Prompts, Education, Lumina; Lumina was later removed in CARD-638), real-time Server-Sent Event (SSE) token streaming at 60–120 tokens/sec, an OS-style multi-window desktop environment, and Human-in-the-Loop (HITL) approval workflows.
 
 However, the presentation layer suffers from fundamental architectural debt inherited from early rapid prototyping:
 

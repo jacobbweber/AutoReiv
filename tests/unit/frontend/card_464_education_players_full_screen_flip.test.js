@@ -167,7 +167,7 @@ describe('CARD-464 Education Studio players', () => {
 
 describe('CARD-464 page layout', () => {
   const html = loadPageHtml();
-  const section = html.slice(html.indexOf('id="view-education"'), html.indexOf('<!-- ==================== VIEW: LUMINA'));
+  const section = html.slice(html.indexOf('id="view-education"'), html.indexOf('<!-- ==================== VIEW 9: CAPABILITIES'));
   const opStart = section.indexOf('id="educationOperatorConsole"');
   const playersStart = section.indexOf('id="educationPlayersConsole"');
 

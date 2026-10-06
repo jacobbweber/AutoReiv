@@ -34,7 +34,7 @@ const REMOVED_IDS = [
 
 function educationSection(html) {
   const start = html.indexOf('id="view-education"');
-  const end = html.indexOf('<!-- ==================== VIEW: LUMINA');
+  const end = html.indexOf('<!-- ==================== VIEW 9: CAPABILITIES');
   expect(start).toBeGreaterThan(-1);
   expect(end).toBeGreaterThan(start);
   return html.slice(start, end);
