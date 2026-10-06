@@ -2,7 +2,8 @@
 id: CARD-640
 title: "Dual coding course step is built from your wiki notes on the topic, or writes nothing"
 type: bug
-status: Ready
+status: Done
+completed: 2026-10-05
 priority: P1
 milestone: M23
 needs_decision: none
@@ -10,7 +11,7 @@ proof:
   journeys: [card-640-dual-coding-grounded-or-skipped]
   checks: [tests/unit/education/test_card640_grounded_dual_coding.py]
 branch: feat/card-640-grounded-dual-coding
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 60, qa_runs: 2, findings: 1}
 created: 2026-10-05
 related:
   - CARD-321
@@ -46,10 +47,20 @@ The fixed dual coding paragraph, the fixed four-box diagram and the "two represe
 - Engineering call: ground in wiki notes plus one model call, and skip whenever grounding is not possible. No fallback template.
 
 ## Findings
+- Course step notes put their metadata lines (tags, kind, step, topic, created) in the note body, so the Wiki shows them as one run-on paragraph, and the Wiki meta line calls a dual coding note `priming_schema`. True of every course step note, not just dual coding. Filed as backlog CARD-645.
+- First live run: the phone Wiki step timed out on a click while the note was already open (the list re-renders). The journey now checks the opened note; second run green.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-640-dual-coding-grounded-or-skipped | desktop | pass | live_qa :8770 with Spark nemotron-3.5-lightning. "Bloom filter false positives" (no notes): skip_reason no_wiki_notes, nothing written, course moves to retrieval. After adding a Raft note: dual coding written in 3 s, explanation and flowchart (Leader, Followers, AppendEntries, accept if previous index matches) taken from the note, links `[[00_Inbox/raft_log_replication]]`; quiz "What condition must a follower's log satisfy to accept an AppendEntries message from the leader?"; note opens in the Wiki Studio |
+| card-640-dual-coding-grounded-or-skipped | phone | pass | same |
+| tests/unit/education + skills | - | pass | 615 passed (10 new checks, failing first; CARD-321 and CARD-322 tests now hand in grounded content) |
+| preflight --fast --base qa | - | GREEN | ruff, eslint, guard 188, vitest 1091 |
+
+Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\course-filler\card-640\`
+- `card-640-dual-coding-grounded-or-skipped-desktop-03-the-note-shows-in-the-wiki-studio.png`
+- `card-640-dual-coding-grounded-or-skipped-phone-03-the-note-shows-in-the-wiki-studio.png`
 
 ## Release note
 The dual coding course step now builds its explanation, diagram and quiz question from your own wiki notes on the topic; when you have no notes on it, or the model cannot produce a grounded answer, it writes nothing instead of a generic template.
