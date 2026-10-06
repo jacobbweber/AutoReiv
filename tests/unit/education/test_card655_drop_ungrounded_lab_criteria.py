@@ -15,8 +15,7 @@ import pytest
 from src.application.education.course import complete_course_step, start_or_resume_course
 from src.application.education.grounded_steps import compose_step_content
 from src.application.education.labs import criterion_in_notes, grade_lab_submission
-from src.domain.wiki.frontmatter import FrontmatterParser
-from tests.unit.education._grounded_fixtures import TOPIC, FakeGateway, USER_NOTE, add_note, make_env
+from tests.unit.education._grounded_fixtures import TOPIC, USER_NOTE, FakeGateway, add_note, make_env
 
 # Live Spark criterion that failed a correct submission (CARD-654 live check, 2026-10-06 11:40 ET).
 LIVE_INVENTED = "The follower responds with an AppendEntries response indicating success."
