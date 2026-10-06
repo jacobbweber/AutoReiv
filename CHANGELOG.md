@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Course labs drop grading criteria whose key terms are mostly not in your notes, so a submission that covers what you wrote is graded against facts your notes actually state [CARD-655].
 - When a course step's quiz question repeats a saved one, the retry now points the model at the sentence of your notes that no saved question covers yet, so a course on one note saves several distinct questions [CARD-654 follow-up 2].
 - Course quiz retries now name the earlier question's answer and ask for a different sentence of your notes, so the second question moves to a new fact more often [CARD-654 follow-up].
 - Course steps whose quiz question repeats one already saved now ask the model once more for a different question (naming the repeat); if it repeats again the note is saved without a quiz item [CARD-654].
