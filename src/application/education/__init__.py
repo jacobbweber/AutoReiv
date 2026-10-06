@@ -25,11 +25,8 @@ from src.application.education.application import (
     mint_exercise_job,
 )
 from src.application.education.construction import (
-    ARTIFACT_KIND,
     CONSTRUCTION_WIKI_TOOLS,
     build_construction_ask_clause,
-    build_study_artifact_markdown,
-    construct_study_artifact,
 )
 from src.application.education.elaboration import (
     ELABORATION_CATEGORY,
@@ -108,11 +105,8 @@ __all__ = [
     "grade_and_record_elaboration",
     "elaboration_from_mastery_row",
     "build_elaboration_ask_clause",
-    "ARTIFACT_KIND",
     "CONSTRUCTION_WIKI_TOOLS",
-    "construct_study_artifact",
     "build_construction_ask_clause",
-    "build_study_artifact_markdown",
     "PRIMING_KIND",
     "PRIMING_WIKI_TOOLS",
     "priming_writeback",

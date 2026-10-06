@@ -80,14 +80,6 @@ class ElaborationGradePayload(BaseModel):
     write_memory: bool = True
 
 
-class ConstructionGeneratePayload(BaseModel):
-    agent_id: str = "autoreiv"
-    topic: str
-    wiki_path: Optional[str] = None
-    teach_style: Optional[str] = None
-    search_first: bool = True
-
-
 class SelectedEducationContextPayload(BaseModel):
     topic: Optional[str] = None
     course_id: Optional[str] = None
@@ -786,38 +778,6 @@ async def grade_elaboration(request: Request, payload: ElaborationGradePayload):
         write_memory=payload.write_memory,
     )
     return result
-
-
-@router.post("/api/education/construction/generate")
-async def construction_generate(request: Request, payload: ConstructionGeneratePayload):
-    """Generate a Construction study artifact into Wiki 00_Inbox via wiki_note_* only [CARD-245]."""
-    from src.application.education.construction import construct_study_artifact
-    from src.application.skills.wiki_tools import WikiTools
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-
-    result = construct_study_artifact(
-        topic=topic,
-        wiki_tools_or_store=tools,
-        wiki_path=(payload.wiki_path or None),
-        teach_style=(payload.teach_style or "") or "generate durable study artifact",
-        search_first=bool(payload.search_first),
-    )
-    if not result.get("success"):
-        # Still return structured body so Studio can show fail-soft details; 422 only if create failed hard.
-        raise HTTPException(status_code=422, detail=result)
-    return {
-        "agent_id": payload.agent_id,
-        "kind": "construction",
-        **result,
-    }
 
 
 @router.post("/api/education/construction/ask-clause")

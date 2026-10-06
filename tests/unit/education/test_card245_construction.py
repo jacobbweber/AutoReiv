@@ -1,4 +1,4 @@
-"""CARD-245: Education Construction - generative study artifacts via wiki_note_* only."""
+"""CARD-245: Education Construction - wiki_note_* only (the template generator was removed in CARD-648)."""
 
 from __future__ import annotations
 
@@ -8,22 +8,17 @@ from pathlib import Path
 import pytest
 
 from src.application.education.construction import (
-    ARTIFACT_KIND,
     CONSTRUCTION_FORBIDDEN_TOOLS,
     CONSTRUCTION_WIKI_TOOLS,
     assert_construction_tool_allowed,
     build_construction_ask_clause,
-    build_study_artifact_markdown,
-    construct_study_artifact,
     create_study_artifact_note,
-    search_grounding_notes,
 )
 from src.application.safety.tool_policy_gate import (
     EDUCATION_WIKI_NOTE_TOOLS,
     expand_education_wiki_note_tools,
 )
 from src.application.skills.wiki_tools import WikiTools
-from src.domain.wiki.store import WikiStore
 from tests.unit.agent_skills.catalog import BUNDLED_SKILL_IDS, bundled_skill_md
 
 
@@ -39,67 +34,6 @@ def test_assert_forbids_wiki_overview():
         assert_construction_tool_allowed("wiki_overview")
     assert_construction_tool_allowed("wiki_note_create")
     assert_construction_tool_allowed("wiki_note_search")
-
-
-def test_build_study_artifact_has_generative_sections():
-    body = build_study_artifact_markdown(topic="Standing Jobs", teach_style="bite-size")
-    low = body.lower()
-    assert "priming schema" in low
-    assert "dual coding" in low
-    assert "```mermaid" in body
-    assert "## Quiz" in body
-    assert "## Elaboration" in body
-    assert "wiki_note_create" in body
-    assert "never wiki_overview" in low
-    assert ARTIFACT_KIND in body
-
-
-def test_construct_lands_inbox_via_wiki_note_create(tmp_path: Path):
-    wiki = WikiStore(root_dir=tmp_path / "wiki")
-    wiki.scaffold()
-    tools = WikiTools(wiki_root=tmp_path / "wiki")
-    result = construct_study_artifact(
-        topic="Standing Jobs",
-        wiki_tools_or_store=tools,
-        teach_style="schema + dual + quiz",
-        search_first=True,
-    )
-    assert result["success"] is True
-    assert result["inbox"] is True
-    path = result["path"].replace("\\", "/")
-    assert path.startswith("00_Inbox/")
-    assert "wiki_note_create" in result["tools_used"]
-    assert "wiki_overview" not in result["tools_used"]
-    assert not result["forbidden_called"]
-    note = wiki.read_note(path)
-    assert note.get("success") is not False
-    content = note.get("content") or ""
-    assert "Standing Jobs" in content or "standing jobs" in content.lower()
-    assert "```mermaid" in content
-
-
-def test_search_fail_soft_still_creates(tmp_path: Path):
-    """Broken search must not abort Construction create [REQ-EDU-CONST-002]."""
-
-    class BrokenSearchStore:
-        def search_notes(self, query: str, limit: int = 5):
-            raise RuntimeError("search backend down")
-
-        def file_note(self, **kwargs):
-            store = WikiStore(root_dir=tmp_path / "wiki2")
-            store.scaffold()
-            return store.file_note(**kwargs)
-
-    result = construct_study_artifact(
-        topic="Fail soft Construction",
-        wiki_tools_or_store=BrokenSearchStore(),
-        search_first=True,
-    )
-    assert result["success"] is True
-    assert result["inbox"] is True
-    search_trace = result["tool_trace"][0]
-    assert search_trace.get("skipped") or search_trace.get("error")
-    assert "wiki_note_create" in result["tools_used"]
 
 
 def test_create_rejects_if_overview_slipped_in(tmp_path: Path):
@@ -149,9 +83,3 @@ def test_build_construction_ask_clause_shapes_mode():
     assert "wiki_note_create" in clause
     assert "never wiki_overview" in clause
     assert "00_Inbox" in clause
-
-
-def test_search_grounding_notes_empty_query_soft():
-    res = search_grounding_notes(None, query="")
-    assert res["success"] is True
-    assert res.get("skipped") is True
