@@ -206,16 +206,22 @@ def _write_step_artifact(
     # keyed by note path, so a re-run priming question that repeats the old one is dropped instead.
     own = None if step_name == "priming" else f"course_{slug_topic(_normalize_topic(topic))}_{step_name}"[:48]
     quiz_skip = None
+    quiz_dup = None
     deduped = []
     for content in (dual_coding, composed):
         out = drop_duplicate_quiz(content, memory_repo, own_item_id=own)
         if out is not content and (out or {}).get("quiz_skip_reason"):
             quiz_skip = out["quiz_skip_reason"]
+            quiz_dup = {
+                "question": out.get("dropped_question") or "",
+                "duplicate_of": (out.get("duplicate_of") or {}).get("prompt") or "",
+            }
         deduped.append(out)
     result = _write_step_artifact_body(
         step=step, topic=topic, memory_repo=memory_repo, dual_coding=deduped[0], composed=deduped[1], **kwargs
     )
     result["quiz_skip_reason"] = quiz_skip if result.get("wiki_path") else None
+    result["quiz_duplicate"] = quiz_dup if result.get("wiki_path") else None
     return result
 
 
@@ -797,6 +803,7 @@ def complete_course_step(
             "graded": artifact.get("graded"),
             "grounding_skip_reason": artifact.get("grounding_skip_reason"),
             "quiz_skip_reason": artifact.get("quiz_skip_reason"),
+            "quiz_duplicate": artifact.get("quiz_duplicate"),
         }
 
     nxt = _next_step(steps, step)
@@ -833,6 +840,7 @@ def complete_course_step(
         "graded": artifact.get("graded"),
         "grounding_skip_reason": artifact.get("grounding_skip_reason"),
         "quiz_skip_reason": artifact.get("quiz_skip_reason"),
+        "quiz_duplicate": artifact.get("quiz_duplicate"),
     }
 
 

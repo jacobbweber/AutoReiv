@@ -52,3 +52,6 @@ Passing a criterion on one shared word.
 
 ## Release note
 Lab grading now needs each criterion to be genuinely covered in your submission (about half its key terms, any word form), instead of passing on a single matching word. It tells you which terms a missed criterion still needs.
+
+## Follow-up (course-filler-3 live check, 2026-10-06)
+Spark wrote criteria as "The response states ..." plus a negative check ("The response does not mention acceptance when the term check fails"), and the live application lab failed a correct submission on rubric words (response, mention). Rubric words are now stop words, and "the response does not ..." checks are not graded (they can't be shown by covering words); topic facts phrased with "do not" are still graded. Two tests added.

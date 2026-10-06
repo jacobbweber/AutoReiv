@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Course labs: the grader ignores rubric words (response, states, mention) and no longer fails a correct submission on "the response does not ..." checks; course results and the full-course journey now name a dropped duplicate quiz question and the item it repeats [CARD-649, CARD-650 follow-ups].
 - CARD-653: course priming keeps a grounded model reply and just leaves out prerequisites not taken from your notes, instead of discarding the whole reply.
 - CARD-650: course steps are shown the questions you already have and skip a quiz item that nearly repeats one, so a course no longer fills the quiz with near-identical questions.
 - CARD-651: the growth portfolio note shows your real level and quiz items, keeps its details in front matter, and no longer adds a quiz question about its own level.

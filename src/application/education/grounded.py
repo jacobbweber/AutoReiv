@@ -300,6 +300,7 @@ def drop_duplicate_quiz(
         "answer": "",
         "quiz_skip_reason": DUPLICATE_QUESTION,
         "duplicate_of": {"item_id": dup.get("item_id"), "prompt": dup.get("prompt")},
+        "dropped_question": str(composed["question"]),
     }
 
 
