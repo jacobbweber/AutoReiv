@@ -54,8 +54,8 @@ A lab whose criteria invent facts the note never states, so a correct submission
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2701 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 Course labs now drop grading criteria that invent facts your notes never state, so a submission that covers what you wrote is graded against what your notes actually say.
