@@ -592,23 +592,19 @@ def _write_step_artifact(
         }
 
     if step_name == "environment":
+        # CARD-642: only content about the topic from the learner's notes (plus their real delivery
+        # profile); otherwise progress only. No template framing, constraints or profile quiz item.
         from src.application.education.environment import (
-            build_environment_framing,
             build_environment_note_content,
             get_active_delivery_profile,
         )
 
-        active_profile = get_active_delivery_profile(memory_repo)
-        framing = build_environment_framing(
-            topic=topic_clean,
-            profile_id=active_profile.get("id"),
-        )
+        grounded_env = composed if (composed or {}).get("ok") else None
+        if not grounded_env:
+            return _nothing_written(step_name, (composed or {}).get("skip_reason") or "not_composed", ktype)
+        active_profile = get_active_delivery_profile(memory_repo) if memory_repo is not None else {}
         title = f"Course Environment: {topic_clean}"
-        content = build_environment_note_content(
-            topic=topic_clean,
-            framing=framing,
-            now=now,
-        )
+        content = build_environment_note_content(topic=topic_clean, composed=grounded_env, profile=active_profile or None)
         tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
             wiki_tools_or_store,
@@ -617,7 +613,7 @@ def _write_step_artifact(
             content=content,
             topic=topic_clean,
             tags=["education", "course", "environment"],
-            summary=f"Environment framing and delivery profile for {topic_clean}",
+            summary=f"Where to practise {topic_clean}, from your notes",
             template=tpl,
         )
         path = str(create_res.get("path") or "")
@@ -627,15 +623,12 @@ def _write_step_artifact(
 
         ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
         if note_ok and memory_repo is not None:
-            item_id = f"course_{slug_topic(topic_clean)}_environment"[:48]
-            prompt = f"What delivery profile and runtime constraints frame learning for {topic_clean}?"
-            expected = f"{active_profile.get('label', 'Default')} profile with single-brain memory.db invariants"
             mid = memory_repo.upsert_education_mastery(
-                item_id=item_id,
+                item_id=f"course_{slug_topic(topic_clean)}_environment"[:48],
                 topic=topic_clean,
                 wiki_path=path,
-                prompt=prompt,
-                expected_answer=expected,
+                prompt=str(grounded_env["question"]),
+                expected_answer=str(grounded_env["answer"]),
                 grade="unseen",
             )
             try:
@@ -662,11 +655,13 @@ def _write_step_artifact(
                 "path": path,
                 "kind": "course_environment",
                 "title": title,
+                "sources": grounded_env.get("sources") or [],
             },
             "ledger": ledger,
             "item_ids": list(ledger.get("item_ids") or []),
             "tools_used": ["wiki_note_create"] if note_ok else [],
-            "framing": framing,
+            "skip_reason": None,
+            "profile": active_profile,
         }
 
     # CARD-641: a step without its own writer records progress only. No wiki note, no quiz or
