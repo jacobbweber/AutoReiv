@@ -1457,19 +1457,31 @@ async def course_get(
     return {"agent_id": agent_id, "course": course, "chrome": chrome, "pipeline_default": True}
 
 
+def _course_wiki_tools(request: Request):
+    from src.application.skills.wiki_tools import WikiTools
+
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(request.app.state, "wiki_root", None)
+    return WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+
+
 @router.post("/api/education/course/complete-step")
 async def course_complete_step(request: Request, payload: CourseCompletePayload):
     """Complete current course step: Wiki + ledger anchors, advance [CARD-320, CARD-334]."""
     from src.application.education.course import complete_course_step, course_chrome_snapshot
-    from src.application.skills.wiki_tools import WikiTools
 
     if not (payload.course_id or "").strip():
         raise HTTPException(status_code=400, detail="course_id is required")
     repo = _memory_repo(request, payload.agent_id)
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    tools = _course_wiki_tools(request)
+    dual_coding = None
+    current = repo.get_education_course(payload.course_id) or {}
+    if (current.get("current_step") or "").strip().lower() == "dual_coding":
+        # CARD-640: grounded in the learner's wiki notes via one model call, or nothing is written.
+        from src.application.education.dual_coding import compose_dual_coding
+
+        dual_coding = await compose_dual_coding(
+            getattr(request.app.state, "gateway", None), tools, current.get("topic_id") or ""
+        )
     try:
         result = complete_course_step(
             repo,
@@ -1479,6 +1491,7 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
             learner_explanation=payload.learner_explanation,
             lab_submission=payload.lab_submission,
             knowledge_type=payload.knowledge_type,
+            dual_coding=dual_coding,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1539,14 +1552,16 @@ class DualCodingPreviewPayload(BaseModel):
 
 
 @router.post("/api/education/course/dual-coding/preview")
-async def course_dual_coding_preview(payload: DualCodingPreviewPayload):
-    """Generate dual coding prose + Mermaid diagram for topic [CARD-321]."""
-    from src.application.education.course import build_dual_coding_preview
+async def course_dual_coding_preview(request: Request, payload: DualCodingPreviewPayload):
+    """Dual coding built from your wiki notes on the topic, or the reason it was skipped [CARD-321, CARD-640]."""
+    from src.application.education.dual_coding import compose_dual_coding
 
     if not (payload.topic or "").strip():
         raise HTTPException(status_code=400, detail="topic is required")
-    data = build_dual_coding_preview(payload.topic)
-    return {"agent_id": payload.agent_id, **data}
+    composed = await compose_dual_coding(
+        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), payload.topic
+    )
+    return {"agent_id": payload.agent_id, **composed}
 
 
 class CourseElaborationPreviewPayload(BaseModel):

@@ -161,7 +161,11 @@ def test_req_edu_wiki_tpl_004_course_steps_produce_valid_template_frontmatter(tm
     assert meta_p.template == "education-priming"
 
     # 2. Complete dual_coding
-    res_dual = complete_course_step(repo, course_id=course["course_id"], wiki_tools_or_store=tools)
+    from tests.unit.education.test_card321_dual_coding_course_step import GROUNDED_DUAL_CODING
+
+    res_dual = complete_course_step(
+        repo, course_id=course["course_id"], wiki_tools_or_store=tools, dual_coding=GROUNDED_DUAL_CODING
+    )
     path_dual = wiki_root / res_dual["wiki_path"]
     meta_d, _ = FrontmatterParser.parse(path_dual.read_text(encoding="utf-8"))
     assert meta_d.template == "education-dual-coding"
