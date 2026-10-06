@@ -48,8 +48,8 @@ Refusing a grounded priming reply because its prerequisites mention things the n
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2682 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 The course priming step now writes its note from your notes when the model's key ideas are grounded, instead of throwing the whole reply away because a "before you start" item wasn't in your notes (those items are just left out).
