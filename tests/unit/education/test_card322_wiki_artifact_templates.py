@@ -180,7 +180,12 @@ def test_req_edu_wiki_tpl_004_course_steps_produce_valid_template_frontmatter(tm
     assert res_retrieval["skip_reason"] == "no_writer"
 
     # 4. Complete elaboration
-    res_elab = complete_course_step(repo, course_id=course["course_id"], wiki_tools_or_store=tools)
+    res_elab = complete_course_step(
+        repo,
+        course_id=course["course_id"],
+        wiki_tools_or_store=tools,
+        learner_explanation="The leader replicates log entries to followers and commits once a majority stores them.",
+    )
     path_elab = wiki_root / res_elab["wiki_path"]
     meta_e, _ = FrontmatterParser.parse(path_elab.read_text(encoding="utf-8"))
     assert meta_e.template == "education-elaboration"

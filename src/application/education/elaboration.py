@@ -412,21 +412,13 @@ def build_elaboration_ask_clause(items: List[Dict[str, Any]]) -> str:
 
 
 def build_elaboration_preview(topic: str) -> Dict[str, Any]:
-    """Generate Socratic elaboration prompts and probing questions for a study topic [CARD-323]."""
+    """The elaboration ask for a topic. Follow-up questions come only from the learner's own
+    explanation via `grounded_steps.compose_step_content` [CARD-644]; there are no template probes."""
     clean_topic = (topic or "").strip()
-    prompt = (
-        f"Explain in your own words: How does {clean_topic} work, why was it designed this way, "
-        f"and what breaks if its core invariant is violated?"
-    )
-    probing_questions = [
-        f"1. Mechanistic Flow: What are the fundamental steps, states, and transitions in {clean_topic}?",
-        f"2. Analogy & Contrast: What is an intuitive real-world analogy for {clean_topic}, and what is a non-example that seems similar but fails?",
-        f"3. Invariant Violation: If unexpected failure occurs (e.g. partition, crash, corruption), how does {clean_topic} recover or fail safely?",
-    ]
     return {
         "topic": clean_topic,
-        "prompt": prompt,
-        "probing_questions": probing_questions,
+        "prompt": f"Explain {clean_topic} in your own words: how it works and why.",
+        "probing_questions": [],
         "template": "education-elaboration",
     }
 
@@ -434,30 +426,28 @@ def build_elaboration_preview(topic: str) -> Dict[str, Any]:
 def build_elaboration_note_content(
     topic: str,
     *,
-    learner_explanation: Optional[str] = None,
-    now: Optional[datetime] = None,
+    learner_explanation: str,
+    composed: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Construct structured Markdown conforming to education-elaboration template [CARD-322, CARD-323]."""
+    """Elaboration note: the learner's explanation, plus grounded follow-ups and quiz when the model's
+    reply was grounded in it [CARD-644]. No placeholder, analogy or edge-case template sections."""
     clean_topic = (topic or "").strip()
-    preview = build_elaboration_preview(clean_topic)
-    user_exp = (
-        (learner_explanation or "").strip()
-        or "Self-explanation: [Learner self-explanation to be added during review]"
-    )
-    return (
-        f"# Elaboration: {clean_topic}\n\n"
-        f"## 1. Deep Mechanism & Learner Explanation\n"
-        f"**Learner's Explanation (Own Words):**\n"
-        f"> {user_exp}\n\n"
-        f"## 2. Socratic Probing Questions\n"
-        + "\n".join(f"- {q}" for q in preview["probing_questions"])
-        + f"\n\n## 3. Analogies & Non-Examples\n"
-        f"- **Core Analogy:** Intuitive mental model illustrating {clean_topic}.\n"
-        f"- **Non-Example:** Flawed design or antipattern violating {clean_topic} invariants.\n\n"
-        f"## 4. Edge Cases & Invariant Failure Modes\n"
-        f"- What breaks when operational assumptions fail?\n"
-        f"- Recovery strategy, safety bounds, and invariants.\n\n"
-        f"## 5. Verification Quiz\n"
-        f"Q: How would you summarize the core invariant of {clean_topic}?\n"
-        f"A: {clean_topic} guarantees correct state progression through disciplined coordination.\n"
-    )
+    explanation = "\n".join(f"> {line}" if line.strip() else ">" for line in learner_explanation.strip().splitlines())
+    parts = [f"# Elaboration: {clean_topic}", "", "## Your explanation", explanation, ""]
+    composed = composed if (composed or {}).get("ok") else None
+    if composed:
+        probes = [str(p) for p in (composed.get("probes") or []) if str(p).strip()]
+        if probes:
+            parts += ["## Questions to push further", *(f"- {p}" for p in probes), ""]
+        sources = [x for x in (composed.get("sources") or []) if isinstance(x, dict) and x.get("path")]
+        if sources:
+            parts += [
+                "## Sources",
+                *(
+                    f"- [[{str(x['path'])[:-3] if str(x['path']).endswith('.md') else x['path']}]] {x.get('title') or ''}".rstrip()
+                    for x in sources
+                ),
+                "",
+            ]
+        parts += ["## Quiz", f"Q: {composed['question']}", f"A: {composed['answer']}", ""]
+    return "\n".join(parts)

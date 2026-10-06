@@ -36,7 +36,8 @@ def _assert_memory_db_path(db: Path) -> None:
 
 
 def test_req_edu_elab_001_ordered_course_step():
-    """[REQ-EDU-ELAB-001] Elaboration is step 4 in ORDERED_COURSE_STEPS; preview generates Socratic probes."""
+    """[REQ-EDU-ELAB-001] Elaboration is step 4 in ORDERED_COURSE_STEPS; the preview asks for the learner's
+    explanation and has no template probes (they come only from that explanation) [CARD-644]."""
     assert isinstance(ORDERED_COURSE_STEPS, (list, tuple))
     assert "elaboration" in ORDERED_COURSE_STEPS
     assert ORDERED_COURSE_STEPS[0] == "priming"
@@ -47,7 +48,7 @@ def test_req_edu_elab_001_ordered_course_step():
     preview = build_elaboration_preview(topic="Two-Phase Commit Protocol")
     assert preview["topic"] == "Two-Phase Commit Protocol"
     assert "prompt" in preview and len(preview["prompt"]) > 0
-    assert "probing_questions" in preview and len(preview["probing_questions"]) >= 2
+    assert preview["probing_questions"] == []
     assert preview["template"] == "education-elaboration"
 
 
@@ -96,13 +97,8 @@ def test_req_edu_elab_002_complete_writes_wiki_and_ledger_anchors(tmp_path: Path
     assert "elaboration" in meta.tags
     assert explanation in content
 
-    # Verify memory.db ledger anchors
-    assert len(elab_done["item_ids"]) >= 1
-    item_id = elab_done["item_ids"][0]
-    mastery_item = repo.get_education_mastery(item_id)
-    assert mastery_item is not None
-    assert mastery_item["topic"] == "Two-Phase Commit Protocol"
-    assert mastery_item["grade"] == "unseen"
+    # No grounded follow-ups here (no model), so no quiz item: only the explanation is saved [CARD-644]
+    assert elab_done["item_ids"] == []
 
     # Verify learner semantic fact
     facts = repo.list_semantic_facts()
