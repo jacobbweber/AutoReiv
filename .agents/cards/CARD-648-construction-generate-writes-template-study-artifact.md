@@ -46,8 +46,8 @@ The template Construction study artifact and the route that wrote it. Notes it w
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2658 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1091 |
 
 ## Release note
 Removed an unused Construction endpoint that wrote the same template study note for every topic.
