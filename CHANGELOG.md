@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- When a course step's quiz question repeats a saved one, the retry now points the model at the sentence of your notes that no saved question covers yet, so a course on one note saves several distinct questions [CARD-654 follow-up 2].
 - Course quiz retries now name the earlier question's answer and ask for a different sentence of your notes, so the second question moves to a new fact more often [CARD-654 follow-up].
 - Course steps whose quiz question repeats one already saved now ask the model once more for a different question (naming the repeat); if it repeats again the note is saved without a quiz item [CARD-654].
 - Course labs: the grader ignores rubric words (response, states, mention) and no longer fails a correct submission on "the response does not ..." checks; course results and the full-course journey now name a dropped duplicate quiz question and the item it repeats [CARD-649, CARD-650 follow-ups].

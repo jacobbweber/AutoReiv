@@ -142,3 +142,53 @@ def test_the_retry_names_the_earlier_answer_and_asks_for_a_different_sentence(en
     note = gateway.requests[1].messages[-1].content
     assert ASKED[0] in note and ASKED[1] in note and "different sentence" in note
     assert out["question"] == NEW[0] and out["quiz_retry"] == "new_question"
+
+
+# Second live follow-up: once two items were saved, Spark's retries bounced between those two facts
+# (0 of 12 new questions naming only the repeat). Pointing the retry at the note sentence least covered
+# by the saved items got 5 and 6 distinct items in two probe courses (vs 2 live).
+JOURNEY_NOTE = "\n".join([
+    "# Raft log replication", "",
+    "The leader accepts client commands and appends each one to its own log as a new entry with the current term.",
+    "It sends AppendEntries messages carrying the new entries, plus the previous log index and term, to every follower.",
+    "A follower accepts the entries only if its log has an entry at the previous index with the same term; otherwise it rejects them and the leader retries with an earlier index.",
+    "Once a majority of servers have stored an entry, the leader advances the commit index and applies the entry to its state machine.",
+    "Followers learn the commit index from the next AppendEntries heartbeat and apply committed entries in log order.",
+])
+COMMIT = ("What does the leader advance once a majority of servers have stored an entry?",
+          "the commit index and applies the entry to its state machine")
+
+
+def test_the_least_covered_note_sentence_is_the_one_no_saved_item_asks_about():
+    from src.application.education.grounded import least_covered_sentence
+
+    sources = [{"path": "00_Inbox/raft.md", "title": TOPIC, "text": JOURNEY_NOTE}]
+    assert least_covered_sentence(sources, [ASKED, COMMIT]) == "otherwise it rejects them and the leader retries with an earlier index."
+    assert least_covered_sentence([], [ASKED]) == ""
+
+
+def test_the_retry_points_at_a_note_sentence_no_saved_item_covers(env):
+    _, tools, _ = env
+    gateway = SeqGateway(_reply(ENV, ASKED), _reply(ENV, NEW))
+    out = asyncio.run(compose_course_step(
+        gateway, tools, TOPIC, "environment", asked=[ASKED, NEW],
+        duplicate_of=lambda q, a: ASKED if "follower's log" in q else None,
+    ))
+    note = gateway.requests[1].messages[-1].content
+    assert ASKED[0] in note and "a candidate must win an election" in note
+    assert out["question"] == NEW[0] and out["quiz_retry"] == "new_question"
+
+
+def test_the_router_gives_the_composer_every_saved_item_with_its_answer(env):
+    from src.web.routers.education import _compose_current_step
+
+    repo, tools, _ = env
+    repo.upsert_education_mastery(item_id="edu_priming1", topic=TOPIC, prompt=ASKED[0], expected_answer=ASKED[1], grade="unseen")
+    repo.upsert_education_mastery(item_id="course_raft_log_replication_dual_coding", topic=TOPIC, prompt=NEW[0], expected_answer=NEW[1], grade="unseen")
+    cid = start_or_resume_course(repo, topic_id=TOPIC, steps=["environment", "retention"])["course_id"]
+    gateway = SeqGateway(_reply(ENV, ASKED), _reply(ENV, COMMIT))
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(gateway=gateway)))
+    out = asyncio.run(_compose_current_step(request, repo, cid, tools))
+    note = gateway.requests[1].messages[-1].content
+    assert ASKED[1] in note and "a candidate must win an election" in note
+    assert out["question"] == COMMIT[0] and out["quiz_retry"] == "new_question"
