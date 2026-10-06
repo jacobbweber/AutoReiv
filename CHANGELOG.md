@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- CARD-652: removed the unused knowledge-artifact endpoint that returned the same template teaching sections for every topic.
 - CARD-648: removed the unused construction generate endpoint that wrote the same template study note for every topic.
 - CARD-642: the environment course step suggests where to practise from your own notes, or records progress only; no more fixed framing note and filler quiz item. Backlog CARD-648 to CARD-652 filed.
 - CARD-643: construction and application labs are now built from your own wiki notes (objective, tasks and criteria checked against those notes, linking back) and your submission is graded only against those criteria; with no notes on the topic your submission is kept ungraded, or nothing is written if there is none, instead of the same template lab, fake test command and self-graded baseline for every topic.
