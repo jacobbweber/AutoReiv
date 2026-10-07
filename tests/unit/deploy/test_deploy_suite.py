@@ -70,6 +70,16 @@ def test_dockerfile_templates_and_layout():
     assert "EXPOSE 8000" in content
 
 
+def test_dockerfile_copies_platform_not_platform_packs():
+    """CARD-669: image must ship platform/ agents+skills; platform-packs/ is gone."""
+    content = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY --chown=autoreiv:autoreiv platform/ ./platform/" in content
+    assert "platform-packs" not in content
+    assert (REPO_ROOT / "platform" / "agents").is_dir()
+    assert (REPO_ROOT / "platform" / "skills").is_dir()
+    assert not (REPO_ROOT / "platform-packs").exists()
+
+
 def test_docker_compose_manifest():
     """Verify docker-compose.yml is valid YAML and modernized."""
     compose_file = REPO_ROOT / "docker-compose.yml"
