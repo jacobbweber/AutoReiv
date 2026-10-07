@@ -42,8 +42,8 @@ A green full suite blocked by a false FAIL on a stage that selected zero tests.
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2703 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1098 |
 
 ## Release note
 Quick preflight no longer fails a stage when pytest selected zero tests (for example when every changed test is marked slow).
