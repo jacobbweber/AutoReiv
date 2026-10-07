@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Agent Studio's skill list is simpler: each skill is its name, one line of description and an on/off switch. Enabled skills are listed first, then the rest, with a count and a search box. 'Manage skills' opens Skill Studio. (CARD-656)
+
 ## [0.46.0] - 2026-10-06
 
 - Course labs drop grading criteria whose key terms are mostly not in your notes, so a submission that covers what you wrote is graded against facts your notes actually state [CARD-655].

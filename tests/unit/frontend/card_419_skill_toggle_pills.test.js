@@ -54,22 +54,22 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(row).not.toContain('type="checkbox"');
     expect(row).not.toContain('studio-runbook-open-btn');
     expect(row).not.toContain('>Inspect<');
-    expect(row).toContain('forge-skill-open-studio');
-    expect(row).toContain('Open in Skill Studio');
-    expect(row).toContain('declared tool');
+    // CARD-656: no per-row Skill Studio link or tool chips; the header's Manage skills opens Skill Studio.
+    expect(row).not.toContain('forge-skill-open-studio');
+    expect(row).not.toContain('declared tool');
 
     const archived = skillRowHtml({ id: 'old-skill', name: 'Old' }, 'archived', true);
     expect(archived).not.toContain('role="switch"');
     expect(archived).not.toContain('forge-skill-pill');
 
     expect(html).toContain('id="forgeSkillsSection"');
-    expect(html).toContain('data-testid="forge-skill-scope"');
+    expect(html).toContain('data-testid="forge-open-skill-studio"');
     expect(html).not.toContain('id="studioRunbookEditor"');
     expect(html).not.toContain('studio-runbook-open-btn');
     expect(runbook).not.toContain('forge-skill-checkbox');
     expect(runbook).not.toContain('studio-runbook-open-btn');
     expect(runbook).not.toContain('openRunbookEditor');
-    expect(runbook).toContain('Open in Skill Studio');
+    expect(runbook).toContain('Manage skills');
     expect(forge).not.toContain('forge-skill-checkbox');
     expect(forge).not.toContain('openRunbookEditor');
   });
@@ -112,7 +112,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
 
     const pillClick = runbook.slice(
       runbook.indexOf("querySelectorAll('.forge-skill-pill')"),
-      runbook.indexOf("querySelectorAll('.forge-skill-open-studio')"),
+      runbook.indexOf('function skillRowHandlerOpts'),
     );
     expect(pillClick).toContain('applySkillPillToggle');
     expect(pillClick).not.toContain('onOpenRunbook');
@@ -164,7 +164,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(row).toContain('forge-skill-pill');
     expect(row).toContain('data-home="operator"');
     expect(row).toContain('data-skill-id="dock-notes"');
-    expect(row).toContain('Open in Skill Studio');
+    expect(row).not.toContain('Open in Skill Studio'); // CARD-656
     expect(row).toContain('role="switch"');
 
     const turnedOn = toggleSkillInAllowlist(['wiki'], 'dock-notes');
@@ -179,7 +179,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
 
     expect(runbook).toContain('operator_skills');
     expect(runbook).toContain('renderAssignedSkills');
-    expect(runbook).toContain("skillRowHtml(skill, 'operator', false)");
+    expect(runbook).toContain('operatorSkillPillModel'); // CARD-656: operator rows join the one name-sorted list
     expect(runbook).toContain('platformSkills = catData.platform_skills');
     expect(forge).toContain('cachedOperatorSkills');
     expect(forge).toContain('allowed_skill: checkedSkills');

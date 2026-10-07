@@ -69,7 +69,7 @@ def test_index_html_has_one_agent_studio_and_no_skills_studio_nav():
     assert "studioRunbookBody" not in html
     assert "studioRunbookOpenFactoryBtn" not in html
     assert 'id="forgeSkillsSection"' in html
-    assert "Author skill in Skill Studio" in html
+    assert "Manage skills" in html  # CARD-656
     assert "studioNewRunbookBtn" not in html
     assert "forgeSkillsGrid" in html
     assert "forgePlatformBox" not in html

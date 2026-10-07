@@ -104,7 +104,7 @@ describe('CARD-118 one Agent Studio', () => {
     expect(html).toContain('Agent Studio');
     expect(html).not.toContain('studioRunbookBody');
     expect(html).not.toContain('studioRunbookOpenFactoryBtn');
-    expect(html).toContain('Author skill in Skill Studio');
+    expect(html).toContain('Manage skills'); // CARD-656
     expect(html).not.toContain('studioNewRunbookBtn');
     expect(html).not.toContain('studioRunbookArchiveBtn');
     expect(html).not.toContain('studioRunbookDeleteBtn');

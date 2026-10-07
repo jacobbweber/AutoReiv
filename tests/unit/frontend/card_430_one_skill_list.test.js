@@ -31,20 +31,18 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     expect(skillHomeLabel('platform')).toBe('Platform');
     expect(skillHomeLabel('operator')).toBe('Operator');
     expect(skillHomeLabel('agent')).toBe('Agent');
-    expect(list).toContain('data-testid="forge-skill-home-label">Platform');
-    expect(list).toContain('data-testid="forge-skill-home-label">Operator');
-    expect(list).toContain('data-testid="forge-skill-home-label">Agent');
+    // CARD-656: one list in Enabled/Available groups sorted by name; no per-row home badge or Skill Studio link.
+    expect(list).not.toContain('forge-skill-home-label');
     expect(list).toContain('data-home="platform"');
     expect(list).toContain('data-home="operator"');
     expect(list).toContain('data-home="agent"');
     expect(list).toContain('data-testid="forge-skill-pill"');
-    expect(list).toContain('Open in Skill Studio');
-    expect(list.indexOf('data-home="platform"')).toBeLessThan(list.indexOf('data-home="operator"'));
-    expect(list.indexOf('data-home="operator"')).toBeLessThan(list.indexOf('data-home="agent"'));
-    expect(list.indexOf('data-skill-id="old-skill"')).toBeGreaterThan(list.indexOf('data-home="agent"'));
+    expect(list).not.toContain('Open in Skill Studio');
+    expect(list.indexOf('data-skill-id="dock-notes"')).toBeLessThan(list.indexOf('data-skill-id="sdlc-engineering"'));
+    expect(list.indexOf('data-skill-id="sdlc-engineering"')).toBeLessThan(list.indexOf('data-skill-id="wiki"'));
+    expect(list.indexOf('data-skill-id="old-skill"')).toBeGreaterThan(list.indexOf('data-skill-id="wiki"'));
     expect(list).toContain('data-testid="forge-skill-archived"');
     expect(list).toContain('>Archived<');
-    expect(list).not.toContain('<h4');
     expect(list.match(/data-testid="forge-assigned-skills"/g)).toBeNull();
 
     expect(html).toContain('id="forgeSkillsGrid"');
@@ -64,7 +62,7 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     expect(turnedOn.allowed_skill).toEqual(['wiki', 'dock-notes']);
     expect(turnedOn.opensEditor).toBe(false);
     expect(runbook).toContain('applySkillPillToggle');
-    expect(runbook).toContain("skillRowHtml(skill, 'operator', false)");
+    expect(runbook).toContain("operatorSkillPillModel");
   });
 
   it('does not copy skill files between homes [REQ-430-003]', () => {
@@ -78,9 +76,9 @@ describe('Agent Studio one skill list [CARD-430]', () => {
     expect(list).not.toContain('$DATA_DIR');
   });
 
-  it('keeps the six baseline chips and the Direct caption [REQ-430-004, CARD-578]', () => {
+  it('keeps the baseline tools as one always-on line [REQ-430-004, CARD-578, CARD-656]', () => {
     expect(html).toContain('id="forgeBaselineGrid"');
-    expect(html).toContain('Direct mounts none');
+    expect(toolsJs).toContain('Always on');
     for (const name of [
       'ask_clarification',
       'get_session_info',

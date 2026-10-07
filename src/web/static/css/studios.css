@@ -269,3 +269,32 @@ body.radical-desktop-demo #view-settings.desktop-view-hosted {
   flex-direction: column;
   gap: 1rem;
 }
+
+/* CARD-656: Agent Studio skill list — name, one-line description, switch on the right */
+.forge-manage-skills-link { font-size: 11px; color: rgb(148 163 184); background: none; border: 0; padding: 2px 4px; cursor: pointer; }
+.forge-manage-skills-link:hover, .forge-manage-skills-link:focus-visible { color: rgb(125 211 252); text-decoration: underline; }
+.forge-baseline { font-size: 11px; color: rgb(148 163 184); line-height: 1.4; }
+.forge-baseline-label { font-weight: 600; color: rgb(203 213 225); margin-right: 4px; }
+.forge-skill-search { width: 100%; background: #141721; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px; font-size: 12px; color: rgb(226 232 240); }
+.forge-skill-search:focus { outline: none; border-color: rgb(99 102 241); }
+.forge-skill-group-title { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgb(100 116 139); margin: 0 0 6px 2px; cursor: default; }
+.forge-skill-group-list { display: flex; flex-direction: column; gap: 6px; }
+.forge-skill-group-empty { font-size: 11px; color: rgb(100 116 139); padding: 2px 4px; }
+.forge-skill-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px; background: rgba(15,23,42,.6); border: 1px solid rgb(30 41 59); transition: background-color .3s, border-color .3s, box-shadow .3s; }
+.forge-skill-row.hidden { display: none; }
+.forge-skill-text { flex: 1 1 auto; min-width: 0; }
+.forge-skill-name { font-size: 12px; font-weight: 600; color: rgb(226 232 240); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.forge-skill-desc { font-size: 11px; color: rgb(148 163 184); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.forge-skill-switch { flex: 0 0 auto; position: relative; width: 36px; height: 20px; border-radius: 9999px; background: rgb(51 65 85); border: 1px solid rgb(71 85 105); cursor: pointer; transition: background-color .15s, border-color .15s; }
+.forge-skill-switch[aria-pressed="true"] { background: rgb(16 185 129); border-color: rgb(52 211 153); }
+.forge-skill-switch:focus-visible { outline: 2px solid rgb(125 211 252); outline-offset: 2px; }
+.forge-skill-switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 9999px; background: #fff; transition: transform .15s; }
+.forge-skill-switch[aria-pressed="true"] .forge-skill-switch-knob { transform: translateX(16px); }
+.forge-skill-archived-tag { flex: 0 0 auto; font-size: 10px; color: rgb(100 116 139); }
+.forge-skill-row-moved { background: rgba(14,165,233,.14); border-color: rgba(56,189,248,.6); box-shadow: 0 0 0 1px rgba(56,189,248,.35); }
+@media (max-width: 640px) {
+  .forge-skill-row { padding: 10px 12px; }
+  .forge-skill-switch { width: 42px; height: 24px; }
+  .forge-skill-switch-knob { width: 18px; height: 18px; }
+  .forge-skill-switch[aria-pressed="true"] .forge-skill-switch-knob { transform: translateX(18px); }
+}
