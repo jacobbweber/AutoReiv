@@ -1,7 +1,8 @@
 /**
- * Agent Studio skill rows [CARD-411, CARD-419, CARD-430].
- * Toggle pills scope allowed_skill. Open in Skill Studio is the only skill detail link.
- * There is no inline runbook inspector in Agent Studio.
+ * Agent Studio skill rows [CARD-411, CARD-419, CARD-430, CARD-656].
+ * Each row is the skill name, a one-line description and an on/off switch that scopes allowed_skill.
+ * Rows sit in two groups, Enabled and Available, each sorted by name; a search box filters both.
+ * Skill Studio is reached from the section header's "Manage skills" link only.
  */
 
 import { $, $queryAll } from '../../dom.js';
@@ -20,67 +21,51 @@ export function skillHomeLabel(home) {
   return SKILL_HOME_LABELS[home] || '';
 }
 
+function oneLine(text) {
+  return String(text || '').split(/\r?\n/).map((s) => s.trim()).find(Boolean) || '';
+}
+
+function skillSortKey(skill) {
+  return String((skill && (skill.name || skill.id)) || '').toLowerCase();
+}
+
+function byName(a, b) {
+  return skillSortKey(a).localeCompare(skillSortKey(b)) || String(a.id).localeCompare(String(b.id));
+}
+
+/** "4 of 12 enabled" [CARD-656]. */
+export function skillCountText(enabled, total) {
+  return `${Number(enabled) || 0} of ${Number(total) || 0} enabled`;
+}
+
+/** True when the skill's name or description contains the query (case-insensitive); empty query matches all. */
+export function skillMatchesSearch(skill, query) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return true;
+  const s = skill || {};
+  return `${s.name || ''} ${s.id || ''} ${s.description || ''}`.toLowerCase().includes(q);
+}
+
+/**
+ * One row: name, one-line description, switch on the right [CARD-656].
+ * The switch keeps the CARD-419 contract (.forge-skill-pill, role=switch, aria-pressed, data-skill-id)
+ * so Save reads it exactly as before.
+ */
 export function skillRowHtml(skill, home, archived = false) {
-  const id = skill.id || '';
-  const name = skill.name || id;
-  const desc = skill.description || '';
-  const homeLabel = skillHomeLabel(home);
-  const homeBadge = homeLabel
-    ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-950 text-slate-300 border border-slate-700" data-testid="forge-skill-home-label">${escapeHtml(homeLabel)}</span>`
-    : '';
-  const scopeControl = archived
-    ? `<span class="inline-flex items-center px-2.5 py-1 rounded-full border border-slate-800 bg-slate-950/80 text-[11px] font-semibold text-slate-500" data-skill-id="${escapeHtml(id)}" data-archived="1" data-testid="forge-skill-archived">Archived</span>`
-    : `<button type="button" class="forge-skill-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition bg-slate-900/70 border-slate-700 text-slate-400 aria-pressed:bg-emerald-950/80 aria-pressed:border-emerald-500/70 aria-pressed:text-emerald-100" role="switch" aria-pressed="false" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}" data-testid="forge-skill-pill" aria-label="Allow ${escapeHtml(name)} for this agent"><span class="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true"></span><span>${escapeHtml(name)}</span></button>`;
-
-  const rawTools = Array.isArray(skill.tools) ? skill.tools : [];
-  const toolNames = rawTools
-    .map((t) => (typeof t === 'string' ? t : (t && t.name) || ''))
-    .filter(Boolean);
-
-  const hasRequired = rawTools.some(
-    (t) => (typeof t === 'object' && t !== null && t.tier === 'required_platform')
-  );
-  const reqIndicator = hasRequired
-    ? '<span class="ml-2 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-900/60 text-amber-300 border border-amber-600/40 uppercase">INCLUDES REQUIRED TOOLS</span>'
-    : '';
-
-  const toolsChipsHtml = toolNames.length
-    ? `
-      <div class="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5">
-        <span class="text-[9px] font-mono text-slate-500 uppercase tracking-wider">${toolNames.length} declared tool${toolNames.length === 1 ? '' : 's'}:</span>
-        ${toolNames.map((tn) => {
-          const tObj = rawTools.find((t) => (typeof t === 'string' ? t : t.name) === tn) || {};
-          const isReq = tObj.tier === 'required_platform';
-          const badge = isReq ? '<span class="ml-1 px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-900/80 text-emerald-300 uppercase">REQUIRED</span>' : '';
-          return `<span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-950 text-slate-300 border border-slate-800"><i data-lucide="wrench" class="w-2.5 h-2.5 text-brand-400"></i><span>${escapeHtml(tn)}</span>${badge}</span>`;
-        }).join('')}
+  const id = escapeHtml(skill.id || '');
+  const name = escapeHtml(skill.name || skill.id || '');
+  const fullDesc = String(skill.description || '');
+  const desc = escapeHtml(oneLine(fullDesc));
+  const control = archived
+    ? `<span class="forge-skill-archived-tag" data-skill-id="${id}" data-archived="1" data-testid="forge-skill-archived">Archived</span>`
+    : `<button type="button" class="forge-skill-pill forge-skill-switch" role="switch" aria-pressed="false" data-skill-id="${id}" data-home="${escapeHtml(home)}" data-testid="forge-skill-pill" aria-label="Enable ${name} for this agent"><span class="forge-skill-switch-knob" aria-hidden="true"></span></button>`;
+  return `<div class="forge-skill-row" data-skill-id="${id}" data-home="${escapeHtml(home)}" data-search="${escapeHtml(`${skill.name || ''} ${skill.id || ''} ${fullDesc}`.toLowerCase())}">
+      <div class="forge-skill-text">
+        <div class="forge-skill-name" data-testid="forge-skill-name">${name}</div>
+        ${desc ? `<div class="forge-skill-desc" data-testid="forge-skill-desc" title="${escapeHtml(fullDesc)}">${desc}</div>` : ''}
       </div>
-    `
-    : '';
-
-  const openStudio = archived
-    ? ''
-    : `<button type="button" class="forge-skill-open-studio px-2 py-1 rounded bg-transparent hover:bg-slate-800 text-[10px] font-semibold text-slate-400 hover:text-sky-300 border border-transparent hover:border-slate-700 transition" data-skill-id="${escapeHtml(id)}" data-testid="forge-skill-open-studio">Open in Skill Studio</button>`;
-
-  return `
-    <div class="forge-skill-row rounded-lg bg-slate-900/60 border border-slate-800 p-2.5" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}">
-      <div class="flex items-start gap-2">
-        <div class="flex items-start gap-2 flex-1 min-w-0">
-          ${scopeControl}
-          <div class="flex-1 min-w-0">
-            ${archived ? `<span class="font-mono text-slate-400 inline text-[11px] font-semibold truncate">${escapeHtml(name)}</span>` : ''}
-            ${reqIndicator}
-            <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight mt-0.5">${escapeHtml(desc)}</span>
-          </div>
-        </div>
-        <div class="flex items-center space-x-1.5 shrink-0">
-          ${homeBadge}
-          ${openStudio}
-        </div>
-      </div>
-      ${toolsChipsHtml}
-    </div>
-  `;
+      ${control}
+    </div>`;
 }
 
 export function applySkillChecks(lastAllowedSkills = new Set()) {
@@ -90,11 +75,66 @@ export function applySkillChecks(lastAllowedSkills = new Set()) {
   $queryAll('.forge-skill-pill').forEach((btn) => {
     paintSkillPill(btn, allowed.has(btn.dataset.skillId || ''));
   });
+  regroupSkillRows();
 }
 
+/**
+ * Put each row in the group that matches its switch, keep both groups sorted by name and update
+ * the count [CARD-656]. `moved` (a skill id) gets a brief highlight so a toggled row is easy to find.
+ */
+export function regroupSkillRows(root = null, moved = '') {
+  const grid = root || $('forgeSkillsGrid');
+  if (!grid || typeof grid.querySelector !== 'function') return;
+  const enabledList = grid.querySelector('[data-skill-group-list="enabled"]');
+  const availableList = grid.querySelector('[data-skill-group-list="available"]');
+  if (!enabledList || !availableList) return;
+  const rows = [...grid.querySelectorAll('.forge-skill-row')].filter((row) => row.querySelector('.forge-skill-pill'));
+  const name = (row) => (row.querySelector('.forge-skill-name')?.textContent || '').toLowerCase();
+  rows.sort((a, b) => name(a).localeCompare(name(b)));
+  let enabled = 0;
+  rows.forEach((row) => {
+    const on = row.querySelector('.forge-skill-pill').getAttribute('aria-pressed') === 'true';
+    if (on) enabled += 1;
+    (on ? enabledList : availableList).appendChild(row);
+  });
+  grid.querySelectorAll('[data-skill-group-empty]').forEach((el) => {
+    const list = el.dataset.skillGroupEmpty === 'enabled' ? enabledList : availableList;
+    el.classList.toggle('hidden', list.querySelector('.forge-skill-row') !== null);
+  });
+  const count = $('forgeSkillCount');
+  if (count) count.textContent = skillCountText(enabled, rows.length);
+  if (moved) {
+    const row = rows.find((r) => r.dataset.skillId === moved);
+    if (row) {
+      row.classList.remove('forge-skill-row-moved');
+      void row.offsetWidth; // restart the highlight
+      row.classList.add('forge-skill-row-moved');
+      setTimeout(() => row.classList.remove('forge-skill-row-moved'), 1600);
+      if (typeof row.scrollIntoView === 'function') row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+  filterSkillRows(grid);
+}
+
+/** Show only rows matching the search box (both groups) [CARD-656]. */
+export function filterSkillRows(root = null, query = null) {
+  const grid = root || $('forgeSkillsGrid');
+  if (!grid || typeof grid.querySelectorAll !== 'function') return;
+  const input = $('forgeSkillSearch');
+  const q = String(query !== null ? query : (input ? input.value : '')).trim().toLowerCase();
+  let shown = 0;
+  grid.querySelectorAll('.forge-skill-row').forEach((row) => {
+    const hit = !q || (row.dataset.search || '').includes(q);
+    row.classList.toggle('hidden', !hit);
+    if (hit) shown += 1;
+  });
+  const none = grid.querySelector('[data-testid="forge-skill-no-match"]');
+  if (none) none.classList.toggle('hidden', !q || shown > 0);
+}
+
+// CARD-656: no per-row Skill Studio link; the header's Manage skills opens Skill Studio.
 export function bindSkillRowHandlers(root, {
   onToggleSkill = null,
-  onOpenSkillStudio = null,
 } = {}) {
   if (!root) return;
   const forgeStorageEnabled = $('forgeStorageEnabled');
@@ -111,16 +151,9 @@ export function bindSkillRowHandlers(root, {
             if (forgeStorageTypeContainer) forgeStorageTypeContainer.classList.toggle('hidden', !pressed);
           }
           if (typeof onToggleSkill === 'function') onToggleSkill(skillId, pressed);
+          regroupSkillRows(root, skillId);
         },
       });
-    });
-  });
-  root.querySelectorAll('.forge-skill-open-studio').forEach((btn) => {
-    btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const skillId = btn.dataset.skillId || '';
-      if (typeof onOpenSkillStudio === 'function') onOpenSkillStudio(skillId);
     });
   });
 }
@@ -128,8 +161,42 @@ export function bindSkillRowHandlers(root, {
 function skillRowHandlerOpts(options = {}) {
   return {
     onToggleSkill: options.onToggleSkill || null,
-    onOpenSkillStudio: options.onOpenSkillStudio || null,
   };
+}
+
+/** Enabled / Available / Archived rows, each sorted by name [CARD-656]. */
+export function skillListModel({
+  platformSkills = [],
+  operatorSkills = [],
+  ownSkillRows = [],
+  archivedSkills = [],
+  allowed = [],
+} = {}) {
+  const on = allowed instanceof Set ? allowed : new Set(allowed || []);
+  const seen = new Set();
+  const live = [];
+  const add = (skill, home) => {
+    if (!skill || !skill.id || seen.has(skill.id)) return;
+    seen.add(skill.id);
+    live.push({ ...skill, home });
+  };
+  (platformSkills || []).forEach((s) => add(s, 'platform'));
+  (operatorSkills || []).map(operatorSkillPillModel).forEach((s) => add(s, 'operator'));
+  (ownSkillRows || []).forEach((s) => add(s, 'agent'));
+  const archived = (archivedSkills || []).filter((s) => s && s.id && !seen.has(s.id)).sort(byName);
+  const enabled = live.filter((s) => on.has(s.id)).sort(byName);
+  const available = live.filter((s) => !on.has(s.id)).sort(byName);
+  return { enabled, available, archived, enabledCount: enabled.length, total: live.length };
+}
+
+function skillGroupHtml(key, title, skills) {
+  const rows = skills.map((s) => skillRowHtml(s, s.home, false)).join('');
+  const empty = key === 'enabled' ? 'No skills enabled for this agent.' : 'Every skill is enabled.';
+  return `<div class="forge-skill-group" data-testid="forge-skill-group-${key}">
+      <h4 class="forge-skill-group-title">${title}</h4>
+      <div class="forge-skill-group-list" data-skill-group-list="${key}">${rows}</div>
+      <p class="forge-skill-group-empty${skills.length ? ' hidden' : ''}" data-skill-group-empty="${key}">${empty}</p>
+    </div>`;
 }
 
 export function assignedSkillListHtml({
@@ -137,21 +204,24 @@ export function assignedSkillListHtml({
   operatorSkills = [],
   ownSkillRows = [],
   archivedSkills = [],
+  allowed = [],
 } = {}) {
-  const platform = (platformSkills || []).filter((skill) => skill && skill.id);
-  const operator = (operatorSkills || []).map(operatorSkillPillModel).filter((skill) => skill.id);
-  const ownRows = (ownSkillRows || []).filter((skill) => skill && skill.id);
-  const archived = (archivedSkills || []).filter((skill) => skill && skill.id);
-  const rows = [
-    ...platform.map((skill) => skillRowHtml(skill, 'platform', false)),
-    ...operator.map((skill) => skillRowHtml(skill, 'operator', false)),
-    ...ownRows.map((skill) => skillRowHtml(skill, 'agent', false)),
-    ...archived.map((skill) => skillRowHtml(skill, 'archived', true)),
-  ];
-  if (!rows.length) {
+  const model = skillListModel({ platformSkills, operatorSkills, ownSkillRows, archivedSkills, allowed });
+  if (!model.total && !model.archived.length) {
     return '<p class="text-[10px] text-slate-500 px-1" data-testid="forge-skills-empty">No skills for this agent yet.</p>';
   }
-  return rows.join('');
+  const archived = model.archived.length
+    ? `<details class="forge-skill-group forge-skill-archived-group" data-testid="forge-skill-group-archived">
+        <summary class="forge-skill-group-title">Archived (${model.archived.length})</summary>
+        <div class="forge-skill-group-list">${model.archived.map((s) => skillRowHtml(s, 'archived', true)).join('')}</div>
+      </details>`
+    : '';
+  return [
+    skillGroupHtml('enabled', 'Enabled', model.enabled),
+    skillGroupHtml('available', 'Available', model.available),
+    '<p class="forge-skill-group-empty hidden" data-testid="forge-skill-no-match">No skills match your search.</p>',
+    archived,
+  ].join('');
 }
 
 export function renderAssignedSkills({
@@ -171,6 +241,7 @@ export function renderAssignedSkills({
     operatorSkills: cachedOperatorSkills,
     ownSkillRows,
     archivedSkills: cachedArchivedSkills,
+    allowed: lastAllowedSkills,
   });
   bindSkillRowHandlers(forgeSkillsGrid, skillRowHandlerOpts({ onToggleSkill, onOpenSkillStudio }));
   applySkillChecks(lastAllowedSkills);
@@ -265,7 +336,7 @@ export async function loadPlatformSkills({
 }
 
 /**
- * Section-level Open in Skill Studio. Per-skill links are bound on each pill row [CARD-419].
+ * Header "Manage skills" opens Skill Studio; the search box filters both groups [CARD-419, CARD-656].
  */
 export function setupRunbookEditor({
   getActiveAgentId = null,
@@ -283,6 +354,11 @@ export function setupRunbookEditor({
       return;
     }
     showToast('Skill Studio is not ready yet', 'error');
+  }
+
+  const forgeSkillSearch = $('forgeSkillSearch');
+  if (forgeSkillSearch) {
+    forgeSkillSearch.addEventListener('input', () => filterSkillRows(null, forgeSkillSearch.value));
   }
 
   if (studioOpenSkillStudioBtn) {

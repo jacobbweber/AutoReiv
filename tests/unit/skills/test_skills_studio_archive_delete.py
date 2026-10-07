@@ -180,8 +180,9 @@ def test_agent_studio_runbook_inspector_is_not_a_write_path_card_411():
     view_end = html.find("</section>", view_start)
     studio_html = html[view_start:view_end] if view_start != -1 else html
     combined = js + "\n" + studio_html
-    assert "forge-skill-open-studio" in combined
-    assert "Open in Skill Studio" in combined
+    # CARD-656: Skill Studio opens from the section header's Manage skills link.
+    assert "studioOpenSkillStudioBtn" in combined
+    assert "Manage skills" in combined
     assert "studioRunbookOpenFactoryBtn" not in combined
     assert "studioRunbookEditor" not in combined
     assert "studioRunbookArchiveBtn" not in combined
