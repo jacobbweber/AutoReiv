@@ -5,11 +5,11 @@ type: bug
 status: Ready
 priority: P2
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
+  checks: [tests/unit/deploy/test_card670_windows_service_data_dir.py]
+branch: feat/card-670-windows-service-data-dir
 log: {minutes: 0, qa_runs: 0, findings: 0}
 created: 2026-10-07
 completed:
@@ -45,4 +45,4 @@ Silent coupling of the Windows service to only the default AppData path with no 
 - Lean (Admin session): install with `-DataDir` to a throwaway folder, write marker, uninstall service, confirm data remains, reinstall finds marker.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. The 1.0 gate also needs an elevated Admin shell to finish full service register/unregister proof (CARD-658).
+Jacob approved the build on 2026-10-07. The 1.0 gate also needs an elevated Admin shell to finish full service register/unregister proof (CARD-658).
