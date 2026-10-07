@@ -65,7 +65,7 @@ A Docker build that fails looking for `platform-packs/`.
 |---|---|---|
 | full pytest | pass | deploy suite 6 passed; full suite deferred to release preflight (xdist hung at 98% on this machine during prep — release gate re-runs it) |
 | preflight --fast --base qa | GREEN | guard 188, vitest 1098; changed tests 6 passed |
-| docker compose build | PASS | stock `docker compose -p ar669build build` from worktree → Image ar669build-autoreiv Built |
+| docker compose build | PASS | stock `docker compose -p ar669verify build` on qa tip → Image ar669verify-autoreiv Built (no local Dockerfile override) |
 
 ## Release note
 Docker images build again: the Dockerfile ships the current `platform/` agents and skills instead of the removed `platform-packs/` folder.
