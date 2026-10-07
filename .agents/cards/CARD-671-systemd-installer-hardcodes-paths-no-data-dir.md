@@ -5,11 +5,11 @@ type: bug
 status: Ready
 priority: P2
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
+  checks: [tests/unit/deploy/test_card671_systemd_paths.py]
+branch: feat/card-671-systemd-installer-paths
 log: {minutes: 0, qa_runs: 0, findings: 0}
 created: 2026-10-07
 completed:
