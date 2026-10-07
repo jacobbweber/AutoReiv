@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- systemd installer and uninstaller take `--prefix` (default `/opt/autoreiv`) and `--data-dir` (default `/var/lib/autoreiv`). The unit is rendered for the chosen paths, and uninstall keeps data unless `--purge-data` is passed (CARD-671).
 - Windows service installer takes `-DataDir` and sets `AUTOREIV_DATA_DIR` on the NSSM service (default `%LOCALAPPDATA%\AutoReiv`). Service logs now go under the data dir, and uninstall never deletes data (CARD-670).
 - Docker images build again: the Dockerfile ships the current platform/ agents and skills instead of the removed platform-packs/ folder. (CARD-669)
 - Quick preflight no longer fails a stage when pytest selected zero tests (for example when every changed test is marked slow). (CARD-657)
