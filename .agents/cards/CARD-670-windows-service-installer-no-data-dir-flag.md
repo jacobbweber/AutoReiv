@@ -55,6 +55,6 @@ Jacob approved the build on 2026-10-07. The 1.0 gate also needs an elevated Admi
 
 ## Results
 - New script-level tests (no Admin): `tests/unit/deploy/test_card670_windows_service_data_dir.py`. They failed first, then passed.
-- Full pytest: __PYTEST__
-- Fast preflight: __FAST__
+- Full pytest: 2699 passed, 12 skipped, 0 failed of 2720. The run hung at 99% on 2 unrelated tests (CARD-672).
+- Fast preflight: GREEN: guard 188, changed tests 4, vitest 1098. Used because the full run hangs.
 - Still open: the live register/unregister proof needs an elevated shell (CARD-658).
