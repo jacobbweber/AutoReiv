@@ -10,7 +10,7 @@ proof:
   journeys: [card-656-agent-skills-simple-list]
   checks: [tests/unit/frontend/card_656_simple_skill_list.test.js]
 branch: feat/card-656-simplify-agent-capabilities
-log: {minutes: 60, qa_runs: 1, findings: 0}
+log: {minutes: 60, qa_runs: 1, findings: 1}
 created: 2026-10-06
 completed: 2026-10-06
 related:
@@ -59,8 +59,8 @@ Per-row tool chips, the "N declared tools" line, PLATFORM/Operator/Agent badges,
 ## Results
 | Check | Result | Notes |
 |---|---|---|
-| full pytest | pass | __PYTEST__ |
-| preflight --fast --base qa | GREEN | __FAST__ |
+| full pytest | pass | 2701 passed, 12 skipped, 33 warnings |
+| preflight --fast --base qa | GREEN except one false FAIL | guard 188, vitest 1098; ruff and eslint pass. The "changed tests (not slow)" stage reports FAIL because both changed Python test files are entirely `slow`-marked, so the stage selects 0 tests and pytest exits 5. Under xdist the output has no "deselected" text for preflight to recognize. Both files pass in the full run (CARD-657) |
 
 ## Release note
 Agent Studio's skill list is simpler: each skill is its name, one line of description and an on/off switch. Enabled skills are listed first, then the rest, with a count and a search box. "Manage skills" opens Skill Studio.
