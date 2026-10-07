@@ -54,6 +54,15 @@ To register AutoReiv as a persistent background service managed by the Windows S
    ```
    *(Note: requires [NSSM](https://nssm.cc/) installed via `winget install nssm` or `choco install nssm`).*
 
+   Options:
+   - `-ServiceName <name>` (default `AutoReivService`)
+   - `-Port <port>` (default `8000`)
+   - `-DataDir <path>`: sets `AUTOREIV_DATA_DIR` on the service (default `%LOCALAPPDATA%\AutoReiv` of the installing user). Service logs go to `<DataDir>\logs`.
+
+   ```powershell
+   .\deploy\windows\install_windows_service.ps1 -DataDir D:\AutoReivData
+   ```
+
 #### Uninstallation
 To stop, unregister, and remove the Windows service:
 1. Open an elevated PowerShell prompt (Run as Administrator).
@@ -61,7 +70,7 @@ To stop, unregister, and remove the Windows service:
    ```powershell
    .\deploy\windows\uninstall_windows_service.ps1
    ```
-   *(Your database and workspace data in `%LOCALAPPDATA%\AutoReiv` remain untouched).*
+   *(The uninstaller never deletes data. It reads the service's `AUTOREIV_DATA_DIR` (or takes `-DataDir`, default `%LOCALAPPDATA%\AutoReiv`) only to tell you where your data was kept).*
 
 ### Interactive Runners (Console Mode)
 For development or ad-hoc local testing without registering a system service:

@@ -2,17 +2,17 @@
 id: CARD-670
 title: "Windows service installer has no data-dir flag and does not set AUTOREIV_DATA_DIR"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
+  checks: [tests/unit/deploy/test_card670_windows_service_data_dir.py]
+branch: feat/card-670-windows-service-data-dir
 log: {minutes: 0, qa_runs: 0, findings: 0}
 created: 2026-10-07
-completed:
+completed: 2026-10-07
 related:
   - CARD-658
   - CARD-659
@@ -45,4 +45,16 @@ Silent coupling of the Windows service to only the default AppData path with no 
 - Lean (Admin session): install with `-DataDir` to a throwaway folder, write marker, uninstall service, confirm data remains, reinstall finds marker.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. The 1.0 gate also needs an elevated Admin shell to finish full service register/unregister proof (CARD-658).
+Jacob approved the build on 2026-10-07. The 1.0 gate also needs an elevated Admin shell to finish full service register/unregister proof (CARD-658).
+
+## Decisions
+- `-DataDir` is optional; empty means `%LOCALAPPDATA%\AutoReiv` of the installing user. The path is made absolute and created.
+- NSSM gets `AppEnvironmentExtra AUTOREIV_DATA_DIR=<DataDir>`. No wiki variable: the resolver puts the wiki under the data dir.
+- Service logs move from `<repo>\data\` to `<DataDir>\logs`, so all instance state sits in one place.
+- The uninstaller takes `-DataDir`. Without it, it reads the service's `AUTOREIV_DATA_DIR` from NSSM before unregistering. It only prints the path and never deletes anything.
+
+## Results
+- New script-level tests (no Admin): `tests/unit/deploy/test_card670_windows_service_data_dir.py`. They failed first, then passed.
+- Full pytest: 2699 passed, 12 skipped, 0 failed of 2720. The run hung at 99% on 2 unrelated tests (CARD-672).
+- Fast preflight: GREEN: guard 188, changed tests 4, vitest 1098. Used because the full run hangs.
+- Still open: the live register/unregister proof needs an elevated shell (CARD-658).
