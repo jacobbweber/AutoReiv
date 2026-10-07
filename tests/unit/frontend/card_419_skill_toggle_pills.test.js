@@ -179,7 +179,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
 
     expect(runbook).toContain('operator_skills');
     expect(runbook).toContain('renderAssignedSkills');
-    expect(runbook).toContain("skillRowHtml(skill, 'operator', false)");
+    expect(runbook).toContain('operatorSkillPillModel'); // CARD-656: operator rows join the one name-sorted list
     expect(runbook).toContain('platformSkills = catData.platform_skills');
     expect(forge).toContain('cachedOperatorSkills');
     expect(forge).toContain('allowed_skill: checkedSkills');
