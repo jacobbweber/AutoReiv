@@ -164,7 +164,7 @@ describe('Agent Studio skill toggle pills [CARD-419]', () => {
     expect(row).toContain('forge-skill-pill');
     expect(row).toContain('data-home="operator"');
     expect(row).toContain('data-skill-id="dock-notes"');
-    expect(row).toContain('Open in Skill Studio');
+    expect(row).not.toContain('Open in Skill Studio'); // CARD-656
     expect(row).toContain('role="switch"');
 
     const turnedOn = toggleSkillInAllowlist(['wiki'], 'dock-notes');

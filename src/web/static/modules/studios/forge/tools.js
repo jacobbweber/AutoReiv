@@ -26,7 +26,7 @@ export function renderToolBadgeHtml(tool, activeAgent = null) {
 }
 
 // Mirrors REQUIRED_PLATFORM_TOOLS in src/application/agent_skills/schema.py (CARD-596/607).
-export const REQUIRED_PRIMITIVES = [
+const requiredPrimitives = [
   { name: 'ask_clarification', description: 'Ask the human operator a clarifying question when requirements are ambiguous.' },
   { name: 'get_session_info', description: 'Inspect active session metadata and runtime state.' },
   { name: 'recall_agent_memory', description: 'Recall facts stored for this agent.' },
@@ -35,7 +35,7 @@ export const REQUIRED_PRIMITIVES = [
 ];
 
 /** The always-on baseline as one quiet line instead of tool chips [CARD-656]. */
-export function baselineSummaryHtml(tools = REQUIRED_PRIMITIVES) {
+export function baselineSummaryHtml(tools = requiredPrimitives) {
   const names = (tools || []).map((t) => (typeof t === 'string' ? t : (t && t.name) || '')).filter(Boolean);
   return `<span class="forge-baseline-label">Always on</span> <span class="forge-baseline-text" title="${escapeHtml(names.join(', '))}">Every agent can ask you a question, check its session, remember and recall facts, and read files you upload.</span>`;
 }

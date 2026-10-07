@@ -43,7 +43,13 @@ export function skillMatchesSearch(skill, query) {
   const q = String(query || '').trim().toLowerCase();
   if (!q) return true;
   const s = skill || {};
-  return `${s.name || ''} ${s.id || ''} ${s.description || ''}`.toLowerCase().includes(q);
+  return skillSearchText(s).includes(q);
+}
+
+/** What the search box matches: the name, the id and the one description line the row shows. */
+function skillSearchText(skill) {
+  const s = skill || {};
+  return `${s.name || ''} ${s.id || ''} ${oneLine(s.description)}`.toLowerCase();
 }
 
 /**
@@ -51,18 +57,17 @@ export function skillMatchesSearch(skill, query) {
  * The switch keeps the CARD-419 contract (.forge-skill-pill, role=switch, aria-pressed, data-skill-id)
  * so Save reads it exactly as before.
  */
-export function skillRowHtml(skill, home, archived = false) {
+export function skillRowHtml(skill, home, archived = false, pressed = false) {
   const id = escapeHtml(skill.id || '');
   const name = escapeHtml(skill.name || skill.id || '');
-  const fullDesc = String(skill.description || '');
-  const desc = escapeHtml(oneLine(fullDesc));
+  const desc = escapeHtml(oneLine(skill.description));
   const control = archived
     ? `<span class="forge-skill-archived-tag" data-skill-id="${id}" data-archived="1" data-testid="forge-skill-archived">Archived</span>`
-    : `<button type="button" class="forge-skill-pill forge-skill-switch" role="switch" aria-pressed="false" data-skill-id="${id}" data-home="${escapeHtml(home)}" data-testid="forge-skill-pill" aria-label="Enable ${name} for this agent"><span class="forge-skill-switch-knob" aria-hidden="true"></span></button>`;
-  return `<div class="forge-skill-row" data-skill-id="${id}" data-home="${escapeHtml(home)}" data-search="${escapeHtml(`${skill.name || ''} ${skill.id || ''} ${fullDesc}`.toLowerCase())}">
+    : `<button type="button" class="forge-skill-pill forge-skill-switch" role="switch" aria-pressed="${pressed ? 'true' : 'false'}" data-skill-id="${id}" data-home="${escapeHtml(home)}" data-testid="forge-skill-pill" aria-label="Enable ${name} for this agent"><span class="forge-skill-switch-knob" aria-hidden="true"></span></button>`;
+  return `<div class="forge-skill-row" data-skill-id="${id}" data-home="${escapeHtml(home)}" data-search="${escapeHtml(skillSearchText(skill))}">
       <div class="forge-skill-text">
         <div class="forge-skill-name" data-testid="forge-skill-name">${name}</div>
-        ${desc ? `<div class="forge-skill-desc" data-testid="forge-skill-desc" title="${escapeHtml(fullDesc)}">${desc}</div>` : ''}
+        ${desc ? `<div class="forge-skill-desc" data-testid="forge-skill-desc" title="${desc}">${desc}</div>` : ''}
       </div>
       ${control}
     </div>`;
@@ -190,7 +195,7 @@ export function skillListModel({
 }
 
 function skillGroupHtml(key, title, skills) {
-  const rows = skills.map((s) => skillRowHtml(s, s.home, false)).join('');
+  const rows = skills.map((s) => skillRowHtml(s, s.home, false, key === 'enabled')).join('');
   const empty = key === 'enabled' ? 'No skills enabled for this agent.' : 'Every skill is enabled.';
   return `<div class="forge-skill-group" data-testid="forge-skill-group-${key}">
       <h4 class="forge-skill-group-title">${title}</h4>
