@@ -2,7 +2,7 @@
 id: CARD-670
 title: "Windows service installer has no data-dir flag and does not set AUTOREIV_DATA_DIR"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M23
 needs_decision: none
@@ -12,7 +12,7 @@ proof:
 branch: feat/card-670-windows-service-data-dir
 log: {minutes: 0, qa_runs: 0, findings: 0}
 created: 2026-10-07
-completed:
+completed: 2026-10-07
 related:
   - CARD-658
   - CARD-659
@@ -46,3 +46,15 @@ Silent coupling of the Windows service to only the default AppData path with no 
 
 ## Plan and decisions
 Jacob approved the build on 2026-10-07. The 1.0 gate also needs an elevated Admin shell to finish full service register/unregister proof (CARD-658).
+
+## Decisions
+- `-DataDir` is optional; empty means `%LOCALAPPDATA%\AutoReiv` of the installing user. The path is made absolute and created.
+- NSSM gets `AppEnvironmentExtra AUTOREIV_DATA_DIR=<DataDir>`. No wiki variable: the resolver puts the wiki under the data dir.
+- Service logs move from `<repo>\data\` to `<DataDir>\logs`, so all instance state sits in one place.
+- The uninstaller takes `-DataDir`. Without it, it reads the service's `AUTOREIV_DATA_DIR` from NSSM before unregistering. It only prints the path and never deletes anything.
+
+## Results
+- New script-level tests (no Admin): `tests/unit/deploy/test_card670_windows_service_data_dir.py`. They failed first, then passed.
+- Full pytest: __PYTEST__
+- Fast preflight: __FAST__
+- Still open: the live register/unregister proof needs an elevated shell (CARD-658).

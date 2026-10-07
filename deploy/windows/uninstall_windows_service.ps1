@@ -1,12 +1,14 @@
 <#
 .SYNOPSIS
     Windows Service Uninstallation Script for AutoReiv
-    [REQ-DEPLOY-004]
+    [REQ-DEPLOY-004], [CARD-670]
+    Stops and unregisters the service only. It never deletes the data folder.
 #>
 
 [CmdletBinding()]
 param (
-    [string]$ServiceName = "AutoReivService"
+    [string]$ServiceName = "AutoReivService",
+    [string]$DataDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,6 +23,16 @@ if (-not $isAdmin) {
 Write-Host "🛑 Uninstalling AutoReiv Windows Service ($ServiceName)..." -ForegroundColor Cyan
 
 $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+# Read the data folder the service used before it is unregistered. This script never deletes it.
+if ([string]::IsNullOrWhiteSpace($DataDir) -and $svc) {
+    $nssmCmd = Get-Command nssm -ErrorAction SilentlyContinue
+    if ($nssmCmd) {
+        $extra = (& nssm get $ServiceName AppEnvironmentExtra 2>$null) -join "`n"
+        $m = [regex]::Match($extra, 'AUTOREIV_DATA_DIR=([^\r\n]+)')
+        if ($m.Success) { $DataDir = $m.Groups[1].Value.Trim() }
+    }
+}
 
 if ($svc) {
     Write-Host " • Service found with status: $($svc.Status)" -ForegroundColor Yellow
@@ -51,5 +63,7 @@ if ($svc) {
     Write-Host "ℹ️  No registered Windows service named '$ServiceName' was found." -ForegroundColor Yellow
 }
 
-$DataDir = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "AutoReiv" } else { "user data" }
+if ([string]::IsNullOrWhiteSpace($DataDir)) {
+    $DataDir = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "AutoReiv" } else { "user data" }
+}
 Write-Host "🔒 User database and workspace data at '$DataDir' were preserved." -ForegroundColor Cyan
