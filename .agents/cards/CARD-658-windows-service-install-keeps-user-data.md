@@ -10,7 +10,7 @@ proof:
   journeys: []
   checks: []
 branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 90, qa_runs: 1, findings: 1}
 created: 2026-10-06
 completed:
 related:
@@ -49,3 +49,18 @@ An operator on Windows can install AutoReiv as a service, send a real chat messa
 
 ## Plan and decisions
 Needs Jacob's build approval before any work starts. Prefer a scripted check that can run on Jarvis without touching the live day-to-day data folder (use a throwaway data path if the installer allows it).
+
+## Results
+| Check | Result | Notes |
+|---|---|---|
+| Expected Windows data path | documented | `%LOCALAPPDATA%\AutoReiv` → `C:\Users\jacob\AppData\Local\AutoReiv` (DataDirResolver + deploy/README) |
+| Live data untouched | PASS | Live folder file count stayed 43 after cleanup; test used only `C:\Users\jacob\AppData\Local\AutoReiv-1.0-gate-test`. Transient count blip during the run was SQLite WAL noise on the live serve, not test writes. |
+| Real service install (`install_windows_service.ps1`) | BLOCKED | Script requires elevated Administrator console. Agent shell is not elevated. NSSM was installed via winget. |
+| Real service uninstall script | BLOCKED | Same admin requirement (`uninstall_windows_service.ps1`). |
+| Isolated serve persistence (same entrypoint the service uses) | PASS | `python -m src.cli.main serve` with `AUTOREIV_DATA_DIR=...\AutoReiv-1.0-gate-test` on port 8780. Marker `1.0-gate-marker.txt` token `gate658-20261006-232335` survived stop; session title still present after restart. Test dir deleted after. |
+| Chat turn | SKIPPED | `/api/chat/stream` hung or returned 422 with the bodies tried; session create worked. |
+
+**Verdict: PARTIAL.** Data-path persistence works for the Windows default layout when `AUTOREIV_DATA_DIR` points at an isolated folder. Full Windows Service register/unregister was not proven here (needs Administrator). Stock installer does not take a data-dir flag (see CARD-670).
+
+**Implications:** CARD-668 should document Admin + NSSM prerequisites and how to set `AUTOREIV_DATA_DIR` for the service. CARD-662 update/rollback still needs a real service path once Admin is available.
+

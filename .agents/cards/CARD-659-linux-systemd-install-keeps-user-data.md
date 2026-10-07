@@ -10,7 +10,7 @@ proof:
   journeys: []
   checks: []
 branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 90, qa_runs: 1, findings: 1}
 created: 2026-10-06
 completed:
 related:
@@ -49,3 +49,17 @@ An operator on Linux can install AutoReiv as a systemd service, send a real chat
 
 ## Plan and decisions
 Needs Jacob's build approval before any work starts. Prefer a throwaway data path for the check so live operator data is never at risk.
+
+## Results
+| Check | Result | Notes |
+|---|---|---|
+| Expected Linux paths | documented | App default `~/.autoreiv` (DataDirResolver). Systemd installer uses `/var/lib/autoreiv` via `AUTOREIV_DATA_DIR` and install tree `/opt/autoreiv` (deploy/systemd). |
+| Production Nimo data | untouched | `/var/lib/autoreiv` and `/home/nimoadmin/.autoreiv` were absent before and after. |
+| Real systemd install (`install_systemd.sh`) | BLOCKED | Needs root. `nimoadmin` is in group `sudo` but `sudo -n` fails (password required; no interactive TTY from this agent). |
+| Isolated user-space persistence | PASS | On Nimo (`192.168.1.29`), serve from a throwaway checkout with `AUTOREIV_DATA_DIR=/home/nimoadmin/AutoReiv-1.0-gate-test` on port 8780. Marker token `gate659-20261007-032852` and session survived stop/restart. Test data + checkout removed after. |
+| Chat turn | SKIPPED | Session create only (same stream-body uncertainty). |
+
+**Verdict: PARTIAL.** Data persistence under an isolated Linux data dir works. Full systemd install/uninstall on Nimo was not proven (sudo password). Stock installer hardcodes `/opt/autoreiv` and `/var/lib/autoreiv` with no `--data-dir` (see CARD-671).
+
+**Implications:** CARD-668 must document both `~/.autoreiv` (interactive) and `/var/lib/autoreiv` (systemd), and that uninstall without `--purge-data` keeps data. Passwordless sudo or an attended Admin session is needed to finish the systemd half of this gate.
+
