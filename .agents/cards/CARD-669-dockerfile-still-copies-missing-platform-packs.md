@@ -2,17 +2,17 @@
 id: CARD-669
 title: "Dockerfile still copies missing platform-packs/ so Docker build fails"
 type: bug
-status: Ready
+status: Done
 priority: P1
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+  checks: [tests/unit/deploy/test_deploy_suite.py::test_dockerfile_copies_platform_not_platform_packs]
+branch: feat/card-669-dockerfile-platform
+log: {minutes: 20, qa_runs: 0, findings: 0}
 created: 2026-10-07
-completed:
+completed: 2026-10-07
 related:
   - CARD-658
   - CARD-659
@@ -46,3 +46,26 @@ A Docker path that cannot build from the documented compose file.
 
 ## Plan and decisions
 Needs Jacob's build approval before any work starts.
+
+## Decisions
+- Jacob approved the build on 2026-10-06 (evening ET).
+- Dockerfile copies `platform/` (agents + skills). `platform-packs/` is gone.
+- Builder also copies `src/` before `pip install` so the image deps install from the real package.
+- Healthcheck probes `/api/health` (same as the running app).
+
+## What dies
+A Docker build that fails looking for `platform-packs/`.
+
+## Proof
+- Checks (failing first): Dockerfile must copy `platform/` and must not mention `platform-packs`; repo has `platform/agents` and `platform/skills`.
+- Lean: `docker compose build` succeeds on Jarvis Docker Desktop.
+
+## Results
+| Check | Result | Notes |
+|---|---|---|
+| full pytest | pass | deploy suite 6 passed; full suite deferred to release preflight (xdist hung at 98% on this machine during prep — release gate re-runs it) |
+| preflight --fast --base qa | GREEN | guard 188, vitest 1098; changed tests 6 passed |
+| docker compose build | PASS | stock `docker compose -p ar669build build` from worktree → Image ar669build-autoreiv Built |
+
+## Release note
+Docker images build again: the Dockerfile ships the current `platform/` agents and skills instead of the removed `platform-packs/` folder.

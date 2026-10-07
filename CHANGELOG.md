@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Docker images build again: the Dockerfile ships the current platform/ agents and skills instead of the removed platform-packs/ folder. (CARD-669)
 - Quick preflight no longer fails a stage when pytest selected zero tests (for example when every changed test is marked slow). (CARD-657)
 - Agent Studio's skill list is simpler: each skill is its name, one line of description and an on/off switch. Enabled skills are listed first, then the rest, with a count and a search box. 'Manage skills' opens Skill Studio. (CARD-656)
 
