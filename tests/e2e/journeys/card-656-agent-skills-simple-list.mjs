@@ -34,6 +34,8 @@ async function openArchitect(page, base) {
 
 const groupIds = (page, key) => page.locator(`[data-skill-group-list="${key}"] .forge-skill-row`).evaluateAll((rows) => rows.map((r) => r.dataset.skillId));
 const groupNames = (page, key) => page.locator(`[data-skill-group-list="${key}"] .forge-skill-name`).allTextContents();
+// Screenshots frame the section header (count, Manage skills, search) and the Enabled group.
+const showTop = (page) => page.locator('#forgeSkillsSection').evaluate((el) => el.scrollIntoView({ block: 'start' }));
 const sortedCopy = (xs) => [...xs].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
 async function save(page, request, base, want) {
@@ -74,7 +76,7 @@ export default {
         if (sectionText.includes(noise)) throw new Error(`skill section still shows "${noise.trim()}"`);
       }
       if (!(await page.locator('[data-testid="forge-open-skill-studio"]').isVisible())) throw new Error('no Manage skills link');
-      await page.locator('#forgeSkillsSection').scrollIntoViewIfNeeded();
+      await showTop(page);
     });
 
     await j.step('Search filters both groups by name', async () => {
@@ -87,12 +89,12 @@ export default {
       if (!visible.includes(first)) throw new Error(`search "${q}" hid ${first}`);
       const total = await page.locator('#forgeSkillsGrid [data-skill-group-list] .forge-skill-row').count();
       if (visible.length >= total) throw new Error('search did not filter anything');
-      await page.locator('#forgeSkillsSection').scrollIntoViewIfNeeded();
-      await page.locator('#forgeSkillSearch').fill('');
-      await page.waitForTimeout(300);
+      await showTop(page); // the search stays filled for the screenshot; the next step clears it
     });
 
     await j.step('Switch one skill off: it moves to Available and stays off after Save and reload', async () => {
+      await page.locator('#forgeSkillSearch').fill('');
+      await page.waitForTimeout(300);
       const en = await groupIds(page, 'enabled');
       target = en.find((id) => id !== 'sqlite-storage') || en[0];
       const pill = page.locator(`.forge-skill-pill[data-skill-id="${target}"]`).first();
@@ -122,7 +124,7 @@ export default {
       const end = await allowed(request, base);
       j.note(`${target} on; saved allowlist: ${end.join(', ')}`);
       if (JSON.stringify(sortedCopy(end)) !== JSON.stringify(sortedCopy(start))) throw new Error(`allowlist changed: ${start.join(',')} -> ${end.join(',')}`);
-      await page.locator('#forgeSkillsSection').scrollIntoViewIfNeeded();
+      await showTop(page);
     }, { timeoutMs: 90000 });
   },
 };
