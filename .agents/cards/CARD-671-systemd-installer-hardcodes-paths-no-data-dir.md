@@ -55,6 +55,6 @@ Jacob approved the build on 2026-10-07. Finishing CARD-659 also needs passwordle
 
 ## Results
 - New script-level tests: `tests/unit/deploy/test_card671_systemd_paths.py`. They failed first, then passed. The bash-run tests skip on Windows.
-- Full pytest: __PYTEST__
-- Fast preflight: __FAST__
+- Full pytest: 2708 passed, 17 skipped on Jarvis, with the two CARD-672 hang tests deselected (finished in 2m06s). The bash-run tests also passed on Linux (box): deploy suite 18 passed.
+- Fast preflight: GREEN: guard 188, changed tests 2 passed + 5 skipped on Windows, vitest 1098. Also on Nimo: `systemd-analyze verify` of the unit rendered with gate-test paths reports only the missing (not installed) venv python.
 - Still open: the real install/uninstall on Nimo needs sudo (CARD-659).

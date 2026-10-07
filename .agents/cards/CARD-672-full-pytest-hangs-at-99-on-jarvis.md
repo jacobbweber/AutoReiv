@@ -33,6 +33,7 @@ On Jarvis (Windows), the full suite under xdist (`-n auto`, `-n 8`, `-n 4`) and 
   - `tests/unit/system/test_update_service.py::test_apply_update_blocks_dirty_working_tree` (gw5)
   - `tests/unit/web/test_gaps_api.py::test_capability_gaps_api_lifecycle`
 - The remaining ~7 items were queued behind the stuck workers.
+- Confirmed during CARD-671: the same full run with only these two tests deselected completes (2708 passed, 17 skipped, 2m06s).
 - Workaround used: kill the pytest workers (the serve PID was left alone) and run `preflight.py --fast`.
 
 ## Cause
@@ -42,4 +43,5 @@ Unknown. Two leads: `apply_update` may block on a lock or a git subprocess even 
 To be decided. Reproduce each test alone on Jarvis, find the blocking call and fix it (or stub it). Consider a per-test timeout guard without adding a dependency, for example a faulthandler dump_traceback_later in conftest.
 
 ## Proof
+- The `--release` preflight also hung during the CARD-670 merge (0-byte output, zero CPU after 10 min).
 - Full `pytest -n auto` and `preflight.py --release` complete on Jarvis three times in a row.
