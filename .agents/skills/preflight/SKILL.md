@@ -27,7 +27,7 @@ Stages:
 Stages (every test, `slow` included): `ruff check .`, `npm run lint:frontend`, `pytest tests/unit tests/integration -n auto -m "not serial"`, `pytest -m serial` (serial pass), `honesty_smoke_skill_261.py --validate`, `npx vitest run`, `npx playwright test tests/e2e/smoke.spec.js`. `npm run preflight` runs the same. Merge qa into main only when it is GREEN; add each failure as one line to `docs/findings.md` or fix it on a card first.
 
 ## Results
-- `PASS`, `SKIP` (nothing changed for that stage), `KNOWN` (lint errors within a count named in `KNOWN_LINT` in `preflight.py`, with the card id), `FAIL`.
+- `PASS` (includes pytest exit 5 = no tests collected, even when xdist omits "deselected"; CARD-657), `SKIP` (nothing changed for that stage), `KNOWN` (lint errors within a count named in `KNOWN_LINT` in `preflight.py`, with the card id), `FAIL`.
 - Known test failures are `xfail(strict=True, reason="CARD-N")` in the test itself, so pytest and Vitest stay green; an XPASS fails.
 - A test that cannot run in parallel (fixed port, shared file, process-global state) gets `@pytest.mark.serial`; prefer fixing it with `tmp_path` or a free port.
 - When a card fixes a known failure, delete its `KNOWN_LINT` entry or `xfail` marker on that card.
