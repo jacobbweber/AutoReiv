@@ -2,14 +2,14 @@
 id: CARD-657
 title: "Preflight 'changed tests' stage fails when every changed test is slow-marked"
 type: bug
-status: Backlog
+status: Ready
 priority: P3
 milestone: M23
 needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
+  checks: [tests/unit/skills/test_card657_preflight_zero_tests_pass.py]
+branch: feat/card-657-preflight-zero-tests-pass
 log: {minutes: 0, qa_runs: 0, findings: 0}
 created: 2026-10-06
 completed:
