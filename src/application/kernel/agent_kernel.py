@@ -1032,7 +1032,9 @@ class AgentKernel:
                             user_req_text = hm.content
                             break
 
-                gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=assistant_msg.content)
+                gap = CapabilityDetector.detect(
+                    user_prompt=user_req_text, assistant_response=assistant_msg.content, own_tools=self._own_tool_names(agent),
+                )
                 if gap:
                     try:
                         self.capability_gap_repo.create_gap(
@@ -1528,7 +1530,9 @@ class AgentKernel:
                             user_req_text = hm.content
                             break
 
-                gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=full_content)
+                gap = CapabilityDetector.detect(
+                    user_prompt=user_req_text, assistant_response=full_content, own_tools=self._own_tool_names(agent),
+                )
                 if gap:
                     try:
                         self.capability_gap_repo.create_gap(
