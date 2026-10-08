@@ -23,6 +23,25 @@ ALLOWED_GAP_STATUSES = frozenset(
 )
 
 
+_GAP_COLUMNS = (
+    "id, agent_id, session_id, turn_text, identified_capability, suggested_tool_name, status, created_at, context_summary"
+)
+
+
+def _row_to_gap(row: Any) -> CapabilityGap:
+    return CapabilityGap(
+        id=row["id"],
+        agent_id=row["agent_id"],
+        session_id=row["session_id"],
+        turn_text=row["turn_text"],
+        identified_capability=row["identified_capability"],
+        suggested_tool_name=row["suggested_tool_name"],
+        status=row["status"],
+        created_at=str(row["created_at"]),
+        context_summary=row["context_summary"],
+    )
+
+
 class CapabilityGapRepository:
     """Repository for managing agent capability gaps."""
 
@@ -58,6 +77,7 @@ class CapabilityGapRepository:
     ) -> CapabilityGap:
         effective_turn = turn_text or user_prompt or ""
         effective_cap = identified_capability or missing_capability or ""
+        summary = (context_summary or "").strip() or None
         gap_id = f"gap_{uuid.uuid4().hex[:12]}"
         now_str = datetime.now(timezone.utc).isoformat()
         conn = self._get_connection()
@@ -66,10 +86,10 @@ class CapabilityGapRepository:
                 """
                 INSERT INTO agent_capability_gaps (
                     id, agent_id, session_id, turn_text, identified_capability,
-                    suggested_tool_name, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+                    suggested_tool_name, status, created_at, context_summary
+                ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
                 """,
-                (gap_id, agent_id, session_id, effective_turn, effective_cap, suggested_tool_name, now_str),
+                (gap_id, agent_id, session_id, effective_turn, effective_cap, suggested_tool_name, now_str, summary),
             )
             conn.commit()
             return CapabilityGap(
@@ -81,6 +101,7 @@ class CapabilityGapRepository:
                 suggested_tool_name=suggested_tool_name,
                 status="pending",
                 created_at=now_str,
+                context_summary=summary,
             )
         finally:
             if not self._connection_factory and getattr(self, "_mem_conn", None) is None and hasattr(conn, "close"):
@@ -90,27 +111,9 @@ class CapabilityGapRepository:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT id, agent_id, session_id, turn_text, identified_capability,
-                       suggested_tool_name, status, created_at
-                FROM agent_capability_gaps WHERE id = ?
-                """,
-                (gap_id,),
-            )
+            cur.execute(f"SELECT {_GAP_COLUMNS} FROM agent_capability_gaps WHERE id = ?", (gap_id,))
             row = cur.fetchone()
-            if not row:
-                return None
-            return CapabilityGap(
-                id=row["id"],
-                agent_id=row["agent_id"],
-                session_id=row["session_id"],
-                turn_text=row["turn_text"],
-                identified_capability=row["identified_capability"],
-                suggested_tool_name=row["suggested_tool_name"],
-                status=row["status"],
-                created_at=str(row["created_at"]),
-            )
+            return _row_to_gap(row) if row else None
         finally:
             if not self._connection_factory and getattr(self, "_mem_conn", None) is None and hasattr(conn, "close"):
                 conn.close()
@@ -123,7 +126,7 @@ class CapabilityGapRepository:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
-            query = "SELECT id, agent_id, session_id, turn_text, identified_capability, suggested_tool_name, status, created_at FROM agent_capability_gaps"
+            query = f"SELECT {_GAP_COLUMNS} FROM agent_capability_gaps"
             params = []
             conditions = []
             if agent_id:
@@ -138,19 +141,7 @@ class CapabilityGapRepository:
 
             cur.execute(query, tuple(params))
             rows = cur.fetchall()
-            return [
-                CapabilityGap(
-                    id=row["id"],
-                    agent_id=row["agent_id"],
-                    session_id=row["session_id"],
-                    turn_text=row["turn_text"],
-                    identified_capability=row["identified_capability"],
-                    suggested_tool_name=row["suggested_tool_name"],
-                    status=row["status"],
-                    created_at=str(row["created_at"]),
-                )
-                for row in rows
-            ]
+            return [_row_to_gap(row) for row in rows]
         finally:
             if not self._connection_factory and getattr(self, "_mem_conn", None) is None and hasattr(conn, "close"):
                 conn.close()

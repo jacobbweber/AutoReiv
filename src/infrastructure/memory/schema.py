@@ -206,7 +206,8 @@ CREATE TABLE IF NOT EXISTS agent_capability_gaps (
     identified_capability TEXT NOT NULL,
     suggested_tool_name TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    context_summary TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_gaps_agent_status ON agent_capability_gaps(agent_id, status);

@@ -131,6 +131,7 @@ class SQLiteConnectionManager:
             ("routine_runs", "job_id", "TEXT"),
             ("jobs", "success_rule", "TEXT NOT NULL DEFAULT ''"),
             ("messages", "reasoning", "TEXT"),
+            ("agent_capability_gaps", "context_summary", "TEXT"),  # CARD-664
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
@@ -244,7 +245,8 @@ class SQLiteConnectionManager:
                     identified_capability TEXT NOT NULL,
                     suggested_tool_name TEXT,
                     status TEXT NOT NULL DEFAULT 'pending',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    context_summary TEXT
                 );
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_gaps_agent_status ON agent_capability_gaps(agent_id, status);")
