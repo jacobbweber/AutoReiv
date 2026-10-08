@@ -25,8 +25,8 @@ Paths must be absolute. The installed unit is rendered from `deploy/systemd/auto
 
 This script:
 1. Creates the unprivileged `autoreiv` service user.
-2. Initializes the data directory (default `/var/lib/autoreiv`, with `database/`, `wiki/`, `packs/`, and `skills/`).
-3. Syncs the codebase, platform packs, and Developer Agent templates into the prefix (default `/opt/autoreiv`).
+2. Initializes the data directory (default `/var/lib/autoreiv`, with `database/`, `wiki/`, and `skills/`; the app adds the rest on first start).
+3. Syncs the codebase, the `platform/` agents and skills, and Developer Agent templates into the prefix (default `/opt/autoreiv`).
 4. Creates and activates a Python virtual environment at `<prefix>/.venv`.
 5. Writes `/etc/systemd/system/autoreiv.service` and enables the service to start automatically on boot.
 
@@ -42,7 +42,7 @@ To cleanly stop, disable, and remove the systemd service and application code:
 sudo ./deploy/systemd/uninstall_systemd.sh
 ```
 > [!NOTE]
-> By default, `uninstall_systemd.sh` **preserves** your persistent database, wiki, and packs in the data directory (default `/var/lib/autoreiv`).
+> By default, `uninstall_systemd.sh` **preserves** your persistent database, wiki, agents, and skills in the data directory (default `/var/lib/autoreiv`).
 > To completely purge user data as well, provide the `--purge-data` flag:
 > ```bash
 > sudo ./deploy/systemd/uninstall_systemd.sh --purge-data
@@ -133,7 +133,7 @@ docker compose logs -f
 Docker mounts a named volume `autoreiv-data` to `/data` in the container. The canonical directory layout is automatically managed inside:
 - `/data/database/autoreiv.db` (Primary SQLite database)
 - `/data/wiki/` (PARA-Wiki storage)
-- `/data/packs/` (Agent packs & memory)
+- `/data/agents/` (Your agents; CARD-570)
 - `/data/skills/` (Seeded and custom skills)
 
 ## Wiki path (ADR-0056 / CARD-414)
