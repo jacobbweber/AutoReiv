@@ -42,6 +42,10 @@ NOT_GAPS = [
     "I don't have any notes about that topic yet.",
     "The wiki has no gardening notes, so there is nothing to summarize.",
     "I can't book flights; no agent covers that.",
+    "No tools were needed for this answer.",
+    "There were no tool calls in this turn.",
+    "No search tool was used; the answer is from your note.",
+    "I used the wiki_search tool and found three notes.",
 ]
 
 
@@ -85,3 +89,21 @@ def test_a_gap_about_the_agents_own_tool_is_not_filed():
 def test_greetings_and_empty_input_still_return_none():
     assert CapabilityDetector.detect("hi", "I do not have an email tool.") is None
     assert CapabilityDetector.detect(PROMPT, "") is None
+
+
+def test_kernel_passes_its_own_tools_to_both_detector_calls():
+    """Both kernel paths (plain and streamed) tell the detector which tools the agent owns [CARD-663]."""
+    import ast
+    from pathlib import Path
+
+    source = Path(__file__).resolve().parents[3] / "src" / "application" / "kernel" / "agent_kernel.py"
+    calls = [
+        node
+        for node in ast.walk(ast.parse(source.read_text(encoding="utf-8")))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "detect"
+        and getattr(node.func.value, "id", None) == "CapabilityDetector"
+    ]
+    assert len(calls) == 2
+    assert all(any(kw.arg == "own_tools" for kw in call.keywords) for call in calls)
