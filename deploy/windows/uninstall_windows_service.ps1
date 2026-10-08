@@ -20,7 +20,7 @@ if (-not $isAdmin) {
     exit 1
 }
 
-Write-Host "🛑 Uninstalling AutoReiv Windows Service ($ServiceName)..." -ForegroundColor Cyan
+Write-Host "Uninstalling AutoReiv Windows Service ($ServiceName)..." -ForegroundColor Cyan
 
 $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
@@ -35,11 +35,11 @@ if ([string]::IsNullOrWhiteSpace($DataDir) -and $svc) {
 }
 
 if ($svc) {
-    Write-Host " • Service found with status: $($svc.Status)" -ForegroundColor Yellow
+    Write-Host " - Service found with status: $($svc.Status)" -ForegroundColor Yellow
 
     # Stop service if running
     if ($svc.Status -eq 'Running' -or $svc.Status -eq 'StartPending') {
-        Write-Host " • Stopping service..." -ForegroundColor Yellow
+        Write-Host " - Stopping service..." -ForegroundColor Yellow
         $nssm = Get-Command nssm -ErrorAction SilentlyContinue
         if ($nssm) {
             & nssm stop $ServiceName
@@ -50,7 +50,7 @@ if ($svc) {
     }
 
     # Remove / unregister service
-    Write-Host " • Removing service registration..." -ForegroundColor Yellow
+    Write-Host " - Removing service registration..." -ForegroundColor Yellow
     $nssm = Get-Command nssm -ErrorAction SilentlyContinue
     if ($nssm) {
         & nssm remove $ServiceName confirm
@@ -58,12 +58,12 @@ if ($svc) {
         & sc.exe delete $ServiceName
     }
 
-    Write-Host "✅ AutoReiv Windows Service ($ServiceName) successfully uninstalled!" -ForegroundColor Green
+    Write-Host "OK: AutoReiv Windows Service ($ServiceName) successfully uninstalled!" -ForegroundColor Green
 } else {
-    Write-Host "ℹ️  No registered Windows service named '$ServiceName' was found." -ForegroundColor Yellow
+    Write-Host "Note: No registered Windows service named '$ServiceName' was found." -ForegroundColor Yellow
 }
 
 if ([string]::IsNullOrWhiteSpace($DataDir)) {
     $DataDir = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "AutoReiv" } else { "user data" }
 }
-Write-Host "🔒 User database and workspace data at '$DataDir' were preserved." -ForegroundColor Cyan
+Write-Host "Kept: User database and workspace data at '$DataDir' were preserved." -ForegroundColor Cyan

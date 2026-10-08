@@ -40,11 +40,11 @@ if (!(Test-Path $PythonExe)) {
     $PythonExe = (Get-Command python.exe).Source
 }
 
-Write-Host "📦 Setting up AutoReiv as a persistent Windows background service..." -ForegroundColor Cyan
-Write-Host " • Service Name: $ServiceName"
-Write-Host " • Python Path : $PythonExe"
-Write-Host " • Working Dir : $RootPath"
-Write-Host " • Data Dir    : $DataDir"
+Write-Host "Setting up AutoReiv as a persistent Windows background service..." -ForegroundColor Cyan
+Write-Host " - Service Name: $ServiceName"
+Write-Host " - Python Path : $PythonExe"
+Write-Host " - Working Dir : $RootPath"
+Write-Host " - Data Dir    : $DataDir"
 
 # Check if nssm is available
 $nssm = Get-Command nssm -ErrorAction SilentlyContinue
@@ -59,9 +59,9 @@ if ($nssm) {
     & nssm set $ServiceName AppStderr (Join-Path $LogDir "autoreiv_error.log")
     & nssm set $ServiceName Start SERVICE_AUTO_START
     & nssm start $ServiceName
-    Write-Host "✅ AutoReiv Windows Service successfully created and started!" -ForegroundColor Green
-    Write-Host " • Data Dir   : $DataDir (kept by the uninstaller)" -ForegroundColor Cyan
-    Write-Host " • Uninstaller: .\deploy\windows\uninstall_windows_service.ps1 -ServiceName $ServiceName" -ForegroundColor Cyan
+    Write-Host "OK: AutoReiv Windows Service successfully created and started!" -ForegroundColor Green
+    Write-Host " - Data Dir   : $DataDir (kept by the uninstaller)" -ForegroundColor Cyan
+    Write-Host " - Uninstaller: .\deploy\windows\uninstall_windows_service.ps1 -ServiceName $ServiceName" -ForegroundColor Cyan
 } else {
     Write-Warning "NSSM is not installed. To register as a native Windows service automatically, install NSSM via 'winget install nssm' or 'choco install nssm' and re-run this script."
     Write-Host ""
