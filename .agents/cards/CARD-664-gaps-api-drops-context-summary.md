@@ -2,17 +2,17 @@
 id: CARD-664
 title: "Gaps API drops context_summary"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+  checks: [tests/unit/web/test_card664_gap_context_summary.py]
+branch: feat/card-664-gap-context-summary
+log: {minutes: 25, qa_runs: 1, findings: 0}
 created: 2026-10-06
-completed:
+completed: 2026-10-08
 related:
   - CARD-658
   - CARD-659
@@ -50,4 +50,16 @@ Gap drafts that forget the summary the caller already sent.
 - No live journey required unless the UI path is broken too.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts.
+Jacob approved the build on 2026-10-08.
+
+## Root cause
+The gap table had no `context_summary` column. `CapabilityGapRepository.create_gap` took the argument and dropped it, `get_gap` and `list_gaps` never selected it, and `CapabilityGap` had no field for it. The router used the summary only as model input for synthesis and never passed it on. The kernel already passes the reply as `context_summary` (lost the same way). Skill Studio's `gap_prefill.js` already reads `gap.context_summary`, so it always fell back to the turn text.
+
+## Decisions
+- New nullable `context_summary TEXT` column, in `INIT_SCHEMA_SQL` and in the create-table migration. Existing databases get it from `_migrate_if_missing` (an `ALTER TABLE ... ADD COLUMN`, the same pattern as the other added columns). Old rows keep their data and read `None`.
+- `CapabilityGap.context_summary` is an optional field. The repository writes it (blank becomes `None`) and returns it from create, get and list through one shared column list and row mapper.
+- `POST /api/agents/{id}/gaps` stores `context_summary`, falling back to `assistant_response` (the same fallback gap_prefill.js uses). With neither, it stores `None` and the request still works.
+
+## Results
+- New checks: `tests/unit/web/test_card664_gap_context_summary.py` covers the repository round trip, a gap without a summary, an old database gaining the column with its gaps kept, and the API (summary, reply only, neither; per-agent and all-agent lists). Before the fix: 4 failed (`CapabilityGap` has no `context_summary`; the API response had no such key). After: all pass.
+- Existing gap tests (`test_gaps_api`, `test_capability_gaps`, the dogfood gap loop), the memory and core suites: 122 passed.
