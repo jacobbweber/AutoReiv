@@ -80,11 +80,11 @@ fi
 # 2. Create runtime and storage directories
 echo " • Prefix   : $INSTALL_DIR"
 echo " • Data dir : $DATA_ROOT"
-mkdir -p "$INSTALL_DIR" "$DATA_ROOT/database" "$DATA_ROOT/wiki" "$DATA_ROOT/packs" "$DATA_ROOT/skills" "$CONF_DIR"
+mkdir -p "$INSTALL_DIR" "$DATA_ROOT/database" "$DATA_ROOT/wiki" "$DATA_ROOT/skills" "$CONF_DIR"
 
 # 3. Copy repository files and templates into the install prefix
 
-echo "📂 Syncing AutoReiv codebase, packs, and templates into $INSTALL_DIR..."
+echo "📂 Syncing AutoReiv codebase, platform agents/skills, and templates into $INSTALL_DIR..."
 rsync -a --exclude='.git' --exclude='tests' --exclude='__pycache__' "$REPO_ROOT/" "$INSTALL_DIR/"
 
 # 4. Setup Python Virtual Environment
