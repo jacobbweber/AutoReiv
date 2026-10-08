@@ -62,4 +62,4 @@ On Jarvis (Windows), the full suite under xdist (`-n auto`, `-n 8`, `-n 4`) and 
 
 ## Results
 - Full pytest on Jarvis (`-n auto`, worktree), three runs in a row after the fix: 2725 passed, 17 skipped, 0 failed each run: 63.7 s, 64.9 s, 62.5 s (wall 64-66 s). Before the fix, 4 runs on 2026-10-08 (`-n 8`, `OLLAMA_HOST=0.0.0.0`) also finished (2719 passed, 104-116 s), so the hang depends on what `OLLAMA_HOST` points at.
-- Full release preflight (`preflight.py --release`, main checkout, the one with `.env`): __RELEASE__
+- Full release preflight (`preflight.py --release`, main checkout, the one with `.env`), both runs finished with no hang. Run 1 (9:31 AM ET): 454 s, RED only on ruff (import order in the new test; fixed in d9d53558); every other stage passed, including pytest 2725 passed / 17 skipped in 73 s and smoke 86 passed in 6.1 min. Run 2 (9:41 AM ET): **GREEN, 463 s total**: ruff PASS, eslint PASS 3 s (0 errors), pytest unit+integration 2725 passed / 17 skipped in 78 s, pytest serial PASS (no tests selected) 4 s, honesty validate PASS, vitest 1098 passed 7 s, smoke 86 passed 370 s.
