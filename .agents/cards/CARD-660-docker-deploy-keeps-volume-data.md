@@ -2,17 +2,17 @@
 id: CARD-660
 title: "1.0 gate — Docker deploy keeps mounted volume data through remove and recreate"
 type: feature
-status: Ready
+status: Done
 priority: P1
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
   checks: []
 branch:
-log: {minutes: 90, qa_runs: 1, findings: 1}
+log: {minutes: 120, qa_runs: 2, findings: 1}
 created: 2026-10-06
-completed:
+completed: 2026-10-08
 related:
   - CARD-658
   - CARD-659
@@ -47,7 +47,7 @@ An operator can start AutoReiv with Docker Compose (or equivalent) and a mounted
 - Recreate the container with the same volume mount; the earlier chat (or equivalent saved data) is still there.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. Use a throwaway volume name for the check.
+Jacob approved and ran the live gate on 2026-10-08 (the sudo/Admin steps were his). Earlier note: Needs Jacob's build approval before any work starts. Use a throwaway volume name for the check.
 
 ## Results
 | Check | Result | Notes |
@@ -64,3 +64,8 @@ Needs Jacob's build approval before any work starts. Use a throwaway volume name
 
 **Implications:** CARD-668 should say: never `down -v` unless you mean to wipe; wiki host path is required. CARD-662 Docker recreate-with-same-volume is supported by this evidence.
 
+## Final result (2026-10-08): PASS
+- Persistence: PASS in the 2026-10-06 run. The named volume survived `docker compose down` (no `-v`), and the marker `gate660-20261006-231623` came back on recreate.
+- Stock build: CARD-669 (Dockerfile copies `platform/`) is on qa, and the stock `docker compose build` passed on 2026-10-07. The earlier caveat (the run needed a local Dockerfile override) is closed.
+
+**Verdict: PASS.**

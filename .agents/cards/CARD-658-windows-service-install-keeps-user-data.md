@@ -2,17 +2,17 @@
 id: CARD-658
 title: "1.0 gate — Windows service install keeps user data through uninstall and reinstall"
 type: feature
-status: Ready
+status: Done
 priority: P1
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
   checks: []
 branch:
-log: {minutes: 90, qa_runs: 1, findings: 1}
+log: {minutes: 120, qa_runs: 2, findings: 1}
 created: 2026-10-06
-completed:
+completed: 2026-10-08
 related:
   - CARD-659
   - CARD-660
@@ -48,7 +48,7 @@ An operator on Windows can install AutoReiv as a service, send a real chat messa
 - Document the expected Windows data path in this card's Results and in CARD-668.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. Prefer a scripted check that can run on Jarvis without touching the live day-to-day data folder (use a throwaway data path if the installer allows it).
+Jacob approved and ran the live gate on 2026-10-08 (the sudo/Admin steps were his). Earlier note: Needs Jacob's build approval before any work starts. Prefer a scripted check that can run on Jarvis without touching the live day-to-day data folder (use a throwaway data path if the installer allows it).
 
 ## Results
 | Check | Result | Notes |
@@ -64,3 +64,18 @@ Needs Jacob's build approval before any work starts. Prefer a scripted check tha
 
 **Implications:** CARD-668 should document Admin + NSSM prerequisites and how to set `AUTOREIV_DATA_DIR` for the service. CARD-662 update/rollback still needs a real service path once Admin is available.
 
+## Live gate run (2026-10-08): PASS
+Jacob ran these steps in an elevated Windows PowerShell 5.1 on Jarvis at qa `46be94ec`. That commit has the CARD-670 `-DataDir` option and the ASCII fix that lets the scripts parse in 5.1. The agent did the checks between steps, without elevation.
+
+| Step | Result | Notes |
+|---|---|---|
+| Install `-ServiceName AutoReivGateTest -Port 8780 -DataDir C:\Users\jacob\AppData\Local\AutoReiv-1.0-gate-test` | PASS | Service Running, `/api/health` 200 on 8780. |
+| Marker + session | PASS | Marker `gate658-20261008-083750`; session `7c52fbb7-8cb0-49ec-a345-bed51f584b59` created. |
+| Uninstall | PASS | Service gone, port 8780 closed; marker and database kept. |
+| Reinstall (same command) | PASS | Health 200; marker and session back. |
+| Final uninstall | PASS | Service gone. |
+| Live data | untouched | `C:\Users\jacob\AppData\Local\AutoReiv` stayed at 43 files throughout. |
+
+**Verdict: PASS.** The Windows service install, uninstall and reinstall keep user data. The earlier PARTIAL (Admin-blocked) is closed.
+
+Left in place on purpose: `C:\Users\jacob\AppData\Local\AutoReiv-1.0-gate-test`, the gate test data folder (not deleted).
