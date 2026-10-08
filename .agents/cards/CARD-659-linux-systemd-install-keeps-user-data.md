@@ -2,17 +2,17 @@
 id: CARD-659
 title: "1.0 gate — Linux systemd install keeps user data through uninstall and reinstall"
 type: feature
-status: Ready
+status: Done
 priority: P1
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
   checks: []
 branch:
-log: {minutes: 90, qa_runs: 1, findings: 1}
+log: {minutes: 120, qa_runs: 2, findings: 1}
 created: 2026-10-06
-completed:
+completed: 2026-10-08
 related:
   - CARD-658
   - CARD-660
@@ -48,7 +48,7 @@ An operator on Linux can install AutoReiv as a systemd service, send a real chat
 - Document the expected Linux data path in this card's Results and in CARD-668.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. Prefer a throwaway data path for the check so live operator data is never at risk.
+Jacob approved and ran the live gate on 2026-10-08 (the sudo/Admin steps were his). Earlier note: Needs Jacob's build approval before any work starts. Prefer a throwaway data path for the check so live operator data is never at risk.
 
 ## Results
 | Check | Result | Notes |
@@ -63,3 +63,22 @@ Needs Jacob's build approval before any work starts. Prefer a throwaway data pat
 
 **Implications:** CARD-668 must document both `~/.autoreiv` (interactive) and `/var/lib/autoreiv` (systemd), and that uninstall without `--purge-data` keeps data. Passwordless sudo or an attended Admin session is needed to finish the systemd half of this gate.
 
+## Live gate run (2026-10-08): PASS
+Jacob ran the sudo steps in his own SSH terminal on Nimo, from `~/AutoReiv-gate-src` at qa `46be94ec` (CARD-671 `--prefix`/`--data-dir`). The agent did the checks between steps, without sudo.
+
+| Step | Result | Notes |
+|---|---|---|
+| `sudo install_systemd.sh --prefix /opt/autoreiv-1.0-gate-test --data-dir /var/lib/autoreiv-1.0-gate-test` | PASS | Unit had the right `WorkingDirectory` and `AUTOREIV_DATA_DIR`; `/api/health` 200 on `192.168.1.29:8000`. |
+| Marker + session | PASS | Marker `gate659-marker 2026-10-08T12:40:49+00:00` (08:40 ET); session `c33fee32-a8d5-4ff7-b099-b1bb3d3fb6a1`. |
+| Uninstall (no `--purge-data`) | PASS | `/opt/autoreiv-1.0-gate-test` removed. Data and `/etc/autoreiv` kept: marker plus `agents backups database packs skills templates wiki`. |
+| Reinstall (same command) | PASS | Health 200; session back. |
+| Final uninstall | PASS | `systemctl list-unit-files 'autoreiv*'` shows 0 unit files. |
+| Production Nimo | untouched | No `autoreiv.service` or `/var/lib/autoreiv` before or after; Ollama (11434) not touched. |
+
+**Verdict: PASS.** The systemd install, uninstall and reinstall keep user data. The earlier PARTIAL (sudo-blocked) is closed.
+
+Left on Nimo on purpose (nothing purged without Jacob's approval): the `autoreiv` system user, `/etc/autoreiv`, `/var/lib/autoreiv-1.0-gate-test`, `~/AutoReiv-gate-src`.
+
+Notes:
+- The Linux install/uninstall scripts still print emoji. That is fine in bash and needs no change.
+- The fresh data folder got an empty `packs/` folder even though packs are gone. Filed as CARD-673.
