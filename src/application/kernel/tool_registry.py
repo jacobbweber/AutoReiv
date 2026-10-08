@@ -117,11 +117,30 @@ def argument_mismatch_error(tool_name: str, handler: Any, schema: Optional[Dict[
     return " ".join(parts)
 
 
-def tool_not_offered_error(tool_name: str, offered: Collection[str], exists: bool = True) -> str:
-    """CARD-607: refuse a tool that was not sent on this call, and say what can be called instead."""
+def skill_id_called_as_tool(tool_name: str, skills: Collection[str] = ()) -> str:
+    """The skill id when a tool call names a skill ("platform-health" or "skill.platform-health"), else "" [CARD-665]."""
+    name = str(tool_name or "").strip()
+    if name.startswith("skill."):
+        return name[len("skill.") :]
+    return name if name in {str(s) for s in skills or ()} else ""
+
+
+def tool_not_offered_error(
+    tool_name: str, offered: Collection[str], exists: bool = True, skills: Collection[str] = ()
+) -> str:
+    """CARD-607: refuse a tool that was not sent on this call, and say what can be called instead.
+
+    CARD-665: a skill id (one of ``skills``, or ``skill.<id>``) is named as a skill, not as a missing tool, so the
+    reply does not offer to build a tool by that name.
+    """
     names = sorted({str(n) for n in offered or [] if n})
     text = f"{TOOL_NOT_OFFERED}:Tool '{tool_name}' was not in the tools sent on this call, so it is not authorized here."
-    if not exists:
+    skill = skill_id_called_as_tool(tool_name, skills)
+    if skill:
+        text += f" '{skill}' is a skill (runbook), not a tool, so it cannot be called."
+        if "skill_view" in names:
+            text += f" Open its instructions with skill_view('{skill}')."
+    elif not exists:
         text += f" {NO_SUCH_TOOL}"
     close = difflib.get_close_matches(str(tool_name), names, n=2, cutoff=0.6)
     if close:
@@ -303,13 +322,24 @@ class ScopedToolRegistry:
         start_time = time.perf_counter()
 
         # 1. Verify RBAC authorization: the one allowed-tools function (ADR-0061)
-        from src.application.agent_skills.allowed_tools import resolve_allowed_tools
+        from src.application.agent_skills.allowed_tools import resolve_allowed_tools, ticked_skills
 
         if allowed is None:
             allowed = resolve_allowed_tools(agent)
 
         # Exact names only: no bare-name suffix match to mcp_* tools (CARD-578).
         target_name = tool_call.name
+        skills = ticked_skills(agent)
+        if offered is not None and target_name not in allowed and skill_id_called_as_tool(target_name, skills):
+            # CARD-665: a skill id is not a tool; same refusal as the kernel gate (not "not authorized").
+            return ToolResult(
+                call_id=tool_call.id,
+                tool_name=tool_call.name,
+                output=None,
+                success=False,
+                error=tool_not_offered_error(target_name, offered, skills=skills),
+                duration_ms=(time.perf_counter() - start_time) * 1000,
+            )
         if target_name not in allowed:
             return ToolResult(
                 call_id=tool_call.id,
@@ -326,7 +356,7 @@ class ScopedToolRegistry:
                 tool_name=tool_call.name,
                 output=None,
                 success=False,
-                error=tool_not_offered_error(tool_call.name, offered),
+                error=tool_not_offered_error(tool_call.name, offered, skills=skills),
                 duration_ms=(time.perf_counter() - start_time) * 1000,
             )
 

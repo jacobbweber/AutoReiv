@@ -32,6 +32,7 @@ from src.application.orchestration.phase_roles import (
     format_planning_phase_block,
     format_planning_repo_note,
     is_planning_phase,
+    planning_tools_block_for,
 )
 from src.application.orchestration.repo_code_grounding import (
     ACTION_REQUIRE_READ as REPO_ACTION_REQUIRE_READ,
@@ -1252,6 +1253,16 @@ async def execute_goal_job_phases(
         if planning and len(phases) > 1:
             assignment = assignment.rstrip() + "\n\n" + format_planning_phase_block(phases, current)
         run_profile = profile_for_phase(profile, current, registry)
+        if planning:
+            # CARD-665: name exactly the tools this Formulate call is sent; matched skills/tools outside it are
+            # named as not callable, so the planner does not spend rounds on refused calls.
+            try:
+                ids_fn = getattr(orch, "matched_capability_ids_for_job", None)
+                matched_now = list(ids_fn(job.id) or []) if callable(ids_fn) else []
+                tools_block = planning_tools_block_for(kernel, run_profile, job.id, current.id, matched_now)
+                assignment = assignment.rstrip() + "\n\n" + tools_block
+            except Exception:
+                logger.exception("CARD-665 planning tools block soft-fail job=%s", getattr(job, "id", None))
         phase_session = _ensure_phase_session(store, session_id, current, run_profile.id)
         outcome = await _stream_turn_bound(
             queue=queue,

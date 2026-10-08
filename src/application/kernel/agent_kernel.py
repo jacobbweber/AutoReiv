@@ -424,12 +424,15 @@ class AgentKernel:
                 exists = any(d.name == tc.name for d in self.tool_registry.list_tools())
             except Exception:
                 exists = True
+            from src.application.agent_skills.allowed_tools import ticked_skills
+
             return ToolResult(
                 call_id=tc.id,
                 tool_name=tc.name,
                 output=None,
                 success=False,
-                error=tool_not_offered_error(tc.name, offered, exists=exists),  # CARD-615: says when none exists
+                # CARD-615: says when none exists; CARD-665: a skill id is refused as a skill, not a missing tool
+                error=tool_not_offered_error(tc.name, offered, exists=exists, skills=ticked_skills(agent)),
             )
         registry_names = set()
         try:
@@ -732,6 +735,22 @@ class AgentKernel:
             return {t.name for t in self.tool_registry.get_tools_for_agent(agent)}
         except Exception:
             return set()
+
+    def offered_tool_names(
+        self, agent: AgentProfile, job_id: Optional[str] = None, phase_id: Optional[str] = None
+    ) -> List[str]:
+        """The tools a turn of ``agent`` in this job phase is sent, by name [CARD-665].
+
+        Same resolution as run_turn / stream_turn (granted tools, the job's match, plan-only rules), without
+        touching per-turn state, so a phase assignment can name exactly what the model may call.
+        """
+        ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id, agent=agent)
+        tools = self._resolve_active_tools(
+            agent,
+            matched_capability_ids=ids if ids is not None else [],
+            planning_phase=self._is_planning_phase(phase_id),
+        )
+        return [t.name for t in tools]
 
     def _resolve_active_tools(
         self,

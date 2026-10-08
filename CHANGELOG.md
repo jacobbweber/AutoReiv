@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- A job's Formulate (plan) step is told exactly which tools it can call this step (its granted tools, narrowed for planning). Matched skills and tools it cannot call are named as such, and its goal no longer lists every matched id. A skill id called as a tool is refused as a skill, not as a missing tool, so there is no Ask Developer offer to build it (CARD-665).
 - Capability gaps keep the agent's reply (`context_summary`). The gaps API and gap lists return it, so Skill Studio gap drafts get the full context and not only the turn text. Existing databases gain the column on startup and keep their gaps (CARD-664).
 - Replies that admit a missing tool in other words ("I do not have a direct email-sending tool", "there is no fax tool", "the PDF export tool isn't available") now file a capability gap. The gap detector and the Ask Developer line share one matcher, and no gap is filed when the reply names one of the agent's own tools (CARD-663).
 - Fresh installs no longer create an empty `packs/` folder in the data dir. Packs were removed, so `packs` is gone from the systemd installer and the Dockerfile `mkdir`, and the deploy README layout is updated. Existing `packs/` folders are left alone (CARD-673).
