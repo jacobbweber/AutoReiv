@@ -2,17 +2,17 @@
 id: CARD-663
 title: "Capability-gap detector misses some phrasings"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+  checks: [tests/unit/orchestration/test_card663_missing_tool_phrasings.py]
+branch: feat/card-663-gap-phrasings
+log: {minutes: 45, qa_runs: 1, findings: 0}
 created: 2026-10-06
-completed:
+completed: 2026-10-08
 related:
   - CARD-658
   - CARD-659
@@ -50,4 +50,22 @@ Silent misses where the model admits a missing tool but no gap row is created.
 - Live or journey only if the unit bar is not enough.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. Prefer one shared matcher used by both the detector and the Ask Developer line so they cannot drift again.
+Jacob approved the build on 2026-10-08. Prefer one shared matcher used by both the detector and the Ask Developer line so they cannot drift again.
+
+## Root cause
+Two separate matchers. `CapabilityDetector.detect` (files the gap) used a short list of fixed phrases ("I don't have the tools to", "I cannot directly", ...). CARD-615 gave `reply_rules` its own `_LACKS_TOOL` regex for the Ask Developer line. A reply such as "I do not have a direct email-sending tool" got the Ask Developer line but no gap row. "There is no fax tool", "I lack a tool for ..." and "The PDF export tool isn't available" got neither.
+
+## Decisions
+- New shared matcher `src/domain/capabilities/missing_tool.py` (`find_missing_tool`, `admits_missing_tool`, `names_own_tool`). It works sentence by sentence on the structure, not a phrase list. A gap is one of these:
+  - a negated possession or reach verb (do not have / lack / cannot access, use or find) near a tool word (tool, capability, ability, integration, function, permission);
+  - "there is no X tool" or "no tool is available to ...";
+  - "X tool isn't available";
+  - "cannot directly ..." or "... without a tool".
+- Skipped: questions, conditionals (if/when/unless), sentences about the user ("you don't have"), "no tools were needed", "tool calls/output".
+- The capability is taken from the words after to/for/that, or from the words in front of "tool" minus filler such as "direct", "built-in" or "any" (so "email-sending tool" gives "email sending"). If neither gives anything, it is the user prompt.
+- `CapabilityDetector.detect(..., own_tools=())` uses the shared matcher. It files no gap when the admitting sentence names one of the agent's own tools, which is the same rule the Ask Developer line already used. Both kernel call sites (plain and streamed) pass `_own_tool_names(agent)`.
+- `reply_rules._gap_sentence` uses the shared matcher, and `_LACKS_TOOL` is gone, so the line and the gap cannot drift again.
+
+## Results
+- New checks: `tests/unit/orchestration/test_card663_missing_tool_phrasings.py`. At the test commit the file failed at collection: the shared matcher did not exist, and the old detector filed no gap for the 9 missed wordings. After the fix all pass: 9 missed wordings, 3 still-caught ones, 13 replies that must not file a gap, the own-tool case, and an AST check that both kernel calls pass `own_tools`.
+- Existing detector, CARD-615 and CARD-612 tests plus `tests/unit/architecture`: 71 passed on Jarvis. `ruff check src tests` is clean.
