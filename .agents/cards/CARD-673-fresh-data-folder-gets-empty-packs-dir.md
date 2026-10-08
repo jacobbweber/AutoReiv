@@ -56,6 +56,6 @@ Jacob approved the build on 2026-10-08.
 ## Results
 - New checks: `tests/unit/deploy/test_card673_no_packs_dir.py`. Before the fix: 3 failed, 1 passed (the Windows guard already held). After: all pass. Deploy suite on Linux: 27 passed.
 - `bash -n` is clean on both systemd scripts. `--print-unit` with the defaults matches the shipped unit; with `--prefix`/`--data-dir` the paths are rewritten. `--dry-run` still keeps data.
-- __DOCKER__
+- Docker Desktop on Jarvis: `docker build` of the worktree succeeded in 24 s. A throwaway `ls /data` in the image shows only `database/` and `skills/`. The test image was removed afterwards.
 - Full pytest: __FULL__
 - Release preflight: __RELEASE__
