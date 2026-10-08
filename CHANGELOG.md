@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Tests never reach a real model: the session points Ollama at a closed local port and blanks remote providers, and the gaps API test uses a fake model. That test used to hang the full suite and release preflight at ~99% when OLLAMA_HOST/.env pointed at a silent host. A stdlib per-test hang watchdog (AUTOREIV_TEST_HANG_SECONDS, default 900 s) now fails a stuck test with a stack dump instead of hanging (CARD-672).
 - Windows service install/uninstall scripts are now pure ASCII, so they parse in Windows PowerShell 5.1 (emoji bytes were read as smart quotes and broke strings). A new test checks every deploy/scripts .ps1 is ASCII and parses in powershell.exe.
 - systemd installer and uninstaller take `--prefix` (default `/opt/autoreiv`) and `--data-dir` (default `/var/lib/autoreiv`). The unit is rendered for the chosen paths, and uninstall keeps data unless `--purge-data` is passed (CARD-671).
 - Windows service installer takes `-DataDir` and sets `AUTOREIV_DATA_DIR` on the NSSM service (default `%LOCALAPPDATA%\AutoReiv`). Service logs now go under the data dir, and uninstall never deletes data (CARD-670).
