@@ -97,6 +97,8 @@ async def create_agent_gap(agent_id: str, payload: CreateGapRequest, request: Re
         identified_capability=cap,
         suggested_tool_name=tool_name,
         session_id=payload.session_id,
+        # CARD-664: keep what the agent said; Skill Studio drafts read it (gap_prefill.js).
+        context_summary=payload.context_summary or payload.assistant_response,
     )
     return {
         "success": True,

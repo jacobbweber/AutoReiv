@@ -20,3 +20,6 @@ class CapabilityGap(BaseModel):
     suggested_tool_name: Optional[str] = Field(default=None, description="Heuristically suggested tool name")
     status: str = Field(default="pending", description="Status: pending, trained, dismissed")
     created_at: Optional[str] = Field(default=None, description="ISO timestamp of creation")
+    context_summary: Optional[str] = Field(
+        default=None, description="What the agent replied when the gap was found; Skill Studio drafts use it [CARD-664]"
+    )
