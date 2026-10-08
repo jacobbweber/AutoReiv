@@ -57,5 +57,5 @@ Jacob approved the build on 2026-10-08.
 - New checks: `tests/unit/deploy/test_card673_no_packs_dir.py`. Before the fix: 3 failed, 1 passed (the Windows guard already held). After: all pass. Deploy suite on Linux: 27 passed.
 - `bash -n` is clean on both systemd scripts. `--print-unit` with the defaults matches the shipped unit; with `--prefix`/`--data-dir` the paths are rewritten. `--dry-run` still keeps data.
 - Docker Desktop on Jarvis: `docker build` of the worktree succeeded in 24 s. A throwaway `ls /data` in the image shows only `database/` and `skills/`. The test image was removed afterwards.
-- Full pytest: __FULL__
-- Release preflight: __RELEASE__
+- Full pytest: 2729 passed, 17 skipped, 0 failed in 63.5 s (`-n auto`, merged qa, 64 s wall). It finished with no hang.
+- Release preflight: GREEN, 450 s total (merged qa, main checkout): ruff PASS, eslint PASS 3 s (0 errors), pytest unit+integration 2729 passed / 17 skipped in 67 s, pytest serial PASS (no tests selected) 4 s, honesty validate PASS, vitest 1098 passed 6 s, smoke 86 passed 371 s.
