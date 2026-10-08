@@ -47,6 +47,7 @@ def test_session_blanks_remote_providers_so_dotenv_cannot_fill_them():
 
 def test_env_gateway_only_has_the_closed_local_ollama():
     from conftest import HERMETIC_OLLAMA_HOST
+
     from src.infrastructure.gateway.factory import GatewayProviderFactory
 
     gw = GatewayProviderFactory.create_gateway()
