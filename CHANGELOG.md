@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-09
+
+AutoReiv 1.0. Install, uninstall and reinstall are checked on the Windows service, Linux systemd and Docker, each with a documented data folder, and your data is kept through uninstall, reinstall, update and rollback. A written 1.0 acceptance checklist (`docs/acceptance-checklist-1.0.md`) passes on a clean data folder. Agents are more honest about what they cannot do (missing tools file a capability gap with the reply, and statements that are not gaps no longer file one), and a job's planning step gets every read tool it is allowed, while writes and made-up tool names are refused with a clear reason.
+
 - A plan saying "No tools that change state will be called" (or "No write tools will be used") is no longer filed as a missing capability [CARD-684].
 - The chat stream's tool_output event now says whether the call ran (success, tool_name) and gives the reason for a refused or failed call, and the chat tool badge shows "Did not run: <tool> - <reason>" [CARD-682].
 - A call to a made-up tool name is refused with the closest real tool names and is not filed as a missing capability or answered with the Ask Developer line [CARD-681].

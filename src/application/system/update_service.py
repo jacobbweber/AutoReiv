@@ -948,7 +948,7 @@ class UpdateService:
                             return match.group(1)
             except Exception:
                 pass
-        return "0.46.0"
+        return "1.0.0"
 
     def _detect_deployment_mode(self, is_git: bool) -> str:
         if os.environ.get("AUTOREIV_CONTAINER"):
