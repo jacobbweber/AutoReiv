@@ -3,8 +3,8 @@
 > **Status**: Accepted  
 > **Date**: 2026-09-17  
 > **Deciders**: Jacob (Visionary & Product Owner), Antigravity (Principal Software Engineer)  
-> **Spec Reference**: [`docs/specs/frontend-modernization/`](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modernization/)  
-> **Supersedes / Modernizes**: [ADR-0008](file:///d:/Projects/Active/AutoReiv/docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md), [ADR-0030](file:///d:/Projects/Active/AutoReiv/docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md), [ADR-0031](file:///d:/Projects/Active/AutoReiv/docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md)
+> **Spec Reference**: [`docs/specs/frontend-modernization/`](../archive_artifacts/specs/frontend-modernization)  
+> **Supersedes / Modernizes**: [ADR-0008](0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md), [ADR-0030](0030-web-ui-tab-hydration-and-rendering-architecture.md), [ADR-0031](0031-frontend-modularization-foundation-and-quality-gates.md)
 
 ---
 

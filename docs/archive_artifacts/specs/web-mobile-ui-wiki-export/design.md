@@ -1,7 +1,7 @@
 # Technical Design: Responsive Web & Mobile Front-Door with Wiki Export
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [`docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md`](../../adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md)
+> **Applicable ADRs**: [`docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md`](../../../adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md)
 
 ---
 

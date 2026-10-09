@@ -1,7 +1,7 @@
 # Vertical Slice Tasks: Mechanical Capability Linter & Contract Compiler
 
-> **Spec Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/capability-linter/requirements.md)  
-> **Card Reference**: [CARD-363](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-363-mechanical-capability-linter-contract-compiler.md)
+> **Spec Reference**: [requirements.md](requirements.md)  
+> **Card Reference**: [CARD-363](../../../../.agents/cards/CARD-363-mechanical-capability-linter-contract-compiler.md)
 
 ---
 

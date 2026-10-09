@@ -1,7 +1,7 @@
 # Technical Design: Frontend Modernization & Cross-Platform Architecture
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [ADR-0053](file:///d:/Projects/Active/AutoReiv/docs/adr/0053-frontend-modernization-and-cross-platform-architecture.md)
+> **Applicable ADRs**: [ADR-0053](../../../adr/0053-frontend-modernization-and-cross-platform-architecture.md)
 
 ---
 

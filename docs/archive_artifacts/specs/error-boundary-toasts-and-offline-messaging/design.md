@@ -1,8 +1,8 @@
 # Technical Design: Error Boundary Toasts & Offline Backend Messaging
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-040](file:///docs/cards/CARD-040-error-boundary-toasts-and-offline-backend-messaging.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md)
+> **Card Reference**: [CARD-040](../../../../.agents/cards/CARD-040-error-boundary-toasts-and-offline-backend-messaging.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

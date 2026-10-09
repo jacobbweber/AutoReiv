@@ -1,8 +1,8 @@
 # Technical Design: Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-046](file:///docs/cards/CARD-046-human-in-the-loop-interactive-state-parking-action-approval-and-resume-engine.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/hitl-approval-engine/requirements.md)
+> **Card Reference**: [CARD-046](../../../../.agents/cards/CARD-046-human-in-the-loop-interactive-state-parking-action-approval-and-resume-engine.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

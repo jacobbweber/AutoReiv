@@ -1,7 +1,7 @@
 # Technical Design: Built-in Agents & Scoped Skills
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [`docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md`](../../adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md)
+> **Applicable ADRs**: [`docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md`](../../../adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md)
 
 ---
 

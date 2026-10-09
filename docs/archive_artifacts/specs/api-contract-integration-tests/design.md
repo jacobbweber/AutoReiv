@@ -1,8 +1,8 @@
 # Technical Design: Gateway, Wiki & Settings End-to-End API Contract Integration Tests
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-036](file:///docs/cards/CARD-036-gateway-wiki-and-settings-end-to-end-api-contract-integration-tests.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/api-contract-integration-tests/requirements.md)
+> **Card Reference**: [CARD-036](../../../../.agents/cards/CARD-036-gateway-wiki-and-settings-end-to-end-api-contract-integration-tests.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

@@ -1,7 +1,7 @@
 # Technical Design: Multi-OS Packaging & Bare-Metal / Docker Deployment
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [`docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md`](../../adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md)
+> **Applicable ADRs**: [`docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md`](../../../adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md)
 
 ---
 

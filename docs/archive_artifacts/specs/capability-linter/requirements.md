@@ -3,7 +3,7 @@
 > **Spec Status**: Approved (Draft for Review)  
 > **Target Release**: v0.18.0 (Milestone 18 — Autonomic OS & Mechanical Governance)  
 > **Primary Components**: `SkillContractCompiler` (`src/application/skills/linter.py`), `SkillContract` (`src/domain/skills/contract.py`), CLI Dispatcher (`src/cli/main.py`), and REST Router (`src/web/routers/skills.py`)  
-> **Grounding**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-363](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-363-mechanical-capability-linter-contract-compiler.md)
+> **Grounding**: [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-363](../../../../.agents/cards/CARD-363-mechanical-capability-linter-contract-compiler.md)
 
 ---
 

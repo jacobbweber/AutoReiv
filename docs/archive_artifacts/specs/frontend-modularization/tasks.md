@@ -2,9 +2,9 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 9 (v0.9.0)  
-> **Card Reference**: [CARD-031](file:///docs/cards/CARD-031-frontend-modularization-foundation-and-quality-gates.md)  
-> **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/design.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/requirements.md)
+> **Card Reference**: [CARD-031](../../../../.agents/cards/CARD-031-frontend-modularization-foundation-and-quality-gates.md)  
+> **Design Reference**: [design.md](design.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

@@ -1,8 +1,8 @@
 # Technical Design: Performance Budgets, Module Bundling & First-Paint Optimization
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-039](file:///docs/cards/CARD-039-performance-budgets-and-first-paint-optimization.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/performance-and-first-paint-opt/requirements.md)
+> **Card Reference**: [CARD-039](../../../../.agents/cards/CARD-039-performance-budgets-and-first-paint-optimization.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

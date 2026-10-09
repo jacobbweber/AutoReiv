@@ -1,8 +1,8 @@
 # Technical Design: Architectural Telemetry & Threshold Detectors
 
-> **Spec Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/architectural-telemetry/requirements.md)  
-> **Card Reference**: [CARD-364](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-364-architectural-telemetry-threshold-detectors.md)  
-> **Grounding**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)
+> **Spec Reference**: [requirements.md](requirements.md)  
+> **Card Reference**: [CARD-364](../../../../.agents/cards/CARD-364-architectural-telemetry-threshold-detectors.md)  
+> **Grounding**: [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)
 
 ---
 

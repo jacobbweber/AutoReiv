@@ -1,7 +1,7 @@
 # Technical Design: Agent Kernel, Scoped Memory & Telemetry Engine
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [`docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md`](../../adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md)
+> **Applicable ADRs**: [`docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md`](../../../adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md)
 
 ---
 

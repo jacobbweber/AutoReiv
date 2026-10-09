@@ -2,9 +2,9 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 13 (v0.13.0)  
-> **Card Reference**: [CARD-045](file:///docs/cards/CARD-045-dangerous-shell-command-safety-guardrails-and-path-traversal-protection.md)  
-> **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/command-safety-guardrails/design.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/command-safety-guardrails/requirements.md)
+> **Card Reference**: [CARD-045](../../../../.agents/cards/CARD-045-dangerous-shell-command-safety-guardrails-and-path-traversal-protection.md)  
+> **Design Reference**: [design.md](design.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 
