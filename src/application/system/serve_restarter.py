@@ -33,6 +33,27 @@ class NoOpRestarter:
         return True
 
 
+_DATA_ENV_FLAGS = (
+    ("AUTOREIV_DATA_DIR", "-DataDir", "--data-dir"),
+    ("AUTOREIV_WIKI_PATH", "-WikiPath", "--wiki-path"),
+    ("AUTOREIV_DB_PATH", "-DbPath", "--db-path"),
+)
+
+
+def _own_data_args(windows: bool) -> list[str]:
+    """This serve's own data settings as explicit restart_serve parameters [CARD-683].
+
+    restart_serve ignores inherited AUTOREIV_* variables, so a serve restarting itself after an update (for example
+    a service with AUTOREIV_DATA_DIR on its unit) names its data folder explicitly and comes back on the same one.
+    """
+    args: list[str] = []
+    for env_key, ps_flag, py_flag in _DATA_ENV_FLAGS:
+        val = (os.environ.get(env_key) or "").strip()
+        if val:
+            args += [ps_flag if windows else py_flag, val]
+    return args
+
+
 class DetachedScriptRestarter:
     """Spawn scripts/restart_serve.ps1 (Windows) or restart_serve.py detached."""
 
@@ -55,6 +76,7 @@ class DetachedScriptRestarter:
                     str(host),
                     "-Port",
                     str(port),
+                    *_own_data_args(windows=True),
                 ]
                 creation = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200) | getattr(
                     subprocess, "DETACHED_PROCESS", 0x00000008
@@ -76,6 +98,7 @@ class DetachedScriptRestarter:
                     str(host),
                     "--port",
                     str(port),
+                    *_own_data_args(windows=False),
                 ]
                 subprocess.Popen(
                     cmd,

@@ -106,3 +106,33 @@ def test_ps1_wrapper_forwards_explicit_data_parameters():
     ps1 = (ROOT / "scripts" / "restart_serve.ps1").read_text(encoding="utf-8")
     for flag in ("--data-dir", "--wiki-path", "--db-path"):
         assert flag in ps1
+
+
+@pytest.mark.parametrize("platform", ["win32", "linux"])
+def test_in_app_restart_keeps_the_serve_on_its_own_data_folder(platform, tmp_path, monkeypatch):
+    """The serve itself restarting after an update passes its own data folder explicitly (a service's
+    AUTOREIV_DATA_DIR must survive, now that restart_serve ignores inherited AUTOREIV_* variables)."""
+    from src.application.system import serve_restarter
+
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "restart_serve.ps1").write_text("", encoding="utf-8")
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", "/var/lib/autoreiv")
+    monkeypatch.setenv("AUTOREIV_WIKI_PATH", "/var/lib/autoreiv/wiki")
+    monkeypatch.delenv("AUTOREIV_DB_PATH", raising=False)
+    monkeypatch.setattr(serve_restarter.sys, "platform", platform)
+    monkeypatch.setattr(serve_restarter.subprocess, "CREATE_NEW_PROCESS_GROUP", 0x200, raising=False)
+    monkeypatch.setattr(serve_restarter.subprocess, "DETACHED_PROCESS", 0x8, raising=False)
+    seen = {}
+
+    def fake_popen(cmd, **kwargs):
+        seen["cmd"] = cmd
+        return object()
+
+    monkeypatch.setattr(serve_restarter.subprocess, "Popen", fake_popen)
+    assert serve_restarter.DetachedScriptRestarter().schedule_restart(host="0.0.0.0", port=8000, repo_root=tmp_path)
+    cmd = seen["cmd"]
+    flag_dir, flag_wiki, flag_db = ("-DataDir", "-WikiPath", "-DbPath") if platform == "win32" else (
+        "--data-dir", "--wiki-path", "--db-path")
+    assert cmd[cmd.index(flag_dir) + 1] == "/var/lib/autoreiv"
+    assert cmd[cmd.index(flag_wiki) + 1] == "/var/lib/autoreiv/wiki"
+    assert flag_db not in cmd
