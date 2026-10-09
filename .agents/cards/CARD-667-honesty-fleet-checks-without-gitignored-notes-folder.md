@@ -2,17 +2,17 @@
 id: CARD-667
 title: "Honesty or fleet-coordinator preflight/tests that require the gitignored notes folder"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+  checks: [tests/unit/scripts/test_card667_no_notes_dependency.py, tests/unit/orchestration/test_fleet_coordinator.py]
+branch: feat/card-667-no-notes-dependency
+log: {minutes: 40, qa_runs: 1, findings: 0}
 created: 2026-10-06
-completed:
+completed: 2026-10-09
 related:
   - CARD-658
   - CARD-659
@@ -50,4 +50,19 @@ Hard dependencies on a gitignored `notes/` folder for honesty / fleet-coordinato
 - Run the honesty validate stage (or the named script) on a tree without `notes/`.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts.
+Jacob approved the build on 2026-10-09.
+
+## Root cause
+Two checks assumed the gitignored `notes/` folder exists:
+- `honesty_smoke_skill_261.py` wrote its results to `notes/...json`, so `--validate` (a preflight stage) crashed with FileNotFoundError on a clean checkout.
+- `test_fleet_coordinator_delegates_to_specialist` read `notes/homelab/10-network/vlan_matrix.md` from the repo, so it failed when `notes/` was absent.
+
+## Fix
+- The honesty smoke script resolves its output with `artifact_path()`: `notes/` when that folder exists (unchanged behaviour), otherwise `scratch/` (created if needed). It never creates `notes/`.
+- The fleet coordinator test brings its own `vlan_matrix.md` fixture in `tmp_path` and patches the docs root.
+
+## Results (2026-10-09, Jarvis, worktree with no `notes/` folder)
+- New tests failed first (3 failed) and pass after the fix; fleet coordinator tests pass without `notes/`.
+- `honesty_smoke_skill_261.py --validate`: green, wrote `scratch/honesty-smoke-261-fixtures.json`; `notes/` was not created.
+- Full pytest: 2794 passed, 17 skipped.
+- Release preflight on the same clean worktree: GREEN (442 s); `notes/` still absent afterwards.

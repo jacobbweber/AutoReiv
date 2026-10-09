@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Preflight and tests no longer need the gitignored `notes/` folder: honesty smoke results go to `scratch/` when `notes/` is absent, and the fleet coordinator test uses its own fixture [CARD-667].
 - Removed the obsolete `day1_routines_seeded` setting. Nothing has used it since CARD-636 replaced the day-one routine seed. Existing databases drop that one key on start, and no other setting is touched (CARD-666).
 - A job's Formulate (plan) step is told exactly which tools it can call this step (its granted tools, narrowed for planning). Matched skills and tools it cannot call are named as such, and its goal no longer lists every matched id. A skill id called as a tool is refused as a skill, not as a missing tool, so there is no Ask Developer offer to build it (CARD-665).
 - Capability gaps keep the agent's reply (`context_summary`). The gaps API and gap lists return it, so Skill Studio gap drafts get the full context and not only the turn text. Existing databases gain the column on startup and keep their gaps (CARD-664).

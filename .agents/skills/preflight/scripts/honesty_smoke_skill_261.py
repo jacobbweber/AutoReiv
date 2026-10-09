@@ -7,7 +7,7 @@ Exits non-zero on red: Done-on-FAILED / honesty theatre / silent SSE death.
 
 Modes:
   --validate   CI/preflight: classify frozen fixtures (no live serve required)
-  --live       Jarvisâ†’Ollama live scenarios (writes notes/marathon-card261-live-smoke.json)
+  --live       Jarvisâ†’Ollama live scenarios (writes notes/ or scratch/marathon-card261-live-smoke.json)
   --live-full  also refresh CARD-258-style coverage (slower)
 
 Usage:
@@ -49,8 +49,8 @@ from src.application.orchestration.honesty_smoke_skill import (  # noqa: E402
 
 BASE = "http://127.0.0.1:8000"
 DB = Path.home() / "AppData/Local/AutoReiv/database/autoreiv.db"
-LIVE_OUT = ROOT / "notes" / "marathon-card261-live-smoke.json"
-FIXTURE_OUT = ROOT / "notes" / "honesty-smoke-261-fixtures.json"
+LIVE_OUT_NAME = "marathon-card261-live-smoke.json"
+FIXTURE_OUT_NAME = "honesty-smoke-261-fixtures.json"
 ET = timezone(timedelta(hours=-4))
 STREAM_TIMEOUT = 1200.0
 
@@ -59,6 +59,19 @@ COS_PROMPT = (
     "(phases Formulate then Execute, done-when, and why HITL parks on create). "
     "Done-when: I can open that note via wiki_note_read. Keep it under 200 words."
 )
+
+
+def artifact_path(name: str, root: Path | None = None) -> Path:
+    """Where smoke results go (CARD-667).
+
+    notes/ is gitignored and absent on a clean checkout: keep writing there when it
+    exists, otherwise write under scratch/ (created if needed).
+    """
+    base = ROOT if root is None else Path(root)
+    notes = base / "notes"
+    out_dir = notes if notes.is_dir() else base / "scratch"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    return out_dir / name
 
 
 def tip_sha() -> str:
@@ -277,7 +290,7 @@ def run_validate() -> dict[str, Any]:
         "pass": ok,
         "exit_code": 0 if ok else 1,
     }
-    FIXTURE_OUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    artifact_path(FIXTURE_OUT_NAME).write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return payload
 
 
@@ -792,8 +805,9 @@ def run_live(*, full: bool = False) -> dict[str, Any]:
             "red Done-on-FAILED / silent SSE death blocks FF."
         ),
     }
-    LIVE_OUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print("wrote", LIVE_OUT)
+    live_out = artifact_path(LIVE_OUT_NAME)
+    live_out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print("wrote", live_out)
     print("counts", gate_eval["counts_by_class"])
     print("merge_gate", gate)
     return payload
