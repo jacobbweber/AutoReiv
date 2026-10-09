@@ -142,3 +142,12 @@ def test_data_folder_lives_outside_the_checkout(setup):
     work = env["work"].resolve()
     data = env["data"].resolve()
     assert work not in data.parents and data != work
+
+
+def test_install_doc_explains_update_and_rollback_per_path():
+    """CARD-662: the install doc says what update and rollback mean for git and Docker, and that both keep data."""
+    doc = (Path(__file__).resolve().parents[3] / "docs" / "install-and-uninstall.md").read_text(encoding="utf-8")
+    assert "## Update and rollback" in doc
+    section = doc.split("## Update and rollback", 1)[1]
+    for needle in ("Settings", "pre-update", "release branch", "image tag", "same volume", "keeps your data"):
+        assert needle in section, needle
