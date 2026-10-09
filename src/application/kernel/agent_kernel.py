@@ -598,9 +598,12 @@ class AgentKernel:
         self,
         agent: AgentProfile,
         user_content: Optional[str] = None,
+        sent_tools: Optional[Collection[str]] = None,
     ) -> ChatMessage:
         """
         Constructs system prompt enriched with auto-recalled episodic facts [REQ-EPISODIC-003].
+
+        sent_tools: the tools this call is sent; the skill index names skill_view only when it is one [CARD-675].
         """
         tones_lookup = None
         if self.state_store and hasattr(self.state_store, "list_tones"):
@@ -616,6 +619,7 @@ class AgentKernel:
             getattr(agent, "allowed_skill", None),
             self.user_skill_catalog,
             agent_id=getattr(agent, "id", None),
+            can_open=sent_tools is None or "skill_view" in sent_tools,
         )
         if skill_block:
             base_prompt = f"{base_prompt}\n\n{skill_block}"
@@ -752,6 +756,21 @@ class AgentKernel:
         )
         return [t.name for t in tools]
 
+    def _turn_tools_and_system_message(
+        self, agent: AgentProfile, user_content: Optional[str], history: List[Any]
+    ) -> Tuple[List[Any], set[str], ChatMessage]:
+        """This call's tools, their names, and a system message that names only tools it is sent [CARD-675]."""
+        active_tools = self._resolve_active_tools(
+            agent,
+            user_content,
+            matched_capability_ids=self._turn_matched_capability_ids,
+        )
+        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
+        active_tools = [t for t in active_tools if t.name not in rejected_now]
+        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
+        system_msg = self._build_effective_system_message(agent, user_content, sent_tools=offered_names)
+        return active_tools, offered_names, system_msg
+
     def _resolve_active_tools(
         self,
         agent: AgentProfile,
@@ -848,15 +867,7 @@ class AgentKernel:
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
-        system_msg = self._build_effective_system_message(agent, user_content)
-        active_tools = self._resolve_active_tools(
-            agent,
-            user_content,
-            matched_capability_ids=self._turn_matched_capability_ids,
-        )
-        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
-        active_tools = [t for t in active_tools if t.name not in rejected_now]
-        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
+        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(agent, user_content, history)
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
@@ -1265,15 +1276,7 @@ class AgentKernel:
                 for ev in replay:
                     yield ev
                 return
-        system_msg = self._build_effective_system_message(agent, user_content)
-        active_tools = self._resolve_active_tools(
-            agent,
-            user_content,
-            matched_capability_ids=self._turn_matched_capability_ids,
-        )
-        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
-        active_tools = [t for t in active_tools if t.name not in rejected_now]
-        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
+        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(agent, user_content, history)
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
