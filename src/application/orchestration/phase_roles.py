@@ -19,15 +19,27 @@ def is_planning_phase(phase: Any) -> bool:
 
 
 def planning_phase_block_reason(tool_name: str, tool_risk: Optional[str] = None) -> Optional[str]:
-    """Why ``tool_name`` may not run in a planning phase, else None (handoff and work tools are blocked)."""
+    """Why ``tool_name`` may not run in a planning phase, else None.
+
+    CARD-674: planning is allow-listed. Only tools labeled read (kernel.tool_access) are used while planning;
+    handoff, write tools and unlabeled tools are not. ``tool_risk`` is the risk declared at registration, if any.
+    """
     from src.application.kernel.hitl_engine import DEFAULT_HIGH_RISK_TOOLS
+    from src.application.kernel.tool_access import READ, tool_access
 
     name = str(tool_name or "").strip()
     if name in DELEGATION_TOOLS:
         return f"Tool '{name}' is not used while planning: plan only; the next phase's agent does the work"
-    if name in DEFAULT_HIGH_RISK_TOOLS or str(tool_risk or "").strip().lower() in _HIGH_RISK_LEVELS:
-        return f"Tool '{name}' changes something and is not used while planning: plan only; the work runs in a later phase"
-    return None
+    risk = tool_risk.strip().lower() if isinstance(tool_risk, str) else ""
+    access = tool_access(name, risk if risk not in _HIGH_RISK_LEVELS else "write")
+    if access == READ and name not in DEFAULT_HIGH_RISK_TOOLS:
+        return None
+    if access is None:
+        return (
+            f"Tool '{name}' is not labeled read or write, so it is not used while planning: plan only; "
+            "a later phase can use it"
+        )
+    return f"Tool '{name}' changes something and is not used while planning: plan only; the work runs in a later phase"
 
 
 def format_planning_phase_block(phases: Sequence[Any], current: Any) -> str:
