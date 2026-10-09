@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Every agent is sent a short description of AutoReiv's own concepts (standing Job, Routine, Skill, Wiki and others), so "what is a standing Job?" is answered correctly without tool lookups [CARD-680].
 - An update or branch switch restarts only the port the serve says it runs on; a serve started without the CLI restarts nothing (and says so) instead of guessing :8000, and `live_qa` serves now say their port [CARD-679].
 - The system prompt tells the model to open runbooks with `skill_view` only on calls that are sent `skill_view` [CARD-675].
 - A "No agent covers X" turn-down now files a capability gap for X, from the same matcher that adds the Ask Developer line [CARD-677].
