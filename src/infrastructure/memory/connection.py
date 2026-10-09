@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 
 # CARD-577 (ADR-0060, CARD-498/512): retired tables. On startup any rows are exported to
 # <data>/backups/factory-retire-<timestamp>.json, then the tables are dropped. An export failure skips the drop.
+# Settings no code reads or writes any more; deleted on start, nothing else is touched.
+# day1_routines_seeded: the day-one routine seed flag, replaced by src/application/routines/seed.py (CARD-636, CARD-666).
+RETIRED_SETTING_KEYS = ("day1_routines_seeded",)
+
 RETIRED_TABLES = (
     "factory_packets",
     "factory_eval_runs",
@@ -76,6 +80,7 @@ class SQLiteConnectionManager:
             self._migrate_if_missing(conn)
             conn.executescript(INIT_SCHEMA_SQL)
             self._drop_retired_tables(conn)
+            self._drop_retired_settings(conn)
             conn.commit()
             if hasattr(self, "seed_builtin_prompts"):
                 try:
@@ -85,6 +90,11 @@ class SQLiteConnectionManager:
         finally:
             if self._mem_conn is None:
                 conn.close()
+
+    def _drop_retired_settings(self, conn: sqlite3.Connection) -> None:
+        """Delete obsolete setting keys (RETIRED_SETTING_KEYS) and only those [CARD-666]."""
+        marks = ", ".join("?" for _ in RETIRED_SETTING_KEYS)
+        conn.execute(f"DELETE FROM settings WHERE key IN ({marks})", RETIRED_SETTING_KEYS)
 
     def _drop_retired_tables(self, conn: sqlite3.Connection) -> None:
         """Export rows of retired tables (if any) to a backup file, then drop them [CARD-577]."""
