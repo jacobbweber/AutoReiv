@@ -2,17 +2,17 @@
 id: CARD-666
 title: "Remove leftover day1_routines_seeded setting if obsolete"
 type: bug
-status: Ready
+status: Done
 priority: P3
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+  checks: [tests/unit/memory/test_card666_day1_routines_seeded_retired.py]
+branch: feat/card-666-drop-day1-routines-seeded
+log: {minutes: 20, qa_runs: 1, findings: 0}
 created: 2026-10-06
-completed:
+completed: 2026-10-09
 related:
   - CARD-658
   - CARD-659
@@ -50,4 +50,19 @@ An obsolete settings key (only if confirmed unused).
 - No live wipe of operator settings beyond deleting that one obsolete key if present.
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. Do not delete unrelated settings.
+Jacob approved the build on 2026-10-09. Do not delete unrelated settings.
+
+## Root cause
+The flag belonged to the day-one routine seed: `RoutineScheduler.seed_default_routines` and the two copy-pasted seed loops in `app.py` and `cli/main.py`. CARD-636 replaced all of those with `src/application/routines/seed.py` (`seed_builtin_routines`), which never reads or writes it. Nothing in `src/`, `scripts/` or `platform/` used the key any more, but existing databases kept the row.
+
+## Decisions
+- The key is obsolete, so it is removed (not closed as "not obsolete").
+- `connection.RETIRED_SETTING_KEYS = ("day1_routines_seeded",)`, plus `_drop_retired_settings`, which runs on every start after the schema and the retired-table step. It deletes exactly those keys (`DELETE FROM settings WHERE key IN (...)`), is idempotent, and touches no other setting.
+- There was no settings default or schema entry to remove; the key only ever existed as a row.
+
+## Results
+- New checks: `tests/unit/memory/test_card666_day1_routines_seeded_retired.py`. At the test commit the file failed at collection (`RETIRED_SETTING_KEYS` did not exist). After the fix, 3 tests pass:
+  - the key is listed as retired;
+  - a database holding it plus `theme` and `deleted_builtin_routines` loses only the retired key, and a second start is fine;
+  - `git grep` finds the key only in `connection.py`.
+- Memory and core suites: 115 passed. ruff is clean.
