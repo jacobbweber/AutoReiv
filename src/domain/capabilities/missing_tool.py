@@ -25,8 +25,13 @@ _TOOL_NOUN = r"(?:tools?|capabilit(?:y|ies)|abilit(?:y|ies)|integrations?|functi
 
 # "tool calls", "tool output": the tool word is a modifier here, not the missing thing.
 _NOT_A_TOOL = r"(?!\s+(?:calls?|output|results?|use|usage|errors?|runs?|invocations?|responses?)\b)"
-# "no tools were needed": nothing is missing.
-_NOT_NEEDED = re.compile(r"^\s*(?:was|were|is|are)\s+(?:needed|used|required|necessary|called|involved)\b", re.IGNORECASE)
+# "no tools were needed", "no write tools will be used", "no tools that change state will be called" [CARD-684]:
+# says which tools are (not) used; nothing is missing.
+_BE_USED = (
+    r"(?:was|were|is|are|will be|would be|will ever be|is being|are being|has been|have been|had been|"
+    r"need to be|needs to be|get|gets|got)\s+(?:needed|used|required|necessary|called|involved|run|invoked|executed)\b"
+)
+_NOT_NEEDED = re.compile(rf"^\s*(?:(?:that|which)\b[^.!?\n]{{0,60}}?\s)?{_BE_USED}", re.IGNORECASE)
 
 _SENTENCES = re.compile(r"(?<=[.!?])\s+|\n+|;\s+|:\s+(?=[A-Z*`_])")
 _MARKUP = re.compile(r"[*_`]+")
