@@ -1,7 +1,7 @@
 # Architecture Design: Unified Platform Agent & Dynamic Tool Scoping
 
 > **Status**: Draft / Proposed  
-> **Card Reference**: [CARD-339](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-339-skill-and-tool-architecture-and-scoping-strategy.md)  
+> **Card Reference**: [CARD-339](../../../../.agents/cards/CARD-339-skill-and-tool-architecture-and-scoping-strategy.md)  
 > **ADR Reference**: ADR-0052 (Pending)  
 > **Author**: Jacob Weber & Antigravity  
 > **Date**: 2026-09-16  

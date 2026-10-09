@@ -3,7 +3,7 @@
 > **Spec Status**: In Review  
 > **Target Release**: Sprint 2026-Q3  
 > **Primary Component**: Web Frontend / Studio Navigation & Modals  
-> **Linked Card**: [CARD-369](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-369-audit-and-prune-dead-ui-controls-and-vestiges-across-studios.md)
+> **Linked Card**: [CARD-369](../../../../.agents/cards/CARD-369-audit-and-prune-dead-ui-controls-and-vestiges-across-studios.md)
 
 ---
 

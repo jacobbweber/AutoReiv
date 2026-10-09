@@ -3,7 +3,7 @@
 > **Spec Status**: Approved  
 > **Target Release**: v1.0.0 (Modernized Client Architecture)  
 > **Primary Component**: AutoReiv Web & Native Client (`src/web/client`)  
-> **ADR Reference**: [ADR-0053](file:///d:/Projects/Active/AutoReiv/docs/adr/0053-frontend-modernization-and-cross-platform-architecture.md)
+> **ADR Reference**: [ADR-0053](../../../adr/0053-frontend-modernization-and-cross-platform-architecture.md)
 
 ---
 

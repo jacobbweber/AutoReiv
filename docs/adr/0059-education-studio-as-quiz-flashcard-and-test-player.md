@@ -6,14 +6,14 @@
 > **Amended**: 2026-09-23 (Jacob product lock: Studio = **operator + players**; Tutor = coach with Studio topic/course context; chat education-mode strip relocates into Studio)  
 > **Deciders**: Jacob Weber, coding assistant  
 > **Consulted**: CARD-435 Tutor-first direction; CARD-437..441 Tutor Learning OS APIs; live Education Studio panels; Projects Studio ↔ Developer active-project context parallel  
-> **Related Cards**: [CARD-435](../cards/CARD-435-education-tutor-first-direction.md), [CARD-437](../cards/CARD-437-study-entry-tutor-education-mode-thin-shell.md), [CARD-438](../cards/CARD-438-chat-quiz-flashcard-turns-durable-grading.md), [CARD-439](../cards/CARD-439-due-reviews-in-tutor-education-mode.md), [CARD-440](../cards/CARD-440-wiki-curation-from-links-curriculum.md), [CARD-441](../cards/CARD-441-progress-you-can-trust-non-studio-surface.md), [CARD-442](../cards/CARD-442-retire-education-studio-landing.md) (Superseded), [CARD-446](../cards/CARD-446-education-studio-flashcard-quiz-test-players.md) (parent), [CARD-447](../cards/CARD-447-education-studio-operator-strip-and-tutor-context.md), [CARD-448](../cards/CARD-448-education-studio-flashcard-quiz-test-players.md)  
+> **Related Cards**: [CARD-435](../../.agents/cards/CARD-435-education-tutor-first-direction.md), [CARD-437](../../.agents/cards/CARD-437-study-entry-tutor-education-mode-thin-shell.md), [CARD-438](../../.agents/cards/CARD-438-chat-quiz-flashcard-turns-durable-grading.md), [CARD-439](../../.agents/cards/CARD-439-due-reviews-in-tutor-education-mode.md), [CARD-440](../../.agents/cards/CARD-440-wiki-curation-from-links-curriculum.md), [CARD-441](../../.agents/cards/CARD-441-progress-you-can-trust-non-studio-surface.md), [CARD-442](../../.agents/cards/CARD-442-retire-education-studio-landing.md) (Superseded), [CARD-446](../../.agents/cards/CARD-446-education-studio-flashcard-quiz-test-players.md) (parent), [CARD-447](../../.agents/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md), [CARD-448](../../.agents/cards/CARD-448-education-studio-flashcard-quiz-test-players.md)  
 > **Amends**: CARD-435 fork that said Education Studio landing **retires** (dated decision lock below). Extends the earlier "players only" reading of this ADR / CARD-446. No prior ADR had locked Studio retirement.
 
 ---
 
 ## 1. Context & Problem Statement
 
-CARD-435 locked a Tutor-first Learning OS north star and scaffolded [CARD-442](../cards/CARD-442-retire-education-studio-landing.md) to **retire** the Education Studio landing/bottom-nav panel farm after Tutor+Wiki covered the program. CARD-436..441 shipped Study entry, durable chat quiz/flashcard grading, due reviews, wiki curation, and trustable progress while Studio stayed as reference. The Study education-mode strip (`#chatEducationModeStrip` and Due / Progress / Wiki curate chrome) temporarily hosted operator controls in chat.
+CARD-435 locked a Tutor-first Learning OS north star and scaffolded [CARD-442](../../.agents/cards/CARD-442-retire-education-studio-landing.md) to **retire** the Education Studio landing/bottom-nav panel farm after Tutor+Wiki covered the program. CARD-436..441 shipped Study entry, durable chat quiz/flashcard grading, due reviews, wiki curation, and trustable progress while Studio stayed as reference. The Study education-mode strip (`#chatEducationModeStrip` and Due / Progress / Wiki curate chrome) temporarily hosted operator controls in chat.
 
 Jacob's first product lock (2026-09-23):
 
@@ -76,9 +76,9 @@ Chosen option: **Option 4** (amendment of Option 3). Option 3's "Studio stays; d
    - Interactive **flashcard / quiz / test players**.
 2. **Tutor chat role** = conversation + Learning OS skills/tools/wiki templates. Tutor is the **coach**, not the long-term home for dense education operator chrome.
 3. **Strip relocation**: Study/Tutor education-mode strip controls that duplicate Studio (Due / Progress / Wiki curate / education-mode operator chrome) **move into Education Studio**. Chat may keep a thin context indicator; the strip is **not** the permanent operator UI.
-4. **Context wiring**: Whatever topic/course is active/saved in Education Studio, Tutor **must** be aware of it (inject into Tutor turns analogous to Projects Studio active project path → Developer). Exact persistence/API shape is owned by [CARD-447](../cards/CARD-447-education-studio-operator-strip-and-tutor-context.md): settings key `selected_education_context`, `GET`/`PUT` `/api/education/selected`, localStorage `autoreiv.educationStudio.activeContext.v1`, Tutor via `POST /api/education/tutor/context`.
+4. **Context wiring**: Whatever topic/course is active/saved in Education Studio, Tutor **must** be aware of it (inject into Tutor turns analogous to Projects Studio active project path → Developer). Exact persistence/API shape is owned by [CARD-447](../../.agents/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md): settings key `selected_education_context`, `GET`/`PUT` `/api/education/selected`, localStorage `autoreiv.educationStudio.activeContext.v1`, Tutor via `POST /api/education/tutor/context`.
 5. **Backends stay**: CARD-438–441 Learning OS APIs/tools remain; this fork is **UI ownership + context wiring**, not ripping durable backends. Do **not** mark 437–441 Done as wrong — note UI may relocate under this ADR.
-6. **Card reshape**: [CARD-446](../cards/CARD-446-education-studio-flashcard-quiz-test-players.md) is the **parent/planning** card for Studio operator+players. Build order: [CARD-447](../cards/CARD-447-education-studio-operator-strip-and-tutor-context.md) (strip + context) **then** [CARD-448](../cards/CARD-448-education-studio-flashcard-quiz-test-players.md) (players). Do not implement frontend moves on the docs lock pass.
+6. **Card reshape**: [CARD-446](../../.agents/cards/CARD-446-education-studio-flashcard-quiz-test-players.md) is the **parent/planning** card for Studio operator+players. Build order: [CARD-447](../../.agents/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md) (strip + context) **then** [CARD-448](../../.agents/cards/CARD-448-education-studio-flashcard-quiz-test-players.md) (players). Do not implement frontend moves on the docs lock pass.
 7. **CARD-444 / CARD-445** remain Ready unless wording conflicts (Tutor-side efficiency/budget; do not assume chat strip forever).
 
 ### Positive Consequences
@@ -119,9 +119,9 @@ Chosen option: **Option 4** (amendment of Option 3). Option 3's "Studio stays; d
 
 ## 6. Follow-up
 
-* Keep [CARD-442](../cards/CARD-442-retire-education-studio-landing.md) Superseded.
-* Amend [CARD-435](../cards/CARD-435-education-tutor-first-direction.md) forks and successor table for operator+players.
-* Parent program: [CARD-446](../cards/CARD-446-education-studio-flashcard-quiz-test-players.md).
-* Implement strip relocation + Tutor context on [CARD-447](../cards/CARD-447-education-studio-operator-strip-and-tutor-context.md) **first**.
-* Implement players on [CARD-448](../cards/CARD-448-education-studio-flashcard-quiz-test-players.md) **after** 447.
+* Keep [CARD-442](../../.agents/cards/CARD-442-retire-education-studio-landing.md) Superseded.
+* Amend [CARD-435](../../.agents/cards/CARD-435-education-tutor-first-direction.md) forks and successor table for operator+players.
+* Parent program: [CARD-446](../../.agents/cards/CARD-446-education-studio-flashcard-quiz-test-players.md).
+* Implement strip relocation + Tutor context on [CARD-447](../../.agents/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md) **first**.
+* Implement players on [CARD-448](../../.agents/cards/CARD-448-education-studio-flashcard-quiz-test-players.md) **after** 447.
 * Pointer updates: inventory, CARD-437 notes (UI may relocate; Done APIs stand).

@@ -1,7 +1,7 @@
 # CARD-413 — Ownership Audit & Recommended Architecture
 
 > **Status**: Planning brief (Steps 1–3). **Not** an Accepted ADR.  
-> **Card**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md)  
+> **Card**: [CARD-413](../../.agents/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md)  
 > **Date**: 2026-09-21 (ET)  
 > **Scope**: Docs / analysis only. No product code. No push / merge / tag.  
 > **Audit tip**: `feat/card-413-storage-architecture-planning` @ `151e3703` (box checkout; Jarvis write unavailable in this executor).

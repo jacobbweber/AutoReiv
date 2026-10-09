@@ -1,9 +1,9 @@
 # Implementation Tasks: Audit and Prune Dead UI Controls
 
 > **Spec Status**: In Review  
-> **Linked Card**: [CARD-369](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-369-audit-and-prune-dead-ui-controls-and-vestiges-across-studios.md)  
-> **Requirements**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/audit-dead-ui/requirements.md)  
-> **Design**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/audit-dead-ui/design.md)
+> **Linked Card**: [CARD-369](../../../../.agents/cards/CARD-369-audit-and-prune-dead-ui-controls-and-vestiges-across-studios.md)  
+> **Requirements**: [requirements.md](requirements.md)  
+> **Design**: [design.md](design.md)
 
 ---
 

@@ -3,7 +3,7 @@
 > **Status**: Accepted  
 > **Date**: 2026-09-28  
 > **Deciders**: Jacob Weber (Product Owner), coding assistant  
-> **Related Cards**: [CARD-570](../cards/CARD-570-agents-skills-from-platform.md) (implementation), CARD-568, CARD-569  
+> **Related Cards**: [CARD-570](../../.agents/cards/CARD-570-agents-skills-from-platform.md) (implementation), CARD-568, CARD-569  
 > **Supersedes**: the pack parts of [ADR-0048](./0048-autonomous-agent-pack-factory-and-capability-loop.md), [ADR-0056](./0056-durable-runtime-registry-hybrid-c-plus.md) (SQLite skill bindings, platform pack promotion) and [ADR-0058](./0058-retire-agent-builder-into-developer.md) (pack install / seeding)  
 > **Amends**: [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md) (the skill-to-tool source is the SKILL.md `tools:` list)
 

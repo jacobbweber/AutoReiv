@@ -7,7 +7,7 @@
 > **Amended**: 2026-09-26 by [ADR-0061](./0061-capability-scoping-skills-only-permission-one-enforcement-point.md): 4.2 item 5 - SQLite skill bindings are the only skill-to-tool source; the CARD-425 additive grant is a skill tick, and its tools come from that skill's bindings  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: CARD-413 ownership audit  
-> **Related Cards**: [CARD-413](../cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md), [CARD-411](../cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md) (Option A build unblocked 2026-09-22), [CARD-412](../cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md) / [ADR-0055](./0055-operator-contract-testing-and-suite-hygiene.md)  
+> **Related Cards**: [CARD-413](../../.agents/cards/CARD-413-durable-runtime-registry-platform-reconciliation-portable-pack-interchange-and-configurable-wiki-root.md), [CARD-411](../../.agents/cards/CARD-411-skill-runbook-yaml-frontmatter-tool-binding-ui-and-forge-vs-factory-separation.md) (Option A build unblocked 2026-09-22), [CARD-412](../../.agents/cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md) / [ADR-0055](./0055-operator-contract-testing-and-suite-hygiene.md)  
 > **Design brief**: [CARD-413 ownership audit & recommended architecture](../design/CARD-413-ownership-audit-and-recommended-architecture.md)  
 > **Supersedes / Softens**: Boot-time treatment of AppData `packs/` trees as silently re-seedable mirrors of repo `platform-packs/`; silent wiki mkdir / legacy path fallback as configuration substitutes
 

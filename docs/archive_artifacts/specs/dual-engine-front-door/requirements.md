@@ -3,7 +3,7 @@
 > **Spec Status**: Approved (Draft for Review)  
 > **Target Release**: v0.18.0 (Milestone 18 — Autonomic OS & Mechanical Governance)  
 > **Primary Component**: Chat Studio Frontend (`chat.js`, `index.html`) & Chat Router (`src/web/routers/chat.py`)  
-> **Grounding**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-361](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md)
+> **Grounding**: [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-361](../../../../.agents/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md)
 
 ---
 

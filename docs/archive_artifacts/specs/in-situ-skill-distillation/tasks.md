@@ -32,7 +32,7 @@
 ### Slice 4: Verification, RTM Synchronization, & Pre-flight Gates
 - [x] **Task 4.1**: Register `REQ-SKIL-010` through `REQ-SKIL-014` in `docs/rtm.json`.
 - [x] **Task 4.2**: Run complete preflight gate suite (`npm run preflight`).
-- [x] **Task 4.3**: Update `CHANGELOG.md` under `[Unreleased]` and update [CARD-352](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-352-in-situ-skill-workshop-learn-distillation-from-chat.md) to `In Review`.
+- [x] **Task 4.3**: Update `CHANGELOG.md` under `[Unreleased]` and update [CARD-352](../../../../.agents/cards/CARD-352-in-situ-skill-workshop-learn-distillation-from-chat.md) to `In Review`.
 
 ### Slice 5: Persistent Proposal Cards in Chat History [CARD-358] (`[REQ-SKIL-015]`, `[REQ-SKIL-016]`)
 - [ ] **Task 5.1**: [RED] Write failing unit tests in `tests/unit/skills/test_skill_proposal_persistence.py` and router tests in `tests/unit/web/test_skills_distill_router.py`:

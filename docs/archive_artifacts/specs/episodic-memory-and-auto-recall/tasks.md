@@ -2,9 +2,9 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 12 (v0.12.0)  
-> **Card Reference**: [CARD-042](file:///docs/cards/CARD-042-sqlite-episodic-fact-memory-store-and-agent-auto-recall.md)  
-> **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/episodic-memory-and-auto-recall/design.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/episodic-memory-and-auto-recall/requirements.md)
+> **Card Reference**: [CARD-042](../../../../.agents/cards/CARD-042-sqlite-episodic-fact-memory-store-and-agent-auto-recall.md)  
+> **Design Reference**: [design.md](design.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

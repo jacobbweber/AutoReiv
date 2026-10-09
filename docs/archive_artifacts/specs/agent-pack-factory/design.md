@@ -1,6 +1,6 @@
 # Technical Design: Autonomous Agent Pack Factory and Self-Testing Capability Loop
 
-> **Spec Reference**: [docs/specs/agent-pack-factory/requirements.md](file:///D:/Projects/Active/AutoReiv/docs/specs/agent-pack-factory/requirements.md)  
+> **Spec Reference**: [docs/specs/agent-pack-factory/requirements.md](requirements.md)  
 > **Architecture Level**: System Architecture & Multi-Agent State Engine  
 > **Primary Modules**: `src.application.orchestration.factory`, `src.application.skills.sandbox_worker`, `src.infrastructure.memory.repositories`  
 > **Target Release**: v0.20.0  

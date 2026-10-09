@@ -4,7 +4,7 @@
 > **Date**: 2026-09-21  
 > **Deciders**: Jacob (Visionary & Product Owner), AutoReiv Harness Engineer  
 > **Consulted**: Chief of Staff direction on harness reliability  
-> **Related Cards**: [CARD-412](../cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md)  
+> **Related Cards**: [CARD-412](../../.agents/cards/CARD-412-test-suite-hygiene-obsolete-test-pruning-and-consolidation-audit.md)  
 > **Supersedes / Softens**: Dogmatic broad unit-TDD interpretation of `.agents/rules/tdd-invariants.md` (pre-2026-09-21); volume Playwright as primary regression net  
 > **Companion Rules**: `.agents/rules/tdd-invariants.md`, `.agents/rules/operator-contract-testing.md`, `.agents/rules/definition-of-done.md`
 

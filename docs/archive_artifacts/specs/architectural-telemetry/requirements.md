@@ -3,7 +3,7 @@
 > **Spec Status**: Approved (Draft for Review)  
 > **Target Release**: v0.18.0 (Milestone 18 — Autonomic OS & Mechanical Governance)  
 > **Primary Components**: `ArchitecturalThresholdDetector` (`src/domain/observability/architectural_detector.py`), `ArchitecturalEvaluatorService` (`src/application/observability/architectural_evaluator.py`), Observability Router (`src/web/routers/observability.py`), and CLI (`src/cli/main.py`)  
-> **Grounding**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-364](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-364-architectural-telemetry-threshold-detectors.md)
+> **Grounding**: [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-364](../../../../.agents/cards/CARD-364-architectural-telemetry-threshold-detectors.md)
 
 ---
 

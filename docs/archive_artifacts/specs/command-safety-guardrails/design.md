@@ -1,8 +1,8 @@
 # Technical Design: Dangerous Shell Command Safety Guardrails & Path Traversal Protection
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-045](file:///docs/cards/CARD-045-dangerous-shell-command-safety-guardrails-and-path-traversal-protection.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/command-safety-guardrails/requirements.md)
+> **Card Reference**: [CARD-045](../../../../.agents/cards/CARD-045-dangerous-shell-command-safety-guardrails-and-path-traversal-protection.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

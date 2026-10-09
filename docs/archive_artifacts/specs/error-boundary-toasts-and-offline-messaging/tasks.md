@@ -2,9 +2,9 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 11 (v0.11.0)  
-> **Card Reference**: [CARD-040](file:///docs/cards/CARD-040-error-boundary-toasts-and-offline-backend-messaging.md)  
-> **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/error-boundary-toasts-and-offline-messaging/design.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md)
+> **Card Reference**: [CARD-040](../../../../.agents/cards/CARD-040-error-boundary-toasts-and-offline-backend-messaging.md)  
+> **Design Reference**: [design.md](design.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

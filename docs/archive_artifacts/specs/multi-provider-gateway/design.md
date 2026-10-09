@@ -1,7 +1,7 @@
 # Technical Design: Multi Provider Gateway
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [`docs/adr/0002-multi-provider-llm-gateway-architecture.md`](../../adr/0002-multi-provider-llm-gateway-architecture.md)
+> **Applicable ADRs**: [`docs/adr/0002-multi-provider-llm-gateway-architecture.md`](../../../adr/0002-multi-provider-llm-gateway-architecture.md)
 
 ---
 

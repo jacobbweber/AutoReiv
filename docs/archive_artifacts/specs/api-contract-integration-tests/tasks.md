@@ -2,9 +2,9 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 10 (v0.10.0)  
-> **Card Reference**: [CARD-036](file:///docs/cards/CARD-036-gateway-wiki-and-settings-end-to-end-api-contract-integration-tests.md)  
-> **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/api-contract-integration-tests/design.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/api-contract-integration-tests/requirements.md)
+> **Card Reference**: [CARD-036](../../../../.agents/cards/CARD-036-gateway-wiki-and-settings-end-to-end-api-contract-integration-tests.md)  
+> **Design Reference**: [design.md](design.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

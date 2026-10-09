@@ -1,8 +1,8 @@
 # Technical Design: Demand-Paged Capability Engine & Progressive Tool Mounting
 
-> **Spec Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/demand-paged-capabilities/requirements.md)  
-> **Card Reference**: [CARD-362](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-362-demand-paged-capability-engine-progressive-tool-mounting.md)  
-> **Grounding**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)
+> **Spec Reference**: [requirements.md](requirements.md)  
+> **Card Reference**: [CARD-362](../../../../.agents/cards/CARD-362-demand-paged-capability-engine-progressive-tool-mounting.md)  
+> **Grounding**: [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)
 
 ---
 

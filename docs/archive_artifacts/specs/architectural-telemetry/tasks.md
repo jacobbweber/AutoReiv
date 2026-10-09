@@ -1,7 +1,7 @@
 # Vertical Slice Tasks: Architectural Telemetry & Threshold Detectors
 
-> **Spec Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/architectural-telemetry/requirements.md)  
-> **Card Reference**: [CARD-364](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-364-architectural-telemetry-threshold-detectors.md)
+> **Spec Reference**: [requirements.md](requirements.md)  
+> **Card Reference**: [CARD-364](../../../../.agents/cards/CARD-364-architectural-telemetry-threshold-detectors.md)
 
 ---
 

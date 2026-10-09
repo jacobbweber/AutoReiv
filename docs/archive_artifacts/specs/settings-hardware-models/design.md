@@ -1,7 +1,7 @@
 # Technical Design: Settings Studio & Hardware Fit Calculator
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [`docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md`](../../adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md)
+> **Applicable ADRs**: [`docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md`](../../../adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md)
 
 ---
 
