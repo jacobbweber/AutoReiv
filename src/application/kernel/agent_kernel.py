@@ -614,6 +614,10 @@ class AgentKernel:
                 tones_lookup = None
         base_prompt = agent.get_effective_system_prompt(tones_lookup=tones_lookup)
         from src.application.skills.user_catalog import render_skill_index
+        from src.domain.agents.product_concepts import AUTOREIV_CONCEPTS
+
+        # CARD-680: product questions ("what is a standing Job?") are answered from this, not from tool lookups.
+        base_prompt = f"{base_prompt}\n\n{AUTOREIV_CONCEPTS}"
 
         skill_block = render_skill_index(
             getattr(agent, "allowed_skill", None),
