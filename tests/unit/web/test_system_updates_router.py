@@ -2,6 +2,8 @@
 Web Router Integration Tests for System Version & Updates API [CARD-451].
 """
 
+import re
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -59,7 +61,10 @@ def test_health_check_returns_dynamic_version(shared_client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "ok"
-    assert data["version"].startswith("0.")
+    # The health version is the released version in pyproject.toml (was a "0." prefix check until 1.0.0).
+    project = Path(__file__).resolve().parents[3] / "pyproject.toml"
+    expected = re.search(r'^version = "([^"]+)"', project.read_text(encoding="utf-8"), re.M).group(1)
+    assert data["version"] == expected
 
 
 def test_get_system_version_endpoint(shared_client):
