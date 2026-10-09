@@ -51,7 +51,7 @@ describe('CARD-398: Agent Forge Studio Monolith Decomposition and Submodule Hygi
 
     // Tool badges & baseline tools
     expect(typeof forgeModule.renderToolBadgeHtml).toBe('function');
-    expect(typeof forgeModule.baselineToolCardHtml).toBe('function');
+    expect(typeof forgeModule.baselineSummaryHtml).toBe('function');
     expect(typeof forgeModule.renderBaselineTools).toBe('function');
     expect(typeof forgeModule.loadAgentCapabilityGaps).toBe('function');
     expect(typeof forgeModule.loadAgentMcpServers).toBe('function');

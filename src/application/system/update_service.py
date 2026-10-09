@@ -23,7 +23,7 @@ from src.application.system.busy import BusyDetector
 from src.application.system.serve_restarter import (
     NoOpRestarter,
     ServeRestarter,
-    resolve_serve_bind,
+    serve_bind_from_env,
 )
 from src.domain.system.models import (
     AutoUpdateStatus,
@@ -82,6 +82,13 @@ _IN_PROGRESS_FILES = (
 )
 
 
+# CARD-679: said instead of restarting when the serve's own port is unknown.
+NO_PORT_RESTART_NOTE = (
+    "Please restart AutoReiv yourself to load it: this serve was not started by the AutoReiv serve command, "
+    "so it does not know its own port and will not restart one."
+)
+
+
 class UpdateService:
     """Git-based software updates with safety guards and injectable restart."""
 
@@ -111,9 +118,10 @@ class UpdateService:
         self.restarter: ServeRestarter = restarter or NoOpRestarter()
         self.busy_detector = busy_detector or BusyDetector()
         self.dep_installer = dep_installer or _default_uv_sync
-        host, port = resolve_serve_bind()
+        host, port = serve_bind_from_env()
         self.serve_host = serve_host if serve_host is not None else host
-        self.serve_port = serve_port if serve_port is not None else port
+        # CARD-679: None when this serve never said its port; then no restart is scheduled (never a guessed 8000).
+        self.serve_port: Optional[int] = serve_port if serve_port is not None else port
 
     # ------------------------------------------------------------------
     # Config / history
@@ -479,6 +487,15 @@ class UpdateService:
     # Apply update
     # ------------------------------------------------------------------
 
+    def _schedule_restart(self) -> bool:
+        """Restart this serve on its own port; with no known port, restart nothing [CARD-679]."""
+        if self.serve_port is None:
+            logger.info("Serve port unknown (no AUTOREIV_SERVE_PORT); not scheduling a restart")
+            return False
+        return bool(
+            self.restarter.schedule_restart(host=self.serve_host, port=self.serve_port, repo_root=self.repo_root)
+        )
+
     def apply_update(self, *, trigger: str = "manual", restart: Optional[bool] = None) -> UpdateApplyResult:
         info = self.get_version_info()
         reason = self._refusal_for_update(info)
@@ -557,20 +574,14 @@ class UpdateService:
                 )
 
         do_restart = restart if restart is not None else True
-        restart_scheduled = False
-        if do_restart:
-            restart_scheduled = bool(
-                self.restarter.schedule_restart(
-                    host=self.serve_host,
-                    port=self.serve_port,
-                    repo_root=self.repo_root,
-                )
-            )
+        restart_scheduled = self._schedule_restart() if do_restart else False
 
         msg = (
             f"Update applied ({info.commit} -> {after.commit})"
             + (" and serve restart scheduled." if restart_scheduled else ".")
         )
+        if do_restart and self.serve_port is None:
+            msg += f" {NO_PORT_RESTART_NOTE}"
         if deps_changed and deps_ok:
             msg += " Dependencies reinstalled."
         self._append_history(
@@ -759,19 +770,13 @@ class UpdateService:
                 )
 
         do_restart = restart if restart is not None else True
-        restart_scheduled = False
-        if do_restart:
-            restart_scheduled = bool(
-                self.restarter.schedule_restart(
-                    host=self.serve_host,
-                    port=self.serve_port,
-                    repo_root=self.repo_root,
-                )
-            )
+        restart_scheduled = self._schedule_restart() if do_restart else False
 
         msg = f"Switched {info.branch} -> {after.branch} ({info.commit} -> {after.commit})."
         if restart_scheduled:
             msg += " Serve restart scheduled."
+        elif do_restart and self.serve_port is None:
+            msg += f" {NO_PORT_RESTART_NOTE}"
         self._append_history(
             trigger="switch",
             from_sha=info.commit,
@@ -943,7 +948,7 @@ class UpdateService:
                             return match.group(1)
             except Exception:
                 pass
-        return "0.46.0"
+        return "1.0.0"
 
     def _detect_deployment_mode(self, is_git: bool) -> str:
         if os.environ.get("AUTOREIV_CONTAINER"):

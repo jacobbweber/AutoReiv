@@ -16,7 +16,8 @@ from __future__ import annotations
 import re
 from typing import Any, Collection, Optional, Sequence, Tuple
 
-from src.application.kernel.tool_registry import NO_SUCH_TOOL, is_self_correcting_refusal
+from src.application.kernel.tool_registry import NEAR_MISS_TOOL_NAME, NO_SUCH_TOOL, is_self_correcting_refusal
+from src.domain.capabilities.missing_tool import find_missing_tool, names_own_tool
 
 CLARIFICATION_TOOL = "ask_clarification"
 
@@ -26,14 +27,8 @@ _ASK_DEVELOPER_TEXT = re.compile(r"\b(?:use|try|via|through|with)\s+(?:the\s+)?[
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _MISSING_TOOL_MARKERS = (NO_SUCH_TOOL, "not found in system registry", "is not authorized for agent")
 _FAILED_TOOL_PREFIXES = ("Tool Error:", "Rejected. Tool did not run.")
-# "I do not have a direct email-sending tool", "I can't access a tool that ...", "there is no fax tool".
-_LACKS_TOOL = re.compile(
-    r"\b(?:do not|don't|does not|doesn't|cannot|can't|unable to)\b[^.\n]{0,40}?\b(?:have|access|use|find|offer)\b"
-    r"[^.\n]{0,50}?\b(?:tools?|capability|capabilities|ability|integration)\b"
-    r"|\bno\s+[\w-]+(?:\s+[\w-]+)?\s+(?:tool|capability|integration)\b",
-    re.IGNORECASE,
-)
-_NO_AGENT_COVERS = re.compile(r"\bno (?:other )?agent\b[^.\n]{0,60}?\bcover", re.IGNORECASE)
+# CARD-663/677: "the reply admits a missing tool" (including "No agent covers X") is the shared matcher in
+# src.domain.capabilities.missing_tool, so the line and the filed gap come from one decision.
 _POINTS_TO_AGENT = re.compile(r"\bopen [\w' -]{1,40}? in Chat\b", re.IGNORECASE)
 
 
@@ -57,6 +52,33 @@ def turn_tool_rows(history: Sequence[Any]) -> list:
     return rows
 
 
+_REFUSED_NAME = re.compile(r"Tool '([^']+)' was not in the tools sent")
+
+
+def near_miss_tool_names(history: Sequence[Any]) -> set[str]:
+    """CARD-681: tool names this request called that do not exist but are close to a real tool (slips)."""
+    names: set[str] = set()
+    for row in turn_tool_rows(history):
+        if NEAR_MISS_TOOL_NAME in row:
+            m = _REFUSED_NAME.search(row)
+            if m:
+                names.add(m.group(1))
+    return names
+
+
+def near_miss_mentions(history: Sequence[Any]) -> set[str]:
+    """CARD-681: ways a reply names a slipped tool: wiki_template_search, "wiki template search", "template search"."""
+    out: set[str] = set()
+    for name in near_miss_tool_names(history):
+        words = [w for w in name.split("_") if w]
+        out.add(name)
+        if len(words) > 1:
+            out.add(" ".join(words))
+        if len(words) > 2:
+            out.add(" ".join(words[1:]))
+    return out
+
+
 def _strip_ask_developer(text: str) -> str:
     """Drop each sentence that sends the user to Ask Developer; a line left empty goes too."""
     lines = []
@@ -71,11 +93,13 @@ def _strip_ask_developer(text: str) -> str:
 
 
 def _gap_sentence(body: str, gap_text: str) -> str:
-    """The sentence saying a capability is missing (CapabilityDetector's text, or 'I do not have a ... tool')."""
-    for sentence in re.split(r"(?<=[.!?])\s+|\n+", body):
-        if (gap_text and gap_text in sentence) or _LACKS_TOOL.search(sentence):
-            return sentence
-    return gap_text
+    """The sentence saying a capability is missing (CapabilityDetector's text, or the shared matcher [CARD-663])."""
+    if gap_text:
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", body):
+            if gap_text in sentence:
+                return sentence
+    found = find_missing_tool(body)
+    return found.sentence if found else gap_text
 
 
 def ask_developer_ending(
@@ -98,12 +122,13 @@ def ask_developer_ending(
     had_line = body != text.rstrip()
     rows = turn_tool_rows(history)
     missing = any(marker in row for row in rows for marker in _MISSING_TOOL_MARKERS)
+    own_tools = set(own_tools) | near_miss_mentions(history)  # CARD-681: naming a slipped name is not a gap
     succeeded = any(not row.lstrip().startswith(_FAILED_TOOL_PREFIXES) for row in rows)
     rejected = any(row.lstrip().startswith(_FAILED_TOOL_PREFIXES[1]) for row in rows)
     gap_sentence = _gap_sentence(body, gap_text or "")
-    gap_is_own_tool = bool(gap_sentence) and any(name and name in gap_sentence for name in own_tools)
+    gap_is_own_tool = bool(gap_sentence) and names_own_tool(gap_sentence, own_tools)
     real_gap = bool(gap_sentence) and not gap_is_own_tool and not rejected
-    said_no = real_gap or had_line or bool(_NO_AGENT_COVERS.search(body))
+    said_no = real_gap or had_line
     turned_down = not rows and said_no and not gap_is_own_tool and not _POINTS_TO_AGENT.search(body)
     if offer and ((missing and not succeeded) or turned_down or (rows and real_gap)):
         return f"{body}\n\n{ASK_DEVELOPER_LINE}" if body else ASK_DEVELOPER_LINE

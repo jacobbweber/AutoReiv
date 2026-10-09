@@ -1,5 +1,37 @@
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-09
+
+AutoReiv 1.0. Install, uninstall and reinstall are checked on the Windows service, Linux systemd and Docker, each with a documented data folder, and your data is kept through uninstall, reinstall, update and rollback. A written 1.0 acceptance checklist (`docs/acceptance-checklist-1.0.md`) passes on a clean data folder. Agents are more honest about what they cannot do (missing tools file a capability gap with the reply, and statements that are not gaps no longer file one), and a job's planning step gets every read tool it is allowed, while writes and made-up tool names are refused with a clear reason.
+
+- A plan saying "No tools that change state will be called" (or "No write tools will be used") is no longer filed as a missing capability [CARD-684].
+- The chat stream's tool_output event now says whether the call ran (success, tool_name) and gives the reason for a refused or failed call, and the chat tool badge shows "Did not run: <tool> - <reason>" [CARD-682].
+- A call to a made-up tool name is refused with the closest real tool names and is not filed as a missing capability or answered with the Ask Developer line [CARD-681].
+- restart_serve no longer passes the calling shell's AUTOREIV_* variables to the serve it starts, takes -DataDir/-WikiPath/-DbPath explicitly, and prints the data folder it used; in-app update restarts keep the serve's own folder [CARD-683].
+- A job's planning (Formulate) step is sent every read tool the agent has, not only the job's matched ones, so planning no longer hits refusals for tools like wiki_template_list; later phases stay narrowed to the match [CARD-676].
+- Every platform tool is labeled read or write, and a job's planning (Formulate) step is sent and may call only read tools; writes and unlabeled tools wait for a later phase [CARD-674].
+- Every agent is sent a short description of AutoReiv's own concepts (standing Job, Routine, Skill, Wiki and others), so "what is a standing Job?" is answered correctly without tool lookups [CARD-680].
+- An update or branch switch restarts only the port the serve says it runs on; a serve started without the CLI restarts nothing (and says so) instead of guessing :8000, and `live_qa` serves now say their port [CARD-679].
+- The system prompt tells the model to open runbooks with `skill_view` only on calls that are sent `skill_view` [CARD-675].
+- A "No agent covers X" turn-down now files a capability gap for X, from the same matcher that adds the Ask Developer line [CARD-677].
+- A capability gap's suggested tool name comes from the capability even when it is short ("fax" gives `manage_fax`, not words from the prompt) [CARD-678].
+- Written 1.0 acceptance checklist (`docs/acceptance-checklist-1.0.md`), run once on a clean data folder: all eight steps pass [CARD-661].
+- Update and rollback keep the data folder: checked for the git update path and Docker recreate on the same volume, with a new "Update and rollback" section in the install doc [CARD-662].
+- Short install and uninstall doc for Windows service, Linux systemd and Docker, with data paths and the rule that uninstall keeps data (`docs/install-and-uninstall.md`) [CARD-668].
+- Preflight and tests no longer need the gitignored `notes/` folder: honesty smoke results go to `scratch/` when `notes/` is absent, and the fleet coordinator test uses its own fixture [CARD-667].
+- Removed the obsolete `day1_routines_seeded` setting. Nothing has used it since CARD-636 replaced the day-one routine seed. Existing databases drop that one key on start, and no other setting is touched (CARD-666).
+- A job's Formulate (plan) step is told exactly which tools it can call this step (its granted tools, narrowed for planning). Matched skills and tools it cannot call are named as such, and its goal no longer lists every matched id. A skill id called as a tool is refused as a skill, not as a missing tool, so there is no Ask Developer offer to build it (CARD-665).
+- Capability gaps keep the agent's reply (`context_summary`). The gaps API and gap lists return it, so Skill Studio gap drafts get the full context and not only the turn text. Existing databases gain the column on startup and keep their gaps (CARD-664).
+- Replies that admit a missing tool in other words ("I do not have a direct email-sending tool", "there is no fax tool", "the PDF export tool isn't available") now file a capability gap. The gap detector and the Ask Developer line share one matcher, and no gap is filed when the reply names one of the agent's own tools (CARD-663).
+- Fresh installs no longer create an empty `packs/` folder in the data dir. Packs were removed, so `packs` is gone from the systemd installer and the Dockerfile `mkdir`, and the deploy README layout is updated. Existing `packs/` folders are left alone (CARD-673).
+- Tests never reach a real model: the session points Ollama at a closed local port and blanks remote providers, and the gaps API test uses a fake model. That test used to hang the full suite and release preflight at ~99% when OLLAMA_HOST/.env pointed at a silent host. A stdlib per-test hang watchdog (AUTOREIV_TEST_HANG_SECONDS, default 900 s) now fails a stuck test with a stack dump instead of hanging (CARD-672).
+- Windows service install/uninstall scripts are now pure ASCII, so they parse in Windows PowerShell 5.1 (emoji bytes were read as smart quotes and broke strings). A new test checks every deploy/scripts .ps1 is ASCII and parses in powershell.exe.
+- systemd installer and uninstaller take `--prefix` (default `/opt/autoreiv`) and `--data-dir` (default `/var/lib/autoreiv`). The unit is rendered for the chosen paths, and uninstall keeps data unless `--purge-data` is passed (CARD-671).
+- Windows service installer takes `-DataDir` and sets `AUTOREIV_DATA_DIR` on the NSSM service (default `%LOCALAPPDATA%\AutoReiv`). Service logs now go under the data dir, and uninstall never deletes data (CARD-670).
+- Docker images build again: the Dockerfile ships the current platform/ agents and skills instead of the removed platform-packs/ folder. (CARD-669)
+- Quick preflight no longer fails a stage when pytest selected zero tests (for example when every changed test is marked slow). (CARD-657)
+- Agent Studio's skill list is simpler: each skill is its name, one line of description and an on/off switch. Enabled skills are listed first, then the rest, with a count and a search box. 'Manage skills' opens Skill Studio. (CARD-656)
+
 ## [0.46.0] - 2026-10-06
 
 - Course labs drop grading criteria whose key terms are mostly not in your notes, so a submission that covers what you wrote is graded against facts your notes actually state [CARD-655].

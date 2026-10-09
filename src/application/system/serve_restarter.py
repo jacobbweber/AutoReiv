@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Protocol
+from typing import Optional, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,27 @@ class NoOpRestarter:
     def schedule_restart(self, *, host: str, port: int, repo_root: Path) -> bool:
         self.calls.append({"host": host, "port": port, "repo_root": str(repo_root)})
         return True
+
+
+_DATA_ENV_FLAGS = (
+    ("AUTOREIV_DATA_DIR", "-DataDir", "--data-dir"),
+    ("AUTOREIV_WIKI_PATH", "-WikiPath", "--wiki-path"),
+    ("AUTOREIV_DB_PATH", "-DbPath", "--db-path"),
+)
+
+
+def _own_data_args(windows: bool) -> list[str]:
+    """This serve's own data settings as explicit restart_serve parameters [CARD-683].
+
+    restart_serve ignores inherited AUTOREIV_* variables, so a serve restarting itself after an update (for example
+    a service with AUTOREIV_DATA_DIR on its unit) names its data folder explicitly and comes back on the same one.
+    """
+    args: list[str] = []
+    for env_key, ps_flag, py_flag in _DATA_ENV_FLAGS:
+        val = (os.environ.get(env_key) or "").strip()
+        if val:
+            args += [ps_flag if windows else py_flag, val]
+    return args
 
 
 class DetachedScriptRestarter:
@@ -55,6 +76,7 @@ class DetachedScriptRestarter:
                     str(host),
                     "-Port",
                     str(port),
+                    *_own_data_args(windows=True),
                 ]
                 creation = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200) | getattr(
                     subprocess, "DETACHED_PROCESS", 0x00000008
@@ -76,6 +98,7 @@ class DetachedScriptRestarter:
                     str(host),
                     "--port",
                     str(port),
+                    *_own_data_args(windows=False),
                 ]
                 subprocess.Popen(
                     cmd,
@@ -90,6 +113,21 @@ class DetachedScriptRestarter:
         except Exception as exc:
             logger.error("Failed to schedule serve restart: %s", exc, exc_info=True)
             return False
+
+
+def serve_bind_from_env(default_host: str = "0.0.0.0") -> tuple[str, Optional[int]]:
+    """The bind the CLI serve recorded (AUTOREIV_SERVE_HOST / AUTOREIV_SERVE_PORT).
+
+    CARD-679: the port is None when unset, e.g. a serve started with ``uvicorn src.web.app:app`` directly. Then
+    nothing knows which port this process listens on, and a restart must not guess 8000 (Jacob's real serve).
+    """
+    host = (os.environ.get("AUTOREIV_SERVE_HOST") or default_host).strip() or default_host
+    raw = (os.environ.get("AUTOREIV_SERVE_PORT") or "").strip()
+    try:
+        port: Optional[int] = int(raw) if raw else None
+    except ValueError:
+        port = None
+    return host, port
 
 
 def resolve_serve_bind(default_host: str = "0.0.0.0", default_port: int = 8000) -> tuple[str, int]:

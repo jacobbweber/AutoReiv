@@ -128,7 +128,7 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
 
     const runbook = read('src/web/static/modules/studios/forge/runbook.js');
     const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
-    expect(runbook).toContain('Open in Skill Studio');
+    expect(runbook).toContain('Manage skills'); // CARD-656: header link, not per row
     expect(html).not.toContain('id="studioRunbookEditor"');
     expect(html).not.toContain('Open in Factory Workshop');
     expect(html).not.toContain('Author skill in Factory');

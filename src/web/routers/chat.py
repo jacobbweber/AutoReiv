@@ -32,6 +32,7 @@ from src.application.orchestration.phase_roles import (
     format_planning_phase_block,
     format_planning_repo_note,
     is_planning_phase,
+    planning_tools_block_for,
 )
 from src.application.orchestration.repo_code_grounding import (
     ACTION_REQUIRE_READ as REPO_ACTION_REQUIRE_READ,
@@ -377,6 +378,25 @@ def execution_plan_from_approval(record: dict, session_id: str, agent_id: str):
     return plan, self_verify, approval_mode, job_id, verify_checker
 
 
+def tool_output_payload(event) -> dict:
+    """CARD-682: a refused or failed call says so and why, instead of an empty result."""
+    res = event.tool_result
+    call_info = event.tool_call if isinstance(event.tool_call, dict) else {}
+    name = call_info.get("name") or (getattr(res, "tool_name", "") if res is not None else "") or ""
+    if res is None:
+        return {"type": "tool_output", "tool_name": name, "success": True, "result": ""}
+    if res.success:
+        return {"type": "tool_output", "tool_name": name, "success": True, "result": res.output}
+    error = str(res.error or "Tool execution error")
+    return {
+        "type": "tool_output",
+        "tool_name": name,
+        "success": False,
+        "error": error,
+        "result": f"Tool Error: {error}",
+    }
+
+
 async def _forward_kernel_event(queue, event, profile) -> None:
     if event.event_type == KernelEventType.TOKEN:
         if event.reasoning_content:
@@ -396,8 +416,7 @@ async def _forward_kernel_event(queue, event, profile) -> None:
             )
         )
     elif event.event_type == KernelEventType.TOOL_END:
-        out_text = event.tool_result.output if event.tool_result else ""
-        await queue.put(_sse("tool_output", {"type": "tool_output", "result": out_text}))
+        await queue.put(_sse("tool_output", tool_output_payload(event)))
     elif event.event_type == KernelEventType.HANDOFF_START:
         await queue.put(_sse("handoff_start", {"type": "handoff_start", **(event.handoff or {})}))
     elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
@@ -1252,6 +1271,16 @@ async def execute_goal_job_phases(
         if planning and len(phases) > 1:
             assignment = assignment.rstrip() + "\n\n" + format_planning_phase_block(phases, current)
         run_profile = profile_for_phase(profile, current, registry)
+        if planning:
+            # CARD-665: name exactly the tools this Formulate call is sent; matched skills/tools outside it are
+            # named as not callable, so the planner does not spend rounds on refused calls.
+            try:
+                ids_fn = getattr(orch, "matched_capability_ids_for_job", None)
+                matched_now = list(ids_fn(job.id) or []) if callable(ids_fn) else []
+                tools_block = planning_tools_block_for(kernel, run_profile, job.id, current.id, matched_now)
+                assignment = assignment.rstrip() + "\n\n" + tools_block
+            except Exception:
+                logger.exception("CARD-665 planning tools block soft-fail job=%s", getattr(job, "id", None))
         phase_session = _ensure_phase_session(store, session_id, current, run_profile.id)
         outcome = await _stream_turn_bound(
             queue=queue,

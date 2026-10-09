@@ -36,25 +36,23 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(forgeJs).not.toContain('ungrouped_skill_tool_list');
   });
 
-  it('renders required platform tools with REQUIRED badge and disabled input [CARD-330]', () => {
-    const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/runbook.js');
-    expect(forgeJs).toContain('required_platform');
-    expect(forgeJs).toContain('REQUIRED');
-    expect(forgeJs).toContain('INCLUDES REQUIRED TOOLS');
+  it('skill rows no longer show REQUIRED tool badges [CARD-330, CARD-656]', () => {
+    const runbookJs = read('src/web/static/modules/studios/forge/runbook.js');
+    expect(runbookJs).not.toContain('INCLUDES REQUIRED TOOLS');
+    expect(runbookJs).not.toContain('declared tool');
   });
 
   it('index.html contains AutoReiv OS Baseline section [CARD-330]', () => {
     const html = read('src/web/templates/index.html');
     expect(html).toContain('id="forgeBaselineBox"');
     expect(html).toContain('id="forgeBaselineGrid"');
-    expect(html).toContain('AutoReiv OS Baseline');
+    expect(html).toContain('Always-on baseline');
   });
 
   it('renders AutoReiv OS Baseline tools with uncheckable references [CARD-330]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js');
     expect(forgeJs).toContain('renderBaselineTools');
-    expect(forgeJs).toContain('baselineToolCardHtml');
-    expect(forgeJs).toContain('OS BASELINE');
+    expect(forgeJs).toContain('baselineSummaryHtml'); // CARD-656: one quiet line, not chips
   });
 
   it('shows six required tools and says Direct mounts none [CARD-429, CARD-578]', () => {
@@ -69,7 +67,7 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
       expect(toolsJs).toContain(name);
     }
     expect(toolsJs).not.toContain('activate_skill');
-    expect(html).toContain('Direct mounts none');
+    expect(toolsJs).toContain('Always on'); // CARD-656 replaces the chip caption
     expect(html).not.toContain('enforced for every agent');
     expect(toolsJs).not.toContain('for all agents');
   });

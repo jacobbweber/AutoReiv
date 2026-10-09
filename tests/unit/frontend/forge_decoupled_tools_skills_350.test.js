@@ -36,10 +36,10 @@ describe('CARD-389: Agent Forge Uniform Skill-First Architecture', () => {
     expect(html).not.toContain('id="clearAllToolsBtn"');
   });
 
-  it('forge.js renders skill rows with declared tool chips and excises naked tool buttons', () => {
+  it('forge.js renders skill rows without tool chips and excises naked tool buttons [CARD-656]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js') + read('src/web/static/modules/studios/forge/runbook.js');
     expect(forgeJs).toContain('forge-skill-row');
-    expect(forgeJs).toContain('declared tool');
+    expect(forgeJs).not.toContain('declared tool');
     expect(forgeJs).not.toContain('forge-skill-recommend-tools-btn');
     expect(forgeJs).not.toContain('selectRecommendedToolsForSkill');
     expect(forgeJs).not.toContain('forge-tool-checkbox');

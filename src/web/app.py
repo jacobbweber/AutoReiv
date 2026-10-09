@@ -35,7 +35,7 @@ from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.system.backup_scheduler import DataDirBackupScheduler
 from src.application.system.busy import make_store_busy_detector
-from src.application.system.serve_restarter import DetachedScriptRestarter, resolve_serve_bind
+from src.application.system.serve_restarter import DetachedScriptRestarter, serve_bind_from_env
 from src.application.system.update_scheduler import SoftwareUpdateScheduler
 from src.application.system.update_service import UpdateService
 from src.application.telemetry.collector import TelemetryCollector
@@ -388,7 +388,7 @@ def create_app(
         interval_seconds=60.0,
     )
 
-    serve_host, serve_port = resolve_serve_bind()
+    serve_host, serve_port = serve_bind_from_env()  # CARD-679: port None when not started by the CLI
     update_busy = make_store_busy_detector(store)
     serve_restarter = DetachedScriptRestarter()
     update_service = UpdateService(

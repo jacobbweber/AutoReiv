@@ -56,6 +56,7 @@ import {
   loadPlatformSkills,
   renderNestedHomes,
   applySkillChecks,
+  regroupSkillRows,
 } from './forge/runbook.js';
 import {
   allowlistForSave,
@@ -598,6 +599,7 @@ export function initAgentForge(state, callbacks = {}) {
         storageSkillPill.setAttribute('aria-pressed', forgeStorageEnabled.checked ? 'true' : 'false');
       }
       onToggleSkill('sqlite-storage', forgeStorageEnabled.checked);
+      regroupSkillRows(null, 'sqlite-storage'); // CARD-656: move the row to its group
     });
   }
 

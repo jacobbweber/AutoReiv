@@ -4,9 +4,11 @@ Identifies turn-time missing tools or capability deficiencies from agent respons
 """
 
 import re
-from typing import Optional
+from typing import Collection, Optional
 
 from pydantic import BaseModel, Field
+
+from src.domain.capabilities.missing_tool import find_missing_tool, names_own_tool
 
 
 class CapabilityGapDetection(BaseModel):
@@ -23,15 +25,6 @@ class CapabilityDetector:
     Analyzes user prompts and assistant responses to detect turn-time capability gaps.
     """
 
-    PATTERNS = [
-        re.compile(r"(?:don't|do not|cannot|can't|unable to|lack(?:s)?)\s+(?:have|find|access|possess)?\s*(?:the\s+)?(?:tools?|capability|capabilities|ability|command|permission)\s+(?:to|for)?\s*(.+?)(?:\.|$)", re.IGNORECASE),
-        re.compile(r"I don't have (?:a|any|the)?\s*tools?\s*(?:to|for)?\s*(.+?)(?:\.|$)", re.IGNORECASE),
-        re.compile(r"I cannot directly (?:create|manage|execute|run|provision|delete|modify|inspect|query|audit)\s+(.+?)(?:\.|$)", re.IGNORECASE),
-        re.compile(r"no tool available to (.+?)(?:\.|$)", re.IGNORECASE),
-        re.compile(r"unable to (.+?) without a tool", re.IGNORECASE),
-        re.compile(r"without a tool to (.+?)(?:\.|$)", re.IGNORECASE),
-    ]
-
     GREETINGS = {"hi", "hello", "hey", "thanks", "thank you", "good morning", "good evening"}
 
     RETRY_PROMPTS = {
@@ -41,7 +34,17 @@ class CapabilityDetector:
     }
 
     @classmethod
-    def detect(cls, user_prompt: Optional[str], assistant_response: Optional[str]) -> Optional[CapabilityGapDetection]:
+    def detect(
+        cls,
+        user_prompt: Optional[str],
+        assistant_response: Optional[str],
+        own_tools: Collection[str] = (),
+    ) -> Optional[CapabilityGapDetection]:
+        """A gap when the reply admits a missing tool [CARD-663: the same matcher as the Ask Developer line].
+
+        A sentence that names one of the agent's own tools (own_tools) is not a gap: the tool exists, it was
+        just not offered on that call.
+        """
         if not user_prompt or not assistant_response:
             return None
 
@@ -49,25 +52,19 @@ class CapabilityDetector:
         if prompt_clean.lower() in cls.GREETINGS or len(prompt_clean) < 4:
             return None
 
-        for pat in cls.PATTERNS:
-            match = pat.search(assistant_response)
-            if match:
-                extracted = match.group(1).strip().strip(".")
-                if not extracted or len(extracted) < 2:
-                    extracted = prompt_clean
-
-                # Generate clean suggested tool name
-                suggested_tool = cls._suggest_tool_name(extracted, prompt_clean)
-
-                return CapabilityGapDetection(
-                    detected=True,
-                    missing_capability=extracted,
-                    suggested_tool_name=suggested_tool,
-                    user_prompt=prompt_clean,
-                    context_summary=assistant_response.strip(),
-                )
-
-        return None
+        found = find_missing_tool(assistant_response)
+        if found is None or names_own_tool(found.sentence, own_tools):
+            return None
+        extracted = found.capability.strip().strip(".")
+        if not extracted or len(extracted) < 2:
+            extracted = prompt_clean
+        return CapabilityGapDetection(
+            detected=True,
+            missing_capability=extracted,
+            suggested_tool_name=cls._suggest_tool_name(extracted, prompt_clean),
+            user_prompt=prompt_clean,
+            context_summary=assistant_response.strip(),
+        )
 
     @classmethod
     def extract_capabilities_from_turn(
@@ -244,7 +241,8 @@ class CapabilityDetector:
 
     @classmethod
     def _suggest_tool_name(cls, capability_text: str, fallback_prompt: str) -> str:
-        text = capability_text if len(capability_text) > 3 else fallback_prompt
+        # CARD-678: a short capability ("fax", "sms") is still the capability; the prompt is only a fallback.
+        text = capability_text if len((capability_text or "").strip()) >= 2 else fallback_prompt
         text = re.sub(r"\b(a|an|the|directly|to|for|in|on|with)\b", "", text, flags=re.IGNORECASE)
         slug = re.sub(r"[^a-zA-Z0-9]+", "_", text).strip("_").lower()
         parts = [p for p in slug.split("_") if p][:4]

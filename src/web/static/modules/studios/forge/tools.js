@@ -3,7 +3,7 @@
  * Full MCP attach lives in Tools Studio. This card shows mounted-count status and opens Tools Studio.
  */
 
-import { $, $queryAll, safeCreateIcons } from '../../dom.js';
+import { $, $queryAll } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
 import { showToast } from '../../ui/toast.js';
 import { renderMcpStatusRowsMarkup } from '../tools_studio_catalog.js';
@@ -25,33 +25,25 @@ export function renderToolBadgeHtml(tool, activeAgent = null) {
     : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/80 uppercase tracking-wide">Native Tool</span>';
 }
 
-export function baselineToolCardHtml(tool) {
-  const tObj = typeof tool === 'string' ? { name: tool, description: '' } : (tool || {});
-  const name = tObj.name || '';
-  const desc = tObj.description || '';
-  return `
-    <div class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-950/70 border border-emerald-700/60 text-xs text-slate-200 select-none shadow-sm" title="${escapeHtml(desc)}">
-      <input type="checkbox" checked disabled class="hidden" title="Platform required tool. Direct mounts none.">
-      <i data-lucide="lock" class="w-3 h-3 text-emerald-400 shrink-0"></i>
-      <span class="font-mono text-[11px] font-semibold text-emerald-200">${escapeHtml(name)}</span>
-      <span class="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 uppercase">OS BASELINE</span>
-    </div>
-  `;
+// Mirrors REQUIRED_PLATFORM_TOOLS in src/application/agent_skills/schema.py (CARD-596/607).
+const requiredPrimitives = [
+  { name: 'ask_clarification', description: 'Ask the human operator a clarifying question when requirements are ambiguous.' },
+  { name: 'get_session_info', description: 'Inspect active session metadata and runtime state.' },
+  { name: 'recall_agent_memory', description: 'Recall facts stored for this agent.' },
+  { name: 'memorize_fact', description: 'Store a fact for this agent.' },
+  { name: 'read_document_file', description: 'Read an uploaded document attached to the chat.' },
+];
+
+/** The always-on baseline as one quiet line instead of tool chips [CARD-656]. */
+export function baselineSummaryHtml(tools = requiredPrimitives) {
+  const names = (tools || []).map((t) => (typeof t === 'string' ? t : (t && t.name) || '')).filter(Boolean);
+  return `<span class="forge-baseline-label">Always on</span> <span class="forge-baseline-text" title="${escapeHtml(names.join(', '))}">Every agent can ask you a question, check its session, remember and recall facts, and read files you upload.</span>`;
 }
 
 export function renderBaselineTools(gridEl = null) {
   const grid = gridEl || $('forgeBaselineGrid');
   if (!grid) return;
-  // Mirrors REQUIRED_PLATFORM_TOOLS in src/application/agent_skills/schema.py (CARD-596/607).
-  const requiredPrimitives = [
-    { name: 'ask_clarification', description: 'Ask the human operator a clarifying question when requirements are ambiguous.' },
-    { name: 'get_session_info', description: 'Inspect active session metadata and runtime state.' },
-    { name: 'recall_agent_memory', description: 'Recall facts stored for this agent.' },
-    { name: 'memorize_fact', description: 'Store a fact for this agent.' },
-    { name: 'read_document_file', description: 'Read an uploaded document attached to the chat.' },
-  ];
-  grid.innerHTML = requiredPrimitives.map((t) => baselineToolCardHtml(t)).join('');
-  safeCreateIcons();
+  grid.innerHTML = baselineSummaryHtml();
 }
 
 /**

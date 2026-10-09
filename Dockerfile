@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
+COPY src/ ./src/
 RUN pip install --no-cache-dir --prefix=/install .
 
 # Stage 2: Final Minimal Runtime Image
@@ -28,16 +29,16 @@ RUN groupadd -g 1000 autoreiv && \
 # Copy installed dependencies from builder
 COPY --from=builder /install /usr/local
 
-# Copy application source code, packs, templates, and metadata
+# Copy application source, platform agents/skills, templates, and metadata [CARD-669]
 COPY --chown=autoreiv:autoreiv src/ ./src/
-COPY --chown=autoreiv:autoreiv platform-packs/ ./platform-packs/
+COPY --chown=autoreiv:autoreiv platform/ ./platform/
 COPY --chown=autoreiv:autoreiv templates/ ./templates/
 COPY --chown=autoreiv:autoreiv pyproject.toml ./
 COPY --chown=autoreiv:autoreiv README.md ./
 
 # Persistent data mount points. Do NOT mkdir /data/wiki here [ADR-0056 / CARD-414]:
 # Docker/daemon hard-fail requires a missing configured wiki path to stay missing until the operator mounts it.
-RUN mkdir -p /data/database /data/packs /data/skills && \
+RUN mkdir -p /data/database /data/skills && \
     chown -R autoreiv:autoreiv /data
 
 # Default environment configuration
@@ -56,7 +57,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/agents')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')" || exit 1
 
 # Entry point
 CMD ["python", "-m", "src.cli.main", "serve", "--host", "0.0.0.0", "--port", "8000"]

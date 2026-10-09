@@ -52,6 +52,7 @@ from src.application.kernel.reply_rules import (  # CARD-599/600
     is_toolsmith,
     memory_not_done_lines,
     memory_retry_prompt,
+    near_miss_mentions,
     needs_parts_check,
     parse_parts_check,
     parts_check_prompt,
@@ -424,12 +425,15 @@ class AgentKernel:
                 exists = any(d.name == tc.name for d in self.tool_registry.list_tools())
             except Exception:
                 exists = True
+            from src.application.agent_skills.allowed_tools import ticked_skills
+
             return ToolResult(
                 call_id=tc.id,
                 tool_name=tc.name,
                 output=None,
                 success=False,
-                error=tool_not_offered_error(tc.name, offered, exists=exists),  # CARD-615: says when none exists
+                # CARD-615: says when none exists; CARD-665: a skill id is refused as a skill, not a missing tool
+                error=tool_not_offered_error(tc.name, offered, exists=exists, skills=ticked_skills(agent)),
             )
         registry_names = set()
         try:
@@ -595,9 +599,12 @@ class AgentKernel:
         self,
         agent: AgentProfile,
         user_content: Optional[str] = None,
+        sent_tools: Optional[Collection[str]] = None,
     ) -> ChatMessage:
         """
         Constructs system prompt enriched with auto-recalled episodic facts [REQ-EPISODIC-003].
+
+        sent_tools: the tools this call is sent; the skill index names skill_view only when it is one [CARD-675].
         """
         tones_lookup = None
         if self.state_store and hasattr(self.state_store, "list_tones"):
@@ -608,11 +615,16 @@ class AgentKernel:
                 tones_lookup = None
         base_prompt = agent.get_effective_system_prompt(tones_lookup=tones_lookup)
         from src.application.skills.user_catalog import render_skill_index
+        from src.domain.agents.product_concepts import AUTOREIV_CONCEPTS
+
+        # CARD-680: product questions ("what is a standing Job?") are answered from this, not from tool lookups.
+        base_prompt = f"{base_prompt}\n\n{AUTOREIV_CONCEPTS}"
 
         skill_block = render_skill_index(
             getattr(agent, "allowed_skill", None),
             self.user_skill_catalog,
             agent_id=getattr(agent, "id", None),
+            can_open=sent_tools is None or "skill_view" in sent_tools,
         )
         if skill_block:
             base_prompt = f"{base_prompt}\n\n{skill_block}"
@@ -733,6 +745,37 @@ class AgentKernel:
         except Exception:
             return set()
 
+    def offered_tool_names(
+        self, agent: AgentProfile, job_id: Optional[str] = None, phase_id: Optional[str] = None
+    ) -> List[str]:
+        """The tools a turn of ``agent`` in this job phase is sent, by name [CARD-665].
+
+        Same resolution as run_turn / stream_turn (granted tools, the job's match, plan-only rules), without
+        touching per-turn state, so a phase assignment can name exactly what the model may call.
+        """
+        ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id, agent=agent)
+        tools = self._resolve_active_tools(
+            agent,
+            matched_capability_ids=ids if ids is not None else [],
+            planning_phase=self._is_planning_phase(phase_id),
+        )
+        return [t.name for t in tools]
+
+    def _turn_tools_and_system_message(
+        self, agent: AgentProfile, user_content: Optional[str], history: List[Any]
+    ) -> Tuple[List[Any], set[str], ChatMessage]:
+        """This call's tools, their names, and a system message that names only tools it is sent [CARD-675]."""
+        active_tools = self._resolve_active_tools(
+            agent,
+            user_content,
+            matched_capability_ids=self._turn_matched_capability_ids,
+        )
+        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
+        active_tools = [t for t in active_tools if t.name not in rejected_now]
+        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
+        system_msg = self._build_effective_system_message(agent, user_content, sent_tools=offered_names)
+        return active_tools, offered_names, system_msg
+
     def _resolve_active_tools(
         self,
         agent: AgentProfile,
@@ -777,7 +820,7 @@ class AgentKernel:
         from src.application.safety.tool_policy_gate import _capability_tool_names
 
         named = _capability_tool_names(ids) or set()
-        if phase_skills:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
+        if phase_skills and not planning_phase:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
             # CARD-617: a tool the job matched by name stays (the gate allows it): AutoReiv ticks wiki-knowledge
             # (read-only) and gets wiki_note_create from wiki-inbox, so a job matched to both kept only the reads.
             tools = [
@@ -787,7 +830,8 @@ class AgentKernel:
         try:
             from src.application.safety.tool_policy_gate import EDUCATION_FORBIDDEN_WIKI_TOOLS
 
-            subset = _capability_tool_names(ids)
+            # CARD-676: a planning step keeps every granted read tool; the job's match narrows the later phases.
+            subset = None if planning_phase else _capability_tool_names(ids)
             if subset is not None:
                 tools = [t for t in tools if t.name in subset or t.name in REQUIRED_PLATFORM_TOOLS]
             else:
@@ -829,15 +873,7 @@ class AgentKernel:
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
-        system_msg = self._build_effective_system_message(agent, user_content)
-        active_tools = self._resolve_active_tools(
-            agent,
-            user_content,
-            matched_capability_ids=self._turn_matched_capability_ids,
-        )
-        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
-        active_tools = [t for t in active_tools if t.name not in rejected_now]
-        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
+        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(agent, user_content, history)
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
@@ -1032,7 +1068,10 @@ class AgentKernel:
                             user_req_text = hm.content
                             break
 
-                gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=assistant_msg.content)
+                gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
+                    user_prompt=user_req_text, assistant_response=assistant_msg.content,
+                    own_tools=self._own_tool_names(agent) | near_miss_mentions(history),
+                )
                 if gap:
                     try:
                         self.capability_gap_repo.create_gap(
@@ -1244,15 +1283,7 @@ class AgentKernel:
                 for ev in replay:
                     yield ev
                 return
-        system_msg = self._build_effective_system_message(agent, user_content)
-        active_tools = self._resolve_active_tools(
-            agent,
-            user_content,
-            matched_capability_ids=self._turn_matched_capability_ids,
-        )
-        rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
-        active_tools = [t for t in active_tools if t.name not in rejected_now]
-        offered_names = {t.name for t in active_tools}  # CARD-578: only these may run on this call
+        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(agent, user_content, history)
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
@@ -1528,7 +1559,10 @@ class AgentKernel:
                             user_req_text = hm.content
                             break
 
-                gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=full_content)
+                gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
+                    user_prompt=user_req_text, assistant_response=full_content,
+                    own_tools=self._own_tool_names(agent) | near_miss_mentions(history),
+                )
                 if gap:
                     try:
                         self.capability_gap_repo.create_gap(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preflight tiers (CARD-559, CARD-560). Run from the repo root.
+"""Preflight tiers (CARD-559, CARD-560, CARD-657). Run from the repo root.
 
     python .agents/skills/preflight/scripts/preflight.py --fast [--base qa]   # card proof, and after each merge to qa (~1 min)
     python .agents/skills/preflight/scripts/preflight.py --release            # gate before merging qa into main; the default
@@ -110,7 +110,8 @@ def lint_count(tool: str, output: str) -> int:
 def judge(name: str, rc: int, out: str, lint: str | None) -> tuple[str, str]:
     if rc == 0:
         return "PASS", ""
-    if rc == 5 and ("no tests ran" in out or "deselected" in out):
+    # Pytest exit 5 = no tests collected (CARD-657). xdist often omits "deselected"/"no tests ran".
+    if rc == 5 and lint is None:
         return "PASS", "no tests selected"
     if lint and lint in KNOWN_LINT:
         card, allowed = KNOWN_LINT[lint]

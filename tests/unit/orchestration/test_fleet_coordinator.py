@@ -55,8 +55,17 @@ def test_lookup_homelab_docs_category_and_query(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_fleet_coordinator_delegates_to_specialist():
-    """FleetCoordinator resolves specialist role and delegates task with injected notes context."""
+async def test_fleet_coordinator_delegates_to_specialist(tmp_path):
+    """FleetCoordinator resolves specialist role and delegates task with injected notes context.
+
+    CARD-667: uses an embedded fixture instead of the gitignored repo notes/ folder.
+    """
+    net_dir = tmp_path / "10-network"
+    net_dir.mkdir(parents=True)
+    (net_dir / "vlan_matrix.md").write_text(
+        "---\ntitle: VLAN Matrix\ndoc_type: vlan_matrix\n---\nVLAN 10 10.10.10.0/24.",
+        encoding="utf-8",
+    )
     coordinator = FleetCoordinator()
 
     # Mock handoff_to_agent
@@ -64,7 +73,10 @@ async def test_fleet_coordinator_delegates_to_specialist():
         "status": "success",
         "output": "VLAN 60 planned successfully.",
     }
-    with patch.object(coordinator, "_execute_handoff", new=AsyncMock(return_value=mock_output)) as mock_handoff:
+    with patch(
+        "src.application.orchestration.fleet_coordinator.get_homelab_docs_root",
+        return_value=tmp_path,
+    ), patch.object(coordinator, "_execute_handoff", new=AsyncMock(return_value=mock_output)) as mock_handoff:
         res = await coordinator.delegate_to_fleet_agent(
             specialist_role="architect",
             task_directive="Plan VLAN 60 for IoT subnet.",
@@ -78,6 +90,7 @@ async def test_fleet_coordinator_delegates_to_specialist():
         assert "Plan VLAN 60 for IoT subnet." in call_kwargs["task_directive"]
         # Injected notes context should be in input_payload or directive
         assert "vlan_matrix" in str(call_kwargs.get("input_payload") or call_kwargs.get("task_directive"))
+        assert call_kwargs["input_payload"]["injected_notes_count"] == 1
 
 
 @pytest.mark.asyncio

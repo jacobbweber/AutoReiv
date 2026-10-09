@@ -37,6 +37,37 @@ def isolate_pytest_data_env(environ=None, base=None):
     return base
 
 
+# CARD-672: unit tests never reach a real model. The default Ollama provider points at a closed local port and the
+# remote providers are blank (not unset), so neither the operator's env nor load_repo_dotenv() (.env only fills
+# unset keys) can aim a test at Spark/Nimo. Tests that need a provider set it themselves (monkeypatch/config dict).
+HERMETIC_OLLAMA_HOST = "http://127.0.0.1:9"
+BLANK_PROVIDER_VARS = (
+    "VLLM_HOST",
+    "VLLM_BASE_URL",
+    "LMSTUDIO_HOST",
+    "LMSTUDIO_BASE_URL",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GEMINI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "GROQ_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "TOGETHER_API_KEY",
+)
+
+
+def isolate_pytest_provider_env(environ=None):
+    """Point model providers away from real servers for the whole test session [CARD-672]."""
+    environ = os.environ if environ is None else environ
+    environ["OLLAMA_HOST"] = HERMETIC_OLLAMA_HOST
+    for name in BLANK_PROVIDER_VARS:
+        environ[name] = ""
+    # The factory registers these providers when the base URL is merely present, so they are removed, not blanked.
+    for name in ("OPENAI_BASE_URL", "GEMINI_BASE_URL", "ANTHROPIC_BASE_URL"):
+        environ.pop(name, None)
+    return environ
+
+
 def live_appdata_problems(environ=None):
     """Messages for any resolved data path that lands in live user data (empty = safe)."""
     from src.infrastructure.data.resolver import DataDirResolver
@@ -58,6 +89,11 @@ def live_appdata_problems(environ=None):
 def pytest_configure(config):
     """Isolate data-dir env before any src.web.app import can bootstrap or migrate live data."""
     isolate_pytest_data_env()
+    isolate_pytest_provider_env()
+    import hang_watchdog  # CARD-672: tests/ is on sys.path (rootdir conftest, no __init__.py)
+
+    if not config.pluginmanager.is_registered(hang_watchdog):
+        config.pluginmanager.register(hang_watchdog, "autoreiv-hang-watchdog")
     problems = live_appdata_problems()
     if problems:
         pytest.exit(

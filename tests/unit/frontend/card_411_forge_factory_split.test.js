@@ -22,8 +22,8 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
   it('Agent Studio does not inspect runbooks inline and opens Skill Studio [CARD-419]', () => {
     expect(html).not.toContain('id="studioRunbookEditor"');
     expect(html).not.toContain('id="studioRunbookOpenFactoryBtn"');
-    expect(html).toContain('Author skill in Skill Studio');
-    expect(runbook).toContain('Open in Skill Studio');
+    expect(html).toContain('Manage skills'); // CARD-656
+    expect(runbook).toContain('Manage skills'); // CARD-656
     expect(html).not.toContain('Open in Factory Workshop');
     expect(html).not.toContain('id="studioRunbookSaveBtn"');
     expect(html).not.toContain('id="studioRunbookArchiveBtn"');

@@ -833,7 +833,9 @@ class JobPhaseOrchestrator:
         phase_specs.append(
             PhaseSpec(
                 name="Formulate",
-                success_rule=f"Formulate plan using matched capabilities: {id_note}",
+                # CARD-665: the goal, not the matched ids; ids are in the matched list and the tools block says
+                # which of them this step can call.
+                success_rule=f"Write the plan (plan only) for: {goal}",
                 assigned_agent_id=agent_id,
                 verify_checker=None,
             )
