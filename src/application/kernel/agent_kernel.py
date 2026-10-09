@@ -52,6 +52,7 @@ from src.application.kernel.reply_rules import (  # CARD-599/600
     is_toolsmith,
     memory_not_done_lines,
     memory_retry_prompt,
+    near_miss_mentions,
     needs_parts_check,
     parse_parts_check,
     parts_check_prompt,
@@ -1067,8 +1068,9 @@ class AgentKernel:
                             user_req_text = hm.content
                             break
 
-                gap = CapabilityDetector.detect(
-                    user_prompt=user_req_text, assistant_response=assistant_msg.content, own_tools=self._own_tool_names(agent),
+                gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
+                    user_prompt=user_req_text, assistant_response=assistant_msg.content,
+                    own_tools=self._own_tool_names(agent) | near_miss_mentions(history),
                 )
                 if gap:
                     try:
@@ -1557,8 +1559,9 @@ class AgentKernel:
                             user_req_text = hm.content
                             break
 
-                gap = CapabilityDetector.detect(
-                    user_prompt=user_req_text, assistant_response=full_content, own_tools=self._own_tool_names(agent),
+                gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
+                    user_prompt=user_req_text, assistant_response=full_content,
+                    own_tools=self._own_tool_names(agent) | near_miss_mentions(history),
                 )
                 if gap:
                     try:
