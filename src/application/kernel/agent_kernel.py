@@ -819,7 +819,7 @@ class AgentKernel:
         from src.application.safety.tool_policy_gate import _capability_tool_names
 
         named = _capability_tool_names(ids) or set()
-        if phase_skills:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
+        if phase_skills and not planning_phase:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
             # CARD-617: a tool the job matched by name stays (the gate allows it): AutoReiv ticks wiki-knowledge
             # (read-only) and gets wiki_note_create from wiki-inbox, so a job matched to both kept only the reads.
             tools = [
@@ -829,7 +829,8 @@ class AgentKernel:
         try:
             from src.application.safety.tool_policy_gate import EDUCATION_FORBIDDEN_WIKI_TOOLS
 
-            subset = _capability_tool_names(ids)
+            # CARD-676: a planning step keeps every granted read tool; the job's match narrows the later phases.
+            subset = None if planning_phase else _capability_tool_names(ids)
             if subset is not None:
                 tools = [t for t in tools if t.name in subset or t.name in REQUIRED_PLATFORM_TOOLS]
             else:

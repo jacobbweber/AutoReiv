@@ -359,7 +359,8 @@ class ToolPolicyGate:
 
         # Matched capability subset when job-bound [REQ-TOOLPOL-003 / CARD-220 / CARD-225].
         # The subset only narrows; required platform tools always stay (CARD-539).
-        subset = _capability_tool_names(matched_capability_ids)
+        # CARD-676: a planning step may use any granted read tool (writes were refused above), not only the match.
+        subset = None if planning_phase else _capability_tool_names(matched_capability_ids)
         if subset is not None and not _name_in_matched_subset(name, subset) and name not in REQUIRED_PLATFORM_TOOLS:
             return ToolPolicyDecision(
                 verdict=ToolPolicyVerdict.BLOCK,
