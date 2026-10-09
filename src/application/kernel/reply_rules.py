@@ -27,8 +27,8 @@ _ASK_DEVELOPER_TEXT = re.compile(r"\b(?:use|try|via|through|with)\s+(?:the\s+)?[
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _MISSING_TOOL_MARKERS = (NO_SUCH_TOOL, "not found in system registry", "is not authorized for agent")
 _FAILED_TOOL_PREFIXES = ("Tool Error:", "Rejected. Tool did not run.")
-# CARD-663: "the reply admits a missing tool" is the shared matcher in src.domain.capabilities.missing_tool.
-_NO_AGENT_COVERS = re.compile(r"\bno (?:other )?agent\b[^.\n]{0,60}?\bcover", re.IGNORECASE)
+# CARD-663/677: "the reply admits a missing tool" (including "No agent covers X") is the shared matcher in
+# src.domain.capabilities.missing_tool, so the line and the filed gap come from one decision.
 _POINTS_TO_AGENT = re.compile(r"\bopen [\w' -]{1,40}? in Chat\b", re.IGNORECASE)
 
 
@@ -100,7 +100,7 @@ def ask_developer_ending(
     gap_sentence = _gap_sentence(body, gap_text or "")
     gap_is_own_tool = bool(gap_sentence) and names_own_tool(gap_sentence, own_tools)
     real_gap = bool(gap_sentence) and not gap_is_own_tool and not rejected
-    said_no = real_gap or had_line or bool(_NO_AGENT_COVERS.search(body))
+    said_no = real_gap or had_line
     turned_down = not rows and said_no and not gap_is_own_tool and not _POINTS_TO_AGENT.search(body)
     if offer and ((missing and not succeeded) or turned_down or (rows and real_gap)):
         return f"{body}\n\n{ASK_DEVELOPER_LINE}" if body else ASK_DEVELOPER_LINE

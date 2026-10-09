@@ -10,7 +10,8 @@ The check is structural, per sentence, not a list of phrases:
   permission) nearby;
 - a tool is said not to exist: "there is no fax tool", "no tool is available to ...";
 - a tool is said to be unavailable: "the PDF export tool isn't available";
-- an action cannot be done directly or without a tool: "I cannot directly create VMs", "... without a tool".
+- an action cannot be done directly or without a tool: "I cannot directly create VMs", "... without a tool";
+- no agent covers it: "No agent covers faxing notes" (the CARD-615 turn-down, CARD-677).
 Questions, conditionals ("If you don't have ...") and sentences about the user ("you don't have ...") never count.
 """
 
@@ -55,6 +56,8 @@ _PATTERNS = (
     re.compile(rf"\b{_CANNOT}\s+directly\s+(?P<action>[^.!?\n]+)", re.IGNORECASE),
     # "I'm unable to reboot servers without a tool"
     re.compile(rf"\b{_CANNOT}\s+(?P<action>[^.!?\n]+?)\s+without\s+(?:a|an|any|the)\s+{_TOOL_NOUN}\b", re.IGNORECASE),
+    # CARD-677: the turn-down "No agent covers faxing notes" (the CARD-615 wording) names what is missing
+    re.compile(r"\bno\s+(?:other\s+)?agents?\b[^.!?\n]{0,40}?\bcovers?\s+(?P<action>[^.!?\n]+)", re.IGNORECASE),
 )
 
 # Words in front of "tool" that say nothing about what the tool does.
@@ -124,6 +127,8 @@ def find_missing_tool(text: Optional[str]) -> Optional[MissingTool]:
             groups = match.groupdict()
             if groups.get("action") is not None:
                 capability = _clean(_TAIL_CUT.sub("", groups["action"]))
+                if capability.lower() in _WHO:  # "no agent covers that": the prompt says what
+                    capability = ""
             else:
                 body = groups.get("body") or ""
                 tail = groups.get("tail") or ""
