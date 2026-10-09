@@ -378,6 +378,25 @@ def execution_plan_from_approval(record: dict, session_id: str, agent_id: str):
     return plan, self_verify, approval_mode, job_id, verify_checker
 
 
+def tool_output_payload(event) -> dict:
+    """CARD-682: a refused or failed call says so and why, instead of an empty result."""
+    res = event.tool_result
+    call_info = event.tool_call if isinstance(event.tool_call, dict) else {}
+    name = call_info.get("name") or (getattr(res, "tool_name", "") if res is not None else "") or ""
+    if res is None:
+        return {"type": "tool_output", "tool_name": name, "success": True, "result": ""}
+    if res.success:
+        return {"type": "tool_output", "tool_name": name, "success": True, "result": res.output}
+    error = str(res.error or "Tool execution error")
+    return {
+        "type": "tool_output",
+        "tool_name": name,
+        "success": False,
+        "error": error,
+        "result": f"Tool Error: {error}",
+    }
+
+
 async def _forward_kernel_event(queue, event, profile) -> None:
     if event.event_type == KernelEventType.TOKEN:
         if event.reasoning_content:
@@ -397,8 +416,7 @@ async def _forward_kernel_event(queue, event, profile) -> None:
             )
         )
     elif event.event_type == KernelEventType.TOOL_END:
-        out_text = event.tool_result.output if event.tool_result else ""
-        await queue.put(_sse("tool_output", {"type": "tool_output", "result": out_text}))
+        await queue.put(_sse("tool_output", tool_output_payload(event)))
     elif event.event_type == KernelEventType.HANDOFF_START:
         await queue.put(_sse("handoff_start", {"type": "handoff_start", **(event.handoff or {})}))
     elif event.event_type == KernelEventType.HANDOFF_COMPLETE:

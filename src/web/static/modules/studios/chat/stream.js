@@ -200,6 +200,22 @@ export async function consumeChatStream(response, {
 }
 
 /**
+ * CARD-682: what the chat tool badge shows for a stream event, or null when the event is not about a tool.
+ * A refused or failed call shows its reason instead of "Completed".
+ */
+export function toolBadgeView(eventType, ev = {}) {
+  const name = String(ev?.tool_name || 'tool');
+  if (eventType === 'tool_start' || eventType === 'tool_execution_start') return { state: 'running', name, reason: '' };
+  if (eventType !== 'tool_output' && eventType !== 'tool_execution_complete') return null;
+  if (ev?.success === false) {
+    const raw = String(ev?.error || ev?.result || 'The tool call did not run.');
+    const reason = raw.replace(/^Tool Error:\s*/, '').replace(/^[a-z_]+:(?=\S)/, '').trim();
+    return { state: 'refused', name, reason };
+  }
+  return { state: 'done', name, reason: '' };
+}
+
+/**
  * Track how a chat stream ended so a failed reply is reported instead of vanishing [CARD-469].
  * Pre-CARD-397 chat.js rendered `error` events in the bubble; the split dropped that branch.
  */
