@@ -49,3 +49,7 @@ Of the two options, this takes the one that adds no tool to any call: the skill 
 
 ## Checks
 `tests/unit/kernel/test_card675_prompt_names_only_sent_tools.py` failed first (3 failed) and passes now: a job phase matched to `wiki_note_search` is not sent `skill_view` and its system prompt does not name it; an unrestricted turn is sent `skill_view` and is told how to use it. Kernel and skills unit tests pass.
+
+## Live check (2026-10-09, about 12:45 ET)
+Throwaway serve on 127.0.0.1:8770 from a fresh clone of qa ae4b4884, new data folder, Spark vLLM :8006 nemotron-3.5-lightning only (every agent on the default model). Stopped afterwards by exact command line.
+- Wiki job ("Summarize my gardening notes into a new wiki note using the summary template", two seeded notes): Formulate called wiki_note_search (twice) and wiki_template_list. No skill_view call and no refused call. PASS.

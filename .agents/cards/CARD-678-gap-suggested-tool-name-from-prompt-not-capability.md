@@ -42,3 +42,7 @@ The capability is used whenever it has at least 2 characters; the prompt is only
 
 ## Checks
 `tests/unit/orchestration/test_card678_suggested_tool_name.py` failed first (3 failed, including the exact live name `manage_do_not_call_any`) and passes now. The fax, email and SMS admissions give names containing "fax", "email" and "sms" with none of the prompt's filler words.
+
+## Live check (2026-10-09, about 12:45 ET)
+Throwaway serve on 127.0.0.1:8770 from a fresh clone of qa ae4b4884, new data folder, Spark vLLM :8006 nemotron-3.5-lightning only (every agent on the default model). Stopped afterwards by exact command line.
+- The same gap was named `manage_printing_physical_documents_office`, from the capability, not the prompt. PASS.

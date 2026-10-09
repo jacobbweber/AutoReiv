@@ -47,3 +47,7 @@ The Ask Developer line treated "No agent covers X" as a turn-down through a priv
 
 ## Checks
 `tests/unit/orchestration/test_card677_no_agent_covers_gap.py` failed first (6 failed) and passes now: "No agent covers faxing notes." files a gap with capability "faxing notes"; questions, conditionals and "the Tutor agent covers that" do not. The CARD-615 Ask Developer tests and the CARD-663 phrasing tests pass.
+
+## Live check (2026-10-09, about 12:45 ET)
+Throwaway serve on 127.0.0.1:8770 from a fresh clone of qa ae4b4884, new data folder, Spark vLLM :8006 nemotron-3.5-lightning only (every agent on the default model). Stopped afterwards by exact command line.
+- "Print my meeting notes on the office printer." got "No agent covers printing physical documents to an office printer." plus the Ask Developer line, and a gap was filed (capability "printing physical documents to an office printer"). PASS: the line and the gap now agree. (A printer prompt was used instead of fax so the check never looked like an outbound message.)
