@@ -2,17 +2,17 @@
 id: CARD-668
 title: "Short install and uninstall docs for Windows service, Linux systemd, and Docker"
 type: feature
-status: Ready
+status: Done
 priority: P1
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+  checks: [tests/unit/deploy/test_card668_install_docs.py]
+branch: docs/card-668-install-uninstall-doc
+log: {minutes: 30, qa_runs: 1, findings: 0}
 created: 2026-10-06
-completed:
+completed: 2026-10-09
 related:
   - CARD-658
   - CARD-659
@@ -47,4 +47,12 @@ A short doc (or one short page per target) covers install, uninstall, the expect
 - Paths and steps agree with the results of CARD-658, CARD-659, and CARD-660 (update this card if those find a different real path).
 
 ## Plan and decisions
-Needs Jacob's build approval before any work starts. Prefer one short doc under `docs/` with three sections over three long guides. Can land after or with the install gate cards so the paths are the ones that were actually verified.
+Jacob approved the build on 2026-10-09. Prefer one short doc under `docs/` with three sections over three long guides. Can land after or with the install gate cards so the paths are the ones that were actually verified.
+
+## What was built
+- `docs/install-and-uninstall.md`: one short page with Windows service, Linux systemd and Docker sections. Each says how to install and uninstall, where the data lives, how to override it, and that uninstall never deletes data; the only wipe steps are named (`--purge-data` for systemd, deleting the folder yourself on Windows, `docker compose down -v` for Docker).
+- Linked from `README.md` (background service section) and `deploy/README.md` (top).
+- Paths match the gate results: Windows `%LOCALAPPDATA%\AutoReiv` with `-DataDir` (CARD-658/670), systemd `/opt/autoreiv` + `/var/lib/autoreiv` with `--prefix` / `--data-dir`, and `~/.autoreiv` when run by hand (CARD-659/671), Docker volume `autoreiv-data` at `/data` plus the required wiki path (CARD-660/669).
+
+## Checks
+- `tests/unit/deploy/test_card668_install_docs.py` failed first (4 failed: doc missing, links missing) and passes now. It also checks the doc's flags against the real installers and compose file, so a renamed flag breaks the test.
