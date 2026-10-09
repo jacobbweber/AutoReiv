@@ -88,7 +88,7 @@ Both update paths keep your data. The data folder or volume is never inside the 
 
 **Git install (Windows service, systemd, or a clone you run by hand):**
 
-- Update: Settings > Software updates > Update. AutoReiv fast-forwards the branch (it never resets or forces) and first copies the database to `backups/autoreiv.db.pre-update-<time>` in the data folder.
+- Update: Settings > Software Updates > Update now. AutoReiv fast-forwards the branch (it never resets or forces) and first copies the database to `backups/autoreiv.db.pre-update-<time>` in the data folder.
 - Rollback: switch to the previous release branch in the same Settings panel (or `git checkout <previous release branch>`), then restart. The same data folder is used, and the database copy taken before the update is still in `backups/`.
 
 **Docker:**
