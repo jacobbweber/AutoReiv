@@ -57,11 +57,12 @@ def _first_skill(skills: Any) -> str:
     return ""
 
 
-def render_skill_index(allowed_skill, catalog=None, agent_id=None) -> str:
+def render_skill_index(allowed_skill, catalog=None, agent_id=None, can_open: bool = True) -> str:
     """Name + blurb for ticked runbooks only. Empty allowlist injects nothing.
 
     Operator-store manifests win. Allowlisted skill runbooks that are not copied
     into ``$DATA_DIR/skills/`` still contribute a name and blurb [CARD-427].
+    can_open=False (the call is not sent skill_view) leaves out the "open it with skill_view" hint [CARD-675].
     """
     ids = [str(s).strip() for s in (allowed_skill or []) if str(s).strip()]
     if not ids:
@@ -94,11 +95,17 @@ def render_skill_index(allowed_skill, catalog=None, agent_id=None) -> str:
             lines.append(f"- {label}")
     if not lines:
         return ""
-    header = (
-        "Skills (runbooks) for this agent. Names and short descriptions only. "
-        "When a listed runbook matches the task, open it with skill_view to load the full instructions. "
-        "Do not open a skill id that is not listed here."
-    )
+    if can_open:
+        header = (
+            "Skills (runbooks) for this agent. Names and short descriptions only. "
+            "When a listed runbook matches the task, open it with skill_view to load the full instructions. "
+            "Do not open a skill id that is not listed here."
+        )
+    else:
+        header = (
+            "Skills (runbooks) for this agent. Names and short descriptions only. "
+            "Skill ids are not tools: use only the tools you are sent on this step."
+        )
     return chr(10).join([header] + lines)
 
 
