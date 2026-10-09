@@ -80,3 +80,16 @@ A reproduction on the shipped AutoReiv profile ("Summarize my gardening notes in
   - skill ids are refused as skills, with the same text from gate and registry and no Ask Developer line;
   - the success rule names the goal and not the ids.
 - Kernel and orchestration suites on the box: 666 passed. The one failure, `test_fleet_coordinator`, also fails on unchanged qa on the box and passes on Jarvis.
+
+## Live check (2026-10-09, Spark nemotron-3.5-lightning, throwaway :8770 at 72e97b99)
+Two AutoReiv wiki jobs (Run as a job) on a throwaway vault with two gardening notes.
+- Job 1, "Summarize my gardening notes into a new wiki note using the summary template":
+  - The Formulate assignment had the tools block (13 tools) and the goal-based success rule.
+  - The planner called wiki_note_read x2, wiki_template_list and wiki_note_search x2, all of them sent, plus `wiki_template_search`. That name exists nowhere in the repo. It was refused with "No tool with this name exists. Did you mean wiki_template_read or wiki_template_create?" and nothing ran.
+  - The plan said honestly that no summary template exists and left the choice to the operator.
+  - Execute then asked for approval before wiki_note_create.
+- Job 2, "Organize my gardening notes: check their health and tags and plan how to file them out of the inbox":
+  - Formulate was sent 8 tools. It called wiki_note_search and inspect_system_health (both sent) and `wiki_template_list`, which AutoReiv is granted but that step was not sent. That call was refused with the list of tools it could call, and nothing ran.
+  - Execute asked for approval before wiki_note_organize.
+- None of the known offenders (system_info, platform-health or another skill id) was called. Every refused call ran nothing and parked nothing.
+- Result: PASS on "never runs a tool it was not given; refuses honestly". Not yet zero refused calls: there was 1 per Formulate step, one invented name and one granted-but-not-sent tool. Filed as CARD-676.

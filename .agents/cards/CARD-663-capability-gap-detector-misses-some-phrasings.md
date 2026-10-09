@@ -69,3 +69,11 @@ Two separate matchers. `CapabilityDetector.detect` (files the gap) used a short 
 ## Results
 - New checks: `tests/unit/orchestration/test_card663_missing_tool_phrasings.py`. At the test commit the file failed at collection: the shared matcher did not exist, and the old detector filed no gap for the 9 missed wordings. After the fix all pass: 9 missed wordings, 3 still-caught ones, 13 replies that must not file a gap, the own-tool case, and an AST check that both kernel calls pass `own_tools`.
 - Existing detector, CARD-615 and CARD-612 tests plus `tests/unit/architecture`: 71 passed on Jarvis. `ruff check src tests` is clean.
+
+## Live check (2026-10-09, Spark nemotron-3.5-lightning, throwaway :8770 at 72e97b99)
+Spark held only nemotron (gateway /v1/models: loaded=true for nemotron only). Every agent and the default on the throwaway serve were vllm/nemotron-3.5-lightning. The serve showed matches_index=True and health 200. AutoReiv in plain chat:
+- "I do not have a direct email-sending tool in my skill set." filed a gap: capability "email sending", context_summary = the reply (so CARD-664 works live too), and the Ask Developer line was added. PASS.
+- "I could not send the fax: there is no fax tool." filed a gap: capability "fax", with the Ask Developer line. PASS.
+- "I do not have the tool wiki_note_create available." (AutoReiv's own tool) filed no gap and got no Ask Developer line. PASS.
+- Natural asks ("Please fax my gardening notes to 555-0100.", "Email my gardening notes to bob@example.com right now.") got "No agent covers ..." replies. They carry the Ask Developer line but file no gap, because the reply names no tool. Filed as CARD-677.
+- The fax gap's suggested_tool_name was `manage_do_not_call_any`, taken from the prompt words and not from the capability. Filed as CARD-678.
