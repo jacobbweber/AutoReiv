@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- Update and rollback keep the data folder: checked for the git update path and Docker recreate on the same volume, with a new "Update and rollback" section in the install doc [CARD-662].
 - Short install and uninstall doc for Windows service, Linux systemd and Docker, with data paths and the rule that uninstall keeps data (`docs/install-and-uninstall.md`) [CARD-668].
 - Preflight and tests no longer need the gitignored `notes/` folder: honesty smoke results go to `scratch/` when `notes/` is absent, and the fleet coordinator test uses its own fixture [CARD-667].
 - Removed the obsolete `day1_routines_seeded` setting. Nothing has used it since CARD-636 replaced the day-one routine seed. Existing databases drop that one key on start, and no other setting is touched (CARD-666).
