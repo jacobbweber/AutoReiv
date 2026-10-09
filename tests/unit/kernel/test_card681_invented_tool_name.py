@@ -20,7 +20,7 @@ from src.application.kernel.tool_registry import (
 )
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ChatMessage, CompletionRequest, CompletionResponse, Role, StreamChunk, ToolCall
-from src.domain.kernel.models import AgentProfile, KernelEventType
+from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 OFFERED = {"wiki_template_list", "wiki_template_read", "wiki_note_search", "wiki_note_read"}
