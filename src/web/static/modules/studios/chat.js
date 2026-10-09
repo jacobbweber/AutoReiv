@@ -45,6 +45,7 @@ import {
   trackStreamOutcome, reportStreamOutcome, // CARD-469: failed replies are shown
   applyQueueNote, // CARD-494: "Waiting for another reply to finish."
   querySessionStatus,
+  toolBadgeView, // CARD-682: a refused tool call shows why
 } from './chat/stream.js';
 
 import {
@@ -683,13 +684,17 @@ export function initChatStudio(state, callbacks = {}) {
           updateJobChromeFromEvent(eventType, ev);
           if (isHitlParkSseEvent(eventType, ev)) refreshPendingHitl(); // CARD-470: live Approve/Reject tray
 
-          if (eventType === 'tool_execution_start' && toolBadge) {
+          const badge = toolBadge ? toolBadgeView(eventType, ev) : null; // CARD-682
+          if (badge) {
             toolBadge.classList.remove('hidden');
             toolBadge.classList.add('flex');
-            toolBadge.innerHTML = `<i data-lucide="wrench" class="w-3.5 h-3.5 text-brand-400 animate-spin"></i><span>Using tool: <strong>${escapeHtml(ev.tool_name || 'tool')}</strong></span>`;
-            safeCreateIcons();
-          } else if (eventType === 'tool_execution_complete' && toolBadge) {
-            toolBadge.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Completed: <strong>${escapeHtml(ev.tool_name || 'tool')}</strong></span>`;
+            if (badge.state === 'running') {
+              toolBadge.innerHTML = `<i data-lucide="wrench" class="w-3.5 h-3.5 text-brand-400 animate-spin"></i><span>Using tool: <strong>${escapeHtml(badge.name)}</strong></span>`;
+            } else if (badge.state === 'refused') {
+              toolBadge.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i><span>Did not run: <strong>${escapeHtml(badge.name)}</strong> - ${escapeHtml(badge.reason)}</span>`;
+            } else {
+              toolBadge.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Completed: <strong>${escapeHtml(badge.name)}</strong></span>`;
+            }
             safeCreateIcons();
           } else if (eventType === 'approval_required') {
             renderInlineHitlCard(hitlCard, ev, { state, onResumeTurn: executeChatTurn, onDone: refreshPendingHitl }); // CARD-470
