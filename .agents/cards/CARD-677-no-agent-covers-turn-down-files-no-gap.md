@@ -2,17 +2,17 @@
 id: CARD-677
 title: "A 'No agent covers X' turn-down offers Ask Developer but files no capability gap"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M23
-needs_decision: build
+needs_decision: none
 proof:
   journeys: []
-  checks: []
-branch:
-log: {minutes: 0, qa_runs: 0, findings: 0}
+  checks: [tests/unit/orchestration/test_card677_no_agent_covers_gap.py, tests/unit/orchestration/test_card663_missing_tool_phrasings.py, tests/unit/kernel/test_card615_ask_developer_line.py]
+branch: fix/card-677-no-agent-covers-files-gap
+log: {minutes: 35, qa_runs: 1, findings: 0}
 created: 2026-10-09
-completed:
+completed: 2026-10-09
 related:
   - CARD-615
   - CARD-663
@@ -22,7 +22,7 @@ related:
 # CARD-677 A 'No agent covers X' turn-down offers Ask Developer but files no capability gap
 
 ## Backlog
-Found in the CARD-663/665 live check on 2026-10-09 (Spark nemotron, throwaway :8770). Not started; needs Jacob's build approval.
+Found in the CARD-663/665 live check on 2026-10-09 (Spark nemotron, throwaway :8770). Jacob approved the build on 2026-10-09.
 
 ## Problem
 Asked to fax or email notes, AutoReiv on Spark nemotron replied "No agent covers faxing notes ..." and "No agent covers external email functionality ...". The reply rules added "You can use Ask Developer to add this." (the CARD-615 turn-down rule), but no capability gap was filed. The Ask Developer line and the gap list disagree again, the drift CARD-663 removed for missing-tool wordings.
@@ -36,3 +36,14 @@ Move the "no agent covers X" turn-down into the shared matcher in `src/domain/ca
 ## Proof
 - Check (failing first): "No agent covers faxing notes." files a gap with capability "faxing notes", and the existing CARD-615 cases still pass.
 - Lean live: the fax ask files a gap.
+
+## Root cause
+The Ask Developer line treated "No agent covers X" as a turn-down through a private pattern in `reply_rules` (`_NO_AGENT_COVERS`), but `CapabilityDetector` only used the shared missing-tool matcher, which needs a tool word. So the line was offered and no gap was filed.
+
+## Fix
+- "No (other) agent ... covers X" is now a pattern in the shared matcher (`src/domain/capabilities/missing_tool.py`), with X as the capability. A pronoun ("no agent covers that") leaves the capability to the prompt.
+- `reply_rules` dropped `_NO_AGENT_COVERS`; the line and the gap now come from one decision.
+- One CARD-663 "not a gap" example ("I can't book flights; no agent covers that.") moved: it is a turn-down and now files a gap, by this card's decision.
+
+## Checks
+`tests/unit/orchestration/test_card677_no_agent_covers_gap.py` failed first (6 failed) and passes now: "No agent covers faxing notes." files a gap with capability "faxing notes"; questions, conditionals and "the Tutor agent covers that" do not. The CARD-615 Ask Developer tests and the CARD-663 phrasing tests pass.
