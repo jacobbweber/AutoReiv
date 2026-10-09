@@ -112,6 +112,8 @@ Run AutoReiv continuously on startup in the background:
   sudo journalctl -u autoreiv.service -f
   ```
 
+Uninstalling, where your data lives, and Docker: see [docs/install-and-uninstall.md](docs/install-and-uninstall.md). Uninstall never deletes your data.
+
 ---
 
 ### 5. Docker Compose
