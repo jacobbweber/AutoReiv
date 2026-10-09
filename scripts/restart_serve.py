@@ -227,10 +227,11 @@ def resolve_data_paths(env: Mapping[str, str], root: Path) -> Dict[str, str]:
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
     try:
+        home = Path.home()  # from this process: the child env may not carry USERPROFILE / HOME
         with patch.dict(os.environ, dict(env), clear=True):
             from src.infrastructure.data.resolver import DataDirResolver
 
-            paths = DataDirResolver(checkout_root=root).resolve()
+            paths = DataDirResolver(checkout_root=root, home=home).resolve()
         return {"data_dir": str(paths.root), "db": str(paths.db_path), "wiki": str(paths.wiki_path)}
     except Exception as exc:  # noqa: BLE001 - the report must not stop a restart
         return {"data_dir": f"unknown ({exc})", "db": "", "wiki": ""}
