@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- A job's planning (Formulate) step is sent every read tool the agent has, not only the job's matched ones, so planning no longer hits refusals for tools like wiki_template_list; later phases stay narrowed to the match [CARD-676].
 - Every platform tool is labeled read or write, and a job's planning (Formulate) step is sent and may call only read tools; writes and unlabeled tools wait for a later phase [CARD-674].
 - Every agent is sent a short description of AutoReiv's own concepts (standing Job, Routine, Skill, Wiki and others), so "what is a standing Job?" is answered correctly without tool lookups [CARD-680].
 - An update or branch switch restarts only the port the serve says it runs on; a serve started without the CLI restarts nothing (and says so) instead of guessing :8000, and `live_qa` serves now say their port [CARD-679].
