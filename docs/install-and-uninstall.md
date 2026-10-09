@@ -81,3 +81,20 @@ docker compose down
 This keeps the `autoreiv-data` volume. Running `docker compose up -d` again recreates the container on the same data.
 
 The separate wipe step is `docker compose down -v`, which **deletes the volumes and your data**. Use it only when you mean to wipe.
+
+## Update and rollback
+
+Both update paths keep your data. The data folder or volume is never inside the code, so changing the code does not touch it (checked in CARD-662).
+
+**Git install (Windows service, systemd, or a clone you run by hand):**
+
+- Update: Settings > Software updates > Update. AutoReiv fast-forwards the branch (it never resets or forces) and first copies the database to `backups/autoreiv.db.pre-update-<time>` in the data folder.
+- Rollback: switch to the previous release branch in the same Settings panel (or `git checkout <previous release branch>`), then restart. The same data folder is used, and the database copy taken before the update is still in `backups/`.
+
+**Docker:**
+
+- Update: build or pull the new image tag and recreate the container on the same volume (`docker compose up -d` after `docker compose build`).
+- Rollback: recreate the container from the previous image tag on the same volume.
+- Neither step removes the volume. Only `docker compose down -v` does.
+
+Either way, rolling back keeps your data. A rollback does not undo database changes a newer version made, so keep the `pre-update` copy if you may need it.
