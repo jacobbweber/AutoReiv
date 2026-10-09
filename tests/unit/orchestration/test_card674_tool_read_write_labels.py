@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.kernel.tool_access import READ, WRITE, READ_TOOLS, WRITE_TOOLS, tool_access
+from src.application.kernel.tool_access import READ, READ_TOOLS, WRITE, WRITE_TOOLS, tool_access
 from src.application.orchestration.phase_roles import planning_phase_block_reason
 from src.application.safety.tool_policy_gate import ToolPolicyGate, ToolPolicyVerdict
 from src.domain.gateway.models import ToolCall
