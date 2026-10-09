@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- A call to a made-up tool name is refused with the closest real tool names and is not filed as a missing capability or answered with the Ask Developer line [CARD-681].
 - restart_serve no longer passes the calling shell's AUTOREIV_* variables to the serve it starts, takes -DataDir/-WikiPath/-DbPath explicitly, and prints the data folder it used; in-app update restarts keep the serve's own folder [CARD-683].
 - A job's planning (Formulate) step is sent every read tool the agent has, not only the job's matched ones, so planning no longer hits refusals for tools like wiki_template_list; later phases stay narrowed to the match [CARD-676].
 - Every platform tool is labeled read or write, and a job's planning (Formulate) step is sent and may call only read tools; writes and unlabeled tools wait for a later phase [CARD-674].

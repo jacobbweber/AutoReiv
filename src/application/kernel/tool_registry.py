@@ -41,6 +41,8 @@ def credential_env_from_context() -> Dict[str, str]:
 
 TOOL_NOT_OFFERED = "tool_not_offered"
 NO_SUCH_TOOL = "No tool with this name exists."  # CARD-615: a truly missing tool (vs. one not sent on this call)
+# CARD-681: an unknown name close to a real tool (wiki_template_search) is a slip, not a missing capability.
+NEAR_MISS_TOOL_NAME = "No tool has this exact name; it looks like a mistyped or made-up name, not a missing capability."
 _OFFERED_NAMES_SHOWN = 25
 ARGUMENT_REFUSAL = "was called with arguments it does not accept"
 # CARD-610: refusals that ran nothing and already tell the model how to fix the call.
@@ -140,11 +142,13 @@ def tool_not_offered_error(
         text += f" '{skill}' is a skill (runbook), not a tool, so it cannot be called."
         if "skill_view" in names:
             text += f" Open its instructions with skill_view('{skill}')."
-    elif not exists:
-        text += f" {NO_SUCH_TOOL}"
-    close = difflib.get_close_matches(str(tool_name), names, n=2, cutoff=0.6)
+    close = difflib.get_close_matches(str(tool_name), names, n=3, cutoff=0.6)
+    if not skill and not exists:
+        text += f" {NEAR_MISS_TOOL_NAME}" if close else f" {NO_SUCH_TOOL}"
     if close:
         text += " Did you mean " + " or ".join(close) + "?"
+        if not exists and not skill:
+            text += " Call one of those instead."
     if names:
         shown = ", ".join(names[:_OFFERED_NAMES_SHOWN])
         more = f" (+{len(names) - _OFFERED_NAMES_SHOWN} more)" if len(names) > _OFFERED_NAMES_SHOWN else ""

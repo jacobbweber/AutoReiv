@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 from typing import Any, Collection, Optional, Sequence, Tuple
 
-from src.application.kernel.tool_registry import NO_SUCH_TOOL, is_self_correcting_refusal
+from src.application.kernel.tool_registry import NEAR_MISS_TOOL_NAME, NO_SUCH_TOOL, is_self_correcting_refusal
 from src.domain.capabilities.missing_tool import find_missing_tool, names_own_tool
 
 CLARIFICATION_TOOL = "ask_clarification"
@@ -50,6 +50,33 @@ def turn_tool_rows(history: Sequence[Any]) -> list:
         if role.endswith("tool"):
             rows.append(str(getattr(message, "content", "") or ""))
     return rows
+
+
+_REFUSED_NAME = re.compile(r"Tool '([^']+)' was not in the tools sent")
+
+
+def near_miss_tool_names(history: Sequence[Any]) -> set[str]:
+    """CARD-681: tool names this request called that do not exist but are close to a real tool (slips)."""
+    names: set[str] = set()
+    for row in turn_tool_rows(history):
+        if NEAR_MISS_TOOL_NAME in row:
+            m = _REFUSED_NAME.search(row)
+            if m:
+                names.add(m.group(1))
+    return names
+
+
+def near_miss_mentions(history: Sequence[Any]) -> set[str]:
+    """CARD-681: ways a reply names a slipped tool: wiki_template_search, "wiki template search", "template search"."""
+    out: set[str] = set()
+    for name in near_miss_tool_names(history):
+        words = [w for w in name.split("_") if w]
+        out.add(name)
+        if len(words) > 1:
+            out.add(" ".join(words))
+        if len(words) > 2:
+            out.add(" ".join(words[1:]))
+    return out
 
 
 def _strip_ask_developer(text: str) -> str:
@@ -95,6 +122,7 @@ def ask_developer_ending(
     had_line = body != text.rstrip()
     rows = turn_tool_rows(history)
     missing = any(marker in row for row in rows for marker in _MISSING_TOOL_MARKERS)
+    own_tools = set(own_tools) | near_miss_mentions(history)  # CARD-681: naming a slipped name is not a gap
     succeeded = any(not row.lstrip().startswith(_FAILED_TOOL_PREFIXES) for row in rows)
     rejected = any(row.lstrip().startswith(_FAILED_TOOL_PREFIXES[1]) for row in rows)
     gap_sentence = _gap_sentence(body, gap_text or "")
