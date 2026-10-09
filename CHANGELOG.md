@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- The system prompt tells the model to open runbooks with `skill_view` only on calls that are sent `skill_view` [CARD-675].
 - A "No agent covers X" turn-down now files a capability gap for X, from the same matcher that adds the Ask Developer line [CARD-677].
 - A capability gap's suggested tool name comes from the capability even when it is short ("fax" gives `manage_fax`, not words from the prompt) [CARD-678].
 - Written 1.0 acceptance checklist (`docs/acceptance-checklist-1.0.md`), run once on a clean data folder: all eight steps pass [CARD-661].
