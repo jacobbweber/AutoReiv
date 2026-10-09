@@ -5,7 +5,11 @@ param(
     [switch]$DryRun,
     [switch]$KillOnly,
     [switch]$Status,
-    [switch]$NoWait
+    [switch]$NoWait,
+    # CARD-683: the serve never inherits this shell's AUTOREIV_* variables; pass a data folder explicitly instead.
+    [string]$DataDir = "",
+    [string]$WikiPath = "",
+    [string]$DbPath = ""
 )
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
@@ -18,5 +22,8 @@ if ($DryRun) { $argsList += "--dry-run" }
 if ($KillOnly) { $argsList += "--kill-only" }
 if ($Status) { $argsList += "--status" }
 if ($NoWait) { $argsList += "--no-wait" }
+if ($DataDir) { $argsList += @("--data-dir", $DataDir) }
+if ($WikiPath) { $argsList += @("--wiki-path", $WikiPath) }
+if ($DbPath) { $argsList += @("--db-path", $DbPath) }
 & uv run python @argsList
 exit $LASTEXITCODE

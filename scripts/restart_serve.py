@@ -21,7 +21,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 APP_JS_VERSION_RE = re.compile(
     r"""['\"]/static/app\.js\?v=([^'\"]+)['\"]""",
@@ -172,6 +172,71 @@ def health_check_host(bind_host: str) -> str:
     return h or "127.0.0.1"
 
 
+SHELL_ENV_PREFIX = "AUTOREIV_"
+
+
+def read_dotenv(root: Path) -> Dict[str, str]:
+    """KEY=VALUE pairs of the repo .env (same rules as load_repo_dotenv); empty when there is none."""
+    path = Path(root) / ".env"
+    out: Dict[str, str] = {}
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return out
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, _, val = stripped.partition("=")
+        key = key.strip()
+        if key:
+            out[key] = val.strip().strip('"').strip("'")
+    return out
+
+
+def serve_child_env(
+    base: Mapping[str, str],
+    root: Path,
+    *,
+    data_dir: Optional[str] = None,
+    wiki_path: Optional[str] = None,
+    db_path: Optional[str] = None,
+) -> Tuple[Dict[str, str], List[str]]:
+    """Environment for the serve this script starts, and the shell AUTOREIV_* names it ignored [CARD-683].
+
+    The calling shell's AUTOREIV_* variables are never passed on: a shell left pointing at a throwaway data
+    folder must not move the real serve onto it. The serve's AutoReiv configuration is the repo .env plus the
+    explicit parameters (--data-dir, --wiki-path, --db-path); otherwise its configured or default live folder.
+    Other variables (PATH and so on) are kept, and the shell still wins over .env for them as before.
+    """
+    dropped = sorted(k for k in base if k.upper().startswith(SHELL_ENV_PREFIX))
+    env = {k: v for k, v in base.items() if not k.upper().startswith(SHELL_ENV_PREFIX)}
+    for key, val in read_dotenv(root).items():
+        env.setdefault(key, val)
+    for key, val in (("AUTOREIV_DATA_DIR", data_dir), ("AUTOREIV_WIKI_PATH", wiki_path), ("AUTOREIV_DB_PATH", db_path)):
+        if val:
+            env[key] = str(val)
+    return env, dropped
+
+
+def resolve_data_paths(env: Mapping[str, str], root: Path) -> Dict[str, str]:
+    """The data folder, database and wiki a serve started with ``env`` resolves (CARD-683 report line)."""
+    from unittest.mock import patch
+
+    root = Path(root)
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    try:
+        home = Path.home()  # from this process: the child env may not carry USERPROFILE / HOME
+        with patch.dict(os.environ, dict(env), clear=True):
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            paths = DataDirResolver(checkout_root=root, home=home).resolve()
+        return {"data_dir": str(paths.root), "db": str(paths.db_path), "wiki": str(paths.wiki_path)}
+    except Exception as exc:  # noqa: BLE001 - the report must not stop a restart
+        return {"data_dir": f"unknown ({exc})", "db": "", "wiki": ""}
+
+
 def start_serve(
     root: Path,
     *,
@@ -180,6 +245,7 @@ def start_serve(
     dry_run: bool = False,
     log_path: Optional[Path] = None,
     reload: bool = True,
+    child_env: Optional[Mapping[str, str]] = None,
 ) -> Optional[subprocess.Popen]:
     """Start one detached serve from repo tip. Returns Popen or None on dry-run."""
     cmd = [
@@ -201,19 +267,13 @@ def start_serve(
     log_path = log_path or (root / ".autoreiv-restart-serve.log")
     log_f = open(log_path, "a", encoding="utf-8")
     creation = 0
-    child_env = os.environ.copy()
-    try:
-        from src.application.orchestration.phase_llm_resilience import load_repo_dotenv
-
-        load_repo_dotenv(root)
-        child_env = os.environ.copy()
-    except Exception:
-        pass
+    if child_env is None:  # CARD-683: never the calling shell's AUTOREIV_* variables
+        child_env, _ = serve_child_env(os.environ, root)
     kwargs = {
         "cwd": str(root),
         "stdout": log_f,
         "stderr": subprocess.STDOUT,
-        "env": child_env,
+        "env": dict(child_env),
     }
     if sys.platform.startswith("win"):
         creation = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200) | getattr(
@@ -267,6 +327,8 @@ def format_report(
     started: bool,
     dry_run: bool,
     served: Optional[str] = None,
+    data: Optional[Mapping[str, str]] = None,
+    dropped: Sequence[str] = (),
 ) -> str:
     lines = [
         f"branch={branch}",
@@ -279,6 +341,12 @@ def format_report(
         f"started={started}",
         f"dry_run={dry_run}",
     ]
+    if data is not None:  # CARD-683: the data folder the serve uses
+        lines.append(f"data_dir={data.get('data_dir', '')}")
+        lines.append(f"db={data.get('db', '')}")
+        lines.append(f"wiki={data.get('wiki', '')}")
+    if dropped:
+        lines.append(f"ignored_shell_env={list(dropped)}")
     if served is not None:
         lines.append(f"served=app.js?v={served} matches_index={served_matches(app_js_v, served)}")
     lines.append(f"verify=Ctrl+F5 then confirm Network shows app.js?v={app_js_v}-<page load time>")
@@ -295,6 +363,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-wait", action="store_true", help="Do not wait for /api/health after start")
     p.add_argument("--no-reload", action="store_true", help="Start without uvicorn --reload")
     p.add_argument("--root", type=Path, default=None, help="Repo root override")
+    p.add_argument("--data-dir", default=None, help="Data folder for the serve (else .env, setting or default)")
+    p.add_argument("--wiki-path", default=None, help="Wiki folder for the serve (else from the data folder)")
+    p.add_argument("--db-path", default=None, help="Database file for the serve (else from the data folder)")
     return p
 
 
@@ -305,6 +376,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     branch = tip_branch(root)
     app_js_v = read_app_js_version(root)
     orphans = find_listener_pids(args.port)
+    child_env, dropped = serve_child_env(
+        os.environ, root, data_dir=args.data_dir, wiki_path=args.wiki_path, db_path=args.db_path
+    )
+    data = resolve_data_paths(child_env, root)
 
     dry = bool(args.dry_run or args.status)
     killed: List[int] = []
@@ -323,6 +398,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 killed=[],
                 started=False,
                 dry_run=True,
+                data=data,
+                dropped=dropped,
             )
         )
         return 0
@@ -340,7 +417,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if still:
                 kill_pids(still, dry_run=False)
                 time.sleep(1.0)
-            start_serve(root, host=args.host, port=args.port, dry_run=False, reload=not args.no_reload)
+            start_serve(
+                root, host=args.host, port=args.port, dry_run=False, reload=not args.no_reload, child_env=child_env
+            )
             started = True
             if not args.no_wait:
                 ok = wait_health(health_check_host(args.host), args.port)
@@ -358,6 +437,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                             killed=killed,
                             started=started,
                             dry_run=dry,
+                            data=data,
+                            dropped=dropped,
                         )
                     )
                     print("ERROR: serve did not become healthy", file=sys.stderr)
@@ -375,6 +456,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             started=started,
             dry_run=dry,
             served=served,
+            data=data,
+            dropped=dropped,
         )
     )
     return 0
