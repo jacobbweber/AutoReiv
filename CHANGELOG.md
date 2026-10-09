@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- An update or branch switch restarts only the port the serve says it runs on; a serve started without the CLI restarts nothing (and says so) instead of guessing :8000, and `live_qa` serves now say their port [CARD-679].
 - The system prompt tells the model to open runbooks with `skill_view` only on calls that are sent `skill_view` [CARD-675].
 - A "No agent covers X" turn-down now files a capability gap for X, from the same matcher that adds the Ask Developer line [CARD-677].
 - A capability gap's suggested tool name comes from the capability even when it is short ("fax" gives `manage_fax`, not words from the prompt) [CARD-678].
