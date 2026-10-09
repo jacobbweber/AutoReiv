@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- A capability gap's suggested tool name comes from the capability even when it is short ("fax" gives `manage_fax`, not words from the prompt) [CARD-678].
 - Written 1.0 acceptance checklist (`docs/acceptance-checklist-1.0.md`), run once on a clean data folder: all eight steps pass [CARD-661].
 - Update and rollback keep the data folder: checked for the git update path and Docker recreate on the same volume, with a new "Update and rollback" section in the install doc [CARD-662].
 - Short install and uninstall doc for Windows service, Linux systemd and Docker, with data paths and the rule that uninstall keeps data (`docs/install-and-uninstall.md`) [CARD-668].
