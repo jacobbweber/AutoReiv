@@ -41,7 +41,7 @@ NOT_GAPS = [
     "There is no problem with the tool; it ran fine.",
     "I don't have any notes about that topic yet.",
     "The wiki has no gardening notes, so there is nothing to summarize.",
-    "I can't book flights; no agent covers that.",
+    # CARD-677: "no agent covers that" is a turn-down and now files a gap (see test_card677_no_agent_covers_gap.py).
     "No tools were needed for this answer.",
     "There were no tool calls in this turn.",
     "No search tool was used; the answer is from your note.",
