@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Protocol
+from typing import Optional, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +90,21 @@ class DetachedScriptRestarter:
         except Exception as exc:
             logger.error("Failed to schedule serve restart: %s", exc, exc_info=True)
             return False
+
+
+def serve_bind_from_env(default_host: str = "0.0.0.0") -> tuple[str, Optional[int]]:
+    """The bind the CLI serve recorded (AUTOREIV_SERVE_HOST / AUTOREIV_SERVE_PORT).
+
+    CARD-679: the port is None when unset, e.g. a serve started with ``uvicorn src.web.app:app`` directly. Then
+    nothing knows which port this process listens on, and a restart must not guess 8000 (Jacob's real serve).
+    """
+    host = (os.environ.get("AUTOREIV_SERVE_HOST") or default_host).strip() or default_host
+    raw = (os.environ.get("AUTOREIV_SERVE_PORT") or "").strip()
+    try:
+        port: Optional[int] = int(raw) if raw else None
+    except ValueError:
+        port = None
+    return host, port
 
 
 def resolve_serve_bind(default_host: str = "0.0.0.0", default_port: int = 8000) -> tuple[str, int]:

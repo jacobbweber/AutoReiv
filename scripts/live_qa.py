@@ -326,6 +326,9 @@ def serve_launch(port: int, qa_env: Mapping[str, str], sandbox: Path, checkout: 
     env["AUTOREIV_CHECKOUT_ROOT"] = str(sandbox)
     env["PYTHONPATH"] = os.pathsep.join([str(sandbox)] + [p for p in str(qa_env.get("PYTHONPATH") or "").split(os.pathsep) if p])
     env["AUTOREIV_PROTECTED_WRITE_ROOTS"] = str(checkout)
+    # CARD-679: say which port this serve runs on, so an in-app update restarts it and never guesses :8000.
+    env["AUTOREIV_SERVE_HOST"] = "127.0.0.1"
+    env["AUTOREIV_SERVE_PORT"] = str(port)
     cmd = [sys.executable, "-m", "uvicorn", "src.web.app:app", "--host", "127.0.0.1", "--port", str(port)]
     return cmd, str(sandbox), env
 
