@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- A plan saying "No tools that change state will be called" (or "No write tools will be used") is no longer filed as a missing capability [CARD-684].
 - The chat stream's tool_output event now says whether the call ran (success, tool_name) and gives the reason for a refused or failed call, and the chat tool badge shows "Did not run: <tool> - <reason>" [CARD-682].
 - A call to a made-up tool name is refused with the closest real tool names and is not filed as a missing capability or answered with the Ask Developer line [CARD-681].
 - restart_serve no longer passes the calling shell's AUTOREIV_* variables to the serve it starts, takes -DataDir/-WikiPath/-DbPath explicitly, and prints the data folder it used; in-app update restarts keep the serve's own folder [CARD-683].
