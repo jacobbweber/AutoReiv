@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- restart_serve no longer passes the calling shell's AUTOREIV_* variables to the serve it starts, takes -DataDir/-WikiPath/-DbPath explicitly, and prints the data folder it used; in-app update restarts keep the serve's own folder [CARD-683].
 - A job's planning (Formulate) step is sent every read tool the agent has, not only the job's matched ones, so planning no longer hits refusals for tools like wiki_template_list; later phases stay narrowed to the match [CARD-676].
 - Every platform tool is labeled read or write, and a job's planning (Formulate) step is sent and may call only read tools; writes and unlabeled tools wait for a later phase [CARD-674].
 - Every agent is sent a short description of AutoReiv's own concepts (standing Job, Routine, Skill, Wiki and others), so "what is a standing Job?" is answered correctly without tool lookups [CARD-680].
