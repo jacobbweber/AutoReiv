@@ -2,6 +2,8 @@
 
 AutoReiv supports bare-metal service daemon execution (Linux systemd and Windows Service), interactive console runners, and containerized deployment via Docker Compose.
 
+Short version (install, uninstall, data paths, and the wipe steps): [docs/install-and-uninstall.md](../docs/install-and-uninstall.md).
+
 ---
 
 ## 1. Linux / Ubuntu (`systemd` Daemon)
