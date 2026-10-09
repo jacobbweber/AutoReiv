@@ -241,7 +241,8 @@ class CapabilityDetector:
 
     @classmethod
     def _suggest_tool_name(cls, capability_text: str, fallback_prompt: str) -> str:
-        text = capability_text if len(capability_text) > 3 else fallback_prompt
+        # CARD-678: a short capability ("fax", "sms") is still the capability; the prompt is only a fallback.
+        text = capability_text if len((capability_text or "").strip()) >= 2 else fallback_prompt
         text = re.sub(r"\b(a|an|the|directly|to|for|in|on|with)\b", "", text, flags=re.IGNORECASE)
         slug = re.sub(r"[^a-zA-Z0-9]+", "_", text).strip("_").lower()
         parts = [p for p in slug.split("_") if p][:4]
