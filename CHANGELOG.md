@@ -1,4 +1,20 @@
+# Changelog
+
+What changed in each AutoReiv release, newest first.
+
 ## [Unreleased]
+
+## [1.0.1] - 2026-10-09
+
+Easier docs and consistent names. The README is now a short, friendly front door with new user, developer and docs-index guides, and the app no longer shows names of features that were retired.
+
+### Fixed
+
+- The app no longer shows retired names: Settings describes what it really holds (no "Purpose Matrix routing"), the telemetry studio is called Metrics everywhere (job links, the Agents telemetry panel and the desktop dock said "Observe"), and agents describe editing agents in the Agents studio rather than Agent Forge [CARD-686].
+
+### Docs
+
+- The README is now a short, friendly front door with a quick start for each install path, and new user, developer and index docs replace the developer detail it used to carry. Install and deployment docs match the real scripts again, and about 230 dead links across the docs now resolve [CARD-685].
 
 ## [1.0.0] - 2026-10-09
 
@@ -348,7 +364,7 @@ AutoReiv 1.0. Install, uninstall and reinstall are checked on the Windows servic
 
 ### Added
 
-- **CARD-443 Platform pack → AppData promotion**: On startup and `POST /api/platform-packs/sync`, non-`user_modified` platform packs refresh AppData `pack.json` + `skills/*/SKILL.md` from `platform-packs/<id>/` and resync pack-owned SQLite fields (skills/tools; `system_prompt` only when still at shipped-prompt baseline). Preserves `max_turns`/`model`. `user_modified` packs return deterministic `skipped_user_modified` with resolution (`POST /api/agents/<id>/accept-platform-seed`). Status: `GET /api/platform-packs/sync-status`. Module: `src/infrastructure/skills/platform_pack_promotion.py`. Contract: `tests/unit/agent_packs/test_card_443_platform_pack_appdata_sync.py` ([CARD-443]). Follow-up: [CARD-449](docs/cards/CARD-449-scalar-operator-edits-max-turns-must-not-lock-platform-pack-promotion.md).
+- **CARD-443 Platform pack → AppData promotion**: On startup and `POST /api/platform-packs/sync`, non-`user_modified` platform packs refresh AppData `pack.json` + `skills/*/SKILL.md` from `platform-packs/<id>/` and resync pack-owned SQLite fields (skills/tools; `system_prompt` only when still at shipped-prompt baseline). Preserves `max_turns`/`model`. `user_modified` packs return deterministic `skipped_user_modified` with resolution (`POST /api/agents/<id>/accept-platform-seed`). Status: `GET /api/platform-packs/sync-status`. Module: `src/infrastructure/skills/platform_pack_promotion.py`. Contract: `tests/unit/agent_packs/test_card_443_platform_pack_appdata_sync.py` ([CARD-443]). Follow-up: [CARD-449](.agents/cards/CARD-449-scalar-operator-edits-max-turns-must-not-lock-platform-pack-promotion.md).
 
 
 - **CARD-448 Education Studio flashcard / quiz / test players**: `#educationPlayersConsole` hosts interactive flashcard (front-then-reveal), quiz, and multi-item test players. Grades persist via `POST /api/education/quiz/grade` (with `quiz/next` / `mastery/due`); failures never fake pass. Uses Studio-active topic/course from CARD-447. Operator console kept; Tutor remains coach; Studio not retired. Contracts: `tests/unit/education/test_card448_education_studio_players.py`, `tests/unit/frontend/card_448_education_studio_players.test.js` ([CARD-448], [ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
@@ -358,8 +374,8 @@ AutoReiv 1.0. Install, uninstall and reinstall are checked on the Windows servic
 
 ### Changed
 
-- **ADR-0059 amendment / Education Studio operator + players**: Education Studio is the education **operator surface + players** (topic/course selection saved in Studio; Due reviews; Progress; Wiki curate; flashcard/quiz/test players). Tutor stays coach with Studio topic/course context (Projects Studio ↔ Developer parallel). Chat education-mode strip is **not** the permanent operator UI — relocate under [CARD-447](docs/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md). Parent [CARD-446](docs/cards/CARD-446-education-studio-flashcard-quiz-test-players.md); players [CARD-448](docs/cards/CARD-448-education-studio-flashcard-quiz-test-players.md). CARD-437..441 Done APIs stand; UI may relocate. [CARD-435](docs/cards/CARD-435-education-tutor-first-direction.md) + inventory pointers updated ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
-- **ADR-0059 / Education Studio product lock**: Education Studio is **not** retired. It is repurposed as the flashcard / quiz / test **player**. [CARD-442](docs/cards/CARD-442-retire-education-studio-landing.md) Superseded; [CARD-446](docs/cards/CARD-446-education-studio-flashcard-quiz-test-players.md) Ready (build last after 438 Done + 439/440/441 proof). [CARD-435](docs/cards/CARD-435-education-tutor-first-direction.md) amended. Tutor Learning OS skills remain ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
+- **ADR-0059 amendment / Education Studio operator + players**: Education Studio is the education **operator surface + players** (topic/course selection saved in Studio; Due reviews; Progress; Wiki curate; flashcard/quiz/test players). Tutor stays coach with Studio topic/course context (Projects Studio ↔ Developer parallel). Chat education-mode strip is **not** the permanent operator UI — relocate under [CARD-447](.agents/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md). Parent [CARD-446](.agents/cards/CARD-446-education-studio-flashcard-quiz-test-players.md); players [CARD-448](.agents/cards/CARD-448-education-studio-flashcard-quiz-test-players.md). CARD-437..441 Done APIs stand; UI may relocate. [CARD-435](.agents/cards/CARD-435-education-tutor-first-direction.md) + inventory pointers updated ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
+- **ADR-0059 / Education Studio product lock**: Education Studio is **not** retired. It is repurposed as the flashcard / quiz / test **player**. [CARD-442](.agents/cards/CARD-442-retire-education-studio-landing.md) Superseded; [CARD-446](.agents/cards/CARD-446-education-studio-flashcard-quiz-test-players.md) Ready (build last after 438 Done + 439/440/441 proof). [CARD-435](.agents/cards/CARD-435-education-tutor-first-direction.md) amended. Tutor Learning OS skills remain ([ADR-0059](docs/adr/0059-education-studio-as-quiz-flashcard-and-test-player.md)).
 - **CARD-438 Done**: Chat quiz/flashcard durable grading merged to qa; Studio kept; player card CARD-446 queued.
 
 ### Fixed

@@ -2,7 +2,7 @@
 
 > **Linked Spec**: [`requirements.md`](./requirements.md) | [`design.md`](./design.md)  
 > **Traceability Key**: All tasks reference `[REQ-MOD-xxx]` tags.  
-> **ADR Reference**: [ADR-0053](file:///d:/Projects/Active/AutoReiv/docs/adr/0053-frontend-modernization-and-cross-platform-architecture.md)
+> **ADR Reference**: [ADR-0053](../../../adr/0053-frontend-modernization-and-cross-platform-architecture.md)
 
 ---
 

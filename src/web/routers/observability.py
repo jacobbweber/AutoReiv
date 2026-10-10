@@ -177,7 +177,7 @@ async def get_observability_sessions(
     agent_id: Optional[str] = None,
     limit: int = 30,
 ):
-    """List recent sessions for an agent to inspect in Observe Studio [CARD-337]."""
+    """List recent sessions for an agent to inspect in the Metrics studio [CARD-337]."""
     store = request.app.state.store
     sessions = store.list_sessions(agent_id=agent_id) if hasattr(store, "list_sessions") else []
     return [

@@ -1,8 +1,8 @@
 # Technical Design: Defensive DOM Query & Null-Safety Audit Across All Studio Interfaces
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-033](file:///docs/cards/CARD-033-defensive-dom-query-and-null-safety-audit-across-all-studio-interfaces.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/defensive-dom-null-safety-audit/requirements.md)
+> **Card Reference**: [CARD-033](../../../../.agents/cards/CARD-033-defensive-dom-query-and-null-safety-audit-across-all-studio-interfaces.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

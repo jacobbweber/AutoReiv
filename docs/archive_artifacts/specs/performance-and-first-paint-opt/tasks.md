@@ -2,9 +2,9 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 11 (v0.11.0)  
-> **Card Reference**: [CARD-039](file:///docs/cards/CARD-039-performance-budgets-and-first-paint-optimization.md)  
-> **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/performance-and-first-paint-opt/design.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/performance-and-first-paint-opt/requirements.md)
+> **Card Reference**: [CARD-039](../../../../.agents/cards/CARD-039-performance-budgets-and-first-paint-optimization.md)  
+> **Design Reference**: [design.md](design.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

@@ -1,7 +1,7 @@
 /**
  * Skill Studio authoring packet and job helpers [CARD-420].
  * The HTTP module stays for a later mediation wire.
- * Skill Studio does not bind these helpers or open Observe from them.
+ * Skill Studio does not bind these helpers or open Metrics from them.
  */
 
 export const PACKET_SCHEMA = 'skill_studio_authoring_packet';

@@ -1,8 +1,8 @@
 # Tutor Learning OS Inventory (CARD-436)
 
-> Living inventory for the Education Tutor-first wave ([CARD-435](../cards/CARD-435-education-tutor-first-direction.md)).
-> Education Studio stays as **operator surface + players** ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) amended); retirement [CARD-442](../cards/CARD-442-retire-education-studio-landing.md) is **Superseded**.
-> Studio program parent: [CARD-446](../cards/CARD-446-education-studio-flashcard-quiz-test-players.md). Build order: [CARD-447](../cards/CARD-447-education-studio-operator-strip-and-tutor-context.md) (relocate chat strip operator UI + Tutor↔Studio topic/course context) **then** [CARD-448](../cards/CARD-448-education-studio-flashcard-quiz-test-players.md) (players).
+> Living inventory for the Education Tutor-first wave ([CARD-435](../../.agents/cards/CARD-435-education-tutor-first-direction.md)).
+> Education Studio stays as **operator surface + players** ([ADR-0059](../adr/0059-education-studio-as-quiz-flashcard-and-test-player.md) amended); retirement [CARD-442](../../.agents/cards/CARD-442-retire-education-studio-landing.md) is **Superseded**.
+> Studio program parent: [CARD-446](../../.agents/cards/CARD-446-education-studio-flashcard-quiz-test-players.md). Build order: [CARD-447](../../.agents/cards/CARD-447-education-studio-operator-strip-and-tutor-context.md) (relocate chat strip operator UI + Tutor↔Studio topic/course context) **then** [CARD-448](../../.agents/cards/CARD-448-education-studio-flashcard-quiz-test-players.md) (players).
 > Chat education-mode strip (Due / Progress / Wiki curate) was a **temporary** home after CARD-437..441; durable APIs stay.
 
 ## Hard rails (product policy)
@@ -11,7 +11,7 @@
 2. **`socratic-tutoring` is the dialogue method**, used *inside* Learning OS turns — not a bypass of the rails.
 3. **Open vibes / freeform study chat without a named Learning OS skill are non-product.**
 4. Prefer named `education_*` agent tools when they exist (quiz/flashcard on CARD-438). If an agent tool for a Learning OS HTTP contract does **not** exist yet, **do not invent one**. Cite the durable `/api/education/*` path and the owning successor card. Studio remains the live caller until that successor lands.
-5. Residual chat hard-gate UX for vibes is owned by [CARD-437](../cards/CARD-437-study-entry-tutor-education-mode-thin-shell.md).
+5. Residual chat hard-gate UX for vibes is owned by [CARD-437](../../.agents/cards/CARD-437-study-entry-tutor-education-mode-thin-shell.md).
 
 
 ## UI ownership lock (ADR-0059 amendment)

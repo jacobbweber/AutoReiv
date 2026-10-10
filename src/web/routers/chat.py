@@ -2375,7 +2375,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     if st == "waiting_approval":
                         msg = (
                             f"Job {open_parked.id} is waiting_approval on this origin session. "
-                            "Forge Approve (or Chat Approve) resumes the same job_id — "
+                            "Approve it (in Chat or Agents) to resume the same job_id — "
                             "refusing to mint an orphan Job [CARD-251 / REQ-FORGE-RESUME-004]."
                         )
                         logger.warning(

@@ -2,7 +2,7 @@
 
 > **Component**: `src/application/observability/`, `src/domain/observability/`, `src/web/routers/observability.py`, `src/web/static/modules/studios/forge.js`  
 > **Target Release**: v0.18.0 (Milestone 18)  
-> **Spec Reference**: [CARD-365](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-365-architectural-proposal-inbox-in-agent-forge-studio.md) & [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)
+> **Spec Reference**: [CARD-365](../../../../.agents/cards/CARD-365-architectural-proposal-inbox-in-agent-forge-studio.md) & [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)
 
 ---
 

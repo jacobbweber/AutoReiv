@@ -1,7 +1,7 @@
 # Vertical Slice Tasks: Demand-Paged Capability Engine & Progressive Tool Mounting
 
-> **Spec Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/demand-paged-capabilities/requirements.md)  
-> **Card Reference**: [CARD-362](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-362-demand-paged-capability-engine-progressive-tool-mounting.md)
+> **Spec Reference**: [requirements.md](requirements.md)  
+> **Card Reference**: [CARD-362](../../../../.agents/cards/CARD-362-demand-paged-capability-engine-progressive-tool-mounting.md)
 
 ---
 

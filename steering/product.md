@@ -20,7 +20,7 @@ AutoReiv is a versatile, local-first hybrid autonomous AI agent control plane an
 
 ## 3. The Web Studios
 
-AutoReiv has 11 studios in one responsive SPA: Chat, Routines, Observability, Agent Studio, Settings, Skill Studio, Tools Studio, Education, Projects, Prompts and Wiki. The main ones:
+AutoReiv has 11 studios in one responsive web app. The sidebar names them Chat Studio, Wiki, Projects, Agents (Agent Studio), Skill Studio, Tools Studio, Routines, Metrics (observability), Settings, Prompts and Education, plus a Study button that opens the Tutor. The main ones:
 
 1. **Chat Studio (`chat.js`)**:
    - Multi-session persistent chat interface with token streaming.
@@ -33,12 +33,12 @@ AutoReiv has 11 studios in one responsive SPA: Chat, Routines, Observability, Ag
    - Dual-cron syntax and human-interval scheduling expressions.
    - Lead-agent routine binding, execution history logs, and status telemetry.
 
-3. **Observability Studio (`observability.js`)**:
+3. **Metrics (`observability.js`)**:
    - Real-time KPI dashboards (total turns, token throughput, average latency, error rates).
    - Agent-by-agent performance breakdown and tool invocation metrics.
    - In-memory event log buffer with live auto-refresh and severity filtering.
 
-4. **Agent Studio (`forge.js`, formerly Agent Forge)**:
+4. **Agent Studio (`forge.js`)**:
    - Custom agent meta-builder with SQLite persistence.
    - Purpose classification (Fast, Reasoning, Task Execution, Coding, Vision, Auxiliary).
    - Prompt engineering controls, tone selection (Concise, Balanced, Elaborate), and skill on/off ticks (an agent's tools come only from its ticked skills, ADR-0061).
@@ -55,7 +55,7 @@ AutoReiv has 11 studios in one responsive SPA: Chat, Routines, Observability, Ag
 
 7. **System documentation (no Docs Studio ship)**:
    - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, education, forge (Agent Studio), observability, projects, prompts, routines, settings, skill-studio, tools-studio, wiki). The Agent Training Factory is retired ([ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md)); its leftover screen was removed in CARD-496.
-   - Architecture/ADR truth lives under `docs/adr`, `docs/architecture`, and `steering/*`; operators browse the repo / Projects surfaces rather than a dedicated Docs Studio canvas.
+   - Architecture decisions live under `docs/adr` and `steering/*`; user and developer docs are indexed in `docs/README.md`.
    - Historical CARD-018/019 "documentation browser" intent remains **not** a separate `docs.js` studio — do not treat product copy as claiming one.
 
 7. **Wiki Studio & Knowledge Graph (`wiki.js`)**:

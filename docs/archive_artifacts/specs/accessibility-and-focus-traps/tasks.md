@@ -2,9 +2,9 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 11 (v0.11.0)  
-> **Card Reference**: [CARD-038](file:///docs/cards/CARD-038-mobile-and-keyboard-accessibility.md)  
-> **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/accessibility-and-focus-traps/design.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/accessibility-and-focus-traps/requirements.md)
+> **Card Reference**: [CARD-038](../../../../.agents/cards/CARD-038-mobile-and-keyboard-accessibility.md)  
+> **Design Reference**: [design.md](design.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

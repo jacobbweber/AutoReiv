@@ -1,7 +1,7 @@
 # Implementation Tasks: Architectural Proposal Inbox
 
 > **Component**: Architectural Governance & Proposal Inbox  
-> **Card**: [CARD-365](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-365-architectural-proposal-inbox-in-agent-forge-studio.md)  
+> **Card**: [CARD-365](../../../../.agents/cards/CARD-365-architectural-proposal-inbox-in-agent-forge-studio.md)  
 > **Target Release**: v0.18.0 (Milestone 18)
 
 ---

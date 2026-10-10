@@ -1,8 +1,8 @@
 # Technical Design: Steering & Product Documentation Truth Sync
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-037](file:///docs/cards/CARD-037-steering-and-product-documentation-truth-sync.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/product-docs-truth-sync/requirements.md)
+> **Card Reference**: [CARD-037](../../../../.agents/cards/CARD-037-steering-and-product-documentation-truth-sync.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

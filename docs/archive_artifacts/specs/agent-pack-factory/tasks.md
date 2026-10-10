@@ -1,8 +1,8 @@
 # Implementation Tasks: Autonomous Agent Pack Factory and Self-Testing Capability Loop
 
-> **Spec Reference**: [docs/specs/agent-pack-factory/requirements.md](file:///D:/Projects/Active/AutoReiv/docs/specs/agent-pack-factory/requirements.md)  
-> **Architecture Reference**: [docs/specs/agent-pack-factory/design.md](file:///D:/Projects/Active/AutoReiv/docs/specs/agent-pack-factory/design.md)  
-> **Card Reference**: [CARD-159](file:///docs/cards/CARD-159-autonomous-agent-pack-factory-and-self-testing-capability-loop.md)  
+> **Spec Reference**: [docs/specs/agent-pack-factory/requirements.md](requirements.md)  
+> **Architecture Reference**: [docs/specs/agent-pack-factory/design.md](design.md)  
+> **Card Reference**: [CARD-159](../../../../.agents/cards/CARD-159-autonomous-agent-pack-factory-and-self-testing-capability-loop.md)  
 > **TDD Enforcement**: Every slice begins with a failing Red test mapped to `[REQ-FACT-xxx]`.
 
 ---

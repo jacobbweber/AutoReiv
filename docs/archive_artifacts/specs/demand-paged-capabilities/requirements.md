@@ -3,7 +3,7 @@
 > **Spec Status**: Approved (Draft for Review)  
 > **Target Release**: v0.18.0 (Milestone 18 — Autonomic OS & Mechanical Governance)  
 > **Primary Components**: `AgentKernel` (`src/application/kernel/agent_kernel.py`), `ScopedToolRegistry` (`src/application/kernel/tool_registry.py`), `JobPhaseOrchestrator` (`src/application/orchestration/job_phase_orchestrator.py`), and `ToolPolicyGate` (`src/application/safety/tool_policy_gate.py`)  
-> **Grounding**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-362](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-362-demand-paged-capability-engine-progressive-tool-mounting.md)
+> **Grounding**: [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [CARD-362](../../../../.agents/cards/CARD-362-demand-paged-capability-engine-progressive-tool-mounting.md)
 
 ---
 

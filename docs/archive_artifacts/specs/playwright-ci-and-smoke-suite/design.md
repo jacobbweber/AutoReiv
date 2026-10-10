@@ -1,8 +1,8 @@
 # Technical Design: Playwright CI Pre-Flight Gate & Multi-Studio Navigation Smoke Suite
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-032](file:///docs/cards/CARD-032-playwright-ci-pre-flight-gate-integration-and-multi-studio-navigation-smoke-suite.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/playwright-ci-and-smoke-suite/requirements.md)
+> **Card Reference**: [CARD-032](../../../../.agents/cards/CARD-032-playwright-ci-pre-flight-gate-integration-and-multi-studio-navigation-smoke-suite.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

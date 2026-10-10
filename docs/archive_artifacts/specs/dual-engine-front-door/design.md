@@ -1,8 +1,8 @@
 # Technical Design: Dual Engine Front Door (AutoReiv Core & Direct Mode)
 
-> **Spec Reference**: [docs/specs/dual-engine-front-door/requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/dual-engine-front-door/requirements.md)  
-> **ADR Grounding**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
-> **Card Reference**: [CARD-361](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md)
+> **Spec Reference**: [docs/specs/dual-engine-front-door/requirements.md](requirements.md)  
+> **ADR Grounding**: [ADR-0054](../../../adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md)  
+> **Card Reference**: [CARD-361](../../../../.agents/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md)
 
 ---
 

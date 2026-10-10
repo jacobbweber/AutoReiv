@@ -5,11 +5,11 @@
 > **Date**: 2026-09-17  
 > **Status**: Approved Blueprint  
 > **Target Release**: v1.0.0 (Unified Client Architecture)  
-> **Related Architecture Records**: [ADR-0053](file:///d:/Projects/Active/AutoReiv/docs/adr/0053-frontend-modernization-and-cross-platform-architecture.md)  
+> **Related Architecture Records**: [ADR-0053](../../../adr/0053-frontend-modernization-and-cross-platform-architecture.md)  
 > **Specification Suite**:  
-> - [`requirements.md`](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modernization/requirements.md) (EARS Requirements)  
-> - [`design.md`](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modernization/design.md) (Component & System Design)  
-> - [`tasks.md`](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modernization/tasks.md) (Phased Execution Checklist)  
+> - [`requirements.md`](requirements.md) (EARS Requirements)  
+> - [`design.md`](design.md) (Component & System Design)  
+> - [`tasks.md`](tasks.md) (Phased Execution Checklist)  
 
 ---
 

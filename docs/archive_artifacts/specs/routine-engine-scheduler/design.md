@@ -1,7 +1,7 @@
 # Technical Design: Autonomous Routine Engine & Background Scheduler
 
 > **Linked Spec**: [`requirements.md`](./requirements.md)  
-> **Applicable ADRs**: [`docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md`](../../adr/0005-autonomous-routine-engine-and-async-background-scheduler.md)
+> **Applicable ADRs**: [`docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md`](../../../adr/0005-autonomous-routine-engine-and-async-background-scheduler.md)
 
 ---
 

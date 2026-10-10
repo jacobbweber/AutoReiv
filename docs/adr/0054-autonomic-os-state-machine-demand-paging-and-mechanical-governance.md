@@ -7,8 +7,8 @@
 > **Superseded in part**: 2026-09-29 by [ADR-0064](./0064-tools-load-all-at-once.md): the per-turn tool clamp and demand-paged tool mounting are gone; every allowed tool is sent on every call. The per-skill cap (CAP-001, 15) stays as an authoring guideline only.  
 > **Deciders**: Jacob (Visionary & Product Owner), Antigravity (Principal SDLC Engineer)  
 > **Consulted**: AutoReiv Core Architecture  
-> **Supersedes / Retires**: [CARD-340](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-340-multi-agent-group-chat-and-peer-to-peer-collaborative-conversation.md) (Multi-Agent Group Chat Roundtable Anti-Pattern)  
-> **Related Cards**: [CARD-339](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-339-skill-and-tool-architecture-and-scoping-strategy.md), [CARD-361](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md) through CARD-365  
+> **Supersedes / Retires**: [CARD-340](../../.agents/cards/CARD-340-multi-agent-group-chat-and-peer-to-peer-collaborative-conversation.md) (Multi-Agent Group Chat Roundtable Anti-Pattern)  
+> **Related Cards**: [CARD-339](../../.agents/cards/CARD-339-skill-and-tool-architecture-and-scoping-strategy.md), [CARD-361](../../.agents/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md) through CARD-365  
 > **Permanent Research Reference**: `D:\Projects\research\autoreiv-architecture-realignment-conways-law-and-autonomic-os.md`
 
 ---

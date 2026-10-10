@@ -1,7 +1,7 @@
 # Vertical Slice Tasks: Dual Engine Front Door (AutoReiv Core & Direct Mode)
 
-> **Spec Reference**: [docs/specs/dual-engine-front-door/requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/dual-engine-front-door/requirements.md)  
-> **Card Reference**: [CARD-361](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md)
+> **Spec Reference**: [docs/specs/dual-engine-front-door/requirements.md](requirements.md)  
+> **Card Reference**: [CARD-361](../../../../.agents/cards/CARD-361-dual-engine-front-door-autoreiv-core-and-direct-mode.md)
 
 ---
 

@@ -1,152 +1,50 @@
-# AutoReiv Deployment & Service Suite
+# Deployment scripts
 
-AutoReiv supports bare-metal service daemon execution (Linux systemd and Windows Service), interactive console runners, and containerized deployment via Docker Compose.
+This folder holds the scripts that install AutoReiv as a service on Windows and Linux. For a step-by-step guide (and Docker), start with [Install and uninstall](../docs/install-and-uninstall.md). This page lists every script and option.
 
-Short version (install, uninstall, data paths, and the wipe steps): [docs/install-and-uninstall.md](../docs/install-and-uninstall.md).
+All of them keep your data folder when you uninstall.
 
----
+## Windows (`deploy/windows/`)
 
-## 1. Linux / Ubuntu (`systemd` Daemon)
+Run the service scripts from an Administrator PowerShell prompt. They need [NSSM](https://nssm.cc/) (`winget install nssm` or `choco install nssm`) and the clone's `.venv` (see the install guide).
 
-Target: Dedicated Mini PC, server, or Linux developer workstation.
+| Script | What it does | Options |
+|---|---|---|
+| `install_windows_service.ps1` | Registers and starts AutoReiv as a Windows service. | `-ServiceName` (default `AutoReivService`), `-Port` (default `8000`), `-DataDir` (default `%LOCALAPPDATA%\AutoReiv` of the installing user; sets `AUTOREIV_DATA_DIR`; logs go to `<DataDir>\logs`) |
+| `uninstall_windows_service.ps1` | Stops and removes the service. Never deletes data; it prints where your data was kept. | `-ServiceName`, `-DataDir` (only used to report the folder) |
+| `run_autoreiv.ps1` | Runs AutoReiv in this console (no service). | `-HostIP` (default `0.0.0.0`), `-Port` (default `8000`), `-DataDir`, `-DbPath`, `-WikiPath`, `-Reload` |
+| `run_autoreiv.bat` | Same, by double-click, on `0.0.0.0:8000`. | none |
 
-### Installation
-Run the installer script with root privileges:
-```bash
-sudo ./deploy/systemd/install_systemd.sh
+Example:
+
+```powershell
+.\deploy\windows\install_windows_service.ps1 -Port 8000 -DataDir D:\AutoReivData
 ```
-Options:
-- `--prefix DIR`: where the app and its venv go (default `/opt/autoreiv`).
-- `--data-dir DIR`: the service's `AUTOREIV_DATA_DIR` and its only writable path (default `/var/lib/autoreiv`).
-- `--print-unit`: print the rendered unit for the chosen paths and exit (no root needed).
+
+## Linux systemd (`deploy/systemd/`)
+
+Run with `sudo` from your clone of the repository.
+
+| Script | What it does | Options |
+|---|---|---|
+| `install_systemd.sh` | Creates the `autoreiv` service user, copies the app into the prefix with its own Python environment, creates the data folder, and installs and starts `autoreiv.service` (it starts on boot). | `--prefix DIR` (default `/opt/autoreiv`), `--data-dir DIR` (default `/var/lib/autoreiv`), `--print-unit` (print the service file and exit, no root needed) |
+| `uninstall_systemd.sh` | Stops and removes the service and the app folder. Keeps the data folder. | `--prefix DIR`, `--data-dir DIR` (read from the installed service if not given), `--dry-run` (show what would be removed, no root needed), `--purge-data` (also delete the data folder and `/etc/autoreiv`) |
+| `autoreiv.service` | The service file the installer fills in with your paths. | |
+
+Paths must be absolute. Example:
 
 ```bash
 sudo ./deploy/systemd/install_systemd.sh --prefix /srv/autoreiv --data-dir /srv/autoreiv-data
 ```
-Paths must be absolute. The installed unit is rendered from `deploy/systemd/autoreiv.service` with your paths in place of the defaults.
 
-This script:
-1. Creates the unprivileged `autoreiv` service user.
-2. Initializes the data directory (default `/var/lib/autoreiv`, with `database/`, `wiki/`, and `skills/`; the app adds the rest on first start).
-3. Syncs the codebase, the `platform/` agents and skills, and Developer Agent templates into the prefix (default `/opt/autoreiv`).
-4. Creates and activates a Python virtual environment at `<prefix>/.venv`.
-5. Writes `/etc/systemd/system/autoreiv.service` and enables the service to start automatically on boot.
+Day-to-day: `systemctl status autoreiv.service`, `journalctl -u autoreiv.service -f`, `sudo systemctl restart autoreiv.service`.
 
-### Service Management
-- **Check Status**: `systemctl status autoreiv.service`
-- **View Live Logs**: `journalctl -u autoreiv.service -f`
-- **Restart Service**: `sudo systemctl restart autoreiv.service`
-- **Stop Service**: `sudo systemctl stop autoreiv.service`
+## Docker (repository root)
 
-### Uninstallation
-To cleanly stop, disable, and remove the systemd service and application code:
-```bash
-sudo ./deploy/systemd/uninstall_systemd.sh
-```
-> [!NOTE]
-> By default, `uninstall_systemd.sh` **preserves** your persistent database, wiki, agents, and skills in the data directory (default `/var/lib/autoreiv`).
-> To completely purge user data as well, provide the `--purge-data` flag:
-> ```bash
-> sudo ./deploy/systemd/uninstall_systemd.sh --purge-data
-> ```
->
-> The uninstaller reads the prefix and data dir from the installed unit. Pass `--prefix` / `--data-dir` to override, and `--dry-run` to see what it would remove or keep (no root needed).
+`docker-compose.yml` and `Dockerfile` live in the repository root.
 
----
-
-## 2. Windows (`AutoReivService` & Interactive Runners)
-
-Target: Windows 10/11 desktop or workstation.
-
-### Windows Service (NSSM)
-To register AutoReiv as a persistent background service managed by the Windows Service Manager:
-
-1. Open an elevated PowerShell prompt (Run as Administrator).
-2. Run the install script:
-   ```powershell
-   .\deploy\windows\install_windows_service.ps1
-   ```
-   *(Note: requires [NSSM](https://nssm.cc/) installed via `winget install nssm` or `choco install nssm`).*
-
-   Options:
-   - `-ServiceName <name>` (default `AutoReivService`)
-   - `-Port <port>` (default `8000`)
-   - `-DataDir <path>`: sets `AUTOREIV_DATA_DIR` on the service (default `%LOCALAPPDATA%\AutoReiv` of the installing user). Service logs go to `<DataDir>\logs`.
-
-   ```powershell
-   .\deploy\windows\install_windows_service.ps1 -DataDir D:\AutoReivData
-   ```
-
-#### Uninstallation
-To stop, unregister, and remove the Windows service:
-1. Open an elevated PowerShell prompt (Run as Administrator).
-2. Run the uninstall script:
-   ```powershell
-   .\deploy\windows\uninstall_windows_service.ps1
-   ```
-   *(The uninstaller never deletes data. It reads the service's `AUTOREIV_DATA_DIR` (or takes `-DataDir`, default `%LOCALAPPDATA%\AutoReiv`) only to tell you where your data was kept).*
-
-### Interactive Runners (Console Mode)
-For development or ad-hoc local testing without registering a system service:
-- **PowerShell Runner**:
-  ```powershell
-  .\deploy\windows\run_autoreiv.ps1
-  ```
-- **Batch Runner**:
-  Double-click or run:
-  ```cmd
-  .\deploy\windows\run_autoreiv.bat
-  ```
-
----
-
-## 3. Docker & Docker Compose
-
-> [!IMPORTANT]
-> CARD-414 / ADR-0056: Docker mode **hard-fails** if `AUTOREIV_WIKI_PATH` is unset, missing, or unreadable.
-> Set `AUTOREIV_WIKI_HOST_PATH` to a host folder (Windows example: `D:/AutoReivWiki`) before `docker compose up`.
-> The image does **not** pre-create `/data/wiki`; the compose volume/bind mount must provide it.
-
-
-Target: Containerized environments and cross-platform server hosting.
-
-### Starting AutoReiv
-Launch the containerized AutoReiv control plane in the background:
-```bash
-docker compose up -d
-```
-
-### Viewing Logs
-```bash
-docker compose logs -f
-```
-
-### Stopping AutoReiv
-- **Stop container (preserving data volume)**:
-  ```bash
-  docker compose down
-  ```
-- **Stop and wipe persistent volume**:
-  ```bash
-  docker compose down -v
-  ```
-
-### Storage & Volumes
-Docker mounts a named volume `autoreiv-data` to `/data` in the container. The canonical directory layout is automatically managed inside:
-- `/data/database/autoreiv.db` (Primary SQLite database)
-- `/data/wiki/` (PARA-Wiki storage)
-- `/data/agents/` (Your agents; CARD-570)
-- `/data/skills/` (Seeded and custom skills)
-
-## Wiki path (ADR-0056 / CARD-414)
-
-Docker/daemon deployments **must** set:
-
-- `AUTOREIV_DEPLOY_MODE=docker` (or `daemon`)
-- `AUTOREIV_WIKI_PATH` to the in-container mount (e.g. `/data/wiki`)
-- A volume mount for that path
-
-Process/container start **hard-fails** if the wiki path is unset, missing, or unreadable. There is no host folder picker inside the container.
-
-Local Windows/Linux: configure an explicit wiki path in Settings (no suggested default); scaffold only after confirm.
-
+- `docker compose up -d` starts AutoReiv on port 8000 (set `PORT` to publish another host port).
+- Your data is in the named volume `autoreiv-data` at `/data`: `database/autoreiv.db`, `wiki/`, `agents/` and `skills/`.
+- The wiki is mounted at `/data/wiki`: the host folder in `AUTOREIV_WIKI_HOST_PATH` if you set it, otherwise the `autoreiv-wiki` volume. The container will not start without a readable wiki folder.
+- Model settings can be passed as environment variables (for example `OLLAMA_HOST`, `OPENAI_API_KEY`); see `.env.example`.
+- `docker compose down` stops and removes the container and keeps the volumes. `docker compose down -v` deletes the volumes and your data, so use it only to wipe.

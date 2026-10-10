@@ -1,8 +1,8 @@
 # Technical Design: Comprehensive Unit Test Suite for Frontend Pure Logic
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-035](file:///docs/cards/CARD-035-comprehensive-unit-test-suite-for-frontend-pure-logic.md)  
-> **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-pure-logic-unit-tests/requirements.md)
+> **Card Reference**: [CARD-035](../../../../.agents/cards/CARD-035-comprehensive-unit-test-suite-for-frontend-pure-logic.md)  
+> **Requirements Reference**: [requirements.md](requirements.md)
 
 ---
 

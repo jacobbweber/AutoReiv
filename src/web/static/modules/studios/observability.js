@@ -71,7 +71,7 @@ export function expandObsSection(name) {
   return det;
 }
 
-/** Desktop tab id for Observe Studio. Operator label is "observe". [CARD-408] */
+/** Desktop tab id for the Metrics studio. "observe" is still accepted as an alias. [CARD-408, CARD-686] */
 export const OBSERVE_STUDIO_TAB = 'observability';
 
 
@@ -747,7 +747,7 @@ export function loadStandingJourney(jobIdOverride) {
 }
 
 /**
- * Open or focus Observe Studio and inspect `jobId`.
+ * Open or focus the Metrics studio and inspect `jobId`.
  * Blank ids do not switch studios. [CARD-408]
  * @param {string} jobId
  * @param {{ switchTab?: Function, fetchFn?: Function, inputEl?: HTMLInputElement|null, statusEl?: HTMLElement|null, timelineEl?: HTMLElement|null }} [opts]
