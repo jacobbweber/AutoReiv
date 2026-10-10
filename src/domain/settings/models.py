@@ -1,5 +1,5 @@
 """
-Domain Models for Settings, Purpose Matrix, and Hardware Fit Calculator [REQ-SETTINGS-001, REQ-SETTINGS-002, REQ-SETTINGS-004].
+Domain Models for Settings, per-agent model settings, and Hardware Fit Calculator [REQ-SETTINGS-001, REQ-SETTINGS-002, REQ-SETTINGS-004].
 """
 
 from __future__ import annotations

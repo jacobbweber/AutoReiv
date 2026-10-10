@@ -1,6 +1,6 @@
 """
 Settings Application Service [REQ-SETTINGS-002, REQ-SETTINGS-005].
-Manages purpose matrix routing, agent customizations, and model hardware recommendations.
+Manages provider settings, agent customizations, and model hardware recommendations.
 """
 
 from typing import Any, Dict, List, Optional
@@ -22,7 +22,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 class SettingsService:
     """
-    Application service managing platform settings, model purpose matrix routing,
+    Application service managing platform settings, per-agent model settings,
     runtime agent customizations, and hardware fit estimations.
     """
 

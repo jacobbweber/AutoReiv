@@ -55,7 +55,7 @@ class AgentProfile(BaseModel):
     )
     purpose: Optional[Union[ModelPurpose, str]] = Field(
         default=ModelPurpose.GENERAL,
-        description="Deprecated: legacy purpose slot in Purpose Matrix",
+        description="Deprecated and unused: each agent now has its own model",
     )
     tone: Union[AgentTone, str] = Field(default=AgentTone.DEFAULT, description="Persona tone directive")
     avatar_icon: str = Field(default="bot", description="Avatar icon identifier")

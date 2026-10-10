@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- The app no longer shows retired names: Settings describes what it really holds (no "Purpose Matrix routing"), the telemetry studio is called Metrics everywhere (job links, the Agents telemetry panel and the desktop dock said "Observe"), and agents describe editing agents in the Agents studio rather than Agent Forge [CARD-686].
+
 ### Docs
 
 - The README is now a short, friendly front door with a quick start for each install path, and new user, developer and index docs replace the developer detail it used to carry. Install and deployment docs match the real scripts again, and about 230 dead links across the docs now resolve [CARD-685].
