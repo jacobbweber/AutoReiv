@@ -136,7 +136,7 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   {
     id: 'dock-observability',
     tab: 'observability',
-    label: 'Observe',
+    label: 'Metrics',
     icon: 'bar-chart-3',
     subtitle: 'Telemetry',
     defaultSize: { w: 760, h: 540 },

@@ -160,7 +160,7 @@ class ArchitecturalProposalStatus(str, Enum):
 
 
 class ArchitecturalProposal(BaseModel):
-    """Actionable architectural proposal staged in Agent Forge Studio [CARD-365, REQ-ARCH-008]."""
+    """Actionable architectural proposal staged in the Agents studio [CARD-365, REQ-ARCH-008]."""
 
     id: str = Field(description="Unique proposal identifier")
     alert_id: str = Field(description="Originating ArchitecturalAlert identifier")

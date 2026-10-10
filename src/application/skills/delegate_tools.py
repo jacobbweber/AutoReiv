@@ -44,7 +44,7 @@ class DelegateSubtaskTools:
         """Register delegation tool on ScopedToolRegistry."""
         registry.register_tool(
             name="delegate_task",
-            description="Delegate a specialized subtask to a peer agent (e.g. 'autoreiv' for platform diagnostics/SRE, or custom agents from Agent Forge) with structured context hydration and isolated execution.",
+            description="Delegate a specialized subtask to a peer agent (e.g. 'autoreiv' for platform diagnostics/SRE, or custom agents made in the Agents studio) with structured context hydration and isolated execution.",
             parameters={
                 "type": "object",
                 "properties": {
