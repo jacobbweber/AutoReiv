@@ -6,6 +6,8 @@ What changed in each AutoReiv release, newest first.
 
 ### Added
 
+- `AutoReiv` now auto-discovers user Agora skill folders via `user:*` without manual ticking in Agent Studio and can author `SKILL.md`, `references/*.md`, and `tools/*.py` directly in Chat through `agent-authoring` [CARD-691].
+- Consolidated MCP server management and all skill/tool deep-links into the unified Capabilities studio (`#view-capabilities`) and retired the separate Skill Studio and Tools Studio dock/sidebar tabs [CARD-692].
 - Added the unified Capabilities directory tree studio (`#view-capabilities`) for browsing Agora `skills/<id>/` folders (`SKILL.md`, `references/*.md`, `tools/*.py`), editing files in place, inspecting inferred schemas and safety checks, and toggling colocated tools on or off [CARD-690].
 - Agents and operators can now write `SKILL.md`, `references/*.md`, and `tools/*.py` directly into Agora skill folders via `write_skill_file` and `PUT /api/capabilities/skills/{skill_id}/file`, with `ToolCheckService` auto-enabling pure `read_only` tools while holding outside-access tools for review [CARD-689].
 - Added `skills: ["*"]` auto-scoped skill discovery and on-demand session tool mounting when an agent opens a skill with `skill_view` [CARD-688].

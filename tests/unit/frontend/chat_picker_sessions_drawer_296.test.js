@@ -144,7 +144,7 @@ describe('CARD-296 dock launchers no longer include sessions', () => {
     expect(tabs).not.toContain('sessions');
     expect(tabs).toEqual(
       expect.arrayContaining([
-        'chat', 'wiki', 'projects', 'agents', 'skill-studio', 'routines',
+        'chat', 'wiki', 'projects', 'agents', 'capabilities', 'routines',
         'observability', 'settings', 'prompts', 'education',
       ]),
     );

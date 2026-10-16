@@ -168,14 +168,6 @@
             <i data-lucide="folder-tree" class="w-3.5 h-3.5 text-emerald-400"></i>
             <span>Capabilities</span>
           </button>
-          <button id="tab-skill-studio" data-tab="skill-studio" data-studio="skill-studio" role="tab" aria-selected="false" aria-controls="view-skill-studio" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-            <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
-            <span>Skill Studio</span>
-          </button>
-          <button id="tab-tools-studio" data-tab="tools-studio" data-studio="tools-studio" role="tab" aria-selected="false" aria-controls="view-tools-studio" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-            <i data-lucide="wrench" class="w-3.5 h-3.5 text-cyan-400"></i>
-            <span>Tools Studio</span>
-          </button>
           <button id="tab-routines" data-tab="routines" role="tab" aria-selected="false" aria-controls="view-routines" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
             <i data-lucide="clock" class="w-3.5 h-3.5"></i>
             <span>Routines</span>
@@ -4081,7 +4073,67 @@
 
               <div id="capabilitiesToolStatusCard" data-testid="capabilities-tool-status-card" class="hidden"></div>
 
-              <div class="flex-1 flex flex-col min-h-[16rem] space-y-1.5">
+              <!-- MCP Servers Inspector Pane [CARD-692] -->
+              <div id="capabilitiesMcpPane" data-testid="capabilities-mcp-pane" class="hidden space-y-3 p-3 rounded-xl bg-[#0b0d13] border border-white/[0.06]">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 class="text-xs font-bold text-slate-100">MCP Servers</h3>
+                    <p class="text-[11px] text-slate-400">Attach platform-wide or per-agent MCP servers and inspect mounted tools.</p>
+                  </div>
+                  <button type="button" id="capabilitiesMcpAddBtn" data-testid="capabilities-mcp-add-btn" class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition">+ Add MCP Server</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label for="capabilitiesMcpScopeSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Scope</label>
+                    <select id="capabilitiesMcpScopeSelect" data-testid="capabilities-mcp-scope" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="platform">Platform</option>
+                      <option value="agent">Agent</option>
+                    </select>
+                  </div>
+                  <div id="capabilitiesMcpAgentField" class="hidden">
+                    <label for="capabilitiesMcpAgentSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Agent</label>
+                    <select id="capabilitiesMcpAgentSelect" data-testid="capabilities-mcp-agent" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">Select an agent</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="capabilitiesMcpForm" class="hidden p-3 rounded-lg bg-[#141721]/70 border border-white/[0.08] space-y-2.5">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label for="capabilitiesMcpNameInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Server Name</label>
+                      <input id="capabilitiesMcpNameInput" type="text" placeholder="e.g. github" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                      <label for="capabilitiesMcpTransportSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Transport</label>
+                      <select id="capabilitiesMcpTransportSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <option value="stdio" selected>stdio (local command)</option>
+                        <option value="sse">HTTP / SSE</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="capabilitiesMcpCommandGroup">
+                    <label for="capabilitiesMcpCommandInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Command</label>
+                    <input id="capabilitiesMcpCommandInput" type="text" placeholder="uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div id="capabilitiesMcpUrlGroup" class="hidden">
+                    <label for="capabilitiesMcpUrlInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Remote URL</label>
+                    <input id="capabilitiesMcpUrlInput" type="text" placeholder="http://127.0.0.1:8080/sse" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <label class="flex items-center gap-2 text-xs text-slate-300">
+                    <input id="capabilitiesMcpEnabledCheckbox" type="checkbox" checked class="rounded bg-[#08090c] border-white/[0.08] text-cyan-500">
+                    <span>Enabled</span>
+                  </label>
+                  <div class="flex items-center justify-end gap-2">
+                    <button type="button" id="capabilitiesMcpCancelBtn" class="px-2.5 py-1.5 rounded-lg bg-white/[0.04] text-slate-300 border border-white/[0.08] text-xs">Cancel</button>
+                    <button type="button" id="capabilitiesMcpSaveBtn" data-testid="capabilities-mcp-save-btn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Save MCP Server</button>
+                  </div>
+                </div>
+                <div id="capabilitiesMcpList" data-testid="capabilities-mcp-list" class="space-y-2">
+                  <p class="text-[11px] text-slate-500 italic">Select a scope to inspect MCP servers.</p>
+                </div>
+              </div>
+
+              <div id="capabilitiesFileEditorContainer" class="flex-1 flex flex-col min-h-[16rem] space-y-1.5">
                 <label for="capabilitiesFileEditor" class="text-[11px] font-semibold text-slate-400">File Content (<code class="text-slate-300">SKILL.md</code>, <code class="text-slate-300">references/*.md</code>, or <code class="text-slate-300">tools/*.py</code>)</label>
                 <textarea id="capabilitiesFileEditor" data-testid="capabilities-file-editor" rows="14" placeholder="Select a file from the Agora tree on the left..." class="flex-1 w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-100 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
               </div>

@@ -278,10 +278,11 @@ export function initApp() {
       switchTab('capabilities');
     },
     openSkillStudio: (agentId = null, skillId = null, opts = {}) => {
-      if (skillCtrl && typeof skillCtrl.queueDeepLink === 'function') {
-        skillCtrl.queueDeepLink(agentId, skillId, opts); // CARD-522: opts.gap prefills a new skill
-      }
-      switchTab('skill-studio');
+      sharedCallbacks.openCapabilitiesStudio({
+        agentId,
+        skillId,
+        gap: opts && opts.gap ? opts.gap : null,
+      });
     },
     openAgentStudio: (agentId = null) => {
       // CARD-496: open Agent Studio on this agent; the tab's own refresh reads the stored pick.
@@ -294,10 +295,11 @@ export function initApp() {
     },
     openToolsStudio: (agentId = null, scope = null) => {
       const resolvedScope = scope || (agentId ? 'agent' : 'platform');
-      if (toolsCtrl && typeof toolsCtrl.queueDeepLink === 'function') {
-        toolsCtrl.queueDeepLink({ scope: resolvedScope, agentId });
-      }
-      switchTab('tools-studio');
+      sharedCallbacks.openCapabilitiesStudio({
+        mode: 'mcp',
+        scope: resolvedScope,
+        agentId,
+      });
     },
     onTalkToForge: async (targetAgentId = null) => {
       switchTab('chat');

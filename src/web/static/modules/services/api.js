@@ -133,6 +133,29 @@ export const api = {
         `/api/capabilities/skills/${encodeURIComponent(skillId)}/tools/${encodeURIComponent(toolName)}/toggle`,
         { enabled: Boolean(enabled) },
       ),
+    listMcpServers: (scope = 'platform', agentId = '') => {
+      if (scope === 'agent') {
+        const cleanAgent = String(agentId || '').trim();
+        if (!cleanAgent) return Promise.resolve([]);
+        return api.get(`/api/agents/${encodeURIComponent(cleanAgent)}/mcp`);
+      }
+      return api.get('/api/settings/mcp');
+    },
+    saveMcpServer: (scope = 'platform', agentId = '', body = {}) => {
+      const url =
+        scope === 'agent'
+          ? `/api/agents/${encodeURIComponent(String(agentId || '').trim())}/mcp`
+          : '/api/settings/mcp';
+      return api.post(url, body);
+    },
+    deleteMcpServer: (scope = 'platform', agentId = '', serverName = '') => {
+      const cleanName = encodeURIComponent(String(serverName || '').trim());
+      const url =
+        scope === 'agent'
+          ? `/api/agents/${encodeURIComponent(String(agentId || '').trim())}/mcp/${cleanName}`
+          : `/api/settings/mcp/${cleanName}`;
+      return api.delete(url);
+    },
   },
 };
 

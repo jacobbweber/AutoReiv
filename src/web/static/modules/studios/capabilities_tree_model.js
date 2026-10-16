@@ -83,6 +83,11 @@ export function filterCapabilitiesTree(skills, query = '') {
 }
 
 /**
+ * Virtual tree node ID for the MCP Servers attachment panel in Capabilities Studio [CARD-692].
+ */
+export const MCP_TREE_NODE_ID = '__mcp__';
+
+/**
  * Render the expandable Agora `skills/<id>/` directory tree HTML.
  * @param {Array<object>} skills
  * @param {{ expandedSkills?: Set<string>, selectedSkillId?: string, selectedFilePath?: string }} [opts]
@@ -94,8 +99,34 @@ export function renderCapabilitiesTreeHtml(skills, opts = {}) {
   const selectedSkillId = String(opts.selectedSkillId || '');
   const selectedFilePath = String(opts.selectedFilePath || '');
 
+  const isMcpSelected = selectedSkillId === MCP_TREE_NODE_ID;
+  const mcpHeaderClass = isMcpSelected
+    ? 'bg-cyan-950/70 border-cyan-500/60 text-white'
+    : 'bg-[#11141d] hover:bg-slate-800/60 border-white/[0.06] text-slate-200';
+  const mcpNodeHtml = `
+    <div class="rounded-xl border border-white/[0.04] bg-[#0b0d13]/80 p-1.5" data-mcp-node="true">
+      <button type="button"
+        data-action="select-mcp-node"
+        data-testid="capabilities-mcp-tree-node"
+        class="w-full text-left flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border transition ${mcpHeaderClass}">
+        <div class="min-w-0 flex items-center gap-2">
+          <span class="text-xs font-mono text-cyan-300 shrink-0">🔌</span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono text-xs font-semibold truncate">mcp/</span>
+              <span class="text-[10px] font-sans text-cyan-300 font-medium">MCP Servers</span>
+            </div>
+            <p class="text-[10px] text-slate-400 truncate">Platform &amp; per-agent MCP server attachments</p>
+          </div>
+        </div>
+        <span class="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/50 text-[10px] font-mono text-cyan-300 shrink-0">mcp</span>
+      </button>
+    </div>
+  `;
+
   if (list.length === 0) {
     return `
+      ${mcpNodeHtml}
       <div class="p-4 text-center text-slate-400 text-xs space-y-1" data-testid="capabilities-tree-empty">
         <p class="font-semibold text-slate-300">No matching skill folders</p>
         <p class="text-[11px] text-slate-500">Clear the filter or click + New Skill to create an Agora skill folder.</p>
@@ -259,6 +290,7 @@ export function renderCapabilitiesTreeHtml(skills, opts = {}) {
 
   return `
     <div class="space-y-1.5" data-testid="capabilities-agora-root">
+      ${mcpNodeHtml}
       <div class="px-2 py-1 text-[11px] font-mono text-slate-400 flex items-center justify-between">
         <span>📦 skills/ (${list.length} folders)</span>
         <span class="text-[10px] text-slate-500">Agora layout</span>

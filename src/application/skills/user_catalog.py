@@ -245,7 +245,11 @@ class UserSkillCatalog:
 
     def _allowed_skill_ids_for_current_agent(self) -> Optional[set]:
         """Allowlist when a tool-call agent is in context; None if no agent context."""
-        from src.application.agent_skills.allowed_tools import AUTO_SKILL_WILDCARD, ticked_skills
+        from src.application.agent_skills.allowed_tools import (
+            AUTO_SKILL_WILDCARD,
+            AUTO_USER_SKILL_WILDCARD,
+            ticked_skills,
+        )
         from src.application.kernel.tool_registry import get_tool_context
 
         ctx = get_tool_context()
@@ -261,10 +265,25 @@ class UserSkillCatalog:
             if agent is None:
                 return set()
             raw = {str(s).strip() for s in (getattr(agent, "allowed_skill", None) or []) if str(s).strip()}
-        if AUTO_SKILL_WILDCARD in raw:
-            expanded = {s for s in raw if s != AUTO_SKILL_WILDCARD}
-            expanded |= {m.id for m in self.list_manifests()}
-            expanded |= set(ticked_skills({"allowed_skill": [AUTO_SKILL_WILDCARD]}))
+        if AUTO_SKILL_WILDCARD in raw or AUTO_USER_SKILL_WILDCARD in raw:
+            expanded = {
+                s
+                for s in raw
+                if s not in (AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD)
+            }
+            if AUTO_SKILL_WILDCARD in raw:
+                expanded |= {m.id for m in self.list_manifests()}
+                expanded |= set(ticked_skills({"allowed_skill": [AUTO_SKILL_WILDCARD]}))
+            if AUTO_USER_SKILL_WILDCARD in raw:
+                expanded |= {m.id for m in self.list_manifests()}
+                expanded |= set(
+                    ticked_skills(
+                        {
+                            "id": str(ctx.get("agent_id") or ""),
+                            "allowed_skill": [AUTO_USER_SKILL_WILDCARD],
+                        }
+                    )
+                )
             return expanded
         return raw
 
