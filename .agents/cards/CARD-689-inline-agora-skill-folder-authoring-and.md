@@ -2,7 +2,7 @@
 id: CARD-689
 title: "Inline Agora skill folder authoring and risk-tiered tool auto-enable"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M26
 needs_decision: none
@@ -14,6 +14,7 @@ proof:
 branch: feat/card-689-agora-self-build-and-auto-enable
 log: {minutes: 18, qa_runs: 1, findings: 0}
 created: 2026-10-15
+completed: 2026-10-15
 ---
 
 # CARD-689 Inline Agora skill folder authoring and risk-tiered tool auto-enable
