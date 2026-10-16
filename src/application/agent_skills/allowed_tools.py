@@ -60,11 +60,40 @@ def _field(agent: Any, *names: str) -> Any:
     return None
 
 
-def ticked_skills(agent: Any) -> list[str]:
+AUTO_SKILL_WILDCARD = "*"
+
+
+def _raw_skill_tokens(agent: Any) -> list[str]:
     seen: list[str] = []
     for sid in _field(agent, "allowed_skill", "skills") or []:
         clean = str(sid).strip()
         if clean and clean not in seen:
+            seen.append(clean)
+    return seen
+
+
+def has_auto_skill_wildcard(agent: Any) -> bool:
+    """True when the agent's skill list includes '*' (auto-discover all non-hidden skills) [CARD-688]."""
+    return AUTO_SKILL_WILDCARD in _raw_skill_tokens(agent)
+
+
+def pinned_skills(agent: Any) -> list[str]:
+    """Explicitly listed skill ids on the agent (excluding '*') [CARD-688]."""
+    return [s for s in _raw_skill_tokens(agent) if s != AUTO_SKILL_WILDCARD]
+
+
+def ticked_skills(agent: Any) -> list[str]:
+    seen: list[str] = []
+    for clean in _raw_skill_tokens(agent):
+        if clean == AUTO_SKILL_WILDCARD:
+            try:
+                for item in _store().skills.list():
+                    if item.id not in seen:
+                        seen.append(item.id)
+            except Exception:
+                pass
+            continue
+        if clean not in seen:
             seen.append(clean)
     return seen
 
@@ -102,7 +131,7 @@ def resolve_allowed_tools(agent: Any) -> AllowedTools:
                 continue
             if provenance.get(tool) != (PLATFORM,):
                 provenance[tool] = provenance.get(tool, ()) + (sid,)
-    if ticks:
+    if ticks or has_auto_skill_wildcard(agent):
         from src.application.skills.user_catalog import LIST_USER_SKILLS, SKILL_VIEW
 
         for tool in (SKILL_VIEW, LIST_USER_SKILLS):

@@ -19,7 +19,7 @@
 - [x] **1.0.0 released 2026-10-09** (tag `v1.0.0`). Every card on the board is Done.
 
 ## Next
-Jacob sets the next milestone after 1.0.
+- [ ] **M26 Agora Skill Folders & Unified Capabilities** ([ADR-0065](../docs/adr/0065-agora-skill-folders-and-unified-capabilities.md)): self-contained `skills/<id>/` folders (`SKILL.md`, `references/`, `tools/*.py` with AST schema inference), dynamic `use_skill` session mounting, inline self-building with risk-tiered approval, and a single Capabilities directory tree studio replacing Skill Studio and Tools Studio.
 
 ## Horizon
 The parked ideas (Studio Maker, Help Studio, companion, video and others: CARD-146, 170, 275, 277, 280, 283-289, 331, 393, 466, 487, 493, 494, 499, 542) were closed as not pursued before 1.0. Any of them can come back as a new card.

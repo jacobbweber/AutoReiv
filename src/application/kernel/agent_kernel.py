@@ -762,13 +762,19 @@ class AgentKernel:
         return [t.name for t in tools]
 
     def _turn_tools_and_system_message(
-        self, agent: AgentProfile, user_content: Optional[str], history: List[Any]
+        self,
+        agent: AgentProfile,
+        user_content: Optional[str],
+        history: List[Any],
+        session_id: Optional[str] = None,
     ) -> Tuple[List[Any], set[str], ChatMessage]:
-        """This call's tools, their names, and a system message that names only tools it is sent [CARD-675]."""
+        """This call's tools, their names, and a system message that names only tools it is sent [CARD-675, CARD-688]."""
         active_tools = self._resolve_active_tools(
             agent,
             user_content,
             matched_capability_ids=self._turn_matched_capability_ids,
+            session_id=session_id,
+            history=history,
         )
         rejected_now = rejected_tool_names(history)  # CARD-613: not offered again after the operator rejected it
         active_tools = [t for t in active_tools if t.name not in rejected_now]
@@ -782,65 +788,25 @@ class AgentKernel:
         user_content: Optional[str] = None,
         matched_capability_ids: Optional[list] = None,
         planning_phase: Optional[bool] = None,
+        session_id: Optional[str] = None,
+        history: Optional[List[Any]] = None,
     ) -> List[Any]:
-        """
-        This call's tools: every tool the agent is allowed (ticked skills + base tools), all at once
-        (CARD-578, ADR-0064). No cap, ranking or keyword matching. Only policy narrows: a Formulate
-        phase does not get work tools (CARD-554), and a job locked to matched capabilities mounts
-        only those (plus the required platform tools), the same set ToolPolicyGate enforces.
-        """
-        if getattr(agent, "id", None) == "direct":
-            return []
+        """Resolve active tools for the current step [CARD-578, CARD-688]."""
+        from src.application.skills.session_skills import resolve_turn_active_tools
 
-        from src.application.agent_skills.allowed_tools import resolve_allowed_tools, ticked_skills
-        from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
-
-        allowed = resolve_allowed_tools(agent)
-        ticks = set(ticked_skills(agent))
         ids = matched_capability_ids
         if ids is None:
             ids = getattr(self, "_turn_matched_capability_ids", None)
-        phase_skills = {
-            str(cid).strip()[len("skill.") :]
-            for cid in ids or []
-            if str(cid).strip().startswith("skill.") and str(cid).strip()[len("skill.") :] in ticks
-        }
-
-        tools = list(self.tool_registry.get_tools_for_agent(agent))
         if planning_phase is None:
             planning_phase = bool(getattr(self, "_turn_planning_phase", False))
-        if planning_phase:  # Formulate plans only: handoff and work tools are not mounted [CARD-554]
-            from src.application.orchestration.phase_roles import planning_phase_block_reason
-
-            risk_of = getattr(self.tool_registry, "get_tool_risk", None)
-            tools = [
-                t for t in tools
-                if not planning_phase_block_reason(t.name, risk_of(t.name) if callable(risk_of) else None)
-            ]
-        from src.application.safety.tool_policy_gate import _capability_tool_names
-
-        named = _capability_tool_names(ids) or set()
-        if phase_skills and not planning_phase:  # a phase bound to ticked skills mounts only their tools [REQ-CAP-PAGE-004]
-            # CARD-617: a tool the job matched by name stays (the gate allows it): AutoReiv ticks wiki-knowledge
-            # (read-only) and gets wiki_note_create from wiki-inbox, so a job matched to both kept only the reads.
-            tools = [
-                t for t in tools
-                if phase_skills & set(allowed.skills_for(t.name)) or t.name in REQUIRED_PLATFORM_TOOLS or t.name in named
-            ]
-        try:
-            from src.application.safety.tool_policy_gate import EDUCATION_FORBIDDEN_WIKI_TOOLS
-
-            # CARD-676: a planning step keeps every granted read tool; the job's match narrows the later phases.
-            subset = None if planning_phase else _capability_tool_names(ids)
-            if subset is not None:
-                tools = [t for t in tools if t.name in subset or t.name in REQUIRED_PLATFORM_TOOLS]
-            else:
-                id_list = [str(x) for x in (ids or [])]
-                if any(s.endswith("education-priming") or s.endswith("education-dual-coding") for s in id_list):
-                    tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
-        except Exception:
-            pass
-        return tools
+        return resolve_turn_active_tools(
+            self.tool_registry,
+            agent,
+            matched_capability_ids=ids,
+            planning_phase=planning_phase,
+            session_id=session_id,
+            history=history,
+        )
 
     async def run_turn(
         self,
@@ -873,7 +839,9 @@ class AgentKernel:
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
-        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(agent, user_content, history)
+        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(
+            agent, user_content, history, session_id=session_id
+        )
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
@@ -1223,6 +1191,9 @@ class AgentKernel:
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
                 return question_msg
 
+            active_tools, offered_names, system_msg = self._turn_tools_and_system_message(
+                agent, user_content, history, session_id=session_id
+            )
             last_turn_end = time.perf_counter()
 
         # CARD-461: one last no-tools call summarizes what was done and what is left.
@@ -1283,7 +1254,9 @@ class AgentKernel:
                 for ev in replay:
                     yield ev
                 return
-        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(agent, user_content, history)
+        active_tools, offered_names, system_msg = self._turn_tools_and_system_message(
+            agent, user_content, history, session_id=session_id
+        )
         tool_schema_chars = (
             sum(
                 len(dumps_jsonable(t.model_dump(mode="json") if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
@@ -1855,6 +1828,9 @@ class AgentKernel:
                 )
                 return
 
+            active_tools, offered_names, system_msg = self._turn_tools_and_system_message(
+                agent, user_content, history, session_id=session_id
+            )
             last_turn_end = time.perf_counter()
 
         # If turn limit reached - CARD-461: one last no-tools call summarizes what was done and what is left.
