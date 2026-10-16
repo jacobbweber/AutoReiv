@@ -2,7 +2,7 @@
 id: CARD-687
 title: "Agora skill folder loader for colocated tools and references"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M26
 needs_decision: none
@@ -14,6 +14,7 @@ proof:
 branch: feat/card-687-agora-skill-folder-loader
 log: {minutes: 18, qa_runs: 2, findings: 2}
 created: 2026-10-15
+completed: 2026-10-15
 ---
 
 # CARD-687 Agora skill folder loader for colocated tools and references

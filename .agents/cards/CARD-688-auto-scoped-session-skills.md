@@ -2,7 +2,7 @@
 id: CARD-688
 title: "Auto-scoped agents and session-mounted skill tools on demand"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M26
 needs_decision: none
@@ -14,6 +14,7 @@ proof:
 branch: feat/card-687-agora-skill-folder-loader
 log: {minutes: 45, qa_runs: 2, findings: 0}
 created: 2026-10-15
+completed: 2026-10-15
 ---
 
 # CARD-688 Auto-scoped agents and session-mounted skill tools on demand
