@@ -55,11 +55,11 @@ def _first_skill(skills: Any) -> str:
 
 
 def session_activated_skills_from_history(history: Optional[Iterable[Any]] = None) -> set[str]:
-    """Extract skill ids opened via ``skill_view`` in the persisted conversation history [CARD-688]."""
+    """Extract skill ids opened via ``skill_view`` or authored via ``write_skill_file`` in history [CARD-688, CARD-689]."""
     activated: set[str] = set()
     for msg in history or []:
         for tc in getattr(msg, "tool_calls", None) or []:
-            if getattr(tc, "name", None) != "skill_view":
+            if getattr(tc, "name", None) not in ("skill_view", "write_skill_file"):
                 continue
             args = getattr(tc, "arguments", None) or getattr(tc, "args", None) or {}
             if isinstance(args, dict):
@@ -72,13 +72,15 @@ def session_activated_skills_from_history(history: Optional[Iterable[Any]] = Non
                 )
                 if sid and str(sid).strip():
                     activated.add(str(sid).strip())
-        if getattr(msg, "name", None) == "skill_view":
+        if getattr(msg, "name", None) in ("skill_view", "write_skill_file"):
             content = getattr(msg, "content", None)
             if isinstance(content, str) and content.strip().startswith("{"):
                 try:
                     payload = json.loads(content)
-                    if isinstance(payload, dict) and payload.get("success") and payload.get("id"):
-                        activated.add(str(payload["id"]).strip())
+                    if isinstance(payload, dict) and payload.get("success"):
+                        sid = payload.get("id") or payload.get("skill_id")
+                        if sid and str(sid).strip():
+                            activated.add(str(sid).strip())
                 except ValueError:
                     pass
     return activated

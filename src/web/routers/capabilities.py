@@ -175,6 +175,16 @@ class ToggleSkillToolRequest(BaseModel):
     enabled: bool = True
 
 
+class SaveSkillFileRequest(BaseModel):
+    path: str = "SKILL.md"
+    content: str = ""
+    sample_arguments: Optional[Dict[str, Any]] = None
+
+
+def _app_tool_registry(request: Request) -> Any:
+    return getattr(request.app.state, "tool_reg", None) or getattr(request.app.state, "tool_registry", None)
+
+
 @router.get("/api/capabilities/tree")
 async def get_capabilities_tree() -> Dict[str, Any]:
     """Return the Agora folder tree across all skills (SKILL.md, references/, tools/) [CARD-687, ADR-0065]."""
@@ -198,6 +208,36 @@ async def get_skill_folder_file(skill_id: str, path: str = "SKILL.md") -> Dict[s
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.put("/api/capabilities/skills/{skill_id}/file")
+async def put_skill_folder_file(
+    skill_id: str,
+    body: SaveSkillFileRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    """Write SKILL.md, references/<name>.md, or tools/<name>.py into a skill folder with ToolCheckService risk-tiered auto-enable [CARD-689, ADR-0065]."""
+    from src.application.skills.agora_authoring import save_skill_file
+    from src.infrastructure.content.store import get_store
+
+    tool_reg = _app_tool_registry(request)
+    try:
+        result = await save_skill_file(
+            get_store(),
+            skill_id,
+            body.path,
+            body.content,
+            tool_registry=tool_reg,
+            sample_arguments=body.sample_arguments,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    if not result.get("saved"):
+        raise HTTPException(status_code=422, detail=result)
+    return result
+
+
 @router.post("/api/capabilities/skills/{skill_id}/tools/{tool_name}/toggle")
 async def toggle_skill_colocated_tool(
     skill_id: str,
@@ -209,7 +249,7 @@ async def toggle_skill_colocated_tool(
     from src.application.skills.agora_loader import disable_skill_tool, enable_skill_tool
     from src.infrastructure.content.store import get_store
 
-    tool_reg = getattr(request.app.state, "tool_reg", None)
+    tool_reg = _app_tool_registry(request)
     store = get_store()
     try:
         if body.enabled:
@@ -224,4 +264,5 @@ async def toggle_skill_colocated_tool(
     public = {k: v for k, v in spec.items() if k != "code"}
     public["mounted"] = bool(tool_reg is not None and spec["name"] in tool_reg)
     return public
+
 

@@ -54,6 +54,7 @@ CAPABILITY_AUTHORING_TOOL_NAMES = frozenset(
         "propose_skill",
         "propose_tool",
         "commit_skill",
+        "write_skill_file",
         "list_user_skills",
         "skill_view",
     }
