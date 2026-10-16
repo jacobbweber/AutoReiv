@@ -117,7 +117,7 @@ describe('Capabilities directory tree studio [CARD-690]', () => {
       skillId: 'agora-checksum',
       filePath: 'tools/calc_checksum.py',
     });
-    expect(plan).toEqual({
+    expect(plan).toMatchObject({
       tab: 'capabilities',
       label: 'Capabilities',
       skillId: 'agora-checksum',

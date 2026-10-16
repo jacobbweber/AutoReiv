@@ -118,22 +118,6 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
     defaultSize: { w: 980, h: 680 },
   },
   {
-    id: 'dock-skill-studio',
-    tab: 'skill-studio',
-    label: 'Skill Studio',
-    icon: 'book-open',
-    subtitle: 'Skill lifecycle and tool scoping',
-    defaultSize: { w: 960, h: 680 },
-  },
-  {
-    id: 'dock-tools-studio',
-    tab: 'tools-studio',
-    label: 'Tools Studio',
-    icon: 'wrench',
-    subtitle: 'Tool catalog and MCP attach',
-    defaultSize: { w: 960, h: 680 },
-  },
-  {
     id: 'dock-routines',
     tab: 'routines',
     label: 'Routines',

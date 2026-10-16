@@ -8,6 +8,7 @@ import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { api } from '../services/api.js';
 import { showToast } from '../ui/toast.js';
 import {
+  MCP_TREE_NODE_ID,
   defaultReferenceMarkdown,
   defaultSkillMarkdown,
   defaultToolPython,
@@ -16,26 +17,72 @@ import {
   renderCapabilitiesTreeHtml,
   renderToolStatusCardHtml,
 } from './capabilities_tree_model.js';
+import {
+  buildMcpSaveBody,
+  renderMcpServerListMarkup,
+  serverToSaveBody,
+} from './tools_studio_catalog.js';
 
 export const CAPABILITIES_STUDIO_TAB = 'capabilities';
 export const CAPABILITIES_STUDIO_LABEL = 'Capabilities';
 
 /**
- * Plan a deep link into the Capabilities directory tree studio.
- * @param {{ skillId?: string|null, filePath?: string|null }} [opts]
+ * Plan a deep link into the Capabilities directory tree studio [CARD-690, CARD-692].
+ * Supports:
+ * - skill folder / file (`skillId`, `filePath`)
+ * - MCP server panel (`mode: 'mcp'`, `scope`, `agentId`)
+ * - capability gap draft (`gap`, `agentId`)
+ * @param {{ skillId?: string|null, filePath?: string|null, mode?: string|null, scope?: string|null, agentId?: string|null, gap?: object|null }} [opts]
  */
-export function planCapabilitiesStudioDeepLink({ skillId = null, filePath = null } = {}) {
+export function planCapabilitiesStudioDeepLink({
+  skillId = null,
+  filePath = null,
+  mode = null,
+  scope = null,
+  agentId = null,
+  gap = null,
+} = {}) {
+  const cleanAgent = String(agentId || '').trim() || null;
+  if (mode === 'mcp' || (!skillId && !gap && scope)) {
+    const cleanScope = scope === 'agent' && cleanAgent ? 'agent' : 'platform';
+    return {
+      tab: CAPABILITIES_STUDIO_TAB,
+      label: CAPABILITIES_STUDIO_LABEL,
+      mode: 'mcp',
+      scope: cleanScope,
+      agentId: cleanScope === 'agent' ? cleanAgent : null,
+      skillId: MCP_TREE_NODE_ID,
+      filePath: null,
+      gap: null,
+    };
+  }
+  if (gap && typeof gap === 'object') {
+    return {
+      tab: CAPABILITIES_STUDIO_TAB,
+      label: CAPABILITIES_STUDIO_LABEL,
+      mode: 'gap',
+      scope: cleanAgent ? 'agent' : 'platform',
+      agentId: cleanAgent,
+      skillId: null,
+      filePath: 'SKILL.md',
+      gap,
+    };
+  }
   const cleanSkill = String(skillId || '').trim();
   const cleanPath = String(filePath || '').trim() || (cleanSkill ? 'SKILL.md' : '');
   return {
     tab: CAPABILITIES_STUDIO_TAB,
     label: CAPABILITIES_STUDIO_LABEL,
+    mode: 'skill',
+    scope: cleanAgent ? 'agent' : 'platform',
+    agentId: cleanAgent,
     skillId: cleanSkill || null,
     filePath: cleanPath || null,
+    gap: null,
   };
 }
 
-export function initCapabilitiesStudio(_state, _callbacks = {}) {
+export function initCapabilitiesStudio(state, _callbacks = {}) {
   const treeListEl = $('capabilitiesTreeList');
   const searchInputEl = $('capabilitiesTreeSearch');
   const refreshBtnEl = $('capabilitiesRefreshBtn');
@@ -49,6 +96,23 @@ export function initCapabilitiesStudio(_state, _callbacks = {}) {
   const activeSourceBadgeEl = $('capabilitiesActiveSourceBadge');
   const feedbackEl = $('capabilitiesFeedbackBanner');
   const toolStatusCardEl = $('capabilitiesToolStatusCard');
+  const mcpPaneEl = $('capabilitiesMcpPane');
+  const mcpScopeSelectEl = $('capabilitiesMcpScopeSelect');
+  const mcpAgentFieldEl = $('capabilitiesMcpAgentField');
+  const mcpAgentSelectEl = $('capabilitiesMcpAgentSelect');
+  const mcpAddBtnEl = $('capabilitiesMcpAddBtn');
+  const mcpFormEl = $('capabilitiesMcpForm');
+  const mcpNameInputEl = $('capabilitiesMcpNameInput');
+  const mcpTransportSelectEl = $('capabilitiesMcpTransportSelect');
+  const mcpCommandGroupEl = $('capabilitiesMcpCommandGroup');
+  const mcpCommandInputEl = $('capabilitiesMcpCommandInput');
+  const mcpUrlGroupEl = $('capabilitiesMcpUrlGroup');
+  const mcpUrlInputEl = $('capabilitiesMcpUrlInput');
+  const mcpEnabledCheckboxEl = $('capabilitiesMcpEnabledCheckbox');
+  const mcpCancelBtnEl = $('capabilitiesMcpCancelBtn');
+  const mcpSaveBtnEl = $('capabilitiesMcpSaveBtn');
+  const mcpListEl = $('capabilitiesMcpList');
+  const editorContainerEl = $('capabilitiesFileEditorContainer');
   const editorEl = $('capabilitiesFileEditor');
   const saveBtnEl = $('capabilitiesSaveFileBtn');
 
@@ -58,6 +122,7 @@ export function initCapabilitiesStudio(_state, _callbacks = {}) {
   let selectedFilePath = 'SKILL.md';
   let pendingCreateMode = null; // { kind: 'skill' | 'reference' | 'tool', skillId?: string }
   let queuedDeepLink = null;
+  let mcpServersCache = [];
 
   function setFeedback(message, kind = 'info') {
     if (!feedbackEl) return;
@@ -116,23 +181,89 @@ export function initCapabilitiesStudio(_state, _callbacks = {}) {
     safeCreateIcons();
   }
 
+  function syncMcpAgentOptions(preferredAgentId = '') {
+    if (!mcpAgentSelectEl) return;
+    const agents = Array.isArray(state && state.agents) ? state.agents : [];
+    const current = preferredAgentId || mcpAgentSelectEl.value || '';
+    const opts = ['<option value="">Select an agent</option>'];
+    for (const ag of agents) {
+      const id = String(ag.id || ag.agent_id || '');
+      if (!id) continue;
+      const name = String(ag.name || id);
+      const sel = id === current ? ' selected' : '';
+      opts.push(`<option value="${escapeHtml(id)}"${sel}>${escapeHtml(name)} (${escapeHtml(id)})</option>`);
+    }
+    if (current && !agents.some((a) => String(a.id || a.agent_id || '') === current)) {
+      opts.push(`<option value="${escapeHtml(current)}" selected>${escapeHtml(current)}</option>`);
+    }
+    mcpAgentSelectEl.innerHTML = opts.join('');
+  }
+
+  async function loadMcpInspector({ scope = null, agentId = null } = {}) {
+    const nextScope = scope || (mcpScopeSelectEl ? mcpScopeSelectEl.value : 'platform') || 'platform';
+    if (mcpScopeSelectEl) mcpScopeSelectEl.value = nextScope;
+    syncMcpAgentOptions(agentId || '');
+    if (mcpAgentFieldEl) {
+      mcpAgentFieldEl.classList.toggle('hidden', nextScope !== 'agent');
+    }
+    const targetAgent = nextScope === 'agent' ? (agentId || (mcpAgentSelectEl ? mcpAgentSelectEl.value : '')) : '';
+    try {
+      const raw = await api.capabilities.listMcpServers(nextScope, targetAgent);
+      mcpServersCache = Array.isArray(raw) ? raw : [];
+      if (mcpListEl) {
+        mcpListEl.innerHTML = renderMcpServerListMarkup(mcpServersCache, {
+          scope: nextScope,
+          agentId: targetAgent,
+        });
+      }
+    } catch (err) {
+      if (mcpListEl) {
+        mcpListEl.innerHTML = `<p class="text-xs text-rose-300">Failed to load MCP servers: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+  }
+
+  async function selectMcpNode({ scope = null, agentId = null } = {}) {
+    selectedSkillId = MCP_TREE_NODE_ID;
+    selectedFilePath = '';
+    paintTree();
+    paintInspectorHeader();
+    await loadMcpInspector({ scope, agentId });
+  }
+
   function paintInspectorHeader() {
-    const skill = findSkill(selectedSkillId);
+    const isMcp = selectedSkillId === MCP_TREE_NODE_ID;
+    const skill = !isMcp ? findSkill(selectedSkillId) : null;
     if (activePathEl) {
-      activePathEl.textContent = selectedSkillId
-        ? `skills/${selectedSkillId}/${selectedFilePath}`
-        : 'Select a skill folder to inspect';
+      if (isMcp) {
+        activePathEl.textContent = 'mcp/ (MCP Servers)';
+      } else {
+        activePathEl.textContent = selectedSkillId
+          ? `skills/${selectedSkillId}/${selectedFilePath}`
+          : 'Select a skill folder to inspect';
+      }
     }
     if (activeSourceBadgeEl) {
-      if (!skill) {
+      if (isMcp) {
+        activeSourceBadgeEl.textContent = 'mcp';
+      } else if (!skill) {
         activeSourceBadgeEl.textContent = 'agora';
       } else {
         activeSourceBadgeEl.textContent = skill.source || 'platform';
       }
     }
+    if (saveBtnEl) {
+      saveBtnEl.classList.toggle('hidden', isMcp);
+    }
+    if (mcpPaneEl) {
+      mcpPaneEl.classList.toggle('hidden', !isMcp);
+    }
+    if (editorContainerEl) {
+      editorContainerEl.classList.toggle('hidden', isMcp);
+    }
     if (toolStatusCardEl) {
       const toolSpec =
-        selectedSkillId && selectedFilePath.startsWith('tools/')
+        !isMcp && selectedSkillId && selectedFilePath.startsWith('tools/')
           ? findColocatedTool(selectedSkillId, selectedFilePath)
           : null;
       if (toolSpec) {
@@ -174,12 +305,44 @@ export function initCapabilitiesStudio(_state, _callbacks = {}) {
       const data = await api.capabilities.tree();
       const rawSkills = Array.isArray(data && data.skills) ? data.skills : [];
       skillsTree = rawSkills.map(normalizeSkillEntry).filter(Boolean);
-      if (queuedDeepLink && queuedDeepLink.skillId) {
-        const targetSkill = queuedDeepLink.skillId;
-        const targetPath = queuedDeepLink.filePath || 'SKILL.md';
+      if (queuedDeepLink) {
+        const link = queuedDeepLink;
         queuedDeepLink = null;
-        expandedSkills.add(targetSkill);
-        await selectSkillFile(targetSkill, targetPath);
+        if (link.mode === 'mcp') {
+          await selectMcpNode({ scope: link.scope, agentId: link.agentId });
+          return;
+        }
+        if (link.mode === 'gap' && link.gap) {
+          const rawSlug = String(
+            link.gap.suggested_tool_name || link.gap.missing_capability || 'new-capability',
+          )
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          openCreateBar('skill');
+          if (createInputEl && rawSlug) {
+            createInputEl.value = rawSlug;
+          }
+          setFeedback(
+            `Drafting Agora skill folder for capability gap "${rawSlug}" — confirm Create to initialize.`,
+            'info',
+          );
+          paintTree();
+          paintInspectorHeader();
+          return;
+        }
+        if (link.skillId) {
+          const targetSkill = link.skillId;
+          const targetPath = link.filePath || 'SKILL.md';
+          expandedSkills.add(targetSkill);
+          await selectSkillFile(targetSkill, targetPath);
+          return;
+        }
+      }
+      if (selectedSkillId === MCP_TREE_NODE_ID) {
+        paintTree();
+        paintInspectorHeader();
+        await loadMcpInspector();
         return;
       }
       if (!selectedSkillId && skillsTree.length > 0) {
@@ -354,7 +517,9 @@ export function initCapabilitiesStudio(_state, _callbacks = {}) {
       if (!btn) return;
       const action = btn.getAttribute('data-action');
       const skillId = btn.getAttribute('data-skill-id') || '';
-      if (action === 'toggle-skill-folder' && skillId) {
+      if (action === 'select-mcp-node') {
+        selectMcpNode();
+      } else if (action === 'toggle-skill-folder' && skillId) {
         if (expandedSkills.has(skillId)) {
           expandedSkills.delete(skillId);
           paintTree();
@@ -369,6 +534,87 @@ export function initCapabilitiesStudio(_state, _callbacks = {}) {
         openCreateBar('reference', skillId);
       } else if (action === 'new-tool-file' && skillId) {
         openCreateBar('tool', skillId);
+      }
+    });
+  }
+
+  if (mcpScopeSelectEl) {
+    mcpScopeSelectEl.addEventListener('change', () => {
+      loadMcpInspector({ scope: mcpScopeSelectEl.value });
+    });
+  }
+  if (mcpAgentSelectEl) {
+    mcpAgentSelectEl.addEventListener('change', () => {
+      loadMcpInspector({
+        scope: mcpScopeSelectEl ? mcpScopeSelectEl.value : 'agent',
+        agentId: mcpAgentSelectEl.value,
+      });
+    });
+  }
+  if (mcpAddBtnEl && mcpFormEl) {
+    mcpAddBtnEl.addEventListener('click', () => {
+      mcpFormEl.classList.remove('hidden');
+      if (mcpNameInputEl) mcpNameInputEl.focus();
+    });
+  }
+  if (mcpCancelBtnEl && mcpFormEl) {
+    mcpCancelBtnEl.addEventListener('click', () => {
+      mcpFormEl.classList.add('hidden');
+    });
+  }
+  if (mcpTransportSelectEl) {
+    mcpTransportSelectEl.addEventListener('change', () => {
+      const isSse = mcpTransportSelectEl.value === 'sse';
+      if (mcpCommandGroupEl) mcpCommandGroupEl.classList.toggle('hidden', isSse);
+      if (mcpUrlGroupEl) mcpUrlGroupEl.classList.toggle('hidden', !isSse);
+    });
+  }
+  if (mcpSaveBtnEl) {
+    mcpSaveBtnEl.addEventListener('click', async () => {
+      const scopeVal = mcpScopeSelectEl ? mcpScopeSelectEl.value : 'platform';
+      const agentVal = mcpAgentSelectEl ? mcpAgentSelectEl.value : '';
+      const built = buildMcpSaveBody({
+        name: mcpNameInputEl ? mcpNameInputEl.value : '',
+        transport: mcpTransportSelectEl ? mcpTransportSelectEl.value : 'stdio',
+        commandText: mcpCommandInputEl ? mcpCommandInputEl.value : '',
+        url: mcpUrlInputEl ? mcpUrlInputEl.value : '',
+        headersText: '',
+        env: {},
+        enabled: mcpEnabledCheckboxEl ? Boolean(mcpEnabledCheckboxEl.checked) : true,
+      });
+      if (!built.ok) {
+        setFeedback(built.error || 'Invalid MCP server configuration.', 'error');
+        return;
+      }
+      try {
+        await api.capabilities.saveMcpServer(scopeVal, agentVal, built.body);
+        if (mcpFormEl) mcpFormEl.classList.add('hidden');
+        setFeedback(`Saved MCP server "${built.body.name}".`, 'ok');
+        showToast(`Saved MCP server ${built.body.name}`, 'success');
+        await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
+      } catch (err) {
+        setFeedback(`Could not save MCP server: ${err.message}`, 'error');
+      }
+    });
+  }
+  if (mcpListEl) {
+    mcpListEl.addEventListener('click', async (event) => {
+      const btn = event.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      const serverName = btn.getAttribute('data-server-name') || '';
+      const scopeVal = mcpScopeSelectEl ? mcpScopeSelectEl.value : 'platform';
+      const agentVal = mcpAgentSelectEl ? mcpAgentSelectEl.value : '';
+      if (action === 'delete' && serverName) {
+        await api.capabilities.deleteMcpServer(scopeVal, agentVal, serverName);
+        setFeedback(`Removed MCP server "${serverName}".`, 'info');
+        await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
+      } else if (action === 'toggle' && serverName) {
+        const current = mcpServersCache.find((s) => s && s.name === serverName);
+        if (!current) return;
+        const body = serverToSaveBody(current, !current.enabled);
+        await api.capabilities.saveMcpServer(scopeVal, agentVal, body);
+        await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
       }
     });
   }
@@ -389,6 +635,7 @@ export function initCapabilitiesStudio(_state, _callbacks = {}) {
   return {
     loadCapabilitiesStudio,
     selectSkillFile,
+    selectMcpNode,
     queueDeepLink: (opts = {}) => {
       queuedDeepLink = planCapabilitiesStudioDeepLink(opts);
     },

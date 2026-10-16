@@ -7,6 +7,7 @@ from typing import Any, Iterable, List, Optional
 
 from src.application.agent_skills.allowed_tools import (
     AUTO_SKILL_WILDCARD,
+    AUTO_USER_SKILL_WILDCARD,
     has_auto_skill_wildcard,
     pinned_skills,
     resolve_allowed_tools,
@@ -143,6 +144,11 @@ def render_skill_index(allowed_skill: Any, catalog: Any = None, agent_id: Any = 
                 if mid not in ids:
                     ids.append(mid)
             for expanded in ticked_skills({"allowed_skill": [AUTO_SKILL_WILDCARD]}):
+                if expanded not in ids:
+                    ids.append(expanded)
+            continue
+        if sid == AUTO_USER_SKILL_WILDCARD:
+            for expanded in ticked_skills({"allowed_skill": [AUTO_USER_SKILL_WILDCARD]}):
                 if expanded not in ids:
                     ids.append(expanded)
             continue

@@ -29,17 +29,17 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
   const html = read('src/web/templates/index.html');
   const skillView = sliceView(html, 'view-skill-studio', 'artifactModal');
 
-  it('dock open presents Skill Studio without the Factory agent brief [REQ-418-001]', () => {
-    const launcher = DOCK_LAUNCHERS.find((d) => d.tab === SKILL_STUDIO_TAB);
-    expect(launcher).toBeTruthy();
-    expect(launcher.id).toBe('dock-skill-studio');
-    expect(launcher.label).toBe(SKILL_STUDIO_LABEL);
-    expect(launcher.label).toBe('Skill Studio');
+  it('dock open presents Capabilities Studio and VIEW_BY_TAB keeps skill-studio without the Factory agent brief [REQ-418-001, CARD-692]', () => {
+    const capLauncher = DOCK_LAUNCHERS.find((d) => d.tab === 'capabilities');
+    expect(capLauncher).toBeTruthy();
+    expect(capLauncher.id).toBe('dock-capabilities');
+    expect(DOCK_LAUNCHERS.find((d) => d.tab === SKILL_STUDIO_TAB)).toBeUndefined();
+    expect(SKILL_STUDIO_LABEL).toBe('Skill Studio');
     expect(VIEW_BY_TAB[SKILL_STUDIO_TAB]).toBe('view-skill-studio');
 
     const switched = [];
     const created = [];
-    const win = openWindow(SKILL_STUDIO_TAB, {}, {
+    const win = openWindow('capabilities', {}, {
       windows: new Map(),
       launcherForTabFn: (tab) => DOCK_LAUNCHERS.find((d) => d.tab === tab) || null,
       createWindowShellFn: (item) => {
@@ -68,9 +68,9 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
       isMobileFn: () => false,
     });
 
-    expect(created).toEqual(['Skill Studio']);
-    expect(switched).toEqual(['skill-studio']);
-    expect(win.tab).toBe('skill-studio');
+    expect(created).toEqual(['Capabilities']);
+    expect(switched).toEqual(['capabilities']);
+    expect(win.tab).toBe('capabilities');
     expect(switched).not.toContain('factory');
 
     expect(skillView).toContain('id="factoryExistingSkillSelect"');

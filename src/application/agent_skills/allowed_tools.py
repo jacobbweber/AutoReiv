@@ -61,6 +61,8 @@ def _field(agent: Any, *names: str) -> Any:
 
 
 AUTO_SKILL_WILDCARD = "*"
+AUTO_USER_SKILL_WILDCARD = "user:*"
+_AUTO_SKILL_TOKENS = frozenset({AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD})
 
 
 def _raw_skill_tokens(agent: Any) -> list[str]:
@@ -73,13 +75,13 @@ def _raw_skill_tokens(agent: Any) -> list[str]:
 
 
 def has_auto_skill_wildcard(agent: Any) -> bool:
-    """True when the agent's skill list includes '*' (auto-discover all non-hidden skills) [CARD-688]."""
-    return AUTO_SKILL_WILDCARD in _raw_skill_tokens(agent)
+    """True when the agent's skill list includes '*' or 'user:*' [CARD-688, CARD-691]."""
+    return bool(_AUTO_SKILL_TOKENS & set(_raw_skill_tokens(agent)))
 
 
 def pinned_skills(agent: Any) -> list[str]:
-    """Explicitly listed skill ids on the agent (excluding '*') [CARD-688]."""
-    return [s for s in _raw_skill_tokens(agent) if s != AUTO_SKILL_WILDCARD]
+    """Explicitly listed skill ids on the agent (excluding '*' and 'user:*') [CARD-688, CARD-691]."""
+    return [s for s in _raw_skill_tokens(agent) if s not in _AUTO_SKILL_TOKENS]
 
 
 def ticked_skills(agent: Any) -> list[str]:
@@ -90,6 +92,29 @@ def ticked_skills(agent: Any) -> list[str]:
                 for item in _store().skills.list():
                     if item.id not in seen:
                         seen.append(item.id)
+            except Exception:
+                pass
+            continue
+        if clean == AUTO_USER_SKILL_WILDCARD:
+            try:
+                store = _store()
+                skills_store = store.skills
+                hidden = skills_store.hidden()
+                self_id = str(_field(agent, "id") or "").strip().lower()
+                other_pinned: set[str] = set()
+                for ag in store.agents.list():
+                    if ag.id.lower() != self_id:
+                        other_pinned.update(s for s in ag.skills if s not in _AUTO_SKILL_TOKENS)
+                for uid in skills_store.user_ids():
+                    if uid in hidden or uid in seen:
+                        continue
+                    loaded = skills_store.load(uid)
+                    if loaded is None:
+                        continue
+                    has_colocated = (loaded.path.parent / "tools").is_dir() or (loaded.path.parent / "references").is_dir()
+                    if uid in other_pinned and not has_colocated:
+                        continue
+                    seen.append(uid)
             except Exception:
                 pass
             continue

@@ -88,18 +88,18 @@ describe('Tools Studio dock [CARD-421]', () => {
   const agentsView = sliceView(html, 'view-agents', 'view-settings');
   const skillView = sliceView(html, 'view-skill-studio', 'artifactModal');
 
-  it('dock open presents Tools Studio catalog and MCP attach [REQ-421-001]', () => {
-    const launcher = DOCK_LAUNCHERS.find((item) => item.tab === TOOLS_STUDIO_TAB);
-    expect(launcher).toBeTruthy();
-    expect(launcher.id).toBe('dock-tools-studio');
-    expect(launcher.label).toBe(TOOLS_STUDIO_LABEL);
-    expect(launcher.label).toBe('Tools Studio');
+  it('dock open presents Capabilities Studio while VIEW_BY_TAB keeps tools-studio catalog and MCP attach [REQ-421-001, CARD-692]', () => {
+    const capLauncher = DOCK_LAUNCHERS.find((item) => item.tab === 'capabilities');
+    expect(capLauncher).toBeTruthy();
+    expect(capLauncher.id).toBe('dock-capabilities');
+    expect(DOCK_LAUNCHERS.find((item) => item.tab === TOOLS_STUDIO_TAB)).toBeUndefined();
+    expect(TOOLS_STUDIO_LABEL).toBe('Tools Studio');
     expect(VIEW_BY_TAB[TOOLS_STUDIO_TAB]).toBe('view-tools-studio');
-    expect(html).toContain('id="tab-tools-studio"');
+    expect(html).toContain('id="tab-capabilities"');
 
     const switched = [];
     const created = [];
-    const win = openWindow(TOOLS_STUDIO_TAB, {}, {
+    const win = openWindow('capabilities', {}, {
       windows: new Map(),
       launcherForTabFn: (tab) => DOCK_LAUNCHERS.find((item) => item.tab === tab) || null,
       createWindowShellFn: (item) => {
@@ -125,9 +125,9 @@ describe('Tools Studio dock [CARD-421]', () => {
       isMobileFn: () => false,
     });
 
-    expect(created).toEqual(['Tools Studio']);
-    expect(switched).toEqual(['tools-studio']);
-    expect(win.tab).toBe('tools-studio');
+    expect(created).toEqual(['Capabilities']);
+    expect(switched).toEqual(['capabilities']);
+    expect(win.tab).toBe('capabilities');
     expect(toolsView).toContain('id="toolsStudioCatalog"');
     expect(toolsView).toContain('id="toolsStudioFilterSearch"');
     expect(toolsView).toContain('id="toolsStudioFilterSource"');
