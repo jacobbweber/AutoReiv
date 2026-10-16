@@ -164,6 +164,10 @@
             <i data-lucide="users" class="w-3.5 h-3.5"></i>
             <span>Agents</span>
           </button>
+          <button id="tab-capabilities" data-tab="capabilities" data-studio="capabilities" role="tab" aria-selected="false" aria-controls="view-capabilities" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="folder-tree" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>Capabilities</span>
+          </button>
           <button id="tab-skill-studio" data-tab="skill-studio" data-studio="skill-studio" role="tab" aria-selected="false" aria-controls="view-skill-studio" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
             <i data-lucide="book-open" class="w-3.5 h-3.5 text-sky-400"></i>
             <span>Skill Studio</span>
@@ -4015,7 +4019,76 @@
         </div>
       </div>
 
+      <!-- ==================== VIEW: UNIFIED CAPABILITIES DIRECTORY TREE STUDIO [CARD-690, ADR-0065] ==================== -->
+      <section id="view-capabilities" role="tabpanel" aria-labelledby="tab-capabilities" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full min-h-0 overflow-hidden relative" data-card="690">
+        <div id="capabilitiesStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden" data-testid="capabilities-studio">
+          <div class="px-3 md:px-6 py-3 bg-[#0e1015]/90 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <i data-lucide="folder-tree" class="w-4 h-4"></i>
+              </div>
+              <div class="min-w-0">
+                <h2 class="font-bold text-sm md:text-base text-white tracking-tight truncate">Capabilities</h2>
+                <p class="text-[11px] text-slate-400 hidden sm:block truncate">Agora skill folders (<code class="text-slate-300">SKILL.md</code>, <code class="text-slate-300">references/*.md</code>, <code class="text-slate-300">tools/*.py</code>) — browse, edit, and toggle tools.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" id="capabilitiesNewSkillBtn" data-testid="capabilities-new-skill-btn" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold transition flex items-center gap-1.5">
+                <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                <span>+ New Skill</span>
+              </button>
+              <button type="button" id="capabilitiesRefreshBtn" data-testid="capabilities-refresh-btn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Capabilities Tree">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
 
+          <div id="capabilitiesCreateBar" class="hidden px-3 md:px-6 py-2.5 bg-[#11141d] border-b border-brand-500/30 flex flex-wrap items-center gap-2 flex-shrink-0" data-testid="capabilities-create-bar">
+            <label for="capabilitiesCreateNameInput" id="capabilitiesCreateKindLabel" class="text-xs font-semibold text-brand-300">New skill folder ID:</label>
+            <input id="capabilitiesCreateNameInput" data-testid="capabilities-create-name-input" type="text" placeholder="e.g. my-skill" class="flex-1 min-w-[10rem] bg-[#08090c] border border-white/[0.1] rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-brand-500">
+            <button type="button" id="capabilitiesCreateConfirmBtn" data-testid="capabilities-create-confirm-btn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Create</button>
+            <button type="button" id="capabilitiesCreateCancelBtn" data-testid="capabilities-create-cancel-btn" class="px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 text-xs border border-white/[0.08]">Cancel</button>
+          </div>
+
+          <div class="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden p-2 sm:p-4 flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-4 bg-[#08090c]">
+            <!-- Left Pane: Agora Directory Tree -->
+            <div id="capabilitiesTreePane" data-testid="capabilities-tree-pane" class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-3 sm:p-4 space-y-3 min-w-0 lg:min-h-0 lg:overflow-hidden">
+              <div class="flex items-center gap-2">
+                <div class="relative flex-1 min-w-0">
+                  <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                  <input type="search" id="capabilitiesTreeSearch" data-testid="capabilities-tree-search" placeholder="Filter skills, references, or tools..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" autocomplete="off">
+                </div>
+              </div>
+              <div id="capabilitiesTreeList" data-testid="capabilities-tree-list" class="flex-1 min-h-[12rem] lg:min-h-0 max-h-[42vh] lg:max-h-none overflow-y-auto space-y-1.5 pr-1">
+                <div class="text-xs text-slate-500 italic p-2">Loading Agora skill folders...</div>
+              </div>
+            </div>
+
+            <!-- Right Pane: File Viewer / Editor & Tool Status Bar -->
+            <div id="capabilitiesInspectorPane" data-testid="capabilities-inspector-pane" class="lg:col-span-7 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-3 sm:p-4 space-y-3 min-w-0 lg:min-h-0 lg:overflow-y-auto">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/[0.06]">
+                <div class="min-w-0 flex items-center gap-2">
+                  <span id="capabilitiesActivePath" data-testid="capabilities-active-path" class="font-mono text-xs font-bold text-emerald-300 truncate">Select a skill folder to inspect</span>
+                  <span id="capabilitiesActiveSourceBadge" class="px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-[10px] font-mono text-slate-300 shrink-0">agora</span>
+                </div>
+                <button type="button" id="capabilitiesSaveFileBtn" data-testid="capabilities-save-btn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm shadow-emerald-600/20 transition flex items-center gap-1.5 shrink-0">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                  <span>Save File</span>
+                </button>
+              </div>
+
+              <div id="capabilitiesFeedbackBanner" data-testid="capabilities-feedback" class="hidden" role="status" aria-live="polite"></div>
+
+              <div id="capabilitiesToolStatusCard" data-testid="capabilities-tool-status-card" class="hidden"></div>
+
+              <div class="flex-1 flex flex-col min-h-[16rem] space-y-1.5">
+                <label for="capabilitiesFileEditor" class="text-[11px] font-semibold text-slate-400">File Content (<code class="text-slate-300">SKILL.md</code>, <code class="text-slate-300">references/*.md</code>, or <code class="text-slate-300">tools/*.py</code>)</label>
+                <textarea id="capabilitiesFileEditor" data-testid="capabilities-file-editor" rows="14" placeholder="Select a file from the Agora tree on the left..." class="flex-1 w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-100 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </div> <!-- #appRoot -->

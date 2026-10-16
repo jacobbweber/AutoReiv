@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Added
 
+- Added the unified Capabilities directory tree studio (`#view-capabilities`) for browsing Agora `skills/<id>/` folders (`SKILL.md`, `references/*.md`, `tools/*.py`), editing files in place, inspecting inferred schemas and safety checks, and toggling colocated tools on or off [CARD-690].
 - Agents and operators can now write `SKILL.md`, `references/*.md`, and `tools/*.py` directly into Agora skill folders via `write_skill_file` and `PUT /api/capabilities/skills/{skill_id}/file`, with `ToolCheckService` auto-enabling pure `read_only` tools while holding outside-access tools for review [CARD-689].
 - Added `skills: ["*"]` auto-scoped skill discovery and on-demand session tool mounting when an agent opens a skill with `skill_view` [CARD-688].
 - Skill folders (`skills/<id>/`) can now bundle `tools/*.py` (with schemas inferred automatically from `def run(...)` type annotations and docstrings) and `references/*.md` alongside `SKILL.md`, exposed through `/api/capabilities/tree`, `/api/capabilities/skills/{skill_id}/file`, and `/api/capabilities/skills/{skill_id}/tools/{tool_name}/toggle` [CARD-687].

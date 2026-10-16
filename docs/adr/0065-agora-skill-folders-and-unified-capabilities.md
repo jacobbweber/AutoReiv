@@ -79,8 +79,8 @@ Chosen option: **Option 1 (Agora Skill Folders + Dynamic `use_skill` + Unified C
 - Agents and operators author or update `skills/<id>/` (`SKILL.md`, `references/*.md`, `tools/*.py`) directly via `save_skill_file` (`write_skill_file` tool in `capability-authoring` and `PUT /api/capabilities/skills/{skill_id}/file`).
 - Pure `read_only` tools passing `ToolCheckService` with zero outside access (`check.status == "passed"`, `check.access == []`) auto-enable and mount immediately (`auto_enabled=True`), while tools with outside access (`network`, `files`, `programs`, `hidden_imports`) or non-`read_only` risk are saved disabled for operator approval.
 
-### Slice 4: Unified Capabilities Studio
-- Replaces `Skill Studio` (`skill_studio.js`) and `Tools Studio` (`tools_studio.js`) with a single **Capabilities** studio featuring an expandable Agora folder tree on the left and a file viewer/editor + enable/disable toggle on the right.
+### Slice 4 (`CARD-690`): Unified Capabilities Studio
+- Provides the unified **Capabilities** directory tree studio (`#dock-capabilities`, `#tab-capabilities`, `#view-capabilities`, `src/web/static/modules/studios/capabilities_studio.js`) featuring an expandable Agora folder tree on the left (`SKILL.md`, `references/*.md`, `tools/*.py`) and an in-place file viewer/editor + tool status & enable/disable toggle on the right.
 
 ---
 
@@ -89,3 +89,5 @@ Chosen option: **Option 1 (Agora Skill Folders + Dynamic `use_skill` + Unified C
 * `tests/unit/architecture/test_card687_agora_skill_folders.py` (`pytest.mark.guard`): Verifies that colocated `tools/*.py` and `references/*.md` inside a skill folder are discovered via AST without executing untrusted top-level code, infer valid JSON Schema parameters from `def run(...)`, enforce `.approvals.json` SHA-256 gating for user-authored code, and flow through `resolve_allowed_tools(agent)`.
 * `tests/unit/architecture/test_card688_auto_scoped_session_skills.py` (`pytest.mark.guard`): Verifies that `"*"` auto-scopes all non-hidden skills in `ticked_skills(agent)` and `resolve_allowed_tools(agent)`, keeps initial turn tool schemas lean (`REQUIRED_PLATFORM_TOOLS` + `skill_view` + `list_user_skills` + pinned skills), and dynamically mounts a skill's tools into `active_tools` as soon as `skill_view(skill_id)` is called in the session.
 * `tests/unit/architecture/test_card689_agora_self_build_and_auto_enable.py` (`pytest.mark.guard`): Verifies that `save_skill_file` (`write_skill_file` and `PUT /api/capabilities/skills/{skill_id}/file`) runs `ToolCheckService` before writing `tools/<name>.py`, refuses broken/unsafe code, auto-enables and mounts pure `read_only` tools with zero outside access, and saves outside-access tools disabled (`approval="disabled"`).
+* `tests/unit/architecture/test_card690_capabilities_tree_studio.py` (`pytest.mark.guard`): Verifies that the unified Capabilities directory tree studio is registered across `index.html`, `agent-desktop.js`, and `app.js`, routes all API calls through `services/api.js`, and contains no inline `onclick` handlers.
+
