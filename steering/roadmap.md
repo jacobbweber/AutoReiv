@@ -18,9 +18,10 @@
 - [x] **M25 Self-development** ([design note](self-development.md)): Developer builds, checks and live-tests changes on the active project; capability scoping follow-ups; journey testing.
 - [x] **1.0.0 released 2026-10-09** (tag `v1.0.0`). Every card on the board is Done.
 - [x] **M26 Agora Skill Folders & Unified Capabilities** ([ADR-0065](../docs/adr/0065-agora-skill-folders-and-unified-capabilities.md)): self-contained `skills/<id>/` folders (`SKILL.md`, `references/`, `tools/*.py` with AST schema inference), dynamic `use_skill` session mounting, inline self-building with risk-tiered approval, and a single Capabilities directory tree studio replacing Skill Studio and Tools Studio.
+- [x] **M27 Hands-Free Agora Adoption & Capabilities Consolidation**: auto-discover user Agora skill folders on `AutoReiv` via `user:*`, author `SKILL.md`/`references/`/`tools/*.py` inline in Chat, fold MCP server management and all deep-links into `#view-capabilities`, and retire the separate Skill Studio and Tools Studio launchers.
 
 ## Next
-- [ ] **M27 Hands-Free Agora Adoption & Capabilities Consolidation**: auto-discover user Agora skill folders on `AutoReiv` via `user:*`, author `SKILL.md`/`references/`/`tools/*.py` inline in Chat, fold MCP server management and all deep-links into `#view-capabilities`, and retire the separate Skill Studio and Tools Studio launchers.
+_(None currently scheduled)_
 
 ## Horizon
 The parked ideas (Studio Maker, Help Studio, companion, video and others: CARD-146, 170, 275, 277, 280, 283-289, 331, 393, 466, 487, 493, 494, 499, 542) were closed as not pursued before 1.0. Any of them can come back as a new card.
