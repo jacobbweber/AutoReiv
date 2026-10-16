@@ -15,6 +15,7 @@ import { initSettingsStudio } from './modules/studios/settings.js';
 import { initWikiStudio, exportMessageToWiki, exportSessionToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
+import { initCapabilitiesStudio } from './modules/studios/capabilities_studio.js';
 import { initSkillStudio } from './modules/studios/skill_studio.js';
 import { initToolsStudio } from './modules/studios/tools_studio.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
@@ -105,6 +106,7 @@ export function initApp() {
   let wikiCtrl = null;
   let projectsCtrl = null;
   let promptsCtrl = null;
+  let capabilitiesCtrl = null;
   let skillCtrl = null;
   let toolsCtrl = null;
   let educationCtrl = null;
@@ -128,7 +130,7 @@ export function initApp() {
       surfaceBtns.cockpit.className = activeSurfaceClass;
     } else if ((tabName === 'wiki' || tabName === 'projects') && surfaceBtns.vault) {
       surfaceBtns.vault.className = activeSurfaceClass;
-    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'skill-studio' || tabName === 'tools-studio' || tabName === 'settings') && surfaceBtns.fleet) {
+    } else if ((tabName === 'agents' || tabName === 'capabilities' || tabName === 'routines' || tabName === 'observability' || tabName === 'skill-studio' || tabName === 'tools-studio' || tabName === 'settings') && surfaceBtns.fleet) {
       surfaceBtns.fleet.className = activeSurfaceClass;
     }
   }
@@ -179,6 +181,8 @@ export function initApp() {
         obsCtrl.loadObservability();
       } else if (tabName === 'agents' && forgeCtrl) {
         forgeCtrl.loadAgentForge();
+      } else if (tabName === 'capabilities' && capabilitiesCtrl) {
+        capabilitiesCtrl.loadCapabilitiesStudio();
       } else if (tabName === 'skill-studio' && skillCtrl) {
         skillCtrl.loadSkillStudio();
       } else if (tabName === 'tools-studio' && toolsCtrl) {
@@ -266,6 +270,12 @@ export function initApp() {
       if (forgeCtrl && typeof forgeCtrl.loadAgentForge === 'function') {
         await forgeCtrl.loadAgentForge(agentId);
       }
+    },
+    openCapabilitiesStudio: (opts = {}) => {
+      if (capabilitiesCtrl && typeof capabilitiesCtrl.queueDeepLink === 'function') {
+        capabilitiesCtrl.queueDeepLink(opts);
+      }
+      switchTab('capabilities');
     },
     openSkillStudio: (agentId = null, skillId = null, opts = {}) => {
       if (skillCtrl && typeof skillCtrl.queueDeepLink === 'function') {
@@ -376,6 +386,12 @@ export function initApp() {
       },
     },
     {
+      name: 'Capabilities Studio',
+      init: () => {
+        capabilitiesCtrl = initCapabilitiesStudio(state, sharedCallbacks);
+      },
+    },
+    {
       name: 'Skill Studio',
       init: () => {
         skillCtrl = initSkillStudio(state, sharedCallbacks);
@@ -422,6 +438,9 @@ export function initApp() {
   });
   studioRegistry.register('agents', {
     getController: () => forgeCtrl,
+  });
+  studioRegistry.register('capabilities', {
+    getController: () => capabilitiesCtrl,
   });
   studioRegistry.register('skill-studio', {
     deactivate: () => {

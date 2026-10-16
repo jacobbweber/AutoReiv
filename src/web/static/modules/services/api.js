@@ -117,4 +117,22 @@ export const api = {
     get: (id) => api.get(`/api/routines/${encodeURIComponent(id)}`),
     trigger: (id) => api.post(`/api/routines/${encodeURIComponent(id)}/trigger`),
   },
+
+  capabilities: {
+    tree: () => api.get('/api/capabilities/tree'),
+    readFile: (skillId, relPath = 'SKILL.md') =>
+      api.get(`/api/capabilities/skills/${encodeURIComponent(skillId)}/file`, { path: relPath }),
+    saveFile: (skillId, relPath, content, sampleArguments = null) =>
+      api.put(`/api/capabilities/skills/${encodeURIComponent(skillId)}/file`, {
+        path: relPath,
+        content,
+        ...(sampleArguments ? { sample_arguments: sampleArguments } : {}),
+      }),
+    toggleTool: (skillId, toolName, enabled) =>
+      api.post(
+        `/api/capabilities/skills/${encodeURIComponent(skillId)}/tools/${encodeURIComponent(toolName)}/toggle`,
+        { enabled: Boolean(enabled) },
+      ),
+  },
 };
+

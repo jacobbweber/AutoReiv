@@ -110,6 +110,14 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
     defaultSize: { w: 820, h: 580 },
   },
   {
+    id: 'dock-capabilities',
+    tab: 'capabilities',
+    label: 'Capabilities',
+    icon: 'folder-tree',
+    subtitle: 'Agora skill folders & tools',
+    defaultSize: { w: 980, h: 680 },
+  },
+  {
     id: 'dock-skill-studio',
     tab: 'skill-studio',
     label: 'Skill Studio',
@@ -173,6 +181,7 @@ export const VIEW_BY_TAB = {
   wiki: 'view-wiki',
   projects: 'view-projects',
   agents: 'view-agents',
+  capabilities: 'view-capabilities',
   'skill-studio': 'view-skill-studio',
   'tools-studio': 'view-tools-studio',
   routines: 'view-routines',
