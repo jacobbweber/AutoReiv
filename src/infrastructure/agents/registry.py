@@ -429,6 +429,11 @@ class BuiltinAgentRegistry:
         catalog.mount_at_bootstrap()
         agent_registry.user_skill_catalog = catalog
 
+        # 13b. Mount enabled colocated Agora skill tools (skills/<id>/tools/*.py) [CARD-687, ADR-0065]
+        from src.application.skills.agora_loader import mount_all_enabled_skill_tools
+
+        mount_all_enabled_skill_tools(agent_registry._content, tool_registry)
+
         # 14. Validate skill tools: an unknown tool id is a warning and grants nothing [CARD-570]
         from src.application.agent_skills.tool_attachment import make_skill_write_guard
         from src.infrastructure.content.store import set_skill_write_guard, set_tool_registry

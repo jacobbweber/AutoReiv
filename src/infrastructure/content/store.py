@@ -277,10 +277,16 @@ class ContentStore:
         )
 
     def skill_tools(self, skill_ids: Iterable[str]) -> dict[str, list[str]]:
+        from src.application.skills.agora_loader import enabled_colocated_tool_names
+
         out: dict[str, list[str]] = {}
         for sid in skill_ids:
             loaded = self.skills.load(sid)
-            out[sid] = list(dict.fromkeys(loaded.tools)) if loaded else []
+            if loaded is None:
+                out[sid] = []
+                continue
+            combined = list(loaded.tools) + enabled_colocated_tool_names(self, sid)
+            out[sid] = list(dict.fromkeys(combined))
         return out
 
     def set_skill_tools(self, skill_id: str, tools: Iterable[str]) -> ContentFile:
