@@ -2,7 +2,7 @@
 id: CARD-692
 title: "Consolidate MCP servers and deep-links into Capabilities Studio and retire Skill/Tools Studio tabs"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M27
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-691-692-agora-adoption-and-consolidation
 log: {minutes: 35, qa_runs: 2, findings: 0}
 created: 2026-10-16
+completed: 2026-10-16
 ---
 
 # CARD-692 Consolidate MCP servers and deep-links into Capabilities Studio and retire Skill/Tools Studio tabs
