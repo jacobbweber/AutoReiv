@@ -152,7 +152,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
     ToolGroupManifest(
         id="capability-authoring",
         name="Capability Authoring",
-        description="Discovers tools, parks HITL skill/tool drafts, and commits approved skills. Owned by the developer agent.",
+        description="Discovers tools, authors Agora skill folder files, parks HITL drafts, and commits approved skills.",
         tier="cognition",
         icon="sparkles",
         tool_names=[
@@ -160,6 +160,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
             "propose_skill",
             "propose_tool",
             "commit_skill",
+            "write_skill_file",
         ],
     ),
 ]

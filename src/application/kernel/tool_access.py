@@ -123,6 +123,7 @@ WRITE_TOOLS: frozenset[str] = frozenset(
         "propose_skill",
         "propose_tool",
         "commit_skill",
+        "write_skill_file",
         # code, shell, remote
         "cli_exec",
         "execute_code",

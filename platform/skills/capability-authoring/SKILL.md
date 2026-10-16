@@ -1,14 +1,15 @@
 ---
 name: Capability Authoring
-description: Propose skills and tools, then commit the approved ones.
+description: Author Agora skill folders (SKILL.md, references/, tools/*.py) or propose and commit skill drafts.
 tools:
 - list_available_skills_and_tools
+- write_skill_file
 - propose_skill
 - propose_tool
 - commit_skill
 - list_user_skills
 - skill_view
-version: 1.1.0
+version: 1.2.0
 tier: platform
 safety:
   read_only: false
@@ -16,20 +17,21 @@ safety:
   untrusted_input_allowed: false
 verification:
   kind: assertion
-  rule: Approved skill drafts land in $DATA_DIR/skills via commit_skill.
+  rule: Agora skill folder files and approved skill drafts land in $DATA_DIR/skills via write_skill_file or commit_skill.
 ---
 
 # Capability Authoring
 
-Use this runbook when the operator wants a new or improved skill or tool. Developer owns that work. New agents are created by the operator in Agent Studio; there is no tool that creates agents.
+Use this runbook when the operator wants a new or improved skill or tool. New agents are created by the operator in Agent Studio; there is no tool that creates agents.
 
-Name this skill or the tool (`propose_skill`, `commit_skill`) in the turn so those tools mount. A coding turn does not mount them.
+Name this skill or open it with `skill_view("capability-authoring")` so its tools mount.
 
 ## Which write path
 
-1. **Skill or declared tool** - `propose_skill` or `propose_tool` parks a HITL draft. Do not write `SKILL.md` or Python under `src/` in that step. After Approve, `commit_skill` writes the approved proposal into `$DATA_DIR/skills`. Draft and rejected proposals fail closed.
-2. **Native custom tool** - use `native-tool-engineering` and `register_native_tool`. This skill does not replace that lane.
-3. **MCP server** - use `mcp-engineering`. MCP hosting stays in Settings.
+1. **Agora skill folder (`write_skill_file`)** - Write `SKILL.md`, `references/<name>.md`, or `tools/<tool_name>.py` directly under `$DATA_DIR/skills/<skill_id>/`. When writing `tools/<tool_name>.py`, define a module-level `def run(...)` with type hints and docstrings; `ToolCheckService` runs it in the sandbox and auto-enables pure `read_only` tools with zero outside access immediately for this session, while saving tools with network/file/program access as disabled for operator review.
+2. **Skill or declared tool draft (`propose_skill`, `propose_tool`, `commit_skill`)** - Parks a HITL draft. After Approve, `commit_skill` writes the approved proposal into `$DATA_DIR/skills`.
+3. **Native custom tool** - use `native-tool-engineering` and `register_native_tool`.
+4. **MCP server** - use `mcp-engineering`. MCP hosting stays in Settings.
 
 ## Do not use save_agent_specification
 
@@ -37,4 +39,4 @@ Name this skill or the tool (`propose_skill`, `commit_skill`) in the turn so tho
 
 ## Survey first
 
-Call `list_available_skills_and_tools` and `list_user_skills` before proposing a new skill. Extend an existing skill when a new one would only duplicate it. A skill is a job that groups several tools, not one skill per tool.
+Call `list_available_skills_and_tools` and `list_user_skills` before creating a new skill. Extend an existing skill when a new one would only duplicate it. A skill is a job that groups several tools, not one skill per tool.
