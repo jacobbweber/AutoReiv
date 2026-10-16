@@ -53,12 +53,22 @@ def test_the_cap_ranking_and_activation_are_gone():
 
 @pytest.mark.parametrize("agent_id", ["developer", "autoreiv", "architect", "tutor", "toolsmith"])
 def test_every_ticked_tool_is_sent_on_every_call(agent_id):
+    from src.application.agent_skills.allowed_tools import has_auto_skill_wildcard, pinned_skills
+
     agent = platform_pack_profile(agent_id)
     allowed = resolve_allowed_tools(agent)
+    expected = set(allowed.names)
+    if has_auto_skill_wildcard(agent):
+        pinned = set(pinned_skills(agent))
+        expected = (
+            set(REQUIRED_PLATFORM_TOOLS)
+            | {"skill_view", "list_user_skills"}
+            | {t for t in allowed.names if pinned & set(allowed.skills_for(t))}
+        )
     kernel = _kernel(_registry_with(allowed.names))
     for question in QUESTIONS:
         sent = {t.name for t in kernel._resolve_active_tools(agent, user_content=question)}
-        assert sent == set(allowed.names), (agent_id, question, set(allowed.names) ^ sent)
+        assert sent == expected, (agent_id, question, expected ^ sent)
     assert {"skill_view", "list_user_skills"} <= sent  # the skill index works for every agent with skills
     assert "activate_skill" not in sent
 
@@ -67,7 +77,7 @@ def test_developer_turn_one_gets_its_full_set():
     dev = platform_pack_profile("developer")
     names = resolve_allowed_tools(dev).names
     sent = [t.name for t in _kernel(_registry_with(names))._resolve_active_tools(dev, user_content="hi")]
-    assert len(sent) == len(names) == 27, sorted(sent)  # CARD-633: +run_journey (was 26 after CARD-632)
+    assert len(sent) == len(names) == 30, sorted(sent)  # CARD-693: project-cards + software-development
     for tool in ("read_project_file", "patch_project_file", "search_project", "run_project_checks", "skill_view",
                  "list_journey_reports", "read_journey_report", "summarize_journey_failures", "run_journey"):
         assert tool in sent

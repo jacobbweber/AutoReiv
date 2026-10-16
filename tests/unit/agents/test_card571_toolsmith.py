@@ -23,12 +23,13 @@ from tests.unit.agent_skills.catalog import platform_pack_profile
 ROOT = Path(__file__).resolve().parents[3]
 CODE = "def run(**kw):\n    return 1\n"
 TOOLSMITH_TOOLS = {
-    "register_native_tool", "view_native_tool", "plan_native_folder",
-    "list_available_skills_and_tools", "handoff_to_agent",  # CARD-596: Toolsmith hands off to Developer
+    "inspect_agent", "list_available_skills_and_tools", "list_user_skills", "skill_view",
+    "write_skill_file", "register_native_tool", "view_native_tool", "plan_native_folder",
+    "propose_skill", "propose_tool", "commit_skill",
 }
 FORBIDDEN = {
-    "cli_exec", "execute_code", "shell_exec", "run_shell", "run_command", "python_exec", "commit_skill",
-    "propose_skill", "propose_tool", "write_file", "patch_project_file", "write_project_file", "git_commit",
+    "cli_exec", "execute_code", "shell_exec", "run_shell", "run_command", "python_exec",
+    "write_file", "patch_project_file", "write_project_file", "git_commit",
 }
 
 
@@ -76,6 +77,7 @@ def test_no_model_controlled_skip_flag_on_the_native_lane():
     from src.application.skills.native_tool_engineering import NativeToolEngineeringTools
     from src.application.tools.tool_check import ToolCheckService
     from src.web.routers.native_tools import NativeToolRegisterRequest
+    from tests.unit.agent_skills.catalog import bundled_skill_md
 
     params = inspect.signature(ToolCheckService.check_native).parameters
     assert "sample_call" not in params and "skip_reason" not in params
@@ -84,7 +86,7 @@ def test_no_model_controlled_skip_flag_on_the_native_lane():
     assert not {"sample_call", "skip_reason"} & set(NativeToolRegisterRequest.model_fields)
     src = (ROOT / "src/application/skills/native_tool_engineering.py").read_text(encoding="utf-8")
     assert "sample_call" not in src and "skip_reason" not in src
-    skill = (ROOT / "platform/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
+    skill = bundled_skill_md("native-tool-engineering").read_text(encoding="utf-8")
     assert 'sample_call: "skip"' not in skill and "not run at all" in skill
 
 

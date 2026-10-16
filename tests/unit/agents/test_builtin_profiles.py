@@ -23,7 +23,7 @@ def test_developer_is_separate_pack_and_not_in_autoreiv():
 
     dev = platform_pack_profile("developer")
     assert dev.id == "developer"
-    assert "implement-change" in dev.allowed_skill  # CARD-562
+    assert "software-development" in dev.allowed_skill  # CARD-562, CARD-693
     assert "write_project_file" in list(resolve_allowed_tools(dev))
     assert "read_project_file" in list(resolve_allowed_tools(dev))
     assert "cli_exec" not in list(resolve_allowed_tools(dev))  # CARD-562: no shell/code runner on Developer

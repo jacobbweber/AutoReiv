@@ -3,9 +3,55 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from src.infrastructure.content.store import REPO_PLATFORM, ContentStore
+from src.infrastructure.content.store import (
+    CONSOLIDATED_SKILL_ALIASES,
+    REPO_PLATFORM,
+    ContentFile,
+    ContentStore,
+)
 
-PLATFORM_SKILL_IDS = ("autoreiv", "developer", "tutor", "direct", "architect")
+PLATFORM_SKILL_IDS = ("autoreiv", "tutor", "direct")
+
+_LEGACY_RETIRED_AGENT_SPECS: dict[str, dict] = {
+    "developer": {
+        "name": "Developer",
+        "description": "Retired coding worker persona (consolidated into AutoReiv software-development + project-cards; ADR-0066).",
+        "tone": "concise",
+        "purpose": "coding",
+        "avatar": "code-2",
+        "show_in_chat": True,
+        "max_turns": 25,
+        "skills": ["project-cards", "software-development"],
+        "body": (
+            "You are Developer (consolidated into AutoReiv via ADR-0066). "
+            "Read AGENTS.md first and run run_project_checks before In Review. "
+            "Building AutoReiv tools was Toolsmith's job."
+        ),
+    },
+    "architect": {
+        "name": "Architect",
+        "description": "Retired planning/review persona (consolidated into AutoReiv project-cards; ADR-0066).",
+        "tone": "concise",
+        "purpose": "reasoning",
+        "avatar": "compass",
+        "show_in_chat": True,
+        "max_turns": 15,
+        "skills": ["project-cards", "wiki-knowledge"],
+        "body": "You are Architect (consolidated into AutoReiv via ADR-0066).",
+    },
+    "toolsmith": {
+        "name": "Toolsmith",
+        "description": "Retired tool builder persona (consolidated into AutoReiv capability-authoring; ADR-0066).",
+        "tone": "concise",
+        "purpose": "coding",
+        "avatar": "hammer",
+        "show_in_chat": False,
+        "visibility": "internal",
+        "max_turns": 12,
+        "skills": ["capability-authoring"],
+        "body": "You are Toolsmith (consolidated into AutoReiv via ADR-0066).",
+    },
+}
 
 
 def platform_dir() -> Path:
@@ -14,8 +60,21 @@ def platform_dir() -> Path:
 
 def _item(agent_id: str):
     item = ContentStore(data_root=None).agents.load(agent_id)
-    assert item is not None, f"no shipped agent file for {agent_id}"
-    return item
+    if item is not None:
+        return item
+    spec = _LEGACY_RETIRED_AGENT_SPECS.get(agent_id)
+    assert spec is not None, f"no shipped agent file for {agent_id}"
+    meta = {k: v for k, v in spec.items() if k != "body"}
+    return ContentFile(
+        id=agent_id,
+        kind="agent",
+        meta=meta,
+        body=spec["body"],
+        path=REPO_PLATFORM / "agents" / f"{agent_id}.md",
+        source="shipped",
+        shipped=True,
+        shipped_hash="legacy",
+    )
 
 
 def load_platform_manifest(agent_id: str):
@@ -50,17 +109,22 @@ def platform_pack_profile(agent_id: str):
 
 
 def shipped_skill_tools() -> dict[str, tuple[str, ...]]:
-    """Every shipped skill id -> its SKILL.md ``tools:`` list."""
+    """Every shipped skill id -> its SKILL.md ``tools:`` list (plus ADR-0066 consolidated aliases)."""
     store = ContentStore(data_root=None)
-    return {item.id: tuple(item.tools) for item in store.skills.list()}
+    mapping = {item.id: tuple(item.tools) for item in store.skills.list()}
+    for old_id, target_id in CONSOLIDATED_SKILL_ALIASES.items():
+        if old_id not in mapping and target_id in mapping:
+            mapping[old_id] = mapping[target_id]
+    return mapping
 
 
 SHIPPED_SKILL_TOOLS = shipped_skill_tools()
-BUNDLED_SKILL_IDS: tuple[str, ...] = tuple(sorted(SHIPPED_SKILL_TOOLS))
+BUNDLED_SKILL_IDS: tuple[str, ...] = tuple(sorted(item.id for item in ContentStore(data_root=None).skills.list()))
 
 
 def bundled_skill_md(skill_id: str) -> Path:
-    return REPO_PLATFORM / "skills" / skill_id / "SKILL.md"
+    target = CONSOLIDATED_SKILL_ALIASES.get(skill_id, skill_id)
+    return REPO_PLATFORM / "skills" / target / "SKILL.md"
 
 
 def pack_dict(agent_id: str) -> dict:

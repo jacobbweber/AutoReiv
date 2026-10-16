@@ -107,7 +107,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
             "code": ECHO_CODE,
             "requires_hitl": False,
             "risk_level": "low",
-            "target_agent_id": "developer",
+            "target_agent_id": "tutor",
             "parameters": {
                 "type": "object",
                 "properties": {"token": {"type": "string"}},
@@ -123,7 +123,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     assert body["approval"] == "disabled"
     refused = client.post(
         "/api/tools/native/echo_token/invoke",
-        json={"agent_id": "developer", "arguments": {"token": "early"}, "approval_mode": "run"},
+        json={"agent_id": "tutor", "arguments": {"token": "early"}, "approval_mode": "run"},
     )
     assert refused.status_code == 409, refused.text
     assert body["origin_label"] == "Native custom"
@@ -132,14 +132,14 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     early = client.post(f"/api/approvals/{body['proposal']['approval_id']}/decision", json={"decision": "APPROVED"})
     assert early.status_code == 409, early.text
     listed_pending = client.get("/api/tools/native").json()["tools"][0]["pending_attach"]
-    assert [p["agent_id"] for p in listed_pending] == ["developer"]
+    assert [p["agent_id"] for p in listed_pending] == ["tutor"]
     # CARD-571 D5: enabling approves the code and accepts the attach proposal in one step.
     enabled = client.post("/api/tools/native/echo_token/enable")
     assert enabled.status_code == 200, enabled.text
     assert enabled.json()["mounted"] is True and enabled.json()["approval"] == "enabled"
     assert [a["approval_id"] for a in enabled.json()["accepted_attach"]] == [body["proposal"]["approval_id"]]
     assert store.get_approval(body["proposal"]["approval_id"])["status"] == "approved"
-    assert "echo_token" in set(client.get("/api/agents/developer").json().get("allowed_tools") or [])
+    assert "echo_token" in set(client.get("/api/agents/tutor").json().get("allowed_tools") or [])
     assert store.get_setting("mcp_servers") == before_mcp
 
     listed = client.get("/api/tools/native")
@@ -152,7 +152,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
 
     denied = client.post(
         "/api/tools/native/echo_token/invoke",
-        json={"agent_id": "autoreiv", "arguments": {"token": "nope"}, "approval_mode": "ask"},
+        json={"agent_id": "direct", "arguments": {"token": "nope"}, "approval_mode": "ask"},
     )
     assert denied.status_code == 200, denied.text
     denied_body = denied.json()
@@ -163,7 +163,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
 
     called = client.post(
         "/api/tools/native/echo_token/invoke",
-        json={"agent_id": "developer", "arguments": {"token": "desk"}, "approval_mode": "ask"},
+        json={"agent_id": "tutor", "arguments": {"token": "desk"}, "approval_mode": "ask"},
     )
     assert called.status_code == 200, called.text
     called_body = called.json()
@@ -178,7 +178,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     assert "echo_token" in remounted
     again = client.post(
         "/api/tools/native/echo_token/invoke",
-        json={"agent_id": "developer", "arguments": {"token": "again"}, "approval_mode": "ask"},
+        json={"agent_id": "tutor", "arguments": {"token": "again"}, "approval_mode": "ask"},
     )
     assert again.status_code == 200, again.text
     assert again.json()["output"]["token"] == "again"
@@ -191,8 +191,8 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     assert platform_ns
     assert all(item["origin_label"] == "Platform" for item in platform_ns)
 
-    developer = app.state.registry.get_agent("developer")
-    visible = app.state.kernel._resolve_active_tools(developer, "please run echo_token now")
+    tutor = app.state.registry.get_agent("tutor")
+    visible = app.state.kernel._resolve_active_tools(tutor, "please run echo_token now")
     assert "echo_token" in [tool.name for tool in visible]
 
     risky = client.post(
@@ -201,7 +201,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
             "name": "risky_note",
             "description": "A native tool that must park.",
             "code": RISKY_CODE,
-            "target_agent_id": "developer",
+            "target_agent_id": "tutor",
         },
     )
     assert risky.status_code == 200, risky.text
@@ -212,7 +212,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
 
     parked = client.post(
         "/api/tools/native/risky_note/invoke",
-        json={"agent_id": "developer", "arguments": {}, "approval_mode": "ask"},
+        json={"agent_id": "tutor", "arguments": {}, "approval_mode": "ask"},
     )
     assert parked.status_code == 200, parked.text
     parked_body = parked.json()
@@ -225,7 +225,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
 
     confirmed = client.post(
         "/api/tools/native/risky_note/invoke",
-        json={"agent_id": "developer", "arguments": {}, "approval_mode": "run"},
+        json={"agent_id": "tutor", "arguments": {}, "approval_mode": "run"},
     )
     assert confirmed.status_code == 200, confirmed.text
     assert confirmed.json()["ran"] is True
@@ -250,7 +250,7 @@ def test_oc423_native_lane_runs_without_mcp_and_hitl_parks(operator_client):
     assert all(row["name"] != "echo_token" for row in client.get("/api/tools/native").json()["tools"])
     gone = client.post(
         "/api/tools/native/echo_token/invoke",
-        json={"agent_id": "developer", "arguments": {}, "approval_mode": "run"},
+        json={"agent_id": "tutor", "arguments": {}, "approval_mode": "run"},
     )
     assert gone.status_code == 404, gone.text
 
@@ -298,29 +298,29 @@ def test_oc423_mcp_lane_groups_under_the_attached_server(operator_client):
 
 
 def test_oc423_developer_skills_describe_both_lanes(operator_client):
-    """REQ-423-004. Tool building is Toolsmith's shipped skill (CARD-571), not under .agents/."""
+    """REQ-423-004. Tool building is consolidated into capability-authoring on AutoReiv (CARD-693 / ADR-0066), not under .agents/."""
     client, _store, _wiki = operator_client
-    native_skill = (ROOT / "platform/skills/native-tool-engineering/SKILL.md").read_text(encoding="utf-8")
+    native_skill = (ROOT / "platform/skills/capability-authoring/SKILL.md").read_text(encoding="utf-8")
     mcp_skill = (ROOT / "platform/skills/mcp-engineering/SKILL.md").read_text(encoding="utf-8")
     assert "register_native_tool" in native_skill
     assert "plan_native_folder" in native_skill
     assert "ToolPolicyGate" in native_skill
     assert "folder picker" in native_skill.lower()
     assert "no MCP server" in native_skill
-    assert "native-tool-engineering" in mcp_skill
+    assert "native-tool-engineering" in mcp_skill or "capability-authoring" in mcp_skill
     assert "one tool per entry" in mcp_skill or "one tool per script" in mcp_skill
     assert "Settings" in mcp_skill
     assert not (ROOT / ".agents/skills/native-tool-engineering").exists()
 
-    toolsmith = client.app.state.registry.get_agent("toolsmith")
-    assert toolsmith is not None
-    assert "native-tool-engineering" in (toolsmith.allowed_skill or [])
-    developer = client.app.state.registry.get_agent("developer")
-    assert "native-tool-engineering" not in (developer.allowed_skill or [])
+    autoreiv = client.app.state.registry.get_agent("autoreiv")
+    assert autoreiv is not None
+    assert "capability-authoring" in (autoreiv.allowed_skill or [])
+    tutor = client.app.state.registry.get_agent("tutor")
+    assert "capability-authoring" not in (tutor.allowed_skill or [])
     assert "register_native_tool" in client.app.state.tool_registry
     assert "plan_native_folder" in client.app.state.tool_registry
-    assert "register_native_tool" in set(resolve_allowed_tools(toolsmith))
-    assert "register_native_tool" not in set(resolve_allowed_tools(developer))
+    assert "register_native_tool" in set(resolve_allowed_tools(autoreiv))
+    assert "register_native_tool" not in set(resolve_allowed_tools(tutor))
 
 
 def test_oc511_route_refuses_broken_native_tools_and_lists_checks(operator_client):

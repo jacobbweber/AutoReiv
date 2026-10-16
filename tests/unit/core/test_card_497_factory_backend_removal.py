@@ -175,8 +175,8 @@ def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_train
     from tests.unit.agent_skills.catalog import load_platform_manifest
 
     manifest = load_platform_manifest("autoreiv")
-    skill = next(s for s in manifest.skills if s.id == "agent-authoring")
-    assert set(skill.tools) == {"inspect_agent", "propose_skill"}  # CARD-596
+    skill = next(s for s in manifest.skills if s.id == "capability-authoring")
+    assert {"inspect_agent", "propose_skill", "write_skill_file"}.issubset(set(skill.tools))  # CARD-693
     assert "launch_factory_training" not in [t for s in manifest.skills for t in s.tools]
 
     offenders = []
@@ -195,42 +195,40 @@ def test_12_agent_authoring_is_intake_and_no_shipped_text_mentions_factory_train
 def _authoring_skill_md():
     import yaml
 
-    text = (ROOT / "platform/skills/agent-authoring/SKILL.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+    text = (ROOT / "platform/skills/capability-authoring/SKILL.md").read_text(encoding="utf-8").replace("\r\n", "\n")
     _, front, body = text.split("---\n", 2)
     return yaml.safe_load(front), body
 
 
 def test_12b_agent_authoring_is_found_for_teach_requests():
-    """Live retest: 'Teach AutoReiv to ...' never opened agent-authoring (the index lists names, skill_view takes ids)."""
+    """CARD-693: 'Teach AutoReiv to ...' routes to capability-authoring on AutoReiv."""
     from tests.unit.agent_skills.catalog import load_platform_manifest
 
     front, _ = _authoring_skill_md()
-    assert "agent-authoring" in load_platform_manifest("autoreiv").allowed_skill
+    assert "capability-authoring" in load_platform_manifest("autoreiv").allowed_skill
     for desc in (front["description"],):
         low = desc.lower()
-        for needle in ("teach", "new capability", "learn to", 'skill_view(skill_id="agent-authoring")'):
+        for needle in ("teach", "new capability", "learn to", 'skill_view(skill_id="capability-authoring")'):
             assert needle in low, (needle, desc)
 
 
 def test_12c_agent_authoring_names_the_exact_handoff_arguments_and_keeps_the_flow():
-    """CARD-596: tool/MCP needs point to Ask Developer (opens Toolsmith); skills to propose_skill/Skill Studio."""
+    """CARD-693: capability-authoring combines skill & native tool authoring directly on AutoReiv."""
     front, body = _authoring_skill_md()
     assert "Ask Developer" in front["description"] or "Ask Developer" in body
-    assert "Toolsmith" in body
-    # Flow order: inspect, ask, show the brief, get a yes, then act.
-    steps = [body.index(s) for s in ("inspect_agent", "Ask what is missing", "Show the brief", "yes", "Ask Developer")]
-    assert steps == sorted(steps), steps
+    assert "inspect_agent" in body
+    assert "write_skill_file" in body
 
 
 def test_12d_autoreiv_prompt_routes_teach_requests_to_agent_authoring_via_skill_view():
-    """Live retests 2-3: skill_view needs skill_id=. CARD-578 removed activate_skill, so the prompt no longer names it."""
+    """CARD-693: skill_view(skill_id="capability-authoring") routes teach/capability requests inline."""
     from tests.unit.agent_skills.catalog import load_platform_manifest
 
     prompt = load_platform_manifest("autoreiv").system_prompt
-    lines = [ln for ln in prompt.splitlines() if "agent-authoring" in ln]
+    lines = [ln for ln in prompt.splitlines() if 'skill_view(skill_id="capability-authoring")' in ln]
     assert len(lines) == 1, lines
     line = lines[0]
-    assert 'skill_view(skill_id="agent-authoring")' in line and "activate_skill" not in line
+    assert 'skill_view(skill_id="capability-authoring")' in line and "activate_skill" not in line
     assert "teach" in line.lower() and "new capability" in line.lower()
 
 

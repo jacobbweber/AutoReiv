@@ -129,7 +129,7 @@ class CardReviewTools:
         from src.domain.sdlc.models import extract_card_id, normalize_status, parse_card_frontmatter
 
         actor = str(get_tool_context().get("agent_id") or "").lower()
-        if actor != ARCHITECT_ID:
+        if actor not in (ARCHITECT_ID, "autoreiv"):
             return "Only Architect reviews cards with this tool. Jacob reviews by hand otherwise.", {}
         try:
             root = Path(self._root_resolver(None)).resolve()
