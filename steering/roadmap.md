@@ -22,7 +22,7 @@
 - [x] **M28 Three-Agent Roster & Agora Skill Consolidation** ([ADR-0066](../docs/adr/0066-consolidate-architect-developer-and-toolsmith-into-agora-skill-folders-on-autoreiv.md)): retire the separate `Architect`, `Developer`, and `Toolsmith` agents, consolidate their 17 micro-skills into 3 Agora skill folders (`capability-authoring`, `project-cards`, `software-development`) on `AutoReiv`, and ship a 3-agent roster (`AutoReiv`, `Tutor`, `Direct`).
 
 ## Next
-- None queued.
+- [ ] **M29 Post-1.1 Dogfooding, Operator Polish, Self-Development & Comparative Review**: dogfood Agora skill authoring end-to-end and fix post-registration reply/resolver overhead; polish failed-job reasons, session deletion, and tool-round token telemetry; exercise and harden `AutoReiv` self-development; review `/home/spark/projects/crucible` and `/home/spark/projects/Agent-OS` for enhancements to bring into AutoReiv.
 
 ## Horizon
 The parked ideas (Studio Maker, Help Studio, companion, video and others: CARD-146, 170, 275, 277, 280, 283-289, 331, 393, 466, 487, 493, 494, 499, 542) were closed as not pursued before 1.0. Any of them can come back as a new card.
