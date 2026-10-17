@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-16
+
+Unified Capabilities studio and 3-agent roster. Skill folders (`skills/<id>/`) now bundle `SKILL.md`, `references/*.md`, and `tools/*.py` (with schemas inferred from `def run(...)` and safety checks on save), managed together with MCP servers in the unified **Capabilities** studio (`#view-capabilities`). Shipped agents are simplified to `AutoReiv`, `Tutor`, and `Direct`, with `AutoReiv` auto-discovering user skills and mounting tools on demand via `skill_view`.
+
 ### Added
 
 - Simplified the shipped agent roster to `AutoReiv`, `Tutor`, and `Direct` by retiring `Architect`, `Developer`, and `Toolsmith` into cohesive Agora skill folders (`capability-authoring`, `project-cards`, `software-development`) on `AutoReiv` with on-demand `skill_view` tool mounting [CARD-693].
