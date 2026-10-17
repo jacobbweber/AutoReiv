@@ -547,6 +547,45 @@ async def refresh_models(request: Request, req: Optional[HardwareFitQueryRequest
     return [r.model_dump() for r in reports]
 
 
+@router.post("/api/models/probe-local")
+async def probe_local_models(request: Request, body: Optional[Dict[str, Any]] = None):
+    """Scan local inference ports (8000, 8006, 11434) and configured local URLs for /v1/models [CARD-703]."""
+    from src.application.models.local_probe import activate_discovered_model, probe_local_endpoints
+
+    payload = body or {}
+    store = getattr(request.app.state, "store", None)
+    gateway = getattr(request.app.state, "gateway", None)
+
+    explicit_activate = payload.get("activate")
+    if isinstance(explicit_activate, dict) and explicit_activate.get("model") and explicit_activate.get("base_url"):
+        activated = activate_discovered_model(
+            store,
+            gateway,
+            provider_id=str(explicit_activate.get("provider_id") or "vllm"),
+            base_url=str(explicit_activate["base_url"]),
+            model=str(explicit_activate["model"]),
+        )
+        return {"status": "activated", "activated": activated}
+
+    raw_ports = payload.get("ports")
+    raw_extra = payload.get("extra_urls")
+    extra_urls = [str(u) for u in raw_extra if str(u).strip()] if isinstance(raw_extra, list) else None
+
+    result = probe_local_endpoints(store=store, ports=raw_ports, extra_urls=extra_urls)
+    activated_info = None
+    if bool(payload.get("auto_activate")) and result["models"]:
+        first = result["models"][0]
+        activated_info = activate_discovered_model(
+            store,
+            gateway,
+            provider_id=first["provider_id"],
+            base_url=first["base_url"],
+            model=first["model"],
+        )
+    result["activated"] = activated_info
+    return result
+
+
 # CARD-506: POST /api/settings/agents/{id} removed; Agent Studio saves through PUT /api/agents/{id}.
 
 
