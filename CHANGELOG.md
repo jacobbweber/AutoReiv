@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Added
 
+- Added provenance-badged `search_past_chats` across active and archived chat sessions with per-turn search budgets [CARD-702].
 - Added live `ApprovalMode` (`strict` / `balanced` / `hands_off`) selector in Settings Studio with `read_only`, `state_change`, and `destructive` tool effect gating [CARD-701].
 - Added per-turn and per-job hierarchical span waterfall tracing (`/api/traces/{trace_id}` and UI trace inspector) with credential scrubbing [CARD-700].
 - Added token-verified context compaction (`Decisions`, `Open tasks`, `Key facts` + path/number/identifier verification, retry/backoff, and non-destructive `archive_links`) [CARD-699].

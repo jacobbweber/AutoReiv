@@ -12,6 +12,11 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
+from src.application.chat.past_chat_search import (
+    MAX_SEARCHES_PER_TURN,
+    PAST_CHATS_TOOL_NAME,
+    answer_now,
+)
 from src.application.kernel.reply_limits import DEFAULT_WIKI_LOOKUPS
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import ToolResult
@@ -27,25 +32,53 @@ WIKI_LOOKUP_HINT = " If two or three look-ups find nothing, stop and say plainly
 
 
 class WikiLookupBudget:
-    """Counts wiki look-ups that really run in one reply; past the budget they are answered without running."""
+    """Counts wiki look-ups and past-chat searches in one reply; past the budget they are answered without running."""
 
-    def __init__(self, budget: int = DEFAULT_WIKI_LOOKUPS) -> None:
+    def __init__(
+        self,
+        budget: int = DEFAULT_WIKI_LOOKUPS,
+        past_chat_budget: int = MAX_SEARCHES_PER_TURN,
+    ) -> None:
         self.budget = budget
         self.used = 0
         self.refused = 0
+        self.past_chat_budget = past_chat_budget
+        self.past_chat_used = 0
 
     @property
     def used_up(self) -> bool:
         return self.used >= self.budget
 
+    @property
+    def past_chat_used_up(self) -> bool:
+        return self.past_chat_used >= self.past_chat_budget
+
     def offer(self, tools: Optional[List[Any]]) -> Optional[List[Any]]:
-        """The tools to offer on the next model call: without the look-up tools once the budget is used up."""
-        if not tools or not self.used_up:
+        """The tools to offer on the next model call: without the look-up tools once their budget is used up."""
+        if not tools:
             return tools
-        return [t for t in tools if getattr(t, "name", None) not in WIKI_LOOKUP_TOOLS]
+        out = tools
+        if self.used_up:
+            out = [t for t in out if getattr(t, "name", None) not in WIKI_LOOKUP_TOOLS]
+        if self.past_chat_used_up:
+            out = [t for t in out if getattr(t, "name", None) != PAST_CHATS_TOOL_NAME]
+        return out
 
     def check(self, tc: ToolCall) -> Optional[ToolResult]:
         """None when the call may run (and counts it, even if it then errors or is a repeat); else "Not run"."""
+        if tc.name == PAST_CHATS_TOOL_NAME:
+            if self.past_chat_used >= self.past_chat_budget:
+                self.refused += 1
+                return ToolResult(
+                    call_id=tc.id,
+                    tool_name=tc.name,
+                    success=True,
+                    output=answer_now(self.past_chat_used),
+                    duration_ms=0.0,
+                )
+            self.past_chat_used += 1
+            return None
+
         if tc.name not in WIKI_LOOKUP_TOOLS:
             return None
         if self.used >= self.budget:
