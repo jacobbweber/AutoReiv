@@ -22,6 +22,7 @@ import {
   renderMcpServerListMarkup,
   serverToSaveBody,
 } from './tools_studio_catalog.js';
+import { setupRcaProposalsPanel } from './rca_proposals_panel.js';
 
 export const CAPABILITIES_STUDIO_TAB = 'capabilities';
 export const CAPABILITIES_STUDIO_LABEL = 'Capabilities';
@@ -300,8 +301,14 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
     }
   }
 
+  const rcaPanel = setupRcaProposalsPanel({
+    callbacks: _callbacks,
+    onInspectTool: (skillId, filePath) => selectSkillFile(skillId, filePath),
+  });
+
   async function loadCapabilitiesStudio() {
     try {
+      await rcaPanel.refreshRcaProposals();
       const data = await api.capabilities.tree();
       const rawSkills = Array.isArray(data && data.skills) ? data.skills : [];
       skillsTree = rawSkills.map(normalizeSkillEntry).filter(Boolean);

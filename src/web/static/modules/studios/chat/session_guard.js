@@ -78,3 +78,45 @@ export function ensureActiveSession(state, { createNewSession = null, showToastF
     return null;
   }, state.selectedAgentId || null);
 }
+
+/**
+ * Delete a chat session via DELETE /api/sessions/{id} and update state.sessions [CARD-696].
+ */
+export async function deleteSession(state, sessionId, opts = {}) {
+  if (!sessionId) return false;
+  const fetchFn = opts.fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
+  const selectSessionFn = opts.selectSessionFn || opts.onSelectSession || null;
+  const createNewSessionFn = opts.createNewSessionFn || null;
+  const sessionList = opts.sessionList || null;
+  const showToastFn = opts.showToastFn || null;
+  const renderSessionListFn = opts.renderSessionListFn || null;
+  try {
+    const res = await fetchFn(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+    if (!res || !res.ok) throw new Error(`HTTP ${res ? res.status : 'error'}`);
+    state.sessions = (state.sessions || []).filter((s) => s.id !== sessionId);
+    if (state.activeSessionId === sessionId) {
+      state.activeSessionId = null;
+      const next = state.sessions[0];
+      if (next && typeof selectSessionFn === 'function') {
+        await selectSessionFn(next.id);
+      } else if (typeof createNewSessionFn === 'function') {
+        await createNewSessionFn();
+      }
+    }
+    if (typeof renderSessionListFn === 'function') {
+      renderSessionListFn({
+        sessionList,
+        sessions: state.sessions,
+        activeSessionId: state.activeSessionId,
+        onSelectSession: selectSessionFn,
+      });
+    }
+    if (typeof showToastFn === 'function') showToastFn('Conversation deleted.', 'info');
+    return true;
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to delete session:', err);
+    if (typeof showToastFn === 'function') showToastFn(`Delete failed: ${err.message}`, 'error');
+    return false;
+  }
+}
+

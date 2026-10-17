@@ -21,6 +21,7 @@ import hashlib
 import json
 import logging
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -96,21 +97,19 @@ def _literal_default(node: ast.AST) -> tuple[bool, Any]:
         return False, None
 
 
-def extract_agora_tool_spec(path: Path, *, source: str = "user", skill_id: str = "") -> Optional[Dict[str, Any]]:
-    """Parse a colocated `tools/<name>.py` file via AST without importing or executing it."""
-    if not path.is_file() or path.suffix.lower() != ".py" or path.name.startswith(("_", ".")):
-        return None
-    name = path.stem.strip()
-    if not _TOOL_NAME_RE.match(name) or name.startswith("mcp_"):
-        return None
+@lru_cache(maxsize=512)
+def _extract_agora_tool_spec_cached(
+    code: str,
+    name: str,
+    filename: str,
+    path_str: str,
+    source: str,
+    skill_id: str,
+) -> Optional[Dict[str, Any]]:
     try:
-        code = path.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    try:
-        tree = ast.parse(code, filename=str(path))
+        tree = ast.parse(code, filename=path_str)
     except SyntaxError as exc:
-        logger.warning("Skipping Agora tool %s with syntax error: %s", path, exc)
+        logger.warning("Skipping Agora tool %s with syntax error: %s", path_str, exc)
         return None
 
     run_fn: Optional[ast.FunctionDef | ast.AsyncFunctionDef] = None
@@ -194,8 +193,8 @@ def extract_agora_tool_spec(path: Path, *, source: str = "user", skill_id: str =
         "parameters": parameters,
         "code": code,
         "code_sha256": code_sha256(code),
-        "path": str(path),
-        "relative_path": f"tools/{path.name}",
+        "path": path_str,
+        "relative_path": f"tools/{filename}",
         "source": source,
         "risk": declared_risk,
         "risk_level": risk_level,
@@ -204,6 +203,21 @@ def extract_agora_tool_spec(path: Path, *, source: str = "user", skill_id: str =
         "access_warning": access_warning(access),
         "path_safety_violation": path_violation,
     }
+
+
+def extract_agora_tool_spec(path: Path, *, source: str = "user", skill_id: str = "") -> Optional[Dict[str, Any]]:
+    """Parse a colocated `tools/<name>.py` file via AST without importing or executing it."""
+    if not path.is_file() or path.suffix.lower() != ".py" or path.name.startswith(("_", ".")):
+        return None
+    name = path.stem.strip()
+    if not _TOOL_NAME_RE.match(name) or name.startswith("mcp_"):
+        return None
+    try:
+        code = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    cached = _extract_agora_tool_spec_cached(code, name, path.name, str(path), source, skill_id)
+    return dict(cached) if cached is not None else None
 
 
 def _approvals_path(store: Any) -> Optional[Path]:

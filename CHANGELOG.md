@@ -4,6 +4,27 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-17
+
+Crucible and Agent-OS architectural enhancements (`M30`) and post-1.1 self-development hardening (`M29`). Adds token-verified context compaction with non-destructive `archive_links`, per-turn and per-job structured span waterfall tracing (`/api/traces/{trace_id}`) with credential scrubbing, live `ApprovalMode` (`strict` / `balanced` / `hands_off`) with tool effect tiers, provenance-badged `search_past_chats` across active and archived sessions, local inference port auto-probing (`8000, 8006, 11434`), staged RCA self-healing proposals on recurring tool or routine failures, and cleanup of retired `Developer` / `Toolsmith` / `Architect` references and the Chat header role pill.
+
+### Added
+
+- Added staged RCA self-healing proposals for recurring tool and routine failures with one-click repair in Chat [CARD-704].
+- Added local inference port auto-probing (`8000, 8006, 11434`) in Models Studio and `/api/models/probe-local` [CARD-703].
+- Added provenance-badged `search_past_chats` across active and archived chat sessions with per-turn search budgets [CARD-702].
+- Added live `ApprovalMode` (`strict` / `balanced` / `hands_off`) selector in Settings Studio with `read_only`, `state_change`, and `destructive` tool effect gating [CARD-701].
+- Added per-turn and per-job hierarchical span waterfall tracing (`/api/traces/{trace_id}` and UI trace inspector) with credential scrubbing [CARD-700].
+- Added token-verified context compaction (`Decisions`, `Open tasks`, `Key facts` + path/number/identifier verification, retry/backoff, and non-destructive `archive_links`) [CARD-699].
+- Added comparative architecture review of Crucible and Agent-OS (`docs/architecture-comparison-crucible-agent-os.md`) with prioritized enhancement recommendations for AutoReiv [CARD-698].
+
+### Fixed
+
+- Removed stale `Ask Developer` / `Developer` / `Toolsmith` / `Architect` agent references and buttons on `AutoReiv` replies, reconciled pre-`CARD-693` user `autoreiv.md` copies (`Ava`), and removed the non-functional `"Autonomous Multi-Agent Orchestrator"` pill from the Chat header [CARD-705].
+- Bound project alignment tools (`create_project`, `detect_drift`, `align_project`) into `project-cards` and hardened `AutoReiv`'s end-to-end self-development workflow across Chat and Projects Studio [CARD-697].
+- Reopened chats now show the failure reason and failed phase on failed jobs, chat sessions can be deleted from the sessions drawer (`DELETE /api/sessions/{id}`), and tool-call rounds record output token counts in telemetry and Metrics [CARD-696].
+- Dogfooded Agora skill authoring end-to-end, eliminated repeated SQLite lookups in `DataDirResolver.resolve()`, and prevented empty-reply failures after tool/skill registration [CARD-695].
+
 ## [1.1.0] - 2026-10-16
 
 Unified Capabilities studio and 3-agent roster. Skill folders (`skills/<id>/`) now bundle `SKILL.md`, `references/*.md`, and `tools/*.py` (with schemas inferred from `def run(...)` and safety checks on save), managed together with MCP servers in the unified **Capabilities** studio (`#view-capabilities`). Shipped agents are simplified to `AutoReiv`, `Tutor`, and `Direct`, with `AutoReiv` auto-discovering user skills and mounting tools on demand via `skill_view`.

@@ -1,6 +1,6 @@
 [project]
 name = "autoreiv"
-version = "1.1.0"
+version = "1.2.0"
 description = "Autonomous AI Agent Control Plane & Hybrid Execution Platform"
 readme = "README.md"
 requires-python = ">=3.10"

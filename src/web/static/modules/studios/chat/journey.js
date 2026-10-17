@@ -9,7 +9,8 @@ import { copyToClipboard } from '../../utils/clipboard.js';
 
 export function renderJourneyTimeline(data, chatJourneyContent, { jobPhaseState = {}, showToastFn = null } = {}) {
   if (!chatJourneyContent) return;
-  if (!data || (!data.jobs?.length && !data.tool_executions?.length && !data.artifacts?.length && !data.facts?.length)) {
+  const waterfallSpans = data?.trace_waterfall?.spans || [];
+  if (!data || (!data.jobs?.length && !data.tool_executions?.length && !data.artifacts?.length && !data.facts?.length && !waterfallSpans.length)) {
     chatJourneyContent.innerHTML = `
       <div class="text-center py-10 space-y-2 text-slate-400">
         <i data-lucide="compass" class="w-8 h-8 mx-auto text-slate-500"></i>
@@ -78,6 +79,53 @@ export function renderJourneyTimeline(data, chatJourneyContent, { jobPhaseState 
             ${phase.success_rule ? `<p class="text-[11px] text-slate-400 font-mono">Rule: ${escapeHtml(phase.success_rule)}</p>` : ''}
           </div>
         </div>
+      `;
+    });
+    html += '</div></div>';
+  }
+
+  if (waterfallSpans.length) {
+    const wf = data.trace_waterfall;
+    const totalMs = Number(wf.total_duration_ms || 0).toFixed(1);
+    html += `
+      <div class="space-y-2" data-trace-waterfall data-trace-id="${escapeHtml(wf.trace_id || '')}">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <h5 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Span Waterfall (${waterfallSpans.length} spans)</h5>
+          <span class="text-[10px] font-mono text-cyan-300" data-trace-total-ms>${totalMs}ms total</span>
+        </div>
+        <div class="space-y-1.5">
+    `;
+    waterfallSpans.forEach((span) => {
+      const depth = Math.min(4, Math.max(0, Number(span.depth || 0)));
+      const indentPx = depth * 12;
+      const pct = Math.min(100, Math.max(4, Number(span.percent_of_trace || 4)));
+      const isOk = span.status !== 'error';
+      const barColor = isOk ? 'bg-cyan-500/70' : 'bg-rose-500/80';
+      const badgeColor = isOk
+        ? 'text-emerald-300 border-emerald-800/60 bg-emerald-950/30'
+        : 'text-rose-300 border-rose-800/60 bg-rose-950/30';
+      const attrs = span.attributes || {};
+      const subLabel = attrs.tool || attrs.model || attrs.outcome || attrs.finish_reason || '';
+      const attrJson = JSON.stringify(attrs, null, 2);
+      html += `
+        <details class="rounded-lg bg-slate-900/60 border border-slate-700/60 text-[11px] overflow-hidden" data-waterfall-span="${escapeHtml(span.name || '')}" data-span-id="${escapeHtml(span.span_id || '')}" data-parent-span-id="${escapeHtml(span.parent_span_id || '')}">
+          <summary class="cursor-pointer select-none p-2 hover:bg-slate-800/50 transition space-y-1.5">
+            <div class="flex items-center justify-between gap-2 flex-wrap" style="padding-left: ${indentPx}px">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="font-mono font-semibold text-slate-100">${escapeHtml(span.name || '')}</span>
+                ${subLabel ? `<span class="text-[10px] font-mono text-slate-400 truncate max-w-[9rem]">${escapeHtml(String(subLabel))}</span>` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <span class="text-[10px] font-mono text-slate-300" data-span-duration-ms>${Number(span.duration_ms || 0).toFixed(1)}ms</span>
+                <span class="px-1.5 py-0.5 rounded text-[9px] border font-mono uppercase ${badgeColor}">${escapeHtml(span.status || 'ok')}</span>
+              </div>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-950 overflow-hidden">
+              <div class="h-full rounded-full ${barColor}" style="width: ${pct}%"></div>
+            </div>
+          </summary>
+          <pre class="p-2 bg-slate-950 border-t border-slate-800 text-[10px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap break-all">${escapeHtml(attrJson)}</pre>
+        </details>
       `;
     });
     html += '</div></div>';

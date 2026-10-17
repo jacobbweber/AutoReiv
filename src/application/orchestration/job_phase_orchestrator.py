@@ -411,7 +411,7 @@ class JobPhaseOrchestrator:
         phase.react_state = ReactState.FAILED
         phase.output_packet_json = packet.model_dump_json()
         self._store.update_phase(phase)
-        self._commit_checkpoint(phase, verifier_status="failed", hitl_park_state=False)
+        self._commit_checkpoint(phase, verifier_status="failed", hitl_park_state=False, last_fail_reason=error)
         job = self._store.update_job_status(phase.job_id, JobStatus.FAILED.value, current_phase_id=phase.id)
         logger.warning("Phase %s failed on job %s: %s", phase.id, job.id, error)
         return job

@@ -42,6 +42,7 @@ READ_TOOLS: frozenset[str] = frozenset(
         "get_active_plan",
         "get_session_info",
         "get_session_transcript",
+        "search_past_chats",
         "get_session_artifact",
         "get_agent_sessions",
         "read_document_file",
@@ -68,6 +69,7 @@ READ_TOOLS: frozenset[str] = frozenset(
         "ssh_read_file",
         # projects, repo, cards, specs
         "active_project_info",
+        "detect_drift",
         "list_project_dir",
         "read_project_file",
         "search_project",
@@ -131,6 +133,7 @@ WRITE_TOOLS: frozenset[str] = frozenset(
         "run_project_checks",
         # projects, repo, cards, specs
         "create_project",
+        "align_project",
         "write_project_file",
         "patch_project_file",
         "write_card",

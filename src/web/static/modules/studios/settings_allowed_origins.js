@@ -1,5 +1,8 @@
 /** CARD-602: Settings > Allowed browser origins (phone reverse proxy extras). */
 
+import { setupApprovalMode } from './settings_approval_mode.js';
+import { setupLocalModelProbe } from './settings_local_model_probe.js';
+
 export const ALLOWED_ORIGINS_URL = '/api/settings/allowed-origins';
 
 export function parseOriginsField(raw) {
@@ -37,6 +40,10 @@ export function setupAllowedOrigins({
   fetchFn = typeof fetch !== 'undefined' ? fetch : null,
 } = {}) {
   if (!doc) return;
+  if (typeof doc.getElementById === 'function' && doc.getElementById('approvalModeSelect')) {
+    setupApprovalMode({ doc, fetchFn });
+  }
+  setupLocalModelProbe({ doc, fetchFn });
   const els = {
     input: doc.getElementById('allowedOriginsInput'),
     saveBtn: doc.getElementById('allowedOriginsSaveBtn'),

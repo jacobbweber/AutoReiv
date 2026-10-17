@@ -66,3 +66,221 @@ def session_activity(store: Any, live_session_ids: Iterable[str] = ()) -> Dict[s
         except Exception:  # noqa: BLE001
             logger.debug("session_activity: approval scan failed", exc_info=True)
     return {"running": running, "waiting_approval": waiting}
+
+
+def build_session_journey(store: Any, session_id: str) -> Dict[str, Any]:
+    """Build the session journey payload for GET /api/chat/sessions/{session_id}/journey [CARD-135, CARD-696]."""
+    from src.application.orchestration.kill_resume import (
+        job_fail_reason,
+        job_stopped_by_operator,
+        job_waiting_for_answer,
+        phase_fail_reason,
+    )
+
+    sess = store.get_session(session_id) if hasattr(store, "get_session") else None
+
+    jobs_data = []
+    if hasattr(store, "list_jobs_for_session"):
+        raw_jobs = store.list_jobs_for_session(session_id)
+        for j in raw_jobs:
+            raw_phases = store.list_phases_for_job(j.id) if hasattr(store, "list_phases_for_job") else []
+            phases_list = []
+            for p in raw_phases:
+                verify_status = None
+                checker_name = getattr(p, "verify_checker", None)
+                pkt = getattr(p, "output_packet_json", None) or ""
+                p_status = p.status.value if hasattr(p.status, "value") else str(p.status)
+                if "verify_status: verified" in pkt:
+                    verify_status = "verified"
+                elif "verify_status: failed" in pkt:
+                    verify_status = "failed"
+                elif "skipped_no_checker" in pkt or (not (checker_name or "").strip() and p_status == "done"):
+                    verify_status = "skipped_no_checker"
+                elif (checker_name or "").strip() and p_status == "failed":
+                    verify_status = "failed"
+                phases_list.append({
+                    "id": p.id,
+                    "index": p.index,
+                    "name": p.name,
+                    "status": p_status,
+                    "assigned_agent_id": p.assigned_agent_id,
+                    "success_rule": p.success_rule,
+                    "verify_checker": checker_name,
+                    "verify_status": verify_status,
+                    "fail_reason": phase_fail_reason(p),
+                    "created_at": getattr(p, "created_at", None).isoformat() if hasattr(getattr(p, "created_at", None), "isoformat") else None,
+                    "updated_at": getattr(p, "updated_at", None).isoformat() if hasattr(getattr(p, "updated_at", None), "isoformat") else None,
+                })
+            phase_objs = list(raw_phases or [])
+            jobs_data.append({
+                "id": j.id,
+                "goal": j.goal,
+                "status": j.status.value if hasattr(j.status, "value") else str(j.status),
+                "created_at": j.created_at.isoformat() if hasattr(j.created_at, "isoformat") else str(j.created_at),
+                "phases": phases_list,
+                "stopped": job_stopped_by_operator(store, j, phase_objs),
+                "waiting_answer": job_waiting_for_answer(store, j, phase_objs),
+                "fail_reason": job_fail_reason(store, j, phase_objs),
+            })
+
+    tool_executions = []
+    if hasattr(store, "get_telemetry_spans"):
+        for s in store.get_telemetry_spans(session_id=session_id, limit=200):
+            if s.span_type == "tool":
+                tool_executions.append({
+                    "id": s.id,
+                    "tool_name": s.name,
+                    "duration_ms": round(s.duration_ms, 1),
+                    "success": s.success,
+                    "status": s.status,
+                    "error_message": s.error_message,
+                    "metadata": s.metadata or {},
+                    "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
+                })
+
+    artifacts_data = []
+    if hasattr(store, "list_artifacts_for_session"):
+        for a in store.list_artifacts_for_session(session_id):
+            artifacts_data.append({
+                "id": a.id,
+                "title": a.title,
+                "summary": a.summary,
+                "content_type": a.content_type,
+                "is_pinned": bool(a.is_pinned),
+                "created_at": a.created_at.isoformat() if hasattr(a.created_at, "isoformat") else str(a.created_at),
+            })
+
+    facts_data = []
+    if hasattr(store, "get_facts"):
+        for f in store.get_facts():
+            if f.get("source_session_id") == session_id:
+                facts_data.append({
+                    "entity": f.get("entity"),
+                    "key": f.get("key"),
+                    "value": f.get("value"),
+                    "confidence": f.get("confidence", 1.0),
+                })
+
+    from src.application.telemetry.span_waterfall import build_trace_waterfall
+
+    waterfall = build_trace_waterfall(store, session_id) or {
+        "trace_id": session_id,
+        "session_id": session_id,
+        "status": "ok",
+        "total_duration_ms": 0.0,
+        "span_count": 0,
+        "spans": [],
+        "waterfall": [],
+        "formatted_waterfall": "No spans in this trace.",
+        "formatted_waterfall_full": "No spans in this trace.",
+        "jsonl_path": "",
+    }
+
+    return {
+        "session_id": session_id,
+        "agent_id": sess.agent_id if sess else None,
+        "title": sess.title if sess else "Chat Session",
+        "jobs": jobs_data,
+        "tool_executions": tool_executions,
+        "artifacts": artifacts_data,
+        "facts": facts_data,
+        "trace_waterfall": waterfall,
+        "summary": {
+            "total_jobs": len(jobs_data),
+            "total_tools_executed": len(tool_executions),
+            "total_artifacts": len(artifacts_data),
+            "total_facts_learned": len(facts_data),
+            "total_spans": len(waterfall.get("spans") or []),
+        },
+    }
+
+
+def build_session_debug_payload(store: Any, registry: Any, session_id: str) -> Dict[str, Any]:
+    """Build the session debug inspector payload for GET /api/chat/sessions/{session_id}/debug [CARD-136, CARD-696, CARD-700]."""
+    from src.application.telemetry.span_waterfall import build_trace_waterfall
+
+    sess = store.get_session(session_id) if hasattr(store, "get_session") else None
+
+    msgs = store.get_messages(session_id=session_id) if hasattr(store, "get_messages") else []
+    formatted_messages = [
+        {
+            "role": m.role.value,
+            "content": m.content,
+            "name": m.name,
+            "tool_calls": [tc.model_dump() for tc in m.tool_calls] if m.tool_calls else None,
+            "tool_call_id": m.tool_call_id,
+        }
+        for m in msgs
+    ]
+
+    spans = store.get_telemetry_spans(session_id=session_id, limit=200) if hasattr(store, "get_telemetry_spans") else []
+    turn_spans = [s for s in spans if s.span_type == "turn"]
+    tool_spans = [s for s in spans if s.span_type == "tool"]
+
+    total_prompt_tokens = sum(s.prompt_tokens for s in turn_spans)
+    total_completion_tokens = sum(s.completion_tokens for s in turn_spans)
+    total_duration_ms = sum(s.duration_ms for s in spans)
+    timed_turns = [s for s in turn_spans if s.ttft_ms is not None]
+    avg_ttft_ms = sum(s.ttft_ms for s in timed_turns) / len(timed_turns) if timed_turns else 0.0
+
+    latest_turn = turn_spans[0] if turn_spans else None
+    active_model = latest_turn.model if latest_turn else "default"
+    active_provider = latest_turn.provider if latest_turn else "ollama"
+
+    system_prompt = ""
+    if sess and registry:
+        agent_profile = registry.get_profile(sess.agent_id)
+        if agent_profile:
+            system_prompt = agent_profile.system_prompt
+
+    facts = []
+    if hasattr(store, "get_facts"):
+        all_facts = store.get_facts()
+        facts = [f for f in all_facts if f.get("source_session_id") == session_id]
+
+    waterfall = build_trace_waterfall(store, session_id)
+
+    return {
+        "session_id": session_id,
+        "agent_id": sess.agent_id if sess else None,
+        "provider": active_provider,
+        "model": active_model,
+        "system_prompt": system_prompt,
+        "message_count": len(formatted_messages),
+        "raw_messages": formatted_messages,
+        "turn_spans": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "prompt_tokens": s.prompt_tokens,
+                "completion_tokens": s.completion_tokens,
+                "duration_ms": round(s.duration_ms, 1),
+                "success": s.success,
+                "metadata": s.metadata or {},
+                "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
+            }
+            for s in turn_spans
+        ],
+        "tool_payloads": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "duration_ms": round(s.duration_ms, 1),
+                "success": s.success,
+                "metadata": s.metadata or {},
+                "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
+            }
+            for s in tool_spans
+        ],
+        "trace_waterfall": waterfall,
+        "metrics": {
+            "total_turns": len(turn_spans),
+            "total_prompt_tokens": total_prompt_tokens,
+            "total_completion_tokens": total_completion_tokens,
+            "total_tokens": total_prompt_tokens + total_completion_tokens,
+            "total_duration_ms": round(total_duration_ms, 1),
+            "avg_ttft_ms": round(avg_ttft_ms, 1),
+        },
+        "active_facts": facts,
+    }
+

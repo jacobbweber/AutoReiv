@@ -715,6 +715,62 @@ async def get_journey_canvas_source(
     return snippet.model_dump(mode="json")
 
 
+@router.get("/api/traces")
+async def get_traces(
+    request: Request,
+    session_id: Optional[str] = None,
+    limit: int = 50,
+):
+    """List hierarchical span traces for recent turns and jobs [CARD-700]."""
+    from src.application.telemetry.span_waterfall import list_traces
+
+    store = getattr(request.app.state, "store", None)
+    traces = list_traces(store, session_id=session_id, limit=limit)
+    return {"traces": traces, "count": len(traces)}
 
 
+@router.get("/api/traces/{trace_id}")
+async def get_trace_waterfall(
+    request: Request,
+    trace_id: str,
+):
+    """Return the hierarchical parent-child span waterfall for a turn, session, or job [CARD-700]."""
+    from src.application.telemetry.span_waterfall import build_trace_waterfall
+
+    store = getattr(request.app.state, "store", None)
+    waterfall = build_trace_waterfall(store, trace_id)
+    if waterfall is None:
+        raise HTTPException(status_code=404, detail=f"Trace '{trace_id}' not found")
+    return waterfall
+
+
+@router.get("/api/telemetry/rca-proposals")
+async def get_rca_proposals(
+    request: Request,
+    min_failures: int = 1,
+    limit: int = 25,
+):
+    """List staged RCA self-healing proposals for recurring tool or routine failures [CARD-704]."""
+    from src.application.telemetry.rca_proposals import RcaProposalService
+
+    store = getattr(request.app.state, "store", None)
+    service = RcaProposalService(store=store)
+    proposals = service.list_proposals(min_failures=min_failures, limit=limit)
+    return {"proposals": proposals, "count": len(proposals)}
+
+
+@router.post("/api/telemetry/rca-proposals/{proposal_id:path}/dismiss")
+async def dismiss_rca_proposal(
+    request: Request,
+    proposal_id: str,
+):
+    """Dismiss a staged RCA self-healing proposal until a newer failure occurs [CARD-704]."""
+    from src.application.telemetry.rca_proposals import RcaProposalService
+
+    store = getattr(request.app.state, "store", None)
+    service = RcaProposalService(store=store)
+    try:
+        return service.dismiss_proposal(proposal_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 

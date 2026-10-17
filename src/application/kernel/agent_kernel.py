@@ -20,7 +20,9 @@ from src.application.kernel.empty_reply import (
     EMPTY_REPLY_MESSAGE,
     chat_note,
     is_empty_reply,
+    latest_user_prompt,
     model_history_rows,
+    post_tool_empty_fallback,
 )
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
@@ -62,6 +64,7 @@ from src.application.kernel.reply_rules import (  # CARD-599/600
 from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
     calculate_token_attribution,
+    extract_usage_tokens,
 )
 from src.application.kernel.tool_registry import ScopedToolRegistry, tool_not_offered_error
 from src.application.kernel.turn_limit import TURN_LIMIT_INSTRUCTION, TURN_LIMIT_REASON, turn_limit_reply
@@ -904,23 +907,10 @@ class AgentKernel:
                 resp = await self.gateway.complete(req)
                 turn_dur_ms = (time.perf_counter() - turn_start) * 1000
 
-                prompt_tokens = (
-                    resp.usage.get("prompt_tokens", 0)
-                    if isinstance(resp.usage, dict)
-                    else (getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0)
+                prompt_tokens, comp_tokens = extract_usage_tokens(resp.usage)
+                effective_user_prompt = user_content or next(
+                    (m.content for m in reversed(history) if m.role == Role.USER and m.content), ""
                 )
-                comp_tokens = (
-                    resp.usage.get("completion_tokens", 0)
-                    if isinstance(resp.usage, dict)
-                    else (getattr(resp.usage, "completion_tokens", 0) if resp.usage else 0)
-                )
-
-                effective_user_prompt = user_content or ""
-                if not effective_user_prompt:
-                    for m in reversed(history):
-                        if m.role == Role.USER and m.content:
-                            effective_user_prompt = m.content
-                            break
 
                 history_msgs = [
                     m for m in compacted_messages if m.role != Role.SYSTEM and m.content != effective_user_prompt
@@ -937,6 +927,7 @@ class AgentKernel:
                     tool_results_injected=tool_results,
                     completion=resp.message.content if resp.message else "",
                     reasoning=getattr(resp, "reasoning_content", None),
+                    tool_calls=resp.message.tool_calls if resp.message else None,
                 )
                 timing_breakdown = calculate_timing_attribution(
                     harness_prep_ms=harness_prep_ms,
@@ -1023,18 +1014,17 @@ class AgentKernel:
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
                 if is_empty_reply(assistant_msg.content, None):
-                    # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
-                    self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
-                    self._ace_flush_failed_turn(
-                        session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
-                    )
-                    raise EmptyModelReplyError(EMPTY_REPLY_MESSAGE, provider_id=provider_name)
-                user_req_text = user_content or ""
-                if not user_req_text and history:
-                    for hm in reversed(history):
-                        if hm.role == Role.USER and hm.content:
-                            user_req_text = hm.content
-                            break
+                    fallback_reply = post_tool_empty_fallback(history)
+                    if fallback_reply:
+                        assistant_msg.content = fallback_reply
+                    else:
+                        # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
+                        self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                        self._ace_flush_failed_turn(
+                            session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
+                        )
+                        raise EmptyModelReplyError(EMPTY_REPLY_MESSAGE, provider_id=provider_name)
+                user_req_text = latest_user_prompt(user_content, history)
 
                 gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
                     user_prompt=user_req_text, assistant_response=assistant_msg.content,
@@ -1444,10 +1434,9 @@ class AgentKernel:
             full_reasoning = "".join(accumulated_reasoning) if accumulated_reasoning else None
             turn_dur_ms = (time.perf_counter() - turn_start) * 1000
 
-            effective_user_prompt = user_content
-            if not effective_user_prompt:
-                last_user = next((m for m in reversed(compacted_messages) if m.role == Role.USER), None)
-                effective_user_prompt = last_user.content if last_user else ""
+            effective_user_prompt = user_content or next(
+                (m.content for m in reversed(compacted_messages) if m.role == Role.USER and m.content), ""
+            )
 
             history_msgs = [
                 m for m in compacted_messages if m.role != Role.SYSTEM and m.content != effective_user_prompt
@@ -1464,6 +1453,7 @@ class AgentKernel:
                 tool_results_injected=tool_results,
                 completion=full_content,
                 reasoning=full_reasoning,
+                tool_calls=collected_tool_calls,
             )
             timing_breakdown = calculate_timing_attribution(
                 harness_prep_ms=harness_prep_ms,
@@ -1516,21 +1506,21 @@ class AgentKernel:
             # If no tool calls returned, stream is complete
             if not collected_tool_calls:
                 if is_empty_reply(full_content, None):
-                    # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
-                    failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
-                    if failed_ev:
-                        yield failed_ev
-                    self._ace_flush_failed_turn(
-                        session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
-                    )
-                    yield KernelEvent(event_type=KernelEventType.ERROR, content=EMPTY_REPLY_MESSAGE, is_finished=True)
-                    return
-                user_req_text = user_content or ""
-                if not user_req_text and history:
-                    for hm in reversed(history):
-                        if hm.role == Role.USER and hm.content:
-                            user_req_text = hm.content
-                            break
+                    fallback_reply = post_tool_empty_fallback(history)
+                    if fallback_reply:
+                        full_content = fallback_reply
+                        yield KernelEvent(event_type=KernelEventType.TOKEN, content=full_content)
+                    else:
+                        # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
+                        failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                        if failed_ev:
+                            yield failed_ev
+                        self._ace_flush_failed_turn(
+                            session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
+                        )
+                        yield KernelEvent(event_type=KernelEventType.ERROR, content=EMPTY_REPLY_MESSAGE, is_finished=True)
+                        return
+                user_req_text = latest_user_prompt(user_content, history)
 
                 gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
                     user_prompt=user_req_text, assistant_response=full_content,

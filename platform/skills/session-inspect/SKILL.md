@@ -1,7 +1,8 @@
 ---
 name: Session inspect
-description: Transcripts, agent sessions, usage, session artifacts, and batch worker scans.
+description: Search past chats across hot and archived sessions, read transcripts, list agent sessions, usage, and session artifacts.
 tools:
+- search_past_chats
 - get_session_transcript
 - get_agent_sessions
 - get_agent_usage_summary
@@ -9,14 +10,15 @@ tools:
 
 # Session inspect
 
-Look at what agents actually did: transcripts, session lists, usage, artifacts, batch scans.
+Look at what agents and the operator discussed or did: provenance-badged past-chat search (`[Recent]` vs `[Archived]`), transcripts, session lists, usage, artifacts, batch scans.
 
 ## Order
 
-1. `get_agent_sessions` / `get_agent_usage_summary` to find the run.
-2. `get_session_transcript` for the turn-by-turn record.
-3. `get_session_artifact` when the run stored a file.
-4. `batch_worker_scan` for large partitioned reads.
+1. `search_past_chats` when the user asks what was decided or discussed in earlier chats (cites `[Recent]` or `[Archived]` + session date; stops after 1-2 searches).
+2. `get_agent_sessions` / `get_agent_usage_summary` to find the run.
+3. `get_session_transcript` for the turn-by-turn record.
+4. `get_session_artifact` when the run stored a file.
+5. `batch_worker_scan` for large partitioned reads.
 
 ## Pitfalls
 
@@ -25,4 +27,4 @@ Look at what agents actually did: transcripts, session lists, usage, artifacts, 
 
 ## Done-when
 
-- The user has the session facts they asked for, with ids they can reuse.
+- The user has the session facts they asked for, with ids and dates they can reuse.

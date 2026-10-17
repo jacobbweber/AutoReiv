@@ -32,7 +32,7 @@ const sortedPhases = (job) => (job && Array.isArray(job.phases)
   ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0))
   : []);
 
-/** Job strip state from a session journey [CARD-295]. Null when the chat has no job. */
+/** Job strip state from a session journey [CARD-295, CARD-696]. Null when the chat has no job. */
 export function hydrateJobPhaseStateFromJourney(journey) {
   const job = pickJourneyJob(journey);
   if (!job) return null;
@@ -41,7 +41,14 @@ export function hydrateJobPhaseStateFromJourney(journey) {
   const waitingAnswer = !stopped && job.waiting_answer === true; // CARD-613: a step asked a question; a reply continues it
   const activePhase = phases.find((p) => {
     const s = String(p.status || '').toLowerCase();
-    return s === 'waiting_approval' || s === 'running' || s === 'in_progress' || ((stopped || waitingAnswer) && s === 'queued');
+    return (
+      s === 'waiting_approval' ||
+      s === 'running' ||
+      s === 'in_progress' ||
+      s === 'failed' ||
+      s === 'error' ||
+      ((stopped || waitingAnswer) && s === 'queued')
+    );
   }) || phases[phases.length - 1] || null;
   const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
   const next = {
@@ -68,6 +75,14 @@ export function hydrateJobPhaseStateFromJourney(journey) {
     next.reactState = 'DONE';
   } else if (jobStatus === 'failed') {
     next.reactState = 'FAILED';
+    const reason = String(
+      job.fail_reason ||
+      job.last_fail_reason ||
+      job.error ||
+      (activePhase && (activePhase.fail_reason || activePhase.last_fail_reason || activePhase.error)) ||
+      ''
+    ).trim();
+    if (reason) next.failReason = reason;
   }
   return next;
 }

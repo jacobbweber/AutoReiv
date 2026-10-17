@@ -6,7 +6,6 @@ Sunday triage turns worthwhile findings into cards and deletes the rest with a r
 Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 
 ## M22 Clean baseline and process
-- 2026-09-27 | tests | test_card539_selection_narrows.py takes ~21 s; it is an ADR-0061 guard, so it should be fast enough for the guard tier. Cause (CARD-560 profile): every resolve_allowed_tools/ToolPolicyGate call runs DataDirResolver().resolve(), which opens the live DB twice to peek settings (~5 ms per call, 2,400 calls); the same cost hits every tool-policy check at runtime | from CARD-559 | src/application/agent_skills/allowed_tools.py, src/infrastructure/data/resolver.py
 - 2026-09-27 | preflight | the release tier's Playwright smoke stage is the largest (364 s, 73 tests); parallel pytest unit + integration is ~75 s | from CARD-560 | tests/e2e/smoke.spec.js, playwright.config.js
 - 2026-09-27 | tests | Settings updates card has no first-paint Vitest contract (folded from CARD-452) | CARD-561 triage | src/web/static/modules/studios/settings*
 - 2026-09-27 | updates | software-update auto scheduler defer-retry cadence and Windows restarter dry-run are unproven (folded from CARD-453) | CARD-561 triage | src/application/system/*update*
@@ -18,17 +17,15 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-09-27 | live-qa | openSessionByTitle cannot open an API-created Tutor chat: after switching #agentSelect to tutor the drawer shows only the auto 'Tutor Chat' and the click times out; card-454 journey uses New Conversation instead | from CARD-454 (recheck Tutor journey after CARD-562) | tests/e2e/journeys/lib/app.mjs, src/web/static/modules/studios/chat.js
 
 ## M24 Chat, jobs and tool reliability
-- 2026-09-27 | jobs | reopening a chat whose job failed shows Failed without the reason and names the last queued phase (folded from CARD-536) | CARD-561 triage | src/web/static/modules/studios/chat*
 - 2026-09-29 | hitl | /api/hitl/decide saves the approved tool's result row in both the phase session and the parent chat session (left over when CARD-557 closed) | from CARD-577 | src/web/routers/hitl.py
 - 2026-09-29 | settings | POST /api/settings/matrix silently turns max_concurrent_generations outside 1-3 into 1 (sent 4, saved 1, no error); clamp to 3 or return 400 | from battery 2026-09-29 | src/web/routers/settings.py
-- 2026-09-29 | telemetry | turn spans record completion_tokens 0 for most rounds that end in tool calls (vLLM Spark 14/22 AutoReiv turns, Ollama Nimo 13/31 turns), so usage summaries undercount output; TTFT also includes the wait for a generation slot | from battery 2026-09-29 | src/application/kernel/agent_kernel.py, src/application/gateway
 - 2026-09-29 | chat | /api/chat/stream accepts any approval_mode; only 'run' auto-approves and anything else (e.g. 'auto') silently means ask, so scripts that send 'auto' get approval parks with no hint | from battery 2026-09-29 | src/application/kernel/tool_registry.py, src/web/routers/chat.py
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
-- 2026-09-27 | kernel | agent reply can end with "Reply failed: The model returned an empty reply" right after registering a tool (folded from CARD-538) | CARD-561 triage | src/application/kernel/agent_kernel.py
-- 2026-09-28 | projects | create_project / detect_drift / align_project are not bound to any skill yet | from CARD-562 | src/application/sdlc/projects_service.py
-- 2026-09-28 | mcp | MCP engineering tools still resolve their root with resolve_root instead of the selected project / refusal | from CARD-562 | src/application/skills/mcp_engineering_tools.py
 - 2026-09-28 | live-qa | the journey hangs (instead of failing) when the chat stream returns an error event before any reply | from CARD-562 | tests/e2e/journeys/card-562-developer-one-card-to-in-review.mjs
 - 2026-09-29 | tests | 5 legacy capability-authoring / MCP-building tests stay skipped (commit_skill, agent builder job phase, MCP dev deploy, oc428, oc429) | from CARD-571 | tests/unit/orchestration, tests/integration/mcp, tests/integration/operator_contracts
-- 2026-09-28 | sessions | no supported way to delete a chat session (DELETE /api/sessions/{id} is 405) | from CARD-562 | src/web/routers/chat.py
+
+## M29 Self-development and dogfooding
+- 2026-10-17 | projects-ui | `#chatActiveProjectPill` (`chat.js:385`) and `#projectsPairDeveloperBtn` (`projects.js:782`) still hardcode `selectedAgentId === 'developer'` after `developer` was folded into `autoreiv` (`CARD-682`), hiding the active-project pill for `autoreiv` | from CARD-697 | src/web/static/modules/studios/chat.js, src/web/static/modules/studios/projects.js, tests/unit/frontend/developer_projects_integration.test.js
+

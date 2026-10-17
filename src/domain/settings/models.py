@@ -76,6 +76,10 @@ class ModelPurposeMatrix(BaseModel):
         le=3,
         description="Global Ollama generation semaphore cap [REQ-ORCH-038]. Extra work queues.",
     )
+    approval_mode: str = Field(
+        default="balanced",
+        description="Live runtime ApprovalMode: strict, balanced, or hands_off [CARD-701].",
+    )
 
 
 class AgentCustomization(BaseModel):
