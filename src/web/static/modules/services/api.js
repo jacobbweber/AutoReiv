@@ -156,6 +156,9 @@ export const api = {
           : `/api/settings/mcp/${cleanName}`;
       return api.delete(url);
     },
+    listRcaProposals: (params = null) => api.get('/api/telemetry/rca-proposals', params),
+    dismissRcaProposal: (proposalId) =>
+      api.post(`/api/telemetry/rca-proposals/${encodeURIComponent(String(proposalId || '').trim())}/dismiss`),
   },
 };
 
