@@ -13,5 +13,5 @@
 - [Developer guide](developer.md): setup, code layout, checks, branches and releases.
 - [AGENTS.md](../AGENTS.md): how changes are made, step by step.
 - [1.0 acceptance checklist](acceptance-checklist-1.0.md): the end-to-end check run before 1.0.
-- [Architecture decisions](adr/), [findings](findings.md) and the [steering notes](../steering/).
+- [Architecture decisions](adr/), [comparative architecture review](architecture-comparison-crucible-agent-os.md), [findings](findings.md) and the [steering notes](../steering/).
 - History: [design notes](design/), [education notes](education/) and [archived specs](archive_artifacts/).

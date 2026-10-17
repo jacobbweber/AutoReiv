@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Added
+
+- Added comparative architecture review of Crucible and Agent-OS (`docs/architecture-comparison-crucible-agent-os.md`) with prioritized enhancement recommendations for AutoReiv [CARD-698].
+
 ### Fixed
 
 - Bound project alignment tools (`create_project`, `detect_drift`, `align_project`) into `project-cards` and hardened `AutoReiv`'s end-to-end self-development workflow across Chat and Projects Studio [CARD-697].
