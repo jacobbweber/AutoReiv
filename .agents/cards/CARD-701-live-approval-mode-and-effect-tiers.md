@@ -2,7 +2,7 @@
 id: CARD-701
 title: "Live ApprovalMode in Settings UI with read_only and state_change tool effect tiers"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M30
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-701-live-approval-mode-and-effect-tiers
 log: {minutes: 25, qa_runs: 2, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-701 Live ApprovalMode in Settings UI with read_only and state_change tool effect tiers
