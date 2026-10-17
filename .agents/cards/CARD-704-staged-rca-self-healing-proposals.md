@@ -2,7 +2,7 @@
 id: CARD-704
 title: "Staged RCA self-healing proposals on recurring tool or routine failures"
 type: feature
-status: In Review
+status: Done
 priority: P3
 milestone: M30
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-704-staged-rca-self-healing-proposals
 log: {minutes: 23, qa_runs: 1, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-704 Staged RCA self-healing proposals on recurring tool or routine failures
