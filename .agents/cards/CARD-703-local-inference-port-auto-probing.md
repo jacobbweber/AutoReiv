@@ -2,7 +2,7 @@
 id: CARD-703
 title: "Local inference port auto-probing in Models Studio and startup"
 type: feature
-status: In Review
+status: Done
 priority: P3
 milestone: M30
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-703-local-inference-port-auto-probing
 log: {minutes: 15, qa_runs: 2, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-703 Local inference port auto-probing in Models Studio and startup
