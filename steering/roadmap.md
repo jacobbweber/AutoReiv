@@ -21,7 +21,7 @@
 - [x] **M27 Hands-Free Agora Adoption & Capabilities Consolidation**: auto-discover user Agora skill folders on `AutoReiv` via `user:*`, author `SKILL.md`/`references/`/`tools/*.py` inline in Chat, fold MCP server management and all deep-links into `#view-capabilities`, and retire the separate Skill Studio and Tools Studio launchers.
 
 ## Next
-_(None currently scheduled)_
+- [ ] **M28 Three-Agent Roster & Agora Skill Consolidation** ([ADR-0066](../docs/adr/0066-consolidate-architect-developer-and-toolsmith-into-agora-skill-folders-on-autoreiv.md)): retire the separate `Architect`, `Developer`, and `Toolsmith` agents, consolidate their 18 micro-skills into 3 Agora skill folders (`capability-authoring`, `project-cards`, `software-development`) on `AutoReiv`, and ship a 3-agent roster (`AutoReiv`, `Tutor`, `Direct`).
 
 ## Horizon
 The parked ideas (Studio Maker, Help Studio, companion, video and others: CARD-146, 170, 275, 277, 280, 283-289, 331, 393, 466, 487, 493, 494, 499, 542) were closed as not pursued before 1.0. Any of them can come back as a new card.

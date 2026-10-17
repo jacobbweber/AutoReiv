@@ -8,8 +8,8 @@ from src.domain.gateway.models import ToolCall
 from tests.unit.agent_skills.catalog import platform_pack_profile
 
 PLANNING = {
-    "active_project_info", "read_project_file", "search_project", "list_project_dir", "read_steering",
-    "list_cards", "read_card", "write_card", "set_card_status", "hand_off_card", "review_card", "finish_review",
+    "active_project_info", "read_steering",
+    "list_cards", "read_card", "write_card", "set_card_status", "review_card", "finish_review",
 }
 FORBIDDEN = {
     "write_project_file", "patch_project_file", "run_project_checks", "git_commit", "git_create_branch",
@@ -36,10 +36,10 @@ class _Store:
 
 
 def test_review_verdict_needs_no_click():
-    """CARD-564 D1: review_card and finish_review run without approval (hand_off_card asks unless autorun, CARD-566)."""
+    """CARD-564 D1 / CARD-693: review_card and finish_review run without approval."""
     gate = ToolPolicyGate(_Store())
     arch = platform_pack_profile("architect")
     for name in ("review_card", "finish_review"):
         call = ToolCall(id="1", name=name, arguments={"card_id": "CARD-2"})
         assert gate.evaluate(call, arch).verdict == ToolPolicyVerdict.ALLOW, name
-    assert "review_card" not in set(resolve_allowed_tools(platform_pack_profile("developer")).ordered)
+    assert "review_card" not in set(resolve_allowed_tools(platform_pack_profile("tutor")).ordered)

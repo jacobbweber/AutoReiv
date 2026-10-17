@@ -124,16 +124,16 @@ def test_api_studio_edit_use_shipped_hide_and_reserved(tmp_path, monkeypatch):
         back = client.get("/api/agents/tutor").json()
         assert back["file_status"]["source"] == "shipped" and "CARD-570 edit." not in back["system_prompt"]
 
-        refused = client.post("/api/agents", json={"id": "developer", "name": "Dev", "description": "d", "system_prompt": "You are a developer copy."})
+        refused = client.post("/api/agents", json={"id": "tutor", "name": "Tut", "description": "d", "system_prompt": "You are a tutor copy."})
         assert refused.status_code == 409
 
-        assert client.delete("/api/agents/architect").status_code == 200
-        assert "architect" not in {a["id"] for a in client.get("/api/agents").json()}
+        assert client.delete("/api/agents/direct").status_code == 200
+        assert "direct" not in {a["id"] for a in client.get("/api/agents").json()}
     reset_store()
     with TestClient(create_app()) as client:  # restart: still hidden, then unhide
-        assert "architect" not in {a["id"] for a in client.get("/api/agents").json()}
-        assert client.post("/api/agents/architect/unhide").status_code == 200
-        assert "architect" in {a["id"] for a in client.get("/api/agents").json()}
+        assert "direct" not in {a["id"] for a in client.get("/api/agents").json()}
+        assert client.post("/api/agents/direct/unhide").status_code == 200
+        assert "direct" in {a["id"] for a in client.get("/api/agents").json()}
     configure(None)
 
 

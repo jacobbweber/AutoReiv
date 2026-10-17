@@ -118,6 +118,27 @@ class ContentFile:
         }
 
 
+CONSOLIDATED_SKILL_ALIASES: dict[str, str] = {
+    "agent-authoring": "capability-authoring",
+    "native-tool-engineering": "capability-authoring",
+    "project-orientation": "project-cards",
+    "brainstorm": "project-cards",
+    "card-intake": "project-cards",
+    "card-writing": "project-cards",
+    "plan-change": "project-cards",
+    "hand-off": "project-cards",
+    "review": "project-cards",
+    "implement-change": "software-development",
+    "write-tests": "software-development",
+    "debug": "software-development",
+    "run-checks": "software-development",
+    "git-workflow": "software-development",
+    "code-review": "software-development",
+    "codebase-audit": "software-development",
+    "journey-qa": "software-development",
+}
+
+
 class _Kind:
     def __init__(self, kind: str, shipped_dir: Path, user_dir: Optional[Path]):
         self.kind = kind
@@ -178,6 +199,22 @@ class _Kind:
         user = self.user_path(clean)
         path, source = (user, "user") if user and user.is_file() else (self.shipped_path(clean), "shipped")
         if not path.is_file():
+            if self.kind == "skill" and clean in CONSOLIDATED_SKILL_ALIASES and self.shipped_dir == REPO_PLATFORM / "skills":
+                alias_target = CONSOLIDATED_SKILL_ALIASES[clean]
+                aliased = self.load(alias_target, include_hidden=include_hidden)
+                if aliased is not None:
+                    return ContentFile(
+                        id=clean,
+                        kind=aliased.kind,
+                        meta=dict(aliased.meta),
+                        body=aliased.body,
+                        path=aliased.path,
+                        source=aliased.source,
+                        shipped=aliased.shipped,
+                        shipped_hash=aliased.shipped_hash,
+                        based_on=aliased.based_on,
+                        warnings=list(aliased.warnings),
+                    )
             return None
         meta, body = split_frontmatter(path.read_text(encoding="utf-8"))
         based_on = meta.pop("based_on", None) if source == "user" else None

@@ -79,9 +79,9 @@ export default {
     await j.step('Click Manage skills in Agents Studio and verify it deep-links into Capabilities Studio skill tree', async () => {
       await openTab(page, 'agents');
       await page.locator('#forgeAgentSelect').waitFor({ state: 'visible', timeout: 20000 });
-      await waitFor(async () => (await page.locator('#forgeAgentSelect option[value="architect"]').count()) > 0, { timeoutMs: 20000 });
-      await page.selectOption('#forgeAgentSelect', 'architect');
-      await waitFor(async () => /architect/i.test(await page.inputValue('#forgeNameInput').catch(() => '')), { timeoutMs: 20000 });
+      await waitFor(async () => (await page.locator('#forgeAgentSelect option[value="autoreiv"]').count()) > 0, { timeoutMs: 20000 });
+      await page.selectOption('#forgeAgentSelect', 'autoreiv');
+      await waitFor(async () => /autoreiv/i.test(await page.inputValue('#forgeNameInput').catch(() => '')), { timeoutMs: 20000 });
 
       const capsDetails = page.locator('details[data-section="capabilities"]');
       await waitFor(async () => (await capsDetails.getAttribute('aria-busy').catch(() => 'true')) !== 'true', { timeoutMs: 20000 });

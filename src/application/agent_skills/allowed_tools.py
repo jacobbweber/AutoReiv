@@ -63,6 +63,7 @@ def _field(agent: Any, *names: str) -> Any:
 AUTO_SKILL_WILDCARD = "*"
 AUTO_USER_SKILL_WILDCARD = "user:*"
 _AUTO_SKILL_TOKENS = frozenset({AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD})
+ON_DEMAND_SHIPPED_SKILLS = frozenset({"project-cards", "software-development"})
 
 
 def _raw_skill_tokens(agent: Any) -> list[str]:
@@ -80,8 +81,12 @@ def has_auto_skill_wildcard(agent: Any) -> bool:
 
 
 def pinned_skills(agent: Any) -> list[str]:
-    """Explicitly listed skill ids on the agent (excluding '*' and 'user:*') [CARD-688, CARD-691]."""
-    return [s for s in _raw_skill_tokens(agent) if s not in _AUTO_SKILL_TOKENS]
+    """Always-mounted skill ids on an auto-scoped agent (excluding '*', 'user:*', and on-demand SDLC skills) [CARD-688, CARD-691, CARD-693]."""
+    return [
+        s
+        for s in _raw_skill_tokens(agent)
+        if s not in _AUTO_SKILL_TOKENS and s not in ON_DEMAND_SHIPPED_SKILLS
+    ]
 
 
 def ticked_skills(agent: Any) -> list[str]:
