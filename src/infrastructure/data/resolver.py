@@ -151,12 +151,11 @@ class DataDirResolver:
         return path
 
 
-    def _peek_setting_wiki_path(self) -> Optional[str]:
-        """Read wiki_path from the active data root DB when DATA_DIR is set.
+    def _active_setting_db_candidates(self) -> list[Path]:
+        """Candidate DB paths for the active data root.
 
         Never fall through to platform_default AppData when AUTOREIV_DATA_DIR (or an
-        explicit setting_data_dir) isolates the root — that leak made Docker/unset
-        hard-fail tests and fresh temp roots inherit the live wiki path.
+        explicit setting_data_dir) isolates the root [CARD-695].
         """
         candidates: list[Path] = []
         env_data = os.environ.get(ENV_DATA_DIR)
@@ -165,7 +164,7 @@ class DataDirResolver:
         if self.setting_data_dir and str(self.setting_data_dir).strip():
             candidates.append(Path(str(self.setting_data_dir).strip()).expanduser() / "database" / "autoreiv.db")
         env_db = os.environ.get(ENV_DB_PATH)
-        if env_db and str(env_db).strip():
+        if env_db and str(env_db).strip() and str(env_db).strip() != ":memory:":
             candidates.append(Path(str(env_db).strip()).expanduser())
         if not candidates:
             candidates.extend(
@@ -174,12 +173,18 @@ class DataDirResolver:
                     self.legacy_db_path(),
                 )
             )
+        out: list[Path] = []
         seen: set[str] = set()
         for db_path in candidates:
             key = str(db_path).lower()
-            if key in seen:
-                continue
-            seen.add(key)
+            if key not in seen:
+                seen.add(key)
+                out.append(db_path)
+        return out
+
+    def _peek_setting_wiki_path(self) -> Optional[str]:
+        """Read wiki_path from the active data root DB when DATA_DIR is set."""
+        for db_path in self._active_setting_db_candidates():
             value = _read_sqlite_setting(db_path, WIKI_PATH_SETTING_KEY)
             if isinstance(value, str) and value.strip():
                 return value.strip()
@@ -214,11 +219,7 @@ class DataDirResolver:
         return None
 
     def _peek_setting_backup_dir(self) -> Optional[str]:
-        candidates = (
-            self.platform_default() / "database" / "autoreiv.db",
-            self.legacy_db_path(),
-        )
-        for db_path in candidates:
+        for db_path in self._active_setting_db_candidates():
             value = _read_sqlite_setting(db_path, BACKUP_DIR_SETTING_KEY)
             if isinstance(value, str) and value.strip():
                 return value.strip()
@@ -407,9 +408,33 @@ class DataDirResolver:
             ) from exc
 
 
-def _read_sqlite_setting(db_path: Path, key: str) -> Optional[object]:
+_SQLITE_SETTING_CACHE: dict[tuple[str, int, int, int, int, str], Optional[object]] = {}
+_SQLITE_SETTING_CACHE_MAX = 512
+
+
+def _db_stat_signature(db_path: Path) -> Optional[tuple[str, int, int, int, int]]:
+    try:
+        st = db_path.stat()
+    except OSError:
+        return None
     if not db_path.is_file():
         return None
+    wal_mtime, wal_size = 0, 0
+    try:
+        wal_st = Path(f"{db_path}-wal").stat()
+        wal_mtime, wal_size = wal_st.st_mtime_ns, wal_st.st_size
+    except OSError:
+        pass
+    return (str(db_path), st.st_mtime_ns, st.st_size, wal_mtime, wal_size)
+
+
+def _read_sqlite_setting(db_path: Path, key: str) -> Optional[object]:
+    sig = _db_stat_signature(db_path)
+    if sig is None:
+        return None
+    cache_key = (*sig, key)
+    if cache_key in _SQLITE_SETTING_CACHE:
+        return _SQLITE_SETTING_CACHE[cache_key]
     try:
         conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)
     except sqlite3.Error:
@@ -417,22 +442,25 @@ def _read_sqlite_setting(db_path: Path, key: str) -> Optional[object]:
             conn = sqlite3.connect(str(db_path))
         except sqlite3.Error:
             return None
+    val: Optional[object] = None
     try:
         conn.row_factory = sqlite3.Row
         cur = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='settings'"
         )
-        if cur.fetchone() is None:
-            return None
-        cur = conn.execute("SELECT value_json FROM settings WHERE key = ?", (key,))
-        row = cur.fetchone()
-        if not row:
-            return None
-        return json.loads(row["value_json"])
+        if cur.fetchone() is not None:
+            cur = conn.execute("SELECT value_json FROM settings WHERE key = ?", (key,))
+            row = cur.fetchone()
+            if row:
+                val = json.loads(row["value_json"])
     except (sqlite3.Error, json.JSONDecodeError, TypeError):
-        return None
+        val = None
     finally:
         conn.close()
+    if len(_SQLITE_SETTING_CACHE) >= _SQLITE_SETTING_CACHE_MAX:
+        _SQLITE_SETTING_CACHE.clear()
+    _SQLITE_SETTING_CACHE[cache_key] = val
+    return val
 
 
 def cleanup_db_files(db_path: Path) -> None:

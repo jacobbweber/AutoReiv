@@ -23,6 +23,7 @@ import logging
 import re
 import shutil
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
@@ -47,8 +48,8 @@ def content_hash(text: str) -> str:
     return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()[:16]
 
 
-def split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
-    clean = text.replace("\r\n", "\n")
+@lru_cache(maxsize=512)
+def _split_frontmatter_cached(clean: str) -> tuple[dict[str, Any], str]:
     if not clean.startswith("---\n"):
         return {}, clean
     parts = clean.split("---\n", 2)
@@ -60,6 +61,12 @@ def split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
         logger.warning("Unreadable frontmatter: %s", exc)
         meta = {}
     return (meta if isinstance(meta, dict) else {}), parts[2]
+
+
+def split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
+    clean = text.replace("\r\n", "\n")
+    meta, body = _split_frontmatter_cached(clean)
+    return dict(meta), body
 
 
 def join_frontmatter(meta: dict[str, Any], body: str) -> str:
@@ -216,8 +223,10 @@ class _Kind:
                         warnings=list(aliased.warnings),
                     )
             return None
-        meta, body = split_frontmatter(path.read_text(encoding="utf-8"))
+        raw_text = path.read_text(encoding="utf-8")
+        meta, body = split_frontmatter(raw_text)
         based_on = meta.pop("based_on", None) if source == "user" else None
+        s_hash = (content_hash(raw_text) if source == "shipped" else self.shipped_hash(clean)) if shipped else None
         return ContentFile(
             id=clean,
             kind=self.kind,
@@ -226,7 +235,7 @@ class _Kind:
             path=path,
             source=source,
             shipped=shipped,
-            shipped_hash=self.shipped_hash(clean) if shipped else None,
+            shipped_hash=s_hash,
             based_on=str(based_on) if based_on else None,
         )
 

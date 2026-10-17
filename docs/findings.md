@@ -6,7 +6,6 @@ Sunday triage turns worthwhile findings into cards and deletes the rest with a r
 Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 
 ## M22 Clean baseline and process
-- 2026-09-27 | tests | test_card539_selection_narrows.py takes ~21 s; it is an ADR-0061 guard, so it should be fast enough for the guard tier. Cause (CARD-560 profile): every resolve_allowed_tools/ToolPolicyGate call runs DataDirResolver().resolve(), which opens the live DB twice to peek settings (~5 ms per call, 2,400 calls); the same cost hits every tool-policy check at runtime | from CARD-559 | src/application/agent_skills/allowed_tools.py, src/infrastructure/data/resolver.py
 - 2026-09-27 | preflight | the release tier's Playwright smoke stage is the largest (364 s, 73 tests); parallel pytest unit + integration is ~75 s | from CARD-560 | tests/e2e/smoke.spec.js, playwright.config.js
 - 2026-09-27 | tests | Settings updates card has no first-paint Vitest contract (folded from CARD-452) | CARD-561 triage | src/web/static/modules/studios/settings*
 - 2026-09-27 | updates | software-update auto scheduler defer-retry cadence and Windows restarter dry-run are unproven (folded from CARD-453) | CARD-561 triage | src/application/system/*update*
@@ -26,7 +25,6 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 
 ## M25 Self-development
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
-- 2026-09-27 | kernel | agent reply can end with "Reply failed: The model returned an empty reply" right after registering a tool (folded from CARD-538) | CARD-561 triage | src/application/kernel/agent_kernel.py
 - 2026-09-28 | projects | create_project / detect_drift / align_project are not bound to any skill yet | from CARD-562 | src/application/sdlc/projects_service.py
 - 2026-09-28 | mcp | MCP engineering tools still resolve their root with resolve_root instead of the selected project / refusal | from CARD-562 | src/application/skills/mcp_engineering_tools.py
 - 2026-09-28 | live-qa | the journey hangs (instead of failing) when the chat stream returns an error event before any reply | from CARD-562 | tests/e2e/journeys/card-562-developer-one-card-to-in-review.mjs
