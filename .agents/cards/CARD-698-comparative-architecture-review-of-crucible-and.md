@@ -2,7 +2,7 @@
 id: CARD-698
 title: "Comparative architecture review of Crucible and Agent-OS against AutoReiv"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M29
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-698-comparative-architecture-review-of-crucible-and
 log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-16
+completed: 2026-10-17
 ---
 
 # CARD-698 Comparative architecture review of Crucible and Agent-OS against AutoReiv
