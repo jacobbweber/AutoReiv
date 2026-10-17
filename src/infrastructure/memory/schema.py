@@ -118,6 +118,15 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, sequence_num);
 
+CREATE TABLE IF NOT EXISTS archive_links (
+    message_id TEXT PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    summary_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_links_session ON archive_links(session_id, summary_id);
+
 CREATE TABLE IF NOT EXISTS telemetry_spans (
     id TEXT PRIMARY KEY,
     trace_id TEXT,
