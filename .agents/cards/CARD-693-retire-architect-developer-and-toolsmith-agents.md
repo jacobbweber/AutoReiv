@@ -2,7 +2,7 @@
 id: CARD-693
 title: "Retire Architect, Developer, and Toolsmith agents into cohesive Agora skill folders on AutoReiv"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M28
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-693-retire-architect-developer-and-toolsmith-agents
 log: {minutes: 35, qa_runs: 2, findings: 0}
 created: 2026-10-16
+completed: 2026-10-16
 ---
 
 # CARD-693 Retire Architect, Developer, and Toolsmith agents into cohesive Agora skill folders on AutoReiv
