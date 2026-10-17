@@ -252,6 +252,10 @@ class ScopedToolRegistry:
         """Return the number of registered tools."""
         return len(self._tools)
 
+    def __bool__(self) -> bool:
+        """A ScopedToolRegistry instance is always truthy even before tools are registered."""
+        return True
+
     def __contains__(self, name: str) -> bool:
         """Check whether a tool name is registered."""
         return name in self._tools

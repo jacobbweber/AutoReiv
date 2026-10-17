@@ -20,7 +20,9 @@ from src.application.kernel.empty_reply import (
     EMPTY_REPLY_MESSAGE,
     chat_note,
     is_empty_reply,
+    latest_user_prompt,
     model_history_rows,
+    post_tool_empty_fallback,
 )
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.json_safe import dumps_jsonable, dumps_tool_output, to_jsonable
@@ -1023,18 +1025,17 @@ class AgentKernel:
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
                 if is_empty_reply(assistant_msg.content, None):
-                    # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
-                    self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
-                    self._ace_flush_failed_turn(
-                        session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
-                    )
-                    raise EmptyModelReplyError(EMPTY_REPLY_MESSAGE, provider_id=provider_name)
-                user_req_text = user_content or ""
-                if not user_req_text and history:
-                    for hm in reversed(history):
-                        if hm.role == Role.USER and hm.content:
-                            user_req_text = hm.content
-                            break
+                    fallback_reply = post_tool_empty_fallback(history)
+                    if fallback_reply:
+                        assistant_msg.content = fallback_reply
+                    else:
+                        # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
+                        self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                        self._ace_flush_failed_turn(
+                            session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
+                        )
+                        raise EmptyModelReplyError(EMPTY_REPLY_MESSAGE, provider_id=provider_name)
+                user_req_text = latest_user_prompt(user_content, history)
 
                 gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
                     user_prompt=user_req_text, assistant_response=assistant_msg.content,
@@ -1516,21 +1517,21 @@ class AgentKernel:
             # If no tool calls returned, stream is complete
             if not collected_tool_calls:
                 if is_empty_reply(full_content, None):
-                    # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
-                    failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
-                    if failed_ev:
-                        yield failed_ev
-                    self._ace_flush_failed_turn(
-                        session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
-                    )
-                    yield KernelEvent(event_type=KernelEventType.ERROR, content=EMPTY_REPLY_MESSAGE, is_finished=True)
-                    return
-                user_req_text = user_content or ""
-                if not user_req_text and history:
-                    for hm in reversed(history):
-                        if hm.role == Role.USER and hm.content:
-                            user_req_text = hm.content
-                            break
+                    fallback_reply = post_tool_empty_fallback(history)
+                    if fallback_reply:
+                        full_content = fallback_reply
+                        yield KernelEvent(event_type=KernelEventType.TOKEN, content=full_content)
+                    else:
+                        # CARD-475 [REQ-475-004]: an empty reply is an error, never a saved empty row.
+                        failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                        if failed_ev:
+                            yield failed_ev
+                        self._ace_flush_failed_turn(
+                            session_id=session_id, agent_id=agent.id, failed=True, error_message=EMPTY_REPLY_MESSAGE
+                        )
+                        yield KernelEvent(event_type=KernelEventType.ERROR, content=EMPTY_REPLY_MESSAGE, is_finished=True)
+                        return
+                user_req_text = latest_user_prompt(user_content, history)
 
                 gap = CapabilityDetector.detect(  # CARD-681: a mistyped or made-up tool name is not a gap
                     user_prompt=user_req_text, assistant_response=full_content,

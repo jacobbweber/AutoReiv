@@ -42,8 +42,10 @@ class AgentBuilderTools:
         data_dir: Optional[Union[str, Path]] = None,
     ):
         self.agent_registry = agent_registry
-        self.tool_registry = tool_registry or getattr(
-            agent_registry, "master_tool_registry", ScopedToolRegistry()
+        self.tool_registry = (
+            tool_registry
+            if tool_registry is not None
+            else getattr(agent_registry, "master_tool_registry", ScopedToolRegistry())
         )
         self.store = store if store is not None else getattr(agent_registry, "state_store", None)
         self.data_dir = Path(data_dir) if data_dir is not None else None
@@ -57,6 +59,7 @@ class AgentBuilderTools:
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register agent builder tools on the provided ScopedToolRegistry."""
+        self.tool_registry = registry
         registry.register_tool(
             name="list_available_skills_and_tools",
             description=(
