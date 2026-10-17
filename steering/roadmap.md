@@ -23,6 +23,7 @@
 - [x] **M29 Post-1.1 Dogfooding, Operator Polish, Self-Development & Comparative Review**: dogfood Agora skill authoring end-to-end and fix post-registration reply/resolver overhead; polish failed-job reasons, session deletion, and tool-round token telemetry; exercise and harden `AutoReiv` self-development; review `/home/spark/projects/crucible` and `/home/spark/projects/Agent-OS` for enhancements to bring into AutoReiv.
 
 ## Next
+- [ ] **M30 Crucible & Agent-OS Architectural Enhancements** ([comparative review](../docs/architecture-comparison-crucible-agent-os.md)): token-verified context compaction with non-destructive `archive_links`; per-turn and per-job structured span waterfall and trace inspector; live `ApprovalMode` (`strict` / `balanced` / `hands_off`) in Settings UI with `read_only` vs `state_change` tool effect tiers; provenance-badged `search_past_chats` across hot and cold sessions; local inference port auto-probing (`8000, 8006, 11434`); and staged RCA self-healing proposals on recurring tool or routine failures.
 
 ## Horizon
 The parked ideas (Studio Maker, Help Studio, companion, video and others: CARD-146, 170, 275, 277, 280, 283-289, 331, 393, 466, 487, 493, 494, 499, 542) were closed as not pursued before 1.0. Any of them can come back as a new card.
