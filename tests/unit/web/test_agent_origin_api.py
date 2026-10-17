@@ -30,8 +30,9 @@ async def test_api_agents_surfaces_origin_and_restricts_deletion(app):
         assert agent_map["autoreiv"]["origin"] == "file"
 
         assert "agent-builder" not in agent_map
-        dev = agent_map["developer"]
-        assert "run_project_checks" in (dev.get("allowed_tools") or [])  # CARD-562
+        assert "developer" not in agent_map
+        ar = agent_map["autoreiv"]
+        assert "run_project_checks" in (ar.get("allowed_tools") or [])  # CARD-562 / CARD-693
 
         # 2. Create agent pack and verify origin is "pack"
         custom_payload = {

@@ -68,6 +68,7 @@ def test_a_typed_local_path_outside_the_folder_is_not_attached(dirs):
 
 def test_dot_dot_out_of_the_folder_is_not_attached(dirs):
     att, elsewhere = dirs
+    (att / "session-1").mkdir(parents=True, exist_ok=True)
     other = _png(elsewhere)
     sneaky = att / "session-1" / ".." / ".." / ".." / "elsewhere" / other.name
     assert sneaky.exists()

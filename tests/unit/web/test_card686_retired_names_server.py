@@ -31,4 +31,6 @@ def test_card686_agent_concepts_name_the_agents_studio() -> None:
     from src.domain.agents.product_concepts import AUTOREIV_CONCEPTS
 
     assert "Agents studio" in AUTOREIV_CONCEPTS
-    assert "Toolsmith" in AUTOREIV_CONCEPTS
+    assert "Capabilities studio" in AUTOREIV_CONCEPTS
+    assert "Shipped agents: AutoReiv, Tutor, Direct." in AUTOREIV_CONCEPTS
+

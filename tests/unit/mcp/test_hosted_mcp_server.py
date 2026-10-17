@@ -101,9 +101,8 @@ def test_hosted_mcp_tools_list_publishes_agents_and_passive_tools(app_and_client
     tools = data["result"]["tools"]
     tool_names = [t["name"] for t in tools]
 
-    # Verify Agent Dispatchers are present
+    # Verify Agent Dispatchers are present (ADR-0066: AutoReiv and Tutor are the autonomous chat agents)
     assert "ask_autoreiv" in tool_names
-    assert "ask_developer" in tool_names
     assert "ask_tutor" in tool_names
 
     # Verify Safe Passive Tools are present
@@ -113,19 +112,20 @@ def test_hosted_mcp_tools_list_publishes_agents_and_passive_tools(app_and_client
 
     # Negative assertion: Retired or non-autonomous engines are NOT published
     assert "ask_direct" not in tool_names
+    assert "ask_developer" not in tool_names
     assert "ask_coding" not in tool_names
     assert "ask_agent_builder" not in tool_names
     assert "ask_assistant" not in tool_names
 
 
 def test_hosted_mcp_tools_call_agent_dispatcher(app_and_client):
-    """POST /api/mcp/messages tools/call ask_developer executes turn via AgentKernel [REQ-392-003]."""
+    """POST /api/mcp/messages tools/call ask_autoreiv executes turn via AgentKernel [REQ-392-003]."""
     app, client = app_and_client
 
     # Mock kernel.run_turn
     mock_response = ChatMessage(
         role=Role.ASSISTANT,
-        content="Developer verified test suites: 4 passed, 0 failed.",
+        content="AutoReiv verified test suites: 4 passed, 0 failed.",
     )
     app.state.kernel.run_turn = AsyncMock(return_value=mock_response)
 
@@ -134,7 +134,7 @@ def test_hosted_mcp_tools_call_agent_dispatcher(app_and_client):
         "id": 20,
         "method": "tools/call",
         "params": {
-            "name": "ask_developer",
+            "name": "ask_autoreiv",
             "arguments": {
                 "prompt": "Run full test suite",
                 "session_id": "test-remote-session",
@@ -148,12 +148,12 @@ def test_hosted_mcp_tools_call_agent_dispatcher(app_and_client):
     assert data["result"]["isError"] is False
     content_list = data["result"]["content"]
     assert len(content_list) == 1
-    assert "Developer verified test suites" in content_list[0]["text"]
+    assert "AutoReiv verified test suites" in content_list[0]["text"]
 
     # Verify AgentKernel.run_turn arguments
     app.state.kernel.run_turn.assert_called_once()
     call_kwargs = app.state.kernel.run_turn.call_args.kwargs
-    assert call_kwargs["agent"].id == "developer"
+    assert call_kwargs["agent"].id == "autoreiv"
     assert call_kwargs["user_content"] == "Run full test suite"
     assert call_kwargs["session_id"] == "test-remote-session"
 
@@ -240,7 +240,7 @@ def test_hosted_mcp_status_endpoint(app_and_client):
     data = res.json()
     assert data["status"] == "active"
     assert data["hosted_server"]["endpoint"] == "/api/mcp/sse"
-    assert "developer" in data["hosted_server"]["published_agents"]
+    assert "tutor" in data["hosted_server"]["published_agents"]
     assert "autoreiv" in data["hosted_server"]["published_agents"]
 
 

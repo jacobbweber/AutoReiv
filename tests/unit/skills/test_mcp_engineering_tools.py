@@ -250,8 +250,8 @@ async def test_developer_agent_pack_has_mcp_engineering_tools(tmp_path):
         skills_dir=str(tmp_path / "data" / "skills"),
     )
 
-    dev = registry.get_agent("developer")
-    assert dev is not None
+    ar = registry.get_agent("autoreiv")
+    assert ar is not None
 
     # Check tools available in master tool registry
     assert "scaffold_mcp_server" in tool_reg

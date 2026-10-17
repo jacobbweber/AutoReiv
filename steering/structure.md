@@ -23,8 +23,7 @@
 ├── .github/                     # GitHub templates and labels
 │   └── ISSUE_TEMPLATE/          # Work card, bug, and epic issue templates
 ├── docs/                        # SDLC and Architectural Knowledge Base
-│   ├── adr/                     # Architecture Decision Records (ADR-0001 through ADR-0037)
-│   ├── cards/                   # Active work cards (CARD-xxx)
+│   ├── adr/                     # Architecture Decision Records (ADR-0001 through ADR-0066)
 │   └── archive_artifacts/       # Historical 3-file specs & legacy rtm.json
 ├── src/                         # Production application source code
 │   ├── domain/                  # Pure business entities and domain logic (zero external dependencies)
@@ -39,14 +38,14 @@
 │               ├── dom.js       # Defensive DOM helpers ($, $query, $on)
 │               ├── state/       # Reactive state store (store.js)
 │               ├── services/    # HTTP API client wrappers (api.js)
-│               ├── studios/     # Modular UI studios (chat, routines, observability, forge = Agent Studio, settings, skill studio, tools studio, education, projects, prompts, wiki)
+│               ├── studios/     # Modular UI studios (chat, routines, observability, forge = Agent Studio, settings, capabilities, education, projects, prompts, wiki)
 │               └── utils/       # Pure functions (physics.js, formatters.js, debounce.js, storage.js)
 ├── tests/                       # Automated test suites
 │   ├── unit/                    # Fast, isolated unit tests (Pytest + Vitest)
 │   ├── integration/             # Hermetic FastAPI TestClient integration test suites
 │   └── e2e/                     # Playwright multi-studio navigation smoke test suites
 └── steering/                    # Persistent high-level context (AWS Kiro Model)
-    ├── product.md               # Vision & 7-studio architecture definition
+    ├── product.md               # Vision & 10-studio architecture definition
     ├── tech.md                  # Dual-runtime technology stack & CLI commands
     ├── structure.md             # Structural topology & clean architecture boundaries
     └── roadmap.md               # Macro milestone backlog and completion tracker

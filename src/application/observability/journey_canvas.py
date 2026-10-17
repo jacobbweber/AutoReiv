@@ -87,8 +87,12 @@ class JourneyCanvasService:
         if not raw_path:
             raise ValueError("file_path is required")
 
+        normalized = raw_path.replace("\\", "/")
+        if normalized.startswith("/") or (len(normalized) >= 2 and normalized[1] == ":"):
+            raise PermissionError(f"Access denied: path '{raw_path}' is outside repository checkout root")
+
         # Resolve path safely
-        candidate = (self.repo_root / raw_path).resolve()
+        candidate = (self.repo_root / normalized).resolve()
         root_resolved = self.repo_root.resolve()
 
         try:
