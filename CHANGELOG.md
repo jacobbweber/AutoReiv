@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Added
 
+- Added live `ApprovalMode` (`strict` / `balanced` / `hands_off`) selector in Settings Studio with `read_only`, `state_change`, and `destructive` tool effect gating [CARD-701].
 - Added per-turn and per-job hierarchical span waterfall tracing (`/api/traces/{trace_id}` and UI trace inspector) with credential scrubbing [CARD-700].
 - Added token-verified context compaction (`Decisions`, `Open tasks`, `Key facts` + path/number/identifier verification, retry/backoff, and non-destructive `archive_links`) [CARD-699].
 - Added comparative architecture review of Crucible and Agent-OS (`docs/architecture-comparison-crucible-agent-os.md`) with prioritized enhancement recommendations for AutoReiv [CARD-698].

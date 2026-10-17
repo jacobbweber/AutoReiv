@@ -531,10 +531,14 @@ class ToolPolicyGate:
                 error=f"tool_policy_blocked:{decision.reason}",
             )
 
-        # REQUIRE_CONFIRM → existing HITL park/resume [REQ-TOOLPOL-003/005].
-        mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
-        if mode == "run":
-            # Operator chose run-through; still log REQUIRE_CONFIRM but allow execute.
+        # REQUIRE_CONFIRM → existing HITL park/resume [REQ-TOOLPOL-003/005, CARD-701].
+        from src.application.safety.approval_mode import resolve_approval_mode
+
+        raw_mode = str(approval_mode or "").strip().lower()
+        runtime_mode = resolve_approval_mode(self._store)
+        is_destructive = "destructive" in str(decision.reason or "").lower()
+        if raw_mode in ("run", "hands_off", "autonomous") or (runtime_mode == "hands_off" and not is_destructive):
+            # Operator chose run-through or global hands_off; still log REQUIRE_CONFIRM but allow execute.
             return None
         if hitl_engine is None:
             return ToolResult(
