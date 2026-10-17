@@ -2,7 +2,7 @@
 id: CARD-699
 title: "Token-verified context compaction and non-destructive archive links"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M30
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-699-token-verified-context-compaction
 log: {minutes: 32, qa_runs: 2, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-699 Token-verified context compaction and non-destructive archive links
