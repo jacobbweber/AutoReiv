@@ -35,7 +35,8 @@ Use this runbook when implementing, testing, debugging, or verifying code change
 ## Workflow
 
 1. **Read `AGENTS.md` first** — Call `read_project_file(path="AGENTS.md")` in the active project; its check commands, base branch, and rules govern the repo.
-2. **Branch first (`git_create_branch`)** — Always create and switch to the card branch (`feat/card-N-slug` or `fix/card-N-slug`) BEFORE making code or card edits. `git_commit` refuses `main`, `master`, and `qa`.
+2. **Branch first (`git_create_branch`)** — Always create and switch to the card branch (`git_create_branch(name="feat/card-N-slug")` or `fix/card-N-slug`) BEFORE making code or card edits. `git_commit` refuses `main`, `master`, and `qa`.
 3. **Reproduce & Test-First** — Use `search_project` and `read_project_file` to find the root cause. Add or update a test that fails for that cause before applying the fix.
 4. **Edit & Scavenge (`patch_project_file` / `write_project_file`)** — Make minimal, focused edits. Delete everything listed under the card's "What dies" and use `search_project` to ensure zero orphaned references remain.
-5. **Commit & Verify (`git_commit`, `run_project_checks`, `run_journey`)** — Commit on the card branch with `git_commit`, run `run_project_checks` until `passed=true`, and run `run_journey` when verifying a live E2E journey.
+5. **Commit & Verify (`git_commit`, `run_project_checks`, `run_journey`)** — Stage and commit on the card branch with `git_commit(subject="feat(scope): summary", paths=["path/to/file"])` (always pass `paths` and a conventional `subject`), run `run_project_checks` until `passed=true`, and then transition the card with `set_card_status(card_id="CARD-N", status="In Review")`.
+

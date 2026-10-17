@@ -188,6 +188,15 @@ class ProjectsService:
 
     def browse_folders(self, relative: str = ".") -> Dict[str, Any]:
         """Folder-only navigator under projects_root [CARD-300]. Never lists files."""
+        if not self.get_projects_root():
+            return {
+                "success": True,
+                "projects_root": "",
+                "cwd": ".",
+                "parent": None,
+                "folders": [],
+                "selected": self.get_selected(),
+            }
         try:
             root = self._require_root()
         except ProjectPathError as exc:
@@ -388,6 +397,12 @@ class ProjectsService:
         if git_bin and not (target / ".git").exists():
             try:
                 subprocess.run([git_bin, "-C", str(target), "init", "-b", "main"], capture_output=True, check=False)
+                email = subprocess.run([git_bin, "-C", str(target), "config", "user.email"], capture_output=True, text=True)
+                if not (email.stdout or "").strip():
+                    subprocess.run([git_bin, "-C", str(target), "config", "user.email", "autoreiv@local"], capture_output=True, check=False)
+                uname = subprocess.run([git_bin, "-C", str(target), "config", "user.name"], capture_output=True, text=True)
+                if not (uname.stdout or "").strip():
+                    subprocess.run([git_bin, "-C", str(target), "config", "user.name", "AutoReiv"], capture_output=True, check=False)
             except Exception:
                 pass
         files = []
@@ -436,5 +451,18 @@ class ProjectsService:
                 "required": ["slug"],
             },
             handler=self.create_project,
+        )
+        registry.register_tool(
+            name="detect_drift",
+            description="Inspect the active project for missing template scaffold paths or AGENTS.md sections [CARD-697].",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: self.detect_drift(),
+            risk="read_only",
+        )
+        registry.register_tool(
+            name="align_project",
+            description="Scaffold any missing template manifest paths into the active project without overwriting existing files [CARD-697].",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=lambda: self.align_project(),
         )
 
