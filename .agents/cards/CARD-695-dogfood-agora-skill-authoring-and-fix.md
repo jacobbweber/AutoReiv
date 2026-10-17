@@ -2,7 +2,7 @@
 id: CARD-695
 title: "Dogfood Agora skill authoring and fix post-registration reply and resolver overhead"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M29
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-695-dogfood-agora-skill-authoring-and-fix
 log: {minutes: 30, qa_runs: 1, findings: 2}
 created: 2026-10-16
+completed: 2026-10-17
 ---
 
 # CARD-695 Dogfood Agora skill authoring and fix post-registration reply and resolver overhead
