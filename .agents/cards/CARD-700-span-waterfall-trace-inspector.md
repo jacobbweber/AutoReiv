@@ -2,7 +2,7 @@
 id: CARD-700
 title: "Per-turn and per-job structured span waterfall and trace inspector"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M30
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-700-span-waterfall-trace-inspector
 log: {minutes: 15, qa_runs: 2, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-700 Per-turn and per-job structured span waterfall and trace inspector
