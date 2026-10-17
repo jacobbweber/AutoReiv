@@ -2,7 +2,7 @@
 id: CARD-694
 title: "Align product concepts, docs, and findings with M26-M28 for v1.1.0"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M28
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-694-housekeeping-and-1-1-prep
 log: {minutes: 35, qa_runs: 1, findings: 5}
 created: 2026-10-16
+completed: 2026-10-16
 ---
 
 # CARD-694 Align product concepts, docs, and findings with M26-M28 for v1.1.0
