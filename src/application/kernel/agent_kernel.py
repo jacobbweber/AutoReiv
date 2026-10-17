@@ -64,6 +64,7 @@ from src.application.kernel.reply_rules import (  # CARD-599/600
 from src.application.kernel.telemetry_attribution import (
     calculate_timing_attribution,
     calculate_token_attribution,
+    extract_usage_tokens,
 )
 from src.application.kernel.tool_registry import ScopedToolRegistry, tool_not_offered_error
 from src.application.kernel.turn_limit import TURN_LIMIT_INSTRUCTION, TURN_LIMIT_REASON, turn_limit_reply
@@ -906,23 +907,10 @@ class AgentKernel:
                 resp = await self.gateway.complete(req)
                 turn_dur_ms = (time.perf_counter() - turn_start) * 1000
 
-                prompt_tokens = (
-                    resp.usage.get("prompt_tokens", 0)
-                    if isinstance(resp.usage, dict)
-                    else (getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0)
+                prompt_tokens, comp_tokens = extract_usage_tokens(resp.usage)
+                effective_user_prompt = user_content or next(
+                    (m.content for m in reversed(history) if m.role == Role.USER and m.content), ""
                 )
-                comp_tokens = (
-                    resp.usage.get("completion_tokens", 0)
-                    if isinstance(resp.usage, dict)
-                    else (getattr(resp.usage, "completion_tokens", 0) if resp.usage else 0)
-                )
-
-                effective_user_prompt = user_content or ""
-                if not effective_user_prompt:
-                    for m in reversed(history):
-                        if m.role == Role.USER and m.content:
-                            effective_user_prompt = m.content
-                            break
 
                 history_msgs = [
                     m for m in compacted_messages if m.role != Role.SYSTEM and m.content != effective_user_prompt
@@ -939,6 +927,7 @@ class AgentKernel:
                     tool_results_injected=tool_results,
                     completion=resp.message.content if resp.message else "",
                     reasoning=getattr(resp, "reasoning_content", None),
+                    tool_calls=resp.message.tool_calls if resp.message else None,
                 )
                 timing_breakdown = calculate_timing_attribution(
                     harness_prep_ms=harness_prep_ms,
@@ -1445,10 +1434,9 @@ class AgentKernel:
             full_reasoning = "".join(accumulated_reasoning) if accumulated_reasoning else None
             turn_dur_ms = (time.perf_counter() - turn_start) * 1000
 
-            effective_user_prompt = user_content
-            if not effective_user_prompt:
-                last_user = next((m for m in reversed(compacted_messages) if m.role == Role.USER), None)
-                effective_user_prompt = last_user.content if last_user else ""
+            effective_user_prompt = user_content or next(
+                (m.content for m in reversed(compacted_messages) if m.role == Role.USER and m.content), ""
+            )
 
             history_msgs = [
                 m for m in compacted_messages if m.role != Role.SYSTEM and m.content != effective_user_prompt
@@ -1465,6 +1453,7 @@ class AgentKernel:
                 tool_results_injected=tool_results,
                 completion=full_content,
                 reasoning=full_reasoning,
+                tool_calls=collected_tool_calls,
             )
             timing_breakdown = calculate_timing_attribution(
                 harness_prep_ms=harness_prep_ms,

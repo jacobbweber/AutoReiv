@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Reopened chats now show the failure reason and failed phase on failed jobs, chat sessions can be deleted from the sessions drawer (`DELETE /api/sessions/{id}`), and tool-call rounds record output token counts in telemetry and Metrics [CARD-696].
 - Dogfooded Agora skill authoring end-to-end, eliminated repeated SQLite lookups in `DataDirResolver.resolve()`, and prevented empty-reply failures after tool/skill registration [CARD-695].
 
 ## [1.1.0] - 2026-10-16

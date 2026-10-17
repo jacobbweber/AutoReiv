@@ -26,7 +26,6 @@ from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
-from src.application.orchestration.kill_resume import job_stopped_by_operator, job_waiting_for_answer
 from src.application.orchestration.operator_answer import operator_answer_note_for_session, prepend_operator_answers
 from src.application.orchestration.phase_roles import (
     format_planning_phase_block,
@@ -52,7 +51,13 @@ from src.application.orchestration.research_before_plan import (
     is_research_phase,
     research_already_prepared,
 )
-from src.application.orchestration.session_activity import is_job_step_session, job_has_running_phase, session_activity
+from src.application.orchestration.session_activity import (
+    build_session_debug_payload,
+    build_session_journey,
+    is_job_step_session,
+    job_has_running_phase,
+    session_activity,
+)
 from src.application.orchestration.standing_job_graph import (
     format_phase_llm_exhausted_reason,
     is_phase_llm_retryable,
@@ -1669,6 +1674,20 @@ async def update_session(request: Request, session_id: str, req: UpdateSessionRe
     }
 
 
+@router.delete("/api/sessions/{session_id}")
+async def delete_session(request: Request, session_id: str):
+    """Delete a chat session, its messages, and any step sessions [CARD-696]."""
+    store = request.app.state.store
+    task = _active_stream_tasks.pop(session_id, None)
+    _active_stream_agents.pop(session_id, None)
+    if task is not None and not task.done():
+        task.cancel()
+    cancel_turn_side_tasks(session_id, None)
+    if not store.delete_session(session_id):
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+    return {"status": "deleted", "session_id": session_id}
+
+
 @router.get("/api/sessions/{session_id}/messages")
 async def get_session_messages(request: Request, session_id: str):
     from src.application.kernel.empty_reply import skip_empty_assistant_rows
@@ -1815,191 +1834,18 @@ async def compact_session(request: Request, session_id: str):
 
 @router.get("/api/chat/sessions/{session_id}/journey")
 async def get_session_journey(request: Request, session_id: str):
-    """Journey Timeline & Progress Inspector for active chat sessions [CARD-135]."""
-    store = request.app.state.store
-    sess = store.get_session(session_id)
-
-    # 1. Retrieve Jobs & Phases for this session
-    jobs_data = []
-    if hasattr(store, "list_jobs_for_session"):
-        raw_jobs = store.list_jobs_for_session(session_id)
-        for j in raw_jobs:
-            raw_phases = store.list_phases_for_job(j.id) if hasattr(store, "list_phases_for_job") else []
-            phases_list = []
-            for p in raw_phases:
-                verify_status = None
-                checker_name = getattr(p, "verify_checker", None)
-                pkt = getattr(p, "output_packet_json", None) or ""
-                if "verify_status: verified" in pkt:
-                    verify_status = "verified"
-                elif "verify_status: failed" in pkt:
-                    verify_status = "failed"
-                elif "skipped_no_checker" in pkt or (not (checker_name or "").strip() and str(getattr(p.status, "value", p.status)) == "done"):
-                    verify_status = "skipped_no_checker"
-                elif (checker_name or "").strip() and str(getattr(p.status, "value", p.status)) == "failed":
-                    verify_status = "failed"
-                phases_list.append({
-                    "id": p.id,
-                    "index": p.index,
-                    "name": p.name,
-                    "status": p.status.value if hasattr(p.status, "value") else str(p.status),
-                    "assigned_agent_id": p.assigned_agent_id,
-                    "success_rule": p.success_rule,
-                    "verify_checker": checker_name,
-                    "verify_status": verify_status,
-                    "created_at": getattr(p, "created_at", None).isoformat() if hasattr(getattr(p, "created_at", None), "isoformat") else None,
-                    "updated_at": getattr(p, "updated_at", None).isoformat() if hasattr(getattr(p, "updated_at", None), "isoformat") else None,
-                })
-            jobs_data.append({
-                "id": j.id,
-                "goal": j.goal,
-                "status": j.status.value if hasattr(j.status, "value") else str(j.status),
-                "created_at": j.created_at.isoformat() if hasattr(j.created_at, "isoformat") else str(j.created_at),
-                "phases": phases_list,
-                "stopped": job_stopped_by_operator(store, j, list(raw_phases or [])),  # CARD-490: Resume shows
-                "waiting_answer": job_waiting_for_answer(store, j, list(raw_phases or [])),  # CARD-613
-            })
-
-    # 2. Tool Executions (telemetry spans)
-    tool_executions = []
-    if hasattr(store, "get_telemetry_spans"):
-        spans = store.get_telemetry_spans(session_id=session_id, limit=200)
-        for s in spans:
-            if s.span_type == "tool":
-                tool_executions.append({
-                    "id": s.id,
-                    "tool_name": s.name,
-                    "duration_ms": round(s.duration_ms, 1),
-                    "success": s.success,
-                    "status": s.status,
-                    "error_message": s.error_message,
-                    "metadata": s.metadata or {},
-                    "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
-                })
-
-    # 3. Session Artifacts
-    artifacts_data = []
-    if hasattr(store, "list_artifacts_for_session"):
-        raw_artifacts = store.list_artifacts_for_session(session_id)
-        for a in raw_artifacts:
-            artifacts_data.append({
-                "id": a.id,
-                "title": a.title,
-                "summary": a.summary,
-                "content_type": a.content_type,
-                "is_pinned": bool(a.is_pinned),
-                "created_at": a.created_at.isoformat() if hasattr(a.created_at, "isoformat") else str(a.created_at),
-            })
-
-    # 4. Learned Facts
-    facts_data = []
-    if hasattr(store, "get_facts"):
-        all_facts = store.get_facts()
-        for f in all_facts:
-            if f.get("source_session_id") == session_id:
-                facts_data.append({
-                    "entity": f.get("entity"),
-                    "key": f.get("key"),
-                    "value": f.get("value"),
-                    "confidence": f.get("confidence", 1.0),
-                })
-
-    return {
-        "session_id": session_id,
-        "agent_id": sess.agent_id if sess else None,
-        "title": sess.title if sess else "Chat Session",
-        "jobs": jobs_data,
-        "tool_executions": tool_executions,
-        "artifacts": artifacts_data,
-        "facts": facts_data,
-        "summary": {
-            "total_jobs": len(jobs_data),
-            "total_tools_executed": len(tool_executions),
-            "total_artifacts": len(artifacts_data),
-            "total_facts_learned": len(facts_data),
-        },
-    }
+    """Journey Timeline & Progress Inspector for active chat sessions [CARD-135, CARD-696]."""
+    return build_session_journey(request.app.state.store, session_id)
 
 
 @router.get("/api/chat/sessions/{session_id}/debug")
 async def get_session_debug_payload(request: Request, session_id: str):
-    """Per-Conversation Debug Inspector & Turn Payload Viewer [CARD-136]."""
-    store = request.app.state.store
-    registry = getattr(request.app.state, "registry", None)
-    sess = store.get_session(session_id)
-
-    # 1. Retrieve all stored messages
-    msgs = store.get_messages(session_id=session_id)
-    formatted_messages = [
-        {
-            "role": m.role.value,
-            "content": m.content,
-            "name": m.name,
-            "tool_calls": [tc.model_dump() for tc in m.tool_calls] if m.tool_calls else None,
-            "tool_call_id": m.tool_call_id,
-        }
-        for m in msgs
-    ]
-
-    # 2. Retrieve telemetry spans for this session
-    spans = []
-    if hasattr(store, "get_telemetry_spans"):
-        spans = store.get_telemetry_spans(session_id=session_id, limit=200)
-
-    turn_spans = [s for s in spans if s.span_type == "turn"]
-    tool_spans = [s for s in spans if s.span_type == "tool"]
-
-    # 3. Aggregated metrics
-    total_prompt_tokens = sum(s.prompt_tokens for s in turn_spans)
-    total_completion_tokens = sum(s.completion_tokens for s in turn_spans)
-    total_duration_ms = sum(s.duration_ms for s in spans)
-    timed_turns = [s for s in turn_spans if s.ttft_ms is not None]
-    avg_ttft_ms = sum(s.ttft_ms for s in timed_turns) / len(timed_turns) if timed_turns else 0.0
-
-    latest_turn = turn_spans[0] if turn_spans else None
-    active_model = latest_turn.model if latest_turn else "default"
-    active_provider = latest_turn.provider if latest_turn else "ollama"
-
-    system_prompt = ""
-    if sess and registry:
-        agent_profile = registry.get_profile(sess.agent_id)
-        if agent_profile:
-            system_prompt = agent_profile.system_prompt
-
-    facts = []
-    if hasattr(store, "get_facts"):
-        all_facts = store.get_facts()
-        facts = [f for f in all_facts if f.get("source_session_id") == session_id]
-
-    return {
-        "session_id": session_id,
-        "agent_id": sess.agent_id if sess else None,
-        "provider": active_provider,
-        "model": active_model,
-        "system_prompt": system_prompt,
-        "message_count": len(formatted_messages),
-        "raw_messages": formatted_messages,
-        "tool_payloads": [
-            {
-                "id": s.id,
-                "name": s.name,
-                "duration_ms": round(s.duration_ms, 1),
-                "success": s.success,
-                "metadata": s.metadata or {},
-                "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
-            }
-            for s in tool_spans
-        ],
-        "metrics": {
-            "total_turns": len(turn_spans),
-            "total_prompt_tokens": total_prompt_tokens,
-            "total_completion_tokens": total_completion_tokens,
-            "total_tokens": total_prompt_tokens + total_completion_tokens,
-            "total_duration_ms": round(total_duration_ms, 1),
-            "avg_ttft_ms": round(avg_ttft_ms, 1),
-        },
-        "active_facts": facts,
-    }
+    """Per-Conversation Debug Inspector & Turn Payload Viewer [CARD-136, CARD-696]."""
+    return build_session_debug_payload(
+        request.app.state.store,
+        getattr(request.app.state, "registry", None),
+        session_id,
+    )
 
 
 @router.post("/api/chat/stream")
