@@ -146,6 +146,14 @@ CONSOLIDATED_SKILL_ALIASES: dict[str, str] = {
 }
 
 
+RETIRED_SHIPPED_AGENT_IDS: frozenset[str] = frozenset({"architect", "developer", "toolsmith"})
+_STALE_RETIRED_AGENT_PROMPT_RE = re.compile(
+    r"\b(?:Developer/Toolsmith|Toolsmith/Developer|open\s+(?:Developer|Toolsmith|Architect)\s+in\s+Chat|"
+    r"route\s+to\s+(?:the\s+)?(?:Developer|Toolsmith|Architect))\b",
+    re.IGNORECASE,
+)
+
+
 class _Kind:
     def __init__(self, kind: str, shipped_dir: Path, user_dir: Optional[Path]):
         self.kind = kind
@@ -173,7 +181,63 @@ class _Kind:
         return self._ids(self.shipped_dir)
 
     def user_ids(self) -> list[str]:
-        return self._ids(self.user_dir)
+        ids = self._ids(self.user_dir)
+        if self.kind == "agent" and self.shipped_dir == REPO_PLATFORM / "agents":
+            ids = [i for i in ids if not self._is_retired_shipped_user_copy(i)]
+        return ids
+
+    def _is_retired_shipped_user_copy(self, item_id: str) -> bool:
+        if item_id not in RETIRED_SHIPPED_AGENT_IDS:
+            return False
+        user = self.user_path(item_id)
+        if not user or not user.is_file():
+            return False
+        try:
+            meta, _ = split_frontmatter(user.read_text(encoding="utf-8"))
+        except OSError:
+            return False
+        return bool(meta.get("based_on"))
+
+    def _reconcile_user_agent(
+        self,
+        item_id: str,
+        user_file: Path,
+        meta: dict[str, Any],
+        body: str,
+        based_on: Optional[str],
+        s_hash: Optional[str],
+    ) -> tuple[dict[str, Any], str, Optional[str]]:
+        if (
+            self.kind != "agent"
+            or item_id != "autoreiv"
+            or self.shipped_dir != REPO_PLATFORM / "agents"
+            or not s_hash
+            or based_on == s_hash
+        ):
+            return meta, body, based_on
+        shipped_file = self.shipped_path(item_id)
+        if not shipped_file.is_file():
+            return meta, body, based_on
+        shipped_meta, shipped_body = split_frontmatter(shipped_file.read_text(encoding="utf-8"))
+        shipped_skills = [str(s).strip() for s in (shipped_meta.get("skills") or []) if str(s).strip()]
+        raw_skills = [str(s).strip() for s in (meta.get("skills") or []) if str(s).strip()]
+        normalized = [CONSOLIDATED_SKILL_ALIASES.get(s, s) for s in raw_skills]
+        consolidated_req = {"capability-authoring", "project-cards", "software-development", "user:*"}
+        missing_consolidated = not consolidated_req.issubset(set(normalized)) and "*" not in normalized
+        stale_prompt = bool(_STALE_RETIRED_AGENT_PROMPT_RE.search(body or ""))
+        if not missing_consolidated and not stale_prompt and normalized == raw_skills:
+            return meta, body, based_on
+        merged_skills = list(dict.fromkeys(normalized + shipped_skills))
+        new_meta = dict(meta)
+        new_meta["skills"] = merged_skills
+        new_body = shipped_body if stale_prompt else body
+        persisted_meta = dict(new_meta)
+        persisted_meta["based_on"] = s_hash
+        try:
+            user_file.write_text(join_frontmatter(persisted_meta, new_body), encoding="utf-8", newline="\n")
+        except OSError:
+            pass
+        return new_meta, new_body, s_hash
 
     # hidden ------------------------------------------------------------------------------------
     def hidden(self) -> set[str]:
@@ -199,6 +263,8 @@ class _Kind:
     def load(self, item_id: str, include_hidden: bool = False) -> Optional[ContentFile]:
         clean = str(item_id or "").strip()
         if not clean:
+            return None
+        if self.kind == "agent" and self.shipped_dir == REPO_PLATFORM / "agents" and self._is_retired_shipped_user_copy(clean):
             return None
         shipped = self.shipped_path(clean).is_file()
         if shipped and not include_hidden and clean in self.hidden():
@@ -227,6 +293,10 @@ class _Kind:
         meta, body = split_frontmatter(raw_text)
         based_on = meta.pop("based_on", None) if source == "user" else None
         s_hash = (content_hash(raw_text) if source == "shipped" else self.shipped_hash(clean)) if shipped else None
+        if source == "user" and user is not None:
+            meta, body, based_on = self._reconcile_user_agent(
+                clean, user, meta, body, str(based_on) if based_on else None, s_hash
+            )
         return ContentFile(
             id=clean,
             kind=self.kind,

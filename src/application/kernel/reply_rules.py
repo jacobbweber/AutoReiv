@@ -21,19 +21,30 @@ from src.domain.capabilities.missing_tool import find_missing_tool, names_own_to
 
 CLARIFICATION_TOOL = "ask_clarification"
 
-# CARD-615
+# CARD-615 / CARD-705
 ASK_DEVELOPER_LINE = "You can use Ask Developer to add this."
-_ASK_DEVELOPER_TEXT = re.compile(r"\b(?:use|try|via|through|with)\s+(?:the\s+)?[*_`\"']*Ask Developer\b", re.IGNORECASE)
+_ASK_DEVELOPER_TEXT = re.compile(
+    r"\b(?:(?:use|try|via|through|with)\s+(?:the\s+)?[*_`\"']*Ask Developer|ask (?:a |the )?developer)\b",
+    re.IGNORECASE,
+)
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _MISSING_TOOL_MARKERS = (NO_SUCH_TOOL, "not found in system registry", "is not authorized for agent")
 _FAILED_TOOL_PREFIXES = ("Tool Error:", "Rejected. Tool did not run.")
 # CARD-663/677: "the reply admits a missing tool" (including "No agent covers X") is the shared matcher in
 # src.domain.capabilities.missing_tool, so the line and the filed gap come from one decision.
 _POINTS_TO_AGENT = re.compile(r"\bopen [\w' -]{1,40}? in Chat\b", re.IGNORECASE)
+_CAPABILITY_AUTHORING_SKILLS = frozenset({
+    "capability-authoring",
+    "agent-authoring",
+    "native-tool-engineering",
+})
 
 
 def is_toolsmith(agent: Any) -> bool:
-    return str(getattr(agent, "id", "") or "").strip().lower() == "toolsmith"
+    if str(getattr(agent, "id", "") or "").strip().lower() == "toolsmith":
+        return True
+    skills = getattr(agent, "allowed_skill", None) or getattr(agent, "skills", None) or ()
+    return any(str(s).strip().lower() in _CAPABILITY_AUTHORING_SKILLS for s in skills)
 
 
 def _role(message: Any) -> str:

@@ -118,7 +118,6 @@ export function initChatStudio(state, callbacks = {}) {
   const sessionList = $('sessionList');
   const newChatBtn = $('newChatBtn');
   const activeAgentTitle = $('activeAgentTitle');
-  const activeAgentTone = $('activeAgentTone');
   const chatActiveProjectPill = $('chatActiveProjectPill');
   const chatActiveProjectName = $('chatActiveProjectName');
   const messagesContainer = $('messagesContainer');
@@ -411,9 +410,6 @@ export function initChatStudio(state, callbacks = {}) {
     const curAgent = (state.agents || []).find((a) => a.id === state.selectedAgentId);
     if (activeAgentTitle) {
       activeAgentTitle.textContent = curAgent ? curAgent.name : (state.selectedAgentId || 'AutoReiv');
-    }
-    if (activeAgentTone) {
-      activeAgentTone.textContent = curAgent && curAgent.role ? curAgent.role : 'Autonomous Multi-Agent Orchestrator';
     }
   }
 
