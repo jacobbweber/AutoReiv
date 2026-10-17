@@ -149,7 +149,7 @@ CONSOLIDATED_SKILL_ALIASES: dict[str, str] = {
 RETIRED_SHIPPED_AGENT_IDS: frozenset[str] = frozenset({"architect", "developer", "toolsmith"})
 _STALE_RETIRED_AGENT_PROMPT_RE = re.compile(
     r"\b(?:Developer/Toolsmith|Toolsmith/Developer|open\s+(?:Developer|Toolsmith|Architect)\s+in\s+Chat|"
-    r"route\s+to\s+(?:the\s+)?(?:Developer|Toolsmith|Architect))\b",
+    r"route\s+to\s+(?:the\s+)?(?:Developer|Toolsmith|Architect)|skill_view\(skill_id=[\"']agent-authoring[\"']\))\b",
     re.IGNORECASE,
 )
 

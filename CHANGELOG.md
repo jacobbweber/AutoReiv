@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-17
+
+Crucible and Agent-OS architectural enhancements (`M30`) and post-1.1 self-development hardening (`M29`). Adds token-verified context compaction with non-destructive `archive_links`, per-turn and per-job structured span waterfall tracing (`/api/traces/{trace_id}`) with credential scrubbing, live `ApprovalMode` (`strict` / `balanced` / `hands_off`) with tool effect tiers, provenance-badged `search_past_chats` across active and archived sessions, local inference port auto-probing (`8000, 8006, 11434`), staged RCA self-healing proposals on recurring tool or routine failures, and cleanup of retired `Developer` / `Toolsmith` / `Architect` references and the Chat header role pill.
+
 ### Added
 
 - Added staged RCA self-healing proposals for recurring tool and routine failures with one-click repair in Chat [CARD-704].
