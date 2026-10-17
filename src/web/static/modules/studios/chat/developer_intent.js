@@ -7,6 +7,15 @@
 
 const inFlight = new Set();
 const NEEDLE_LEN = 80;
+const RETIRED_AUTHORING_AGENTS = new Set(['toolsmith', 'developer', 'architect']);
+
+export function resolveAuthoringChatAgentId(agentId, agents = []) {
+  const raw = String(agentId || 'autoreiv').trim() || 'autoreiv';
+  if (!RETIRED_AUTHORING_AGENTS.has(raw)) return raw;
+  const list = Array.isArray(agents) ? agents : [];
+  if (list.some((a) => a && a.id === raw)) return raw;
+  return 'autoreiv';
+}
 
 function alreadyInHistory(messages, text) {
   const needle = text.slice(0, NEEDLE_LEN);
@@ -26,7 +35,7 @@ export function sendDeveloperIntent({ sessionId, prompt, state, send, fillCompos
   if (inFlight.has(id) || alreadyInHistory(st.messages, text)) return { status: 'already-sent', done: idle };
   if (st.isStreaming || st.sessionBusy) {
     if (typeof fillComposer === 'function') fillComposer(text);
-    if (typeof toast === 'function') toast('Toolsmith is busy. The request is in the message box; press Send when the reply finishes.', 'warning');
+    if (typeof toast === 'function') toast('AutoReiv is busy. The request is in the message box; press Send when the reply finishes.', 'warning');
     return { status: 'busy', done: idle };
   }
   inFlight.add(id);

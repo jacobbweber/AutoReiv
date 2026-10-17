@@ -125,7 +125,9 @@ def format_developer_prompt(packet: Mapping[str, Any]) -> str:
         )
     return (
         "\n".join(lines) + f"\n\n{BRIEF_NOTES_MARKER}\n"
-        "Build it as a native tool with register_native_tool (skill native-tool-engineering); MCP servers are not "
+        'Open skill_view(skill_id="capability-authoring") to author an Agora skill folder '
+        "(SKILL.md + tools/<tool_name>.py), or build it as a native tool with register_native_tool "
+        "(skill native-tool-engineering); MCP servers are not "
         "built here. A filesystem path in this message is chat context, not a Tools Studio folder picker.\n\n"
         "Saving runs the tool check first. Code that uses the network, files, other programs or dynamic imports "
         "is never run: it is saved as Not run, review before enabling (the access is not blocked once enabled), with a warning for Jacob. "

@@ -25,7 +25,6 @@ export * from './chat/session_select.js'; // CARD-485 (hydrateJobPhaseStateFromJ
 export * from './chat/job_strip.js'; // CARD-490: strip model moved out of chat.js
 
 import { setupPendingHitl, renderInlineHitlCard } from './chat/hitl.js'; // CARD-470
-
 import { setupRuntimeModeToggles, setupRunAsJobToggle, setRunAsJob, takeRunAsJob } from './chat/runtime_toggles.js'; // CARD-470, CARD-572
 import { setupChatScroll } from './chat/scroll.js';
 import { ensureActiveSession, singleFlight, trackSessionsLoad, LAST_SESSION_KEY } from './chat/session_guard.js'; // CARD-476
@@ -33,7 +32,7 @@ import { createSessionSelect } from './chat/session_select.js'; // CARD-485
 import { setupReturnResync } from './chat/return_resync.js'; // CARD-473
 import { createStopHandler } from './chat/stop.js'; // CARD-486
 import { createOwnStreamTracker } from './chat/own_stream.js'; // CARD-488
-import { sendDeveloperIntent } from './chat/developer_intent.js'; // CARD-497 REQ-497-016
+import { sendDeveloperIntent, resolveAuthoringChatAgentId } from './chat/developer_intent.js'; // CARD-497, CARD-706
 import { handleTurnRunning } from './chat/turn_running.js'; // CARD-530 REQ-530-003
 import { showFailedTurn } from './chat/failed_send.js'; // CARD-484: a failed send keeps the typed text
 import { createSessionActivityPoller } from './chat/session_activity.js'; // CARD-493
@@ -788,12 +787,13 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  // CARD-571: Ask Developer chats belong to Toolsmith; the agent comes from the Talk reply.
+  // CARD-571 / CARD-706: Authoring/gap chats resolve retired toolsmith/developer onto autoreiv.
   async function openDeveloperSession(sessionId, composerText = '', agentId = 'toolsmith') {
     const id = String(sessionId || '').trim();
     if (!id) return null;
-    const agent = String(agentId || 'toolsmith');
+    const agent = resolveAuthoringChatAgentId(agentId || 'toolsmith', state.agents);
     state.selectedAgentId = agent;
+    if (agentSelect) agentSelect.value = agent;
     storageSet('autoreiv_active_agent_id', agent);
     updateEngineSelectorUi(agent);
     updateActiveAgentHeader();

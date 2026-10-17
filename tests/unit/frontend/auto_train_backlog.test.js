@@ -48,11 +48,12 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     expect(chatJs).not.toContain("state.activeAgentId");
   });
 
-  it('Agent Studio lists capability gaps with Skill Studio / Developer actions, not training [CARD-496]', () => {
+  it('Agent Studio lists capability gaps with Build with AutoReiv action, not training [CARD-496, CARD-706]', () => {
     expect(indexHtml).toContain('Capability gaps');
     expect(indexHtml).not.toContain('Needs Training Backlog');
     expect(forgeJs).toContain("identified_capability");
-    expect(forgeJs).toContain("btn-gap-open-skill-studio");
+    expect(forgeJs).toContain("btn-gap-build-autoreiv");
+    expect(forgeJs).not.toContain("btn-gap-open-skill-studio");
     expect(forgeJs).not.toContain("btn-train-gap");
     expect(chatJs).not.toContain("train-lab-msg-btn");
   });

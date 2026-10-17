@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Changed
+
+- Capability gap cards in Agents Studio now show a single **Build with AutoReiv** action (plus **Dismiss**) that opens a new Chat session with AutoReiv pre-prompted with the capability gap details [CARD-706].
+
 ## [1.2.0] - 2026-10-17
 
 Crucible and Agent-OS architectural enhancements (`M30`) and post-1.1 self-development hardening (`M29`). Adds token-verified context compaction with non-destructive `archive_links`, per-turn and per-job structured span waterfall tracing (`/api/traces/{trace_id}`) with credential scrubbing, live `ApprovalMode` (`strict` / `balanced` / `hands_off`) with tool effect tiers, provenance-badged `search_past_chats` across active and archived sessions, local inference port auto-probing (`8000, 8006, 11434`), staged RCA self-healing proposals on recurring tool or routine failures, and cleanup of retired `Developer` / `Toolsmith` / `Architect` references and the Chat header role pill.

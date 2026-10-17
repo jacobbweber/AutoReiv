@@ -96,14 +96,18 @@ describe('gap payload reaches Skill Studio [CARD-522]', () => {
     expect(planSkillStudioDeepLink({ agentId: 'autoreiv' }).gap).toBeNull();
   });
 
-  it('a missing-tool gap row makes Ask Developer the first, primary button', () => {
+  it('a gap row renders Build with AutoReiv as the primary button and notes when the tool is not built yet', () => {
     const steered = capabilityGapRowHtml(GAP, { toolMissing: true });
-    expect(steered.indexOf('btn-gap-ask-developer')).toBeLessThan(steered.indexOf('btn-gap-open-skill-studio'));
+    expect(steered).toContain('btn-gap-build-autoreiv');
+    expect(steered).toContain('Build with AutoReiv');
+    expect(steered).not.toContain('btn-gap-open-skill-studio');
     expect(steered).toContain('data-primary="true"');
     expect(steered).toContain('(not built yet)');
     const plain = capabilityGapRowHtml(GAP);
-    expect(plain.indexOf('btn-gap-open-skill-studio')).toBeLessThan(plain.indexOf('btn-gap-ask-developer'));
-    expect(plain).toContain('data-primary="false"');
+    expect(plain).toContain('btn-gap-build-autoreiv');
+    expect(plain).toContain('Build with AutoReiv');
+    expect(plain).not.toContain('btn-gap-open-skill-studio');
+    expect(plain).toContain('data-primary="true"');
     expect(plain).not.toContain('(not built yet)');
   });
 });
