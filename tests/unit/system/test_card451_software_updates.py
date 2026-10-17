@@ -46,7 +46,7 @@ def git_pair(tmp_path: Path):
     """Create bare origin + clone with an initial commit on main and a feature branch."""
     bare = tmp_path / "origin.git"
     work = tmp_path / "work"
-    _git(tmp_path, "init", "--bare", str(bare))
+    _git(tmp_path, "init", "--bare", "--initial-branch=main", str(bare))
     _git(tmp_path, "clone", str(bare), str(work))
     _git(work, "config", "user.email", "test@example.com")
     _git(work, "config", "user.name", "Test")

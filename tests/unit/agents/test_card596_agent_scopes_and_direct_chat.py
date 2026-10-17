@@ -49,11 +49,11 @@ def test_agent_tool_permissions():
     assert "lookup_agents" not in dev_tools
 
     toolsmith_tools = set(resolve_allowed_tools(toolsmith))
-    assert "handoff_to_agent" in toolsmith_tools
+    assert "handoff_to_agent" not in toolsmith_tools
     assert "lookup_agents" not in toolsmith_tools
 
     arch_tools = set(resolve_allowed_tools(architect))
-    assert "hand_off_card" in arch_tools
+    assert "review_card" in arch_tools
     assert "handoff_to_agent" not in arch_tools
     assert "lookup_agents" not in arch_tools
 

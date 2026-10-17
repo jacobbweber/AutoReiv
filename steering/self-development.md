@@ -1,17 +1,18 @@
-# Self-development (M25)
+# Self-development (M25–M28)
 
-Status: in progress. Slice 1 (CARD-562) is done and merged to qa (2026-09-28); slices 2-4 are design. AGENTS.md is what applies to work on this repo today.
+Status: shipped and consolidated on `AutoReiv` ([ADR-0066](../docs/adr/0066-consolidate-architect-developer-and-toolsmith-into-agora-skill-folders-on-autoreiv.md), CARD-693). Slice 1 (`CARD-562`) proved the card workflow, and M28 retired the separate `Architect`, `Developer`, and `Toolsmith` agents into cohesive Agora skill folders (`project-cards`, `software-development`, `capability-authoring`) on `AutoReiv` that mount their tools on demand via `skill_view`. `AGENTS.md` is what applies to work on this repo today.
 
 ## Goal
-A general development agent and a light card process that work on any git repo. AutoReiv is only the first project:
+A general development workflow and light card process that work on any git repo. AutoReiv is only the first project:
 Jacob clones a separate AutoReiv copy (its own dev port in `.env`) and selects it as the active project in Projects
 Studio. There is no self-copy mechanism; the running AutoReiv never edits its own checkout.
 
-## Two agents (the card is the hand-off)
-| Agent | Model | Does |
+## Consolidated skills on `AutoReiv` (ADR-0066)
+| Skill Folder | Reference | Does |
 |---|---|---|
-| Architect (slice 2) | reasoning model on DGX Spark (vLLM, global reasoning default) | brainstorms with Jacob, writes cards, hands one to Developer, reviews the result against the card (slice 3) |
-| Developer | coder model on Nimo (Ollama, set by Agent Studio model override; was `qwen3.6:35b-a3b-65k`, gone from Nimo 2026-09-29; use `qwen3.6:35b-a3b`, same weights) | takes a Ready card to In Review: branch, plan, edit, AGENTS.md checks, commit, evidence; files gaps it finds as Proposed cards; never invents features, never pushes or merges |
+| `project-cards` | `references/card-rubric.md` | Brainstorms with Jacob, writes/updates cards (`write_card`, `set_card_status`), and reviews cards (`review_card`, `finish_review`) |
+| `software-development` | `references/workflow.md` | Takes a Ready card to In Review on the active project: branch, plan, edit, `run_project_checks`, commit, evidence, and live QA (`run_live_qa`) |
+| `capability-authoring` | `references/authoring-guide.md` | Authors and updates Agora skill folders (`SKILL.md`, `references/*.md`, `tools/*.py`) inline via `write_skill_file` |
 
 ## Platform vs project
 - Platform skills: general know-how (orientation, card intake and writing, planning, implementing, tests, debugging, checks, git, review, audit).

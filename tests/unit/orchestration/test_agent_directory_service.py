@@ -29,10 +29,10 @@ def test_discover_builtin_agents(directory_service):
     assert len(results) >= 1
     assert any(a.id == "autoreiv" for a in results)
 
-    # Search for developer coding capabilities: the Developer agent covers them, not AutoReiv (CARD-596 scopes)
-    results = directory_service.search_agents(query="developer code software engineering git", limit=3)
+    # Search for software engineering capabilities: consolidated onto AutoReiv via software-development (ADR-0066)
+    results = directory_service.search_agents(query="software development code cards autoreiv", limit=3)
     assert len(results) >= 1
-    assert any(a.id == "developer" for a in results)
+    assert any(a.id == "autoreiv" for a in results)
 
 
 def test_discover_custom_agent(directory_service, tmp_path):

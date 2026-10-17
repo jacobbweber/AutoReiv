@@ -24,7 +24,7 @@ CHAT_HIDDEN_BY_ID = frozenset(
         "finance",
     }
 )
-CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "developer", "tutor", "architect"})
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct", "tutor"})
 
 # Tool names removed from the platform; the capability catalog drops their rows at seed time.
 RETIRED_TOOL_NAMES: tuple[str, ...] = (
@@ -54,6 +54,7 @@ CAPABILITY_AUTHORING_TOOL_NAMES = frozenset(
         "propose_skill",
         "propose_tool",
         "commit_skill",
+        "write_skill_file",
         "list_user_skills",
         "skill_view",
     }

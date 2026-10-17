@@ -59,7 +59,7 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
         'wiki',
         'projects',
         'agents',
-        'skill-studio',
+        'capabilities',
         'routines',
         'observability',
         'settings',
@@ -68,6 +68,8 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
       ])
     );
     expect(tabs).not.toContain('factory'); // CARD-496: Factory retired (ADR-0060)
+    expect(tabs).not.toContain('skill-studio'); // CARD-692: consolidated into Capabilities Studio
+    expect(tabs).not.toContain('tools-studio'); // CARD-692: consolidated into Capabilities Studio
     expect(DOCK_LAUNCHERS.every((d) => d.icon && d.label && d.id)).toBe(true);
   });
 

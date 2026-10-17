@@ -76,7 +76,6 @@ READ_TOOLS: frozenset[str] = frozenset(
         "list_cards",
         "read_card",
         "review_card",
-        "run_project_checks",
         "git_status",
         "git_diff",
         "git_branch",
@@ -123,11 +122,13 @@ WRITE_TOOLS: frozenset[str] = frozenset(
         "propose_skill",
         "propose_tool",
         "commit_skill",
+        "write_skill_file",
         # code, shell, remote
         "cli_exec",
         "execute_code",
         "ssh_exec_command",
         "run_journey",
+        "run_project_checks",
         # projects, repo, cards, specs
         "create_project",
         "write_project_file",

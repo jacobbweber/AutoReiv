@@ -229,6 +229,36 @@ export function assignedSkillListHtml({
   ].join('');
 }
 
+export function autoDiscoverRowHtml(pressed = false) {
+  return `<div id="forgeAutoDiscoverRow" class="forge-skill-row" data-testid="forge-auto-discover-row">
+      <div class="forge-skill-text">
+        <div class="forge-skill-name">Auto-discover all skills (*)</div>
+        <div class="forge-skill-desc">Discover any enabled skill on demand and mount its tools for the session when opened with skill_view.</div>
+      </div>
+      <button id="forgeAutoDiscoverSkills" type="button" class="forge-skill-pill forge-skill-switch" role="switch" aria-pressed="${pressed ? 'true' : 'false'}" data-skill-id="*" data-testid="forge-auto-discover-skills" aria-label="Auto-discover all skills for this agent"><span class="forge-skill-switch-knob" aria-hidden="true"></span></button>
+    </div>`;
+}
+
+function ensureAutoDiscoverRow(forgeSkillsGrid, onToggleSkill = null) {
+  if (!forgeSkillsGrid || !forgeSkillsGrid.parentNode || typeof document === 'undefined') return;
+  let row = $('forgeAutoDiscoverRow');
+  if (!row) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = autoDiscoverRowHtml(false);
+    row = wrap.firstElementChild;
+    if (row) forgeSkillsGrid.parentNode.insertBefore(row, forgeSkillsGrid);
+  }
+  const btn = $('forgeAutoDiscoverSkills');
+  if (btn && btn.dataset.bound !== '1') {
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      applySkillPillToggle(btn, { onToggleSkill });
+    });
+  }
+}
+
 export function renderAssignedSkills({
   cachedPlatformSkills = [],
   cachedOperatorSkills = [],
@@ -240,6 +270,7 @@ export function renderAssignedSkills({
 } = {}) {
   const forgeSkillsGrid = $('forgeSkillsGrid');
   if (!forgeSkillsGrid) return;
+  ensureAutoDiscoverRow(forgeSkillsGrid, onToggleSkill);
   const ownSkillRows = (activeForgeAgent && activeForgeAgent.own_skills) || [];
   forgeSkillsGrid.innerHTML = assignedSkillListHtml({
     platformSkills: cachedPlatformSkills,

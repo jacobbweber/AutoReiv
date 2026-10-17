@@ -377,7 +377,7 @@ class ToolsDeveloperMediationService:
         getter = getattr(self._registry, "get_profile", None)
         if not callable(getter):
             raise ToolsAuthoringError("Toolsmith agent is unavailable.", 503, ran=False)
-        profile = getter(TOOLSMITH_AGENT_ID)
+        profile = getter(TOOLSMITH_AGENT_ID) or getter("autoreiv")
         if profile is None:
             raise ToolsAuthoringError("Toolsmith agent is unavailable.", 503, ran=False)
         return profile

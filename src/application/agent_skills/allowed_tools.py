@@ -16,7 +16,10 @@ from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 
 NO_TOOL_AGENTS = frozenset({"direct"})
 # CARD-563: platform tools an agent must not get. Architect starts Developer only through hand_off_card.
-WITHHELD_PLATFORM_TOOLS: dict[str, frozenset[str]] = {"architect": frozenset({"handoff_to_agent", "lookup_agents"})}
+WITHHELD_PLATFORM_TOOLS: dict[str, frozenset[str]] = {
+    "architect": frozenset({"handoff_to_agent", "lookup_agents"}),
+    "developer": frozenset({"hand_off_card"}),
+}
 # Checkers the platform itself runs after a turn (reflexion / phase verification). Never offered to a model.
 PLATFORM_VERIFIER_TOOLS = frozenset({"verify_telemetry_consistency", "assert_json_schema", "validate_metric_bounds"})
 PLATFORM = "platform"
@@ -60,11 +63,70 @@ def _field(agent: Any, *names: str) -> Any:
     return None
 
 
-def ticked_skills(agent: Any) -> list[str]:
+AUTO_SKILL_WILDCARD = "*"
+AUTO_USER_SKILL_WILDCARD = "user:*"
+_AUTO_SKILL_TOKENS = frozenset({AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD})
+ON_DEMAND_SHIPPED_SKILLS = frozenset({"project-cards", "software-development"})
+
+
+def _raw_skill_tokens(agent: Any) -> list[str]:
     seen: list[str] = []
     for sid in _field(agent, "allowed_skill", "skills") or []:
         clean = str(sid).strip()
         if clean and clean not in seen:
+            seen.append(clean)
+    return seen
+
+
+def has_auto_skill_wildcard(agent: Any) -> bool:
+    """True when the agent's skill list includes '*' or 'user:*' [CARD-688, CARD-691]."""
+    return bool(_AUTO_SKILL_TOKENS & set(_raw_skill_tokens(agent)))
+
+
+def pinned_skills(agent: Any) -> list[str]:
+    """Always-mounted skill ids on an auto-scoped agent (excluding '*', 'user:*', and on-demand SDLC skills) [CARD-688, CARD-691, CARD-693]."""
+    return [
+        s
+        for s in _raw_skill_tokens(agent)
+        if s not in _AUTO_SKILL_TOKENS and s not in ON_DEMAND_SHIPPED_SKILLS
+    ]
+
+
+def ticked_skills(agent: Any) -> list[str]:
+    seen: list[str] = []
+    for clean in _raw_skill_tokens(agent):
+        if clean == AUTO_SKILL_WILDCARD:
+            try:
+                for item in _store().skills.list():
+                    if item.id not in seen:
+                        seen.append(item.id)
+            except Exception:
+                pass
+            continue
+        if clean == AUTO_USER_SKILL_WILDCARD:
+            try:
+                store = _store()
+                skills_store = store.skills
+                hidden = skills_store.hidden()
+                self_id = str(_field(agent, "id") or "").strip().lower()
+                other_pinned: set[str] = set()
+                for ag in store.agents.list():
+                    if ag.id.lower() != self_id:
+                        other_pinned.update(s for s in ag.skills if s not in _AUTO_SKILL_TOKENS)
+                for uid in skills_store.user_ids():
+                    if uid in hidden or uid in seen:
+                        continue
+                    loaded = skills_store.load(uid)
+                    if loaded is None:
+                        continue
+                    has_colocated = (loaded.path.parent / "tools").is_dir() or (loaded.path.parent / "references").is_dir()
+                    if uid in other_pinned and not has_colocated:
+                        continue
+                    seen.append(uid)
+            except Exception:
+                pass
+            continue
+        if clean not in seen:
             seen.append(clean)
     return seen
 
@@ -102,7 +164,7 @@ def resolve_allowed_tools(agent: Any) -> AllowedTools:
                 continue
             if provenance.get(tool) != (PLATFORM,):
                 provenance[tool] = provenance.get(tool, ()) + (sid,)
-    if ticks:
+    if ticks or has_auto_skill_wildcard(agent):
         from src.application.skills.user_catalog import LIST_USER_SKILLS, SKILL_VIEW
 
         for tool in (SKILL_VIEW, LIST_USER_SKILLS):

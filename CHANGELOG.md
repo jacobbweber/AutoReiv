@@ -4,6 +4,24 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-16
+
+Unified Capabilities studio and 3-agent roster. Skill folders (`skills/<id>/`) now bundle `SKILL.md`, `references/*.md`, and `tools/*.py` (with schemas inferred from `def run(...)` and safety checks on save), managed together with MCP servers in the unified **Capabilities** studio (`#view-capabilities`). Shipped agents are simplified to `AutoReiv`, `Tutor`, and `Direct`, with `AutoReiv` auto-discovering user skills and mounting tools on demand via `skill_view`.
+
+### Added
+
+- Simplified the shipped agent roster to `AutoReiv`, `Tutor`, and `Direct` by retiring `Architect`, `Developer`, and `Toolsmith` into cohesive Agora skill folders (`capability-authoring`, `project-cards`, `software-development`) on `AutoReiv` with on-demand `skill_view` tool mounting [CARD-693].
+- `AutoReiv` now auto-discovers user Agora skill folders via `user:*` without manual ticking in Agent Studio and can author `SKILL.md`, `references/*.md`, and `tools/*.py` directly in Chat through `agent-authoring` [CARD-691].
+- Consolidated MCP server management and all skill/tool deep-links into the unified Capabilities studio (`#view-capabilities`) and retired the separate Skill Studio and Tools Studio dock/sidebar tabs [CARD-692].
+- Added the unified Capabilities directory tree studio (`#view-capabilities`) for browsing Agora `skills/<id>/` folders (`SKILL.md`, `references/*.md`, `tools/*.py`), editing files in place, inspecting inferred schemas and safety checks, and toggling colocated tools on or off [CARD-690].
+- Agents and operators can now write `SKILL.md`, `references/*.md`, and `tools/*.py` directly into Agora skill folders via `write_skill_file` and `PUT /api/capabilities/skills/{skill_id}/file`, with `ToolCheckService` auto-enabling pure `read_only` tools while holding outside-access tools for review [CARD-689].
+- Added `skills: ["*"]` auto-scoped skill discovery and on-demand session tool mounting when an agent opens a skill with `skill_view` [CARD-688].
+- Skill folders (`skills/<id>/`) can now bundle `tools/*.py` (with schemas inferred automatically from `def run(...)` type annotations and docstrings) and `references/*.md` alongside `SKILL.md`, exposed through `/api/capabilities/tree`, `/api/capabilities/skills/{skill_id}/file`, and `/api/capabilities/skills/{skill_id}/tools/{tool_name}/toggle` [CARD-687].
+
+### Fixed
+
+- Aligned agent product concepts (`AUTOREIV_CONCEPTS`), user and steering documentation, findings backlog, and full release test suite with the 3-agent roster (`AutoReiv`, `Tutor`, `Direct`) and unified Capabilities studio [CARD-694].
+
 ## [1.0.1] - 2026-10-09
 
 Easier docs and consistent names. The README is now a short, friendly front door with new user, developer and docs-index guides, and the app no longer shows names of features that were retired.

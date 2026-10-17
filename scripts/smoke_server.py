@@ -155,7 +155,8 @@ def resolve_paths(env: Mapping[str, str], checkout: Path = CHECKOUT) -> dict[str
                 os.environ[k] = env[k]
             else:
                 os.environ.pop(k, None)
-        resolver = DataDirResolver(checkout_root=checkout, local_appdata=env.get("LOCALAPPDATA"))
+        fake_home = Path(env["LOCALAPPDATA"]) if env.get("LOCALAPPDATA") else None
+        resolver = DataDirResolver(checkout_root=checkout, local_appdata=env.get("LOCALAPPDATA"), home=fake_home)
         resolved = resolver.resolve()
         return {
             "platform_default": resolver.platform_default(),

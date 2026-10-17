@@ -20,11 +20,11 @@ AutoReiv is a versatile, local-first hybrid autonomous AI agent control plane an
 
 ## 3. The Web Studios
 
-AutoReiv has 11 studios in one responsive web app. The sidebar names them Chat Studio, Wiki, Projects, Agents (Agent Studio), Skill Studio, Tools Studio, Routines, Metrics (observability), Settings, Prompts and Education, plus a Study button that opens the Tutor. The main ones:
+AutoReiv has 10 studios in one responsive web app. The sidebar names them Chat Studio, Wiki, Projects, Agents (Agent Studio), Capabilities, Routines, Metrics (observability), Settings, Prompts and Education, plus a Study button that opens the Tutor. The main ones:
 
 1. **Chat Studio (`chat.js`)**:
    - Multi-session persistent chat interface with token streaming.
-   - Dynamic agent selection, verified refinement tool loops, and goal mode.
+   - Dynamic agent selection (`AutoReiv`, `Tutor`, `Direct`), verified refinement tool loops, and goal mode.
    - Human-in-the-Loop (HITL) tool approval parking and interactive decision modals.
    - Direct session thread export to Wiki staging inbox.
 
@@ -39,22 +39,20 @@ AutoReiv has 11 studios in one responsive web app. The sidebar names them Chat S
    - In-memory event log buffer with live auto-refresh and severity filtering.
 
 4. **Agent Studio (`forge.js`)**:
-   - Custom agent meta-builder with SQLite persistence.
-   - Purpose classification (Fast, Reasoning, Task Execution, Coding, Vision, Auxiliary).
-   - Prompt engineering controls, tone selection (Concise, Balanced, Elaborate), and skill on/off ticks (an agent's tools come only from its ticked skills, ADR-0061).
+   - Custom agent meta-builder with Markdown file persistence (`platform/agents/` and user data `agents/`).
+   - Prompt engineering controls, tone selection (Concise, Balanced, Elaborate), and skill on/off ticks (an agent's tools come only from its ticked skills, ADR-0061, plus `user:*` auto-discovery on `AutoReiv`, ADR-0065).
 
 5. **Settings Studio (`settings.js`)**:
    - Multi-provider gateway configuration (Ollama, OpenAI, Anthropic, OpenRouter, Groq, DeepSeek, Together, vLLM).
    - Live model discovery and automatic parameter quantization parsing.
    - Hardware Fit Calculator evaluating local RAM/VRAM suitability.
-   - Model Purpose Matrix routing tasks to optimal local or cloud models.
 
-6. **Skill Studio, Tools Studio, Education, Projects, Prompts, Wiki**:
-   - Skill Studio: write and lint skills; authoring jobs go to Toolsmith. Tools Studio: runtime-built tools (enable/disable, show code) and the tool catalog.
-   - Education: Tutor-first learning (ADR-0059). Projects: the active project for Architect and Developer. Prompts: saved prompts. Wiki: the vault and notes.
+6. **Capabilities (`capabilities_studio.js`), Education, Projects, Prompts, Wiki**:
+   - Capabilities: unified Agora directory tree studio (`#view-capabilities`, ADR-0065) for browsing and editing `skills/<id>/` folders (`SKILL.md`, `references/*.md`, `tools/*.py`), toggling colocated tools, and managing MCP servers (`mcp/`).
+   - Education: Tutor-first learning (ADR-0059). Projects: the active code project for `AutoReiv` (`project-cards` and `software-development` skills, ADR-0066). Prompts: saved prompts. Wiki: the vault and notes.
 
 7. **System documentation (no Docs Studio ship)**:
-   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, education, forge (Agent Studio), observability, projects, prompts, routines, settings, skill-studio, tools-studio, wiki). The Agent Training Factory is retired ([ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md)); its leftover screen was removed in CARD-496.
+   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, education, forge (Agent Studio), observability, projects, prompts, routines, settings, capabilities, wiki). The Agent Training Factory is retired ([ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md)); its leftover screen was removed in CARD-496.
    - Architecture decisions live under `docs/adr` and `steering/*`; user and developer docs are indexed in `docs/README.md`.
    - Historical CARD-018/019 "documentation browser" intent remains **not** a separate `docs.js` studio — do not treat product copy as claiming one.
 

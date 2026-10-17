@@ -71,9 +71,9 @@ def test_oc431_catalog_omits_save_and_skill_tool_list(operator_client):
     assert listed.status_code == 200
     assert "agent-builder" not in {row["id"] for row in listed.json()}
 
-    developer = registry.get_agent("developer")
-    assert developer is not None
-    assert "save_agent_specification" not in list(resolve_allowed_tools(developer))
+    autoreiv = registry.get_agent("autoreiv")
+    assert autoreiv is not None
+    assert "save_agent_specification" not in list(resolve_allowed_tools(autoreiv))
     assert "save_agent_specification" not in _DEFAULT_REQUIRE_CONFIRM
     hitl = client.app.state.kernel.hitl_engine
     assert isinstance(hitl, HITLApprovalEngine)
@@ -85,7 +85,7 @@ def test_oc431_catalog_omits_save_and_skill_tool_list(operator_client):
     missing = asyncio.run(
         tools.execute(
             ToolCall(id="oc431-save", name="save_agent_specification", arguments={"spec": {"id": "should-not-exist"}}),
-            developer,
+            autoreiv,
         )
     )
     assert missing.success is False

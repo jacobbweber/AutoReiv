@@ -155,6 +155,40 @@ class AgentBuilderTools:
             handler=self.commit_skill,
         )
 
+        registry.register_tool(
+            name="write_skill_file",
+            description=(
+                "Create or update a file inside an Agora skill folder ($DATA_DIR/skills/<skill_id>/): "
+                "'SKILL.md', 'references/<name>.md', or 'tools/<tool_name>.py'. "
+                "When writing 'tools/<tool_name>.py', code must define run(...) and is verified by ToolCheckService: "
+                "pure read_only tools with zero outside access auto-enable and mount immediately for this session; "
+                "tools with network/file/program access are saved disabled for operator review."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "skill_id": {
+                        "type": "string",
+                        "description": "Skill folder slug under $DATA_DIR/skills (e.g. 'agora-temp-converter').",
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "Relative file path in the skill folder: 'SKILL.md', 'references/<name>.md', or 'tools/<tool_name>.py'.",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Markdown or Python source code to write.",
+                    },
+                    "sample_arguments": {
+                        "type": "object",
+                        "description": "Optional sample arguments dict for checking 'tools/<tool_name>.py'.",
+                    },
+                },
+                "required": ["skill_id", "path", "content"],
+            },
+            handler=self.write_skill_file,
+        )
+
     async def list_available_skills_and_tools(
         self, query: str = "", limit: Optional[int] = None, offset: int = 0, **kwargs
     ) -> Dict[str, Any]:
@@ -347,4 +381,29 @@ class AgentBuilderTools:
             )
         except ValueError as exc:
             return {"success": False, "error": str(exc), "disk_written": False, "src_written": False}
+
+    async def write_skill_file(
+        self,
+        skill_id: str,
+        path: str = "SKILL.md",
+        content: str = "",
+        sample_arguments: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Write SKILL.md, references/<name>.md, or tools/<name>.py into an Agora skill folder [CARD-689, ADR-0065]."""
+        from src.application.skills.agora_authoring import save_skill_file
+        from src.infrastructure.content.store import get_store
+
+        try:
+            return await save_skill_file(
+                get_store(),
+                skill_id=skill_id,
+                rel_path=path,
+                content=content,
+                tool_registry=self.tool_registry,
+                sample_arguments=sample_arguments,
+            )
+        except (ValueError, RuntimeError) as exc:
+            return {"success": False, "saved": False, "skill_id": skill_id, "path": path, "error": str(exc)}
+
 

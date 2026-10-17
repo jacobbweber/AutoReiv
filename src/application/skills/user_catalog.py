@@ -18,12 +18,28 @@ from typing import Any, Dict, List, Optional, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.dynamic_loader import DynamicSkillLoader
+from src.application.skills.session_skills import (
+    _first_skill,
+    _skill_index_entry,
+    record_session_skill_activation,
+    render_skill_index,
+)
 from src.domain.skills.user_skill import UserSkillManifest
 
 logger = logging.getLogger(__name__)
 
 LIST_USER_SKILLS = "list_user_skills"
 SKILL_VIEW = "skill_view"
+
+__all__ = [
+    "LIST_USER_SKILLS",
+    "SKILL_VIEW",
+    "SkillJailError",
+    "UserSkillCatalog",
+    "_first_skill",
+    "_skill_index_entry",
+    "render_skill_index",
+]
 
 _SKILL_ID_RE = re.compile(
     r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
@@ -37,94 +53,6 @@ PLAYBOOK_NOTES_MD = "PLAYBOOK_NOTES.md"
 NOTES_JSONL = "notes.jsonl"
 TRACKED_SKILL_FILES = (SKILL_MD_NAME, PLAYBOOK_NOTES_MD, NOTES_JSONL)
 LAST_USED_NAME = ".last_used"
-
-
-def _first_skill(skills: Any) -> str:
-    """First id from a list, or from a list sent as a JSON/Python string ("['a', 'b']")."""
-    if isinstance(skills, str):
-        text = skills.strip()
-        if text.startswith("["):
-            try:
-                import ast
-
-                skills = ast.literal_eval(text)
-            except (ValueError, SyntaxError):
-                return text.strip("[]'\" ")
-        else:
-            return text
-    if isinstance(skills, (list, tuple)) and skills:
-        return str(skills[0]).strip()
-    return ""
-
-
-def render_skill_index(allowed_skill, catalog=None, agent_id=None, can_open: bool = True) -> str:
-    """Name + blurb for ticked runbooks only. Empty allowlist injects nothing.
-
-    Operator-store manifests win. Allowlisted skill runbooks that are not copied
-    into ``$DATA_DIR/skills/`` still contribute a name and blurb [CARD-427].
-    can_open=False (the call is not sent skill_view) leaves out the "open it with skill_view" hint [CARD-675].
-    """
-    ids = [str(s).strip() for s in (allowed_skill or []) if str(s).strip()]
-    if not ids:
-        return ""
-    by_id = {}
-    if catalog is not None:
-        try:
-            for manifest in catalog.list_manifests():
-                by_id[manifest.id] = manifest
-        except Exception:
-            by_id = {}
-    lines = []
-    for skill_id in ids:
-        manifest = by_id.get(skill_id)
-        name = ""
-        blurb = ""
-        if manifest is not None:
-            name = (manifest.name or skill_id).strip()
-            blurb = (manifest.description or "").strip()
-        else:
-            entry = _skill_index_entry(catalog, skill_id, agent_id)
-            if entry is None:
-                continue
-            name, blurb = entry
-        # CARD-523: show the id next to the name so skill_view gets the id.
-        label = name if name == skill_id else f"{name} (id: {skill_id})"
-        if blurb:
-            lines.append(f"- {label}: {blurb}")
-        else:
-            lines.append(f"- {label}")
-    if not lines:
-        return ""
-    if can_open:
-        header = (
-            "Skills (runbooks) for this agent. Names and short descriptions only. "
-            "When a listed runbook matches the task, open it with skill_view to load the full instructions. "
-            "Do not open a skill id that is not listed here."
-        )
-    else:
-        header = (
-            "Skills (runbooks) for this agent. Names and short descriptions only. "
-            "Skill ids are not tools: use only the tools you are sent on this step."
-        )
-    return chr(10).join([header] + lines)
-
-
-def _skill_index_entry(catalog, skill_id: str, agent_id: Optional[str]) -> Optional[tuple]:
-    """Name and description for one skill runbook. Body stays out of the index."""
-    if catalog is None:
-        return None
-    reader = getattr(catalog, "skill_index_entry", None)
-    if not callable(reader):
-        return None
-    try:
-        found = reader(skill_id, agent_id=agent_id)
-    except Exception:
-        return None
-    if not found:
-        return None
-    name = str(found[0] or skill_id).strip() or skill_id
-    blurb = str(found[1] or "").strip()
-    return name, blurb
 
 
 class SkillJailError(ValueError):
@@ -267,6 +195,25 @@ class UserSkillCatalog:
         tools_meta = []
         for tool in loaded.get("tools") or []:
             tools_meta.append({"name": tool.name, "description": tool.description})
+        refs_list: List[str] = []
+        colocated_list: List[Dict[str, Any]] = []
+        try:
+            from src.application.skills.agora_loader import list_skill_colocated_tools, list_skill_references
+            from src.infrastructure.content.store import get_store
+
+            content_store = get_store()
+            refs_list = [r["name"] for r in list_skill_references(content_store, result_id)]
+            for spec in list_skill_colocated_tools(content_store, result_id):
+                colocated_list.append(
+                    {
+                        "name": spec["name"],
+                        "description": spec["description"],
+                        "enabled": spec["enabled"],
+                        "approval": spec["approval"],
+                    }
+                )
+        except Exception:
+            pass
         return {
             "success": True,
             "id": result_id,
@@ -275,6 +222,8 @@ class UserSkillCatalog:
             "path": loaded.get("path", source_path),
             "instructions": loaded.get("instructions", ""),
             "tools": tools_meta,
+            "references": refs_list,
+            "colocated_tools": colocated_list,
             "skipped_tools": skipped,
         }
 
@@ -296,20 +245,64 @@ class UserSkillCatalog:
 
     def _allowed_skill_ids_for_current_agent(self) -> Optional[set]:
         """Allowlist when a tool-call agent is in context; None if no agent context."""
+        from src.application.agent_skills.allowed_tools import (
+            AUTO_SKILL_WILDCARD,
+            AUTO_USER_SKILL_WILDCARD,
+            ticked_skills,
+        )
         from src.application.kernel.tool_registry import get_tool_context
 
         ctx = get_tool_context()
         if not ctx.get("agent_id"):
             return None
         if "allowed_skill" in ctx:
-            return {str(s).strip() for s in (ctx.get("allowed_skill") or []) if str(s).strip()}
-        lookup = getattr(self, "agent_lookup", None)
-        if not callable(lookup):
-            return set()
-        agent = lookup(ctx.get("agent_id"))
-        if agent is None:
-            return set()
-        return {str(s).strip() for s in (getattr(agent, "allowed_skill", None) or []) if str(s).strip()}
+            raw = {str(s).strip() for s in (ctx.get("allowed_skill") or []) if str(s).strip()}
+        else:
+            lookup = getattr(self, "agent_lookup", None)
+            if not callable(lookup):
+                return set()
+            agent = lookup(ctx.get("agent_id"))
+            if agent is None:
+                return set()
+            raw = {str(s).strip() for s in (getattr(agent, "allowed_skill", None) or []) if str(s).strip()}
+        if AUTO_SKILL_WILDCARD in raw or AUTO_USER_SKILL_WILDCARD in raw:
+            expanded = {
+                s
+                for s in raw
+                if s not in (AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD)
+            }
+            if AUTO_SKILL_WILDCARD in raw:
+                expanded |= {m.id for m in self.list_manifests()}
+                expanded |= set(ticked_skills({"allowed_skill": [AUTO_SKILL_WILDCARD]}))
+            if AUTO_USER_SKILL_WILDCARD in raw:
+                expanded |= {m.id for m in self.list_manifests()}
+                expanded |= set(
+                    ticked_skills(
+                        {
+                            "id": str(ctx.get("agent_id") or ""),
+                            "allowed_skill": [AUTO_USER_SKILL_WILDCARD],
+                        }
+                    )
+                )
+            return expanded
+        return raw
+
+    def _activate_skill_for_session(self, skill_id: str) -> List[str]:
+        """Record session activation and ensure enabled colocated tools are mounted [CARD-688]."""
+        from src.application.agent_skills.allowed_tools import platform_seed_tools
+        from src.application.kernel.tool_registry import get_tool_context
+        from src.application.skills.agora_loader import mount_all_enabled_skill_tools
+        from src.infrastructure.content.store import get_store
+
+        session_id = (get_tool_context() or {}).get("session_id")
+        record_session_skill_activation(session_id, skill_id)
+        try:
+            store = get_store()
+            if self.tool_registry is not None:
+                mount_all_enabled_skill_tools(store, self.tool_registry)
+            return list(platform_seed_tools([skill_id]))
+        except Exception:
+            return []
 
     def list_user_skills(self) -> Dict[str, Any]:
         """Tool handler: catalog list is name + description only. Agent calls see ticked ids only.
@@ -356,8 +349,9 @@ class UserSkillCatalog:
         id: Optional[str] = None,  # noqa: A002 - models send it
         name: Optional[str] = None,
         skills: Any = None,
+        reference: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Tool handler: load SKILL.md body for one allowed runbook.
+        """Tool handler: load SKILL.md body (or a colocated reference doc) for one allowed runbook.
         CARD-523: skill_name / id / name / skills (first item, list or list-as-string) are aliases of skill_id."""
         skill_id = skill_id or skill_name or id or name or _first_skill(skills)
         if not skill_id:
@@ -378,9 +372,33 @@ class UserSkillCatalog:
                     + ", ".join(sorted(allowed)) + ".",
                 }
             skill_id = match
+        if reference:
+            ref_clean = str(reference).strip().replace("\\", "/")
+            if ref_clean.startswith("references/"):
+                ref_clean = ref_clean[len("references/") :]
+            try:
+                from src.application.skills.agora_loader import read_skill_file
+                from src.infrastructure.content.store import get_store
+
+                doc = read_skill_file(get_store(), skill_id, f"references/{ref_clean}")
+                self.record_skill_use(skill_id)
+                activated = self._activate_skill_for_session(skill_id)
+                return {
+                    "success": True,
+                    "id": skill_id,
+                    "reference": ref_clean,
+                    "path": doc["path"],
+                    "content": doc["content"],
+                    "activated_tools": activated,
+                }
+            except (LookupError, ValueError) as exc:
+                return {"success": False, "error": str(exc)}
         loaded = self.load_body(skill_id)
         if loaded.get("success"):
             self.record_skill_use(skill_id)
+            activated = self._activate_skill_for_session(skill_id)
+            if activated:
+                loaded["activated_tools"] = activated
         return loaded
 
     def resolve_skill_md(self, skill_id: str) -> Path:
@@ -725,7 +743,7 @@ class UserSkillCatalog:
         registry.register_tool(
             name=SKILL_VIEW,
             description=(
-                "Load the full SKILL.md body for one allowed runbook. "
+                "Load the full SKILL.md body (or a colocated reference doc under references/) for one allowed runbook. "
                 "Use when a listed skill matches the task. Does not replace Python builtin tools."
             ),
             parameters={
@@ -736,6 +754,13 @@ class UserSkillCatalog:
                         "description": (
                             "Allowlisted skill id. Opens the operator skill store copy when one exists, "
                             "otherwise the agent runbook. Does not copy a skill file into $DATA_DIR/skills."
+                        ),
+                    },
+                    "reference": {
+                        "type": "string",
+                        "description": (
+                            "Optional reference markdown filename from the skill's references/ folder "
+                            "(e.g. 'guide.md') to load on demand."
                         ),
                     },
                 },

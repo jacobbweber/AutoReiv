@@ -100,7 +100,7 @@ def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
 
     profiles = agent_reg.list_profiles()
     ids = {p.id for p in profiles}
-    assert {"autoreiv", "direct", "developer", "tutor"} <= ids
+    assert {"autoreiv", "direct", "tutor"} <= ids
     assert "agent-builder" not in ids
     assert "coding" not in ids
     assert "assistant" not in ids
@@ -111,15 +111,12 @@ def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
 
     autoreiv_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("autoreiv"))
     assert len(autoreiv_tools) >= 8
-    assert any(t.name == "inspect_system_health" for t in autoreiv_tools)
-
-    developer_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("developer"))
-    developer_names = {t.name for t in developer_tools}
-    assert "execute_code" not in developer_names  # CARD-562: no shell/code runner on Developer
-    assert "run_project_checks" in developer_names
-    assert "commit_skill" not in developer_names  # CARD-562/571: Developer builds no tools or skills
-    assert "scaffold_agent_pack" not in developer_names
-    assert "save_agent_specification" not in developer_names
+    autoreiv_names = {t.name for t in autoreiv_tools}
+    assert "inspect_system_health" in autoreiv_names
+    assert "run_project_checks" in autoreiv_names  # CARD-693: software-development consolidated onto AutoReiv
+    assert "commit_skill" in autoreiv_names
+    assert "scaffold_agent_pack" not in autoreiv_names
+    assert "save_agent_specification" not in autoreiv_names
 
 
 

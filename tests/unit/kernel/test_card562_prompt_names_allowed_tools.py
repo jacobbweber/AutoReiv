@@ -69,7 +69,7 @@ def test_registry_refuses_runner_for_developer(runner, tmp_path):
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
         store=store, telemetry=TelemetryCollector(store=store), skills_dir=str(tmp_path / "skills")
     )
-    dev = agent_reg.get_profile("developer")
+    dev = agent_reg.get_profile("developer") or platform_pack_profile("developer")
     result = asyncio.run(tool_reg.execute(ToolCall(id="c2", name=runner, arguments={"command": "echo hi"}), dev))
     assert result.success is False
     assert "not authorized" in (result.error or "")

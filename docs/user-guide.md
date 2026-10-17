@@ -10,10 +10,9 @@ The left sidebar opens each studio. On a phone the same studios open full screen
 |---|---|
 | **Chat Studio** | Talk to an agent. Pick the agent at the top, open **Sessions** for earlier chats and **Options** for a new chat. |
 | **Wiki** | Your notes: plain markdown files in the data folder, with folders, a mind map and an inbox for new notes. |
-| **Projects** | Pick a code project folder for the Architect and Developer agents to work on. |
+| **Projects** | Pick a code project folder for AutoReiv to plan, build and check cards on. |
 | **Agents** | Agent Studio: each agent's instructions, tone, model and skills (switch skills on or off). |
-| **Skill Studio** | Read and edit skills (the step-by-step runbooks agents follow). |
-| **Tools Studio** | See every tool, and turn on or off the tools that agents have built. |
+| **Capabilities** | Browse and edit Agora skill folders (`SKILL.md`, `references/*.md`, `tools/*.py`), toggle tools on or off, and manage MCP servers. |
 | **Routines** | Scheduled jobs: see when they run, run one now, pause it, and read its history. |
 | **Metrics** | How agents are doing: turns, tokens, speed, errors and logs. |
 | **Settings** | Model providers, models, the data folder, backups, software updates and colour themes. |
@@ -23,26 +22,24 @@ The left sidebar opens each studio. On a phone the same studios open full screen
 
 ## The agents
 
-AutoReiv ships with these agents. Each one has its own instructions and skills, and you can change both in **Agents**.
+AutoReiv ships with three agents. Each one has its own instructions and skills, and you can change both in **Agents**.
 
 | Agent | What it is for |
 |---|---|
-| **AutoReiv** | Your main companion: everyday questions, wiki notes and keeping the platform healthy. Start here. |
+| **AutoReiv** | Your main companion: everyday questions, wiki notes, platform health, capability authoring (`capability-authoring`) and software development on active projects (`project-cards`, `software-development`). Start here. |
 | **Tutor** | Teaches from your own wiki notes: courses, questions, quizzes and flashcards. |
-| **Architect** | Plans changes to a code project with you, writes the work as cards and hands them to Developer. |
-| **Developer** | Takes a card from Architect and plans, builds and checks the change in the active project. |
-| **Toolsmith** | Builds a small new tool when you press **Ask Developer** (see below). |
 | **Direct** | Talks straight to the model with no tools, handy for comparing models or a quick chat. |
 
 Editing a shipped agent saves your own copy in the data folder; **Use shipped version** goes back to the original. Hiding a shipped agent can be undone with **Unhide**.
 
 ## Skills and tools
 
-- A **tool** is one thing an agent can do, such as reading a wiki note or running a command.
-- A **skill** is a short runbook that tells an agent how to do a kind of task, and which tools it needs.
-- An agent can use the tools of the skills that are switched on for it in **Agents**.
+- A **tool** is one thing an agent can do, such as reading a wiki note or running a check.
+- A **skill** is an Agora folder (`skills/<id>/`) containing a `SKILL.md` runbook, optional `references/*.md` guides and optional `tools/*.py` scripts.
+- An agent can use the tools of the skills that are switched on for it in **Agents** (and `AutoReiv` automatically discovers any `user:*` skill folder you or the agent create in the data folder).
 
-If an agent says it has no tool for something, the reply ends with **Ask Developer**. Press it and Toolsmith writes the tool, checks it, and saves it switched off. You turn it on in **Tools Studio** when you are happy with it.
+You can browse and edit every skill folder, inspect or toggle its tools, and attach MCP servers in **Capabilities**. Pure read-only tools are enabled automatically when written; tools that reach outside (files, network, subprocesses) stay switched off until you enable them in **Capabilities**.
+
 
 ## Approvals and Auto-run
 

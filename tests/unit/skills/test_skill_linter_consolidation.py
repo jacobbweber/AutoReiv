@@ -23,14 +23,15 @@ def test_linter_resolves_without_import_error(tmp_path: Path):
 
 
 def test_consolidated_skills_exist_and_pass_lint():
-    """Consolidated skills pass lint across platform packs."""
+    """Consolidated skills pass lint across platform agents [CARD-366, CARD-693, ADR-0066]."""
     repo_root = Path(__file__).resolve().parents[3]
     skills_dir = repo_root / "platform" / "skills"
 
     expected_skills = [
-        ("developer", "implement-change"),
-        ("autoreiv", "agent-authoring"),
-        ("autoreiv", "socratic-tutoring"),
+        ("autoreiv", "capability-authoring"),
+        ("autoreiv", "project-cards"),
+        ("autoreiv", "software-development"),
+        ("tutor", "socratic-tutoring"),
     ]
 
     compiler = SkillContractCompiler()
@@ -44,6 +45,6 @@ def test_consolidated_skills_exist_and_pass_lint():
         error_violations = [v for v in violations if v.severity.value == "error"]
         assert not error_violations, f"Violations found for {skill_name}: {error_violations}"
         assert contract is not None
-        assert len(contract.tools) <= 6
+        assert len(contract.tools) <= 15
         assert contract.verification is not None
         assert contract.verification.rule.strip() != ""

@@ -342,7 +342,7 @@ class CardTools:
             content = apply_card_title(content, title.strip(), new=path is None)
         assigned = ""
         if path is None:
-            # CARD-562: new cards get the next CARD-N id and a CARD-N-slug.md filename; Developer's are Proposed.
+            # CARD-562 / CARD-693: new cards get the next CARD-N id and a CARD-N-slug.md filename.
             developer = self._actor() == "developer"
             wanted = (card_id or extract_card_id(Path(filename).name if filename else "") or own_card_id(content) or "").upper()
             assigned = wanted if (wanted and not developer) else self._next_card_id(root)
@@ -370,8 +370,8 @@ class CardTools:
         return str(get_tool_context().get("agent_id") or "").lower()
 
     def _architect_new_status(self, content: str) -> str:
-        """CARD-563: a new Architect card is Proposed or Ready; no status means Proposed."""
-        if self._actor() != "architect":
+        """CARD-563 / CARD-693: a new Architect/AutoReiv card is Proposed or Ready; no status means Proposed."""
+        if self._actor() not in ("architect", "autoreiv"):
             return ""
         from src.domain.sdlc.models import normalize_status
 
@@ -381,7 +381,8 @@ class CardTools:
 
     def _architect_write_refusal(self, path: Path, content: str) -> str:
         """CARD-563: Architect writes Proposed/Ready cards and leaves cards Developer is working or that wait for review."""
-        if self._actor() != "architect":
+        actor = self._actor()
+        if actor not in ("architect", "autoreiv"):
             return ""
         from src.domain.sdlc.models import normalize_status
 
@@ -391,7 +392,7 @@ class CardTools:
                 return "Architect files new cards with status: Proposed or Ready."
             return ""
         old_status = normalize_status(parse_card_frontmatter(path.read_text(encoding="utf-8")).status or "")
-        if old_status in ARCHITECT_LOCKED_STATUSES:
+        if actor == "architect" and old_status in ARCHITECT_LOCKED_STATUSES:
             return (
                 f"This card is {old_status}: Developer is working it or it waits for review, so Architect does not edit it. "
                 "File a new card for further changes."
@@ -435,8 +436,8 @@ class CardTools:
         target_n = normalize_status(status)
         actor = str(get_tool_context().get("agent_id") or "").lower()
         passed_through = ""
-        if actor == "developer" and target_n == "In Review" and normalize_status(fm.status) in ("Ready", "Returned"):
-            # CARD-562: Ready -> In Review goes through In Progress in one call (CARD-564: also Returned, same round rule)
+        if actor in ("developer", "autoreiv") and target_n == "In Review" and normalize_status(fm.status) in ("Ready", "Returned"):
+            # CARD-562 / CARD-693: Ready -> In Review goes through In Progress in one call (CARD-564: also Returned, same round rule)
             start = normalize_status(fm.status)
             ok, err = self._machine.validate(
                 start, "In Progress", spec_exists=spec_exists, review_rounds=fm.review_rounds,
@@ -494,7 +495,7 @@ class CardTools:
                 "review_rounds": fm.review_rounds,
                 "max_review_rounds": fm.max_review_rounds,
             }
-        gated = actor == "developer" and target_n == "In Review"
+        gated = actor in ("developer", "autoreiv") and target_n == "In Review"
         if gated:
             refusal = self._in_review_refusal(root, path)
             if refusal:

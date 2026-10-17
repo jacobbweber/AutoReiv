@@ -110,20 +110,12 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
     defaultSize: { w: 820, h: 580 },
   },
   {
-    id: 'dock-skill-studio',
-    tab: 'skill-studio',
-    label: 'Skill Studio',
-    icon: 'book-open',
-    subtitle: 'Skill lifecycle and tool scoping',
-    defaultSize: { w: 960, h: 680 },
-  },
-  {
-    id: 'dock-tools-studio',
-    tab: 'tools-studio',
-    label: 'Tools Studio',
-    icon: 'wrench',
-    subtitle: 'Tool catalog and MCP attach',
-    defaultSize: { w: 960, h: 680 },
+    id: 'dock-capabilities',
+    tab: 'capabilities',
+    label: 'Capabilities',
+    icon: 'folder-tree',
+    subtitle: 'Agora skill folders & tools',
+    defaultSize: { w: 980, h: 680 },
   },
   {
     id: 'dock-routines',
@@ -173,6 +165,7 @@ export const VIEW_BY_TAB = {
   wiki: 'view-wiki',
   projects: 'view-projects',
   agents: 'view-agents',
+  capabilities: 'view-capabilities',
   'skill-studio': 'view-skill-studio',
   'tools-studio': 'view-tools-studio',
   routines: 'view-routines',
@@ -273,7 +266,12 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function launcherForTab(tab) {
-    return DOCK_LAUNCHERS.find((d) => d.tab === tab) || null;
+    return (
+      DOCK_LAUNCHERS.find((d) => d.tab === tab) ||
+      (VIEW_BY_TAB[tab]
+        ? { id: `dock-${tab}`, tab, label: tab, icon: 'folder-tree', defaultSize: { w: 960, h: 680 } }
+        : null)
+    );
   }
 
   function viewIdForTab(tab) {

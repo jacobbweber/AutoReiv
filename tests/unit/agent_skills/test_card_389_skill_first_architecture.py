@@ -59,11 +59,11 @@ def test_req_389_002_agent_name_customization_and_immutable_slug(tmp_path: Path)
     # 4. API PUT /api/agents/{id} updates display name
     client = TestClient(app)
     resp = client.put(
-        "/api/agents/developer",
+        "/api/agents/tutor",
         json={
-            "id": "developer",
-            "name": "Super Developer",
-            "system_prompt": "You are a senior full-stack developer assisting the operator.",
+            "id": "tutor",
+            "name": "Super Tutor",
+            "system_prompt": "You are a Socratic tutor assisting the operator.",
             "model": "gpt-4o",
             "allowed_skill": ["wiki"],
             "storage_enabled": False,
@@ -72,15 +72,15 @@ def test_req_389_002_agent_name_customization_and_immutable_slug(tmp_path: Path)
     assert resp.status_code == 200, resp.text
     data = resp.json()
     assert data["status"] == "updated"
-    assert data["agent"]["id"] == "developer"
-    assert data["agent"]["name"] == "Super Developer"
+    assert data["agent"]["id"] == "tutor"
+    assert data["agent"]["name"] == "Super Tutor"
 
     # Verify GET reflection
     get_resp = client.get("/api/agents")
     assert get_resp.status_code == 200
     agent_map = {a["id"]: a for a in get_resp.json()}
-    assert agent_map["developer"]["name"] == "Super Developer"
-    assert agent_map["developer"]["id"] == "developer"
+    assert agent_map["tutor"]["name"] == "Super Tutor"
+    assert agent_map["tutor"]["id"] == "tutor"
 
 
 def test_req_389_003_storage_enabled_auto_binds_sqlite_storage_skill():
