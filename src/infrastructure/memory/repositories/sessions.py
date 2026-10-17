@@ -109,7 +109,12 @@ class SessionRepositoryMixin:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
-            if agent_id:
+            if agent_id == "autoreiv":
+                cur.execute(
+                    "SELECT id, agent_id, title, created_at, updated_at FROM sessions "
+                    "WHERE agent_id IN ('autoreiv', 'toolsmith', 'developer', 'architect') ORDER BY updated_at DESC",
+                )
+            elif agent_id:
                 cur.execute(
                     "SELECT id, agent_id, title, created_at, updated_at FROM sessions WHERE agent_id = ? ORDER BY updated_at DESC",
                     (agent_id,),
