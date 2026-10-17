@@ -31,9 +31,9 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     tool_reg = ScopedToolRegistry()
     registry = BuiltinAgentRegistry(state_store=temp_store, master_tool_registry=tool_reg)
 
-    # CARD-570: shipped agents come from platform/agents/*.md; no hard-coded builtins.
+    # CARD-570 / CARD-693: shipped agents come from platform/agents/*.md (autoreiv, direct, tutor).
     agents = registry.list_agents()
-    assert {"autoreiv", "developer", "direct", "tutor", "architect"} <= {a.id for a in agents}
+    assert {"autoreiv", "direct", "tutor"} <= {a.id for a in agents}
     assert not any(a.id == "agent-builder" for a in agents)
     assert not any(a.id == "assistant" for a in agents)
 

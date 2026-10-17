@@ -53,7 +53,7 @@ class _RecordingKernel:
         assert kwargs.get("job_id")
         assert kwargs.get("phase_id")
         agent = kwargs.get("agent")
-        assert getattr(agent, "id", None) == "toolsmith"
+        assert getattr(agent, "id", None) == "autoreiv"
         return ChatMessage(role=Role.ASSISTANT, content=self.content)
 
 

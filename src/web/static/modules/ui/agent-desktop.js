@@ -266,7 +266,12 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function launcherForTab(tab) {
-    return DOCK_LAUNCHERS.find((d) => d.tab === tab) || null;
+    return (
+      DOCK_LAUNCHERS.find((d) => d.tab === tab) ||
+      (VIEW_BY_TAB[tab]
+        ? { id: `dock-${tab}`, tab, label: tab, icon: 'folder-tree', defaultSize: { w: 960, h: 680 } }
+        : null)
+    );
   }
 
   function viewIdForTab(tab) {

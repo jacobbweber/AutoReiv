@@ -16,7 +16,10 @@ from src.application.agent_skills.schema import REQUIRED_PLATFORM_TOOLS
 
 NO_TOOL_AGENTS = frozenset({"direct"})
 # CARD-563: platform tools an agent must not get. Architect starts Developer only through hand_off_card.
-WITHHELD_PLATFORM_TOOLS: dict[str, frozenset[str]] = {"architect": frozenset({"handoff_to_agent", "lookup_agents"})}
+WITHHELD_PLATFORM_TOOLS: dict[str, frozenset[str]] = {
+    "architect": frozenset({"handoff_to_agent", "lookup_agents"}),
+    "developer": frozenset({"hand_off_card"}),
+}
 # Checkers the platform itself runs after a turn (reflexion / phase verification). Never offered to a model.
 PLATFORM_VERIFIER_TOOLS = frozenset({"verify_telemetry_consistency", "assert_json_schema", "validate_metric_bounds"})
 PLATFORM = "platform"

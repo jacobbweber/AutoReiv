@@ -159,8 +159,8 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
                     tool_calls=[
                         ToolCall(
                             id="c1",
-                            name="write_project_file",
-                            arguments={"path": "notes.txt", "content": "hi"},
+                            name="wiki_note_create",
+                            arguments={"title": "Notes", "content": "hi", "category": "general"},
                         )
                     ],
                 ),
@@ -200,8 +200,8 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
     r = Routine(
         id="r-park-chat",
         name="Park Chat",
-        agent_id="developer",
-        prompt="Write notes.txt",
+        agent_id="autoreiv",
+        prompt="Create wiki note Notes",
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=3600,
     )
@@ -210,9 +210,9 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_p
     run = await executor.execute_routine(r)
 
     assert run.status == RoutineStatus.SUCCESS
-    pending = store.get_pending_approvals(agent_id="developer")
+    pending = store.get_pending_approvals(agent_id="autoreiv")
     assert pending
-    assert pending[0]["agent_id"] == "developer"
+    assert pending[0]["agent_id"] == "autoreiv"
     assert pending[0]["routine_id"] == "r-park-chat"
-    assert pending[0]["tool_name"] == "write_project_file"
+    assert pending[0]["tool_name"] == "wiki_note_create"
     assert pending[0]["session_id"]

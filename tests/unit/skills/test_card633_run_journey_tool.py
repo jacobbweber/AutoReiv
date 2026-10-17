@@ -87,8 +87,9 @@ def test_run_journey_timeout_kills_subprocess(tmp_path: Path):
 
 
 def test_skill_and_developer_include_run_journey():
-    skill = Path("platform/skills/journey-qa/SKILL.md").read_text(encoding="utf-8")
+    skill = Path("platform/skills/software-development/SKILL.md").read_text(encoding="utf-8")
     assert "run_journey" in skill
-    assert "throwaway" in skill.lower()
-    text = Path("platform/agents/developer.md").read_text(encoding="utf-8")
-    assert "- journey-qa" in text
+    wf = Path("platform/skills/software-development/references/workflow.md").read_text(encoding="utf-8")
+    assert "throwaway" in wf.lower()
+    text = Path("platform/agents/autoreiv.md").read_text(encoding="utf-8")
+    assert "- software-development" in text

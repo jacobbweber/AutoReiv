@@ -82,8 +82,8 @@ async def test_autoreiv_federation_mount_discover_and_execute(federation_cluster
     )
 
     tool_names = [t.name for t in tools]
-    assert "mcp_homelab_ask_developer" in tool_names
     assert "mcp_homelab_ask_autoreiv" in tool_names
+    assert "mcp_homelab_ask_tutor" in tool_names
     assert "mcp_homelab_read_wiki_document" in tool_names
     assert "mcp_homelab_get_system_health" in tool_names
 
@@ -98,7 +98,7 @@ async def test_autoreiv_federation_mount_discover_and_execute(federation_cluster
     assert skill_file.is_file()
     skill_content = skill_file.read_text(encoding="utf-8")
     assert "Homelab Remote MCP Capabilities" in skill_content
-    assert "mcp_homelab_ask_developer" in skill_content
+    assert "mcp_homelab_ask_autoreiv" in skill_content
 
     # 3. Call passive tool via client tool registry dispatch handler
     assert "mcp_homelab_read_wiki_document" in client_reg._tools
@@ -110,14 +110,14 @@ async def test_autoreiv_federation_mount_discover_and_execute(federation_cluster
     assert "Nodes: 3, Status: Healthy" in result["output"]
 
     # 4. Call agent dispatcher tool via client tool registry dispatch handler
-    assert "mcp_homelab_ask_developer" in client_reg._tools
-    ask_dev_handler = client_reg._tools["mcp_homelab_ask_developer"].handler
+    assert "mcp_homelab_ask_autoreiv" in client_reg._tools
+    ask_ar_handler = client_reg._tools["mcp_homelab_ask_autoreiv"].handler
 
-    agent_result = await ask_dev_handler(prompt="Check node memory", session_id="workstation-turn-1")
+    agent_result = await ask_ar_handler(prompt="Check node memory", session_id="workstation-turn-1")
     assert agent_result["success"] is True
     assert "Federated Developer: Node 1 memory verified" in agent_result["output"]
 
     # 5. Clean unmount
     await client_mcp_mgr.unmount_server("homelab")
     assert "mcp_homelab_read_wiki_document" not in client_reg._tools
-    assert "mcp_homelab_ask_developer" not in client_reg._tools
+    assert "mcp_homelab_ask_autoreiv" not in client_reg._tools

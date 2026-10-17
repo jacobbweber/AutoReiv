@@ -220,6 +220,9 @@ export function initApp() {
       sidebar.classList.add('-translate-x-full');
     }
   }
+  if (typeof window !== 'undefined') {
+    window.__autoreivSwitchTab = switchTab;
+  }
 
   // Keyboard navigation on studio tabs [REQ-A11Y-003]
   if (sidebarNav) {

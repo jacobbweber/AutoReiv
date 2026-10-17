@@ -30,10 +30,10 @@ def client(tmp_path):
 def test_child_approval_returns_before_the_slow_child_finishes(client):
     tc, store = client
     parent_id, child_id = "sess_593", "sess_593_child_cafe0001"
-    store.create_session(agent_id="architect", title="P", session_id=parent_id)
-    store.create_session(agent_id="developer", title="C", session_id=child_id)
-    store.save_message(session_id=child_id, agent_id="developer", message=ChatMessage(role=Role.USER, content="go"))
-    appr = store.create_approval(session_id=child_id, agent_id="developer", tool_name="cli_exec",
+    store.create_session(agent_id="autoreiv", title="P", session_id=parent_id)
+    store.create_session(agent_id="autoreiv", title="C", session_id=child_id)
+    store.save_message(session_id=child_id, agent_id="autoreiv", message=ChatMessage(role=Role.USER, content="go"))
+    appr = store.create_approval(session_id=child_id, agent_id="autoreiv", tool_name="cli_exec",
                                  arguments={"command": "echo hi"})
 
     async def slow_child(agent, session_id, user_content=None, approval_mode="ask", resume=False, **kw):
@@ -57,8 +57,8 @@ def test_child_approval_returns_before_the_slow_child_finishes(client):
 
 def test_approved_hand_off_runs_in_the_background_and_writes_its_result(client):
     tc, store = client
-    store.create_session(agent_id="architect", title="P", session_id="sess_593b")
-    appr = store.create_approval(session_id="sess_593b", agent_id="architect", tool_name="hand_off_card",
+    store.create_session(agent_id="autoreiv", title="P", session_id="sess_593b")
+    appr = store.create_approval(session_id="sess_593b", agent_id="autoreiv", tool_name="hand_off_card",
                                  arguments={"card_id": "CARD-9", "_tool_call_id": "tc-593"})
     calls = []
 

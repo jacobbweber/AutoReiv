@@ -14,6 +14,10 @@ What changed in each AutoReiv release, newest first.
 - Added `skills: ["*"]` auto-scoped skill discovery and on-demand session tool mounting when an agent opens a skill with `skill_view` [CARD-688].
 - Skill folders (`skills/<id>/`) can now bundle `tools/*.py` (with schemas inferred automatically from `def run(...)` type annotations and docstrings) and `references/*.md` alongside `SKILL.md`, exposed through `/api/capabilities/tree`, `/api/capabilities/skills/{skill_id}/file`, and `/api/capabilities/skills/{skill_id}/tools/{tool_name}/toggle` [CARD-687].
 
+### Fixed
+
+- Aligned agent product concepts (`AUTOREIV_CONCEPTS`), user and steering documentation, findings backlog, and full release test suite with the 3-agent roster (`AutoReiv`, `Tutor`, `Direct`) and unified Capabilities studio [CARD-694].
+
 ## [1.0.1] - 2026-10-09
 
 Easier docs and consistent names. The README is now a short, friendly front door with new user, developer and docs-index guides, and the app no longer shows names of features that were retired.

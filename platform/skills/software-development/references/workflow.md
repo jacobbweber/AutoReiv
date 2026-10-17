@@ -11,3 +11,4 @@
 - **File size**: Keep files under 800 lines; split out focused modules when touching a large file.
 - **No suppressions**: Never add `# noqa`, `# type: ignore`, `eslint-disable`, or `pytest.mark.skip` to force a green check.
 - **Verification**: Always run `run_project_checks` after committing so the check record matches `HEAD` before calling `set_card_status(..., status="In Review")`.
+- **Live QA**: Run `run_journey` to verify the card's journey in a throwaway environment on desktop and phone before moving to review.

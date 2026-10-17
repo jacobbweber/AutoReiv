@@ -35,7 +35,7 @@ def test_duplicate_settings_save_route_is_gone(client):
 
 
 def test_agent_studio_put_saves_model_provider_and_context(client):
-    agent = _agent(client, "developer")
+    agent = _agent(client, "autoreiv")
     payload = {
         **agent,
         "model": "qwen3.8:latest",
@@ -43,9 +43,9 @@ def test_agent_studio_put_saves_model_provider_and_context(client):
         "context_window": 131072,
         "expected_skills_version": agent["skills_version"],
     }
-    res = client.put("/api/agents/developer", json=payload)
+    res = client.put("/api/agents/autoreiv", json=payload)
     assert res.status_code == 200, res.text
-    after = _agent(client, "developer")
+    after = _agent(client, "autoreiv")
     assert after["model"] == "qwen3.8:latest"
     assert after["provider"] == "ollama"
     assert after["context_window"] == 131072

@@ -8,6 +8,7 @@ tools:
 - read_card
 - write_card
 - set_card_status
+- hand_off_card
 - review_card
 - finish_review
 version: 1.0.0

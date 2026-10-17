@@ -911,7 +911,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.locator('#dock-tools-studio').click();
+    await page.evaluate(() => window.__autoreivSwitchTab('tools-studio'));
     await expect(page.locator('#view-tools-studio')).toBeVisible({ timeout: 20000 });
     // Scope platform MCP list
     const row = page.locator('#toolsStudioMcpList [data-testid="tools-studio-mcp-row"][data-server-name="c627"]');
@@ -1519,16 +1519,15 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(puts[0].allowed_skill).toContain('proposals');
       expect(puts[0].allowed_skill).not.toContain('coding');
       expect(String(puts[0].max_turns)).toBe('57');
-      await pick('developer', 'Developer');
+      await pick('tutor', 'Tutor');
       await expect(page.locator('.forge-skill-pill[data-skill-id="proposals"]')).toHaveCount(1);
-      // CARD-570/562: Developer is a card worker; it ticks implement-change, not coding.
-      await expect(page.locator('.forge-skill-pill[data-skill-id="implement-change"]')).toHaveAttribute('aria-pressed', 'true', { timeout: 20000 });
+      // CARD-693: Tutor is the course specialist; it ticks socratic-tutoring, not coding.
+      await expect(page.locator('.forge-skill-pill[data-skill-id="socratic-tutoring"]')).toHaveAttribute('aria-pressed', 'true', { timeout: 20000 });
       await expect(page.locator('.forge-skill-pill[data-skill-id="coding"]')).toHaveAttribute('aria-pressed', 'false');
     });
   }
 
-  // CARD-522: Open in Skill Studio prefills a new skill from the gap; a missing tool is steered to Ask Developer;
-  // an edited draft is only replaced when the operator says so.
+  // CARD-522 / CARD-692: Open in Skill Studio opens Capabilities with the new skill draft bar prefilled from the gap.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
     test(`TC-51 (${vp.name}): Open in Skill Studio fills a new skill from the capability gap [CARD-522]`, async ({ page }) => {
       const GAP = { id: 'gap-tc51', agent_id: 'autoreiv', status: 'pending', identified_capability: 'inventory_lookup', suggested_tool_name: 'get_tc51_inventory', turn_text: 'Look up TC51 inventory counts' };
@@ -1545,30 +1544,13 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         await expect(row).toHaveAttribute('data-tool-missing', 'true', { timeout: 20000 });
         await expect(row.locator('.btn-gap-ask-developer')).toHaveAttribute('data-primary', 'true');
         await row.locator('.btn-gap-open-skill-studio').evaluate((b) => b.click());
-        await expect(page.locator('#view-skill-studio')).toBeVisible();
+        await expect(page.locator('#view-capabilities')).toBeVisible();
       };
 
       await openGap();
-      await expect.poll(() => page.inputValue('#factorySkillNameInput'), { timeout: 20000 }).toBe('Inventory Lookup');
-      await expect(page.locator('#factorySkillIdInput')).toHaveValue('inventory_lookup');
-      await expect(page.locator('#factorySkillTriggerInput')).toHaveValue(/Look up TC51 inventory counts/);
-      await expect(page.locator('#factorySkillIntentInput')).toHaveValue(/The user asked: "Look up TC51 inventory counts"/);
-      await expect(page.locator('#factorySkillMarkdownEditor')).toHaveValue(/# Inventory Lookup/);
-      const note = page.locator('#skillStudioGapNote');
-      await expect(note).toBeVisible();
-      await expect(note).toContainText('This gap needs a tool that does not exist yet (get_tc51_inventory)');
-      await expect(note.locator('#skillStudioGapAskDeveloperBtn')).toBeVisible();
-      expect(await page.locator('#factoryCapabilitiesContainer input[type="checkbox"]:checked').count()).toBe(0);
-
-      // An edited draft is kept when the operator declines, replaced when they accept.
-      await page.locator('#factorySkillNameInput').fill('My own draft');
-      page.once('dialog', (d) => d.dismiss());
-      await openGap();
-      await page.waitForTimeout(800);
-      await expect(page.locator('#factorySkillNameInput')).toHaveValue('My own draft');
-      page.once('dialog', (d) => d.accept());
-      await openGap();
-      await expect.poll(() => page.inputValue('#factorySkillNameInput'), { timeout: 20000 }).toBe('Inventory Lookup');
+      await expect(page.locator('#capabilitiesCreateBar')).toBeVisible();
+      await expect(page.locator('#capabilitiesCreateNameInput')).toHaveValue('get_tc51_inventory');
+      await expect(page.locator('#capabilitiesFeedbackBanner')).toContainText('get_tc51_inventory');
     });
 
     // CARD-516: an MCP server that cannot start shows "Failed to start" and why, not "Configured" or mounted.
@@ -1635,7 +1617,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       });
       let card = await openGaps(page);
       await card.locator('.btn-gap-open-skill-studio').click();
-      await expect(page.locator('#view-skill-studio')).toBeVisible();
+      await expect(page.locator('#view-capabilities')).toBeVisible();
       await expect(page.locator('#view-factory')).toHaveCount(0);
       card = await openGaps(page);
       await card.locator('.btn-gap-ask-developer').click();
@@ -1714,10 +1696,12 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.locator('#dock-agents').click();
       await expect(page.locator('#view-agents')).toBeVisible();
       await expect(page.locator('#forgeScaffoldQueueCard')).toHaveCount(0);
-      await page.locator('#dock-skill-studio').click();
+      await page.locator('#dock-capabilities').click();
+      await expect(page.locator('#view-capabilities')).toBeVisible();
+      await page.evaluate(() => window.__autoreivSwitchTab('skill-studio'));
       await expect(page.locator('#view-skill-studio')).toBeVisible();
       await expect.poll(() => page.locator('#factoryCapabilitiesContainer input[type="checkbox"][data-tool-name]').count(), { timeout: 20000 }).toBeGreaterThan(0);
-      await page.locator('#dock-tools-studio').click();
+      await page.evaluate(() => window.__autoreivSwitchTab('tools-studio'));
       await expect(page.locator('#view-tools-studio')).toBeVisible();
       await page.waitForTimeout(1000);
       expect(retired).toEqual([]);
@@ -1746,7 +1730,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       page.on('pageerror', (e) => errors.push(String(e)));
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.locator('#dock-tools-studio').click();
+      await page.evaluate(() => window.__autoreivSwitchTab('tools-studio'));
       await expect(page.locator('#view-tools-studio')).toBeVisible();
       const row = (name) => page.locator(`[data-testid="tools-studio-catalog-row"][data-tool-name="${name}"]`);
       await expect(row(good)).toHaveCount(1, { timeout: 20000 });
@@ -1772,7 +1756,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       const skillId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.locator('#dock-skill-studio').click();
+      await page.evaluate(() => window.__autoreivSwitchTab('skill-studio'));
       await expect(page.locator('#view-skill-studio')).toBeVisible();
       await expect.poll(() => page.locator('#factoryCapabilitiesContainer input[type="checkbox"][data-tool-name]').count(), { timeout: 20000 }).toBeGreaterThan(0);
       await page.locator('#factoryNewSkillFormBtn').click();
@@ -1787,10 +1771,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#factoryExistingSkillSelect')).toHaveValue(skillId, { timeout: 20000 });
 
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      // Desktop restores the open Skill Studio window; a dock click on the focused window would minimize it (see TC-40).
-      await expect(page.locator('#dock-skill-studio')).toBeVisible();
+      await expect(page.locator('#dock-capabilities')).toBeVisible();
       await page.waitForTimeout(1500);
-      if (!(await page.locator('#view-skill-studio').isVisible())) await page.locator('#dock-skill-studio').click();
+      if (!(await page.locator('#view-skill-studio').isVisible())) await page.evaluate(() => window.__autoreivSwitchTab('skill-studio'));
       await expect(page.locator('#view-skill-studio')).toBeVisible();
       await expect.poll(async () => page.locator(`#factoryExistingSkillSelect option[value="${skillId}"]`).count(), { timeout: 20000 }).toBe(1);
       await page.selectOption('#factoryExistingSkillSelect', skillId);
