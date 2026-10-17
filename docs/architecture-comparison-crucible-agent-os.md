@@ -147,13 +147,19 @@ The three repositories represent three distinct points in the design space of a 
 
 ## 8. Decision Options for Next Milestone
 
-At check-in, Jacob can choose how to sequence the **Tier 1 (Adopt)** and **Tier 2 (Adapt)** recommendations into the roadmap:
+**Decision (Jacob, 2026-10-17)**: **Option 2 selected** — Queue all 6 **Tier 1 (Adopt)** + **Tier 2 (Adapt)** recommendations as Milestone **M30** cards (`CARD-699` through `CARD-704`) once `CARD-698` merges to `qa`:
 
-- **Option 1 (Recommended — Adopt Tier 1 as the next 3 cards)**:
+- **Option 1 (Adopt Tier 1 as the next 3 cards)**:
   1. **Token-verified context compaction & `archive_links`** (adapted from `Agent-OS` `compaction.py`).
   2. **Per-turn / per-job span waterfall trace inspector** in Chat & Job drawer (adapted from `Agent-OS` `trace.py`).
   3. **Live `ApprovalMode` (`strict` / `balanced` / `hands_off`) in Settings UI** with `read_only` vs `state_change` tool effect gating (adapted from `Crucible` `ADR-0015` §4.6).
-- **Option 2 (Adopt Tier 1 + Tier 2 batch)**:
-  - Queue all 6 **Adopt + Adapt** items above (adding provenance-badged `search_past_chats`, local model port auto-probing on `8000/8006/11434`, and staged RCA self-healing prompts).
+- **Option 2 (Chosen — Adopt Tier 1 + Tier 2 batch as Milestone M30)**:
+  - Queue all 6 **Adopt + Adapt** items above:
+    1. `CARD-699`: Token-verified context compaction and non-destructive `archive_links` (`Agent-OS` `compaction.py`).
+    2. `CARD-700`: Per-turn and per-job structured span waterfall and trace inspector (`Agent-OS` `trace.py` + `Crucible` `ADR-0008`).
+    3. `CARD-701`: Live `ApprovalMode` (`strict` / `balanced` / `hands_off`) in Settings UI with `read_only` vs `state_change` tool effect tiers (`Crucible` `ADR-0015` §4.6).
+    4. `CARD-702`: Provenance-badged `search_past_chats` across hot and cold sessions (`Crucible` `ADR-0009` + `Agent-OS` `recipes.py` / `retention.py`).
+    5. `CARD-703`: Local inference port auto-probing (`8000, 8006, 11434`) in Models Studio and startup (`Agent-OS` `local_setup.py`).
+    6. `CARD-704`: Staged RCA self-healing proposals on recurring tool or routine failures (`Crucible` `ADR-0008` + `ADR-0014`).
 - **Option 3 (Reference only for now)**:
   - Keep `docs/architecture-comparison-crucible-agent-os.md` as a reference document and pick individual items later during milestone triage.

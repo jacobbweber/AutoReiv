@@ -39,6 +39,7 @@ A structured comparative review document (`docs/architecture-comparison-crucible
 
 ## Plan and decisions
 - Present ranked recommendations from the Crucible & Agent-OS comparison at check-in so Jacob can choose which enhancements become future milestone cards.
+- **Decision (Jacob, 2026-10-17)**: **Option 2 chosen** — Queue all 6 Tier 1 (`Adopt`) + Tier 2 (`Adapt`) items (`CARD-699`..`CARD-704`) as Milestone **M30** once `CARD-698` merges to `qa`.
 
 ## Findings
 - None (no product bugs encountered; comparative enhancements are ranked directly in `docs/architecture-comparison-crucible-agent-os.md`).
