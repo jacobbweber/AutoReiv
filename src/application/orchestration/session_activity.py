@@ -161,6 +161,21 @@ def build_session_journey(store: Any, session_id: str) -> Dict[str, Any]:
                     "confidence": f.get("confidence", 1.0),
                 })
 
+    from src.application.telemetry.span_waterfall import build_trace_waterfall
+
+    waterfall = build_trace_waterfall(store, session_id) or {
+        "trace_id": session_id,
+        "session_id": session_id,
+        "status": "ok",
+        "total_duration_ms": 0.0,
+        "span_count": 0,
+        "spans": [],
+        "waterfall": [],
+        "formatted_waterfall": "No spans in this trace.",
+        "formatted_waterfall_full": "No spans in this trace.",
+        "jsonl_path": "",
+    }
+
     return {
         "session_id": session_id,
         "agent_id": sess.agent_id if sess else None,
@@ -169,17 +184,21 @@ def build_session_journey(store: Any, session_id: str) -> Dict[str, Any]:
         "tool_executions": tool_executions,
         "artifacts": artifacts_data,
         "facts": facts_data,
+        "trace_waterfall": waterfall,
         "summary": {
             "total_jobs": len(jobs_data),
             "total_tools_executed": len(tool_executions),
             "total_artifacts": len(artifacts_data),
             "total_facts_learned": len(facts_data),
+            "total_spans": len(waterfall.get("spans") or []),
         },
     }
 
 
 def build_session_debug_payload(store: Any, registry: Any, session_id: str) -> Dict[str, Any]:
-    """Build the session debug inspector payload for GET /api/chat/sessions/{session_id}/debug [CARD-136, CARD-696]."""
+    """Build the session debug inspector payload for GET /api/chat/sessions/{session_id}/debug [CARD-136, CARD-696, CARD-700]."""
+    from src.application.telemetry.span_waterfall import build_trace_waterfall
+
     sess = store.get_session(session_id) if hasattr(store, "get_session") else None
 
     msgs = store.get_messages(session_id=session_id) if hasattr(store, "get_messages") else []
@@ -219,6 +238,8 @@ def build_session_debug_payload(store: Any, registry: Any, session_id: str) -> D
         all_facts = store.get_facts()
         facts = [f for f in all_facts if f.get("source_session_id") == session_id]
 
+    waterfall = build_trace_waterfall(store, session_id)
+
     return {
         "session_id": session_id,
         "agent_id": sess.agent_id if sess else None,
@@ -251,6 +272,7 @@ def build_session_debug_payload(store: Any, registry: Any, session_id: str) -> D
             }
             for s in tool_spans
         ],
+        "trace_waterfall": waterfall,
         "metrics": {
             "total_turns": len(turn_spans),
             "total_prompt_tokens": total_prompt_tokens,
