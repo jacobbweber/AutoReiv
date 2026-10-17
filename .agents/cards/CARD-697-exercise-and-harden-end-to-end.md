@@ -2,7 +2,7 @@
 id: CARD-697
 title: "Exercise and harden end-to-end self-development on AutoReiv"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M29
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-697-exercise-and-harden-end-to-end
 log: {minutes: 32, qa_runs: 2, findings: 2}
 created: 2026-10-16
+completed: 2026-10-17
 ---
 
 # CARD-697 Exercise and harden end-to-end self-development on AutoReiv
