@@ -42,6 +42,7 @@ READ_TOOLS: frozenset[str] = frozenset(
         "get_active_plan",
         "get_session_info",
         "get_session_transcript",
+        "search_past_chats",
         "get_session_artifact",
         "get_agent_sessions",
         "read_document_file",

@@ -159,6 +159,30 @@ class SystemAgentTools:
             ],
         }
 
+    def search_past_chats(
+        self,
+        query: str,
+        agent_id: Optional[str] = None,
+        max_results: int = 8,
+    ) -> Dict[str, Any]:
+        """Search across active ([Recent]) and archived/compacted ([Archived]) past chat sessions [CARD-702]."""
+        from src.application.chat.past_chat_search import search_past_chats as _run_search
+        from src.application.kernel.tool_registry import get_tool_context
+
+        ctx = get_tool_context() or {}
+        current_session_id = str(ctx.get("session_id") or "").strip() or None
+        try:
+            capped_limit = max(1, min(int(max_results or 8), 20))
+        except (TypeError, ValueError):
+            capped_limit = 8
+        return _run_search(
+            self.store,
+            query=query,
+            current_session_id=current_session_id,
+            agent_id=agent_id,
+            max_results=capped_limit,
+        )
+
     def _provider_target(self, provider_id: str, providers_cfg: Dict[str, Any]) -> tuple[str, str]:
         """Resolve the base URL to probe for a provider from saved settings [CARD-580].
 
@@ -424,6 +448,34 @@ class SystemAgentTools:
                 },
             },
             handler=self.get_session_transcript,
+        )
+
+        registry.register_tool(
+            name="search_past_chats",
+            description=(
+                "Search across active ([Recent]) and archived/compacted ([Archived]) past chat sessions for "
+                "decisions, facts, or discussions. Excludes the current chat session and caps searches per turn."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Keywords, codename, or topic to find in past chat sessions.",
+                    },
+                    "agent_id": {
+                        "type": "string",
+                        "description": "Optional agent ID filter (e.g. autoreiv, tutor).",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Max matching messages to return (1-20, default 8).",
+                        "default": 8,
+                    },
+                },
+                "required": ["query"],
+            },
+            handler=self.search_past_chats,
         )
 
         registry.register_tool(

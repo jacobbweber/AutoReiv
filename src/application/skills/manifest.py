@@ -132,6 +132,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
             "get_recent_errors",
             "get_agent_sessions",
             "get_session_transcript",
+            "search_past_chats",
             "test_provider_connectivity",
             "get_system_logs",
         ],
