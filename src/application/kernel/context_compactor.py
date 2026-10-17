@@ -4,9 +4,19 @@ Implements sliding-window truncation, large tool output pruning, root intent pre
 and model-aware dynamic token budget management.
 """
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple
 
+from src.application.kernel.compaction_verifier import (
+    DEFAULT_BACKOFF_TURNS,
+    build_verified_summary,
+    check_summary,
+    consume_compaction_backoff,
+    render_original_messages,
+    reset_compaction_backoff,
+    set_compaction_backoff,
+)
 from src.domain.gateway.models import ChatMessage, Role
 
 
@@ -270,6 +280,8 @@ class ContextCompactor:
     """
 
     SUMMARY_LINES = 10
+    build_verified_summary = staticmethod(build_verified_summary)
+    check_summary = staticmethod(check_summary)
 
     @staticmethod
     def _pinned_intermediate(intermediate: List[ChatMessage]) -> dict:
@@ -324,6 +336,8 @@ class ContextCompactor:
         preserve_root_intent: bool = True,
         safety_margin: float = 0.75,
         force: bool = False,
+        summarizer: Optional[Callable[[Sequence[ChatMessage], int], str]] = None,
+        session_id: Optional[str] = None,
     ) -> Tuple[List[ChatMessage], CompactionMetrics]:
         """
         Compacts the message list if estimated tokens exceed the model token budget [REQ-COMPACT-001, REQ-COMPACT-003].
@@ -481,30 +495,47 @@ class ContextCompactor:
                 compaction_applied=False,
             )
 
-        # 4. Summarize unpinned runs of intermediate turns (newest lines win)
+        if not force and consume_compaction_backoff(session_id) > 0:
+            return pruned_messages, CompactionMetrics(
+                original_tokens=original_tokens,
+                compacted_tokens=current_tokens,
+                turns_compacted=0,
+                tools_truncated=tools_truncated_count,
+                compression_ratio=current_tokens / max(1, original_tokens),
+                compaction_applied=tools_truncated_count > 0,
+            )
+
+        # 4. Summarize unpinned runs of intermediate turns with token verification & retry [CARD-699]
         compacted_prefix: List[ChatMessage] = []
         run: List[ChatMessage] = []
         summarized = 0
+        summary_fn = summarizer or cls.build_verified_summary
+        verification_failed = False
 
         def flush_run() -> None:
-            nonlocal summarized
+            nonlocal summarized, verification_failed
             if not run:
                 return
-            summary_lines: List[str] = []
-            for m in run:
-                role_label = m.role.value.capitalize()
-                preview = (m.content or "")[:150].replace("\n", " ")
-                summary_lines.append(f"- {role_label}: {preview}...")
-            omitted = max(0, len(summary_lines) - cls.SUMMARY_LINES)
-            head = f"... ({omitted} older messages omitted)\n" if omitted else ""
-            summary_text = (
-                "[Summary of earlier conversation:\n"
-                + head
-                + "\n".join(summary_lines[-cls.SUMMARY_LINES :])
-                + "\n... (earlier turns compacted to preserve context budget)]"
-            )
-            compacted_prefix.append(ChatMessage(role=Role.ASSISTANT, content=summary_text))
-            summarized += len(run)
+            if verification_failed:
+                compacted_prefix.extend(run)
+                run.clear()
+                return
+            require_shorter = len(render_original_messages(run)) > 360
+            accepted_text: Optional[str] = None
+            for _attempt in (1, 2):
+                candidate = summary_fn(run, cls.SUMMARY_LINES)
+                problems = check_summary(candidate, run, require_shorter=require_shorter)
+                if not problems:
+                    accepted_text = candidate
+                    break
+            if accepted_text is not None:
+                compacted_prefix.append(ChatMessage(role=Role.ASSISTANT, content=accepted_text))
+                summarized += len(run)
+                reset_compaction_backoff(session_id)
+            else:
+                compacted_prefix.extend(run)
+                verification_failed = True
+                set_compaction_backoff(session_id, DEFAULT_BACKOFF_TURNS)
             run.clear()
 
         for idx, m in enumerate(intermediate_turns):
@@ -514,6 +545,16 @@ class ContextCompactor:
             else:
                 run.append(m)
         flush_run()
+
+        if verification_failed:
+            return pruned_messages, CompactionMetrics(
+                original_tokens=original_tokens,
+                compacted_tokens=current_tokens,
+                turns_compacted=0,
+                tools_truncated=tools_truncated_count,
+                compression_ratio=current_tokens / max(1, original_tokens),
+                compaction_applied=tools_truncated_count > 0,
+            )
 
         # 5. Assemble compacted payload
         compacted: List[ChatMessage] = []

@@ -131,16 +131,32 @@ class SessionRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+    @staticmethod
+    def _ensure_archive_links_table(conn: Any) -> None:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS archive_links (
+                message_id TEXT PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
+                session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+                summary_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+                archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
     def delete_session(self, session_id: str) -> bool:
         conn = self._get_connection()
         try:
+            self._ensure_archive_links_table(conn)
             cur = conn.cursor()
+            cur.execute("DELETE FROM archive_links WHERE session_id = ?", (session_id,))
             cur.execute("DELETE FROM pending_approvals WHERE session_id = ?", (session_id,))
             cur.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
             cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             deleted = cur.rowcount > 0
             # CARD-608: the chat's job step sessions are hidden from Recent Chats, so they go with it.
             prefix = f"{session_id}::phase::"
+            cur.execute("DELETE FROM archive_links WHERE substr(session_id, 1, ?) = ?", (len(prefix), prefix))
             cur.execute("DELETE FROM pending_approvals WHERE substr(session_id, 1, ?) = ?", (len(prefix), prefix))
             cur.execute("DELETE FROM messages WHERE substr(session_id, 1, ?) = ?", (len(prefix), prefix))
             cur.execute("DELETE FROM sessions WHERE substr(id, 1, ?) = ?", (len(prefix), prefix))
@@ -307,21 +323,35 @@ class SessionRepositoryMixin:
                 conn.close()
 
 
-    def get_messages(self, session_id: str, limit: Optional[int] = None) -> List[ChatMessage]:
-        query = """
-            SELECT id, role, content, tool_calls_json, tool_call_id, name, reasoning
-            FROM messages
-            WHERE session_id = ?
-            ORDER BY sequence_num ASC
-        """
-        params: List[Any] = [session_id]
-        if limit:
-            query += " LIMIT ?"
-            params.append(limit)
-
+    def get_messages(
+        self,
+        session_id: str,
+        limit: Optional[int] = None,
+        include_archived: bool = False,
+    ) -> List[ChatMessage]:
         conn = self._get_connection()
         try:
+            self._ensure_archive_links_table(conn)
             cur = conn.cursor()
+            if include_archived:
+                query = """
+                    SELECT m.id, m.role, m.content, m.tool_calls_json, m.tool_call_id, m.name, m.reasoning
+                    FROM messages m
+                    WHERE m.session_id = ?
+                    ORDER BY m.sequence_num ASC
+                """
+            else:
+                query = """
+                    SELECT m.id, m.role, m.content, m.tool_calls_json, m.tool_call_id, m.name, m.reasoning
+                    FROM messages m
+                    LEFT JOIN archive_links a ON a.message_id = m.id
+                    WHERE m.session_id = ? AND a.message_id IS NULL
+                    ORDER BY m.sequence_num ASC
+                """
+            params: List[Any] = [session_id]
+            if limit:
+                query += " LIMIT ?"
+                params.append(limit)
             cur.execute(query, tuple(params))
             rows = cur.fetchall()
 
@@ -356,37 +386,138 @@ class SessionRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+    def get_archive_links(self, session_id: str) -> List[dict[str, str]]:
+        """Return non-destructive archive_links rows for a session [CARD-699]."""
+        conn = self._get_connection()
+        try:
+            self._ensure_archive_links_table(conn)
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT message_id, session_id, summary_id, archived_at
+                FROM archive_links
+                WHERE session_id = ?
+                ORDER BY rowid ASC
+                """,
+                (session_id,),
+            )
+            return [
+                {
+                    "message_id": str(r["message_id"]),
+                    "session_id": str(r["session_id"]),
+                    "summary_id": str(r["summary_id"]),
+                    "archived_at": str(r["archived_at"]),
+                }
+                for r in cur.fetchall()
+            ]
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
     def replace_session_messages(self, session_id: str, agent_id: str, messages: List[ChatMessage]) -> None:
-        """Replace all messages in a session with a compacted or revised list [CARD-161]."""
+        """Compact or revise active messages while preserving summarized rows via archive_links [CARD-161, CARD-699]."""
         conn = self._get_connection()
         now = datetime.now(timezone.utc)
+        summary_marker = "[Summary of earlier conversation:"
         try:
+            self._ensure_archive_links_table(conn)
             cur = conn.cursor()
-            cur.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+            cur.execute(
+                """
+                SELECT m.id, m.role, m.content
+                FROM messages m
+                LEFT JOIN archive_links a ON a.message_id = m.id
+                WHERE m.session_id = ? AND a.message_id IS NULL
+                ORDER BY m.sequence_num ASC
+                """,
+                (session_id,),
+            )
+            existing_active = cur.fetchall()
+            existing_by_id = {str(r["id"]): r for r in existing_active}
+
+            cur.execute("SELECT COALESCE(MAX(sequence_num), 0) FROM messages WHERE session_id = ?", (session_id,))
+            base_seq = int(cur.fetchone()[0] or 0)
+
+            kept_ids: set[str] = set()
+            summary_ids: list[str] = []
+
             for idx, msg in enumerate(messages, start=1):
-                msg_id = str(uuid.uuid4())
+                seq_num = base_seq + idx
+                existing_id = str(msg.id) if getattr(msg, "id", None) and str(msg.id) in existing_by_id else None
+                if existing_id is None:
+                    # Fallback match by (role, content) for in-memory messages without id attached
+                    for cand in existing_active:
+                        cid = str(cand["id"])
+                        if (
+                            cid not in kept_ids
+                            and cand["role"] == msg.role.value
+                            and cand["content"] == (msg.content or "")
+                        ):
+                            existing_id = cid
+                            break
+
                 tool_calls_json = None
                 if msg.tool_calls:
                     tool_calls_json = json.dumps([tc.model_dump() for tc in msg.tool_calls])
-                cur.execute(
-                    """
-                    INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, reasoning, sequence_num, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        msg_id,
-                        session_id,
-                        agent_id,
-                        msg.role.value,
-                        msg.content,
-                        tool_calls_json,
-                        msg.tool_call_id,
-                        msg.name,
-                        getattr(msg, "reasoning", None),
-                        idx,
-                        now.isoformat(),
-                    ),
-                )
+
+                if existing_id is not None:
+                    kept_ids.add(existing_id)
+                    cur.execute(
+                        """
+                        UPDATE messages
+                        SET content = ?, tool_calls_json = ?, tool_call_id = ?, name = ?, reasoning = ?, sequence_num = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            msg.content or "",
+                            tool_calls_json,
+                            msg.tool_call_id,
+                            msg.name,
+                            getattr(msg, "reasoning", None),
+                            seq_num,
+                            existing_id,
+                        ),
+                    )
+                    if (msg.content or "").lstrip().startswith(summary_marker):
+                        summary_ids.append(existing_id)
+                else:
+                    msg_id = str(getattr(msg, "id", None) or uuid.uuid4())
+                    cur.execute(
+                        """
+                        INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, reasoning, sequence_num, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            msg_id,
+                            session_id,
+                            agent_id,
+                            msg.role.value,
+                            msg.content or "",
+                            tool_calls_json,
+                            msg.tool_call_id,
+                            msg.name,
+                            getattr(msg, "reasoning", None),
+                            seq_num,
+                            now.isoformat(),
+                        ),
+                    )
+                    kept_ids.add(msg_id)
+                    if (msg.content or "").lstrip().startswith(summary_marker):
+                        summary_ids.append(msg_id)
+
+            archived_ids = [str(r["id"]) for r in existing_active if str(r["id"]) not in kept_ids]
+            if archived_ids:
+                target_summary_id = summary_ids[-1] if summary_ids else next(iter(kept_ids), None)
+                if target_summary_id:
+                    for old_id in archived_ids:
+                        cur.execute(
+                            """
+                            INSERT OR REPLACE INTO archive_links (message_id, session_id, summary_id, archived_at)
+                            VALUES (?, ?, ?, ?)
+                            """,
+                            (old_id, session_id, target_summary_id, now.isoformat()),
+                        )
+
             cur.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now.isoformat(), session_id))
             conn.commit()
         finally:
