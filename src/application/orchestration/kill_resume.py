@@ -82,6 +82,50 @@ def job_waiting_for_answer(store: Any, job: Any, phases: Optional[list] = None) 
     return _paused_reason(store, job, phases) == WAITING_FOR_ANSWER_REASON
 
 
+def phase_fail_reason(phase: Any) -> Optional[str]:
+    """CARD-696: extract the failure reason from a failed phase's output_packet_json."""
+    if _status(getattr(phase, "status", "")) not in ("failed", "error"):
+        return None
+    pkt = str(getattr(phase, "output_packet_json", "") or "").strip()
+    if pkt.startswith("{"):
+        try:
+            import json
+
+            parsed = json.loads(pkt)
+            if isinstance(parsed, dict):
+                facts = parsed.get("facts")
+                if isinstance(facts, list):
+                    reasons = [str(f).strip() for f in facts if str(f or "").strip()]
+                    if reasons:
+                        return "; ".join(reasons)
+        except ValueError:
+            pass
+    return None
+
+
+def job_fail_reason(store: Any, job: Any, phases: Optional[list] = None) -> Optional[str]:
+    """CARD-696: extract the failure reason for a failed job from its failed phase or latest checkpoint."""
+    if _status(getattr(job, "status", "")) not in ("failed", "error"):
+        return None
+    if phases is None:
+        lister = getattr(store, "list_phases_for_job", None)
+        phases = list(lister(job.id) or []) if callable(lister) else []
+    for p in phases or []:
+        reason = phase_fail_reason(p)
+        if reason:
+            return reason
+    getter = getattr(store, "get_latest_job_phase_checkpoint", None)
+    if callable(getter):
+        try:
+            checkpoint = getter(job.id)
+            lfr = str(getattr(checkpoint, "last_fail_reason", "") or "").strip() if checkpoint is not None else ""
+            if lfr and not is_operator_kill_reason(lfr) and lfr != WAITING_FOR_ANSWER_REASON:
+                return lfr
+        except Exception:  # noqa: BLE001
+            pass
+    return None
+
+
 def kill_checkpoint_payload(
     *,
     job_id: Optional[str] = None,

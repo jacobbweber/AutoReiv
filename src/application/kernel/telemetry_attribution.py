@@ -61,6 +61,32 @@ class TimingBreakdown:
         return asdict(self)
 
 
+def extract_usage_tokens(usage: Any) -> tuple[int, int]:
+    """Extract (prompt_tokens, completion_tokens) from a provider usage dict or object [CARD-696]."""
+    if not usage:
+        return 0, 0
+    if isinstance(usage, dict):
+        return int(usage.get("prompt_tokens", 0) or 0), int(usage.get("completion_tokens", 0) or 0)
+    return int(getattr(usage, "prompt_tokens", 0) or 0), int(getattr(usage, "completion_tokens", 0) or 0)
+
+
+def _estimate_tool_calls_tokens(tool_calls: Optional[Sequence[Any]]) -> int:
+    if not tool_calls:
+        return 0
+    tc_payloads = []
+    for tc in tool_calls:
+        if isinstance(tc, dict):
+            tc_payloads.append({"name": tc.get("name", ""), "arguments": tc.get("arguments", {})})
+        else:
+            tc_payloads.append(
+                {
+                    "name": getattr(tc, "name", "") or "",
+                    "arguments": getattr(tc, "arguments", {}) or {},
+                }
+            )
+    return estimate_tokens(json.dumps(tc_payloads, default=str)) if tc_payloads else 0
+
+
 def calculate_token_attribution(
     user_prompt: Optional[str] = None,
     agent_persona: Optional[str] = None,
@@ -71,6 +97,7 @@ def calculate_token_attribution(
     tool_results_injected: Optional[Sequence[str]] = None,
     completion: Optional[str] = None,
     reasoning: Optional[str] = None,
+    tool_calls: Optional[Sequence[Any]] = None,
 ) -> TokenBreakdown:
     """Calculate discrete token attribution for every prompt component."""
     u_tok = estimate_tokens(user_prompt)
@@ -99,12 +126,13 @@ def calculate_token_attribution(
     if compacted_history:
         for msg in compacted_history:
             h_tok += estimate_tokens(getattr(msg, "content", "") or "")
+            h_tok += _estimate_tool_calls_tokens(getattr(msg, "tool_calls", None))
 
     # Injected tool outputs/results
     tr_tok = sum(estimate_tokens(r) for r in (tool_results_injected or []))
 
-    # Outputs
-    c_tok = estimate_tokens(completion)
+    # Outputs (include tool-call payload tokens when a round ends in tool calls [CARD-696])
+    c_tok = estimate_tokens(completion) + _estimate_tool_calls_tokens(tool_calls)
     r_tok = estimate_tokens(reasoning)
 
     total_prompt = u_tok + p_tok + t_tok + s_tok + m_tok + h_tok + tr_tok

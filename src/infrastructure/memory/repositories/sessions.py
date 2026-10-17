@@ -135,10 +135,14 @@ class SessionRepositoryMixin:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
+            cur.execute("DELETE FROM pending_approvals WHERE session_id = ?", (session_id,))
+            cur.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
             cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             deleted = cur.rowcount > 0
             # CARD-608: the chat's job step sessions are hidden from Recent Chats, so they go with it.
             prefix = f"{session_id}::phase::"
+            cur.execute("DELETE FROM pending_approvals WHERE substr(session_id, 1, ?) = ?", (len(prefix), prefix))
+            cur.execute("DELETE FROM messages WHERE substr(session_id, 1, ?) = ?", (len(prefix), prefix))
             cur.execute("DELETE FROM sessions WHERE substr(id, 1, ?) = ?", (len(prefix), prefix))
             conn.commit()
             return deleted

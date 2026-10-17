@@ -11,7 +11,7 @@ import { filterToolsList, formatContextBudgetBadge, postSessionCompaction, query
 import { loadJourneyTimeline } from './journey.js';
 import { openObserveJob } from '../observability.js';
 import { setupQuickPromptPicker } from './quick_prompts.js';
-import { pickSessionToOpen, readStoredSessionId } from './session_guard.js';
+import { deleteSession as deleteSessionGuard, pickSessionToOpen, readStoredSessionId } from './session_guard.js';
 
 /** CARD-408: View Job sits beside Copy on the Chat job strip. */
 export const CHAT_JOB_VIEW_BTN_SELECTOR = '.chat-job-chrome-view-btn';
@@ -87,6 +87,7 @@ export function renderSessionList({
   sessions,
   activeSessionId,
   onSelectSession,
+  onDeleteSession,
 } = {}) {
   if (!sessionList) return;
   sessionList.innerHTML = '';
@@ -107,20 +108,42 @@ export function renderSessionList({
     const tag = marker
       ? `<span class="ml-auto flex-shrink-0 text-[9px] font-mono uppercase tracking-wide ${marker.key === 'waiting' ? 'text-amber-300' : 'text-brand-300'}">${marker.label}</span>`
       : '';
+    const delMargin = marker ? 'ml-1' : 'ml-auto';
     item.innerHTML = `
       <div class="flex items-center space-x-2 min-w-0">
         ${dot}
         <span class="truncate font-medium text-slate-200 text-xs">${escapeHtml(sess.title || 'Conversation')}</span>
         ${tag}
+        <button type="button" class="session-delete-btn ${delMargin} p-1 rounded hover:bg-rose-950/70 text-slate-500 hover:text-rose-300 transition flex-shrink-0" data-delete-session-id="${escapeHtml(sess.id)}" data-testid="delete-session-${escapeHtml(sess.id)}" title="Delete conversation" aria-label="Delete conversation">
+          <i data-lucide="trash-2" class="w-3 h-3"></i>
+        </button>
       </div>
       ${timeStr ? `<div class="text-[10px] text-slate-500 font-mono pl-3.5 leading-none">${escapeHtml(timeStr)}</div>` : ''}
     `;
-    item.addEventListener('click', () => {
+    item.addEventListener('click', (ev) => {
+      const target = ev && ev.target;
+      const delBtn = target && typeof target.closest === 'function'
+        ? target.closest('.session-delete-btn')
+        : null;
+      if (delBtn) {
+        if (typeof ev.stopPropagation === 'function') ev.stopPropagation();
+        const confirmFn = typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? (msg) => window.confirm(msg)
+          : () => true;
+        if (!confirmFn(`Delete conversation "${sess.title || 'Conversation'}"?`)) return;
+        const handler = onDeleteSession || (sessionList && sessionList._deleteHandler);
+        if (typeof handler === 'function') void handler(sess.id);
+        return;
+      }
       if (typeof onSelectSession === 'function') onSelectSession(sess.id, { userPick: true }); // CARD-485 D1
     });
     sessionList.appendChild(item);
   });
+  safeCreateIcons();
 }
+
+export const deleteSession = (state, sessionId, opts = {}) =>
+  deleteSessionGuard(state, sessionId, { renderSessionListFn: renderSessionList, ...opts });
 
 export async function loadSessions(arg1 = {}, arg2 = {}) {
   const isDirectState = arg1 && (arg1.selectedAgentId !== undefined || arg1.activeSessionId !== undefined || Array.isArray(arg1.sessions));
@@ -131,6 +154,16 @@ export async function loadSessions(arg1 = {}, arg2 = {}) {
   const createNewSessionFn = opts.createNewSessionFn || null;
   const fetchFn = opts.fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
   const storedId = opts.storedSessionId !== undefined ? opts.storedSessionId : readStoredSessionId();
+
+  if (sessionList) {
+    sessionList._deleteHandler = (sid) => deleteSession(state, sid, {
+      sessionList,
+      selectSessionFn,
+      createNewSessionFn,
+      fetchFn,
+      showToastFn: opts.showToastFn,
+    });
+  }
 
   try {
     const exclude = state.activeSessionId ? `&exclude_session_id=${encodeURIComponent(state.activeSessionId)}` : '';
