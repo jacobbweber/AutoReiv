@@ -146,6 +146,8 @@ class BuiltinAgentRegistry:
     # reads -------------------------------------------------------------------------------------
     def get_agent(self, agent_id: str) -> Optional[AgentProfile]:
         """Agent file (user copy wins), else an in-memory profile; alias fallback."""
+        from src.infrastructure.content.store import REPO_PLATFORM, RETIRED_SHIPPED_AGENT_IDS
+
         raw = (agent_id or "").strip()
         if raw in RETIRED_LIVE_AGENT_IDS or canonical_agent_id(raw) in RETIRED_LIVE_AGENT_IDS:
             return None
@@ -161,6 +163,8 @@ class BuiltinAgentRegistry:
             if profile is not None:
                 settings = self.model_settings(lookup)
                 return profile.model_copy(update=settings) if settings else profile
+        if raw.lower() in RETIRED_SHIPPED_AGENT_IDS and self.content.agents.shipped_dir == REPO_PLATFORM / "agents":
+            return self.get_agent("autoreiv")
         return None
 
     def get_profile(self, agent_id: str) -> Optional[AgentProfile]:
