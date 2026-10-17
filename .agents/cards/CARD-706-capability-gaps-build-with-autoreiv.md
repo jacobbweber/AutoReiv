@@ -1,7 +1,8 @@
 ---
 id: CARD-706
 title: Replace capability gap Open in Skill Studio and Ask Developer buttons with Build with AutoReiv
-status: In Review
+status: Done
+completed: 2026-10-17
 priority: P1
 milestone: M28
 proof:
