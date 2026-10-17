@@ -99,15 +99,16 @@ class MCPEngineeringTools:
                 "diagnostics": ["Provide tool specifications in format: [{'name': '...', 'description': '...'}]"],
             }
 
-        # Resolve destination path
         if target_dir:
             dest_dir = Path(target_dir).resolve()
+        elif self.root_resolver is not None:
+            try:
+                dest_dir = Path(self.root_resolver(None)).resolve() / clean_name
+            except Exception as exc:
+                return {"success": False, "error": str(exc)}
         else:
             dest_dir = Path("scratch") / "mcp_servers" / clean_name
-
         dest_dir.mkdir(parents=True, exist_ok=True)
-
-        # Generate tool function code
         tool_code_blocks = []
         for tool in parsed_tools:
             t_name = self._clean_server_name(tool.get("name", "example_tool"))
@@ -115,7 +116,6 @@ class MCPEngineeringTools:
             params = tool.get("parameters", {})
             param_signatures = []
             param_docs = []
-
             if isinstance(params, dict) and "properties" in params:
                 props = params.get("properties", {})
                 reqs = set(params.get("required", []))

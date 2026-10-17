@@ -142,6 +142,18 @@ def tool_not_offered_error(
         text += f" '{skill}' is a skill (runbook), not a tool, so it cannot be called."
         if "skill_view" in names:
             text += f" Open its instructions with skill_view('{skill}')."
+    elif exists and skills and "skill_view" in names:
+        try:
+            from src.application.agent_skills.allowed_tools import resolve_allowed_tools
+
+            owners = resolve_allowed_tools({"allowed_skill": list(skills)}).skills_for(str(tool_name))
+            if owners:
+                text += (
+                    f" '{tool_name}' belongs to skill '{owners[0]}'; "
+                    f"call skill_view(skill_id='{owners[0]}') first to mount its tools."
+                )
+        except Exception:
+            pass
     close = difflib.get_close_matches(str(tool_name), names, n=3, cutoff=0.6)
     if not skill and not exists:
         text += f" {NEAR_MISS_TOOL_NAME}" if close else f" {NO_SUCH_TOOL}"

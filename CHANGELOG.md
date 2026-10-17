@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Bound project alignment tools (`create_project`, `detect_drift`, `align_project`) into `project-cards` and hardened `AutoReiv`'s end-to-end self-development workflow across Chat and Projects Studio [CARD-697].
 - Reopened chats now show the failure reason and failed phase on failed jobs, chat sessions can be deleted from the sessions drawer (`DELETE /api/sessions/{id}`), and tool-call rounds record output token counts in telemetry and Metrics [CARD-696].
 - Dogfooded Agora skill authoring end-to-end, eliminated repeated SQLite lookups in `DataDirResolver.resolve()`, and prevented empty-reply failures after tool/skill registration [CARD-695].
 

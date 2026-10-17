@@ -406,7 +406,7 @@ class BuiltinAgentRegistry:
             state_store=store,
             tool_registry=tool_registry,
             data_dir=data_root,
-            root_resolver=projects_service.resolve_root,
+            root_resolver=projects_service.selected_or_refuse,
         )
         mcp_engineering_tools.register_tools(tool_registry)
         agent_registry.mcp_engineering_tools = mcp_engineering_tools
