@@ -2,7 +2,7 @@
 id: CARD-696
 title: "Chat failed-job reason, session deletion, and tool-round token telemetry"
 type: bug
-status: In Review
+status: Done
 priority: P2
 milestone: M29
 needs_decision: none
@@ -14,6 +14,7 @@ proof:
 branch: feat/card-696-chat-failed-job-reason-session-deletion
 log: {minutes: 25, qa_runs: 1, findings: 0}
 created: 2026-10-16
+completed: 2026-10-17
 ---
 
 # CARD-696 Chat failed-job reason, session deletion, and tool-round token telemetry
