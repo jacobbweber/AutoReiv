@@ -2,7 +2,7 @@
 id: CARD-705
 title: "Retire stale Developer/Toolsmith/Architect references and remove Chat header role pill"
 type: bug
-status: In Review
+status: Done
 priority: P3
 milestone: M30
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-705-retire-stale-developertoolsmitharchitect-references-and-remove
 log: {minutes: 20, qa_runs: 2, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-705 Retire stale Developer/Toolsmith/Architect references and remove Chat header role pill
