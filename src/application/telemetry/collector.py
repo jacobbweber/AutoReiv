@@ -6,6 +6,7 @@ Records execution spans and computes performance/reliability metrics.
 import uuid
 from typing import Any, Dict, Optional
 
+from src.application.telemetry.span_waterfall import build_trace_waterfall, scrub_text, scrub_value
 from src.domain.telemetry.models import TelemetrySpan, utc_now
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -36,6 +37,7 @@ class TelemetryCollector:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> TelemetrySpan:
         """Record an LLM turn execution span with distributed tracing metadata."""
+        scrubbed_meta = scrub_value(metadata or {})
         span = TelemetrySpan(
             id=str(uuid.uuid4()),
             trace_id=trace_id or session_id or str(uuid.uuid4()),
@@ -52,11 +54,12 @@ class TelemetryCollector:
             completion_tokens=completion_tokens,
             success=success,
             status=status if success else ("hitl_paused" if status == "hitl_paused" else "error"),
-            error_message=error_message,
-            metadata=metadata or {},
+            error_message=scrub_text(error_message) if error_message else None,
+            metadata=scrubbed_meta if isinstance(scrubbed_meta, dict) else {},
             created_at=utc_now(),
         )
         self.store.save_telemetry_span(span)
+        build_trace_waterfall(self.store, span.trace_id or span.id)
         return span
 
     def record_tool_span(
@@ -73,6 +76,7 @@ class TelemetryCollector:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> TelemetrySpan:
         """Record a tool execution span with distributed tracing context."""
+        scrubbed_meta = scrub_value(metadata or {})
         span = TelemetrySpan(
             id=str(uuid.uuid4()),
             trace_id=trace_id or session_id or str(uuid.uuid4()),
@@ -86,11 +90,12 @@ class TelemetryCollector:
             completion_tokens=0,
             success=success,
             status=status,
-            error_message=error_message,
-            metadata=metadata or {},
+            error_message=scrub_text(error_message) if error_message else None,
+            metadata=scrubbed_meta if isinstance(scrubbed_meta, dict) else {},
             created_at=utc_now(),
         )
         self.store.save_telemetry_span(span)
+        build_trace_waterfall(self.store, span.trace_id or span.id)
         return span
 
     def record_handoff_span(
@@ -108,7 +113,7 @@ class TelemetryCollector:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> TelemetrySpan:
         """Record an inter-agent delegation span [REQ-A2A-005]."""
-        meta = metadata or {}
+        meta = dict(metadata or {})
         meta.update(
             {
                 "sender_agent_id": sender_agent_id,
@@ -116,6 +121,7 @@ class TelemetryCollector:
                 "correlation_id": correlation_id,
             }
         )
+        scrubbed_meta = scrub_value(meta)
         span = TelemetrySpan(
             id=str(uuid.uuid4()),
             trace_id=trace_id or session_id or str(uuid.uuid4()),
@@ -129,11 +135,12 @@ class TelemetryCollector:
             completion_tokens=0,
             success=success,
             status=status,
-            error_message=error_message,
-            metadata=meta,
+            error_message=scrub_text(error_message) if error_message else None,
+            metadata=scrubbed_meta if isinstance(scrubbed_meta, dict) else {},
             created_at=utc_now(),
         )
         self.store.save_telemetry_span(span)
+        build_trace_waterfall(self.store, span.trace_id or span.id)
         return span
 
     def get_agent_metrics(self, agent_id: str) -> Dict[str, Any]:

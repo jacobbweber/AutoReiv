@@ -715,6 +715,30 @@ async def get_journey_canvas_source(
     return snippet.model_dump(mode="json")
 
 
+@router.get("/api/traces")
+async def get_traces(
+    request: Request,
+    session_id: Optional[str] = None,
+    limit: int = 50,
+):
+    """List hierarchical span traces for recent turns and jobs [CARD-700]."""
+    from src.application.telemetry.span_waterfall import list_traces
+
+    store = getattr(request.app.state, "store", None)
+    traces = list_traces(store, session_id=session_id, limit=limit)
+    return {"traces": traces, "count": len(traces)}
 
 
+@router.get("/api/traces/{trace_id}")
+async def get_trace_waterfall(
+    request: Request,
+    trace_id: str,
+):
+    """Return the hierarchical parent-child span waterfall for a turn, session, or job [CARD-700]."""
+    from src.application.telemetry.span_waterfall import build_trace_waterfall
 
+    store = getattr(request.app.state, "store", None)
+    waterfall = build_trace_waterfall(store, trace_id)
+    if waterfall is None:
+        raise HTTPException(status_code=404, detail=f"Trace '{trace_id}' not found")
+    return waterfall
