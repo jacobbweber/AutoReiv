@@ -742,3 +742,35 @@ async def get_trace_waterfall(
     if waterfall is None:
         raise HTTPException(status_code=404, detail=f"Trace '{trace_id}' not found")
     return waterfall
+
+
+@router.get("/api/telemetry/rca-proposals")
+async def get_rca_proposals(
+    request: Request,
+    min_failures: int = 1,
+    limit: int = 25,
+):
+    """List staged RCA self-healing proposals for recurring tool or routine failures [CARD-704]."""
+    from src.application.telemetry.rca_proposals import RcaProposalService
+
+    store = getattr(request.app.state, "store", None)
+    service = RcaProposalService(store=store)
+    proposals = service.list_proposals(min_failures=min_failures, limit=limit)
+    return {"proposals": proposals, "count": len(proposals)}
+
+
+@router.post("/api/telemetry/rca-proposals/{proposal_id:path}/dismiss")
+async def dismiss_rca_proposal(
+    request: Request,
+    proposal_id: str,
+):
+    """Dismiss a staged RCA self-healing proposal until a newer failure occurs [CARD-704]."""
+    from src.application.telemetry.rca_proposals import RcaProposalService
+
+    store = getattr(request.app.state, "store", None)
+    service = RcaProposalService(store=store)
+    try:
+        return service.dismiss_proposal(proposal_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+

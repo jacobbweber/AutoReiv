@@ -250,6 +250,10 @@ async def save_skill_file(
         target = (tools_dir / filename).resolve()
         target.relative_to(user_md.parent.resolve())
         target.write_text(text, encoding="utf-8", newline="\n")
+        if state_store is not None:
+            from src.application.telemetry.rca_proposals import mark_tool_rca_resolved
+
+            mark_tool_rca_resolved(state_store, tool_name)
 
         effect = classify_tool_effect(risk=declared_risk, access=list(check.access or []))
         active_mode = normalize_approval_mode(approval_mode) or resolve_approval_mode(state_store)

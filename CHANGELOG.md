@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Added
 
+- Added staged RCA self-healing proposals for recurring tool and routine failures with one-click repair in Chat [CARD-704].
 - Added local inference port auto-probing (`8000, 8006, 11434`) in Models Studio and `/api/models/probe-local` [CARD-703].
 - Added provenance-badged `search_past_chats` across active and archived chat sessions with per-turn search budgets [CARD-702].
 - Added live `ApprovalMode` (`strict` / `balanced` / `hands_off`) selector in Settings Studio with `read_only`, `state_change`, and `destructive` tool effect gating [CARD-701].

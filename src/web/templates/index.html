@@ -4072,6 +4072,19 @@
             <button type="button" id="capabilitiesCreateCancelBtn" data-testid="capabilities-create-cancel-btn" class="px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 text-xs border border-white/[0.08]">Cancel</button>
           </div>
 
+          <!-- Staged RCA Self-Healing Proposals [CARD-704] -->
+          <div id="capabilitiesRcaProposalsPanel" data-testid="rca-proposals-panel" class="hidden px-3 md:px-6 py-3 bg-amber-950/20 border-b border-amber-500/30 space-y-2.5 flex-shrink-0" data-card="704">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <h3 class="text-xs font-bold text-amber-200">Staged RCA Self-Healing Proposals</h3>
+                <span id="capabilitiesRcaCountBadge" data-testid="rca-proposals-count" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+              </div>
+              <button type="button" id="capabilitiesRcaRefreshBtn" data-testid="rca-proposals-refresh" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 text-[11px] border border-white/[0.08] transition">Refresh</button>
+            </div>
+            <div id="capabilitiesRcaProposalsList" data-testid="rca-proposals-list" class="space-y-2 max-h-56 overflow-y-auto"></div>
+          </div>
+
           <div class="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden p-2 sm:p-4 flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-4 bg-[#08090c]">
             <!-- Left Pane: Agora Directory Tree -->
             <div id="capabilitiesTreePane" data-testid="capabilities-tree-pane" class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-3 sm:p-4 space-y-3 min-w-0 lg:min-h-0 lg:overflow-hidden">
