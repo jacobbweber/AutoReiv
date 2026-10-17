@@ -1734,6 +1734,36 @@
           <p class="text-sm text-slate-400">Model providers, live model discovery and a hardware fit estimate. Each agent's model is set in Agents.</p>
         </div>
 
+        <!-- CARD-701: Live Approval Mode selector -->
+        <div id="settingsApprovalModeCard" data-testid="settings-approval-mode" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="shield-alert" class="w-4 h-4 text-emerald-400"></i>
+                <span>Tool Approval Mode</span>
+              </h3>
+              <p class="text-xs text-slate-400">Controls which newly authored skill tools auto-mount immediately vs wait for review in Tools Studio.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-300 block mb-1">Approval Mode</span>
+              <select id="approvalModeSelect" data-testid="approval-mode-select" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
+                <option value="strict">Strict — Hold all newly authored tools for review</option>
+                <option value="balanced" selected>Balanced (Default) — Auto-enable read-only tools; hold state-changing &amp; destructive tools</option>
+                <option value="hands_off">Hands-off — Auto-enable read-only &amp; state-changing tools; hold destructive tools</option>
+              </select>
+            </label>
+            <button type="button" id="approvalModeSaveBtn" data-testid="approval-mode-save" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Save approval mode
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p id="approvalModeSummary" class="text-[11px] text-slate-400">Read-only tools mount automatically; state-changing and destructive tools wait for review.</p>
+            <span id="approvalModeStatus" data-testid="approval-mode-status" class="text-[11px] text-slate-400"></span>
+          </div>
+        </div>
+
         <details class="settings-section" data-card="313" data-settings-section="providers">
           <summary>Providers</summary>
           <div class="settings-section-body">

@@ -25,6 +25,12 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 from src.application.kernel.tool_registry import get_tool_context
+from src.application.safety.approval_mode import (
+    classify_tool_effect,
+    normalize_approval_mode,
+    resolve_approval_mode,
+    should_auto_enable_tool,
+)
 from src.application.skills.agora_loader import (
     _RISK_TO_LEVEL,
     _TOOL_NAME_RE,
@@ -144,6 +150,8 @@ async def save_skill_file(
     checker: Optional[ToolCheckService] = None,
     tool_registry: Any = None,
     sample_arguments: Optional[Mapping[str, Any]] = None,
+    state_store: Any = None,
+    approval_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Write `SKILL.md`, `references/<name>.md`, or `tools/<name>.py` into `<data>/skills/<skill_id>/`."""
     if store is None or store.skills.user_dir is None:
@@ -243,12 +251,16 @@ async def save_skill_file(
         target.relative_to(user_md.parent.resolve())
         target.write_text(text, encoding="utf-8", newline="\n")
 
-        is_pure_read_only = (
-            check.status == "passed"
-            and not check.access
-            and declared_risk == "read_only"
+        effect = classify_tool_effect(risk=declared_risk, access=list(check.access or []))
+        active_mode = normalize_approval_mode(approval_mode) or resolve_approval_mode(state_store)
+        check_ok = (check.status == "passed") if effect == "read_only" else bool(check.ok)
+        auto_enable = should_auto_enable_tool(
+            mode=active_mode,
+            check_passed=check_ok,
+            effect=effect,
         )
-        if is_pure_read_only:
+        warn = access_warning(list(check.access or []))
+        if auto_enable:
             spec = enable_skill_tool(store, clean_id, tool_name, tool_registry=tool_registry)
             _activate_current_session(clean_id)
             return {
@@ -260,19 +272,20 @@ async def save_skill_file(
                 "auto_enabled": True,
                 "enabled": True,
                 "approval": spec.get("approval", "enabled"),
+                "approval_mode": active_mode,
+                "effect": effect,
                 "mounted": bool(tool_registry is not None and tool_name in tool_registry),
                 "risk": declared_risk,
-                "access": [],
-                "access_warning": "",
+                "access": list(check.access or []),
+                "access_warning": warn,
                 "check": check.to_dict(),
                 "message": (
-                    f"{check.operator_message()} Pure read_only tool '{tool_name}' auto-enabled and mounted "
-                    f"in skill '{clean_id}'."
+                    f"{check.operator_message()} {effect} tool '{tool_name}' auto-enabled and mounted "
+                    f"in skill '{clean_id}' (approval_mode={active_mode})."
                 ),
             }
 
         spec = disable_skill_tool(store, clean_id, tool_name, tool_registry=tool_registry)
-        warn = access_warning(list(check.access or []))
         return {
             "success": True,
             "saved": True,
@@ -282,14 +295,16 @@ async def save_skill_file(
             "auto_enabled": False,
             "enabled": False,
             "approval": spec.get("approval", "disabled"),
+            "approval_mode": active_mode,
+            "effect": effect,
             "mounted": False,
             "risk": declared_risk,
             "access": list(check.access or []),
             "access_warning": warn,
             "check": check.to_dict(),
             "message": (
-                f"{check.operator_message()} Saved disabled in skill '{clean_id}'; operator approval is required "
-                f"before enabling. {warn}".strip()
+                f"{check.operator_message()} Saved disabled in skill '{clean_id}' (effect={effect}, "
+                f"approval_mode={active_mode}); operator approval is required before enabling. {warn}".strip()
             ),
         }
 

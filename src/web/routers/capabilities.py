@@ -219,6 +219,7 @@ async def put_skill_folder_file(
     from src.infrastructure.content.store import get_store
 
     tool_reg = _app_tool_registry(request)
+    state_store = getattr(request.app.state, "store", None)
     try:
         result = await save_skill_file(
             get_store(),
@@ -227,6 +228,7 @@ async def put_skill_folder_file(
             body.content,
             tool_registry=tool_reg,
             sample_arguments=body.sample_arguments,
+            state_store=state_store,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

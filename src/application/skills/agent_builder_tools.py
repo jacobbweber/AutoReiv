@@ -405,6 +405,7 @@ class AgentBuilderTools:
                 content=content,
                 tool_registry=self.tool_registry,
                 sample_arguments=sample_arguments,
+                state_store=self.store,
             )
         except (ValueError, RuntimeError) as exc:
             return {"success": False, "saved": False, "skill_id": skill_id, "path": path, "error": str(exc)}
