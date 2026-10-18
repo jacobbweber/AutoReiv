@@ -2,7 +2,7 @@
 id: CARD-713
 title: "Extract chat orchestration out of src/web/routers/chat.py and move application bootstrap out of src/infrastructure/agents/registry.py"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none
