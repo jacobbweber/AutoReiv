@@ -4,21 +4,31 @@
 import { openApp, send, waitReplyIdle } from './lib/app.mjs';
 import { waitFor } from './lib/runner.mjs';
 
+async function openTab(page, tabName) {
+  const viewId = `#view-${tabName}`;
+  await page.evaluate((t) => {
+    document.getElementById(`tab-${t}`)?.click();
+  }, tabName);
+  await page.locator(viewId).waitFor({ state: 'visible', timeout: 20000 });
+}
+
 export default {
   id: 'card-720-comprehensive-ui-audit-and-button-functionality',
   card: 'CARD-720',
   title: 'Chat reply Copy button feedback, post-send composer shrink, single-lever Sessions drawer, Agent avatar/memory controls, Capabilities Escape key, Wiki folder overview, Education Due hide, and Settings wiring',
   allow: [],
 
-  async run(j, { page, base }) {
+  async run(j, { page, base, viewport }) {
     await j.step('1. Chat Studio: composer shrinks on send, first click on reply Copy shows Copied! + toast, and #toggleSidebarBtn cleanly toggles Sessions drawer', async () => {
       await openApp(page, base);
+      await openTab(page, 'chat');
+      await page.locator('#promptInput').waitFor({ state: 'visible', timeout: 15000 });
 
       // Focus composer by clicking it so engaged = true
       await page.locator('#promptInput').click();
       await send(page, 'Reply with only the word PONG.');
 
-      // Immediately after send, composer value is empty and height must already be 1 line (<= 60px)
+      // Immediately after send, composer value is empty and height must already be 1 line (<= 65px)
       const postSendHeight = await page.evaluate(() => {
         const el = document.getElementById('promptInput');
         return el ? el.getBoundingClientRect().height : 0;
@@ -27,9 +37,17 @@ export default {
         throw new Error(`Expected empty #promptInput to shrink to 1 line immediately after send, got ${postSendHeight}px`);
       }
 
+      const gotReply = await waitFor(
+        async () => (await page.locator('#messagesContainer .copy-msg-btn').count()) >= 1,
+        { timeoutMs: 120000, intervalMs: 1000 },
+      );
+      if (!gotReply) {
+        throw new Error('Timed out waiting for assistant reply with .copy-msg-btn in #messagesContainer');
+      }
       await waitReplyIdle(page, { timeoutMs: 120000, settleMs: 1500 });
 
-      const copyBtn = page.locator('.copy-msg-btn').last();
+      const copyBtn = page.locator('#messagesContainer .copy-msg-btn').last();
+      await copyBtn.scrollIntoViewIfNeeded();
       await copyBtn.waitFor({ state: 'visible', timeout: 15000 });
 
       // First click on .copy-msg-btn must succeed without layout shift
@@ -37,7 +55,7 @@ export default {
 
       const copiedOk = await waitFor(async () => {
         return page.evaluate(() => {
-          const btns = Array.from(document.querySelectorAll('.copy-msg-btn span'));
+          const btns = Array.from(document.querySelectorAll('#messagesContainer .copy-msg-btn span'));
           const hasCopiedLabel = btns.some((s) => s.textContent === 'Copied!');
           const toastText = document.getElementById('toastContainer')?.innerText || '';
           return hasCopiedLabel || toastText.includes('Copied to clipboard');
@@ -58,10 +76,7 @@ export default {
     });
 
     await j.step('2. Agents Studio: avatar preview updates without nested <svg> and #forgeMemoryEnabled toggles #forgeMemoryConfigContainer', async () => {
-      await page.evaluate(() => {
-        document.getElementById('tab-agents')?.click();
-      });
-      await page.locator('#view-agents').waitFor({ state: 'visible', timeout: 10000 });
+      await openTab(page, 'agents');
 
       const avatarCheck = await page.evaluate(() => {
         const sel = document.getElementById('forgeAvatarSelect');
@@ -98,23 +113,27 @@ export default {
     });
 
     await j.step('3. Capabilities, Wiki, Education, and Settings Studios: verify create-bar Escape, folder overview, Due panel Hide, and Settings wiring', async () => {
-      // Capabilities Studio: New Skill bar closes on Escape
-      await page.evaluate(() => {
-        document.getElementById('tab-capabilities')?.click();
-      });
-      await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 10000 });
+      // Capabilities Studio: New Skill bar closes on Escape without minimizing window
+      await openTab(page, 'capabilities');
       await page.evaluate(() => {
         document.getElementById('capabilitiesNewSkillBtn')?.click();
       });
       await page.locator('#capabilitiesCreateBar').waitFor({ state: 'visible', timeout: 5000 });
       await page.locator('#capabilitiesCreateNameInput').press('Escape');
       await page.locator('#capabilitiesCreateBar').waitFor({ state: 'hidden', timeout: 5000 });
+      if (!(await page.locator('#view-capabilities').isVisible())) {
+        throw new Error('Expected #view-capabilities to stay open when Escape closes #capabilitiesCreateBar');
+      }
 
       // Wiki Studio: Folder overview renders when clicking a folder row
-      await page.evaluate(() => {
-        document.getElementById('tab-wiki')?.click();
-      });
-      await page.locator('#view-wiki').waitFor({ state: 'visible', timeout: 10000 });
+      await openTab(page, 'wiki');
+      const folderReady = await waitFor(
+        async () => (await page.locator('#wikiNavTree .wiki-folder-row').count()) >= 1,
+        { timeoutMs: 10000, intervalMs: 200 },
+      );
+      if (!folderReady) {
+        throw new Error('Expected #wikiNavTree to render at least one .wiki-folder-row');
+      }
       await page.evaluate(() => {
         document.querySelector('#wikiNavTree .wiki-folder-row')?.click();
       });
@@ -129,10 +148,7 @@ export default {
       }
 
       // Education Studio: #educationOperatorDueHideBtn hides #educationOperatorDuePanel
-      await page.evaluate(() => {
-        document.getElementById('tab-education')?.click();
-      });
-      await page.locator('#view-education').waitFor({ state: 'visible', timeout: 10000 });
+      await openTab(page, 'education');
       const eduCheck = await page.evaluate(() => {
         const panel = document.getElementById('educationOperatorDuePanel');
         const hideBtn = document.getElementById('educationOperatorDueHideBtn');
@@ -146,10 +162,7 @@ export default {
       }
 
       // Settings Studio: #allowedOriginsSaveBtn is wired once and modelFitTableBody uses 'Refresh Models'
-      await page.evaluate(() => {
-        document.getElementById('tab-settings')?.click();
-      });
-      await page.locator('#view-settings').waitFor({ state: 'visible', timeout: 10000 });
+      await openTab(page, 'settings');
       const settingsCheck = await page.evaluate(() => {
         const saveBtn = document.getElementById('allowedOriginsSaveBtn');
         const html = document.getElementById('view-settings')?.innerHTML || '';
@@ -162,7 +175,15 @@ export default {
         throw new Error(`Settings check failed: ${JSON.stringify(settingsCheck)}`);
       }
 
-      j.note('verified Capabilities Escape key, Wiki folder overview, Education Due Hide button, and Settings wiring');
+      const overflow = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      }));
+      if (overflow.scrollWidth > overflow.clientWidth + 2) {
+        throw new Error(`Horizontal overflow on ${viewport?.name || 'viewport'}: ${overflow.scrollWidth}px > ${overflow.clientWidth}px`);
+      }
+
+      j.note(`verified Capabilities Escape key, Wiki folder overview, Education Due Hide button, Settings wiring, and zero overflow (${overflow.scrollWidth}px <= ${overflow.clientWidth}px)`);
     });
   },
 };

@@ -560,7 +560,7 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
   if (createInputEl) {
     createInputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); handleConfirmCreate(); }
-      else if (e.key === 'Escape') { e.preventDefault(); closeCreateBar(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeCreateBar(); }
     });
   }
   if (saveBtnEl) {
