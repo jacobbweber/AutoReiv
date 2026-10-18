@@ -13,7 +13,13 @@ from pydantic import BaseModel
 from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS, AgentTone
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.settings.models import MCPServerConfig, ModelPurpose
-from src.web.mcp_mount_reconcile import mcp_save_http_body, mount_errors, reconcile_saved_mcp_server
+from src.web.mcp_mount_reconcile import (
+    lookup_mcp_credential_name,
+    mcp_save_http_body,
+    mount_errors,
+    reconcile_saved_mcp_server,
+    resolve_mcp_server_auth,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -523,6 +529,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
     active_map = mcp_manager.get_mounted_servers() if mcp_manager else {}
     errors = mount_errors(mcp_manager)
 
+    store = getattr(request.app.state, "store", None)
     servers = [s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []]
     result = []
     for s in servers:
@@ -533,6 +540,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
         result.append(
             {
                 **s,
+                "credential_name": lookup_mcp_credential_name(s.get("credential_id"), store),
                 "is_mounted": active_info is not None,
                 "tool_count": active_info.get("tool_count", 0) if active_info else 0,
                 "tools": active_info.get("tools", []) if active_info else [],
@@ -564,7 +572,8 @@ async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
     registry.save_agent(profile)  # CARD-570: full user copy of the agent file
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
-    outcome = await reconcile_saved_mcp_server(mcp_manager, req)
+    store = getattr(request.app.state, "store", None)
+    outcome = await reconcile_saved_mcp_server(mcp_manager, req, store=store)
     return mcp_save_http_body(
         req.name,
         outcome,
@@ -612,14 +621,16 @@ async def mount_agent_mcp_server(request: Request, agent_id: str, server_name: s
     if not mcp_manager:
         raise HTTPException(status_code=500, detail="MCP manager not initialized.")
 
+    store = getattr(request.app.state, "store", None)
+    resolved_auth = resolve_mcp_server_auth(target_server, store)
     try:
         tools = await mcp_manager.mount_server(
             name=target_server["name"],
             command=target_server.get("command"),
-            env=target_server.get("env"),
+            env=resolved_auth["env"],
             transport=target_server.get("transport", "sse"),
             url=target_server.get("url"),
-            headers=target_server.get("headers"),
+            headers=resolved_auth["headers"],
         )
         return {
             "status": "mounted",
@@ -642,14 +653,16 @@ async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
 
     from src.infrastructure.mcp.client_adapter import MCPClientAdapter, MCPMountError, adapter_start_error
 
+    store = getattr(request.app.state, "store", None)
+    resolved_auth = resolve_mcp_server_auth(req, store)
     start_time = time.perf_counter()
     adapter = MCPClientAdapter(
         server_name=req.name or "test-probe",
         command=req.command,
-        env=req.env,
+        env=resolved_auth["env"],
         transport=req.transport,
         url=req.url,
-        headers=req.headers,
+        headers=resolved_auth["headers"],
         timeout_seconds=10.0,
     )
     try:

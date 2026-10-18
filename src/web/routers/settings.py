@@ -20,7 +20,13 @@ from src.domain.settings.models import (
     ModelPurposeMatrix,
 )
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter, MCPMountError, adapter_start_error
-from src.web.mcp_mount_reconcile import mcp_save_http_body, mount_errors, reconcile_saved_mcp_server
+from src.web.mcp_mount_reconcile import (
+    lookup_mcp_credential_name,
+    mcp_save_http_body,
+    mount_errors,
+    reconcile_saved_mcp_server,
+    resolve_mcp_server_auth,
+)
 from src.web.routers.settings_data_backup import _data_dir_paths  # noqa: F401 - re-exported for data_dir_migrate
 from src.web.routers.settings_data_backup import router as data_backup_router
 
@@ -611,6 +617,7 @@ async def list_mcp_servers(request: Request):
         result.append(
             {
                 **s,
+                "credential_name": lookup_mcp_credential_name(s.get("credential_id"), store),
                 "is_mounted": active_info is not None,
                 "tool_count": active_info.get("tool_count", 0) if active_info else 0,
                 "tools": active_info.get("tools", []) if active_info else [],
@@ -637,7 +644,7 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
     store.set_setting("mcp_servers", servers)
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
-    outcome = await reconcile_saved_mcp_server(mcp_manager, req)
+    outcome = await reconcile_saved_mcp_server(mcp_manager, req, store=store)
     if outcome["failure"] != "mount" and req.enabled and outcome["tools"]:
         try:
             from src.infrastructure.mcp.companion_author import author_mcp_companion_skill
@@ -691,14 +698,16 @@ async def test_mcp_server_connection(request: Request, req: MCPServerConfig):
     """
     Diagnostic probe executing transient stdio handshake and tool discovery without persistence [REQ-MCP-008].
     """
+    store = getattr(request.app.state, "store", None)
+    resolved_auth = resolve_mcp_server_auth(req, store)
     start_time = time.perf_counter()
     adapter = MCPClientAdapter(
         server_name=req.name or "test-server",
         command=req.command,
-        env=req.env,
+        env=resolved_auth["env"],
         transport=req.transport,
         url=req.url,
-        headers=req.headers,
+        headers=resolved_auth["headers"],
         timeout_seconds=10.0,
     )
     try:

@@ -494,6 +494,31 @@
                     <label for="capabilitiesMcpUrlInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Remote URL</label>
                     <input id="capabilitiesMcpUrlInput" type="text" placeholder="http://127.0.0.1:8080/sse" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
                   </div>
+                  <div id="capabilitiesMcpVaultGroup" class="p-2.5 rounded-lg bg-[#08090c]/60 border border-white/[0.06] space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <label for="capabilitiesMcpCredentialSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Vault Credential (Optional)</label>
+                      <button type="button" id="capabilitiesMcpManageVaultBtn" data-testid="capabilities-mcp-manage-vault-btn" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium transition">Manage in Vault →</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <select id="capabilitiesMcpCredentialSelect" data-testid="capabilities-mcp-credential" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                          <option value="">None (No Vault credential)</option>
+                        </select>
+                      </div>
+                      <div id="capabilitiesMcpAuthTypeGroup">
+                        <select id="capabilitiesMcpAuthTypeSelect" data-testid="capabilities-mcp-auth-type" aria-label="Authentication scheme" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                          <option value="bearer" selected>Bearer Token (Authorization: Bearer …)</option>
+                          <option value="basic">Basic Auth (Authorization: Basic …)</option>
+                          <option value="header">Custom Header (e.g. X-API-Key)</option>
+                          <option value="env">Environment Variable (stdio)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div id="capabilitiesMcpAuthHeaderGroup" class="hidden">
+                      <label for="capabilitiesMcpAuthHeaderInput" id="capabilitiesMcpAuthHeaderLabel" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Header or Env Var Name</label>
+                      <input id="capabilitiesMcpAuthHeaderInput" data-testid="capabilities-mcp-auth-header" type="text" placeholder="X-API-Key or MCP_API_KEY" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                    </div>
+                  </div>
                   <label class="flex items-center gap-2 text-xs text-slate-300">
                     <input id="capabilitiesMcpEnabledCheckbox" type="checkbox" checked class="rounded bg-[#08090c] border-white/[0.08] text-cyan-500">
                     <span>Enabled</span>

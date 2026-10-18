@@ -373,7 +373,7 @@ export function renderSettingsMcpStatus(servers) {
     line: formatMcpAttachStatus(servers),
     listHtml: renderMcpStatusRowsMarkup(servers, {
       rowTestId: 'settings-mcp-status-row',
-      emptyHtml: '<div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No platform MCP servers attached. Open Tools Studio to attach one.</div>',
+      emptyHtml: '<div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No platform MCP servers attached. Open Capabilities Studio to attach one.</div>',
     }),
   };
 }
@@ -396,6 +396,12 @@ export function renderMcpServerListMarkup(servers, { scope = 'platform' } = {}) 
     const mounted = Boolean(server.is_mounted);
     const enabled = server.enabled !== false;
     const target = server.url || (Array.isArray(server.command) ? server.command.join(' ') : server.command || '');
+    const credId = String(server.credential_id || '').trim();
+    const credLabel = String(server.credential_name || credId).trim();
+    const authScheme = String(server.auth_type || 'bearer').trim().toLowerCase();
+    const authBadge = credId
+      ? `<span class="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded border border-emerald-800/70 bg-emerald-950/40 text-emerald-300" data-testid="mcp-vault-auth-badge" title="Vault credential: ${escapeHtml(credId)} (${escapeHtml(authScheme)})">🔑 ${escapeHtml(authScheme)} · ${escapeHtml(credLabel)}</span>`
+      : '';
     const connect = enabled && !mounted
       ? `<button type="button" data-action="connect" data-server-name="${safe}" class="px-2 py-1 rounded bg-emerald-950/50 text-emerald-300 border border-emerald-800/60 text-[11px]">Connect</button>`
       : '';
@@ -405,6 +411,7 @@ export function renderMcpServerListMarkup(servers, { scope = 'platform' } = {}) 
           <div class="min-w-0">
             <span class="text-xs font-mono font-semibold text-slate-100">${safe}</span>
             <span class="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded border ${mcpServerFailedToStart(server) ? BADGE_FAILED : BADGE_OK}" data-testid="tools-studio-mcp-status">${escapeHtml(badge)}</span>
+            ${authBadge}
           </div>
           <div class="flex flex-wrap items-center gap-1">
             <button type="button" data-action="edit" data-server-name="${safe}" class="px-2 py-1 rounded bg-slate-800 text-slate-200 border border-white/[0.08] text-[11px]">Edit</button>
@@ -509,7 +516,7 @@ export function formatMcpCommandText(command) {
 }
 
 /**
- * @param {{ name?: string, transport?: string, commandText?: string, url?: string, headersText?: string, env?: object, enabled?: boolean }} fields
+ * @param {{ name?: string, transport?: string, commandText?: string, url?: string, headersText?: string, env?: object, credentialId?: string, credential_id?: string, authType?: string, auth_type?: string, authHeader?: string, auth_header?: string, enabled?: boolean }} fields
  * @returns {{ ok: true, body: object }|{ ok: false, error: string }}
  */
 export function buildMcpSaveBody(fields = {}) {
@@ -519,6 +526,10 @@ export function buildMcpSaveBody(fields = {}) {
   const url = String(fields.url || '').trim();
   const headersText = String(fields.headersText || '').trim();
   const env = fields.env && typeof fields.env === 'object' && !Array.isArray(fields.env) ? fields.env : {};
+  const credentialId = String(fields.credentialId ?? fields.credential_id ?? '').trim() || null;
+  const rawAuthType = String(fields.authType ?? fields.auth_type ?? 'bearer').trim().toLowerCase();
+  const authType = ['bearer', 'basic', 'header', 'env'].includes(rawAuthType) ? rawAuthType : 'bearer';
+  const authHeader = String(fields.authHeader ?? fields.auth_header ?? '').trim() || null;
   const enabled = fields.enabled !== false;
   if (!name) return { ok: false, error: 'Server name is required.' };
   if (transport === 'stdio' && !commandText) return { ok: false, error: 'Command is required for stdio.' };
@@ -543,6 +554,9 @@ export function buildMcpSaveBody(fields = {}) {
       url: url || null,
       headers,
       env,
+      credential_id: credentialId,
+      auth_type: authType,
+      auth_header: authHeader,
       enabled,
     },
   };
@@ -606,6 +620,10 @@ export function serverToSaveBody(server, enabled) {
   } else if (server && server.command != null && String(server.command).trim()) {
     command = splitMcpCommandText(String(server.command));
   }
+  const credId = server && server.credential_id ? String(server.credential_id).trim() : null;
+  const rawAuthType = String((server && server.auth_type) || 'bearer').trim().toLowerCase();
+  const authType = ['bearer', 'basic', 'header', 'env'].includes(rawAuthType) ? rawAuthType : 'bearer';
+  const authHeader = server && server.auth_header ? String(server.auth_header).trim() : null;
   return {
     name: server && server.name,
     transport: (server && server.transport) || (server && server.url ? 'sse' : 'stdio'),
@@ -613,6 +631,9 @@ export function serverToSaveBody(server, enabled) {
     url: (server && server.url) || null,
     headers,
     env: (server && server.env) || {},
+    credential_id: credId || null,
+    auth_type: authType,
+    auth_header: authHeader || null,
     enabled: Boolean(enabled),
   };
 }
