@@ -276,10 +276,7 @@ def domain_line(agent: Any) -> str:
     roster = _other_agents_roster(agent_id)
     roster_text = f" Covering agents: {'; '.join(roster)}." if roster else ""
     # CARD-615: the Ask Developer ending is added by the kernel (reply_rules.ask_developer_ending), never by the model.
-    if agent_id.strip().lower() == "toolsmith":
-        no_cover = "If no agent covers it and you cannot build it as a tool, say so plainly in 1-2 concise sentences."
-    else:
-        no_cover = 'If no agent covers it, state that plainly in 1-2 concise sentences ("No agent covers ...").'
+    no_cover = 'If no agent covers it, state that plainly in 1-2 concise sentences ("No agent covers ...").'
     return (
         f"{name} covers: {covers}. For requests outside your skills, tell the user plainly which agent to open in Chat (e.g. \"open Tutor in Chat\").{roster_text} "
         f"{no_cover}"

@@ -17,7 +17,6 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-09-27 | live-qa | openSessionByTitle cannot open an API-created Tutor chat: after switching #agentSelect to tutor the drawer shows only the auto 'Tutor Chat' and the click times out; card-454 journey uses New Conversation instead | from CARD-454 (recheck Tutor journey after CARD-562) | tests/e2e/journeys/lib/app.mjs, src/web/static/modules/studios/chat.js
 
 ## M24 Chat, jobs and tool reliability
-- 2026-09-29 | hitl | /api/hitl/decide saves the approved tool's result row in both the phase session and the parent chat session (left over when CARD-557 closed) | from CARD-577 | src/web/routers/hitl.py
 - 2026-09-29 | settings | POST /api/settings/matrix silently turns max_concurrent_generations outside 1-3 into 1 (sent 4, saved 1, no error); clamp to 3 or return 400 | from battery 2026-09-29 | src/web/routers/settings.py
 - 2026-09-29 | chat | /api/chat/stream accepts any approval_mode; only 'run' auto-approves and anything else (e.g. 'auto') silently means ask, so scripts that send 'auto' get approval parks with no hint | from battery 2026-09-29 | src/application/kernel/tool_registry.py, src/web/routers/chat.py
 

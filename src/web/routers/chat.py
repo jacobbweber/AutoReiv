@@ -1701,7 +1701,7 @@ async def get_session_messages(request: Request, session_id: str, include_archiv
 
 @router.get("/api/sessions/{session_id}/context")
 async def get_session_context(request: Request, session_id: str):
-    """Context window token consumption and authorized tools inspector [CARD-161, CARD-699]."""
+    """Context window token consumption and authorized tools inspector (get_tools_for_agent) [CARD-161, CARD-699]."""
     from src.application.kernel.compaction_verifier import build_session_context_payload
 
     payload = build_session_context_payload(

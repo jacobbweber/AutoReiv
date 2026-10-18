@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import shutil
 import sqlite3
 from dataclasses import dataclass
@@ -615,12 +614,6 @@ def prune_orphan_databases(root_path: Union[str, Path]) -> list[str]:
             pass
 
     return pruned
-
-
-def _agent_id_to_snake_case(agent_id: str) -> str:
-    cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", str(agent_id).strip()).strip("_").lower()
-    return cleaned or "agent"
-
 
 
 def is_checkout_live_tree_path(path: Union[str, Path], *, checkout: Optional[Path] = None) -> bool:

@@ -673,12 +673,6 @@ class WikiStore:
             group_dir.mkdir(parents=True, exist_ok=True)
             (group_dir / filename).write_text(tmpl_meta["content"], encoding="utf-8")
 
-        should_seed = self.auto_seed if seed_starter is None else seed_starter
-        if should_seed:
-            self._seed_starter_notes_if_empty()
-
-
-
     def scrub_empty_seed_taxonomy(self) -> List[str]:
         """
         Idempotently remove empty pre-CARD-406 seed taxonomy dirs under 01_Notes [CARD-416].
@@ -714,13 +708,6 @@ class WikiStore:
             actions.append(f"Removed empty seed taxonomy: {rel}")
             log.info("CARD-416 scrubbed empty seed taxonomy path: %s", rel)
         return actions
-
-    def _seed_starter_notes_if_empty(self) -> None:
-        """
-        Maintains vanilla vault seeding: strictly numbered folders with canonical templates only [CARD-406].
-        Pre-filled mock domain notes are completely retired.
-        """
-        return
 
     def migrate_legacy_vault(self, ensure_scaffold: bool = True) -> Dict[str, Any]:
         """
