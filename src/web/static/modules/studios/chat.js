@@ -37,6 +37,7 @@ import { handleTurnRunning } from './chat/turn_running.js'; // CARD-530 REQ-530-
 import { showFailedTurn } from './chat/failed_send.js'; // CARD-484: a failed send keeps the typed text
 import { createSessionActivityPoller } from './chat/session_activity.js'; // CARD-493
 import { formatJobPhaseStrip, reactStateToneClass, isHitlParkSseEvent, applyJobPhaseEvent, isJobPhaseChromeEvent } from './chat/job_strip.js'; // CARD-490
+import { buildStreamBubbleHtml, bindStreamBubbleElements, renderToolStatusBadge, updateStandingJobPayload } from './chat/stream_bubble.js'; // CARD-716
 
 import {
   buildChatStreamPayload,
@@ -567,64 +568,18 @@ export function initChatStudio(state, callbacks = {}) {
     streamBubble.className = 'flex justify-start w-full';
     streamBubble.setAttribute('data-stream-bubble', 'true');
     streamBubble.setAttribute('data-job-chrome', 'inline');
-    streamBubble.innerHTML = `
-      <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3" data-job-chrome-card="1">
-        <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
-          <span>${escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}</span>
-          <span class="text-brand-400 font-mono text-[10px] animate-pulse">Streaming...</span>
-        </div>
-        <div class="job-chrome-phases space-y-1.5 hidden" data-job-chrome-phases="1"></div>
-        <div class="plan-milestone-card hidden rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
-          <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
-            <span class="flex items-center space-x-1.5">
-              <span>📋</span>
-              <span class="plan-goal-title">Execution Plan</span>
-            </span>
-            <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300"></span>
-          </div>
-          <div class="plan-steps-container space-y-1.5 pt-1"></div>
-        </div>
-        <div class="reflexion-status-badge hidden p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 items-center space-x-2"></div>
-        <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
-        <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
-          <button type="button" class="reasoning-toggle flex items-center justify-between w-full px-3 py-2 bg-amber-900/20 text-amber-300 font-semibold cursor-pointer">
-            <span class="flex items-center space-x-1.5">
-              <span>💭</span>
-              <span>Thinking Process</span>
-            </span>
-            <span class="reasoning-indicator text-[10px] uppercase font-mono">Show</span>
-          </button>
-          <div class="reasoning-content hidden p-3 font-mono text-[11px] text-amber-100 whitespace-pre-wrap max-h-60 overflow-y-auto"></div>
-        </div>
-        <div class="stream-queue-note hidden text-xs text-amber-200/90 italic" data-stream-queue-note="1" role="status"></div>
-        <div class="stream-content text-sm leading-relaxed prose prose-invert max-w-none text-slate-100 break-words"></div>
-        <div class="hitl-approval-card hidden p-3 rounded-xl border border-amber-500/50 bg-amber-950/30 text-slate-200 text-xs space-y-2"></div>
-      </div>
-    `;
+    // Embeds <div class="job-chrome-phases space-y-1.5 hidden" data-job-chrome-phases="1"></div>
+    streamBubble.innerHTML = buildStreamBubbleHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent');
 
     if (messagesContainer) {
       messagesContainer.appendChild(streamBubble);
       maybeAutoscrollMessages();
     }
 
-    const streamContentEl = streamBubble.querySelector('.stream-content');
-    const queueNoteEl = streamBubble.querySelector('.stream-queue-note'); // CARD-494
-    const reasoningDrawer = streamBubble.querySelector('.reasoning-drawer');
-    const reasoningContent = streamBubble.querySelector('.reasoning-content');
-    const reasoningToggle = streamBubble.querySelector('.reasoning-toggle');
-    const reasoningIndicator = streamBubble.querySelector('.reasoning-indicator');
-    const toolBadge = streamBubble.querySelector('.tool-status-badge');
-    const hitlCard = streamBubble.querySelector('.hitl-approval-card');
-    const planMilestoneCard = streamBubble.querySelector('.plan-milestone-card');
-    const planStepsContainer = streamBubble.querySelector('.plan-steps-container');
-    const planStepCounter = streamBubble.querySelector('.plan-step-counter');
-
-    if (reasoningToggle && reasoningContent && reasoningIndicator) {
-      reasoningToggle.addEventListener('click', () => {
-        const isHidden = reasoningContent.classList.toggle('hidden');
-        reasoningIndicator.textContent = isHidden ? 'Show' : 'Hide';
-      });
-    }
+    const {
+      streamContentEl, queueNoteEl, reasoningDrawer, reasoningContent,
+      toolBadge, hitlCard, planMilestoneCard, planStepsContainer, planStepCounter,
+    } = bindStreamBubbleElements(streamBubble);
 
     let accumulatedContent = '';
     let accumulatedReasoning = '';
@@ -681,16 +636,7 @@ export function initChatStudio(state, callbacks = {}) {
 
           const badge = toolBadge ? toolBadgeView(eventType, ev) : null; // CARD-682
           if (badge) {
-            toolBadge.classList.remove('hidden');
-            toolBadge.classList.add('flex');
-            if (badge.state === 'running') {
-              toolBadge.innerHTML = `<i data-lucide="wrench" class="w-3.5 h-3.5 text-brand-400 animate-spin"></i><span>Using tool: <strong>${escapeHtml(badge.name)}</strong></span>`;
-            } else if (badge.state === 'refused') {
-              toolBadge.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i><span>Did not run: <strong>${escapeHtml(badge.name)}</strong> - ${escapeHtml(badge.reason)}</span>`;
-            } else {
-              toolBadge.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Completed: <strong>${escapeHtml(badge.name)}</strong></span>`;
-            }
-            safeCreateIcons();
+            renderToolStatusBadge(toolBadge, badge, safeCreateIcons);
           } else if (eventType === 'approval_required') {
             renderInlineHitlCard(hitlCard, ev, { state, onResumeTurn: executeChatTurn, onDone: refreshPendingHitl }); // CARD-470
           } else if (eventType === 'plan_formulated') {
@@ -768,13 +714,8 @@ export function initChatStudio(state, callbacks = {}) {
   });
 
   setupComposerControls({
-    chatForm,
-    promptInput,
-    sendBtn,
-    stopBtn,
-    state,
-    onExecuteTurn: executeChatTurn,
-    ensureSession,
+    chatForm, promptInput, sendBtn, stopBtn, state,
+    onExecuteTurn: executeChatTurn, ensureSession,
     onOpenTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
     onCancelStream: stopHandler.stop,
   });
@@ -802,9 +743,7 @@ export function initChatStudio(state, callbacks = {}) {
     await selectSession(id);
     // CARD-497 REQ-497-016: a real send - the Toolsmith reply starts now, as if typed and Enter pressed.
     const outcome = sendDeveloperIntent({
-      sessionId: id,
-      prompt: composerText,
-      state,
+      sessionId: id, prompt: composerText, state,
       send: (text) => {
         if (promptInput) setComposerText(promptInput, '');
         return executeChatTurn(text);
@@ -829,39 +768,18 @@ export function initChatStudio(state, callbacks = {}) {
   syncActiveProjectIndicator();
 
   return {
-    loadAgents,
-    switchSelectedAgent,
-    updateActiveAgentHeader,
-    loadSessions,
-    createNewSession,
-    selectSession,
-    loadMessages,
-    renderMessages: renderMessagesDirect,
-    renderMarkdown,
-    openWorkbench,
-    closeWorkbench,
-    openDeveloperSession,
-    resumeParkedJob,
-    switchEngineChannel,
-    syncActiveProjectIndicator,
-    updateJobPhaseFromEvent,
+    loadAgents, switchSelectedAgent, updateActiveAgentHeader,
+    loadSessions, createNewSession, selectSession, loadMessages,
+    renderMessages: renderMessagesDirect, renderMarkdown,
+    openWorkbench, closeWorkbench, openDeveloperSession, resumeParkedJob,
+    switchEngineChannel, syncActiveProjectIndicator, updateJobPhaseFromEvent,
     showStandingJob: (job) => {
-      const id = String((job && (job.jobId || job.job_id)) || '').trim();
-      if (!id) return null;
-      updateJobPhaseFromEvent('job_created', {
-        job_id: id,
-        status: (job && (job.status || job.jobStatus)) || 'queued',
-        agent_id: (job && (job.agentId || job.agent_id)) || 'developer',
-        phase_name: 'Author',
-        phase_count: 1,
-        index: 0,
-      });
-      return { jobId: id, agentId: (job && (job.agentId || job.agent_id)) || 'developer' };
+      const info = updateStandingJobPayload(job);
+      if (!info) return null;
+      updateJobPhaseFromEvent('job_created', info.event);
+      return { jobId: info.id, agentId: info.agentId };
     },
-    resetJobPhaseStrip,
-    updateJobChromeFromEvent,
-    remountInlineJobChrome,
-    resetInlineJobChrome,
+    resetJobPhaseStrip, updateJobChromeFromEvent, remountInlineJobChrome, resetInlineJobChrome,
     refreshWorkbenchArtifactCount,
     watchSessionStatus: (sessionId = state.activeSessionId) => sessionSelect.watchSessionStatus(sessionId), // CARD-485, for CARD-473
     querySessionStatus,

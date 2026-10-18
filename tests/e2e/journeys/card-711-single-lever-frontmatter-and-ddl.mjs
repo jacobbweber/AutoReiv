@@ -25,8 +25,9 @@ export default {
 
     await j.step('2. Open Capabilities Studio (#view-capabilities) and verify tree renders', async () => {
       await openApp(page, base);
-      await page.evaluate(() => {
-        window.__autoreivSwitchTab('capabilities');
+      await page.evaluate(async () => {
+        const { requestTabSwitch } = await import('/static/modules/state/store.js');
+        requestTabSwitch('capabilities');
       });
       await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 10000 });
       await page.locator('#capabilitiesTreeList').waitFor({ state: 'visible', timeout: 10000 });

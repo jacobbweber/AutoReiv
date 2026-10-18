@@ -6,6 +6,7 @@
 
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { api } from '../services/api.js';
+import { requestTabSwitch } from '../state/store.js';
 import { setComposerText } from './chat/composer.js';
 import { showToast } from '../ui/toast.js';
 
@@ -133,12 +134,8 @@ export function setupRcaProposalsPanel({ callbacks = {}, onInspectTool = null } 
 
     const switchFn =
       (callbacks && typeof callbacks.switchTab === 'function' && callbacks.switchTab) ||
-      (typeof window !== 'undefined' && typeof window.__autoreivSwitchTab === 'function'
-        ? window.__autoreivSwitchTab
-        : null);
-    if (switchFn) {
-      switchFn('chat');
-    }
+      requestTabSwitch;
+    switchFn('chat');
 
     const chatCtrl =
       callbacks && typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;

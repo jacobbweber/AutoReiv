@@ -1,0 +1,465 @@
+        <details class="settings-section" data-card="313" data-settings-section="preferences">
+          <summary>Preferences</summary>
+          <div class="settings-section-body">
+
+        <!-- System & Software Updates [CARD-196 / CARD-451] -->
+        <div id="settingsSystemUpdatesCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 shadow-sm backdrop-blur-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-brand-400"></i>
+                <span>System &amp; Software Updates</span>
+              </h3>
+              <p class="text-xs text-slate-400">Git status, fast-forward updates, branch switch, and optional daily auto-update (default off).</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span id="systemVersionPill" class="px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-brand-950/80 text-brand-300 border border-brand-800/80">-</span>
+              <span id="systemDeploymentBadge" class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/[0.04] text-slate-300 border border-white/[0.08]">-</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs font-mono bg-[#08090c]/70 p-3 rounded-xl border border-white/[0.06]">
+            <div>
+              <span class="text-slate-500 block text-[10px] uppercase font-sans font-bold">Branch</span>
+              <span id="systemBranchName" class="text-brand-400 font-semibold">-</span>
+            </div>
+            <div class="sm:col-span-2">
+              <span class="text-slate-500 block text-[10px] uppercase font-sans font-bold">Commit</span>
+              <span id="systemCommitSha" class="text-slate-200">-</span>
+              <span id="systemCommitSubject" class="block text-[10px] text-slate-400 font-sans truncate">-</span>
+            </div>
+            <div>
+              <span class="text-slate-500 block text-[10px] uppercase font-sans font-bold">Ahead / Behind</span>
+              <span id="systemAheadBehind" class="text-slate-200">-</span>
+            </div>
+            <div>
+              <span class="text-slate-500 block text-[10px] uppercase font-sans font-bold">Working Tree</span>
+              <span id="systemTreeStatus" class="text-emerald-400">Clean</span>
+            </div>
+            <div>
+              <span class="text-slate-500 block text-[10px] uppercase font-sans font-bold">Last Fetch</span>
+              <span id="systemLastFetch" class="text-slate-300 font-sans text-[10px]">-</span>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3 text-xs">
+            <h4 class="text-xs font-bold text-slate-200">Remote (read-only)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="font-medium text-slate-400 block mb-1">Remote</label>
+                <input id="updateRemoteName" type="text" readonly value="origin" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-400 font-mono text-xs" />
+              </div>
+              <div class="md:col-span-2">
+                <label class="font-medium text-slate-400 block mb-1">Origin URL</label>
+                <input id="updateRemoteUrl" type="text" readonly class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-300 font-mono text-xs" placeholder="(unavailable)" />
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500">Upstream is fixed to <code class="text-slate-400">origin</code>. The remote URL is shown read-only.</p>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" id="checkForUpdatesBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Check for Updates</span>
+              </button>
+              <button type="button" id="applyUpdateBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Update now</span>
+              </button>
+              <span id="applyUpdateDisabledReason" class="text-[11px] text-amber-400 hidden"></span>
+            </div>
+            <div id="updateStatusBanner" class="p-3 rounded-xl bg-[#08090c] border border-white/[0.06] text-xs hidden shadow-inner">
+              <div class="flex items-center space-x-2">
+                <span id="updateStatusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="updateStatusMessage" class="font-medium text-slate-200"></span>
+              </div>
+              <div id="updateNotesContainer" class="mt-2.5 pt-2.5 border-t border-white/[0.06] text-[11px] text-slate-300 hidden">
+                <div class="text-slate-400 font-sans font-semibold mb-1">Commits on upstream:</div>
+                <pre id="updateReleaseNotesText" class="whitespace-pre-wrap font-mono text-[11px] text-slate-300 bg-[#0e1015] p-2.5 rounded-lg border border-white/[0.06]"></pre>
+              </div>
+            </div>
+            <div id="updateManualDockerHelper" class="hidden p-3 rounded-xl bg-[#08090c]/60 border border-white/[0.06] text-xs">
+              <span class="text-slate-400 block mb-1">Docker / Container Upgrade Command:</span>
+              <code class="bg-[#0e1015] text-amber-300 px-2 py-1 rounded font-mono text-[11px] block border border-white/[0.06] select-all">docker compose pull &amp;&amp; docker compose up -d</code>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3 text-xs">
+            <h4 class="text-xs font-bold text-slate-200">Branch</h4>
+            <div class="flex flex-wrap items-end gap-2">
+              <div class="flex-1 min-w-[12rem]">
+                <label class="font-medium text-slate-400 block mb-1" for="updateBranchSelect">Switch branch</label>
+                <select id="updateBranchSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500"></select>
+              <p id="updateBranchListHint" class="text-[10px] text-slate-500 mt-1">Loading branches…</p>
+              </div>
+              <button type="button" id="switchBranchBtn" class="px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 rounded-lg text-xs font-semibold border border-white/[0.08] transition-all">Switch</button>
+            </div>
+            <span id="switchBranchStatus" class="text-[11px] text-slate-400 hidden"></span>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3 text-xs">
+            <h4 class="text-xs font-bold text-slate-200">Daily auto-update</h4>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input id="autoUpdateEnabled" type="checkbox" class="rounded border-white/20 bg-[#08090c] text-brand-500 focus:ring-brand-500" />
+                <span class="text-slate-300">Enable daily auto-update (default off)</span>
+              </label>
+              <label class="inline-flex items-center gap-2">
+                <span class="text-slate-400">Time</span>
+                <input id="autoUpdateTime" type="time" value="03:00" class="bg-[#08090c] border border-white/[0.08] rounded-lg px-2 py-1 text-slate-100 text-xs" />
+              </label>
+              <button type="button" id="saveAutoUpdateBtn" class="px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 rounded-lg text-xs font-semibold border border-white/[0.08]">Save</button>
+            </div>
+            <p id="autoUpdateLastResult" class="text-[11px] text-slate-400">Last auto-update: never</p>
+            <span id="saveAutoUpdateStatus" class="text-[11px] text-slate-400 hidden"></span>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-2 text-xs">
+            <h4 class="text-xs font-bold text-slate-200">Update history</h4>
+            <ul id="updateHistoryList" class="space-y-1.5 text-[11px] text-slate-300 max-h-40 overflow-y-auto"></ul>
+          </div>
+        </div>
+
+
+        <!-- Appearance & Color Themes [CARD-208] -->
+        <div id="settingsThemeCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 shadow-sm backdrop-blur-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="palette" class="w-4 h-4 text-brand-400"></i>
+                <span>Appearance &amp; Color Themes</span>
+              </h3>
+              <p class="text-xs text-slate-400">Choose a professional dark palette. Accents stay scarce — chrome and borders stay neutral.</p>
+            </div>
+            <span id="themeSaveStatus" class="text-[11px] font-semibold text-emerald-400 hidden"></span>
+          </div>
+
+          <!-- Prebuilt Presets -->
+          <div>
+            <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 block font-mono">Prebuilt Themes</label>
+            <div id="themePresetsList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+              <button type="button" data-theme-preset="autoreiv-indigo" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #6366f1;"></span>
+                  <span class="text-xs font-bold text-white">Indigo</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Default</span>
+              </button>
+              <button type="button" data-theme-preset="orbital-mono" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full border border-slate-500 shadow-sm flex-shrink-0" style="background: #94a3b8;"></span>
+                  <span class="text-xs font-bold text-white">Slate Graphite</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Near-mono</span>
+              </button>
+              <button type="button" data-theme-preset="obsidian-slate" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #8b7cc9;"></span>
+                  <span class="text-xs font-bold text-white">Violet</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Muted amethyst</span>
+              </button>
+              <button type="button" data-theme-preset="amber-phosphor" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #c4a35a;"></span>
+                  <span class="text-xs font-bold text-white">Warm Sand</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Amber soft</span>
+              </button>
+              <button type="button" data-theme-preset="emerald-matrix" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #2dd4bf;"></span>
+                  <span class="text-xs font-bold text-white">Teal</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Calm forest</span>
+              </button>
+              <button type="button" data-theme-preset="claymorphism" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #fb7185; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.4);"></span>
+                  <span class="text-xs font-bold text-white">Claymorphism</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Tactile 3D</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Sliders -->
+          <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3.5 text-xs">
+            <h4 class="text-xs font-bold text-slate-200">Custom Palette Tuner</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Accent Hue</label>
+                  <span id="themeHueVal" class="font-mono text-brand-400">239°</span>
+                </div>
+                <input id="themeHueSlider" type="range" min="0" max="360" value="239" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Saturation (Vibrancy)</label>
+                  <span id="themeSatVal" class="font-mono text-brand-400">58%</span>
+                </div>
+                <input id="themeSaturationSlider" type="range" min="0" max="100" value="58" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Background Darkness</label>
+                  <span id="themeDarkVal" class="font-mono text-brand-400">10%</span>
+                </div>
+                <input id="themeDarknessSlider" type="range" min="0" max="30" value="10" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+            </div>
+
+            <!-- Live Preview -->
+            <div>
+              <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5 block font-mono">Live UI Preview</label>
+              <div id="themePreviewBox" class="p-3 rounded-lg border flex flex-wrap items-center gap-3" style="background: var(--theme-bg-surface, #12141a); border-color: var(--theme-border, rgba(255,255,255,0.10));">
+                <button type="button" class="px-3 py-1.5 rounded-lg text-white font-semibold text-xs shadow-sm transition" style="background: var(--theme-brand, #6366f1);">
+                  Primary Button
+                </button>
+                <span class="px-2.5 py-1 rounded-md text-xs font-mono font-semibold" style="background: color-mix(in srgb, var(--theme-brand, #6366f1) 18%, transparent); color: var(--theme-brand, #818cf8);">
+                  Active Badge
+                </span>
+                <span class="text-xs font-medium text-slate-300">
+                  Window Border (neutral):
+                </span>
+                <div class="w-12 h-5 rounded border" style="border-color: var(--theme-border, rgba(255,255,255,0.10)); box-shadow: 0 8px 16px rgba(0,0,0,0.45);"></div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" id="resetThemeBtn" class="px-3 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 rounded-lg text-xs font-semibold border border-white/[0.08] transition-all cursor-pointer">
+                Reset to Default
+              </button>
+              <button type="button" id="saveThemeBtn" class="px-4 py-1.5 text-white rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer" style="background: var(--theme-brand, #6366f1);">
+                Save Theme
+              </button>
+            </div>
+          </div>
+        </div>
+          </div>
+        </details>
+
+        <details class="settings-section" data-card="313" data-settings-section="connections">
+          <summary>Connections</summary>
+          <div class="settings-section-body">
+        <!-- Model Context Protocol (MCP) Servers [REQ-MCP-005] -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="plug" class="w-4 h-4 text-brand-400 shrink-0"></i>
+                <span class="truncate">Model Context Protocol (MCP) Servers</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Attach, test, and remove MCP servers in Tools Studio. This page keeps hosting and a short attach status.</p>
+            </div>
+            <button type="button" id="settingsOpenToolsStudioBtn" data-testid="settings-open-tools-studio" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Open in Tools Studio
+            </button>
+          </div>
+          <p id="settingsMcpAttachStatus" data-testid="settings-mcp-attach-status" class="text-xs text-slate-300">Loading attach status…</p>
+
+          <!-- Hosted MCP Server Status Banner [CARD-392] -->
+          <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs flex flex-col gap-2.5 overflow-hidden">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px] font-semibold shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Hosted MCP Server Active</span>
+              </span>
+              <span class="text-slate-400 text-[11px] font-mono">Port 8000 (HTTP/SSE)</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-[11px] text-indigo-300/90">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-slate-400">Endpoint:</span>
+                <code class="bg-black/40 px-1.5 py-0.5 rounded border border-white/[0.06] text-indigo-200 break-all select-all">/api/mcp/sse</code>
+              </div>
+              <span class="text-slate-600 hidden sm:inline">•</span>
+              <div class="flex items-center space-x-1.5">
+                <span class="text-slate-400">Messages:</span>
+                <code class="bg-black/40 px-1.5 py-0.5 rounded border border-white/[0.06] text-indigo-200 break-all select-all">/api/mcp/messages</code>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed max-w-full">
+              Connect external AI tools (Claude Desktop, Cursor) or peer AutoReiv instances via cross-instance federation.
+            </p>
+          </div>
+
+          <div id="mcpServerList" class="space-y-2" data-testid="settings-mcp-status-list">
+            <div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No platform MCP servers attached. Open Tools Studio to attach one.</div>
+          </div>
+        </div>
+
+
+        <!-- Credential Vault [CARD-168] -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span class="truncate">Credential Vault</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">AES-256-GCM encrypted local vault for API tokens, database passwords, and secrets with per-agent access grants.</p>
+            </div>
+            <button id="addCredentialBtn" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Add Credential</span>
+            </button>
+          </div>
+
+          <!-- Add Credential Form (Collapsible) -->
+          <div id="credentialFormContainer" class="hidden p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-4 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Credential Name</label>
+                <input id="credNameInput" type="text" placeholder="e.g. GitHub Production Token" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-brand-500 transition-all">
+              </div>
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Identifier / Key Slug (Optional)</label>
+                <input id="credIdInput" type="text" placeholder="e.g. github-prod-token" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Type</label>
+                <select id="credTypeSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-brand-500 transition-all">
+                  <option value="token">API Token / Bearer Key</option>
+                  <option value="api_key">API Key (Header / Query)</option>
+                  <option value="password">Password / Secret</option>
+                  <option value="connection_string">Database Connection String</option>
+                  <option value="ssh_key">SSH Private Key</option>
+                  <option value="other">Other Secret</option>
+                </select>
+              </div>
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Secret Value (Encrypted with AES-256-GCM)</label>
+                <div class="relative flex items-center">
+                  <input id="credSecretInput" type="password" placeholder="Paste sensitive token or key..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg pl-3 pr-9 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                  <button type="button" id="toggleCredSecretVisibilityBtn" class="absolute right-2 text-slate-400 hover:text-slate-200 p-1 transition" title="Show/Hide secret">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Description (Optional)</label>
+              <input id="credDescInput" type="text" placeholder="Purpose or context for this credential..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-brand-500 transition-all">
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-2 border-t border-white/[0.06]">
+              <button type="button" id="cancelCredentialBtn" class="px-3 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 rounded-lg text-xs font-medium border border-white/[0.08] transition-all">Cancel</button>
+              <button type="button" id="saveCredentialBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save &amp; Encrypt</button>
+            </div>
+          </div>
+
+          <!-- Credential Table List -->
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[500px] text-left text-xs text-slate-300">
+              <thead class="bg-[#13161f]/80 uppercase text-slate-400 font-mono text-[10px] tracking-wider border-b border-white/[0.06]">
+                <tr>
+                  <th class="p-2.5">Name / ID</th>
+                  <th class="p-2.5">Type</th>
+                  <th class="p-2.5">Description</th>
+                  <th class="p-2.5">Secret Preview</th>
+                  <th class="p-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="credentialsTableBody" class="divide-y divide-white/[0.04]">
+                <tr><td colspan="5" class="p-3 text-center text-slate-500 italic">No credentials in vault. Click 'Add Credential' to encrypt a new secret.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+
+        <!-- CARD-160: Remote SSH Hosts [REQ-REMOTE-003] -->
+        <div id="settingsRemoteHosts" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
+              <div class="min-w-0">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                  <i data-lucide="server" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                  <span class="truncate">Remote SSH Hosts</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Configure remote Linux and Windows servers for autonomous agent inspection and management.</p>
+              </div>
+              <button id="addRemoteHostBtn" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add Remote Host</span>
+              </button>
+            </div>
+
+            <!-- Add Remote Host Form (Hidden by default) -->
+            <div id="remoteHostFormContainer" class="hidden p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3">
+              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <span class="text-xs font-bold text-slate-200">Configure Remote SSH Host</span>
+                <button type="button" id="closeRemoteHostFormBtn" class="p-1 text-slate-400 hover:text-white rounded-lg transition" title="Close">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label class="font-medium text-slate-300 block mb-1">Friendly Label</label>
+                  <input id="hostLabelInput" type="text" placeholder="e.g. Game Server or Web VPS" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-brand-500 transition-all">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-300 block mb-1">Host ID (Optional slug)</label>
+                  <input id="hostIdInput" type="text" placeholder="e.g. game-server" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-300 block mb-1">Hostname or IP Address</label>
+                  <input id="hostAddressInput" type="text" placeholder="192.168.1.100 or vps.example.com" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="font-medium text-slate-300 block mb-1">Port</label>
+                    <input id="hostPortInput" type="number" value="22" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                  </div>
+                  <div>
+                    <label class="font-medium text-slate-300 block mb-1">Auth Type</label>
+                    <select id="hostAuthTypeSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-brand-500 transition-all">
+                      <option value="password">Password</option>
+                      <option value="key">Private Key</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="font-medium text-slate-300 block mb-1">SSH Username</label>
+                  <input id="hostUsernameInput" type="text" placeholder="ubuntu, root, or user" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                </div>
+                <div>
+                  <label class="font-medium text-slate-300 block mb-1">Vault Credential (Password or Key)</label>
+                  <select id="hostCredentialSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-brand-500 transition-all">
+                    <option value="">-- Select Credential from Vault --</option>
+                  </select>
+                </div>
+              </div>
+              <div id="hostTestResultAlert" class="hidden p-2 rounded-lg text-xs font-mono border border-white/[0.06] bg-[#08090c]"></div>
+              <div class="flex items-center justify-end space-x-2 pt-2 border-t border-white/[0.06]">
+                <button type="button" id="cancelRemoteHostBtn" class="px-3 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 rounded-lg text-xs font-medium border border-white/[0.08] transition-all">Cancel</button>
+                <button type="button" id="saveRemoteHostBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">Save Remote Host</button>
+              </div>
+            </div>
+
+            <!-- Remote Hosts Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-[#13161f]/80 uppercase text-slate-400 font-mono text-[10px] tracking-wider border-b border-white/[0.06]">
+                  <tr>
+                    <th class="p-2.5">Label / ID</th>
+                    <th class="p-2.5">Address</th>
+                    <th class="p-2.5">Port</th>
+                    <th class="p-2.5">Username</th>
+                    <th class="p-2.5">Vault Credential</th>
+                    <th class="p-2.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="remoteHostsTableBody" class="divide-y divide-white/[0.04]">
+                  <tr id="remoteHostsEmptyRow"><td colspan="6" class="p-3 text-center text-slate-500 italic">No remote hosts configured. Click 'Add Remote Host' to configure an SSH connection.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          </div>
+        </details>
+
+      </section>
+

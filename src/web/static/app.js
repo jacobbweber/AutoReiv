@@ -3,7 +3,7 @@
  */
 
 import { $, $queryAll, isMobile, safeCreateIcons } from './modules/dom.js';
-import { state, subscribeAgentsLoaded } from './modules/state/store.js';
+import { state, subscribeAgentsLoaded, registerTabSwitcher } from './modules/state/store.js';
 import { bindStudioAgentPickers, clearRetiredPickerKeys, PICKER_KEYS } from './modules/studios/agent_picker.js';
 import { storageGet, storageSet } from './modules/utils/storage.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
@@ -215,9 +215,7 @@ export function initApp() {
       sidebar.classList.add('-translate-x-full');
     }
   }
-  if (typeof window !== 'undefined') {
-    window.__autoreivSwitchTab = switchTab;
-  }
+  registerTabSwitcher(switchTab);
 
   // Keyboard navigation on studio tabs [REQ-A11Y-003]
   if (sidebarNav) {

@@ -643,7 +643,9 @@ def create_app(
     async def index_view():
         index_file = template_dir / "index.html"
         if index_file.exists():
-            html_text = index_file.read_text(encoding="utf-8")
+            from src.web.template_loader import load_index_html
+
+            html_text = load_index_html(template_dir)
             html_text = stamp_app_js(html_text, str(int(time.time())))
             return HTMLResponse(
                 content=html_text,

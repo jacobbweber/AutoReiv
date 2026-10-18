@@ -12,8 +12,9 @@ export default {
   async run(j, { page, request, base }) {
     await j.step('1. Open app and verify legacy tab aliases route to #view-capabilities', async () => {
       await openApp(page, base);
-      await page.evaluate(() => {
-        window.__autoreivSwitchTab('skill-studio');
+      await page.evaluate(async () => {
+        const { requestTabSwitch } = await import('/static/modules/state/store.js');
+        requestTabSwitch('skill-studio');
       });
       await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 10000 });
       const activeAfterSkillAlias = await page.evaluate(() => {
@@ -24,11 +25,13 @@ export default {
         throw new Error('Expected switchTab("skill-studio") to activate #view-capabilities');
       }
 
-      await page.evaluate(() => {
-        window.__autoreivSwitchTab('chat');
+      await page.evaluate(async () => {
+        const { requestTabSwitch } = await import('/static/modules/state/store.js');
+        requestTabSwitch('chat');
       });
-      await page.evaluate(() => {
-        window.__autoreivSwitchTab('tools-studio');
+      await page.evaluate(async () => {
+        const { requestTabSwitch } = await import('/static/modules/state/store.js');
+        requestTabSwitch('tools-studio');
       });
       await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 10000 });
       const activeAfterToolsAlias = await page.evaluate(() => {
@@ -42,8 +45,9 @@ export default {
     });
 
     await j.step('2. Return to Chat and verify pending approvals endpoint responds cleanly', async () => {
-      await page.evaluate(() => {
-        window.__autoreivSwitchTab('chat');
+      await page.evaluate(async () => {
+        const { requestTabSwitch } = await import('/static/modules/state/store.js');
+        requestTabSwitch('chat');
       });
       const res = await request.get(`${base}/api/approvals/pending`);
       if (res.status() !== 200) {
