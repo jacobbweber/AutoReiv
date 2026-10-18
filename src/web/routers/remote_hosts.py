@@ -2,6 +2,7 @@
 Remote Hosts REST API Router [CARD-160].
 """
 
+import asyncio
 import re
 import time
 from typing import Any, List, Optional, Tuple
@@ -143,7 +144,7 @@ async def test_remote_host(request: Request, host_id: str):
     if not host:
         raise HTTPException(status_code=404, detail="Host not found")
 
-    ok, latency_ms, msg = _probe_ssh(host, store)
+    ok, latency_ms, msg = await asyncio.to_thread(_probe_ssh, host, store)
     return {
         "status": "ok" if ok else "error",
         "latency_ms": latency_ms,

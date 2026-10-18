@@ -10,12 +10,18 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import shutil
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
+
+from src.domain.data_root import (
+    LEGACY_WIKI_STRINGS as LEGACY_WIKI_STRINGS,
+)
+from src.domain.data_root import (
+    configure_domain_data_hooks,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +41,6 @@ _LEGACY_DB_REL = Path("data") / "autoreiv.db"
 _LEGACY_WIKI_REL = Path("data") / "wiki"
 _LEGACY_DB_STRINGS = frozenset({"./data/autoreiv.db", "data/autoreiv.db", ".\\data\\autoreiv.db", "data\\autoreiv.db"})
 _LEGACY_WIKI_STRINGS = frozenset({"./data/wiki", "data/wiki", ".\\data\\wiki", "data\\wiki"})
-LEGACY_WIKI_STRINGS = frozenset({"./data/wiki", "data/wiki", ".\\data\\wiki", "data\\wiki", ""})
 
 
 class DataDirMigrationError(RuntimeError):
@@ -557,8 +562,6 @@ BLED_AGENT_SKILL_IDS: frozenset[str] = frozenset(
     {
         "personal_finance",
         "weekly-tasks",
-        "platform-health",
-        "session-inspect",
         "build",
         "plan",
         "test",
@@ -572,13 +575,23 @@ BLED_AGENT_SKILL_IDS: frozenset[str] = frozenset(
 )
 
 
+def _shipped_platform_skill_ids() -> frozenset[str]:
+    repo_skills = Path(__file__).resolve().parents[3] / "platform" / "skills"
+    if not repo_skills.is_dir():
+        return frozenset()
+    return frozenset(p.parent.name for p in repo_skills.glob("*/SKILL.md"))
+
+
 def prune_bled_platform_skills(skills_path: Union[str, Path]) -> list[str]:
-    """Remove known agent-specific skills that bled into $DATA_DIR/skills [CARD-203]."""
+    """Remove known agent-specific skills that bled into $DATA_DIR/skills [CARD-203, CARD-707]."""
     root = Path(skills_path)
     if not root.is_dir():
         return []
+    shipped_ids = _shipped_platform_skill_ids()
     pruned: list[str] = []
     for skill_name in BLED_AGENT_SKILL_IDS:
+        if skill_name in shipped_ids:
+            continue
         target = root / skill_name
         if target.is_dir():
             try:
@@ -588,6 +601,7 @@ def prune_bled_platform_skills(skills_path: Union[str, Path]) -> list[str]:
             except OSError as exc:
                 logger.warning("Failed to prune bled skill %s: %s", target, exc)
     return pruned
+
 
 
 def prune_orphan_databases(root_path: Union[str, Path]) -> list[str]:
@@ -606,12 +620,6 @@ def prune_orphan_databases(root_path: Union[str, Path]) -> list[str]:
             pass
 
     return pruned
-
-
-def _agent_id_to_snake_case(agent_id: str) -> str:
-    cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", str(agent_id).strip()).strip("_").lower()
-    return cleaned or "agent"
-
 
 
 def is_checkout_live_tree_path(path: Union[str, Path], *, checkout: Optional[Path] = None) -> bool:
@@ -690,4 +698,12 @@ def resolve_agent_memory_path(
         root = ensure_live_data_root(DataDirResolver().resolve().root)
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
     return root / "agents" / safe_id / "memory.db"  # CARD-570: agents/<id>/memory.db
+
+
+configure_domain_data_hooks(
+    data_root_provider=lambda: DataDirResolver().resolve().root,
+    wiki_path_provider=lambda: Path(DataDirResolver().resolve().wiki_path).resolve(),
+    live_root_validator=lambda p: ensure_live_data_root(p),
+)
+
 

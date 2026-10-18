@@ -84,6 +84,8 @@ async def put_wiki_path(request: Request, body: WikiPathBody):
     store = getattr(request.app.state, "store", None)
     if store is None:
         raise HTTPException(status_code=500, detail="Store unavailable")
+    from src.application.wiki.service import WikiService
+
     store.set_setting(WIKI_PATH_SETTING_KEY, str(path))
     os.environ["AUTOREIV_WIKI_PATH"] = str(path)
     request.app.state.wiki_path = str(path)
@@ -97,6 +99,7 @@ async def put_wiki_path(request: Request, body: WikiPathBody):
         except Exception as exc:
             logger.warning("Wiki scaffold soft-failed: %s", exc)
             scaffolded = True
+    request.app.state.wiki_service = WikiService(wiki_root=str(path))
     status = inspect_wiki_path(path, deploy_mode=resolve_deploy_mode())
     return {
         "status": "updated",

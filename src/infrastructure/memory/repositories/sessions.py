@@ -109,7 +109,12 @@ class SessionRepositoryMixin:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
-            if agent_id:
+            if agent_id == "autoreiv":
+                cur.execute(
+                    "SELECT id, agent_id, title, created_at, updated_at FROM sessions "
+                    "WHERE agent_id IN ('autoreiv', 'toolsmith', 'developer', 'architect') ORDER BY updated_at DESC",
+                )
+            elif agent_id:
                 cur.execute(
                     "SELECT id, agent_id, title, created_at, updated_at FROM sessions WHERE agent_id = ? ORDER BY updated_at DESC",
                     (agent_id,),
@@ -227,6 +232,9 @@ class SessionRepositoryMixin:
 
         conn = self._get_connection()
         try:
+            if getattr(conn, "in_transaction", False):
+                conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
             cur = conn.cursor()
             if message.role == Role.TOOL and message.tool_call_id:
                 cur.execute(
@@ -244,13 +252,17 @@ class SessionRepositoryMixin:
                     conn.commit()
                     return existing_id
 
-            cur.execute("SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM messages WHERE session_id = ?", (session_id,))
-            next_seq = cur.fetchone()[0]
-
             cur.execute(
                 """
-                INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, reasoning, sequence_num, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO messages (
+                    id, session_id, agent_id, role, content, tool_calls_json,
+                    tool_call_id, name, reasoning, sequence_num, created_at
+                )
+                VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    (SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM messages WHERE session_id = ?),
+                    ?
+                )
                 """,
                 (
                     msg_id,
@@ -262,12 +274,16 @@ class SessionRepositoryMixin:
                     message.tool_call_id,
                     message.name,
                     getattr(message, "reasoning", None),
-                    next_seq,
+                    session_id,
                     now.isoformat(),
                 ),
             )
             cur.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now.isoformat(), session_id))
             conn.commit()
+        except Exception:
+            if getattr(conn, "in_transaction", False):
+                conn.rollback()
+            raise
         finally:
             if self._mem_conn is None:
                 conn.close()

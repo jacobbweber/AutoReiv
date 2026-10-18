@@ -7,10 +7,11 @@ verification.
 
 from __future__ import annotations
 
-import re
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 import yaml
+
+from src.domain.frontmatter import split_frontmatter
 
 VALID_TIERS = ("platform", "user")
 SAFETY_KEYS = ("read_only", "requires_hitl", "untrusted_input_allowed")
@@ -43,15 +44,7 @@ class InvalidSkillTierError(ValueError):
 
 def split_skill_markdown(text: str) -> tuple[dict[str, Any], str]:
     """Return (frontmatter mapping, body). Body keeps the newline that separates it from the header."""
-    raw = (text or "").replace("\r\n", "\n")
-    if not raw.startswith("---"):
-        return {}, raw
-    match = re.match(r"^---\n([\s\S]*?)\n---\n?", raw)
-    if not match:
-        return {}, raw
-    loaded = yaml.safe_load(match.group(1))
-    meta = dict(loaded) if isinstance(loaded, dict) else {}
-    return meta, raw[match.end() :]
+    return split_frontmatter(text)
 
 
 def normalize_tool_ids(

@@ -1,55 +1,90 @@
+"""
+FastAPI Chat Router [CARD-713].
+
+Thin HTTP/SSE endpoint layer delegating phase-bound streaming, standing job
+orchestration, active stream tracking, and attachment persistence to
+``src/application/chat/``.
+"""
+
+from __future__ import annotations
+
 import asyncio
-import json
 import logging
-import mimetypes
-import re
-import uuid
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional, Sequence, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
+from src.application.chat.attachments import (
+    find_attachment_file,
+    resolve_attachments_dir,
+    sanitize_filename,
+    save_uploaded_attachment,
+)
+from src.application.chat.job_resume import (
+    GOAL_PLAN_REVIEW_TOOL,
+    check_job_mint_preconditions,
+    checkpoint_store_open_jobs,
+    continue_remaining_resumed_phases,
+    emit_and_execute_catalog_job,
+    execution_plan_from_approval,
+    last_goal_review_resume,
+    resume_goal_review_if_any,
+)
+from src.application.chat.job_runner import (
+    _ensure_phase_session,
+    _plan_step_payload,
+    execute_goal_job_phases,
+    execute_goal_plan_steps,
+    is_plan_awaiting_operator_choice,
+    profile_for_phase,
+    relay_phase_reply_to_parent,
+    resume_session_for_phase,
+)
+from src.application.chat.stream_registry import (
+    SSE_KEEPALIVE,
+    SSE_KEEPALIVE_SECONDS,
+    _active_stream_agents,
+    _active_stream_tasks,
+    _turn_side_tasks,
+    cancel_turn_side_tasks,
+    session_turn_running,
+    spawn_turn_side_task,
+    sse_with_keepalive,
+)
+from src.application.chat.stream_registry import (
+    live_stream_session_ids as _live_stream_session_ids,
+)
+from src.application.chat.turn_streamer import (
+    PHASE_COMPLETE_REFUSED_REASON,
+    _apply_verify_gate,
+    _background_extract_turn_memory,
+    _forward_kernel_event,
+    _phase_run_token,
+    _plain_question_waits,
+    _sse,
+    _stream_turn_bound,
+    complete_phase_or_fail,
+    deduplicate_phase_deliverables,
+    finalize_plain_turn_verification_and_memory,
+    format_json_deliverable_to_markdown,
+    format_prompt_with_attachments,
+    maybe_update_first_turn_title,
+    tool_output_payload,
+)
 from src.application.gateway.generation_semaphore import slot_wait_listener
 from src.application.kernel.stopped_reply import PartialReply, stopped_message
 from src.application.orchestration.chat_job_binding import (
     WAITING_FOR_ANSWER_NOTE,
     job_waiting_for_answer_on_session,
     latest_open_job_for_session,
-    output_packet_for_phase,
-    park_note,
-    persist_plan_as_job,
-    verify_skip_fact,
 )
-from src.application.orchestration.external_verifier_policy import (
-    apply_phase_complete_verify_gate,
-)
-from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
-from src.application.orchestration.operator_answer import operator_answer_note_for_session, prepend_operator_answers
-from src.application.orchestration.phase_roles import (
-    format_planning_phase_block,
-    format_planning_repo_note,
-    is_planning_phase,
-    planning_tools_block_for,
-)
-from src.application.orchestration.repo_code_grounding import (
-    ACTION_REQUIRE_READ as REPO_ACTION_REQUIRE_READ,
-)
+from src.application.orchestration.phase_roles import planning_tools_block_for
 from src.application.orchestration.repo_code_grounding import (
     apply_standing_repo_code_grounding,
-    collect_provenanced_repo_paths_from_tool_result,
-    format_repo_grounding_constraint_block,
     is_repo_code_ask,
-)
-from src.application.orchestration.repo_code_grounding import (
-    grounding_for_job as repo_grounding_for_job,
-)
-from src.application.orchestration.research_before_plan import (
-    auto_complete_prepared_research,
-    format_job_failed_honesty,
-    is_research_phase,
-    research_already_prepared,
 )
 from src.application.orchestration.session_activity import (
     build_session_debug_payload,
@@ -58,1513 +93,34 @@ from src.application.orchestration.session_activity import (
     job_has_running_phase,
     session_activity,
 )
-from src.application.orchestration.standing_job_graph import (
-    format_phase_llm_exhausted_reason,
-    is_phase_llm_retryable,
-    resolve_standing_phase_llm_retries,
-    resolve_standing_phase_llm_timeout,
-)
-from src.application.orchestration.wiki_thin_grounding import (
-    ACTION_GROUNDED_ONLY,
-    ACTION_NEED_SOURCES,
-    ACTION_PROCEED_WITH_HITS,
-    apply_standing_wiki_thin_grounding,
-    collect_provenanced_paths_from_tool_result,
-    format_grounding_constraint_block,
-    format_need_sources_park_message,
-    format_ungrounded_claim_honesty,
-    grounding_for_job,
-    is_wiki_related_ask,
-    ungrounded_claimed_paths,
-)
 from src.application.orchestration.working_set_context import (
-    build_phase_working_set,
-    distill_durable_note,
-    format_phase_working_set_prompt,
     rebuild_working_set_after_resume,
-    resolve_matched_metadata_for_job,
 )
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
-from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import PhaseStatus
-from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
-from src.infrastructure.memory.repositories.sessions import generate_session_title_from_prompt
-from src.infrastructure.serialization.json_safe import dumps_jsonable
 
-GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
+
+def _planning_tools_block_for(*args: Any, **kwargs: Any) -> str:
+    return planning_tools_block_for(*args, **kwargs)
+
+
+__all__ = [
+    "AuditAgentRequest", "ChatStreamRequest", "CreateSessionRequest", "GOAL_PLAN_REVIEW_TOOL",
+    "PHASE_COMPLETE_REFUSED_REASON", "SSE_KEEPALIVE", "SSE_KEEPALIVE_SECONDS", "UpdateSessionRequest",
+    "VerifiedChatRequest", "_active_stream_agents", "_active_stream_tasks", "_apply_verify_gate",
+    "_background_extract_turn_memory", "_ensure_phase_session", "_forward_kernel_event", "_phase_run_token",
+    "_plain_question_waits", "_plan_step_payload", "_sse", "_stream_turn_bound", "_turn_side_tasks",
+    "apply_standing_repo_code_grounding", "cancel_turn_side_tasks", "chat_stream", "complete_phase_or_fail",
+    "deduplicate_phase_deliverables", "execute_goal_job_phases", "execute_goal_plan_steps",
+    "execution_plan_from_approval", "format_json_deliverable_to_markdown", "format_prompt_with_attachments",
+    "get_attachments_dir", "is_plan_awaiting_operator_choice", "is_repo_code_ask", "last_goal_review_resume",
+    "profile_for_phase", "rebuild_working_set_after_resume", "relay_phase_reply_to_parent",
+    "resume_session_for_phase", "router", "sanitize_filename", "session_turn_running",
+    "spawn_turn_side_task", "sse_with_keepalive", "tool_output_payload",
+]
 
 logger = logging.getLogger(__name__)
-
-SSE_KEEPALIVE_SECONDS = 15.0  # CARD-592: chat stream heartbeat
-SSE_KEEPALIVE = ": keepalive\n\n"
-
-
-async def sse_with_keepalive(queue: "asyncio.Queue[Optional[str]]", interval: Optional[float] = None) -> AsyncGenerator[str, None]:
-    """Yield queued SSE items until None; while nothing arrives, an SSE comment every ``interval`` seconds.
-
-    CARD-592: the model may think, a tool or an approval may run for many minutes, so proxies and browsers never see
-    an idle connection. Clients skip lines that are not "data:".
-    """
-    wait = interval if interval is not None else SSE_KEEPALIVE_SECONDS
-    while True:
-        try:
-            item = await asyncio.wait_for(queue.get(), timeout=wait)
-        except asyncio.TimeoutError:
-            yield SSE_KEEPALIVE
-            continue
-        if item is None:
-            return
-        yield item
-
-# Active background generation tasks by session_id [REQ-RESIL-003, CARD-114 Finding 4]
-_active_stream_tasks: Dict[str, asyncio.Task] = {}
-_active_stream_agents: Dict[str, str] = {}
-# CARD-491: background tasks a chat turn started (memory extraction), by session, with the worker that started them.
-_turn_side_tasks: Dict[str, List[tuple]] = {}
-
-
-def spawn_turn_side_task(session_id: str, coro: Any) -> asyncio.Task:
-    """Start a background task for this chat turn; Stop on the turn cancels it [CARD-491 REQ-491-001]."""
-    owner = asyncio.current_task()
-    task = asyncio.create_task(coro)
-    entries = _turn_side_tasks.setdefault(session_id, [])
-    entries.append((owner, task))
-
-    def _forget(done: asyncio.Task) -> None:
-        left = [e for e in _turn_side_tasks.get(session_id, []) if e[1] is not done]
-        if left:
-            _turn_side_tasks[session_id] = left
-        else:
-            _turn_side_tasks.pop(session_id, None)
-
-    task.add_done_callback(_forget)
-    return task
-
-
-def cancel_turn_side_tasks(session_id: str, owner: Optional[asyncio.Task]) -> int:
-    """Cancel the unfinished background tasks ``owner`` (a stopped worker) started. Returns how many."""
-    n = 0
-    for own, task in list(_turn_side_tasks.get(session_id, [])):
-        if own is owner and not task.done():
-            task.cancel()
-            n += 1
-    return n
-
-
-async def _background_extract_turn_memory(
-    agent_id: str,
-    user_text: str,
-    assistant_text: str,
-    session_id: str,
-    llm_service: Any,
-    data_dir: Optional[Union[str, Path]] = None,
-) -> None:
-    """Asynchronously compile durable facts and milestones into agent's cognitive brain [CARD-116, CARD-405]."""
-    try:
-        from src.application.memory.extractor import MemoryExtractorService, should_skip_extraction
-        from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-
-        if should_skip_extraction(user_text):
-            return
-        if not llm_service:
-            return
-
-        repo = AgentMemoryRepository(agent_id=agent_id, data_dir=data_dir)
-        repo.initialize_schema()
-        extractor = MemoryExtractorService(repository=repo, llm_service=llm_service)
-        results = await extractor.process_turn(user_text=user_text, assistant_text=assistant_text)
-        if results:
-            logger.info("Cognitive memory extracted for agent '%s': %s facts applied", agent_id, len(results))
-    except Exception as exc:
-        logger.warning("Background turn memory extraction failed for agent '%s': %s", agent_id, exc)
-
-
-def format_prompt_with_attachments(
-    content: Optional[str],
-    attachments: Optional[List[Dict[str, Any]]],
-    *,
-    char_budget: Optional[int] = None,
-    direct: bool = False,
-    attachments_dir: Any = None,
-) -> str:
-    """Format user prompt together with uploaded media and file attachments [CARD-143, CARD-479].
-
-    CARD-625: documents and text files are read only from ``attachments_dir`` (the upload folder);
-    without it they are not read.
-    """
-    from src.application.gateway.attachment_text import MIN_BUDGET_CHARS, build_attachment_prompt
-
-    return build_attachment_prompt(
-        content, attachments, char_budget=char_budget or MIN_BUDGET_CHARS, direct=direct,
-        attachments_dir=attachments_dir,
-    ).text
-
-
-def format_json_deliverable_to_markdown(text: str) -> str:
-    """
-    [REQ-MOB-STREAM-004] Gracefully converts raw structured JSON deliverables into rich Markdown sections.
-    """
-    if not text or not isinstance(text, str):
-        return text or ""
-    clean = text.strip()
-    if not clean.startswith("{") or not clean.endswith("}"):
-        return text
-    try:
-        data = json.loads(clean)
-        if not isinstance(data, dict):
-            return text
-
-        has_keys = any(
-            k in data
-            for k in ("goal", "action_plan", "wiki_inventory_summary", "steps", "summary", "status")
-        )
-        if not has_keys:
-            return text
-
-        sections: List[str] = []
-        if "goal" in data:
-            sections.append(f"## 🎯 Goal: {data['goal']}\n")
-        if "status" in data:
-            sections.append(f"**Status**: `{data['status']}`\n")
-
-        if "wiki_inventory_summary" in data and isinstance(data["wiki_inventory_summary"], dict):
-            sections.append("### 📊 Inventory Summary\n")
-            for k, v in data["wiki_inventory_summary"].items():
-                label = k.replace("_", " ").title()
-                if isinstance(v, list):
-                    sections.append(f"- **{label}**:")
-                    for item in v:
-                        sections.append(f"  - {item}")
-                else:
-                    sections.append(f"- **{label}**: `{v}`")
-            sections.append("")
-
-        if "action_plan" in data and isinstance(data["action_plan"], dict):
-            ap = data["action_plan"]
-            title = ap.get("title", "Action Plan")
-            sections.append(f"### 📋 Action Plan: {title}\n")
-            if isinstance(ap.get("steps"), list):
-                for idx, s in enumerate(ap["steps"]):
-                    num = s.get("step_number", idx + 1)
-                    s_title = s.get("title", f"Step {num}")
-                    sections.append(f"#### **Step {num}: {s_title}**")
-                    if "objective" in s:
-                        sections.append(f"- **Objective**: {s['objective']}")
-                    if "actions" in s and isinstance(s["actions"], list):
-                        sections.append("- **Actions**:")
-                        for a in s["actions"]:
-                            sections.append(f"  - {a}")
-                    if "success_metric" in s:
-                        sections.append(f"- **Success Metric**: {s['success_metric']}")
-                    sections.append("")
-        elif "steps" in data and isinstance(data["steps"], list):
-            sections.append("### 📋 Execution Steps\n")
-            for idx, s in enumerate(data["steps"]):
-                num = s.get("step_number", idx + 1)
-                s_title = s.get("title", f"Step {num}")
-                sections.append(f"#### **Step {num}: {s_title}**")
-                desc = s.get("description") or s.get("objective")
-                if desc:
-                    sections.append(f"- {desc}")
-            sections.append("")
-
-        handled = {"goal", "status", "wiki_inventory_summary", "action_plan", "steps"}
-        for k, v in data.items():
-            if k in handled:
-                continue
-            label = k.replace("_", " ").title()
-            if isinstance(v, str):
-                sections.append(f"### {label}\n\n{v}\n")
-            elif isinstance(v, list):
-                sections.append(f"### {label}\n")
-                for item in v:
-                    sections.append(f"- {json.dumps(item) if isinstance(item, dict) else item}")
-                sections.append("")
-
-        return "\n".join(sections).strip()
-    except Exception:
-        return text
-
-
-def deduplicate_phase_deliverables(
-    completed_deliverables: Sequence[str] | None,
-    final_content: str,
-) -> str:
-    """
-    Deduplicate multi-phase job deliverables to prevent chat stutter [CARD-409].
-    Only preserves earlier deliverables if they represent genuinely distinct, disjoint artifacts
-    not already represented in final_content.
-    """
-    clean_final = (final_content or "").strip()
-    if not completed_deliverables:
-        return clean_final
-    if not clean_final:
-        return "\n\n---\n\n".join(d.strip() for d in completed_deliverables if d.strip())
-
-    final_words = {w.lower() for w in re.findall(r"[A-Za-z0-9_]{3,}", clean_final)}
-    unique_priors: list[str] = []
-
-    for prior in completed_deliverables:
-        clean_prior = prior.strip()
-        if not clean_prior:
-            continue
-        prior_words = {w.lower() for w in re.findall(r"[A-Za-z0-9_]{3,}", clean_prior)}
-        if not prior_words:
-            continue
-        overlap = len(prior_words & final_words)
-        similarity = overlap / len(prior_words)
-        if similarity >= 0.35:
-            continue
-        unique_priors.append(clean_prior)
-
-    if unique_priors:
-        return "\n\n---\n\n".join(unique_priors) + f"\n\n---\n\n{clean_final}"
-    return clean_final
-
-
-def _sse(event: str, payload: Any) -> str:
-    return f"event: {event}\ndata: {dumps_jsonable(payload)}\n\n"
-
-
-def _plan_step_payload(plan: ExecutionPlan) -> list:
-    return [{"title": s.title, "description": s.description} for s in plan.steps]
-
-
-def last_goal_review_resume(store, session_id: str):
-    """Return (status, approval record) when the last TOOL is a plan-review decide row."""
-    try:
-        msgs = store.get_messages(session_id=session_id)
-    except Exception:
-        return None
-    last_tool = None
-    for msg in reversed(list(msgs or [])):
-        if getattr(msg, "role", None) == Role.TOOL:
-            last_tool = msg
-            break
-    if not last_tool or getattr(last_tool, "name", None) != GOAL_PLAN_REVIEW_TOOL:
-        return None
-    tcid = getattr(last_tool, "tool_call_id", None) or ""
-    if not str(tcid).startswith("resume_"):
-        return None
-    record = store.get_approval(str(tcid)[len("resume_") :])
-    if not record:
-        return None
-    return str(record.get("status") or "").lower(), record
-
-
-def execution_plan_from_approval(record: dict, session_id: str, agent_id: str):
-    args = record.get("arguments") or {}
-    raw_steps = args.get("steps") or []
-    steps = []
-    for i, raw in enumerate(raw_steps, 1):
-        if not isinstance(raw, dict):
-            continue
-        steps.append(
-            PlanStep(
-                id=f"step_{i}",
-                title=str(raw.get("title") or f"Step {i}"),
-                description=str(raw.get("description") or ""),
-            )
-        )
-    if not steps:
-        return None
-    plan = ExecutionPlan(
-        id=str(args.get("plan_id") or "plan_review"),
-        goal=str(args.get("goal") or ""),
-        agent_id=agent_id,
-        session_id=session_id,
-        steps=steps,
-    )
-    self_verify = bool(args.get("self_verify"))
-    approval_mode = str(args.get("approval_mode") or "ask")
-    job_id = args.get("job_id")
-    verify_checker = args.get("verify_checker")
-    return plan, self_verify, approval_mode, job_id, verify_checker
-
-
-def tool_output_payload(event) -> dict:
-    """CARD-682: a refused or failed call says so and why, instead of an empty result."""
-    res = event.tool_result
-    call_info = event.tool_call if isinstance(event.tool_call, dict) else {}
-    name = call_info.get("name") or (getattr(res, "tool_name", "") if res is not None else "") or ""
-    if res is None:
-        return {"type": "tool_output", "tool_name": name, "success": True, "result": ""}
-    if res.success:
-        return {"type": "tool_output", "tool_name": name, "success": True, "result": res.output}
-    error = str(res.error or "Tool execution error")
-    return {
-        "type": "tool_output",
-        "tool_name": name,
-        "success": False,
-        "error": error,
-        "result": f"Tool Error: {error}",
-    }
-
-
-async def _forward_kernel_event(queue, event, profile) -> None:
-    if event.event_type == KernelEventType.TOKEN:
-        if event.reasoning_content:
-            await queue.put(_sse("reasoning", {"type": "reasoning", "text": event.reasoning_content}))
-        if event.content:
-            await queue.put(_sse("token", {"type": "token", "text": event.content}))
-    elif event.event_type == KernelEventType.TOOL_START:
-        call_info = event.tool_call or {}
-        await queue.put(
-            _sse(
-                "tool_start",
-                {
-                    "type": "tool_start",
-                    "tool_name": call_info.get("name", ""),
-                    "arguments": call_info.get("arguments", {}),
-                },
-            )
-        )
-    elif event.event_type == KernelEventType.TOOL_END:
-        await queue.put(_sse("tool_output", tool_output_payload(event)))
-    elif event.event_type == KernelEventType.HANDOFF_START:
-        await queue.put(_sse("handoff_start", {"type": "handoff_start", **(event.handoff or {})}))
-    elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
-        await queue.put(_sse("handoff_complete", {"type": "handoff_complete", **(event.handoff or {})}))
-    elif event.event_type == KernelEventType.APPROVAL_REQUIRED:
-        await queue.put(
-            _sse(
-                "approval_required",
-                {
-                    "type": "approval_required",
-                    "approval_id": event.approval_id,
-                    "tool_name": (event.tool_call or {}).get("name", ""),
-                    "arguments": (event.tool_call or {}).get("arguments", {}),
-                    "message": event.content,
-                },
-            )
-        )
-    elif event.event_type == KernelEventType.TURN_END:
-        await queue.put(_sse("turn_done", {"content": event.content}))
-    elif event.event_type == KernelEventType.REACT_STATE:
-        payload = dict(event.react or {})
-        if not payload.get("assigned_agent_id"):
-            payload["assigned_agent_id"] = profile.id
-        await queue.put(_sse("react_state", payload))
-    elif event.event_type == KernelEventType.NOTICE:
-        # CARD-475: e.g. attachment_notice when a text-only model got an image.
-        payload = dict(event.notice or {})
-        await queue.put(_sse(payload.get("type") or "notice", {"message": event.content, **payload}))
-    elif event.event_type == KernelEventType.ERROR:
-        await queue.put(_sse("error", {"error": event.content}))
-
-
-async def _apply_verify_gate(
-    *,
-    queue,
-    reflexion_engine,
-    profile,
-    phase,
-    last_output: str,
-    self_verify: bool,
-    step_index: Optional[int] = None,
-) -> Dict[str, Any]:
-    """Named checker gate. Missing checker is an honest skip [REQ-ORCH-041]."""
-    if not self_verify:
-        return {"status": "not_requested", "verification_passed": False, "skipped": True, "facts": []}
-    checker = (getattr(phase, "verify_checker", None) or "").strip()
-    payload: Dict[str, Any] = {"phase_id": phase.id}
-    if step_index is not None:
-        payload["step_index"] = step_index
-    if not checker or reflexion_engine is None:
-        payload.update({"passed": False, "status": "skipped_no_checker"})
-        await queue.put(_sse("reflexion_verified", payload))
-        return {
-            "status": "skipped_no_checker",
-            "verification_passed": False,
-            "skipped": True,
-            "facts": [verify_skip_fact()],
-        }
-    # Emit attempt event to surface critic inspection in real time [CARD-179, REQ-REF-002]
-    attempt_payload = dict(payload)
-    attempt_payload.update({"attempt": 1, "max_attempts": 1, "checker": checker})
-    await queue.put(_sse("reflexion_attempt", attempt_payload))
-
-    result = await reflexion_engine.run_named_checker(
-        agent=profile,
-        last_output=last_output,
-        verifier_tool_name=checker,
-    )
-    passed = bool(result.get("verification_passed"))
-    discrepancies = result.get("discrepancies") or []
-
-    # If verification failed or returned discrepancies, emit critique event [CARD-179, REQ-REF-002]
-    if not passed and discrepancies:
-        critique_payload = dict(payload)
-        critique_payload.update(
-            {
-                "attempt": 1,
-                "checker": checker,
-                "critique": f"Checker '{checker}' found: {'; '.join(str(d) for d in discrepancies)}",
-                "discrepancies": discrepancies,
-            }
-        )
-        await queue.put(_sse("reflexion_critique", critique_payload))
-
-    payload.update(
-        {
-            "passed": passed,
-            "status": result.get("status"),
-            "discrepancies": discrepancies,
-            "checker": checker,
-        }
-    )
-    await queue.put(_sse("reflexion_verified", payload))
-    return {
-        "status": result.get("status"),
-        "verification_passed": passed,
-        "skipped": False,
-        "facts": [f"verify_checker: {checker}"],
-        "discrepancies": discrepancies,
-    }
-
-
-def session_turn_running(session_id: str) -> bool:
-    """True while a chat worker for ``session_id`` is still running [CARD-530 REQ-530-003]."""
-    task = _active_stream_tasks.get(session_id)
-    return bool(task is not None and not task.done())
-
-
-def _phase_run_token(orch, phase_id: str):
-    fn = getattr(orch, "phase_run_token", None)
-    try:
-        return fn(phase_id) if callable(fn) else None
-    except Exception:  # noqa: BLE001
-        return None
-
-
-PHASE_COMPLETE_REFUSED_REASON = (
-    "Another run of this job changed this step while it was finishing, so it could not be recorded. "
-    "The job was stopped so it does not hang; send the request again to re-run it."
-)
-
-
-async def complete_phase_or_fail(*, orch, queue, job, phase, output_packet) -> bool:
-    """Complete ``phase``; if the state machine refuses, fail phase and job honestly [CARD-530 REQ-530-005]."""
-    try:
-        orch.complete_phase(phase.id, output_packet)
-        return True
-    except InvalidPhaseTransitionError as exc:
-        logger.warning("complete_phase refused job=%s phase=%s: %s [CARD-530]", job.id, phase.id, exc)
-        orch.fail_phase(phase.id, PHASE_COMPLETE_REFUSED_REASON)
-        await queue.put(
-            _sse(
-                "phase_complete",
-                {
-                    "job_id": job.id,
-                    "phase_id": phase.id,
-                    "status": "failed",
-                    "react_state": "FAILED",
-                    "reason": PHASE_COMPLETE_REFUSED_REASON,
-                },
-            )
-        )
-        honesty = format_job_failed_honesty(
-            job_id=job.id,
-            phase_name=getattr(phase, "name", None),
-            reason=PHASE_COMPLETE_REFUSED_REASON,
-        )
-        await queue.put(_sse("token", {"text": honesty}))
-        await queue.put(
-            _sse("turn_done", {"content": honesty, "job_failed": True, "reason": PHASE_COMPLETE_REFUSED_REASON})
-        )
-        return False
-
-
-async def _plain_question_waits(kernel, profile, job, reply: str) -> bool:
-    """CARD-616: same model, no tools, only for a final reply whose last line ends with '?'."""
-    from src.application.orchestration.plain_question import ends_with_question, reply_needs_answer
-
-    if not ends_with_question(reply):
-        return False
-    gateway = getattr(kernel, "gateway", None)
-    resolve = getattr(kernel, "_resolve_model", None)
-    try:
-        model = resolve(profile) if callable(resolve) else None
-    except Exception:  # noqa: BLE001
-        model = None
-    return await reply_needs_answer(gateway, model if isinstance(model, str) else None, reply, getattr(job, "goal", "") or "")
-
-
-async def _stream_turn_bound(
-    *,
-    queue,
-    kernel,
-    orch,
-    store,
-    reflexion_engine,
-    profile,
-    session_id: str,
-    user_content: Optional[str],
-    approval_mode: str,
-    resume: bool,
-    job,
-    phase,
-    self_verify: bool,
-    step_index: Optional[int] = None,
-    emit_step_events: bool = False,
-    provenanced_wiki_paths: Optional[List[str]] = None,
-    provenanced_repo_paths: Optional[List[str]] = None,
-) -> str:
-    """
-    stream_turn one phase, then complete/fail/park.
-    Returns done|parked|failed.
-    """
-    run_token = _phase_run_token(orch, phase.id)  # CARD-530 D3
-    await queue.put(
-        _sse(
-            "phase_start",
-            {
-                "job_id": job.id,
-                "phase_id": phase.id,
-                "phase_name": phase.name,
-                "index": phase.index,
-                "assigned_agent_id": phase.assigned_agent_id or profile.id,
-            },
-        )
-    )
-    if emit_step_events:
-        await queue.put(
-            _sse(
-                "step_start",
-                {
-                    "step_index": phase.index if step_index is None else step_index,
-                    "title": phase.name,
-                    "description": phase.success_rule,
-                    "phase_id": phase.id,
-                    "job_id": job.id,
-                },
-            )
-        )
-
-    outcome = "done"
-    last_content = ""
-    error_text = ""
-    timeout_s = resolve_standing_phase_llm_timeout()
-    retries = resolve_standing_phase_llm_retries()
-    attempts = 1 + max(0, retries)
-    last_fail_kind = "timeout"
-    last_fail_detail = ""
-
-    async def _consume_stream() -> None:
-        nonlocal outcome, last_content, error_text
-        async for event in kernel.stream_turn(
-            profile,
-            session_id,
-            user_content,
-            approval_mode=approval_mode or "ask",
-            resume=resume,
-            job_id=job.id,
-            phase_id=phase.id,
-        ):
-            await _forward_kernel_event(queue, event, profile)
-            if event.event_type == KernelEventType.TOOL_END:
-                call_info = event.tool_call or {}
-                tool_name = call_info.get('name', '') if isinstance(call_info, dict) else ''
-                if not tool_name and event.tool_result is not None:
-                    tool_name = getattr(event.tool_result, "tool_name", "") or ""
-                out_text = event.tool_result.output if event.tool_result else ''
-                if provenanced_wiki_paths is not None:
-                    for p in collect_provenanced_paths_from_tool_result(tool_name, out_text):
-                        if p not in provenanced_wiki_paths:
-                            provenanced_wiki_paths.append(p)
-                if provenanced_repo_paths is not None:
-                    for p in collect_provenanced_repo_paths_from_tool_result(tool_name, out_text):
-                        if p not in provenanced_repo_paths:
-                            provenanced_repo_paths.append(p)
-            if event.event_type == KernelEventType.REACT_STATE:
-                state = (event.react or {}).get("react_state")
-                if state == "PARKED":
-                    outcome = "parked"
-                elif state == "FAILED":
-                    outcome = "failed"
-            elif event.event_type == KernelEventType.APPROVAL_REQUIRED:
-                outcome = "parked"
-            elif event.event_type == KernelEventType.ERROR:
-                outcome = "failed"
-                error_text = event.content or "stream error"
-            elif event.event_type == KernelEventType.TURN_END:
-                last_content = event.content or last_content
-                if (event.react or {}).get("clarification") and outcome == "done":
-                    outcome = "question"  # CARD-613
-
-    # CARD-258: longer budget + 1-2 retries on timeout / connection stall.
-    for attempt in range(1, attempts + 1):
-        outcome = "done"
-        last_content = ""
-        error_text = ""
-        try:
-            await asyncio.wait_for(_consume_stream(), timeout=timeout_s)
-            break
-        except asyncio.CancelledError:
-            # CARD-259: operator kill / worker cancel is a checkpoint, not fail_phase.
-            # Abort already stops this worker; leave the same job_id resumable.
-            # CARD-530: pass this run's token so a newer run's phase is never re-queued.
-            ck = getattr(orch, "checkpoint_mid_llm_kill_phase", None)
-            if callable(ck):
-                try:
-                    ck(phase.id, run_token=run_token)
-                except TypeError:
-                    ck(phase.id)
-            raise
-        except asyncio.TimeoutError:
-            last_fail_kind = "timeout"
-            last_fail_detail = f"phase_llm_timeout after {timeout_s}s"
-            if attempt < attempts:
-                await queue.put(
-                    _sse(
-                        "phase_llm_retry",
-                        {
-                            "job_id": job.id,
-                            "phase_id": phase.id,
-                            "phase_name": getattr(phase, "name", None),
-                            "attempt": attempt,
-                            "attempts": attempts,
-                            "reason": "timeout",
-                            "timeout_s": timeout_s,
-                        },
-                    )
-                )
-                continue
-            timeout_reason = format_phase_llm_exhausted_reason(
-                kind="timeout",
-                timeout_s=timeout_s,
-                attempt=attempt,
-                attempts=attempts,
-            )
-            orch.fail_phase(phase.id, timeout_reason)
-            await queue.put(
-                _sse(
-                    "phase_complete",
-                    {
-                        "job_id": job.id,
-                        "phase_id": phase.id,
-                        "status": "failed",
-                        "react_state": "FAILED",
-                    },
-                )
-            )
-            honesty = format_job_failed_honesty(
-                job_id=job.id,
-                phase_name=getattr(phase, "name", None),
-                reason=timeout_reason,
-            )
-            await queue.put(_sse("token", {"text": honesty}))
-            await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
-            return "failed"
-        except Exception as exc:  # noqa: BLE001
-            if is_phase_llm_retryable(exc) and attempt < attempts:
-                last_fail_kind = "connection_stall"
-                last_fail_detail = str(exc)
-                await queue.put(
-                    _sse(
-                        "phase_llm_retry",
-                        {
-                            "job_id": job.id,
-                            "phase_id": phase.id,
-                            "phase_name": getattr(phase, "name", None),
-                            "attempt": attempt,
-                            "attempts": attempts,
-                            "reason": "connection_stall",
-                            "detail": str(exc)[:240],
-                        },
-                    )
-                )
-                continue
-            if is_phase_llm_retryable(exc):
-                stall_reason = format_phase_llm_exhausted_reason(
-                    kind="connection_stall",
-                    timeout_s=timeout_s,
-                    attempt=attempt,
-                    attempts=attempts,
-                    detail=str(exc)[:200],
-                )
-                orch.fail_phase(phase.id, stall_reason)
-                await queue.put(
-                    _sse(
-                        "phase_complete",
-                        {
-                            "job_id": job.id,
-                            "phase_id": phase.id,
-                            "status": "failed",
-                            "react_state": "FAILED",
-                        },
-                    )
-                )
-                honesty = format_job_failed_honesty(
-                    job_id=job.id,
-                    phase_name=getattr(phase, "name", None),
-                    reason=stall_reason,
-                )
-                await queue.put(_sse("token", {"text": honesty}))
-                await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
-                return "failed"
-            orch.fail_phase(phase.id, f"phase_llm_error: {exc}")
-            await queue.put(
-                _sse(
-                    "phase_complete",
-                    {
-                        "job_id": job.id,
-                        "phase_id": phase.id,
-                        "status": "failed",
-                        "react_state": "FAILED",
-                    },
-                )
-            )
-            return "failed"
-    else:
-        # Loop exhausted without break (should be unreachable; fail honestly).
-        timeout_reason = format_phase_llm_exhausted_reason(
-            kind=last_fail_kind,
-            timeout_s=timeout_s,
-            attempt=attempts,
-            attempts=attempts,
-            detail=last_fail_detail,
-        )
-        orch.fail_phase(phase.id, timeout_reason)
-        honesty = format_job_failed_honesty(
-            job_id=job.id,
-            phase_name=getattr(phase, "name", None),
-            reason=timeout_reason,
-        )
-        await queue.put(_sse("token", {"text": honesty}))
-        await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
-        return "failed"
-
-    if outcome == "done" and await _plain_question_waits(kernel, profile, job, last_content):
-        outcome = "question"  # CARD-616: asked in plain text instead of ask_clarification
-    if outcome == "question":
-        # CARD-613: a step that asks Jacob a question is not done; it waits for his answer in the chat.
-        orch.wait_for_answer(phase.id)
-        await queue.put(
-            _sse(
-                "phase_complete",
-                {"job_id": job.id, "phase_id": phase.id, "status": "waiting_for_answer", "react_state": "STOPPED"},
-            )
-        )
-        return "question"
-    if outcome == "parked":
-        orch.park_phase(phase.id)
-        await queue.put(
-            _sse(
-                "phase_complete",
-                {
-                    "job_id": job.id,
-                    "phase_id": phase.id,
-                    "status": "waiting_approval",
-                    "react_state": "PARKED",
-                },
-            )
-        )
-        return "parked"
-    if outcome == "failed":
-        fail_detail = error_text or last_content or "phase failed"
-        orch.fail_phase(phase.id, fail_detail)
-        await queue.put(
-            _sse(
-                "phase_complete",
-                {
-                    "job_id": job.id,
-                    "phase_id": phase.id,
-                    "status": "failed",
-                    "react_state": "FAILED",
-                },
-            )
-        )
-        honesty = format_job_failed_honesty(
-            job_id=job.id,
-            phase_name=getattr(phase, "name", None),
-            reason=str(fail_detail)[:400],
-        )
-        await queue.put(_sse("token", {"text": honesty}))
-        await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
-        return "failed"
-
-    gate = await _apply_verify_gate(
-        queue=queue,
-        reflexion_engine=reflexion_engine,
-        profile=profile,
-        phase=phase,
-        last_output=last_content,
-        self_verify=self_verify,
-        step_index=step_index,
-    )
-    if self_verify and not gate.get("skipped") and not gate.get("verification_passed"):
-        # CARD-254 / REQ-VRH-004: binary external fail -> 232 replan/park (never fail_phase dead-end).
-        detail = "; ".join(gate.get("discrepancies") or ["checker failed"])
-        standing = apply_phase_complete_verify_gate(
-            orch,
-            phase_id=phase.id,
-            output_packet=output_packet_for_phase(
-                phase,
-                last_content,
-                extra_facts=list(gate.get("facts") or []) + [detail],
-            ),
-            checker_passed=False,
-        )
-        action = str(standing.get("action") or "park")
-        if action == "replan":
-            await queue.put(
-                _sse(
-                    "phase_complete",
-                    {
-                        "job_id": job.id,
-                        "phase_id": phase.id,
-                        "status": "failed",
-                        "react_state": "FAILED",
-                        "action": "replan",
-                        "needs_replan": True,
-                        "replan_count": standing.get("replan_count"),
-                        "last_fail_reason": standing.get("last_fail_reason") or detail,
-                        "binary_external": True,
-                    },
-                )
-            )
-            return "replan"
-        # park / exhausted / fallback — HITL park, never silent advance or infinite loop
-        await queue.put(
-            _sse(
-                "phase_complete",
-                {
-                    "job_id": job.id,
-                    "phase_id": phase.id,
-                    "status": "waiting_approval",
-                    "react_state": "PARKED",
-                    "action": "park",
-                    "replan_exhausted": bool(standing.get("replan_exhausted")),
-                    "replan_count": standing.get("replan_count"),
-                    "last_fail_reason": standing.get("last_fail_reason") or detail,
-                    "binary_external": True,
-                },
-            )
-        )
-        return "parked"
-
-    completed = await complete_phase_or_fail(
-        orch=orch,
-        queue=queue,
-        job=job,
-        phase=phase,
-        output_packet=output_packet_for_phase(phase, last_content, extra_facts=gate.get("facts") or []),
-    )
-    if not completed:
-        return "failed"
-    await queue.put(
-        _sse(
-            "phase_complete",
-            {
-                "job_id": job.id,
-                "phase_id": phase.id,
-                "status": "done",
-                "react_state": "DONE",
-            },
-        )
-    )
-    if emit_step_events:
-        await queue.put(
-            _sse(
-                "step_complete",
-                {
-                    "step_index": phase.index if step_index is None else step_index,
-                    "status": "completed",
-                    "phase_id": phase.id,
-                    "job_id": job.id,
-                },
-            )
-        )
-    return "done"
-
-
-def profile_for_phase(profile, phase, registry):
-    """CARD-544: run a phase as its assigned agent (e.g. a code Execute phase on Developer).
-
-    Falls back to the chat's profile when the phase has no assignment, the agent is unknown, or no registry is given.
-    """
-    assigned = str(getattr(phase, "assigned_agent_id", "") or "").strip()
-    if not assigned or registry is None or assigned == getattr(profile, "id", None):
-        return profile
-    getter = getattr(registry, "get_profile", None)
-    try:
-        other = getter(assigned) if callable(getter) else None
-    except Exception:
-        other = None
-    return other or profile
-
-
-def _ensure_phase_session(store, session_id: str, phase, agent_id: str) -> str:
-    phase_session = f"{session_id}::phase::{phase.id}"
-    if store.get_session(phase_session) is None:
-        store.create_session(agent_id=agent_id, title=phase.name or "Phase", session_id=phase_session)
-    return phase_session
-
-
-def resume_session_for_phase(store, parent_session_id: str, phase) -> str:
-    """Session an approved/parked phase resumes in [CARD-548, CARD-554].
-
-    Phases run in `<sid>::phase::<phase id>` (that is where the parked tool call and its
-    approved result live). Resuming in the parent chat session made the phase agent answer
-    from the wrong transcript and left the phase's own loop unfinished.
-    """
-    phase_session = f"{parent_session_id}::phase::{phase.id}"
-    try:
-        if store.get_session(phase_session) is not None:
-            return phase_session
-    except Exception:
-        logger.exception("resume_session_for_phase lookup failed for %s", phase_session)
-    return parent_session_id
-
-
-def relay_phase_reply_to_parent(store, parent_session_id: str, phase_session_id: str, agent_id: str) -> str:
-    """Copy the resumed phase's last assistant reply into the chat the operator sees [CARD-548]."""
-    if not phase_session_id or phase_session_id == parent_session_id:
-        return ""
-    text = ""
-    for pm in reversed(store.get_messages(phase_session_id) or []):
-        if getattr(pm, "role", None) == Role.ASSISTANT and pm.content:
-            text = str(pm.content)
-            break
-    if text:
-        store.save_message(
-            session_id=parent_session_id,
-            agent_id=agent_id,
-            message=ChatMessage(role=Role.ASSISTANT, content=text),
-        )
-    return text
-
-
-def is_plan_awaiting_operator_choice(text: str | None) -> bool:
-    """Detect if Formulate output explicitly requests operator choice / route selection [CARD-378, REQ-ORCH-045]."""
-    if not text:
-        return False
-    t = text.lower()
-    has_options = ("option a" in t and "option b" in t) or ("route a" in t and "route b" in t)
-    has_choice = any(
-        k in t
-        for k in (
-            "pick a route",
-            "choose a route",
-            "which option",
-            "what i need from you to build it",
-            "which route",
-        )
-    )
-    return has_options or has_choice
-
-
-
-
-async def execute_goal_job_phases(
-
-    *,
-    queue,
-    store,
-    kernel,
-    orch,
-    reflexion_engine,
-    profile,
-    job,
-    session_id: str,
-    self_verify: bool,
-    approval_mode: str,
-    data_dir=None,
-    wiki_root=None,
-    registry=None,
-) -> None:
-    """Run each persisted phase via its own stream_turn after plan review [REQ-ORCH-039]."""
-    phases = store.list_phases_for_job(job.id)
-    # Durable prior from memory.db (survives kill/resume) [CARD-226 / REQ-JPMEM-003].
-    data_dir = data_dir if data_dir is not None else getattr(orch, "_data_dir", None)
-    accumulated: List[str] = list(
-        prior_lines_from_job_memory(
-            agent_id=getattr(profile, "id", None) or job.agent_id,
-            job_id=job.id,
-            data_dir=data_dir,
-        )
-    )
-    if accumulated:
-        await queue.put(
-            _sse(
-                "memory_recalled",
-                {
-                    "job_id": job.id,
-                    "agent_id": getattr(profile, "id", None) or job.agent_id,
-                    "count": len(accumulated),
-                    "facts": accumulated[:20],
-                    "source": "agent_memory.db",
-                },
-            )
-        )
-    last_content = ""
-    # CARD-229: prior phases as short durable notes only (never accumulate unbound skill bodies
-    # or raw tool dumps across phases).
-    durable_notes: List[str] = []
-    matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
-    provenanced_wiki_paths: List[str] = []
-    provenanced_repo_paths: List[str] = []
-    wiki_decision = None
-    repo_decision = None
-    if is_wiki_related_ask(getattr(job, 'goal', None) or ''):
-        try:
-            wiki_decision = apply_standing_wiki_thin_grounding(
-                orch,
-                job,
-                wiki_root=wiki_root,
-                intent=getattr(job, 'goal', None) or '',
-                park=True,
-            )
-            await queue.put(_sse('wiki_grounding', wiki_decision.as_dict()))
-            if wiki_decision.action == ACTION_NEED_SOURCES:
-                msg = format_need_sources_park_message(
-                    wiki_decision, job_id=getattr(job, 'id', None)
-                )
-                try:
-                    store.save_message(
-                        session_id=session_id,
-                        agent_id=getattr(profile, 'id', None) or job.agent_id,
-                        message=ChatMessage(role=Role.ASSISTANT, content=msg),
-                    )
-                except Exception:
-                    pass
-                await queue.put(
-                    _sse(
-                        'phase_complete',
-                        {
-                            'job_id': job.id,
-                            'phase_id': None,
-                            'status': 'waiting_approval',
-                            'react_state': 'PARKED',
-                            'need_sources': True,
-                            'wiki_thin_grounding': True,
-                        },
-                    )
-                )
-                await queue.put(_sse('token', {'text': msg}))
-                await queue.put(
-                    _sse(
-                        'turn_done',
-                        {
-                            'content': msg,
-                            'need_sources': True,
-                            'waiting_approval': True,
-                            'job_id': job.id,
-                        },
-                    )
-                )
-                return
-        except Exception:
-            logger.exception('CARD-260 wiki thin grounding soft-fail job=%s', getattr(job, 'id', None))
-            wiki_decision = None
-    if is_repo_code_ask(getattr(job, 'goal', None) or ''):
-        try:
-            repo_decision = apply_standing_repo_code_grounding(
-                orch,
-                job,
-                intent=getattr(job, 'goal', None) or '',
-            )
-            await queue.put(_sse('repo_grounding', repo_decision.as_dict()))
-        except Exception:
-            logger.exception('CARD-262 repo code grounding soft-fail job=%s', getattr(job, 'id', None))
-            repo_decision = None
-    completed_deliverables: List[str] = []
-
-    for phase in phases:
-        current = store.get_phase(phase.id)
-        if current.status in {PhaseStatus.DONE, PhaseStatus.FAILED, PhaseStatus.CANCELLED}:
-            continue
-        if current.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
-            current = orch.start_phase(current.id)
-        # CARD-257 / REQ-RGATE-002: Research side-effects already ran at mint —
-        # auto-complete without LLM so thin match cannot timeout-kill the Job.
-        if is_research_phase(current) and research_already_prepared(orch, job.id):
-            auto_complete_prepared_research(orch, current, job)
-            refreshed = store.get_phase(current.id)
-            durable_notes.append(
-                distill_durable_note(
-                    phase_name=current.name,
-                    phase_index=current.index,
-                    raw_output=refreshed.output_packet_json or "",
-                )
-            )
-            last_content = refreshed.output_packet_json or last_content
-            await queue.put(
-                _sse(
-                    "phase_complete",
-                    {
-                        "job_id": job.id,
-                        "phase_id": current.id,
-                        "status": "done",
-                        "react_state": "DONE",
-                        "research_auto_completed": True,
-                    },
-                )
-            )
-            continue
-        # CARD-228: progressive SKILL.md - bind/select one matched skill body (never dump-all).
-        bound_skill_id = None
-        bound_skill_body = None
-        bind_fn = getattr(orch, "bind_matched_skill_on_phase_start", None)
-        if callable(bind_fn):
-            for bound in bind_fn(current.id) or []:
-                await queue.put(
-                    _sse(
-                        "skill_bound",
-                        {
-                            "job_id": job.id,
-                            "phase_id": current.id,
-                            "phase_name": current.name,
-                            "skill_id": bound.get("skill_id"),
-                            "runbook_id": bound.get("runbook_id"),
-                            "title": bound.get("title"),
-                            "body_loaded": bool(bound.get("body_loaded")),
-                            "success": bool(bound.get("success")),
-                            "body_chars": len(bound.get("body") or "") if bound.get("success") else 0,
-                            # Do not put full body into SSE by default (UI can fetch via bind API).
-                            "progressive": True,
-                        },
-                    )
-                )
-                # CARD-229: bound body stays phase-local — do NOT append into durable_notes.
-                if bound.get("success") and bound.get("body"):
-                    bound_skill_id = bound.get("skill_id")
-                    bound_skill_body = bound.get("body")
-        memory_facts = list(
-            prior_lines_from_job_memory(
-                agent_id=getattr(profile, "id", None) or job.agent_id,
-                job_id=job.id,
-                data_dir=data_dir,
-            )
-        )
-        ws = build_phase_working_set(
-            job=job,
-            phase=current,
-            phase_count=len(phases),
-            matched_metadata=matched_metadata,
-            bound_skill_id=bound_skill_id,
-            bound_skill_body=bound_skill_body,
-            prior_phase_notes=durable_notes,
-            all_memory_facts=memory_facts,
-        )
-        assignment = format_phase_working_set_prompt(ws)
-        # CARD-260: fail-closed wiki grounding constraint on Formulate/Execute.
-        if wiki_decision is None:
-            wiki_decision = grounding_for_job(orch, job.id)
-        if wiki_decision is not None and wiki_decision.action in {
-            ACTION_GROUNDED_ONLY,
-            ACTION_PROCEED_WITH_HITS,
-        }:
-            assignment = (
-                assignment.rstrip()
-                + "\n\n"
-                + format_grounding_constraint_block(wiki_decision)
-            )
-        if repo_decision is None:
-            repo_decision = repo_grounding_for_job(orch, job.id)
-        planning = is_planning_phase(current)
-        if repo_decision is not None and repo_decision.action == REPO_ACTION_REQUIRE_READ:
-            # CARD-554: Formulate plans; the Execute phase reads the checkout (the MUST-read made Formulate do the work).
-            block = (
-                format_planning_repo_note(getattr(repo_decision, "suggested_paths", ()) or ())
-                if planning
-                else format_repo_grounding_constraint_block(repo_decision)
-            )
-            assignment = assignment.rstrip() + "\n\n" + block
-        if planning and len(phases) > 1:
-            assignment = assignment.rstrip() + "\n\n" + format_planning_phase_block(phases, current)
-        run_profile = profile_for_phase(profile, current, registry)
-        if planning:
-            # CARD-665: name exactly the tools this Formulate call is sent; matched skills/tools outside it are
-            # named as not callable, so the planner does not spend rounds on refused calls.
-            try:
-                ids_fn = getattr(orch, "matched_capability_ids_for_job", None)
-                matched_now = list(ids_fn(job.id) or []) if callable(ids_fn) else []
-                tools_block = planning_tools_block_for(kernel, run_profile, job.id, current.id, matched_now)
-                assignment = assignment.rstrip() + "\n\n" + tools_block
-            except Exception:
-                logger.exception("CARD-665 planning tools block soft-fail job=%s", getattr(job, "id", None))
-        phase_session = _ensure_phase_session(store, session_id, current, run_profile.id)
-        outcome = await _stream_turn_bound(
-            queue=queue,
-            kernel=kernel,
-            orch=orch,
-            store=store,
-            reflexion_engine=reflexion_engine,
-            profile=run_profile,
-            session_id=phase_session,
-            user_content=assignment,
-            approval_mode=approval_mode or "ask",
-            resume=False,
-            job=job,
-            phase=current,
-            self_verify=self_verify,
-            step_index=current.index,
-            emit_step_events=True,
-            provenanced_wiki_paths=provenanced_wiki_paths,
-            provenanced_repo_paths=provenanced_repo_paths,
-        )
-
-        phase_text = ""
-        phase_msgs = store.get_messages(phase_session)
-        for pm in reversed(phase_msgs):
-            if getattr(pm, "role", None) == Role.ASSISTANT and pm.content:
-                phase_text = pm.content
-                break
-
-        if outcome == "question":
-            # CARD-613: the step asked a question; keep what was done and the question, then wait for the answer.
-            asked = "\n\n---\n\n".join([*completed_deliverables, phase_text, WAITING_FOR_ANSWER_NOTE] if phase_text
-                                         else [*completed_deliverables, WAITING_FOR_ANSWER_NOTE])
-            store.save_message(
-                session_id=session_id,
-                agent_id=getattr(profile, "id", None) or job.agent_id,
-                message=ChatMessage(role=Role.ASSISTANT, content=asked),
-            )
-            await queue.put(_sse("token", {"text": f"\n\n{WAITING_FOR_ANSWER_NOTE}\n"}))
-            await queue.put(_sse("turn_done", {"content": asked, "waiting_answer": True, "job_id": job.id}))
-            return
-        if outcome == "parked":
-            # CARD-343: phase parked awaiting HITL approval; do NOT claim FAILED.
-            park_msg = park_note(job.id, getattr(current, "name", "current phase"))
-            composite_park = (
-                "\n\n---\n\n".join(completed_deliverables) + f"\n\n---\n\n{park_msg}"
-                if completed_deliverables
-                else park_msg
-            )
-            try:
-                store.save_message(
-                    session_id=session_id,
-                    agent_id=getattr(profile, "id", None) or job.agent_id,
-                    message=ChatMessage(role=Role.ASSISTANT, content=composite_park),
-                )
-            except Exception:
-                pass
-            await queue.put(_sse("token", {"text": f"\n\n{park_msg}\n"}))
-            await queue.put(
-                _sse(
-                    "turn_done",
-                    {
-                        "content": composite_park,
-                        "waiting_approval": True,
-                        "job_id": job.id,
-                        "phase_id": current.id,
-                    },
-                )
-            )
-            return
-        if outcome != "done":
-            # CARD-257 / REQ-RGATE-003: do not leave streamed "Done…" as the claim.
-            fail_reason = ""
-            try:
-                failed_phase = store.get_phase(current.id)
-                pkt = failed_phase.output_packet_json or ""
-                if "phase_llm_timeout" in pkt:
-                    fail_reason = "phase_llm_timeout"
-                elif pkt:
-                    fail_reason = "phase failed"
-            except Exception:
-                fail_reason = "phase failed"
-            msg = format_job_failed_honesty(
-                job_id=job.id,
-                phase_name=getattr(current, "name", None),
-                reason=fail_reason or str(outcome),
-            )
-            # CARD-378 / REQ-CHAT-016: Preserve completed phase deliverables (such as Formulate)
-            # so the user's plan is not wiped out on reload.
-            if completed_deliverables:
-                composite_msg = (
-                    "\n\n---\n\n".join(completed_deliverables)
-                    + f"\n\n---\n\n⚠️ **Phase Status**: {msg}"
-                )
-            else:
-                composite_msg = msg
-            try:
-                store.save_message(
-                    session_id=session_id,
-                    agent_id=getattr(profile, "id", None) or job.agent_id,
-                    message=ChatMessage(role=Role.ASSISTANT, content=composite_msg),
-                )
-            except Exception:
-                pass
-            await queue.put(_sse("token", {"text": msg}))
-            await queue.put(_sse("turn_done", {"content": composite_msg, "job_failed": True}))
-            return
-
-        if phase_text:
-            completed_deliverables.append(phase_text)
-
-        # CARD-378 / REQ-ORCH-045: If Formulate phase produces options or requires operator choice,
-        # park before executing Phase 1 so user can select between options.
-        if current.index == 0 and len(phases) > 1 and is_plan_awaiting_operator_choice(phase_text):
-            park_fn = getattr(orch, "park_phase", None)
-            if callable(park_fn):
-                park_fn(current.id)
-            park_msg = (
-                f"{phase_text}\n\n---\n\n"
-                f"Job {job.id} is waiting for operator approval / selection. "
-                "Approve or reply with your preferred option to continue execution."
-            )
-            try:
-                store.save_message(
-                    session_id=session_id,
-                    agent_id=getattr(profile, "id", None) or job.agent_id,
-                    message=ChatMessage(role=Role.ASSISTANT, content=park_msg),
-                )
-            except Exception:
-                pass
-            await queue.put(
-                _sse(
-                    "turn_done",
-                    {
-                        "content": park_msg,
-                        "waiting_approval": True,
-                        "job_id": job.id,
-                        "phase_id": current.id,
-                    },
-                )
-            )
-            return
-
-        refreshed = store.get_phase(current.id)
-        packet_text = refreshed.output_packet_json or ""
-        # Prior phase -> short durable note (strip tool dumps / skill bodies) [CARD-229].
-        durable_notes.append(
-            distill_durable_note(
-                phase_name=current.name,
-                phase_index=current.index,
-                raw_output=packet_text,
-            )
-        )
-        last_content = packet_text
-
-    final_content = format_json_deliverable_to_markdown(last_content) if last_content else ""
-    # CARD-378 / CARD-409: Preserve distinct earlier deliverables without repeating or stuttering
-    final_content = deduplicate_phase_deliverables(completed_deliverables, final_content)
-    # CARD-260 / REQ-WIKITHIN-002: never claim a Wiki path that was not tool-provenanced
-    # or present in this Job's vault grounding hit/read allow-list (RAG).
-    if final_content and is_wiki_related_ask(getattr(job, "goal", None) or ""):
-        allowed_paths = list(provenanced_wiki_paths)
-        if wiki_decision is not None:
-            allowed_paths.extend(list(wiki_decision.hit_paths or ()))
-            allowed_paths.extend(list(wiki_decision.matched_read_paths or ()))
-        bad = ungrounded_claimed_paths(final_content, allowed_paths)
-        if bad:
-            final_content = format_ungrounded_claim_honesty(
-                bad,
-                provenanced_wiki_paths,
-                job_id=getattr(job, "id", None),
-            )
-            await queue.put(
-                _sse(
-                    "wiki_ungrounded_claim",
-                    {
-                        "job_id": job.id,
-                        "ungrounded": bad,
-                        "provenanced": list(provenanced_wiki_paths),
-                    },
-                )
-            )
-    if final_content:
-        store.save_message(
-            session_id=session_id,
-            agent_id=profile.id,
-            message=ChatMessage(role=Role.ASSISTANT, content=final_content),
-        )
-        await queue.put(_sse("token", {"text": final_content}))
-        await queue.put(_sse("turn_done", {"content": final_content}))
-        if getattr(profile, "memory_enabled", True) and getattr(job, "goal", None):
-            llm_service = (
-                getattr(kernel, "gateway", None)
-                or getattr(kernel, "llm_service", None)
-            )
-            spawn_turn_side_task(  # CARD-491
-                session_id,
-                _background_extract_turn_memory(
-                    agent_id=profile.id,
-                    user_text=job.goal,
-                    assistant_text=final_content,
-                    session_id=session_id,
-                    llm_service=llm_service,
-                    data_dir=data_dir or getattr(kernel, "data_dir", None),
-                )
-            )
-    elif not last_content:
-        await queue.put(_sse("turn_done", {"content": ""}))
-
-
-async def execute_goal_plan_steps(
-    *,
-    queue,
-    store,
-    kernel,
-    reflexion_engine,
-    profile,
-    plan: ExecutionPlan,
-    session_id: str,
-    self_verify: bool,
-    approval_mode: str,
-    orch=None,
-    job=None,
-) -> None:
-    """DTO adapter: persist if needed, then stream_turn each phase."""
-    if orch is not None and job is None:
-        job = persist_plan_as_job(orch, plan, verify_checker=None)
-    if orch is not None and job is not None:
-        await execute_goal_job_phases(
-            queue=queue,
-            store=store,
-            kernel=kernel,
-            orch=orch,
-            reflexion_engine=reflexion_engine,
-            profile=profile,
-            job=job,
-            session_id=session_id,
-            self_verify=self_verify,
-            approval_mode=approval_mode,
-                    wiki_root=None,
-)
-        return
-    # Last-resort DTO path without orchestrator (should not happen in app factory).
-    accumulated_context: List[str] = []
-    for i, step in enumerate(plan.steps):
-        step.status = StepStatus.IN_PROGRESS
-        await queue.put(
-            _sse("step_start", {"step_index": i, "title": step.title, "description": step.description})
-        )
-        step_prompt = (
-            f"You are executing Step {i + 1}/{len(plan.steps)} of the goal: '{plan.goal}'.\n"
-            f"STEP: {step.title} - {step.description}\n"
-            f"PRIOR CONTEXT:\n" + "\n".join(accumulated_context)
-        )
-        reply = await kernel.run_turn(
-            agent=profile,
-            session_id=session_id,
-            user_content=step_prompt,
-            save_to_history=False,
-            approval_mode=approval_mode or "ask",
-        )
-        step.status = StepStatus.COMPLETED
-        step.result_summary = reply.content
-        accumulated_context.append(f"Step {i + 1} ({step.title}): {reply.content}")
-        await queue.put(_sse("step_complete", {"step_index": i, "status": "completed"}))
-    synth_prompt = (
-        f"Synthesize the final deliverable for the goal: '{plan.goal}' based on completed steps:\n"
-        + "\n".join(accumulated_context)
-    )
-    final_reply = await kernel.run_turn(
-        agent=profile,
-        session_id=session_id,
-        user_content=synth_prompt,
-        save_to_history=False,
-        approval_mode=approval_mode or "ask",
-    )
-    final_content = format_json_deliverable_to_markdown(final_reply.content)
-    store.save_message(session_id=session_id, agent_id=profile.id, message=ChatMessage(role=Role.ASSISTANT, content=final_content))
-    await queue.put(_sse("token", {"text": final_content}))
-    await queue.put(_sse("turn_done", {"content": final_content}))
 
 
 class CreateSessionRequest(BaseModel):
@@ -1701,7 +257,7 @@ async def get_session_messages(request: Request, session_id: str, include_archiv
 
 @router.get("/api/sessions/{session_id}/context")
 async def get_session_context(request: Request, session_id: str):
-    """Context window token consumption and authorized tools inspector [CARD-161, CARD-699]."""
+    """Context window token consumption and authorized tools inspector (get_tools_for_agent) [CARD-161, CARD-699]."""
     from src.application.kernel.compaction_verifier import build_session_context_payload
 
     payload = build_session_context_payload(
@@ -1758,7 +314,6 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
 
-    # CARD-530 REQ-530-003: never kill a running turn to start another; Stop (abort) is the only kill.
     if session_turn_running(req.session_id):
         raise HTTPException(
             status_code=409,
@@ -1775,13 +330,11 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     async def worker():
         """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
         partial = PartialReply()  # CARD-489: words shown so far, kept if the reply is stopped
-        # CARD-494: a model call that has to wait for a generation slot says so on this stream.
         slot_wait_listener.set(lambda kind, data: queue.put_nowait(_sse(kind, data)))
         try:
             resume = bool(req.resume)
             effective_content = ""
             if not resume:
-                # CARD-479: inline attachment text sized from the model's context window; Direct gets the text, no tool note.
                 from src.application.gateway.attachment_text import attachment_char_budget, build_attachment_prompt
                 from src.application.kernel.context_compactor import resolve_agent_context_limit
 
@@ -1790,30 +343,12 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     req.attachments,
                     char_budget=attachment_char_budget(resolve_agent_context_limit(profile, store)) if req.attachments else 0,
                     direct=req.agent_id == "direct",
-                    # CARD-625: documents and text files only from the folder /api/chat/upload writes to.
                     attachments_dir=(lambda: get_attachments_dir(request)) if req.attachments else None,
                 )
                 effective_content = built.text
                 for failure in built.failures:  # REQ-479-003: the user is told too
                     await queue.put(_sse("attachment_notice", {"type": "attachment_notice", "message": failure}))
-
-            # Auto-generate 2-5 word session title on first turn [CARD-150, REQ-CHAT-002]
-            if (not resume) and req.content and store and hasattr(store, "get_session") and hasattr(store, "update_session_title"):
-                sess = store.get_session(req.session_id)
-                if sess and (
-                    sess.title in ("New Conversation", "New Chat", "Agent Chat")
-                    or sess.title.endswith(" Chat")
-                ):
-                    messages = store.get_messages(req.session_id)
-                    user_msgs = [m for m in messages if getattr(m, "role", None) == Role.USER]
-                    if len(user_msgs) <= 1:
-                        new_title = generate_session_title_from_prompt(req.content)
-                        if new_title:
-                            store.update_session_title(req.session_id, new_title)
-
-            # Standing Job-Graph Runtime [CARD-215 / CARD-220 / REQ-JOBGRAPH-001..002]:
-            # CARD-572: run_as_job (Chat "Run as a job" box) -> JobPhaseOrchestrator.create_job_from_catalog_resolve;
-            # everything else -> plain AgentKernel ReAct.
+                maybe_update_first_turn_title(store, req.session_id, req.content)
 
             answer_job = None  # CARD-613: Jacob's message answers a job step's question and continues that step
             if not resume and not req.run_as_job and req.agent_id != "direct" and orch is not None and store:
@@ -1826,57 +361,19 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         message=ChatMessage(role=Role.USER, content=effective_content),
                     )
             if resume:
-                review = None if answer_job is not None else last_goal_review_resume(store, req.session_id)
-                if review:
-                    status, record = review
-                    if status in {"rejected", "reject"}:
-                        args = record.get("arguments") or {}
-                        if orch is not None and args.get("job_id"):
-                            try:
-                                orch.cancel_job(str(args["job_id"]))
-                            except Exception:
-                                logger.exception("Failed to cancel rejected goal job")
-                        msg = "Plan rejected. Steps were not executed. Send a message to revise."
-                        store.save_message(
-                            session_id=req.session_id,
-                            agent_id=profile.id,
-                            message=ChatMessage(role=Role.ASSISTANT, content=msg),
-                        )
-                        await queue.put(_sse("token", {"text": msg}))
-                        await queue.put(_sse("turn_done", {"content": msg}))
-                        return
-                    if status in {"approved", "approve"}:
-                        rebuilt = execution_plan_from_approval(record, req.session_id, profile.id)
-                        if rebuilt:
-                            plan, stored_verify, stored_mode, job_id, stored_checker = rebuilt
-                            job = None
-                            if orch is not None and job_id:
-                                try:
-                                    job = store.get_job(str(job_id))
-                                except Exception:
-                                    job = None
-                            if orch is not None and job is None:
-                                job = persist_plan_as_job(
-                                    orch,
-                                    plan,
-                                    verify_checker=stored_checker if stored_verify else None,
-                                )
-                            await execute_goal_plan_steps(
-                                queue=queue,
-                                store=store,
-                                kernel=kernel,
-                                reflexion_engine=reflexion_engine,
-                                profile=profile,
-                                plan=plan,
-                                session_id=req.session_id,
-                                self_verify=stored_verify,
-                                approval_mode=stored_mode or req.approval_mode or "ask",
-                                orch=orch,
-                                job=job,
-                            )
-                            return
+                if answer_job is None and await resume_goal_review_if_any(
+                    queue=queue,
+                    store=store,
+                    kernel=kernel,
+                    orch=orch,
+                    reflexion_engine=reflexion_engine,
+                    profile=profile,
+                    session_id=req.session_id,
+                    approval_mode=req.approval_mode or "ask",
+                ):
+                    return
 
-                # Resume an open multi-phase job (HITL park / mid-graph / crash) [CARD-219].
+                # Resume an open multi-phase job (HITL park / mid-graph / crash) [CARD-219, CARD-253].
                 if orch is not None:
                     job = latest_open_job_for_session(store, req.session_id)
                     if job and job.current_phase_id:
@@ -1885,12 +382,9 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         if callable(resume_fn):
                             resume_info = resume_fn(job.id)
                             if resume_info is not None and resume_info.needs_replan:
-                                # Corrupt/missing checkpoint => fall through to standing replan-from-zero.
                                 job = None
                             elif resume_info is not None and resume_info.resumed_from_checkpoint:
-                                await queue.put(
-                                    _sse("resumed_from_checkpoint", resume_info.as_dict())
-                                )
+                                await queue.put(_sse("resumed_from_checkpoint", resume_info.as_dict()))
                                 job = resume_info.job or job
                         if job and job.current_phase_id:
                             if (
@@ -1903,11 +397,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                 phase = store.get_phase(job.current_phase_id)
                             if phase.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
                                 phase = orch.start_phase(phase.id)
-                            elif phase.status == PhaseStatus.RUNNING:
-                                # Already running after resume prepare; continue bound turn.
-                                pass
                             resume_session = resume_session_for_phase(store, req.session_id, phase)
-                            last_phase_session = resume_session
                             outcome = await _stream_turn_bound(
                                 queue=queue,
                                 kernel=kernel,
@@ -1923,175 +413,31 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                 phase=phase,
                                 self_verify=bool(phase.verify_checker),
                             )
-                            if outcome == "question":  # CARD-613: asked again; the chat keeps the question
+                            if outcome == "question":
                                 relay_phase_reply_to_parent(store, req.session_id, resume_session, profile.id)
                                 await queue.put(_sse("token", {"text": f"\n\n{WAITING_FOR_ANSWER_NOTE}\n"}))
                                 await queue.put(_sse("turn_done", {"waiting_answer": True, "job_id": job.id}))
                             if outcome == "done":
-                                remaining = [
-                                    p
-                                    for p in store.list_phases_for_job(job.id)
-                                    if p.status == PhaseStatus.QUEUED
-                                ]
-                                # CARD-619: when this finish was Jacob's answer to a question, keep
-                                # Q&A as a durable note so every later step sees it (ahead of other notes).
-                                answer_notes: List[str] = []
-                                if answer_job is not None and (effective_content or "").strip():
-                                    note = operator_answer_note_for_session(
-                                        store, resume_session, effective_content
-                                    )
-                                    if note:
-                                        answer_notes.append(note)
-                                # CARD-226/229: rebuild memory facts; prior phases as durable notes only.
-                                memory_facts = list(
-                                    prior_lines_from_job_memory(
-                                        agent_id=profile.id,
-                                        job_id=job.id,
-                                        data_dir=getattr(orch, "_data_dir", None),
-                                    )
+                                # CARD-253: continue remaining phases (uses rebuild_working_set_after_resume).
+                                await continue_remaining_resumed_phases(
+                                    queue=queue,
+                                    store=store,
+                                    kernel=kernel,
+                                    orch=orch,
+                                    reflexion_engine=reflexion_engine,
+                                    profile=profile,
+                                    registry=registry,
+                                    job=job,
+                                    finished_phase=phase,
+                                    resume_session=resume_session,
+                                    parent_session_id=req.session_id,
+                                    approval_mode=req.approval_mode or "ask",
+                                    effective_content=effective_content,
+                                    answer_job=answer_job,
                                 )
-                                if memory_facts:
-                                    await queue.put(
-                                        _sse(
-                                            "memory_recalled",
-                                            {
-                                                "job_id": job.id,
-                                                "agent_id": profile.id,
-                                                "count": len(memory_facts),
-                                                "facts": memory_facts[:20],
-                                                "source": "agent_memory.db",
-                                                "resumed": True,
-                                            },
-                                        )
-                                    )
-                                matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
-                                # CARD-619: answer notes first, then the finished step's distilled note.
-                                durable_notes: List[str] = prepend_operator_answers([], *answer_notes)
-                                if answer_notes:
-                                    refreshed_answered = store.get_phase(phase.id)
-                                    durable_notes.append(
-                                        distill_durable_note(
-                                            phase_name=phase.name,
-                                            phase_index=phase.index,
-                                            raw_output=refreshed_answered.output_packet_json or "",
-                                        )
-                                    )
-                                for nxt in remaining:
-                                    started = orch.start_phase(nxt.id)
-                                    bound_skill_id = None
-                                    bound_skill_body = None
-                                    bind_fn = getattr(orch, "bind_matched_skill_on_phase_start", None)
-                                    if callable(bind_fn):
-                                        for bound in bind_fn(started.id) or []:
-                                            await queue.put(
-                                                _sse(
-                                                    "skill_bound",
-                                                    {
-                                                        "job_id": job.id,
-                                                        "phase_id": started.id,
-                                                        "phase_name": started.name,
-                                                        "skill_id": bound.get("skill_id"),
-                                                        "runbook_id": bound.get("runbook_id"),
-                                                        "title": bound.get("title"),
-                                                        "body_loaded": bool(bound.get("body_loaded")),
-                                                        "success": bool(bound.get("success")),
-                                                        "body_chars": len(bound.get("body") or "")
-                                                        if bound.get("success")
-                                                        else 0,
-                                                        "progressive": True,
-                                                        "resumed": True,
-                                                    },
-                                                )
-                                            )
-                                            if bound.get("success") and bound.get("body"):
-                                                bound_skill_id = bound.get("skill_id")
-                                                bound_skill_body = bound.get("body")
-                                    memory_facts = list(
-                                        prior_lines_from_job_memory(
-                                            agent_id=profile.id,
-                                            job_id=job.id,
-                                            data_dir=getattr(orch, "_data_dir", None),
-                                        )
-                                    )
-                                    # CARD-253: rebuild from ledger/memory facts after kill/resume
-                                    # (never session transcript). Prior durable_notes still accumulate
-                                    # within this resumed process for subsequent remaining phases.
-                                    if not durable_notes:
-                                        ws = rebuild_working_set_after_resume(
-                                            job=job,
-                                            phase=started,
-                                            phase_count=len(store.list_phases_for_job(job.id)),
-                                            all_memory_facts=memory_facts,
-                                            matched_metadata=matched_metadata,
-                                            bound_skill_id=bound_skill_id,
-                                            bound_skill_body=bound_skill_body,
-                                            session_transcript=None,
-                                        )
-                                    else:
-                                        ws = build_phase_working_set(
-                                            job=job,
-                                            phase=started,
-                                            phase_count=len(store.list_phases_for_job(job.id)),
-                                            matched_metadata=matched_metadata,
-                                            bound_skill_id=bound_skill_id,
-                                            bound_skill_body=bound_skill_body,
-                                            prior_phase_notes=durable_notes,
-                                            all_memory_facts=memory_facts,
-                                        )
-                                    assignment = format_phase_working_set_prompt(ws)
-                                    run_profile = profile_for_phase(profile, started, registry)
-                                    phase_session = _ensure_phase_session(
-                                        store, req.session_id, started, run_profile.id
-                                    )
-                                    nxt_outcome = await _stream_turn_bound(
-                                        queue=queue,
-                                        kernel=kernel,
-                                        orch=orch,
-                                        store=store,
-                                        reflexion_engine=reflexion_engine,
-                                        profile=run_profile,
-                                        session_id=phase_session,
-                                        user_content=assignment,
-                                        approval_mode=req.approval_mode or "ask",
-                                        resume=False,
-                                        job=job,
-                                        phase=started,
-                                        self_verify=bool(started.verify_checker),
-                                        step_index=started.index,
-                                        emit_step_events=True,
-                                    )
-                                    if nxt_outcome == "question":
-                                        # CARD-616: a later step asked; show the finished step's reply and the question, then wait.
-                                        shown = [
-                                            relay_phase_reply_to_parent(store, req.session_id, s, profile.id)
-                                            for s in (last_phase_session, phase_session)
-                                        ]
-                                        text = "\n\n".join(t for t in shown if t)
-                                        await queue.put(_sse("token", {"text": f"{text}\n\n{WAITING_FOR_ANSWER_NOTE}\n"}))
-                                        await queue.put(_sse("turn_done", {"waiting_answer": True, "job_id": job.id}))
-                                    if nxt_outcome != "done":
-                                        last_phase_session = ""
-                                        break
-                                    last_phase_session = phase_session
-                                    refreshed = store.get_phase(started.id)
-                                    durable_notes.append(
-                                        distill_durable_note(
-                                            phase_name=started.name,
-                                            phase_index=started.index,
-                                            raw_output=refreshed.output_packet_json or "",
-                                        )
-                                    )
-                                # CARD-548: the phase ran in its own session; show its reply in the chat.
-                                relayed = relay_phase_reply_to_parent(
-                                    store, req.session_id, last_phase_session, profile.id
-                                )
-                                if relayed:
-                                    await queue.put(_sse("token", {"text": relayed}))
-                                    await queue.put(_sse("turn_done", {"content": relayed}))
                             return
 
             if req.agent_id == "direct":
-                # Direct Mode fast-path: zero jobs, zero tools, direct streaming pass-through [CARD-361 / REQ-CHAT-DUAL-002]
                 turn_content = None if resume else effective_content
                 async for event in kernel.stream_turn(
                     profile,
@@ -2103,83 +449,23 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     partial.observe(event)  # CARD-489: Direct replies keep their words on Stop too
                     if event.event_type == KernelEventType.TURN_END:
                         await queue.put(_sse("turn_done", {"content": event.content, "direct_mode": True}))
-                    elif event.event_type == KernelEventType.REACT_STATE:
-                        # Suppress react_state noise for direct mode
-                        pass
-                    else:
+                    elif event.event_type != KernelEventType.REACT_STATE:
                         await _forward_kernel_event(queue, event, profile)
                 return
 
             # CARD-572: a standing Job starts only when Jacob ticked Run as a job (no keyword routing).
             if (not resume) and req.run_as_job:
-                # CARD-251: do not mint an orphan while a parked HITL Job owns this session.
-                open_parked = latest_open_job_for_session(store, req.session_id) if store else None
-                if open_parked is not None:
-                    st = getattr(getattr(open_parked, "status", None), "value", str(getattr(open_parked, "status", "")))
-                    if st == "waiting_approval":
-                        msg = (
-                            f"Job {open_parked.id} is waiting_approval on this origin session. "
-                            "Approve it (in Chat or Agents) to resume the same job_id — "
-                            "refusing to mint an orphan Job [CARD-251 / REQ-FORGE-RESUME-004]."
-                        )
-                        logger.warning(
-                            "orphan_prevented session=%s job_id=%s",
-                            req.session_id,
-                            open_parked.id,
-                        )
-                        store.save_message(
-                            session_id=req.session_id,
-                            agent_id=profile.id,
-                            message=ChatMessage(role=Role.USER, content=effective_content),
-                        )
-                        store.save_message(
-                            session_id=req.session_id,
-                            agent_id=profile.id,
-                            message=ChatMessage(role=Role.ASSISTANT, content=msg),
-                        )
-                        await queue.put(
-                            _sse(
-                                "error",
-                                {
-                                    "error": msg,
-                                    "job_id": open_parked.id,
-                                    "session_id": req.session_id,
-                                    "orphan_prevented": True,
-                                    "waiting_approval": True,
-                                    "FORGE_RESUME": True,
-                                },
-                            )
-                        )
-                        await queue.put(_sse("turn_done", {"content": msg, "orphan_prevented": True}))
-                        return
-                if orch is None or not hasattr(orch, "create_job_from_catalog_resolve"):
-                    # Fail-closed outcome mint [CARD-236 / REQ-JOBMINT-001]
-                    msg = (
-                        "Standing outcome ask cannot mint standing Job "
-                        "(job orchestrator unavailable) [CARD-236 fail-closed]."
-                    )
-                    logger.error("fail_closed_outcome_mint session=%s", req.session_id)
-                    store.save_message(
-                        session_id=req.session_id,
-                        agent_id=profile.id,
-                        message=ChatMessage(role=Role.USER, content=effective_content),
-                    )
-                    store.save_message(
-                        session_id=req.session_id,
-                        agent_id=profile.id,
-                        message=ChatMessage(role=Role.ASSISTANT, content=msg),
-                    )
-                    await queue.put(_sse("error", {
-                        "error": msg,
-                        "fail_closed_outcome_mint": True,
-                        "JOBMINT": True,
-                    }))
-                    await queue.put(_sse("turn_done", {"content": msg}))
+                # Fail-closed outcome mint [CARD-236 / REQ-JOBMINT-001]: cannot mint standing Job when orch missing.
+                can_mint = await check_job_mint_preconditions(
+                    queue=queue,
+                    store=store,
+                    orch=orch,
+                    profile=profile,
+                    session_id=req.session_id,
+                    effective_content=effective_content,
+                )
+                if not can_mint:
                     return
-
-                user_msg = ChatMessage(role=Role.USER, content=effective_content)
-                store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
-
                 job = orch.create_job_from_catalog_resolve(
                     intent=effective_content,
                     session_id=req.session_id,
@@ -2187,95 +473,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     role=profile.id,
                     verify_checker=verify_checker if self_verify else None,
                 )
-                phases = store.list_phases_for_job(job.id)
-                matched_ids = []
-                ids_fn = getattr(orch, "matched_capability_ids_for_job", None)
-                if callable(ids_fn):
-                    matched_ids = list(ids_fn(job.id) or [])
-                await queue.put(
-                    _sse(
-                        "job_created",
-                        {
-                            "job_id": job.id,
-                            "phase_count": len(phases),
-                            "goal": job.goal,
-                            "agent_id": job.agent_id,
-                            "session_id": job.session_id,
-                            "status": job.status.value if hasattr(job.status, "value") else str(job.status),
-                            "template_id": getattr(job, "template_id", None),
-                            "matched_capability_ids": matched_ids,
-                            "success_rule": getattr(job, "success_rule", "") or "",
-                            "catalog_resolve": True,
-                            "outcome_intake": True,
-                        },
-                    )
-                )
-                # CARD-228: attach skill metadata-only views (no bodies) on catalog_resolved.
-                skill_meta = []
-                cap = getattr(request.app.state, "capability_catalog", None)
-                if cap is not None and matched_ids:
-                    from src.application.capabilities.progressive_skills import (
-                        skill_metadata_view,
-                    )
-
-                    store_cap = getattr(cap, "_store", None)
-                    get_entry = getattr(store_cap, "get_entry", None) if store_cap else None
-                    for mid in matched_ids:
-                        if not str(mid).startswith("skill."):
-                            continue
-                        entry = get_entry(mid) if callable(get_entry) else None
-                        if entry is not None:
-                            skill_meta.append(skill_metadata_view(entry))
-                        else:
-                            skill_meta.append(
-                                {
-                                    "id": mid,
-                                    "title": mid.split(".", 1)[-1],
-                                    "kind": "skill",
-                                    "risk": "medium",
-                                    "requires_hitl": False,
-                                    "body_loaded": False,
-                                    "metadata_only": True,
-                                }
-                            )
-                await queue.put(
-                    _sse(
-                        "catalog_resolved",
-                        {
-                            "job_id": job.id,
-                            "matched_capability_ids": matched_ids,
-                            "skill_metadata": skill_meta,
-                            "skill_bodies_omitted": True,
-                            "phases": [
-                                {"id": p.id, "name": p.name, "index": p.index} for p in phases
-                            ],
-                            "standing": True,
-                            "template_id": getattr(job, "template_id", None),
-                        },
-                    )
-                )
-                # UI strip still listens for plan_formulated; shape from R/H/E phases.
-                await queue.put(
-                    _sse(
-                        "plan_formulated",
-                        {
-                            "plan_id": f"catalog:{job.id}",
-                            "goal": job.goal,
-                            "steps": [
-                                {
-                                    "title": p.name,
-                                    "description": p.success_rule or p.name,
-                                }
-                                for p in phases
-                            ],
-                            "job_id": job.id,
-                            "standing": True,
-                            "catalog_resolve": True,
-                            "matched_capability_ids": matched_ids,
-                        },
-                    )
-                )
-                await execute_goal_job_phases(
+                # Emits job_created, catalog_resolved, and plan_formulated, then runs phases.
+                await emit_and_execute_catalog_job(
                     queue=queue,
                     store=store,
                     kernel=kernel,
@@ -2286,9 +485,10 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     session_id=req.session_id,
                     self_verify=self_verify,
                     approval_mode=req.approval_mode or "ask",
-                                    wiki_root=getattr(request.app.state, "wiki_path", None),
+                    capability_catalog=getattr(request.app.state, "capability_catalog", None),
+                    wiki_root=getattr(request.app.state, "wiki_path", None),
                     registry=registry,
-)
+                )
                 return
 
             # Short turns: plain AgentKernel ReAct (no Job/Phase formulation).
@@ -2307,58 +507,26 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 partial.observe(event)
                 await _forward_kernel_event(queue, event, profile)
 
-            if self_verify and not resume:
-                checker = (verify_checker or "").strip()
-                payload = {"passed": False, "status": "skipped_no_checker"}
-                if checker and reflexion_engine is not None:
-                    result = await reflexion_engine.run_named_checker(
-                        agent=profile,
-                        last_output=last_plain,
-                        verifier_tool_name=checker,
-                        verifier_args=None,
-                    )
-                    payload = {
-                        "passed": bool(result.get("verification_passed")),
-                        "status": result.get("status") or "failed",
-                        "checker": checker,
-                        "discrepancies": result.get("discrepancies") or [],
-                    }
-                    await queue.put(_sse("reflexion_attempt", {"attempt": 1, "max_attempts": 1, "checker": checker}))
-                    if not payload["passed"]:
-                        await queue.put(
-                            _sse(
-                                "reflexion_critique",
-                                {
-                                    "attempt": 1,
-                                    "critique": "; ".join(payload.get("discrepancies") or []) or "verification failed",
-                                },
-                            )
-                        )
-                else:
-                    payload["facts"] = [verify_skip_fact()]
-                await queue.put(_sse("reflexion_verified", payload))
-
-            # Trigger background post-turn cognitive memory extraction [CARD-116, CARD-405]
-            if (not resume) and getattr(profile, "memory_enabled", True) and effective_content and last_plain:
+            if not resume:
                 llm_service = (
                     getattr(request.app.state, "gateway", None)
                     or getattr(kernel, "gateway", None)
                     or getattr(kernel, "llm_service", None)
                 )
-                data_dir = (
-                    getattr(request.app.state, "data_dir", None)
-                    or getattr(kernel, "data_dir", None)
-                )
-                spawn_turn_side_task(  # CARD-491
-                    req.session_id,
-                    _background_extract_turn_memory(
-                        agent_id=profile.id,
-                        user_text=effective_content,
-                        assistant_text=last_plain,
-                        session_id=req.session_id,
-                        llm_service=llm_service,
-                        data_dir=data_dir,
-                    )
+                data_dir = getattr(request.app.state, "data_dir", None) or getattr(kernel, "data_dir", None)
+                await finalize_plain_turn_verification_and_memory(
+                    queue=queue,
+                    profile=profile,
+                    session_id=req.session_id,
+                    effective_content=effective_content,
+                    last_plain=last_plain,
+                    self_verify=self_verify,
+                    verify_checker=verify_checker,
+                    reflexion_engine=reflexion_engine,
+                    llm_service=llm_service,
+                    data_dir=data_dir,
+                    spawn_side_task_fn=spawn_turn_side_task,
+                    extract_memory_fn=_background_extract_turn_memory,
                 )
 
         except asyncio.CancelledError:
@@ -2395,7 +563,6 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             await queue.put(_sse("error", {"error": str(e)}))
             await queue.put(_sse("turn_done", {"content": err_msg, "error": str(e)}))
         finally:
-            # Only clear the slot this worker owns (abort may have handed it to a newer turn).
             if _active_stream_tasks.get(req.session_id) is asyncio.current_task():
                 _active_stream_tasks.pop(req.session_id, None)
                 _active_stream_agents.pop(req.session_id, None)
@@ -2410,13 +577,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             async for item in sse_with_keepalive(queue):
                 yield item
         except (asyncio.CancelledError, GeneratorExit):
-            # Client disconnected from SSE stream (phone locked, tab slept, app switched).
-            # Shield the background worker task! Allow worker() to continue running to completion,
-            # execute subagents, and persist all messages to SQLite [CARD-154, REQ-RESUME-001].
             logger.info("Client disconnected from SSE stream for session %s. Background worker shielded.", req.session_id)
             raise
-        finally:
-            pass
 
     return StreamingResponse(
         event_generator(),
@@ -2430,10 +592,6 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
 
 _job_has_running_phase = job_has_running_phase  # CARD-493: shared with Recent Chats
-
-
-def _live_stream_session_ids() -> List[str]:
-    return [sid for sid, task in list(_active_stream_tasks.items()) if task is not None and not task.done()]
 
 
 def _session_has_running_phase(store: Any, session_id: str) -> bool:
@@ -2463,9 +621,6 @@ async def get_session_status(request: Request, session_id: str):
     is_running = bool(task and not task.done())
     active_agent = _active_stream_agents.get(session_id) if is_running else None
 
-    # Also check if an active job is running in SQLite store for this session.
-    # CARD-486: an open job only counts when one of its phases is actually RUNNING. A Stop leaves the
-    # job open (RUNNING) with its phase QUEUED so it can resume [CARD-259]; that is not running.
     store = getattr(request.app.state, "store", None)
     if not is_running and store and hasattr(store, "list_jobs_for_session"):
         try:
@@ -2488,7 +643,10 @@ async def get_session_status(request: Request, session_id: str):
 
 @router.post("/api/chat/stream/{session_id}/abort")
 async def abort_stream_endpoint(request: Request, session_id: str):
-    """Operator kill mid-LLM: checkpoint + stop worker; same job_id stays resumable [CARD-259]."""
+    """Operator kill mid-LLM: checkpoint + stop worker; same job_id stays resumable [CARD-259].
+
+    Phase-level cancellation also invokes ``checkpoint_mid_llm_kill_phase`` inside ``_stream_turn_bound``.
+    """
     task = _active_stream_tasks.pop(session_id, None)
     _active_stream_agents.pop(session_id, None)
     live = bool(task and not task.done())
@@ -2505,8 +663,6 @@ async def abort_stream_endpoint(request: Request, session_id: str):
     message = None
     ck_fn = getattr(orch, "checkpoint_mid_llm_kill", None) if orch is not None else None
     if not live:
-        # CARD-491 REQ-491-002: no chat worker to cancel here. A RUNNING phase then belongs to work this
-        # server's chat did not start (or another process); marking it QUEUED would lie about it.
         if _session_has_running_phase(store, session_id):
             checkpoint["reason"] = "not_started_by_chat"
             message = "This work was not started by a chat reply on this server, so Stop cannot end it. It was left running."
@@ -2517,35 +673,8 @@ async def abort_stream_endpoint(request: Request, session_id: str):
             checkpoint = ck_fn(session_id) or checkpoint
         except Exception as e:
             logger.warning("Failed to checkpoint jobs on abort: %s", e)
-    elif store and hasattr(store, "list_jobs_for_session"):
-        # Store-only fallback: leave Jobs open (never stamp cancelled/failed).
-        try:
-            from src.application.orchestration.kill_resume import (
-                OPERATOR_KILL_REASON,
-                kill_checkpoint_payload,
-            )
-
-            jobs = store.list_jobs_for_session(session_id) or []
-            for j in jobs:
-                status = j.status.value if hasattr(j.status, "value") else str(j.status)
-                if status in ("done", "failed", "cancelled"):
-                    continue
-                phases = store.list_phases_for_job(j.id) if hasattr(store, "list_phases_for_job") else []
-                for p in phases:
-                    pstatus = p.status.value if hasattr(p.status, "value") else str(p.status)
-                    if pstatus == "running" and hasattr(store, "update_phase_status"):
-                        store.update_phase_status(p.id, "queued")
-                        checkpoint = kill_checkpoint_payload(
-                            job_id=j.id,
-                            phase_id=p.id,
-                            checkpointed=True,
-                            reason=OPERATOR_KILL_REASON,
-                        )
-                        break
-                if checkpoint.get("checkpointed"):
-                    break
-        except Exception as e:
-            logger.warning("Failed to leave jobs resumable on abort: %s", e)
+    else:
+        checkpoint = checkpoint_store_open_jobs(store, session_id, checkpoint)
 
     was_cancelled = False
     side_cancelled = cancel_turn_side_tasks(session_id, task) if task is not None else 0  # CARD-491
@@ -2553,8 +682,6 @@ async def abort_stream_endpoint(request: Request, session_id: str):
         task.cancel()
         was_cancelled = True
         try:
-            # Only join when the worker lives on this loop. TestClient abort
-            # cancels a pytest-loop task; awaiting it here raises RuntimeError.
             if task.get_loop() is asyncio.get_running_loop():
                 await asyncio.wait_for(task, timeout=5.0)
         except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError, Exception):
@@ -2590,7 +717,7 @@ async def chat_verified(request: Request, req: VerifiedChatRequest):
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
 
-    res = await reflexion_engine.run_reflexion_turn(
+    return await reflexion_engine.run_reflexion_turn(
         agent=profile,
         session_id=req.session_id,
         user_content=req.content,
@@ -2598,7 +725,6 @@ async def chat_verified(request: Request, req: VerifiedChatRequest):
         verifier_args=req.verifier_args,
         max_refinements=req.max_refinements,
     )
-    return res
 
 
 @router.post("/api/agents/audit")
@@ -2631,23 +757,7 @@ async def audit_agent_action(request: Request, req: AuditAgentRequest):
 
 def get_attachments_dir(request: Request) -> Path:
     """Resolve safe attachment storage directory [REQ-ATTACH-001]."""
-    data_paths = getattr(request.app.state, "data_dir_paths", None)
-    if data_paths and hasattr(data_paths, "root"):
-        p = Path(data_paths.root) / "attachments"
-    else:
-        from src.infrastructure.data.resolver import DataDirResolver
-
-        p = Path(DataDirResolver().resolve().root) / "attachments"
-    p.mkdir(parents=True, exist_ok=True)
-    return p
-
-
-def sanitize_filename(filename: str) -> str:
-    """Sanitize attachment filename to prevent directory traversal [REQ-ATTACH-001]."""
-    basename = Path(filename).name
-    clean = re.sub(r"[^\w\.-]", "_", basename)
-    clean = clean.lstrip("._")
-    return clean or "attachment.bin"
+    return resolve_attachments_dir(getattr(request.app.state, "data_dir_paths", None))
 
 
 @router.post("/api/chat/upload")
@@ -2656,32 +766,16 @@ async def chat_upload(
     file: UploadFile = File(...),
     session_id: Optional[str] = Form(None),
 ):
-    """
-    [REQ-ATTACH-001] Accept and safely persist media and document attachments.
-    """
-    raw_name = file.filename or "attachment.bin"
-    safe_name = sanitize_filename(raw_name)
-    file_id = uuid.uuid4().hex[:12]
-
+    """[REQ-ATTACH-001] Accept and safely persist media and document attachments."""
     attachments_dir = get_attachments_dir(request)
-    session_slug = sanitize_filename(session_id) if session_id else "global"
-    target_dir = attachments_dir / session_slug
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    target_path = target_dir / f"{file_id}_{safe_name}"
     contents = await file.read()
-    target_path.write_bytes(contents)
-
-    content_type = file.content_type or mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
-
-    return {
-        "id": file_id,
-        "filename": safe_name,
-        "size_bytes": len(contents),
-        "content_type": content_type,
-        "url": f"/api/chat/attachments/{file_id}/{safe_name}",
-        "path": str(target_path),
-    }
+    return save_uploaded_attachment(
+        attachments_dir,
+        raw_filename=file.filename,
+        contents=contents,
+        raw_content_type=file.content_type,
+        session_id=session_id,
+    )
 
 
 @router.get("/api/chat/attachments/{file_id}/{filename}")
@@ -2690,17 +784,10 @@ async def get_chat_attachment(
     file_id: str,
     filename: str,
 ):
-    """
-    [REQ-ATTACH-002] Serve stored attachment files with proper Content-Type headers.
-    """
+    """[REQ-ATTACH-002] Serve stored attachment files with proper Content-Type headers."""
     attachments_dir = get_attachments_dir(request)
-    safe_file_id = re.sub(r"[^\w-]", "", file_id)
-    safe_name = sanitize_filename(filename)
-
-    matching_files = list(attachments_dir.glob(f"**/{safe_file_id}_{safe_name}"))
-    if not matching_files or not matching_files[0].exists():
+    found = find_attachment_file(attachments_dir, file_id, filename)
+    if found is None:
         raise HTTPException(status_code=404, detail="Attachment not found")
-
-    file_path = matching_files[0]
-    content_type = mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
+    file_path, content_type, safe_name = found
     return FileResponse(path=file_path, media_type=content_type, filename=safe_name)

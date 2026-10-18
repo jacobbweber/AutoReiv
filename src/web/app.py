@@ -418,34 +418,41 @@ def create_app(
         except Exception:
             logger.exception("Startup session retention prune failed")
 
-        # Auto-mount configured and enabled MCP servers [REQ-MCP-005]
+        # Auto-mount configured and enabled MCP servers [REQ-MCP-005, CARD-717]
+        from src.web.mcp_mount_reconcile import resolve_mcp_server_auth
+
         stored_mcp = store.get_setting("mcp_servers")
         if isinstance(stored_mcp, list):
             for s in stored_mcp:
-                if s.get("enabled", True) and s.get("name") and s.get("command"):
+                if s.get("enabled", True) and s.get("name") and (s.get("command") or s.get("url")):
+                    resolved_auth = resolve_mcp_server_auth(s, store)
                     try:
                         await mcp_manager.mount_server(
                             name=s["name"],
-                            command=s["command"],
-                            env=s.get("env"),
+                            command=s.get("command"),
+                            env=resolved_auth["env"],
+                            transport=s.get("transport", "sse" if s.get("url") else "stdio"),
+                            url=s.get("url"),
+                            headers=resolved_auth["headers"],
                         )
                     except Exception as e:
                         logger.warning(f"Failed to auto-mount MCP server '{s.get('name')}': {e}")
 
-        # Auto-mount per-agent configured and enabled MCP servers [CARD-183, CARD-184]
+        # Auto-mount per-agent configured and enabled MCP servers [CARD-183, CARD-184, CARD-717]
         try:
             for profile in registry.list_agents():
                 for srv in getattr(profile, "mcp_servers", []) or []:
                     s_dict = srv.model_dump() if hasattr(srv, "model_dump") else (srv if isinstance(srv, dict) else {})
                     if s_dict.get("enabled", True) and s_dict.get("name"):
+                        resolved_auth = resolve_mcp_server_auth(s_dict, store)
                         try:
                             await mcp_manager.mount_server(
                                 name=s_dict["name"],
                                 command=s_dict.get("command"),
-                                env=s_dict.get("env"),
+                                env=resolved_auth["env"],
                                 transport=s_dict.get("transport", "stdio"),
                                 url=s_dict.get("url"),
-                                headers=s_dict.get("headers"),
+                                headers=resolved_auth["headers"],
                             )
                         except Exception as e:
                             logger.warning(f"Failed to auto-mount agent '{profile.id}' MCP server '{s_dict.get('name')}': {e}")
@@ -538,14 +545,18 @@ def create_app(
     app.state.job_orchestrator = job_orchestrator
     app.state.wiki_service = wiki_service
     app.state.wiki_path = resolved_wiki_path
-    try:
-        app.state.wiki_status = wiki_status
-        app.state.deploy_mode = resolve_deploy_mode()
-    except NameError:
-        app.state.wiki_status = None
-        app.state.deploy_mode = "local"
+    app.state.wiki_status = wiki_status
+    app.state.deploy_mode = deploy_mode
     app.state.data_dir_paths = data_paths
-    app.state.user_skill_catalog = getattr(registry, "user_skill_catalog", None)
+    app.state.data_dir = str(data_paths.root)
+    if _early_skill_catalog is None:
+        from src.application.skills.user_catalog import UserSkillCatalog
+
+        _early_skill_catalog = UserSkillCatalog(skills_dir=str(data_paths.skills_path), tool_registry=tool_reg)
+        job_orchestrator._skill_catalog = _early_skill_catalog
+    app.state.user_skill_catalog = _early_skill_catalog
+    if getattr(registry, "orchestration_tools", None) is not None:
+        registry.orchestration_tools.orchestrator = job_orchestrator
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
@@ -562,28 +573,6 @@ def create_app(
                 "safe_tools": [],
             },
         )
-
-    from pathlib import Path as _Path
-
-    from src.application.skills.user_catalog import UserSkillCatalog
-    _data_dir = getattr(app.state, "data_dir", None)
-    if _data_dir is None:
-        _settings = getattr(app.state, "settings", None)
-        _data_dir = getattr(_settings, "data_dir", None) if _settings else None
-    if _data_dir:
-        _skills = _Path(_data_dir) / "skills"
-    else:
-        from src.infrastructure.data.resolver import DataDirResolver as _DDR
-
-        _skills = _Path(_DDR().resolve().root) / "skills"
-    _catalog = getattr(app.state, "user_skill_catalog", None) or UserSkillCatalog(skills_dir=_skills)
-    app.state.user_skill_catalog = _catalog
-    try:
-        job_orchestrator._skill_catalog = _catalog
-    except NameError:
-        orch_state = getattr(app.state, "job_orchestrator", None)
-        if orch_state is not None:
-            orch_state._skill_catalog = _catalog
 
     # 8. Middleware
     # CARD-602: CORS only for this host / LAN / configured extras (not "*").
@@ -661,7 +650,9 @@ def create_app(
     async def index_view():
         index_file = template_dir / "index.html"
         if index_file.exists():
-            html_text = index_file.read_text(encoding="utf-8")
+            from src.web.template_loader import load_index_html
+
+            html_text = load_index_html(template_dir)
             html_text = stamp_app_js(html_text, str(int(time.time())))
             return HTMLResponse(
                 content=html_text,
@@ -676,5 +667,14 @@ def create_app(
     return app
 
 
-app = create_app()
+_default_app: Optional[FastAPI] = None
+
+
+def __getattr__(name: str):
+    global _default_app
+    if name == "app":
+        if _default_app is None:
+            _default_app = create_app()
+        return _default_app
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

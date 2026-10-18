@@ -43,7 +43,9 @@ class CredentialVault:
             if key_file:
                 path = Path(key_file)
             else:
-                base_dir = Path(os.getenv("AUTOREIV_DATA_DIR") or Path.home() / ".autoreiv")
+                from src.domain.data_root import resolve_default_data_root
+
+                base_dir = resolve_default_data_root()
                 base_dir.mkdir(parents=True, exist_ok=True)
                 path = base_dir / ".vault_key"
 
@@ -52,11 +54,10 @@ class CredentialVault:
             else:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 self._key = AESGCM.generate_key(bit_length=256)
+                path.write_bytes(self._key)
                 try:
-                    path.write_bytes(self._key)
-                    # Attempt restrictive permissions on Unix
                     os.chmod(path, 0o600)
-                except Exception:
+                except OSError:
                     pass
 
         self._aesgcm = AESGCM(self._key)

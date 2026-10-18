@@ -41,7 +41,7 @@ describe('Developer Agent and Projects Studio Workspace Integration [CARD-391]',
   it('[REQ-391-002] projects.js wires Pair with Developer click to switch to Chat, select Developer, and populate prompt', () => {
     expect(projectsJs).toContain("pairDeveloperBtn.addEventListener('click'");
     expect(projectsJs).toContain("$('tab-chat')");
-    expect(projectsJs).toContain("agentSelect.value = 'developer'");
+    expect(projectsJs).toContain("agentSelect.value = 'autoreiv'");
     expect(projectsJs).toContain("agentSelect.dispatchEvent(new Event('change'))");
     expect(projectsJs).toContain("$('promptInput')");
     // CARD-465: composer writes go through the shared setter so the box resizes
@@ -63,7 +63,7 @@ describe('Developer Agent and Projects Studio Workspace Integration [CARD-391]',
   it('[REQ-391-001] chat.js queries /api/projects/selected and syncs active project state', () => {
     expect(chatJs).toContain('async function syncActiveProjectIndicator()');
     expect(chatJs).toContain("fetch('/api/projects/selected')");
-    expect(chatJs).toContain("state.selectedAgentId === 'developer'");
+    expect(chatJs).toContain("state.selectedAgentId === 'autoreiv'");
     expect(chatJs).toContain("chatActiveProjectPill.classList.remove('hidden')");
     expect(chatJs).toContain("chatActiveProjectPill.classList.add('inline-flex')");
     expect(chatJs).toContain("chatActiveProjectPill.classList.add('hidden')");

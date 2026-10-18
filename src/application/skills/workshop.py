@@ -9,7 +9,6 @@ from typing import Any, Iterable, Optional, Sequence
 from src.application.skills.runbook_frontmatter import (
     apply_workshop_metadata,
     frontmatter_view,
-    split_skill_markdown,
 )
 from src.application.skills.user_catalog import ARCHIVE_DIRNAME
 from src.infrastructure.content.store import get_store, split_frontmatter
@@ -93,14 +92,6 @@ def operator_skill_deletable(data_root: Path, skill_id: str, path: Optional[Path
         return False
     return Path(path).is_file()
 
-
-def clear_operator_skill_side_effects(
-    data_root: Path,
-    skill_id: str,
-    db_path: Optional[str] = None,
-) -> None:
-    """Nothing else holds a skill's tools since CARD-570 (the SKILL.md is the only source)."""
-    return None
 
 def _row_for_skill_file(path: Path, skill_id: str, source: str, data_root: Path) -> dict[str, Any]:
     view = frontmatter_view(_read_text(path) or "")
@@ -268,8 +259,4 @@ def persist_workshop_skill(
 
 
 def extract_tools(skill_content: str) -> list[str]:
-    meta, _body = split_skill_markdown(skill_content)
-    raw = meta.get("tools") if meta.get("tools") is not None else meta.get("tools") or []
-    if not isinstance(raw, list):
-        return []
-    return [str(item).strip() for item in raw if str(item).strip()]
+    return list(frontmatter_view(skill_content).get("tools") or [])

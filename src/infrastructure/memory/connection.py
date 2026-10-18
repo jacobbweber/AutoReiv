@@ -10,12 +10,16 @@ from pathlib import Path
 from typing import Optional
 
 from src.infrastructure.memory.schema import (
+    AGENT_CAPABILITY_GAPS_SQL,
     CAPABILITY_CATALOG_SQL,
+    CREDENTIALS_SQL,
     INIT_SCHEMA_SQL,
     JOB_A2A_LINKS_SQL,
     JOB_PHASE_CHECKPOINTS_SQL,
     JOBS_PHASES_SQL,
+    PROMPT_CATALOG_SQL,
     PROPOSALS_SQL,
+    REMOTE_HOSTS_SQL,
     STANDING_JOURNEY_EVENTS_SQL,
 )
 
@@ -203,63 +207,13 @@ class SQLiteConnectionManager:
             except sqlite3.OperationalError:
                 pass
         if "prompt_catalog" not in existing:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS prompt_catalog (
-                    id TEXT PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    category TEXT DEFAULT 'general',
-                    template_text TEXT NOT NULL,
-                    tags TEXT,
-                    is_builtin INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);")
+            conn.executescript(PROMPT_CATALOG_SQL)
         if "credentials" not in existing:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS credentials (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    type TEXT NOT NULL,
-                    encrypted_value TEXT NOT NULL,
-                    nonce TEXT NOT NULL,
-                    description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
+            conn.executescript(CREDENTIALS_SQL)
         if "remote_hosts" not in existing:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS remote_hosts (
-                    id TEXT PRIMARY KEY,
-                    label TEXT NOT NULL,
-                    host TEXT NOT NULL,
-                    port INTEGER NOT NULL DEFAULT 22,
-                    username TEXT NOT NULL,
-                    auth_type TEXT NOT NULL DEFAULT 'password',
-                    credential_id TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_remote_hosts_label ON remote_hosts(label);")
+            conn.executescript(REMOTE_HOSTS_SQL)
         if "agent_capability_gaps" not in existing:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS agent_capability_gaps (
-                    id TEXT PRIMARY KEY,
-                    agent_id TEXT NOT NULL,
-                    session_id TEXT,
-                    turn_text TEXT NOT NULL,
-                    identified_capability TEXT NOT NULL,
-                    suggested_tool_name TEXT,
-                    status TEXT NOT NULL DEFAULT 'pending',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    context_summary TEXT
-                );
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_gaps_agent_status ON agent_capability_gaps(agent_id, status);")
+            conn.executescript(AGENT_CAPABILITY_GAPS_SQL)
 
         # CARD-341: migrate retired platform agents (assistant, wiki) in existing databases
         if "routines" in existing:

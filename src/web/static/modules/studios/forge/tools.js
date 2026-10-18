@@ -47,24 +47,21 @@ export function renderBaselineTools(gridEl = null) {
 }
 
 /**
- * One capability gap row: Open in Skill Studio, Ask Developer, Dismiss [CARD-496 D2].
- * CARD-522: when the suggested tool does not exist yet, Ask Developer comes first and is the primary button.
+ * One capability gap row: Build with AutoReiv, Dismiss [CARD-496 D2, CARD-706].
  */
 export function capabilityGapRowHtml(gap = {}, { toolMissing = false } = {}) {
   const id = escapeHtml(gap.id || '');
   const label = escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability');
   const btn = 'px-2 py-0.5 rounded text-[10px] font-semibold transition';
   const primary = 'bg-brand-600 hover:bg-brand-500 text-white';
-  const secondary = 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700';
-  const openBtn = `<button type="button" class="btn-gap-open-skill-studio ${btn} ${toolMissing ? secondary : primary}" data-gap-id="${id}" title="Write a skill for this gap in Skill Studio">Open in Skill Studio</button>`;
-  const askBtn = `<button type="button" class="btn-gap-ask-developer ${btn} ${toolMissing ? primary : 'bg-indigo-600 hover:bg-indigo-500 text-white'}" data-gap-id="${id}" data-primary="${toolMissing ? 'true' : 'false'}" title="Ask Toolsmith to build a tool for this gap">Ask Developer</button>`;
+  const buildBtn = `<button type="button" class="btn-gap-ask-developer btn-gap-build-autoreiv ${btn} ${primary}" data-gap-id="${id}" data-primary="true" title="Open a Chat session with AutoReiv pre-prompted with this capability gap">Build with AutoReiv</button>`;
   const toolNote = toolMissing ? ' <span class="text-amber-400">(not built yet)</span>' : '';
   return `
       <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${id}" data-tool-missing="${toolMissing ? 'true' : 'false'}">
         <div class="flex flex-wrap items-center justify-between gap-1.5">
           <span class="text-xs font-semibold text-amber-300 font-mono">${label}</span>
           <div class="flex flex-wrap items-center gap-1.5">
-            ${toolMissing ? `${askBtn}\n            ${openBtn}` : `${openBtn}\n            ${askBtn}`}
+            ${buildBtn}
             <button type="button" class="btn-dismiss-gap ${btn} bg-slate-800 hover:bg-slate-700 text-slate-400 font-medium" data-gap-id="${id}">Dismiss</button>
           </div>
         </div>
@@ -98,8 +95,8 @@ export function buildGapDeveloperDraft(gap = {}, agentId = '') {
 }
 
 /**
- * Ask Developer: open a Toolsmith chat with the gap attached; Tools Studio if that fails.
- * Same path as Teach (chat/teach_modal.js) and Tools Studio Talk [CARD-472, CARD-496].
+ * Build with AutoReiv: open an AutoReiv chat with the gap attached; Tools Studio if that fails.
+ * Same path as Teach (chat/teach_modal.js) and Tools Studio Talk [CARD-472, CARD-496, CARD-706].
  */
 export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callbacks = {}, toastFn = showToast } = {}) {
   const draft = buildGapDeveloperDraft(gap, agentId);
@@ -112,7 +109,7 @@ export async function askDeveloperAboutGap(gap, agentId, { fetchFn = null, callb
     });
     return true;
   } catch (err) {
-    toastFn(`Could not open a Toolsmith chat: ${err.message || err}. Opening Tools Studio.`, 'error');
+    toastFn(`Could not open an AutoReiv chat: ${err.message || err}. Opening Tools Studio.`, 'error');
     if (typeof callbacks.openToolsStudio === 'function') callbacks.openToolsStudio(agentId);
     return false;
   }
@@ -158,13 +155,6 @@ export async function loadAgentCapabilityGaps(agentId, callbacks = {}) {
       .map((gap) => capabilityGapRowHtml(gap, { toolMissing: Boolean(toolNames) && gapToolIsMissing(gap, toolNames) }))
       .join('');
     const byId = new Map(items.map((gap) => [String(gap.id), gap]));
-
-    agentBacklogList.querySelectorAll('.btn-gap-open-skill-studio').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const gap = byId.get(String(e.currentTarget.dataset.gapId)) || null;
-        openGapInSkillStudio(agentId, callbacks, gap);
-      });
-    });
 
     agentBacklogList.querySelectorAll('.btn-gap-ask-developer').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
@@ -309,10 +299,6 @@ export function setupAgentMcpControls({ openToolsStudio = null } = {}) {
     const agentId = select ? String(select.value || '').trim() : '';
     if (typeof openToolsStudio === 'function') {
       openToolsStudio(agentId);
-      return;
-    }
-    if (typeof window !== 'undefined' && typeof window.openToolsStudio === 'function') {
-      window.openToolsStudio({ scope: agentId ? 'agent' : 'platform', agentId: agentId || null });
     }
   });
 }

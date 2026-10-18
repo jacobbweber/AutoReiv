@@ -77,13 +77,14 @@ describe('No factory tab anywhere in the shell', () => {
 describe('REQ-496-003/004: capability gaps open Skill Studio or a Developer chat', () => {
   const gap = { id: 'g1', identified_capability: 'inventory_lookup', suggested_tool_name: 'get_tc49_inventory', turn_text: 'Look up TC49 inventory counts' };
 
-  it('a gap row shows Open in Skill Studio, Ask Developer and Dismiss', async () => {
+  it('a gap row shows Build with AutoReiv and Dismiss (Open in Skill Studio and Ask Developer retired in CARD-706)', async () => {
     const { capabilityGapRowHtml } = await import('../../../src/web/static/modules/studios/forge/tools.js');
     const html = capabilityGapRowHtml(gap);
-    expect(html).toContain('btn-gap-open-skill-studio');
-    expect(html).toContain('Open in Skill Studio');
+    expect(html).not.toContain('btn-gap-open-skill-studio');
+    expect(html).not.toContain('Open in Skill Studio');
     expect(html).toContain('btn-gap-ask-developer');
-    expect(html).toContain('Ask Developer');
+    expect(html).toContain('btn-gap-build-autoreiv');
+    expect(html).toContain('Build with AutoReiv');
     expect(html).toContain('btn-dismiss-gap');
     expect(html).not.toMatch(/Factory|btn-open-factory-gap/);
   });

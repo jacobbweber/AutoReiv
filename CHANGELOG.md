@@ -4,6 +4,28 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-18
+
+Codebase tightening, modularization, architectural hygiene, and MCP Credential Vault authentication (`M31`). Decomposes every Python, JavaScript, HTML, and CSS file in `src/` under the 800-line ceiling (guarded by `test_card715_python_file_size_guard.py` and `test_card716_frontend_file_size_guard.py`), unifies `AgentKernel.run_turn` and `stream_turn` onto a single ReAct execution loop (`src/application/kernel/react_loop.py`), extracts chat streaming and job orchestration into `src/application/chat/`, enforces zero upward imports in `src/domain/`, consolidates YAML frontmatter and SQLite DDL onto canonical definitions, adds Credential Vault references (Bearer Token, Basic Auth, Custom Header, Environment Variable) to MCP server configurations, and points Settings and Agents Studio MCP deep-link buttons to Capabilities Studio.
+
+### Changed
+
+- Updated Settings and Agents Studio MCP deep-link buttons to "Open in Capabilities Studio" and added Credential Vault authentication references (Bearer Token, Basic Auth, Custom Header, Environment Variable) when configuring MCP servers [CARD-717].
+- Modularized `settings.js`, `study_entry.js`, `observability.js`, `projects.js`, `chat.js`, `education_players.js`, `desktop.css`, and `index.html` into focused modules and partials under 800 lines, and retired unused `store.js` exports and `window` studio globals [CARD-716].
+- Decomposed `education.py`, `education_tools.py`, `course.py`, `job_phase_orchestrator.py`, `update_service.py`, and `card_tools.py` under the 800-line ceiling and enforced a Python file-size guard test [CARD-715].
+- Split `src/domain/wiki/store.py` (2,125 lines) into focused modules under 800 lines, eliminated double vault file reads in `get_graph`/`get_mindmap`, and enforced zero upward imports in `src/domain/` [CARD-714].
+- Extracted chat turn streaming, background job execution, plan/escalation resume, attachment storage, and active stream tracking into `src/application/chat/` (shrinking `src/web/routers/chat.py` from 2,706 to 784 lines) and moved ecosystem bootstrap out of `src/infrastructure/agents/registry.py` into `src/application/bootstrap/ecosystem.py` [CARD-713].
+- Unified `AgentKernel.run_turn` and `stream_turn` onto a single ReAct execution core (`src/application/kernel/react_loop.py`) and split `agent_kernel.py` (2,045 lines) into focused modules under 800 lines [CARD-712].
+- Consolidated markdown YAML frontmatter parsers onto `src/domain/frontmatter.py`, unified wildcard skill and tool extraction onto canonical helpers, and deduplicated inline SQLite `CREATE TABLE` DDL in `connection.py` onto `schema.py` constants [CARD-711].
+- Unmounted superseded `Skill Studio` and `Tools Studio` controllers from `app.js` (routing legacy tab aliases directly to `#view-capabilities`), removed dead backend no-op helpers, retired the `toolsmith` ID special case in `allowed_tools.py`, and fixed `/api/approvals/{id}/decision` so job phase tool rows are not duplicated into parent chat sessions [CARD-710].
+- Capability gap cards in Agents Studio now show a single **Build with AutoReiv** action (plus **Dismiss**) that opens a new Chat session with AutoReiv pre-prompted with the capability gap details [CARD-706].
+
+### Fixed
+
+- Fixed broken `#chatInput` study composer prefills, refreshed `WikiService` immediately when changing `wiki_path`, moved model-discovery API keys out of URL query strings, ran SSH host probes off the async event loop, and restored the active project pill for `AutoReiv` [CARD-709].
+- Isolated per-turn `AgentKernel` state across nested subagent handoffs, cached `AgentMemoryRepository` schema initialization so ReAct steps no longer re-run DDL and full-table scans, made `save_message` sequence numbering atomic, and bounded `search_past_chats` SQL queries [CARD-708].
+- Fixed startup skill pruning deleting user copies of `platform-health` and `session-inspect`, hardened `CredentialVault` key persistence under the data root, made `is_known_tool` fail closed on errors, and switched pre-update DB snapshots to SQLite online backup [CARD-707].
+
 ## [1.2.0] - 2026-10-17
 
 Crucible and Agent-OS architectural enhancements (`M30`) and post-1.1 self-development hardening (`M29`). Adds token-verified context compaction with non-destructive `archive_links`, per-turn and per-job structured span waterfall tracing (`/api/traces/{trace_id}`) with credential scrubbing, live `ApprovalMode` (`strict` / `balanced` / `hands_off`) with tool effect tiers, provenance-badged `search_past_chats` across active and archived sessions, local inference port auto-probing (`8000, 8006, 11434`), staged RCA self-healing proposals on recurring tool or routine failures, and cleanup of retired `Developer` / `Toolsmith` / `Architect` references and the Chat header role pill.

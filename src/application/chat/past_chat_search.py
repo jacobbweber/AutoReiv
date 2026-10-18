@@ -281,16 +281,61 @@ def _searches_this_turn(store: Any, current_session_id: str | None) -> int:
     return count
 
 
-def _fetch_store_rows(store: Any, *, cold: bool = False) -> list[dict[str, Any]]:
+DEFAULT_SQL_SCAN_LIMIT = 500
+
+
+def _build_message_where_clause(
+    *,
+    tokens: Sequence[str] | None = None,
+    exclude_session_id: str | None = None,
+    agent_id: str | None = None,
+) -> tuple[str, list[Any]]:
+    clauses: list[str] = ["TRIM(COALESCE(m.content, '')) != ''"]
+    params: list[Any] = []
+    if exclude_session_id:
+        clauses.append("m.session_id != ?")
+        params.append(exclude_session_id)
+    if agent_id:
+        clauses.append("(m.agent_id = ? OR COALESCE(m.agent_id, '') = '')")
+        params.append(agent_id)
+    clauses.append("NOT (LOWER(COALESCE(m.role, '')) = 'tool' AND COALESCE(m.name, '') = ?)")
+    params.append(PAST_CHATS_TOOL_NAME)
+    clean_tokens = [str(t).strip().lower() for t in (tokens or []) if str(t).strip()]
+    if clean_tokens:
+        or_parts = []
+        for tok in clean_tokens:
+            escaped = tok.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            or_parts.append("LOWER(m.content) LIKE ? ESCAPE '\\'")
+            params.append(f"%{escaped}%")
+        clauses.append("(" + " OR ".join(or_parts) + ")")
+    where_sql = " WHERE " + " AND ".join(clauses) if clauses else ""
+    return where_sql, params
+
+
+def _fetch_store_rows(
+    store: Any,
+    *,
+    cold: bool = False,
+    tokens: Sequence[str] | None = None,
+    exclude_session_id: str | None = None,
+    agent_id: str | None = None,
+    limit: int = DEFAULT_SQL_SCAN_LIMIT,
+) -> list[dict[str, Any]]:
     if store is None or not hasattr(store, "_get_connection"):
         return []
     conn = store._get_connection()
     try:
         if hasattr(store, "_ensure_archive_links_table"):
             store._ensure_archive_links_table(conn)
+        where_sql, params = _build_message_where_clause(
+            tokens=tokens,
+            exclude_session_id=exclude_session_id,
+            agent_id=agent_id,
+        )
+        safe_limit = max(1, int(limit or DEFAULT_SQL_SCAN_LIMIT))
         cur = conn.cursor()
         cur.execute(
-            """
+            f"""
             SELECT
                 m.id AS message_id,
                 m.session_id AS session_id,
@@ -305,8 +350,11 @@ def _fetch_store_rows(store: Any, *, cold: bool = False) -> list[dict[str, Any]]
             FROM messages m
             LEFT JOIN sessions s ON s.id = m.session_id
             LEFT JOIN archive_links a ON a.message_id = m.id
+            {where_sql}
             ORDER BY m.created_at DESC, m.sequence_num DESC
-            """
+            LIMIT ?
+            """,
+            (*params, safe_limit),
         )
         rows = cur.fetchall()
         out: list[dict[str, Any]] = []
@@ -334,15 +382,28 @@ def _fetch_store_rows(store: Any, *, cold: bool = False) -> list[dict[str, Any]]
             conn.close()
 
 
-def _fetch_cold_sqlite_rows(cold_path: Path) -> list[dict[str, Any]]:
+def _fetch_cold_sqlite_rows(
+    cold_path: Path,
+    *,
+    tokens: Sequence[str] | None = None,
+    exclude_session_id: str | None = None,
+    agent_id: str | None = None,
+    limit: int = DEFAULT_SQL_SCAN_LIMIT,
+) -> list[dict[str, Any]]:
     if not cold_path.is_file():
         return []
-    conn = sqlite3.connect(str(cold_path))
+    conn = sqlite3.connect(str(cold_path), timeout=5.0)
     conn.row_factory = sqlite3.Row
     try:
+        where_sql, params = _build_message_where_clause(
+            tokens=tokens,
+            exclude_session_id=exclude_session_id,
+            agent_id=agent_id,
+        )
+        safe_limit = max(1, int(limit or DEFAULT_SQL_SCAN_LIMIT))
         cur = conn.cursor()
         cur.execute(
-            """
+            f"""
             SELECT
                 m.id AS message_id,
                 m.session_id AS session_id,
@@ -354,8 +415,11 @@ def _fetch_cold_sqlite_rows(cold_path: Path) -> list[dict[str, Any]]:
                 COALESCE(m.created_at, '') AS created_at,
                 '' AS session_title
             FROM messages m
+            {where_sql}
             ORDER BY m.sequence_num DESC
-            """
+            LIMIT ?
+            """,
+            (*params, safe_limit),
         )
         return [
             {
@@ -534,9 +598,22 @@ def search_past_chats(
             "report": report,
         }
 
-    rows = _fetch_store_rows(store, cold=False)
+    rows = _fetch_store_rows(
+        store,
+        cold=False,
+        tokens=tokens,
+        exclude_session_id=current_session_id,
+        agent_id=agent_id,
+    )
     if cold_db_path is not None:
-        rows.extend(_fetch_cold_sqlite_rows(Path(cold_db_path)))
+        rows.extend(
+            _fetch_cold_sqlite_rows(
+                Path(cold_db_path),
+                tokens=tokens,
+                exclude_session_id=current_session_id,
+                agent_id=agent_id,
+            )
+        )
 
     found = _match_rows(
         rows,

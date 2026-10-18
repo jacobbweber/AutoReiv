@@ -14,11 +14,12 @@ describe('CARD-306 Train keep-one + Workbench honesty (Factory retired in CARD-4
     expect(html).not.toMatch(/<span class="font-medium">Train Agent<\/span>/);
   });
 
-  it('Agent Studio gap rows route to Skill Studio or the Developer, never a Factory (CARD-496)', () => {
+  it('Agent Studio gap rows route to Build with AutoReiv, never a Factory (CARD-496, CARD-706)', () => {
     expect(forge).not.toContain('Train in Lab');
     expect(forge).not.toContain('Open Training Factory');
     expect(forge).not.toContain('btn-open-factory-gap');
-    expect(forge).toContain('btn-gap-open-skill-studio');
+    expect(forge).not.toContain('btn-gap-open-skill-studio');
+    expect(forge).toContain('btn-gap-build-autoreiv');
     expect(forge).toContain('btn-gap-ask-developer');
   });
 

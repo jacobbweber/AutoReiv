@@ -508,17 +508,12 @@ def execute_analysis_retention_handoff(
             new_stage, due_dt = next_due_after_grade(correct=correct, interval_stage=stage, now=base)
             due_s = due_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-            with memory_repo.get_connection() as conn:
-                conn.execute(
-                    """
-                    UPDATE education_mastery SET
-                        next_due = ?,
-                        interval_stage = ?,
-                        updated_at = ?
-                    WHERE item_id = ?
-                    """,
-                    (due_s, new_stage, stamp, item_id),
-                )
+            memory_repo.schedule_education_mastery_due(
+                item_id=item_id,
+                next_due=due_s,
+                interval_stage=new_stage,
+                now=base,
+            )
             scheduled_item_ids.append(item_id)
         else:
             scheduled_item_ids.append(item_id)

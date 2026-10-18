@@ -1,0 +1,543 @@
+      <!-- ==================== VIEW: TOOLS STUDIO [CARD-421] ==================== -->
+      <section id="view-tools-studio" role="tabpanel" aria-labelledby="tab-tools-studio" aria-hidden="true" class="tab-view flex-1 hidden flex-col min-h-0 overflow-hidden relative" data-card="421">
+        <div id="toolsStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden" data-testid="tools-studio">
+          <div class="px-4 md:px-6 py-3 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
+            <div>
+              <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="wrench" class="w-4 h-4 text-cyan-400"></i>
+                <span>Tools Studio</span>
+              </h2>
+              <p class="text-[11px] text-slate-400 mt-0.5">Browse the live tool catalog, attach MCP servers, and and ask Toolsmith to create, change, or delete a native tool. You do not paste code here: Toolsmith writes it, and a runtime-built tool runs only after you read and enable it here. Hosting AutoReiv as an MCP server stays in Settings.</p>
+            </div>
+          </div>
+          <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
+            <form id="toolsStudioIntentForm" data-testid="tools-studio-intent-form" data-card="422" class="mb-4 p-4 rounded-xl bg-[#0e1015]/80 border border-white/[0.06] space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-100">Tool intent</h3>
+                  <p class="text-[11px] text-slate-500">Describe the tool. Talk opens a new Toolsmith chat with this form filled in. Submit runs one Toolsmith turn with it. Neither control writes tool code itself.</p>
+                </div>
+                <button type="button" id="toolsStudioNewIntentBtn" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-200 border border-white/[0.08]">New tool intent</button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label for="toolsStudioIntentSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Intent</label>
+                  <select id="toolsStudioIntentSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                    <option value="create">Create</option>
+                    <option value="modify">Modify</option>
+                    <option value="delete">Delete</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="toolsStudioToolNameInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Tool name</label>
+                  <input id="toolsStudioToolNameInput" type="text" placeholder="Required for modify and delete" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+              <div>
+                <label for="toolsStudioBehaviorInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">What the tool should do</label>
+                <textarea id="toolsStudioBehaviorInput" rows="3" placeholder="Describe the behavior. Do not paste implementation code." class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"></textarea>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label for="toolsStudioLanguageInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Language hint</label>
+                  <input id="toolsStudioLanguageInput" type="text" placeholder="Optional, for example Python" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                  <label for="toolsStudioRuntimeInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Runtime hint</label>
+                  <input id="toolsStudioRuntimeInput" type="text" placeholder="Optional runtime note" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label for="toolsStudioPathInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Path or context</label>
+                  <input id="toolsStudioPathInput" type="text" placeholder="Plain text path or note for Toolsmith" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                  <label for="toolsStudioPackagingSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Packaging note</label>
+                  <select id="toolsStudioPackagingSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                    <option value="">Unspecified</option>
+                    <option value="native">Native AutoReiv tool (note only)</option>
+                    <option value="mcp">MCP-backed tool (note only, Toolsmith does not build MCP servers)</option>
+                  </select>
+                  <p class="text-[10px] text-slate-500 mt-1">Recorded for Toolsmith as a note only. This screen does not write the tool. Toolsmith builds native AutoReiv tools only; to use an existing MCP server, attach it below.</p>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" id="toolsStudioTalkBtn" data-testid="tools-studio-talk" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold">Talk to Toolsmith</button>
+                <button type="button" id="toolsStudioSubmitBtn" data-testid="tools-studio-submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">Submit to Toolsmith</button>
+              </div>
+              <div id="toolsStudioAuthoringStatus" class="hidden" data-testid="tools-studio-authoring-status"></div>
+            </form>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+              <div class="p-4 rounded-xl bg-[#0e1015]/80 border border-white/[0.06] space-y-3" data-testid="tools-studio-catalog-pane">
+                <div>
+                  <h3 class="text-xs font-bold text-slate-100">Tool catalog</h3>
+                  <p class="text-[11px] text-slate-500">Platform tools stay in their own groups. MCP tools group under the server that provides them when that list is available.</p>
+                </div>
+                <div id="toolsStudioRuntimeTools" class="hidden space-y-1.5 p-2 rounded-lg border border-white/[0.06]" data-testid="tools-studio-runtime-tools" data-card="570"></div>
+                <div id="toolsStudioFilterBar" class="flex flex-wrap items-end gap-2" data-testid="tools-studio-filters">
+                  <div class="flex-1 min-w-[10rem]">
+                    <label for="toolsStudioFilterSearch" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Search</label>
+                    <input id="toolsStudioFilterSearch" type="search" placeholder="Tool name or description" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div class="w-full sm:w-36">
+                    <label for="toolsStudioFilterSource" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Source</label>
+                    <select id="toolsStudioFilterSource" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">All sources</option>
+                      <option value="platform">Platform</option>
+                      <option value="native">Native custom</option>
+                      <option value="mcp">MCP</option>
+                    </select>
+                  </div>
+                  <div class="w-full sm:w-44">
+                    <label for="toolsStudioFilterStatus" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Status</label>
+                    <select id="toolsStudioFilterStatus" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">Any status</option>
+                      <option value="available">Platform tools</option>
+                      <option value="mounted">Mounted MCP</option>
+                      <option value="configured">Configured, not mounted</option>
+                    </select>
+                  </div>
+                  <button type="button" id="toolsStudioFilterClearBtn" class="px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-300 border border-white/[0.08]">Clear</button>
+                </div>
+                <div id="toolsStudioCatalog" class="space-y-2" data-testid="tools-studio-catalog">
+                  <div class="text-[11px] text-slate-500 italic p-2">Loading catalog…</div>
+                </div>
+              </div>
+
+              <div class="p-4 rounded-xl bg-[#0e1015]/80 border border-white/[0.06] space-y-3" data-testid="tools-studio-mcp-pane">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <h3 class="text-xs font-bold text-slate-100">MCP attach</h3>
+                    <p class="text-[11px] text-slate-500">Platform servers use Settings storage. Agent servers stay on that agent.</p>
+                  </div>
+                  <button type="button" id="toolsStudioAddMcpBtn" class="shrink-0 px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold">Add MCP server</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label for="toolsStudioScopeSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Scope</label>
+                    <select id="toolsStudioScopeSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="platform">Platform</option>
+                      <option value="agent">Agent</option>
+                    </select>
+                  </div>
+                  <div id="toolsStudioAgentField" class="hidden">
+                    <label for="toolsStudioAgentSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Agent</label>
+                    <select id="toolsStudioAgentSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">Select an agent</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="toolsStudioMcpForm" class="hidden p-3 rounded-lg bg-[#141721]/70 border border-white/[0.08] space-y-3">
+                  <span id="toolsStudioMcpFormTitle" class="text-xs font-bold text-slate-200">Add MCP server</span>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label for="toolsStudioMcpNameInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Server name</label>
+                      <input id="toolsStudioMcpNameInput" type="text" placeholder="e.g. github" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                      <label for="toolsStudioMcpTransportSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Transport</label>
+                      <select id="toolsStudioMcpTransportSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <option value="stdio" selected>stdio (local command)</option>
+                        <option value="sse">HTTP / SSE</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="toolsStudioMcpCommandGroup">
+                    <label for="toolsStudioMcpCommandInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Command</label>
+                    <input id="toolsStudioMcpCommandInput" type="text" placeholder="uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div id="toolsStudioMcpUrlGroup" class="hidden">
+                    <label for="toolsStudioMcpUrlInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Remote URL</label>
+                    <input id="toolsStudioMcpUrlInput" type="text" placeholder="http://127.0.0.1:8080/sse" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div id="toolsStudioMcpHeadersGroup" class="hidden">
+                    <label for="toolsStudioMcpHeadersInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">Headers JSON</label>
+                    <input id="toolsStudioMcpHeadersInput" type="text" placeholder='{"Authorization": "Bearer ..."}' class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Environment</span>
+                      <button type="button" id="toolsStudioAddEnvRowBtn" class="text-[11px] text-cyan-300">Add variable</button>
+                    </div>
+                    <div id="toolsStudioMcpEnvRows" class="space-y-2"></div>
+                  </div>
+                  <label class="flex items-center gap-2 text-xs text-slate-300">
+                    <input id="toolsStudioMcpEnabledCheckbox" type="checkbox" checked class="rounded bg-[#08090c] border-white/[0.08] text-cyan-500">
+                    <span>Enabled</span>
+                  </label>
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <button type="button" id="toolsStudioMcpTestBtn" class="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-200 border border-indigo-500/30 text-xs font-semibold">Test handshake</button>
+                    <div class="flex items-center gap-2">
+                      <button type="button" id="toolsStudioMcpCancelBtn" class="px-2.5 py-1.5 rounded-lg bg-white/[0.04] text-slate-300 border border-white/[0.08] text-xs">Cancel</button>
+                      <button type="button" id="toolsStudioMcpSaveBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Save</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="toolsStudioMcpTestResult" class="hidden" data-testid="tools-studio-mcp-result"></div>
+                <div id="toolsStudioMcpList" class="space-y-2" data-testid="tools-studio-mcp-list">
+                  <p class="text-[11px] text-slate-500 italic">Loading MCP servers…</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== MANAGE TONES MODAL [REQ-TONE-005] ==================== -->
+      <div id="manageTonesModal" role="dialog" aria-modal="true" aria-labelledby="manageTonesModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
+        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <!-- Modal Header -->
+          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90 flex-shrink-0">
+            <div>
+              <h3 id="manageTonesModalTitle" class="font-bold text-sm text-white flex items-center space-x-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-brand-400"></i>
+                <span>Manage Tone Directives</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Define and organize custom persona tones for your agents.</p>
+            </div>
+            <button type="button" id="closeManageTonesModalBtn" class="p-1.5 rounded-lg bg-[#13161f] hover:bg-white/[0.06] text-slate-400 hover:text-white border border-white/[0.08] transition" title="Close (Escape)">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="flex-1 p-6 overflow-y-auto space-y-5 text-xs text-slate-200">
+            <!-- Header bar with + New Tone button -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Available Tones</span>
+              <button type="button" id="openNewToneFormBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>New Tone</span>
+              </button>
+            </div>
+
+            <!-- Tones List Container -->
+            <div id="manageTonesList" class="space-y-2.5">
+              <!-- Populated dynamically via API -->
+            </div>
+
+            <!-- Tone Form (Hidden by default, shown for Add/Edit) -->
+            <form id="manageToneForm" class="hidden p-4 rounded-xl bg-[#08090c] border border-white/[0.06] space-y-3.5">
+              <div class="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <h4 id="manageToneFormTitle" class="font-bold text-xs text-white">Create Custom Tone</h4>
+                <button type="button" id="closeToneFormBtn" class="text-slate-500 hover:text-slate-300 text-xs">Cancel</button>
+              </div>
+              <input type="hidden" id="toneFormMode" value="create">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Tone Name <span class="text-rose-400">*</span></label>
+                  <input type="text" id="toneFormName" required placeholder="e.g. Executive Briefing" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Tone ID / Slug <span class="text-rose-400">*</span></label>
+                  <input type="text" id="toneFormId" required placeholder="e.g. executive_briefing" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-slate-400 block mb-1">Description (Optional)</label>
+                <input type="text" id="toneFormDescription" placeholder="e.g. High-level bulleted briefing with key metrics" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-slate-400 block mb-1">Prompt Directive <span class="text-rose-400">*</span></label>
+                <textarea id="toneFormDirective" required rows="3" placeholder="e.g. Tone directive: Concise executive briefing. Lead with key metrics and 1 clear action item." class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono"></textarea>
+              </div>
+              <div class="flex items-center justify-end space-x-2 pt-1">
+                <button type="button" id="cancelToneFormBtn" class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
+                <button type="submit" id="saveToneBtn" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">Save Tone</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="px-6 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-between text-[11px] text-slate-500 flex-shrink-0">
+            <span>Built-in system tones are protected.</span>
+            <span class="font-mono">ESC to close</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== DELETE AGENT CONFIRMATION MODAL [CARD-132] ==================== -->
+      <div id="deleteAgentModal" role="dialog" aria-modal="true" aria-labelledby="deleteAgentModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
+            <h3 id="deleteAgentModalTitle" class="font-bold text-sm text-rose-300 flex items-center space-x-2">
+              <i data-lucide="trash-2" class="w-4 h-4 text-rose-400"></i>
+              <span>Delete Custom Agent</span>
+            </h3>
+            <button id="closeDeleteAgentModalBtn" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div class="p-6 space-y-4 text-xs text-slate-300">
+            <p id="deleteAgentModalMessage">Are you sure you want to delete this custom agent? This will remove the agent configuration and its skill files.</p>
+            <div class="bg-rose-950/20 border border-rose-900/30 rounded-xl p-3.5 space-y-2">
+              <label class="flex items-start space-x-2.5 cursor-pointer">
+                <input type="checkbox" id="purgeHistoryCheckbox" class="mt-0.5 rounded bg-[#13161f] border-white/[0.08] text-rose-600 focus:ring-0">
+                <div>
+                  <span class="font-semibold text-rose-200 block">Permanently purge all chat history &amp; telemetry</span>
+                  <span class="text-[11px] text-slate-400 leading-normal block">Spend records and session transcripts will be permanently removed from Observability.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2">
+            <button type="button" id="cancelDeleteAgentBtn" class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
+            <button type="button" id="confirmDeleteAgentBtn" class="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Confirm Delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ==================== AGENT BRAIN INSPECTOR DRAWER [CARD-116] ==================== -->
+      <div id="agentBrainDrawer" role="dialog" aria-modal="true" aria-labelledby="agentBrainDrawerTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/80 backdrop-blur-sm flex justify-end">
+        <div class="bg-[#0e1015] border-l border-white/[0.08] w-full max-w-xl h-full shadow-2xl flex flex-col">
+          <!-- Drawer Header -->
+          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90 flex-shrink-0">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-8 h-8 rounded-lg bg-purple-950/60 border border-purple-800/50 flex items-center justify-center text-purple-400">
+                <i data-lucide="brain" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 id="agentBrainDrawerTitle" class="font-bold text-sm text-white flex items-center space-x-1.5">
+                  <span>Brain Inspector</span>
+                  <span id="brainDrawerAgentName" class="text-xs text-purple-300 font-mono font-normal"></span>
+                </h3>
+                <p class="text-[11px] text-slate-400">Per-agent cognitive memory shelves and decay physics</p>
+              </div>
+            </div>
+            <button type="button" id="closeBrainDrawerBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.06] transition">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="p-4 border-b border-white/[0.06] bg-[#08090c]/80 flex items-center space-x-2 flex-shrink-0">
+            <div class="relative flex-1">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+              <input type="text" id="brainSearchInput" placeholder="Search semantic facts (SQLite FTS5)..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono">
+            </div>
+          </div>
+
+          <!-- Drawer Content (Scrollable Shelves) -->
+          <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <!-- Shelf 1: Pinned Directives -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <i data-lucide="pin" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>Shelf 1: Pinned Directives</span>
+                </h4>
+                <span class="text-[10px] font-mono text-slate-500">Permanent</span>
+              </div>
+              <div id="brainShelfPinnedContainer" class="p-3 rounded-xl bg-[#08090c] border border-white/[0.06] text-xs text-slate-300 font-mono whitespace-pre-wrap">
+                <span class="text-slate-500 italic">No pinned directives configured.</span>
+              </div>
+            </div>
+
+            <!-- Shelf 2: Episodic Summaries -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <i data-lucide="history" class="w-3.5 h-3.5 text-blue-400"></i>
+                  <span>Shelf 2: Episodic Summaries</span>
+                </h4>
+                <span id="brainShelfSummariesCount" class="text-[10px] font-mono text-slate-500">0 sessions</span>
+              </div>
+              <div id="brainShelfSummariesContainer" class="space-y-2">
+                <div class="text-slate-500 text-xs italic py-2">No episodic session summaries recorded yet.</div>
+              </div>
+            </div>
+
+            <!-- Shelf 3: Semantic Facts -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Shelf 3: Semantic Facts</span>
+                </h4>
+                <span id="brainShelfFactsCount" class="text-[10px] font-mono text-slate-500">0 facts</span>
+              </div>
+              <div id="brainShelfFactsContainer" class="space-y-2">
+                <div class="text-slate-500 text-xs italic py-2">No semantic facts compiled yet.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drawer Footer -->
+          <div class="px-6 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-between text-xs flex-shrink-0">
+            <span class="text-slate-500 text-[11px]">Decay physics applied autonomously</span>
+            <button type="button" id="closeBrainDrawerFooterBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW: UNIFIED CAPABILITIES DIRECTORY TREE STUDIO [CARD-690, ADR-0065] ==================== -->
+      <section id="view-capabilities" role="tabpanel" aria-labelledby="tab-capabilities" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full min-h-0 overflow-hidden relative" data-card="690">
+        <div id="capabilitiesStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden" data-testid="capabilities-studio">
+          <div class="px-3 md:px-6 py-3 bg-[#0e1015]/90 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <i data-lucide="folder-tree" class="w-4 h-4"></i>
+              </div>
+              <div class="min-w-0">
+                <h2 class="font-bold text-sm md:text-base text-white tracking-tight truncate">Capabilities</h2>
+                <p class="text-[11px] text-slate-400 hidden sm:block truncate">Agora skill folders (<code class="text-slate-300">SKILL.md</code>, <code class="text-slate-300">references/*.md</code>, <code class="text-slate-300">tools/*.py</code>) — browse, edit, and toggle tools.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" id="capabilitiesNewSkillBtn" data-testid="capabilities-new-skill-btn" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold transition flex items-center gap-1.5">
+                <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                <span>+ New Skill</span>
+              </button>
+              <button type="button" id="capabilitiesRefreshBtn" data-testid="capabilities-refresh-btn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-[#13161f] hover:bg-white/[0.06] border border-white/[0.08] transition" title="Refresh Capabilities Tree">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="capabilitiesCreateBar" class="hidden px-3 md:px-6 py-2.5 bg-[#11141d] border-b border-brand-500/30 flex flex-wrap items-center gap-2 flex-shrink-0" data-testid="capabilities-create-bar">
+            <label for="capabilitiesCreateNameInput" id="capabilitiesCreateKindLabel" class="text-xs font-semibold text-brand-300">New skill folder ID:</label>
+            <input id="capabilitiesCreateNameInput" data-testid="capabilities-create-name-input" type="text" placeholder="e.g. my-skill" class="flex-1 min-w-[10rem] bg-[#08090c] border border-white/[0.1] rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-brand-500">
+            <button type="button" id="capabilitiesCreateConfirmBtn" data-testid="capabilities-create-confirm-btn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Create</button>
+            <button type="button" id="capabilitiesCreateCancelBtn" data-testid="capabilities-create-cancel-btn" class="px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 text-xs border border-white/[0.08]">Cancel</button>
+          </div>
+
+          <!-- Staged RCA Self-Healing Proposals [CARD-704] -->
+          <div id="capabilitiesRcaProposalsPanel" data-testid="rca-proposals-panel" class="hidden px-3 md:px-6 py-3 bg-amber-950/20 border-b border-amber-500/30 space-y-2.5 flex-shrink-0" data-card="704">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <h3 class="text-xs font-bold text-amber-200">Staged RCA Self-Healing Proposals</h3>
+                <span id="capabilitiesRcaCountBadge" data-testid="rca-proposals-count" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+              </div>
+              <button type="button" id="capabilitiesRcaRefreshBtn" data-testid="rca-proposals-refresh" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 text-[11px] border border-white/[0.08] transition">Refresh</button>
+            </div>
+            <div id="capabilitiesRcaProposalsList" data-testid="rca-proposals-list" class="space-y-2 max-h-56 overflow-y-auto"></div>
+          </div>
+
+          <div class="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden p-2 sm:p-4 flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-4 bg-[#08090c]">
+            <!-- Left Pane: Agora Directory Tree -->
+            <div id="capabilitiesTreePane" data-testid="capabilities-tree-pane" class="lg:col-span-5 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-3 sm:p-4 space-y-3 min-w-0 lg:min-h-0 lg:overflow-hidden">
+              <div class="flex items-center gap-2">
+                <div class="relative flex-1 min-w-0">
+                  <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                  <input type="search" id="capabilitiesTreeSearch" data-testid="capabilities-tree-search" placeholder="Filter skills, references, or tools..." class="w-full bg-[#13161f] border border-white/[0.08] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" autocomplete="off">
+                </div>
+              </div>
+              <div id="capabilitiesTreeList" data-testid="capabilities-tree-list" class="flex-1 min-h-[12rem] lg:min-h-0 max-h-[42vh] lg:max-h-none overflow-y-auto space-y-1.5 pr-1">
+                <div class="text-xs text-slate-500 italic p-2">Loading Agora skill folders...</div>
+              </div>
+            </div>
+
+            <!-- Right Pane: File Viewer / Editor & Tool Status Bar -->
+            <div id="capabilitiesInspectorPane" data-testid="capabilities-inspector-pane" class="lg:col-span-7 flex flex-col bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-3 sm:p-4 space-y-3 min-w-0 lg:min-h-0 lg:overflow-y-auto">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/[0.06]">
+                <div class="min-w-0 flex items-center gap-2">
+                  <span id="capabilitiesActivePath" data-testid="capabilities-active-path" class="font-mono text-xs font-bold text-emerald-300 truncate">Select a skill folder to inspect</span>
+                  <span id="capabilitiesActiveSourceBadge" class="px-2 py-0.5 rounded-full bg-[#13161f] border border-white/[0.08] text-[10px] font-mono text-slate-300 shrink-0">agora</span>
+                </div>
+                <button type="button" id="capabilitiesSaveFileBtn" data-testid="capabilities-save-btn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm shadow-emerald-600/20 transition flex items-center gap-1.5 shrink-0">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                  <span>Save File</span>
+                </button>
+              </div>
+
+              <div id="capabilitiesFeedbackBanner" data-testid="capabilities-feedback" class="hidden" role="status" aria-live="polite"></div>
+
+              <div id="capabilitiesToolStatusCard" data-testid="capabilities-tool-status-card" class="hidden"></div>
+
+              <!-- MCP Servers Inspector Pane [CARD-692] -->
+              <div id="capabilitiesMcpPane" data-testid="capabilities-mcp-pane" class="hidden space-y-3 p-3 rounded-xl bg-[#0b0d13] border border-white/[0.06]">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 class="text-xs font-bold text-slate-100">MCP Servers</h3>
+                    <p class="text-[11px] text-slate-400">Attach platform-wide or per-agent MCP servers and inspect mounted tools.</p>
+                  </div>
+                  <button type="button" id="capabilitiesMcpAddBtn" data-testid="capabilities-mcp-add-btn" class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition">+ Add MCP Server</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label for="capabilitiesMcpScopeSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Scope</label>
+                    <select id="capabilitiesMcpScopeSelect" data-testid="capabilities-mcp-scope" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="platform">Platform</option>
+                      <option value="agent">Agent</option>
+                    </select>
+                  </div>
+                  <div id="capabilitiesMcpAgentField" class="hidden">
+                    <label for="capabilitiesMcpAgentSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Agent</label>
+                    <select id="capabilitiesMcpAgentSelect" data-testid="capabilities-mcp-agent" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                      <option value="">Select an agent</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="capabilitiesMcpForm" class="hidden p-3 rounded-lg bg-[#141721]/70 border border-white/[0.08] space-y-2.5">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label for="capabilitiesMcpNameInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Server Name</label>
+                      <input id="capabilitiesMcpNameInput" type="text" placeholder="e.g. github" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                      <label for="capabilitiesMcpTransportSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Transport</label>
+                      <select id="capabilitiesMcpTransportSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <option value="stdio" selected>stdio (local command)</option>
+                        <option value="sse">HTTP / SSE</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="capabilitiesMcpCommandGroup">
+                    <label for="capabilitiesMcpCommandInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Command</label>
+                    <input id="capabilitiesMcpCommandInput" type="text" placeholder="uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div id="capabilitiesMcpUrlGroup" class="hidden">
+                    <label for="capabilitiesMcpUrlInput" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Remote URL</label>
+                    <input id="capabilitiesMcpUrlInput" type="text" placeholder="http://127.0.0.1:8080/sse" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div id="capabilitiesMcpVaultGroup" class="p-2.5 rounded-lg bg-[#08090c]/60 border border-white/[0.06] space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <label for="capabilitiesMcpCredentialSelect" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Vault Credential (Optional)</label>
+                      <button type="button" id="capabilitiesMcpManageVaultBtn" data-testid="capabilities-mcp-manage-vault-btn" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium transition">Manage in Vault →</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <select id="capabilitiesMcpCredentialSelect" data-testid="capabilities-mcp-credential" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                          <option value="">None (No Vault credential)</option>
+                        </select>
+                      </div>
+                      <div id="capabilitiesMcpAuthTypeGroup">
+                        <select id="capabilitiesMcpAuthTypeSelect" data-testid="capabilities-mcp-auth-type" aria-label="Authentication scheme" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                          <option value="bearer" selected>Bearer Token (Authorization: Bearer …)</option>
+                          <option value="basic">Basic Auth (Authorization: Basic …)</option>
+                          <option value="header">Custom Header (e.g. X-API-Key)</option>
+                          <option value="env">Environment Variable (stdio)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div id="capabilitiesMcpAuthHeaderGroup" class="hidden">
+                      <label for="capabilitiesMcpAuthHeaderInput" id="capabilitiesMcpAuthHeaderLabel" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Header or Env Var Name</label>
+                      <input id="capabilitiesMcpAuthHeaderInput" data-testid="capabilities-mcp-auth-header" type="text" placeholder="X-API-Key or MCP_API_KEY" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500">
+                    </div>
+                  </div>
+                  <label class="flex items-center gap-2 text-xs text-slate-300">
+                    <input id="capabilitiesMcpEnabledCheckbox" type="checkbox" checked class="rounded bg-[#08090c] border-white/[0.08] text-cyan-500">
+                    <span>Enabled</span>
+                  </label>
+                  <div class="flex items-center justify-end gap-2">
+                    <button type="button" id="capabilitiesMcpCancelBtn" class="px-2.5 py-1.5 rounded-lg bg-white/[0.04] text-slate-300 border border-white/[0.08] text-xs">Cancel</button>
+                    <button type="button" id="capabilitiesMcpSaveBtn" data-testid="capabilities-mcp-save-btn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Save MCP Server</button>
+                  </div>
+                </div>
+                <div id="capabilitiesMcpList" data-testid="capabilities-mcp-list" class="space-y-2">
+                  <p class="text-[11px] text-slate-500 italic">Select a scope to inspect MCP servers.</p>
+                </div>
+              </div>
+
+              <div id="capabilitiesFileEditorContainer" class="flex-1 flex flex-col min-h-[16rem] space-y-1.5">
+                <label for="capabilitiesFileEditor" class="text-[11px] font-semibold text-slate-400">File Content (<code class="text-slate-300">SKILL.md</code>, <code class="text-slate-300">references/*.md</code>, or <code class="text-slate-300">tools/*.py</code>)</label>
+                <textarea id="capabilitiesFileEditor" data-testid="capabilities-file-editor" rows="14" placeholder="Select a file from the Agora tree on the left..." class="flex-1 w-full bg-[#08090c] border border-white/[0.08] rounded-xl p-3 text-xs text-slate-100 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed resize-y"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>

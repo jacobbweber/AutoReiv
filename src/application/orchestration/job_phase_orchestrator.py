@@ -12,15 +12,22 @@ from typing import Any, List, Mapping, Optional, Sequence, Union
 
 from src.application.capabilities.resolver import CapabilityCatalogResolver, ResolveResult
 from src.application.orchestration.crash_resume import (
-    CrashResumeResult,
     verifier_status_from_facts,
 )
-from src.application.orchestration.job_phase_memory import persist_phase_memory_for_job
+from src.application.orchestration.job_recovery import (
+    _PHASE_RUN_TOKENS as _PHASE_RUN_TOKENS,
+)
+from src.application.orchestration.job_recovery import (
+    JobRecoveryMixin,
+)
+from src.application.orchestration.job_recovery import (
+    _ticks_coding as _ticks_coding,
+)
+from src.application.orchestration.job_recovery import (
+    resolve_specialist_agent_for_capabilities as resolve_specialist_agent_for_capabilities,
+)
 from src.application.orchestration.kill_resume import (
-    OPERATOR_KILL_REASON,
     WAITING_FOR_ANSWER_REASON,
-    is_operator_kill_reason,
-    kill_checkpoint_payload,
 )
 from src.application.orchestration.outcome_intake import (
     OutcomeIntakeError,
@@ -34,13 +41,11 @@ from src.application.orchestration.research_before_plan import (
     assess_catalog_match,
     run_standing_research,
 )
-from src.domain.agents.profiles import DEFAULT_PLATFORM_AGENT_ID, canonical_agent_id
 from src.domain.kernel.models import DEFAULT_AGENT_MAX_TURNS
 from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import (
     HandoffPacket,
     Job,
-    JobPhaseCheckpoint,
     JobStatus,
     Phase,
     PhaseSpec,
@@ -50,10 +55,6 @@ from src.domain.orchestration.models import (
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
-
-# CARD-530 D3: which run owns a running phase (one serve process). start_phase mints a token; a cancelled
-# worker may only re-queue the phase if it still holds the current token.
-_PHASE_RUN_TOKENS: dict[str, str] = {}
 
 _TERMINAL_PHASE = {PhaseStatus.DONE, PhaseStatus.FAILED, PhaseStatus.CANCELLED}
 _TERMINAL_JOB = {JobStatus.DONE, JobStatus.FAILED, JobStatus.CANCELLED}
@@ -94,73 +95,7 @@ def _default_packet(
     )
 
 
-def _ticks_coding(agent_id: str, store: Optional[Any]) -> bool:
-    if agent_id == "developer":
-        return True
-    getter = getattr(store, "get_agent_profile", None) if store is not None else None
-    profile = getter(agent_id) if callable(getter) else None
-    if profile is not None:
-        return "coding" in (getattr(profile, "allowed_skill", None) or [])
-    from src.infrastructure.content.store import get_store  # CARD-570: the winning agent file
-
-    item = get_store().agents.load(agent_id)
-    return bool(item and "coding" in item.skills)
-
-
-def resolve_specialist_agent_for_capabilities(
-    matched_ids: Sequence[str],
-    default_agent_id: str,
-    store: Optional[Any] = None,
-) -> str:
-    """
-    Resolve specialist agent for execution phase when capabilities require specialist dispatch [CARD-336, CARD-339, CARD-341, CARD-383].
-    Uses canonical_agent_id for single-source resolution rather than ad-hoc string comparisons.
-    """
-    canonical_default = canonical_agent_id(default_agent_id or DEFAULT_PLATFORM_AGENT_ID)
-    if not matched_ids:
-        return canonical_default
-
-    for cid in matched_ids:
-        s = str(cid or "").strip().lower()
-        prefix = "agent." if s.startswith("agent.") else ""
-        candidate = s[len(prefix) :] if prefix else ""
-        if not candidate:
-            continue
-        resolved = canonical_agent_id(candidate)
-        # CARD-544: a match on the chat's own agent (role bonus) is not a specialist pick; keep routing by family.
-        if resolved != canonical_default:
-            return resolved
-
-    has_coding_tools = any(
-        any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "coding"))
-        for cid in matched_ids
-    )
-    if has_coding_tools:  # CARD-544 D1: code work goes to Developer unless the default agent ticks coding
-        return canonical_default if _ticks_coding(canonical_default, store) else "developer"
-
-    has_tutor_tools = any(
-        any(k in cid.lower() for k in ("tutor", "education", "mastery", "quiz", "elaboration", "flashcard"))
-        for cid in matched_ids
-    )
-    if has_tutor_tools:
-        return DEFAULT_PLATFORM_AGENT_ID
-
-    has_autoreiv_tools = any(
-        any(k in cid.lower() for k in ("wiki_", "wiki_note", "weekly_note", "weekly_task", "work_item", "rollover", "system_info", "health", "sre", "diagnostics", "platform-health"))
-        for cid in matched_ids
-    )
-    if has_autoreiv_tools:
-        return DEFAULT_PLATFORM_AGENT_ID
-
-    for cid in matched_ids:
-        s = str(cid or "").strip().lower()
-        if "homelab" in s:
-            return "homelab"
-
-    return canonical_default
-
-
-class JobPhaseOrchestrator:
+class JobPhaseOrchestrator(JobRecoveryMixin):
     """
     Create job -> run phase -> on DONE next or finish.
     PARKED / FAILED / waiting_approval do not auto-advance.
@@ -203,7 +138,13 @@ class JobPhaseOrchestrator:
             session_id=session_id,
             agent_id=agent_id,
             phase_specs=[
-                PhaseSpec(name=name, success_rule=success_rule, assigned_agent_id=agent_id, verify_checker=verify_checker, max_turns=max_turns)
+                PhaseSpec(
+                    name=name,
+                    success_rule=success_rule,
+                    assigned_agent_id=agent_id,
+                    verify_checker=verify_checker,
+                    max_turns=max_turns,
+                )
             ],
             template_id=template_id,
             budget_max_phases=budget_max_phases,
@@ -283,11 +224,6 @@ class JobPhaseOrchestrator:
         """queued (or parked waiting_approval) -> running. Job becomes running."""
         phase = self._store.get_phase(phase_id)
         job = self._store.get_job(phase.job_id)
-        # CARD-230 fail-closed intake gate before phase 1 [REQ-INTAKE-004].
-        # Applies to standing catalog / outcome-intake jobs only so legacy bare
-        # Job/Phase unit fixtures (215-229) keep exercising the state machine.
-        # CARD-231: Research phase with research_inserted may start when matched
-        # IDs are empty (gap fill into memory.db); still requires testable rule.
         if int(getattr(phase, "index", 0) or 0) == 0:
             template = getattr(job, "template_id", None) or ""
             matched = self.matched_capability_ids_for_job(job.id)
@@ -335,10 +271,6 @@ class JobPhaseOrchestrator:
         _PHASE_RUN_TOKENS[updated.id] = uuid.uuid4().hex
         logger.info("Started phase %s on job %s", updated.id, job.id)
         return updated
-
-    def phase_run_token(self, phase_id: str) -> Optional[str]:
-        """Token of the run that last started ``phase_id`` in this process [CARD-530 D3]."""
-        return _PHASE_RUN_TOKENS.get(phase_id)
 
     def complete_phase(
         self,
@@ -464,7 +396,6 @@ class JobPhaseOrchestrator:
         logger.info("Cancelled job %s", job_id)
         return updated
 
-
     def replan_job(
         self,
         job_id: str,
@@ -485,7 +416,6 @@ class JobPhaseOrchestrator:
 
         existing = self._store.list_phases_for_job(job_id)
         done_phases = [p for p in existing if p.status == PhaseStatus.DONE]
-        # Indices are unique per job; cancelled rows retain theirs, so append after max.
         max_index = max((p.index for p in existing), default=-1)
 
         for phase in existing:
@@ -538,89 +468,6 @@ class JobPhaseOrchestrator:
             updated.current_phase_id,
         )
         return updated
-
-    def _commit_checkpoint(
-        self,
-        phase: Phase,
-        *,
-        verifier_status: str,
-        hitl_park_state: bool = False,
-        matched_capability_ids: Optional[Sequence[str]] = None,
-        memory_fact_ids: Optional[Sequence[str]] = None,
-        research_inserted: Optional[bool] = None,
-        research_reason: Optional[str] = None,
-        replan_count: Optional[int] = None,
-        last_fail_reason: Optional[str] = None,
-    ) -> JobPhaseCheckpoint:
-        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226 / CARD-231 / CARD-232]."""
-        saver = getattr(self._store, "save_job_phase_checkpoint", None)
-        if not callable(saver):
-            raise RuntimeError("Store does not support job_phase_checkpoints")
-        ids: Optional[list[str]]
-        if matched_capability_ids is not None:
-            ids = [str(x) for x in matched_capability_ids]
-            self._matched_ids[phase.job_id] = list(ids)
-        else:
-            ids = self._matched_ids.get(phase.job_id)
-            if ids is None:
-                prior = self.get_latest_checkpoint(phase.job_id)
-                ids = list(prior.matched_capability_ids) if prior else []
-                if ids:
-                    self._matched_ids[phase.job_id] = list(ids)
-        prior_cp = self.get_latest_checkpoint(phase.job_id)
-        prior_mem = list(prior_cp.memory_fact_ids) if prior_cp else []
-        if memory_fact_ids is not None:
-            # Accumulate across phases so resume sees full job memory refs [REQ-JPMEM-002].
-            merged: list[str] = []
-            for x in prior_mem + [str(i) for i in memory_fact_ids]:
-                if x and x not in merged:
-                    merged.append(x)
-            mem_ids = merged
-        else:
-            mem_ids = prior_mem
-        cp = saver(
-            job_id=phase.job_id,
-            phase_id=phase.id,
-            phase_index=int(phase.index),
-            verifier_status=verifier_status,
-            hitl_park_state=hitl_park_state,
-            matched_capability_ids=ids,
-            memory_fact_ids=mem_ids,
-            research_inserted=research_inserted,
-            research_reason=research_reason,
-            replan_count=replan_count,
-            last_fail_reason=last_fail_reason,
-        )
-        logger.info(
-            "Checkpoint job=%s phase_index=%s verifier=%s park=%s caps=%s mem=%s",
-            phase.job_id,
-            phase.index,
-            verifier_status,
-            hitl_park_state,
-            len(ids or []),
-            len(mem_ids or []),
-        )
-        return cp
-
-    def _persist_phase_memory(self, phase: Phase, facts: list[str]) -> list[str]:
-        """Write phase facts into <agent>_memory.db; return fact ids [REQ-JPMEM-002]."""
-        try:
-            job = self._store.get_job(phase.job_id)
-            raw_agent = getattr(job, "agent_id", None) or getattr(phase, "assigned_agent_id", None) or DEFAULT_PLATFORM_AGENT_ID
-            agent_id = canonical_agent_id(str(raw_agent))
-            return persist_phase_memory_for_job(
-                agent_id=str(agent_id),
-                job_id=phase.job_id,
-                phase_index=int(phase.index),
-                phase_name=str(phase.name or f"phase_{phase.index}"),
-                facts=facts,
-                data_dir=self._data_dir,
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Phase memory persist skipped: %s", exc)
-            return []
-
-
 
     def _resolve_skill_catalog(self) -> Any:
         if self._skill_catalog is not None:
@@ -693,7 +540,6 @@ class JobPhaseOrchestrator:
         skill_ids = self.matched_skill_ids_for_job(phase.job_id)
         if not skill_ids:
             return []
-        # Round-robin start index; skip unloadable ids but still load at most ONE body.
         start = phase.index % len(skill_ids)
         ordered = skill_ids[start:] + skill_ids[:start]
         last: dict[str, Any] | None = None
@@ -703,7 +549,6 @@ class JobPhaseOrchestrator:
             if bound.get("success"):
                 return [bound]
         return [last] if last is not None else []
-
 
     def supervisor_pick_specialist(
         self,
@@ -759,14 +604,6 @@ class JobPhaseOrchestrator:
         """
         Standing C runtime [REQ-CATJOB-001 / CARD-231]: intent → matched subset →
         Research(optional)/Formulate/Execute.
-
-        When matched_capability_ids is provided (resume path), reuse that subset and do not
-        cold re-resolve [REQ-CATJOB-002].
-
-        CARD-230: derive/persist testable job.success_rule; matched IDs are authority
-        (agent_id is preference only) [REQ-INTAKE-002, REQ-INTAKE-003].
-
-        CARD-231: thin/gap → insert Research before Formulate; sufficient → skip research.
         """
         ids: list[str]
         resolve_facts: list[str] = []
@@ -789,12 +626,9 @@ class JobPhaseOrchestrator:
             for e in result.matched:
                 matched_entry_keywords[e.id] = list(getattr(e, "keywords", None) or [])
 
-        # Agent picker preference must not widen matched subset [REQ-INTAKE-003].
         ids = matched_ids_authority(ids, preferred_agent_id=agent_id)
-
         job_success_rule = derive_success_rule(intent, explicit=success_rule)
 
-        # Fill keyword map from catalog store when reuse path omitted entry metadata.
         if ids and not matched_entry_keywords and self._capability_resolver is not None:
             store = getattr(self._capability_resolver, "_store", None)
             getter = getattr(store, "get_entry", None) if store is not None else None
@@ -833,8 +667,6 @@ class JobPhaseOrchestrator:
         phase_specs.append(
             PhaseSpec(
                 name="Formulate",
-                # CARD-665: the goal, not the matched ids; ids are in the matched list and the tools block says
-                # which of them this step can call.
                 success_rule=f"Write the plan (plan only) for: {goal}",
                 assigned_agent_id=agent_id,
                 verify_checker=None,
@@ -860,7 +692,6 @@ class JobPhaseOrchestrator:
             success_rule=job_success_rule,
         )
         self._matched_ids[job.id] = list(ids)
-        # Bootstrap checkpoint so resume can reuse matched IDs before first phase commit.
         phases = self._store.list_phases_for_job(job.id)
         first = phases[0]
         self._commit_checkpoint(
@@ -871,7 +702,6 @@ class JobPhaseOrchestrator:
             research_inserted=assessment.research_inserted,
             research_reason=assessment.reason,
         )
-        # Standing journey: record research decision even when skipped [REQ-RESEARCH-004].
         ev = getattr(self._store, "save_standing_journey_event", None)
         if callable(ev):
             try:
@@ -888,8 +718,6 @@ class JobPhaseOrchestrator:
                 )
             except Exception:
                 pass
-        # Thin/gap: run research side-effects (memory.db + gap proposals) immediately
-        # so phase-0 Research has facts before formulate [REQ-RESEARCH-003].
         if assessment.research_inserted:
             try:
                 run_standing_research(
@@ -911,267 +739,6 @@ class JobPhaseOrchestrator:
             resolve_facts,
         )
         return job
-
-    def checkpoint_mid_llm_kill_phase(
-        self, phase_id: str, run_token: Optional[str] = None, reason: str = OPERATOR_KILL_REASON
-    ) -> dict:
-        """Operator/worker kill mid-LLM: checkpoint + re-queue, never fail/cancel [CARD-259].
-
-        ``run_token`` (a cancelled worker's own token): when a newer run has started the phase since,
-        leave it alone [CARD-530 REQ-530-004]. Stop (no token) always checkpoints. ``reason`` is
-        SERVER_RESTART_REASON for the startup repair [CARD-609].
-        """
-        phase = self._store.get_phase(phase_id)
-        job = self._store.get_job(phase.job_id)
-        current_token = _PHASE_RUN_TOKENS.get(phase_id)
-        if run_token and current_token and current_token != run_token:
-            logger.info("Skipped stale kill checkpoint job=%s phase=%s (newer run owns it)", phase.job_id, phase.id)
-            return kill_checkpoint_payload(
-                job_id=phase.job_id,
-                phase_id=phase.id,
-                phase_name=getattr(phase, "name", None),
-                checkpointed=False,
-                extra={"stale_run": True, "phase_status": phase.status.value},
-            )
-        if phase.status in {PhaseStatus.FAILED, PhaseStatus.CANCELLED, PhaseStatus.DONE}:
-            return kill_checkpoint_payload(
-                job_id=phase.job_id,
-                phase_id=phase.id,
-                phase_name=getattr(phase, "name", None),
-                checkpointed=False,
-                resumable=job.status not in _TERMINAL_JOB,
-                extra={"already_terminal": True, "phase_status": phase.status.value},
-            )
-        if phase.status == PhaseStatus.WAITING_APPROVAL:
-            return kill_checkpoint_payload(
-                job_id=phase.job_id,
-                phase_id=phase.id,
-                phase_name=getattr(phase, "name", None),
-                checkpointed=True,
-                extra={"parked": True},
-            )
-        if phase.status == PhaseStatus.RUNNING:
-            phase.status = PhaseStatus.QUEUED
-            phase.react_state = None
-            phase = self._store.update_phase(phase)
-            try:
-                self._commit_checkpoint(
-                    phase,
-                    verifier_status="none",
-                    hitl_park_state=False,
-                    last_fail_reason=reason,
-                )
-            except Exception:
-                logger.exception("kill checkpoint write failed job=%s phase=%s", phase.job_id, phase.id)
-            if job.status not in _TERMINAL_JOB:
-                job = self._store.update_job_status(
-                    job.id,
-                    JobStatus.RUNNING.value,
-                    current_phase_id=phase.id,
-                )
-            ev = getattr(self._store, "save_standing_journey_event", None)
-            if callable(ev):
-                try:
-                    ev(
-                        job_id=phase.job_id,
-                        kind="kill_checkpointed",
-                        payload={
-                            "phase_id": phase.id,
-                            "phase_index": phase.index,
-                            "reason": reason,
-                        },
-                    )
-                except Exception:
-                    pass
-            logger.info(
-                "Kill-checkpointed job %s phase %s (RUNNING -> QUEUED)",
-                phase.job_id,
-                phase.id,
-            )
-            return kill_checkpoint_payload(
-                job_id=phase.job_id,
-                phase_id=phase.id,
-                phase_name=getattr(phase, "name", None),
-                checkpointed=True,
-            )
-        # Already queued (idempotent second kill / CancelledError after abort).
-        return kill_checkpoint_payload(
-            job_id=phase.job_id,
-            phase_id=phase.id,
-            phase_name=getattr(phase, "name", None),
-            checkpointed=True,
-            extra={"already_queued": True},
-        )
-
-    def checkpoint_mid_llm_kill(self, session_id: str) -> dict:
-        """Checkpoint every in-flight phase on a Chat session [CARD-259 / REQ-KILLR-001]."""
-        lister = getattr(self._store, "list_jobs_for_session", None)
-        if not callable(lister):
-            return kill_checkpoint_payload(checkpointed=False, resumable=True)
-        jobs = list(lister(session_id) or [])
-        last = kill_checkpoint_payload(checkpointed=False, resumable=True)
-        for job in jobs:
-            status = job.status if isinstance(job.status, JobStatus) else JobStatus(str(job.status))
-            if status in _TERMINAL_JOB:
-                continue
-            for phase in self._store.list_phases_for_job(job.id):
-                if phase.status == PhaseStatus.RUNNING:
-                    return self.checkpoint_mid_llm_kill_phase(phase.id)
-                if phase.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
-                    last = kill_checkpoint_payload(
-                        job_id=job.id,
-                        phase_id=phase.id,
-                        phase_name=getattr(phase, "name", None),
-                        checkpointed=True,
-                        extra={"phase_status": phase.status.value},
-                    )
-        return last
-
-    def get_latest_checkpoint(self, job_id: str) -> JobPhaseCheckpoint | None:
-        getter = getattr(self._store, "get_latest_job_phase_checkpoint", None)
-        if not callable(getter):
-            return None
-        return getter(job_id)
-
-    def resume_after_crash(self, job_id: str) -> CrashResumeResult:
-        """
-        LangGraph-style continue from last durable checkpoint [REQ-RESUME-002].
-
-        - Missing/corrupt checkpoint => needs_replan (replan-from-zero only then).
-        - Interrupted RUNNING phase is re-queued so the same job_id can advance.
-        - Matched capability IDs come from checkpoint (no cold re-resolve) [REQ-CATJOB-002].
-        """
-        try:
-            job = self._store.get_job(job_id)
-        except Exception as exc:  # noqa: BLE001 - fail closed to replan
-            return CrashResumeResult(
-                ok=False,
-                needs_replan=True,
-                resumed_from_checkpoint=False,
-                reason=f"job missing: {exc}",
-            )
-
-        checkpoint = self.get_latest_checkpoint(job_id)
-        matched_ids = list(checkpoint.matched_capability_ids) if checkpoint else []
-        if matched_ids:
-            self._matched_ids[job_id] = list(matched_ids)
-        if checkpoint is None or checkpoint.corrupt:
-            return CrashResumeResult(
-                job=job,
-                checkpoint=checkpoint,
-                ok=False,
-                needs_replan=True,
-                resumed_from_checkpoint=False,
-                reason="checkpoint corrupt or missing",
-                matched_capability_ids=matched_ids,
-            )
-
-        phases = self._store.list_phases_for_job(job_id)
-        interrupted = next((p for p in phases if p.status == PhaseStatus.RUNNING), None)
-        parked = next((p for p in phases if p.status == PhaseStatus.WAITING_APPROVAL), None)
-
-        # Only crash/HITL recovery surfaces resumed_from_checkpoint.
-        # Ordinary queued advance after a prior commit is not a crash resume.
-        if interrupted is None and parked is None:
-            queued = next((p for p in phases if p.status == PhaseStatus.QUEUED), None)
-            # CARD-259: operator kill already re-queued the phase; still a crash-resume.
-            if (
-                queued is not None
-                and is_operator_kill_reason(getattr(checkpoint, "last_fail_reason", ""))
-            ):
-                if job.status not in _TERMINAL_JOB:
-                    job = self._store.update_job_status(
-                        job.id,
-                        JobStatus.RUNNING.value,
-                        current_phase_id=queued.id,
-                    )
-                ev = getattr(self._store, "save_standing_journey_event", None)
-                if callable(ev):
-                    try:
-                        ev(
-                            job_id=job_id,
-                            kind="resumed_from_checkpoint",
-                            payload={
-                                "phase_index": checkpoint.phase_index if checkpoint else None,
-                                "phase_id": queued.id,
-                                "reason": "continued from durable checkpoint after operator kill",
-                            },
-                        )
-                    except Exception:
-                        pass
-                return CrashResumeResult(
-                    job=job,
-                    checkpoint=checkpoint,
-                    continue_phase=queued,
-                    ok=True,
-                    needs_replan=False,
-                    resumed_from_checkpoint=True,
-                    reason="continued from durable checkpoint after operator kill",
-                    matched_capability_ids=matched_ids,
-                )
-            return CrashResumeResult(
-                job=job,
-                checkpoint=checkpoint,
-                continue_phase=queued,
-                ok=True,
-                needs_replan=False,
-                resumed_from_checkpoint=False,
-                reason="open job with durable checkpoint; no interrupt to recover",
-                matched_capability_ids=matched_ids,
-            )
-
-        continue_phase: Phase | None = None
-        if interrupted is not None:
-            # Mid-phase kill: reset to queued so start_phase can re-enter.
-            interrupted.status = PhaseStatus.QUEUED
-            interrupted.react_state = None
-            continue_phase = self._store.update_phase(interrupted)
-        else:
-            continue_phase = parked
-
-        if job.status not in _TERMINAL_JOB and continue_phase is not None:
-            job = self._store.update_job_status(
-                job.id,
-                JobStatus.WAITING_APPROVAL.value
-                if continue_phase.status == PhaseStatus.WAITING_APPROVAL
-                else JobStatus.RUNNING.value,
-                current_phase_id=continue_phase.id,
-            )
-        else:
-            job = self._store.get_job(job_id)
-
-        logger.info(
-            "Resumed job %s from checkpoint phase_index=%s continue=%s",
-            job_id,
-            checkpoint.phase_index,
-            continue_phase.id if continue_phase else None,
-        )
-        # Standing journey resume event for Observability replay [CARD-227]
-        ev = getattr(self._store, "save_standing_journey_event", None)
-        if callable(ev):
-            try:
-                ev(
-                    job_id=job_id,
-                    kind="resumed_from_checkpoint",
-                    payload={
-                        "phase_index": checkpoint.phase_index if checkpoint else None,
-                        "phase_id": continue_phase.id if continue_phase else None,
-                        "reason": "continued from durable checkpoint after interrupt",
-                    },
-                )
-            except Exception:
-                pass
-
-        return CrashResumeResult(
-            job=job,
-            checkpoint=checkpoint,
-            continue_phase=continue_phase,
-            ok=True,
-            needs_replan=False,
-            resumed_from_checkpoint=True,
-            reason="continued from durable checkpoint after interrupt",
-            matched_capability_ids=matched_ids,
-        )
 
     def _next_queued_phase(self, job_id: str, after_index: int) -> Optional[Phase]:
         for phase in self._store.list_phases_for_job(job_id):

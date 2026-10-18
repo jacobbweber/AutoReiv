@@ -1,1 +1,1 @@
-"""Chat application services (CARD-702: provenance-badged past chat search)."""
+"""Application-layer chat streaming, job phase execution, and attachment helpers [CARD-713]."""

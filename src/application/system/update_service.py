@@ -9,15 +9,11 @@ from __future__ import annotations
 
 import logging
 import os
-import platform
 import re
-import shutil
-import subprocess
-import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Sequence
+from typing import Any, Callable, List, Optional
 
 from src.application.system.busy import BusyDetector
 from src.application.system.serve_restarter import (
@@ -25,10 +21,26 @@ from src.application.system.serve_restarter import (
     ServeRestarter,
     serve_bind_from_env,
 )
+from src.application.system.update_git_ops import (
+    _BRANCH_NAME_RE as _BRANCH_NAME_RE,
+)
+from src.application.system.update_git_ops import (
+    _GIT_ALLOWED_VERBS as _GIT_ALLOWED_VERBS,
+)
+from src.application.system.update_git_ops import (
+    _IN_PROGRESS_FILES as _IN_PROGRESS_FILES,
+)
+from src.application.system.update_git_ops import (
+    SETTING_LAST_FETCH as SETTING_LAST_FETCH,
+)
+from src.application.system.update_git_ops import (
+    UpdateGitOpsMixin,
+)
+from src.application.system.update_git_ops import (
+    _default_uv_sync as _default_uv_sync,
+)
 from src.domain.system.models import (
     AutoUpdateStatus,
-    BranchListItem,
-    BranchListResult,
     SwitchBranchResult,
     SystemVersionInfo,
     UpdateApplyResult,
@@ -43,44 +55,8 @@ logger = logging.getLogger(__name__)
 
 SETTING_CONFIG = "system_update_config"
 SETTING_HISTORY = "system_update_history"
-SETTING_LAST_FETCH = "system_update_last_fetch_at"
 SETTING_LAST_AUTO = "system_update_last_auto"
 HISTORY_LIMIT = 50
-
-# Fixed allowlist of git verbs — never accept user-supplied argv beyond validated branch names.
-_GIT_ALLOWED_VERBS = frozenset(
-    {
-        "rev-parse",
-        "status",
-        "fetch",
-        "pull",
-        "checkout",
-        "branch",
-        "log",
-        "remote",
-        "symbolic-ref",
-        "show-ref",
-        "for-each-ref",
-        "diff",
-        "merge-base",
-        "config",
-        "rev-list",
-    }
-)
-
-_BRANCH_NAME_RE = re.compile(r"^[A-Za-z0-9._/\-]+$")
-
-
-_IN_PROGRESS_FILES = (
-    "MERGE_HEAD",
-    "REBASE_HEAD",
-    "rebase-merge",
-    "rebase-apply",
-    "CHERRY_PICK_HEAD",
-    "BISECT_LOG",
-    "REVERT_HEAD",
-)
-
 
 # CARD-679: said instead of restarting when the serve's own port is unknown.
 NO_PORT_RESTART_NOTE = (
@@ -89,7 +65,7 @@ NO_PORT_RESTART_NOTE = (
 )
 
 
-class UpdateService:
+class UpdateService(UpdateGitOpsMixin):
     """Git-based software updates with safety guards and injectable restart."""
 
     def __init__(
@@ -152,7 +128,6 @@ class UpdateService:
             time_str = "03:00"
         hh, mm = time_str.split(":")
         time_str = f"{int(hh):02d}:{int(mm):02d}"
-        # Migrate legacy auto_check_cadence=daily -> enabled
         enabled = bool(config.auto_update_enabled)
         if not enabled and (config.auto_check_cadence or "").lower() == "daily":
             enabled = True
@@ -215,140 +190,6 @@ class UpdateService:
             cur = {}
         cur.update(kwargs)
         self.state_store.set_setting(SETTING_LAST_AUTO, cur)
-
-    # ------------------------------------------------------------------
-    # Git primitives (fixed allowlist)
-    # ------------------------------------------------------------------
-
-    def _run_git(self, args: Sequence[str], *, timeout: float = 60.0) -> subprocess.CompletedProcess:
-        if not args:
-            raise ValueError("git args required")
-        verb = args[0]
-        if verb not in _GIT_ALLOWED_VERBS:
-            raise ValueError(f"git verb not allowlisted: {verb}")
-        cmd = ["git", *args]
-        return subprocess.run(
-            cmd,
-            cwd=str(self.repo_root),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-            shell=False,
-        )
-
-    def _git_ok(self, args: Sequence[str], *, timeout: float = 60.0) -> tuple[bool, str]:
-        try:
-            res = self._run_git(args, timeout=timeout)
-        except Exception as exc:
-            return False, str(exc)
-        out = (res.stdout or "").strip()
-        err = (res.stderr or "").strip()
-        if res.returncode != 0:
-            return False, err or out or f"git {' '.join(args)} failed"
-        return True, out
-
-    def _is_git_repo(self) -> bool:
-        git_dir = self.repo_root / ".git"
-        if git_dir.exists():
-            return True
-        ok, _ = self._git_ok(["rev-parse", "--is-inside-work-tree"])
-        return ok
-
-    def _git_in_progress(self) -> bool:
-        git_dir = self.repo_root / ".git"
-        if not git_dir.exists():
-            return False
-        for name in _IN_PROGRESS_FILES:
-            if (git_dir / name).exists():
-                return True
-        return False
-
-    def _validate_branch_name(self, name: str) -> bool:
-        if not name or not _BRANCH_NAME_RE.match(name):
-            return False
-        if name.startswith("-") or ".." in name or name.endswith(".lock"):
-            return False
-        return True
-
-    # ------------------------------------------------------------------
-    # Status / version
-    # ------------------------------------------------------------------
-
-    def get_version_info(self) -> SystemVersionInfo:
-        current_version = self._resolve_installed_version()
-        commit = ""
-        branch = ""
-        is_git = False
-        is_dirty = False
-        subject = ""
-        upstream = None
-        ahead = None
-        behind = None
-        detached = False
-        remote_url = ""
-        last_fetch = self.state_store.get_setting(SETTING_LAST_FETCH)
-        git_in_progress = False
-
-        if self._is_git_repo():
-            is_git = True
-            git_in_progress = self._git_in_progress()
-            ok, out = self._git_ok(["rev-parse", "--short", "HEAD"])
-            if ok:
-                commit = out
-            ok, out = self._git_ok(["branch", "--show-current"])
-            if ok:
-                branch = out
-            if not branch:
-                detached = True
-            ok, out = self._git_ok(["status", "--porcelain"])
-            if ok and out:
-                is_dirty = True
-            ok, out = self._git_ok(["log", "-1", "--pretty=%s"])
-            if ok:
-                subject = out
-            ok, out = self._git_ok(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
-            if ok and out and out != "@{u}":
-                upstream = out
-            ok, out = self._git_ok(["remote", "get-url", "origin"])
-            if ok:
-                remote_url = out
-
-        if is_git and upstream:
-            ahead, behind = self._ahead_behind(upstream)
-
-        deployment_mode = self._detect_deployment_mode(is_git)
-        return SystemVersionInfo(
-            current_version=current_version,
-            commit=commit,
-            branch=branch,
-            is_git=is_git,
-            is_dirty=is_dirty,
-            deployment_mode=deployment_mode,
-            python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-            platform=platform.system(),
-            subject=subject,
-            upstream=upstream,
-            ahead=ahead,
-            behind=behind,
-            last_fetch_at=last_fetch if isinstance(last_fetch, str) else None,
-            remote_name="origin",
-            remote_url=remote_url,
-            detached_head=detached,
-            git_in_progress=git_in_progress,
-        )
-
-    def _ahead_behind(self, upstream: str) -> tuple[int, int]:
-        # Use rev-list — add to allowlist dynamically by including it
-        try:
-            res = self._run_git(["rev-list", "--left-right", "--count", f"HEAD...{upstream}"])
-            if res.returncode == 0:
-                parts = (res.stdout or "").strip().split()
-                if len(parts) >= 2:
-                    return int(parts[0]), int(parts[1])
-        except Exception:
-            pass
-        return 0, 0
 
     # ------------------------------------------------------------------
     # Check / fetch
@@ -606,45 +447,6 @@ class UpdateService:
             trigger=trigger,
         )
 
-    # ------------------------------------------------------------------
-    # Branches
-    # ------------------------------------------------------------------
-
-    def list_branches(self) -> BranchListResult:
-        info = self.get_version_info()
-        if not info.is_git:
-            return BranchListResult(error="Not a git checkout")
-        ok, out = self._git_ok(["for-each-ref", "--format=%(refname:short)", "refs/heads/", "refs/remotes/origin/"])
-        if not ok:
-            return BranchListResult(error=out or "Failed to list branches", current=info.branch)
-
-        seen: dict[str, BranchListItem] = {}
-        for line in out.splitlines():
-            ref = line.strip()
-            if not ref or ref == "origin" or ref.endswith("/HEAD"):
-                continue
-            is_remote = ref.startswith("origin/")
-            name = ref[7:] if is_remote else ref
-            if not self._validate_branch_name(name):
-                continue
-            existing = seen.get(name)
-            if existing:
-                if is_remote:
-                    existing.is_remote = True
-                    existing.ref = ref
-                else:
-                    existing.is_local = True
-            else:
-                seen[name] = BranchListItem(
-                    name=name,
-                    ref=ref,
-                    is_local=not is_remote,
-                    is_remote=is_remote,
-                    is_current=(name == info.branch),
-                )
-        branches = sorted(seen.values(), key=lambda b: (not b.is_current, b.name.lower()))
-        return BranchListResult(branches=branches, current=info.branch)
-
     def switch_branch(self, branch_name: str, *, restart: Optional[bool] = None) -> SwitchBranchResult:
         info = self.get_version_info()
         reason = self._refusal_for_switch(info)
@@ -713,10 +515,8 @@ class UpdateService:
         if match.is_local:
             ok, err = self._git_ok(["checkout", name])
         else:
-            # Create local tracking branch from origin/<name>
             ok, err = self._git_ok(["checkout", "--track", "-b", name, f"origin/{name}"])
             if not ok:
-                # maybe local already mid-create; try plain checkout --track
                 ok, err = self._git_ok(["checkout", "--track", f"origin/{name}"])
 
         if not ok:
@@ -813,7 +613,6 @@ class UpdateService:
         if not isinstance(last, dict):
             last = {}
 
-        # Due if local HH:MM has been reached today and we have not succeeded today
         try:
             hh, mm = cfg.auto_update_time.split(":")
             due_minutes = int(hh) * 60 + int(mm)
@@ -860,7 +659,6 @@ class UpdateService:
                 trigger="auto",
             )
 
-        # Ensure fetch first
         self.check_for_updates()
         result = self.apply_update(trigger="auto", restart=True)
         self._set_last_auto(
@@ -870,118 +668,3 @@ class UpdateService:
             deferred_until=None,
         )
         return result
-
-    # ------------------------------------------------------------------
-    # Deps / helpers
-    # ------------------------------------------------------------------
-
-    def _dep_paths(self) -> List[Path]:
-        root = self.repo_root
-        found: List[Path] = []
-        for pattern in ("pyproject.toml", "uv.lock", "poetry.lock", "requirements.txt"):
-            p = root / pattern
-            if p.is_file():
-                found.append(p)
-        for p in root.glob("requirements*.txt"):
-            if p.is_file() and p not in found:
-                found.append(p)
-        req_dir = root / "requirements"
-        if req_dir.is_dir():
-            for p in req_dir.glob("*.txt"):
-                found.append(p)
-        return found
-
-    def _dep_fingerprints(self) -> dict[str, str]:
-        fps: dict[str, str] = {}
-        for p in self._dep_paths():
-            try:
-                # use git hash-object equivalent via content hash of blob at HEAD if tracked
-                rel = p.relative_to(self.repo_root).as_posix()
-                ok, out = self._git_ok(["rev-parse", f"HEAD:{rel}"])
-                if ok:
-                    fps[rel] = out
-                else:
-                    fps[rel] = f"mtime:{p.stat().st_mtime_ns}:{p.stat().st_size}"
-            except Exception:
-                continue
-        return fps
-
-    def _deps_changed(self, before: dict[str, str]) -> bool:
-        after = self._dep_fingerprints()
-        return before != after
-
-
-    def _snapshot_database(self) -> Optional[str]:
-        candidate_paths = [
-            self.data_dir / "database" / "autoreiv.db",
-            self.data_dir / "autoreiv.db",
-            self.data_dir / "storage.db",
-        ]
-        explicit = os.environ.get("AUTOREIV_DB_PATH", "").strip()
-        if explicit:
-            candidate_paths.insert(0, Path(explicit))
-        for db_file in candidate_paths:
-            if db_file.exists() and db_file.is_file():
-                backups = self.data_dir / "backups"
-                try:
-                    backups.mkdir(parents=True, exist_ok=True)
-                except Exception:
-                    backups = db_file.parent
-                ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-                backup_file = backups / f"{db_file.name}.pre-update-{ts}"
-                try:
-                    shutil.copy2(str(db_file), str(backup_file))
-                    logger.info("Created database snapshot at %s", backup_file)
-                    return str(backup_file)
-                except Exception as e:
-                    logger.warning("Failed to create database snapshot: %s", e)
-        return None
-
-    def _resolve_installed_version(self) -> str:
-        pyproject = self.repo_root / "pyproject.toml"
-        if pyproject.exists():
-            try:
-                for line in pyproject.read_text(encoding="utf-8").splitlines():
-                    if line.strip().startswith("version"):
-                        match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', line)
-                        if match:
-                            return match.group(1)
-            except Exception:
-                pass
-        return "1.2.0"
-
-    def _detect_deployment_mode(self, is_git: bool) -> str:
-        if os.environ.get("AUTOREIV_CONTAINER"):
-            return "docker"
-        if sys.platform != "win32":
-            try:
-                if Path("/.dockerenv").is_file() or Path("/run/.containerenv").is_file():
-                    return "docker"
-            except Exception:
-                pass
-        if os.environ.get("AUTOREIV_SERVICE") == "systemd":
-            return "systemd"
-        if os.environ.get("AUTOREIV_SERVICE") == "windows":
-            return "windows_service"
-        if is_git:
-            return "git"
-        return "standalone"
-
-
-def _default_uv_sync(repo_root: Path) -> tuple[bool, str]:
-    try:
-        res = subprocess.run(
-            ["uv", "sync"],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-            timeout=600,
-            check=False,
-            shell=False,
-        )
-        if res.returncode != 0:
-            return False, (res.stderr or res.stdout or "uv sync failed").strip()
-        return True, "uv sync ok"
-    except Exception as exc:
-        return False, str(exc)
-

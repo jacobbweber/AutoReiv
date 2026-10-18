@@ -19,6 +19,7 @@ import {
 } from './capabilities_tree_model.js';
 import {
   buildMcpSaveBody,
+  formatMcpCommandText,
   renderMcpServerListMarkup,
   serverToSaveBody,
 } from './tools_studio_catalog.js';
@@ -109,6 +110,11 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
   const mcpCommandInputEl = $('capabilitiesMcpCommandInput');
   const mcpUrlGroupEl = $('capabilitiesMcpUrlGroup');
   const mcpUrlInputEl = $('capabilitiesMcpUrlInput');
+  const mcpCredentialSelectEl = $('capabilitiesMcpCredentialSelect');
+  const mcpAuthTypeSelectEl = $('capabilitiesMcpAuthTypeSelect');
+  const mcpAuthHeaderGroupEl = $('capabilitiesMcpAuthHeaderGroup');
+  const mcpAuthHeaderInputEl = $('capabilitiesMcpAuthHeaderInput');
+  const mcpManageVaultBtnEl = $('capabilitiesMcpManageVaultBtn');
   const mcpEnabledCheckboxEl = $('capabilitiesMcpEnabledCheckbox');
   const mcpCancelBtnEl = $('capabilitiesMcpCancelBtn');
   const mcpSaveBtnEl = $('capabilitiesMcpSaveBtn');
@@ -124,6 +130,7 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
   let pendingCreateMode = null; // { kind: 'skill' | 'reference' | 'tool', skillId?: string }
   let queuedDeepLink = null;
   let mcpServersCache = [];
+  let vaultCredentialsCache = [];
 
   function setFeedback(message, kind = 'info') {
     if (!feedbackEl) return;
@@ -200,10 +207,46 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
     mcpAgentSelectEl.innerHTML = opts.join('');
   }
 
+  function syncMcpAuthChrome() {
+    if (!mcpAuthHeaderGroupEl) return;
+    const scheme = mcpAuthTypeSelectEl ? mcpAuthTypeSelectEl.value : 'bearer';
+    const hasCustomHeader = Boolean(mcpAuthHeaderInputEl && String(mcpAuthHeaderInputEl.value || '').trim());
+    const showHeaderField = scheme === 'header' || scheme === 'env' || hasCustomHeader;
+    mcpAuthHeaderGroupEl.classList.toggle('hidden', !showHeaderField);
+  }
+
+  async function syncMcpVaultCredentials(preferredCredId = '') {
+    if (!mcpCredentialSelectEl) return;
+    const current = preferredCredId !== undefined && preferredCredId !== null
+      ? String(preferredCredId)
+      : (mcpCredentialSelectEl.value || '');
+    try {
+      const creds = await api.capabilities.listVaultCredentials();
+      vaultCredentialsCache = Array.isArray(creds) ? creds : [];
+    } catch {
+      vaultCredentialsCache = Array.isArray(state && state.vaultCredentials) ? state.vaultCredentials : [];
+    }
+    const opts = ['<option value="">None (No Vault credential)</option>'];
+    for (const cred of vaultCredentialsCache) {
+      const id = String((cred && cred.id) || '').trim();
+      if (!id) continue;
+      const name = String(cred.name || id);
+      const ctype = String(cred.type || 'token');
+      const sel = id === current ? ' selected' : '';
+      opts.push(`<option value="${escapeHtml(id)}" data-cred-type="${escapeHtml(ctype)}"${sel}>${escapeHtml(name)} (${escapeHtml(id)} · ${escapeHtml(ctype)})</option>`);
+    }
+    if (current && !vaultCredentialsCache.some((c) => String((c && c.id) || '') === current)) {
+      opts.push(`<option value="${escapeHtml(current)}" selected>${escapeHtml(current)}</option>`);
+    }
+    mcpCredentialSelectEl.innerHTML = opts.join('');
+  }
+
   async function loadMcpInspector({ scope = null, agentId = null } = {}) {
     const nextScope = scope || (mcpScopeSelectEl ? mcpScopeSelectEl.value : 'platform') || 'platform';
     if (mcpScopeSelectEl) mcpScopeSelectEl.value = nextScope;
     syncMcpAgentOptions(agentId || '');
+    await syncMcpVaultCredentials();
+    syncMcpAuthChrome();
     if (mcpAgentFieldEl) {
       mcpAgentFieldEl.classList.toggle('hidden', nextScope !== 'agent');
     }
@@ -559,7 +602,16 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
     });
   }
   if (mcpAddBtnEl && mcpFormEl) {
-    mcpAddBtnEl.addEventListener('click', () => {
+    mcpAddBtnEl.addEventListener('click', async () => {
+      await syncMcpVaultCredentials('');
+      if (mcpNameInputEl) mcpNameInputEl.value = '';
+      if (mcpCommandInputEl) mcpCommandInputEl.value = '';
+      if (mcpUrlInputEl) mcpUrlInputEl.value = '';
+      if (mcpCredentialSelectEl) mcpCredentialSelectEl.value = '';
+      if (mcpAuthTypeSelectEl) mcpAuthTypeSelectEl.value = 'bearer';
+      if (mcpAuthHeaderInputEl) mcpAuthHeaderInputEl.value = '';
+      if (mcpEnabledCheckboxEl) mcpEnabledCheckboxEl.checked = true;
+      syncMcpAuthChrome();
       mcpFormEl.classList.remove('hidden');
       if (mcpNameInputEl) mcpNameInputEl.focus();
     });
@@ -576,6 +628,39 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
       if (mcpUrlGroupEl) mcpUrlGroupEl.classList.toggle('hidden', !isSse);
     });
   }
+  if (mcpCredentialSelectEl) {
+    mcpCredentialSelectEl.addEventListener('change', () => {
+      const cid = mcpCredentialSelectEl.value;
+      const cred = vaultCredentialsCache.find((c) => c && String(c.id) === cid);
+      if (cred && mcpAuthTypeSelectEl) {
+        const ctype = String(cred.type || 'token').toLowerCase();
+        if (ctype === 'basic_auth' || ctype === 'password') {
+          mcpAuthTypeSelectEl.value = 'basic';
+        } else if (ctype === 'api_key') {
+          mcpAuthTypeSelectEl.value = 'header';
+        } else {
+          mcpAuthTypeSelectEl.value = 'bearer';
+        }
+      }
+      syncMcpAuthChrome();
+    });
+  }
+  if (mcpAuthTypeSelectEl) {
+    mcpAuthTypeSelectEl.addEventListener('change', () => syncMcpAuthChrome());
+  }
+  if (mcpManageVaultBtnEl) {
+    mcpManageVaultBtnEl.addEventListener('click', () => {
+      if (typeof _callbacks.switchTab === 'function') {
+        _callbacks.switchTab('settings');
+      }
+      const connDetails = document.querySelector('[data-settings-section="connections"]');
+      if (connDetails) connDetails.open = true;
+      const addCredBtn = $('addCredentialBtn');
+      if (addCredBtn && typeof addCredBtn.scrollIntoView === 'function') {
+        addCredBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
   if (mcpSaveBtnEl) {
     mcpSaveBtnEl.addEventListener('click', async () => {
       const scopeVal = mcpScopeSelectEl ? mcpScopeSelectEl.value : 'platform';
@@ -587,6 +672,9 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
         url: mcpUrlInputEl ? mcpUrlInputEl.value : '',
         headersText: '',
         env: {},
+        credentialId: mcpCredentialSelectEl ? mcpCredentialSelectEl.value : '',
+        authType: mcpAuthTypeSelectEl ? mcpAuthTypeSelectEl.value : 'bearer',
+        authHeader: mcpAuthHeaderInputEl ? mcpAuthHeaderInputEl.value : '',
         enabled: mcpEnabledCheckboxEl ? Boolean(mcpEnabledCheckboxEl.checked) : true,
       });
       if (!built.ok) {
@@ -622,6 +710,40 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
         const body = serverToSaveBody(current, !current.enabled);
         await api.capabilities.saveMcpServer(scopeVal, agentVal, body);
         await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
+      } else if (action === 'edit' && serverName) {
+        const current = mcpServersCache.find((s) => s && s.name === serverName);
+        if (!current || !mcpFormEl) return;
+        await syncMcpVaultCredentials(current.credential_id || '');
+        const isSse = (current.transport || (current.url ? 'sse' : 'stdio')) === 'sse';
+        if (mcpNameInputEl) mcpNameInputEl.value = current.name || '';
+        if (mcpTransportSelectEl) mcpTransportSelectEl.value = isSse ? 'sse' : 'stdio';
+        if (mcpCommandGroupEl) mcpCommandGroupEl.classList.toggle('hidden', isSse);
+        if (mcpUrlGroupEl) mcpUrlGroupEl.classList.toggle('hidden', !isSse);
+        if (mcpCommandInputEl) mcpCommandInputEl.value = formatMcpCommandText(current.command);
+        if (mcpUrlInputEl) mcpUrlInputEl.value = current.url || '';
+        if (mcpCredentialSelectEl) mcpCredentialSelectEl.value = current.credential_id || '';
+        if (mcpAuthTypeSelectEl) mcpAuthTypeSelectEl.value = current.auth_type || 'bearer';
+        if (mcpAuthHeaderInputEl) mcpAuthHeaderInputEl.value = current.auth_header || '';
+        if (mcpEnabledCheckboxEl) mcpEnabledCheckboxEl.checked = current.enabled !== false;
+        syncMcpAuthChrome();
+        mcpFormEl.classList.remove('hidden');
+      } else if (action === 'test-saved' && serverName) {
+        const current = mcpServersCache.find((s) => s && s.name === serverName);
+        if (!current) return;
+        try {
+          const probe = await api.capabilities.testMcpServer(
+            scopeVal,
+            agentVal,
+            serverToSaveBody(current, current.enabled !== false),
+          );
+          if (probe && probe.status === 'ok') {
+            setFeedback(`Handshake OK for "${serverName}" (${probe.tools_count || 0} tools).`, 'ok');
+          } else {
+            setFeedback(`Handshake failed for "${serverName}": ${(probe && probe.error) || 'unknown error'}`, 'error');
+          }
+        } catch (err) {
+          setFeedback(`Handshake failed for "${serverName}": ${err.message}`, 'error');
+        }
       }
     });
   }
