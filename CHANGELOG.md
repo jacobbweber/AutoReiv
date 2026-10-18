@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-18
+
+Web Search & URL Fetch platform skill (`fetch_url` and `web_search` tools with zero-key DuckDuckGo Lite plus Vault-encrypted Tavily and Brave Search keys), Docker in-app git software updates and branch switching with an editable default Origin URL (`https://github.com/jacobbweber/AutoReiv.git`), one-click `+ New` Chat button in the main composer bar, auto-authored `mcp-<server>` companion skills with Chat Auto-run support, and comprehensive UI audit fixes across all studios (`CARD-718`..`CARD-722`).
+
 ### Added
 
 - Added the `web-search` platform skill (`fetch_url` and `web_search` tools) and a **Web Search & URL Fetch** configuration card in **Settings -> Connections** supporting zero-key DuckDuckGo Lite search, Vault-encrypted Tavily and Brave Search API keys, and direct webpage text extraction [CARD-719].
