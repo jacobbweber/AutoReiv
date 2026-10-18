@@ -26,6 +26,10 @@ export const EDUCATION_SELECTED_HTTP = '/api/education/selected';
 /** @type {{ active: boolean, topic: string, courseId: string, skillId: string, agentId: string } | null} */
 let _activeBinding = null;
 
+function _composerInput() {
+  return $('promptInput') || $('chatInput');
+}
+
 export function getStudyEducationModeBinding() {
   return _activeBinding ? { ..._activeBinding } : null;
 }
@@ -411,7 +415,7 @@ export async function openDueReviewsInEducationMode(opts = {}) {
   };
   _persistBinding(binding);
 
-  const chatInput = $('chatInput');
+  const chatInput = _composerInput();
   if (chatInput) {
     chatInput.value = buildDueReviewPrompt(binding.topic, binding.courseId, due.count);
     chatInput.focus();
@@ -609,7 +613,7 @@ export async function openProgressInEducationMode(opts = {}) {
   };
   _persistBinding(binding);
   renderStudyEducationModeChrome(binding);
-  const chatInput = $('chatInput');
+  const chatInput = _composerInput();
   if (chatInput && !opts.skipPrompt) {
     chatInput.value = buildProgressSummaryPrompt(binding.topic, binding.courseId);
   }
@@ -753,7 +757,7 @@ export async function openWikiCurationInEducationMode(opts = {}) {
   _persistBinding(binding);
 
   const mode = String(opts.mode || 'link').trim().toLowerCase() || 'link';
-  const chatInput = $('chatInput');
+  const chatInput = _composerInput();
   if (chatInput) {
     chatInput.value = buildWikiCurationPrompt(binding.topic, binding.courseId, mode);
     chatInput.focus();
@@ -816,7 +820,7 @@ export async function runStudyWikiCuration(opts = {}) {
   binding = { ...binding, skillId: STUDY_WIKI_CURATION_SKILL };
   _persistBinding(binding);
 
-  const chatInput = $('chatInput');
+  const chatInput = _composerInput();
   if (chatInput) {
     chatInput.value = buildWikiCurationPrompt(binding.topic, binding.courseId, mode);
   }
@@ -933,7 +937,7 @@ export async function enterTutorEducationMode(opts = {}) {
     console.warn('[Study Entry] PUT /api/education/selected soft-fail:', err);
   }
 
-  const chatInput = $('chatInput');
+  const chatInput = _composerInput();
   if (chatInput) {
     chatInput.value = buildStudyEducationModePrompt(topic, courseId);
     chatInput.focus();
@@ -975,13 +979,6 @@ export function initStudyEntry(callbacks = {}) {
   }
 
 
-  const progressBtn = $('chatEducationModeProgressBtn');
-  if (progressBtn) {
-    progressBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      await openProgressInEducationMode({ toast: showToast });
-    });
-  }
   const progressRefreshBtn = $('chatEducationModeProgressRefreshBtn');
   if (progressRefreshBtn) {
     progressRefreshBtn.addEventListener('click', async (e) => {
@@ -994,13 +991,6 @@ export function initStudyEntry(callbacks = {}) {
     progressHideBtn.addEventListener('click', (e) => {
       e.preventDefault();
       hideStudyProgressPanel();
-    });
-  }
-  const dueBtn = $('chatEducationModeDueBtn');
-  if (dueBtn) {
-    dueBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      await openDueReviewsInEducationMode({ toast: showToast });
     });
   }
   const dueRefreshBtn = $('chatEducationModeDueRefreshBtn');
@@ -1017,7 +1007,7 @@ export function initStudyEntry(callbacks = {}) {
       if (!btn) return;
       const itemId = btn.getAttribute('data-item-id') || '';
       const binding = getStudyEducationModeBinding();
-      const chatInput = $('chatInput');
+      const chatInput = _composerInput();
       if (!chatInput || !itemId) return;
       const topic = (binding && binding.topic) || 'Active Study Topic';
       const courseId = (binding && binding.courseId) || '';
@@ -1030,14 +1020,6 @@ export function initStudyEntry(callbacks = {}) {
     });
   }
 
-
-  const curateBtn = $('chatEducationModeCurateBtn');
-  if (curateBtn) {
-    curateBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      await openWikiCurationInEducationMode({ toast: showToast });
-    });
-  }
   const curateHideBtn = $('chatEducationModeCurateHideBtn');
   if (curateHideBtn) {
     curateHideBtn.addEventListener('click', (e) => {

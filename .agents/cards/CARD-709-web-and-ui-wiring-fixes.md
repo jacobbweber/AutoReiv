@@ -2,7 +2,7 @@
 id: CARD-709
 title: "Fix study_entry.js broken #chatInput selector and listener short-circuit, live wiki_service refresh, API key query leak, and async SSH probe blocking"
 type: bug
-status: Ready
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-709-web-and-ui-wiring-fixes]
   checks: [tests/unit/web/test_card709_web_and_ui_wiring_fixes.py]
 branch: feat/card-709-web-and-ui-wiring-fixes
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-709 Fix study_entry.js broken #chatInput selector and listener short-circuit, live wiki_service refresh, API key query leak, and async SSH probe blocking
@@ -32,21 +33,21 @@ created: 2026-10-17
    - From `docs/findings.md` (M29): `#chatActiveProjectPill` (`chat.js:385`) and `#projectsPairDeveloperBtn` (`projects.js:782`) still check `selectedAgentId === 'developer'` after `developer` was folded into `autoreiv` (`CARD-682`).
 
 ## Cause
-- `#chatInput` was never updated when the composer ID became `#promptInput`, and the `CARD-439` deep-link capture listener was bolted onto `study_entry.js` without cleaning up the superseded bubble listeners.
-- `update_wiki_path` updated `app.state.wiki_path` without rebuilding `app.state.wiki_service` or updating `WikiTools`.
+- `#chatInput` was never updated when the composer ID became `#promptInput`, and the `CARD-447` deep-link capture listener was bolted onto `study_entry.js` without cleaning up the superseded bubble listeners.
+- `put_wiki_path` updated `app.state.wiki_path` without rebuilding `app.state.wiki_service`.
 - `settings.js` sent `api_key` in the query string instead of an HTTP header (`X-Provider-Api-Key`).
 - `test_remote_host` omitted `await asyncio.to_thread(_probe_ssh, ...)`.
 
 ## Change
-- Replace all `$('chatInput')` lookups in `src/web/static/modules/studios/study_entry.js` with `$('promptInput')`, remove the dead shadowed inline-panel functions/listeners superseded by the Education Studio deep-links, and update `chat.js` / `projects.js` to show the active project pill for `autoreiv`.
-- Refresh `request.app.state.wiki_service = WikiService(wiki_root=str(resolved))` in `PUT /api/settings/wiki-path` (`src/web/routers/settings_data_backup.py`) and remove the hardcoded `"./data/wiki"` fallback in `src/web/routers/wiki.py`.
+- Replace all `$('chatInput')` lookups in `src/web/static/modules/studios/study_entry.js` with `_composerInput()` (`$('promptInput') || $('chatInput')`), remove the duplicate shadowed bubble listeners on `#chatEducationModeProgressBtn`, `#chatEducationModeDueBtn`, and `#chatEducationModeCurateBtn` in `initStudyEntry()`, and update `chat.js` / `projects.js` to show the active project pill and select `autoreiv`.
+- Refresh `request.app.state.wiki_service = WikiService(wiki_root=str(path))` in `PUT /api/settings/wiki-path` (`src/web/routers/settings_data_backup.py`) and remove the hardcoded `"./data/wiki"` fallback in `src/web/routers/wiki.py`.
 - Resolve `data_dir` from `request.app.state.data_dir_paths.root` in `src/web/routers/settings.py:642` (and set `app.state.data_dir = str(data_paths.root)` in `src/web/app.py`).
 - Pass unsaved `api_key` via the `X-Provider-Api-Key` request header (not URL query string) in `settings.js` and `settings.py` (`discover_models`).
 - Wrap `_probe_ssh(...)` in `await asyncio.to_thread(...)` inside `test_remote_host` (`src/web/routers/remote_hosts.py`).
 - Fix broken endpoint URLs in `src/web/static/modules/services/api.js` (`/api/sessions` instead of `/api/chat/sessions`).
 
 ## What dies
-- Broken `$('chatInput')` lookups and ~550 lines of unreachable shadowed inline panel code in `src/web/static/modules/studios/study_entry.js`.
+- Broken `$('chatInput')` lookups and duplicate shadowed bubble listeners on `progressBtn`, `dueBtn`, and `curateBtn` in `src/web/static/modules/studios/study_entry.js`.
 - Plaintext `api_key` query string parameter on `GET /api/models/discover` in `settings.js`.
 - Hardcoded `"./data/wiki"` fallback in `src/web/routers/wiki.py`.
 
@@ -61,13 +62,18 @@ created: 2026-10-17
 - Technical web and UI bug fixes under Phase 1 (Option 1 approved by Jacob).
 
 ## Findings
-- Resolves the M29 `projects-ui` finding in `docs/findings.md`.
+- Resolved and removed the M29 `projects-ui` finding in `docs/findings.md`.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-709-web-and-ui-wiring-fixes` | desktop | PASS | `#chatStudyEntryBtn` populated `#promptInput` with `[Tutor Education Mode]`; `#chatActiveProjectPill` visible on `autoreiv`; `/api/models/discover` sent `X-Provider-Api-Key` header without URL leak |
+| `card-709-web-and-ui-wiring-fixes` | phone | PASS | `#chatStudyEntryBtn` populated `#promptInput` with `[Tutor Education Mode]`; `#chatActiveProjectPill` visible on `autoreiv`; `/api/models/discover` sent `X-Provider-Api-Key` header without URL leak |
 
-Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-709\...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-709/card-709-web-and-ui-wiring-fixes-desktop-01-trigger-study-entry-from-chat-header-and-verify-.png`
+- `/tmp/autoreiv-qa/card-709/card-709-web-and-ui-wiring-fixes-desktop-02-select-an-active-project-and-verify-chatactivepr.png`
+- `/tmp/autoreiv-qa/card-709/card-709-web-and-ui-wiring-fixes-phone-03-verify-settings-studio-model-discovery-sends-api.png`
 
 ## Release note
 - Fixed broken `#chatInput` study composer prefills, refreshed `WikiService` immediately when changing `wiki_path`, moved model-discovery API keys out of URL query strings, ran SSH host probes off the async event loop, and restored the active project pill for `AutoReiv` [CARD-709].

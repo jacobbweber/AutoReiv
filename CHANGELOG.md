@@ -10,6 +10,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Fixed broken `#chatInput` study composer prefills, refreshed `WikiService` immediately when changing `wiki_path`, moved model-discovery API keys out of URL query strings, ran SSH host probes off the async event loop, and restored the active project pill for `AutoReiv` [CARD-709].
 - Isolated per-turn `AgentKernel` state across nested subagent handoffs, cached `AgentMemoryRepository` schema initialization so ReAct steps no longer re-run DDL and full-table scans, made `save_message` sequence numbering atomic, and bounded `search_past_chats` SQL queries [CARD-708].
 - Fixed startup skill pruning deleting user copies of `platform-health` and `session-inspect`, hardened `CredentialVault` key persistence under the data root, made `is_known_tool` fail closed on errors, and switched pre-update DB snapshots to SQLite online backup [CARD-707].
 

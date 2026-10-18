@@ -779,7 +779,7 @@ export function initProjectsStudio(state, callbacks = {}) {
 
       const agentSelect = $('agentSelect');
       if (agentSelect) {
-        agentSelect.value = 'developer';
+        agentSelect.value = 'autoreiv';
         agentSelect.dispatchEvent(new Event('change'));
       }
 
