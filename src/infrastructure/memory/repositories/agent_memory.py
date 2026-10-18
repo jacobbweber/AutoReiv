@@ -49,6 +49,9 @@ def calculate_effective_memory_score(
     return (base_confidence * decay_factor) + reinforcement
 
 
+_INITIALIZED_DB_SIGNATURES: dict[str, tuple[int, int]] = {}
+
+
 class AgentMemoryRepository:
     """Repository managing an individual agent's dedicated cognitive memory database."""
 
@@ -86,8 +89,17 @@ class AgentMemoryRepository:
         finally:
             conn.close()
 
-    def initialize_schema(self) -> None:
+    def initialize_schema(self, *, force: bool = False) -> None:
         """Create all tables, FTS5 virtual tables, triggers, and indices."""
+        resolved_key = str(self.db_path.resolve())
+        if not force and self.db_path.is_file():
+            try:
+                st = self.db_path.stat()
+                sig = (st.st_ino, st.st_dev)
+                if st.st_size > 0 and _INITIALIZED_DB_SIGNATURES.get(resolved_key) == sig:
+                    return
+            except OSError:
+                pass
         with self.get_connection() as conn:
             conn.executescript(
                 """
@@ -184,6 +196,12 @@ class AgentMemoryRepository:
 
         # CARD-597: Deactivate any short-lived facts
         self.deactivate_short_lived_facts()
+        if self.db_path.is_file():
+            try:
+                st = self.db_path.stat()
+                _INITIALIZED_DB_SIGNATURES[resolved_key] = (st.st_ino, st.st_dev)
+            except OSError:
+                pass
 
     # --- Shelf 1: Pinned Memories ---
 

@@ -2,7 +2,7 @@
 id: CARD-708
 title: "Isolate AgentKernel per-turn state across subagent handoffs, eliminate per-step DDL/full-scan overhead, and make SQLite message sequencing & chat search bounded"
 type: bug
-status: Ready
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-708-kernel-turn-isolation-and-db-hygiene]
   checks: [tests/unit/kernel/test_card708_turn_isolation_and_db_hygiene.py]
 branch: feat/card-708-kernel-turn-isolation-and-db-hygiene
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-708 Isolate AgentKernel per-turn state across subagent handoffs, eliminate per-step DDL/full-scan overhead, and make SQLite message sequencing & chat search bounded
@@ -23,14 +24,14 @@ created: 2026-10-17
 4. **Unbounded full-table scan of all messages in `past_chat_search.py`**: `_fetch_store_rows()` and `_fetch_cold_sqlite_rows()` in `src/application/chat/past_chat_search.py:284-379` execute `SELECT ... FROM messages` with no `WHERE` filter and no `LIMIT`, loading every message across every session in `autoreiv.db` (and every cold backup DB) into Python memory.
 
 ## Cause
-- Turn-scoped state was stored on `self` instead of a per-turn context frame / `contextvars` stack restored across nested turns.
-- `AgentMemoryRepository.initialize_schema()` was not cached per `(db_path, mtime/existence)` in-process and ran `deactivate_short_lived_facts()` unconditionally on every call.
+- Turn-scoped state was stored on `self` without snapshotting/restoring outer state when `run_turn()` / `stream_turn()` is re-entered by a nested turn.
+- `AgentMemoryRepository.initialize_schema()` was not cached per `(resolved_path, (st_ino, st_dev))` in-process and ran `deactivate_short_lived_facts()` unconditionally on every call.
 - `save_message()` did not use an atomic `INSERT INTO messages (...) VALUES (..., (SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM messages WHERE session_id = ?), ...)` inside an immediate transaction.
 - `past_chat_search.py` fetched all rows before filtering in Python instead of pushing SQL `WHERE` token/session filters and a safety row bound down to SQLite.
 
 ## Change
-- Encapsulate per-turn mutable state on `AgentKernel` so nested/concurrent turns push and pop isolated turn state (preserving `self._turn_matched_capability_ids`, `self._turn_planning_phase`, `self._ace_tool_errors`, and `self.react_state` across subagent handoffs), and make `HandoffIsolationEngine.resume_nested_child()` respect `self.kernel_factory`.
-- Cache schema initialization per resolved database path in `AgentMemoryRepository` so `initialize_schema()` and `deactivate_short_lived_facts()` run once per DB path (re-initializing only if the DB file was recreated), removing redundant DDL and full-table scans from every ReAct step and education tool call.
+- Encapsulate per-turn mutable state on `AgentKernel` via `_turn_depth`, `_snapshot_turn_state()`, and `_restore_turn_state()` around nested `run_turn()` / `stream_turn()` invocations so nested subagent handoffs preserve the parent turn's `_turn_matched_capability_ids`, `_turn_planning_phase`, `_ace_tool_errors`, and `react_state`, and make `HandoffIsolationEngine.resume_nested_child()` respect `self.kernel_factory`.
+- Cache schema initialization per resolved database path and `(st_ino, st_dev)` in `AgentMemoryRepository` (`_INITIALIZED_DB_SIGNATURES`) so `initialize_schema()` and `deactivate_short_lived_facts()` run once per DB path (re-initializing only if the DB file was recreated), removing redundant DDL and full-table scans from every ReAct step and education tool call.
 - Make `save_message()` in `src/infrastructure/memory/repositories/sessions.py` compute `sequence_num` atomically via an inline subquery inside `BEGIN IMMEDIATE`.
 - Push SQL `LIKE` token filtering, `agent_id` / `exclude_session_id` predicates, and a bounded `LIMIT` down into `_fetch_store_rows()` and `_fetch_cold_sqlite_rows()` in `src/application/chat/past_chat_search.py`, and open cold backup SQLite files in read-only mode with a timeout.
 
@@ -49,13 +50,18 @@ created: 2026-10-17
 - Technical concurrency and DB hygiene fixes under Phase 1 (Option 1 approved by Jacob).
 
 ## Findings
-- None yet.
+- None.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-708-kernel-turn-isolation-and-db-hygiene` | desktop | PASS | Seeded session `0944fc3f-4609-4080-9ffe-461d627d5c48` with `sequence_num=[1, 2]`; verified bounded `search_past_chats` SQL pushdown (`[Recent]` hit, active session excluded) and assistant recall on desktop |
+| `card-708-kernel-turn-isolation-and-db-hygiene` | phone | PASS | Seeded session `fb14c566-938f-4254-8dd6-93020c8f30d8` with `sequence_num=[1, 2]`; verified bounded `search_past_chats` SQL pushdown (`[Recent]` hit, active session excluded) and assistant recall on phone |
 
-Screenshots: `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-708\...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-708/card-708-kernel-turn-isolation-and-db-hygiene-desktop-02-open-a-fresh-autoreiv-session-and-recall-project.png`
+- `/tmp/autoreiv-qa/card-708/card-708-kernel-turn-isolation-and-db-hygiene-desktop-03-verify-bounded-search-past-chats-hit-self-sessio.png`
+- `/tmp/autoreiv-qa/card-708/card-708-kernel-turn-isolation-and-db-hygiene-phone-03-verify-bounded-search-past-chats-hit-self-sessio.png`
 
 ## Release note
 - Isolated per-turn `AgentKernel` state across nested subagent handoffs, cached `AgentMemoryRepository` schema initialization so ReAct steps no longer re-run DDL and full-table scans, made `save_message` sequence numbering atomic, and bounded `search_past_chats` SQL queries [CARD-708].
