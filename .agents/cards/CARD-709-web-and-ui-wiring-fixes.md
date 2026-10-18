@@ -2,7 +2,7 @@
 id: CARD-709
 title: "Fix study_entry.js broken #chatInput selector and listener short-circuit, live wiki_service refresh, API key query leak, and async SSH probe blocking"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-709-web-and-ui-wiring-fixes
 log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-709 Fix study_entry.js broken #chatInput selector and listener short-circuit, live wiki_service refresh, API key query leak, and async SSH probe blocking
