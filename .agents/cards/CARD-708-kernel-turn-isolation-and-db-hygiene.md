@@ -2,7 +2,7 @@
 id: CARD-708
 title: "Isolate AgentKernel per-turn state across subagent handoffs, eliminate per-step DDL/full-scan overhead, and make SQLite message sequencing & chat search bounded"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-708-kernel-turn-isolation-and-db-hygiene
 log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-708 Isolate AgentKernel per-turn state across subagent handoffs, eliminate per-step DDL/full-scan overhead, and make SQLite message sequencing & chat search bounded
