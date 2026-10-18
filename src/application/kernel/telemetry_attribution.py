@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
-from src.domain.gateway.models import ChatMessage, ToolDefinition
+from src.domain.gateway.models import ChatMessage, Role, ToolDefinition
 
 
 def estimate_tokens(text: Optional[str]) -> int:
@@ -181,3 +181,116 @@ def calculate_timing_attribution(
         inter_step_latency_ms=round(inter_step_latency_ms, 2) if inter_step_latency_ms is not None else None,
         total_round_trip_ms=round(total_round_trip_ms, 2),
     )
+
+
+def record_step_telemetry(
+    kernel: Any,
+    *,
+    agent: Any,
+    session_id: str,
+    model_name: str,
+    provider_name: Optional[str],
+    turn_dur_ms: float,
+    harness_prep_ms: float,
+    ttft_ms: Optional[float],
+    inter_step_latency_ms: Optional[float],
+    user_content: Optional[str],
+    compacted_messages: List[Any],
+    active_tools: List[Any],
+    tool_schema_chars: int,
+    full_content: str,
+    full_reasoning: Optional[str],
+    tool_calls: Optional[List[Any]],
+    prompt_tokens: Optional[int],
+    comp_tokens: Optional[int],
+    trace_id: str,
+    job_id: Optional[str],
+    phase_id: Optional[str],
+) -> str:
+    """Record a completed step turn span with token and timing attribution [CARD-712]."""
+    effective_user_prompt = user_content or next(
+        (m.content for m in reversed(compacted_messages) if m.role == Role.USER and m.content), ""
+    )
+    history_msgs = [
+        m for m in compacted_messages if m.role != Role.SYSTEM and m.content != effective_user_prompt
+    ]
+    tool_results = [m.content for m in compacted_messages if m.role == Role.TOOL and m.content]
+
+    token_breakdown = calculate_token_attribution(
+        user_prompt=effective_user_prompt,
+        agent_persona=getattr(agent, "system_prompt", ""),
+        tool_definitions=active_tools,
+        progressive_skills=getattr(kernel, "_last_progressive_skills", None),
+        episodic_memory=getattr(kernel, "_last_episodic_memory", None),
+        compacted_history=history_msgs,
+        tool_results_injected=tool_results,
+        completion=full_content,
+        reasoning=full_reasoning,
+        tool_calls=tool_calls,
+    )
+    timing_breakdown = calculate_timing_attribution(
+        harness_prep_ms=harness_prep_ms,
+        ttft_ms=ttft_ms,
+        total_round_trip_ms=turn_dur_ms,
+        completion_tokens=comp_tokens or token_breakdown.completion,
+        inter_step_latency_ms=inter_step_latency_ms,
+    )
+    turn_span = kernel.telemetry.record_turn_span(
+        agent_id=agent.id,
+        session_id=session_id,
+        model=model_name,
+        provider=provider_name,
+        duration_ms=turn_dur_ms,
+        ttft_ms=ttft_ms,
+        prompt_tokens=prompt_tokens or token_breakdown.total_prompt_tokens,
+        completion_tokens=comp_tokens or token_breakdown.completion,
+        success=True,
+        trace_id=trace_id,
+        metadata={
+            "token_breakdown": token_breakdown.to_dict(),
+            "timing_breakdown": timing_breakdown.to_dict(),
+            "active_tool_count": len(active_tools),
+            "tool_schema_chars": tool_schema_chars,
+            "step_context": {
+                "job_id": job_id,
+                "phase_id": phase_id,
+            },
+        },
+    )
+    return turn_span.id
+
+
+def record_failed_step_telemetry(
+    kernel: Any,
+    *,
+    agent: Any,
+    session_id: str,
+    model_name: str,
+    provider_name: Optional[str],
+    turn_dur_ms: float,
+    harness_prep_ms: float,
+    ttft_ms: Optional[float],
+    inter_step_latency_ms: Optional[float],
+    error_message: str,
+    trace_id: str,
+) -> None:
+    """Record a failed step turn span with timing attribution [CARD-712]."""
+    timing_breakdown = calculate_timing_attribution(
+        harness_prep_ms=harness_prep_ms,
+        ttft_ms=ttft_ms,
+        total_round_trip_ms=turn_dur_ms,
+        completion_tokens=0,
+        inter_step_latency_ms=inter_step_latency_ms,
+    )
+    kernel.telemetry.record_turn_span(
+        agent_id=agent.id,
+        session_id=session_id,
+        model=model_name,
+        provider=provider_name,
+        duration_ms=turn_dur_ms,
+        success=False,
+        error_message=error_message,
+        trace_id=trace_id,
+        metadata={"timing_breakdown": timing_breakdown.to_dict()},
+    )
+
