@@ -2,7 +2,7 @@
 id: CARD-716
 title: "Modularize frontend monoliths (index.html, settings.js, observability.js, projects.js, chat.js, education_players.js) under 800 lines"
 type: feature
-status: In Review
+status: Done
 priority: P3
 milestone: M31
 needs_decision: none
