@@ -40,6 +40,7 @@ from src.application.system.update_git_ops import (
     _default_uv_sync as _default_uv_sync,
 )
 from src.domain.system.models import (
+    DEFAULT_ORIGIN_URL,
     AutoUpdateStatus,
     SwitchBranchResult,
     SystemVersionInfo,
@@ -108,21 +109,26 @@ class UpdateService(UpdateGitOpsMixin):
         if isinstance(stored, dict):
             try:
                 cfg = UpdateConfig(**stored)
-                return self._normalize_config(cfg)
+                return self._normalize_config(cfg, strict_url=False)
             except Exception as e:
                 logger.warning("Failed to parse stored update config: %s", e)
         return UpdateConfig()
 
     def save_update_config(self, config: UpdateConfig) -> UpdateConfig:
-        normalized = self._normalize_config(config)
-        payload = {
+        normalized = self._normalize_config(config, strict_url=True)
+        payload: dict[str, Any] = {
             "auto_update_enabled": normalized.auto_update_enabled,
             "auto_update_time": normalized.auto_update_time,
+            "upstream_repo_url": normalized.upstream_repo_url or DEFAULT_ORIGIN_URL,
         }
+        if normalized.tracked_branch:
+            payload["tracked_branch"] = normalized.tracked_branch
         self.state_store.set_setting(SETTING_CONFIG, payload)
+        if normalized.upstream_repo_url:
+            self._set_git_origin_url(normalized.upstream_repo_url)
         return normalized
 
-    def _normalize_config(self, config: UpdateConfig) -> UpdateConfig:
+    def _normalize_config(self, config: UpdateConfig, *, strict_url: bool = False) -> UpdateConfig:
         time_str = (config.auto_update_time or "03:00").strip()
         if not re.match(r"^\d{1,2}:\d{2}$", time_str):
             time_str = "03:00"
@@ -131,7 +137,23 @@ class UpdateService(UpdateGitOpsMixin):
         enabled = bool(config.auto_update_enabled)
         if not enabled and (config.auto_check_cadence or "").lower() == "daily":
             enabled = True
-        return UpdateConfig(auto_update_enabled=enabled, auto_update_time=time_str)
+        raw_url = (config.upstream_repo_url or "").strip()
+        if not raw_url:
+            repo_url = DEFAULT_ORIGIN_URL
+        elif self._validate_origin_url(raw_url):
+            repo_url = raw_url
+        elif strict_url:
+            raise ValueError(f"Invalid origin URL: {raw_url}")
+        else:
+            repo_url = DEFAULT_ORIGIN_URL
+        branch = (config.tracked_branch or "").strip()
+        tracked = branch if (branch and self._validate_branch_name(branch)) else None
+        return UpdateConfig(
+            auto_update_enabled=enabled,
+            auto_update_time=time_str,
+            upstream_repo_url=repo_url,
+            tracked_branch=tracked,
+        )
 
     def get_history(self, limit: int = 20) -> UpdateHistoryResult:
         raw = self.state_store.get_setting(SETTING_HISTORY) or []
@@ -337,7 +359,31 @@ class UpdateService(UpdateGitOpsMixin):
             self.restarter.schedule_restart(host=self.serve_host, port=self.serve_port, repo_root=self.repo_root)
         )
 
-    def apply_update(self, *, trigger: str = "manual", restart: Optional[bool] = None) -> UpdateApplyResult:
+    def apply_update(
+        self,
+        *,
+        trigger: str = "manual",
+        restart: Optional[bool] = None,
+        target_branch: Optional[str] = None,
+    ) -> UpdateApplyResult:
+        requested_branch = (target_branch or "").strip()
+        if requested_branch:
+            info_initial = self.get_version_info()
+            if info_initial.is_git and requested_branch != info_initial.branch:
+                sw = self.switch_branch(requested_branch, restart=False)
+                if not sw.success:
+                    return UpdateApplyResult(
+                        success=False,
+                        previous_commit=sw.previous_commit,
+                        new_commit=sw.new_commit,
+                        message=sw.message,
+                        restart_required=False,
+                        refused=sw.refused,
+                        refusal_reason=sw.refusal_reason,
+                        branch=sw.new_branch,
+                        trigger=trigger,
+                    )
+
         info = self.get_version_info()
         reason = self._refusal_for_update(info)
         if reason:

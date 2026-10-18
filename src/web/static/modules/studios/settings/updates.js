@@ -6,8 +6,10 @@
 import { $, safeCreateIcons } from '../../dom.js';
 import { escapeHtml } from '../../utils/formatters.js';
 
+const DEFAULT_ORIGIN_URL = 'https://github.com/jacobbweber/AutoReiv.git';
+
 export function initSettingsUpdates() {
-  // --- System & Software Updates [CARD-196 / CARD-451] ---
+  // --- System & Software Updates [CARD-196 / CARD-451 / CARD-722] ---
   const systemVersionPill = $('systemVersionPill');
   const systemDeploymentBadge = $('systemDeploymentBadge');
   const systemCommitSha = $('systemCommitSha');
@@ -17,6 +19,9 @@ export function initSettingsUpdates() {
   const systemTreeStatus = $('systemTreeStatus');
   const systemLastFetch = $('systemLastFetch');
   const updateRemoteUrl = $('updateRemoteUrl');
+  const saveUpdateOriginBtn = $('saveUpdateOriginBtn');
+  const resetUpdateOriginBtn = $('resetUpdateOriginBtn');
+  const saveUpdateOriginStatus = $('saveUpdateOriginStatus');
   const checkForUpdatesBtn = $('checkForUpdatesBtn');
   const applyUpdateBtn = $('applyUpdateBtn');
   const updateStatusBanner = $('updateStatusBanner');
@@ -83,6 +88,16 @@ export function initSettingsUpdates() {
     }
   }
 
+  function showOriginStatus(message, isError = false) {
+    if (!saveUpdateOriginStatus) return;
+    saveUpdateOriginStatus.textContent = message;
+    saveUpdateOriginStatus.classList.remove('hidden', 'text-emerald-400', 'text-rose-400');
+    saveUpdateOriginStatus.classList.add(isError ? 'text-rose-400' : 'text-emerald-400');
+    if (!isError) {
+      setTimeout(() => saveUpdateOriginStatus.classList.add('hidden'), 3000);
+    }
+  }
+
   function renderVersion(data) {
     if (systemVersionPill) {
       systemVersionPill.textContent = data.current_version ? `v${data.current_version}` : '-';
@@ -127,12 +142,12 @@ export function initSettingsUpdates() {
       setTimestampEl(systemLastFetch, data.last_fetch_at);
     }
     if (updateRemoteUrl) {
-      updateRemoteUrl.value = data.remote_url || '';
+      updateRemoteUrl.value = data.remote_url || DEFAULT_ORIGIN_URL;
     }
+    const gitOk = Boolean(data.is_git && (data.deployment_mode === 'git' || data.deployment_mode === 'docker'));
     if (updateManualDockerHelper) {
-      updateManualDockerHelper.classList.toggle('hidden', data.deployment_mode !== 'docker');
+      updateManualDockerHelper.classList.toggle('hidden', data.deployment_mode !== 'docker' || gitOk);
     }
-    const gitOk = data.is_git && data.deployment_mode === 'git';
     if (applyUpdateBtn) {
       applyUpdateBtn.classList.toggle('hidden', !gitOk);
       const noUpstream = gitOk && !data.upstream;
@@ -168,6 +183,9 @@ export function initSettingsUpdates() {
       const data = await res.json();
       if (autoUpdateEnabled) autoUpdateEnabled.checked = !!data.auto_update_enabled;
       if (autoUpdateTime && data.auto_update_time) autoUpdateTime.value = data.auto_update_time;
+      if (updateRemoteUrl && data.upstream_repo_url && !updateRemoteUrl.value) {
+        updateRemoteUrl.value = data.upstream_repo_url;
+      }
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load update config:', err);
     }
@@ -248,6 +266,52 @@ export function initSettingsUpdates() {
     }
   }
 
+  async function saveOriginUrl(targetUrl) {
+    if (!updateRemoteUrl) return;
+    try {
+      if (saveUpdateOriginBtn) saveUpdateOriginBtn.disabled = true;
+      if (resetUpdateOriginBtn) resetUpdateOriginBtn.disabled = true;
+      const res = await fetch('/api/system/updates/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auto_update_enabled: !!(autoUpdateEnabled && autoUpdateEnabled.checked),
+          auto_update_time: (autoUpdateTime && autoUpdateTime.value) || '03:00',
+          upstream_repo_url: targetUrl,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.detail || `HTTP ${res.status}`);
+      }
+      const saved = await res.json();
+      updateRemoteUrl.value = saved.upstream_repo_url || DEFAULT_ORIGIN_URL;
+      showOriginStatus('Origin URL saved.', false);
+      await loadSystemVersionInfo();
+      await loadBranchList();
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to save origin URL:', err);
+      showOriginStatus(err.message || 'Failed to save origin URL.', true);
+    } finally {
+      if (saveUpdateOriginBtn) saveUpdateOriginBtn.disabled = false;
+      if (resetUpdateOriginBtn) resetUpdateOriginBtn.disabled = false;
+    }
+  }
+
+  if (saveUpdateOriginBtn) {
+    saveUpdateOriginBtn.addEventListener('click', () => {
+      const url = (updateRemoteUrl && updateRemoteUrl.value.trim()) || DEFAULT_ORIGIN_URL;
+      saveOriginUrl(url);
+    });
+  }
+
+  if (resetUpdateOriginBtn) {
+    resetUpdateOriginBtn.addEventListener('click', () => {
+      if (updateRemoteUrl) updateRemoteUrl.value = DEFAULT_ORIGIN_URL;
+      saveOriginUrl('');
+    });
+  }
+
   if (saveAutoUpdateBtn) {
     saveAutoUpdateBtn.addEventListener('click', async () => {
       try {
@@ -258,6 +322,7 @@ export function initSettingsUpdates() {
           body: JSON.stringify({
             auto_update_enabled: !!(autoUpdateEnabled && autoUpdateEnabled.checked),
             auto_update_time: (autoUpdateTime && autoUpdateTime.value) || '03:00',
+            upstream_repo_url: (updateRemoteUrl && updateRemoteUrl.value.trim()) || DEFAULT_ORIGIN_URL,
           }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -320,20 +385,26 @@ export function initSettingsUpdates() {
 
   if (applyUpdateBtn) {
     applyUpdateBtn.addEventListener('click', async () => {
+      const selectedBranch = updateBranchSelect?.value?.trim() || '';
       const ok = confirm(
         'Update now?\n\n' +
-          'AutoReiv will snapshot your database, fast-forward the current branch from origin, install dependencies if needed, then restart serve on the same host/port.\n\n' +
+          'AutoReiv will snapshot your database, fast-forward from origin, install dependencies if needed, then restart/redeploy the server.\n\n' +
           'Continue?',
       );
       if (!ok) return;
       try {
         applyUpdateBtn.disabled = true;
         applyUpdateBtn.textContent = 'Updating...';
-        const res = await fetch('/api/system/updates/apply', { method: 'POST' });
+        const res = await fetch('/api/system/updates/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(selectedBranch ? { branch: selectedBranch } : {}),
+        });
         const data = await res.json();
         if (data.success) {
           showUpdateBanner('ok', data.message || `Updated to ${data.new_commit}.`);
           await loadSystemVersionInfo();
+          await loadBranchList();
           await loadUpdateHistory();
         } else {
           showUpdateBanner('err', data.message || data.refusal_reason || 'Update refused.');

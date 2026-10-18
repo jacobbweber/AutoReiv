@@ -22,6 +22,12 @@ FROM python:3.12-slim AS runner
 
 WORKDIR /app
 
+# Install git and TLS certificates for in-app software updates [CARD-722]
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create unprivileged system user
 RUN groupadd -g 1000 autoreiv && \
     useradd -u 1000 -g autoreiv -s /bin/bash -m autoreiv
@@ -29,7 +35,8 @@ RUN groupadd -g 1000 autoreiv && \
 # Copy installed dependencies from builder
 COPY --from=builder /install /usr/local
 
-# Copy application source, platform agents/skills, templates, and metadata [CARD-669]
+# Copy application source, platform agents/skills, templates, and git metadata [CARD-669, CARD-722]
+COPY --chown=autoreiv:autoreiv .git/ ./.git/
 COPY --chown=autoreiv:autoreiv src/ ./src/
 COPY --chown=autoreiv:autoreiv platform/ ./platform/
 COPY --chown=autoreiv:autoreiv templates/ ./templates/
@@ -46,6 +53,8 @@ ENV PYTHONUNBUFFERED=1 \
     AUTOREIV_DATA_DIR=/data \
     AUTOREIV_DEPLOY_MODE=docker \
     AUTOREIV_WIKI_PATH=/data/wiki \
+    AUTOREIV_SERVE_HOST=0.0.0.0 \
+    AUTOREIV_SERVE_PORT=8000 \
     OLLAMA_HOST=http://host.docker.internal:11434 \
     OLLAMA_MODEL=qwen2.5:7b \
     PORT=8000 \
