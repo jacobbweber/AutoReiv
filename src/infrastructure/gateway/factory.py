@@ -16,6 +16,38 @@ class GatewayProviderFactory:
     """Factory creating configured MultiProviderGateway instances."""
 
     @classmethod
+    def create_adapter(
+        cls,
+        provider_id: str,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        timeout: Optional[float] = None,
+    ) -> Any:
+        """Create a provider adapter instance for a given provider_id and endpoint [CARD-712]."""
+        clean_prov = str(provider_id or "").strip().lower()
+        clean_url = (base_url or "").strip()
+        clean_key = (api_key or "").strip()
+        if clean_prov == "ollama" or ":11434" in clean_url:
+            return OllamaProviderAdapter(
+                base_url=clean_url or "http://127.0.0.1:11434",
+                timeout=timeout,
+                provider_id=clean_prov,
+            )
+        if clean_prov == "anthropic":
+            return AnthropicProviderAdapter(
+                api_key=clean_key,
+                base_url=clean_url or "https://api.anthropic.com/v1",
+                timeout=timeout,
+                provider_id=clean_prov,
+            )
+        return OpenAIProviderAdapter(
+            api_key=clean_key,
+            base_url=clean_url or "https://api.openai.com/v1",
+            timeout=timeout,
+            provider_id=clean_prov,
+        )
+
+    @classmethod
     def create_gateway(
         cls,
         config: Optional[Dict[str, Any]] = None,
@@ -172,32 +204,14 @@ class GatewayProviderFactory:
                     or (preset.get("default_url") if preset else None)
                     or "https://api.openai.com/v1"
                 )
-                if active_pid == "anthropic":
-                    gateway.register_provider(
-                        AnthropicProviderAdapter(
-                            api_key=active_key,
-                            base_url=active_url,
-                            timeout=timeout_sec,
-                            provider_id="anthropic",
-                        )
+                gateway.register_provider(
+                    cls.create_adapter(
+                        provider_id=active_pid,
+                        base_url=active_url,
+                        api_key=active_key,
+                        timeout=timeout_sec,
                     )
-                elif active_pid == "ollama":
-                    gateway.register_provider(
-                        OllamaProviderAdapter(
-                            base_url=active_url,
-                            timeout=timeout_sec,
-                            provider_id="ollama",
-                        )
-                    )
-                else:
-                    gateway.register_provider(
-                        OpenAIProviderAdapter(
-                            api_key=active_key,
-                            base_url=active_url,
-                            timeout=timeout_sec,
-                            provider_id=active_pid,
-                        )
-                    )
+                )
 
         # 12. Final default model resolution for active provider
         if not getattr(gateway, "default_model_id", None):
