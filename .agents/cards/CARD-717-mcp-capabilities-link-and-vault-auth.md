@@ -2,7 +2,7 @@
 id: CARD-717
 title: "MCP Capabilities Link and Vault Auth"
 type: feature
-status: In Review
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -14,6 +14,7 @@ proof:
 branch: feat/card-717-mcp-capabilities-link-and-vault-auth
 log: {minutes: 15, qa_runs: 1, findings: 1}
 created: 2026-10-18
+completed: 2026-10-18
 ---
 
 # CARD-717 MCP Capabilities Link and Vault Auth
