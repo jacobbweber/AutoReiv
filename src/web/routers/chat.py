@@ -81,6 +81,7 @@ from src.application.orchestration.chat_job_binding import (
     job_waiting_for_answer_on_session,
     latest_open_job_for_session,
 )
+from src.application.orchestration.phase_roles import planning_tools_block_for
 from src.application.orchestration.repo_code_grounding import (
     apply_standing_repo_code_grounding,
     is_repo_code_ask,
@@ -98,6 +99,11 @@ from src.application.orchestration.working_set_context import (
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
 from src.domain.orchestration.models import PhaseStatus
+
+
+def _planning_tools_block_for(*args: Any, **kwargs: Any) -> str:
+    return planning_tools_block_for(*args, **kwargs)
+
 
 __all__ = [
     "AuditAgentRequest", "ChatStreamRequest", "CreateSessionRequest", "GOAL_PLAN_REVIEW_TOOL",
