@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Changed
 
+- Split `src/domain/wiki/store.py` (2,125 lines) into focused modules under 800 lines, eliminated double vault file reads in `get_graph`/`get_mindmap`, and enforced zero upward imports in `src/domain/` [CARD-714].
 - Extracted chat turn streaming, background job execution, plan/escalation resume, attachment storage, and active stream tracking into `src/application/chat/` (shrinking `src/web/routers/chat.py` from 2,706 to 784 lines) and moved ecosystem bootstrap out of `src/infrastructure/agents/registry.py` into `src/application/bootstrap/ecosystem.py` [CARD-713].
 - Unified `AgentKernel.run_turn` and `stream_turn` onto a single ReAct execution core (`src/application/kernel/react_loop.py`) and split `agent_kernel.py` (2,045 lines) into focused modules under 800 lines [CARD-712].
 - Consolidated markdown YAML frontmatter parsers onto `src/domain/frontmatter.py`, unified wildcard skill and tool extraction onto canonical helpers, and deduplicated inline SQLite `CREATE TABLE` DDL in `connection.py` onto `schema.py` constants [CARD-711].
