@@ -709,6 +709,7 @@ export function initProjectsStudio(state, callbacks = {}) {
       if (!selectedFilePath) return;
       try {
         await copyToClipboard(selectedFilePath);
+        toast(`Copied: ${selectedFilePath}`, 'info');
         const textEl = $('projectsCopyPathText');
         if (textEl) {
           const orig = textEl.textContent;
@@ -718,7 +719,7 @@ export function initProjectsStudio(state, callbacks = {}) {
           }, 1500);
         }
       } catch {
-        toast(`Copied: ${selectedFilePath}`, 'info');
+        toast('Failed to copy file path', 'error');
       }
     });
   }

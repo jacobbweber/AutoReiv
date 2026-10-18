@@ -54,6 +54,7 @@ import {
   formatMilestoneGoalTitle,
   renderJobChromePhasesIntoElement,
   formatInlineJobChromeHtml,
+  renderReflexionBadge,
 } from './chat/job_chrome.js';
 
 import {
@@ -578,7 +579,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     const {
       streamContentEl, queueNoteEl, reasoningDrawer, reasoningContent,
-      toolBadge, hitlCard, planMilestoneCard, planStepsContainer, planStepCounter,
+      toolBadge, reflexionBadge, hitlCard, planMilestoneCard, planStepsContainer, planStepCounter,
     } = bindStreamBubbleElements(streamBubble);
 
     let accumulatedContent = '';
@@ -632,6 +633,7 @@ export function initChatStudio(state, callbacks = {}) {
           outcome.note(eventType, ev);
           applyQueueNote(queueNoteEl, eventType); // CARD-494
           updateJobChromeFromEvent(eventType, ev);
+          renderReflexionBadge(reflexionBadge, eventType, ev);
           if (isHitlParkSseEvent(eventType, ev)) refreshPendingHitl(); // CARD-470: live Approve/Reject tray
 
           const badge = toolBadge ? toolBadgeView(eventType, ev) : null; // CARD-682
@@ -684,6 +686,7 @@ export function initChatStudio(state, callbacks = {}) {
           openWorkbenchFn: openWorkbench,
           onTeachAgent: teachAgentModalCtrl.openTeachAgentModal,
           exportMessageToWikiFn: callbacks.exportMessageToWiki || null,
+          showToastFn: showToast,
         });
       }
       if (ownStream.isCurrent(turn)) reportStreamOutcome(outcome, { messagesContainer, showToastFn: showToast });

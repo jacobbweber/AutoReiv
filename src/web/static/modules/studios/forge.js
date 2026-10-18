@@ -339,6 +339,8 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeStorageType) forgeStorageType.value = agent.storage_type || 'sqlite';
     if (forgeStorageTypeContainer) forgeStorageTypeContainer.classList.toggle('hidden', !agent.storage_enabled);
     if (forgeMemoryEnabled) forgeMemoryEnabled.checked = agent.memory_enabled !== false;
+    const forgeMemoryConfigContainer = $('forgeMemoryConfigContainer');
+    if (forgeMemoryConfigContainer) forgeMemoryConfigContainer.classList.toggle('hidden', agent.memory_enabled === false);
     const retentionDays = agent.memory_retention_days !== undefined ? agent.memory_retention_days : 30;
     if (forgeMemoryRetentionDays) forgeMemoryRetentionDays.value = retentionDays;
     if (forgeMemoryRetentionDaysLabel) forgeMemoryRetentionDaysLabel.textContent = `${retentionDays} days`;
@@ -600,6 +602,13 @@ export function initAgentForge(state, callbacks = {}) {
       }
       onToggleSkill('sqlite-storage', forgeStorageEnabled.checked);
       regroupSkillRows(null, 'sqlite-storage'); // CARD-656: move the row to its group
+    });
+  }
+
+  if (forgeMemoryEnabled) {
+    forgeMemoryEnabled.addEventListener('change', () => {
+      const container = $('forgeMemoryConfigContainer');
+      if (container) container.classList.toggle('hidden', !forgeMemoryEnabled.checked);
     });
   }
 

@@ -59,6 +59,9 @@ function ensureDomElements(doc) {
       } else {
         anchor.parentNode.appendChild(card);
       }
+      if (typeof window !== 'undefined' && window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
       scanBtn = byId(doc, 'scanLocalServersBtn');
       status = byId(doc, 'localModelProbeStatus');
       results = byId(doc, 'localModelProbeResults');

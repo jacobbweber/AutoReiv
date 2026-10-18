@@ -384,7 +384,10 @@ export function setupWikiNoteOperations({
 
   if (fmCopyRawBtn) {
     fmCopyRawBtn.addEventListener('click', async () => {
-      if (!currentRawFrontmatter) return;
+      if (!currentRawFrontmatter) {
+        showToast('No YAML frontmatter to copy', 'info');
+        return;
+      }
       try {
         await copyToClipboard(currentRawFrontmatter);
         showToast('YAML frontmatter copied to clipboard', 'success');

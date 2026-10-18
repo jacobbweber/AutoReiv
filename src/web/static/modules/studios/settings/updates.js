@@ -4,6 +4,7 @@
  */
 
 import { $, safeCreateIcons } from '../../dom.js';
+import { escapeHtml } from '../../utils/formatters.js';
 
 export function initSettingsUpdates() {
   // --- System & Software Updates [CARD-196 / CARD-451] ---
@@ -202,10 +203,10 @@ export function initSettingsUpdates() {
       }
       updateHistoryList.innerHTML = entries
         .map((e) => {
-          const sha = e.from_sha && e.to_sha ? `${e.from_sha} → ${e.to_sha}` : '';
-          const tsLabel = e.timestamp ? formatLocalTimestamp(e.timestamp) : '';
+          const sha = e.from_sha && e.to_sha ? `${escapeHtml(e.from_sha)} → ${escapeHtml(e.to_sha)}` : '';
+          const tsLabel = e.timestamp ? escapeHtml(formatLocalTimestamp(e.timestamp)) : '';
           const tsTitle = e.timestamp ? ` title="${String(e.timestamp).replace(/"/g, '&quot;')}"` : '';
-          return `<li><span class="text-slate-500"${tsTitle}>${tsLabel}</span> · <span class="text-slate-200">${e.trigger}</span> · <span class="${e.result === 'success' ? 'text-emerald-400' : e.result === 'refused' || e.result === 'deferred' ? 'text-amber-400' : 'text-rose-400'}">${e.result}</span> · ${e.branch || ''} ${sha}<div class="text-slate-500 truncate">${e.message || ''}</div></li>`;
+          return `<li><span class="text-slate-500"${tsTitle}>${tsLabel}</span> · <span class="text-slate-200">${escapeHtml(e.trigger || '')}</span> · <span class="${e.result === 'success' ? 'text-emerald-400' : e.result === 'refused' || e.result === 'deferred' ? 'text-amber-400' : 'text-rose-400'}">${escapeHtml(e.result || '')}</span> · ${escapeHtml(e.branch || '')} ${sha}<div class="text-slate-500 truncate">${escapeHtml(e.message || '')}</div></li>`;
         })
         .join('');
     } catch (err) {

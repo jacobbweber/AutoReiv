@@ -10,7 +10,6 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-09-27 | tests | Settings updates card has no first-paint Vitest contract (folded from CARD-452) | CARD-561 triage | src/web/static/modules/studios/settings*
 - 2026-09-27 | updates | software-update auto scheduler defer-retry cadence and Windows restarter dry-run are unproven (folded from CARD-453) | CARD-561 triage | src/application/system/*update*
 - 2026-09-27 | smoke | smoke TC-7 reads the Update button colour mid-transition and fails intermittently (folded from CARD-481) | CARD-561 triage | tests/e2e/smoke.spec.js
-- 2026-09-27 | smoke | first click on a reply button right after sending (focused composer) can miss (folded from CARD-501) | CARD-561 triage | tests/e2e/smoke.spec.js
 - 2026-09-27 | logging | src.* INFO/WARNING log lines do not reach the serve log, so startup migrations cannot be checked from it (folded from CARD-528) | CARD-561 triage | src/web/app.py, scripts/restart_serve.ps1
 - 2026-09-27 | cards | list_card_status.py has no --milestone filter or priority column, and prints Complete/Completed/Done (Absorbed) as separate statuses | from CARD-559 | .agents/skills/card/scripts/list_card_status.py
 - 2026-09-27 | live-qa | card-520 step 4 still labels its idle stop knownBug 'CARD-535', but CARD-535 was closed as obsolete in CARD-577; drop or re-point the knownBug when the journey is next touched | from CARD-559, updated CARD-577 | tests/e2e/journeys/card-520-teach-needs-tool.mjs

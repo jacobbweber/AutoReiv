@@ -27,8 +27,9 @@ function fallbackCopyTextToClipboard(text) {
   textArea.style.outline = 'none';
   textArea.style.boxShadow = 'none';
   textArea.style.background = 'transparent';
+  const prevFocus = document.activeElement;
   document.body.appendChild(textArea);
-  textArea.focus();
+  textArea.focus({ preventScroll: true });
   textArea.select();
   try {
     document.execCommand('copy');
@@ -36,4 +37,11 @@ function fallbackCopyTextToClipboard(text) {
     console.warn('[AutoReiv UI] Fallback copy failed:', err);
   }
   document.body.removeChild(textArea);
+  if (prevFocus && typeof prevFocus.focus === 'function') {
+    try {
+      prevFocus.focus({ preventScroll: true });
+    } catch {
+      /* ignore */
+    }
+  }
 }

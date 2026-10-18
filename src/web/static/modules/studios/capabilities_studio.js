@@ -557,6 +557,12 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
   if (createCancelBtnEl) {
     createCancelBtnEl.addEventListener('click', () => closeCreateBar());
   }
+  if (createInputEl) {
+    createInputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); handleConfirmCreate(); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeCreateBar(); }
+    });
+  }
   if (saveBtnEl) {
     saveBtnEl.addEventListener('click', () => handleSaveCurrentFile());
   }
@@ -701,15 +707,28 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
       const scopeVal = mcpScopeSelectEl ? mcpScopeSelectEl.value : 'platform';
       const agentVal = mcpAgentSelectEl ? mcpAgentSelectEl.value : '';
       if (action === 'delete' && serverName) {
-        await api.capabilities.deleteMcpServer(scopeVal, agentVal, serverName);
-        setFeedback(`Removed MCP server "${serverName}".`, 'info');
-        await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
+        try {
+          await api.capabilities.deleteMcpServer(scopeVal, agentVal, serverName);
+          setFeedback(`Removed MCP server "${serverName}".`, 'info');
+          showToast(`Removed MCP server ${serverName}`, 'info');
+          await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
+        } catch (err) {
+          setFeedback(`Failed to remove MCP server "${serverName}": ${err.message}`, 'error');
+          showToast(`Failed to remove MCP server: ${err.message}`, 'error');
+        }
       } else if (action === 'toggle' && serverName) {
         const current = mcpServersCache.find((s) => s && s.name === serverName);
         if (!current) return;
-        const body = serverToSaveBody(current, !current.enabled);
-        await api.capabilities.saveMcpServer(scopeVal, agentVal, body);
-        await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
+        try {
+          const nextEnabled = !current.enabled;
+          const body = serverToSaveBody(current, nextEnabled);
+          await api.capabilities.saveMcpServer(scopeVal, agentVal, body);
+          showToast(`MCP server ${serverName} ${nextEnabled ? 'enabled' : 'disabled'}`, 'info');
+          await loadMcpInspector({ scope: scopeVal, agentId: agentVal });
+        } catch (err) {
+          setFeedback(`Failed to toggle MCP server "${serverName}": ${err.message}`, 'error');
+          showToast(`Failed to toggle MCP server: ${err.message}`, 'error');
+        }
       } else if (action === 'edit' && serverName) {
         const current = mcpServersCache.find((s) => s && s.name === serverName);
         if (!current || !mcpFormEl) return;
@@ -738,11 +757,15 @@ export function initCapabilitiesStudio(state, _callbacks = {}) {
           );
           if (probe && probe.status === 'ok') {
             setFeedback(`Handshake OK for "${serverName}" (${probe.tools_count || 0} tools).`, 'ok');
+            showToast(`Handshake OK for ${serverName}`, 'success');
           } else {
-            setFeedback(`Handshake failed for "${serverName}": ${(probe && probe.error) || 'unknown error'}`, 'error');
+            const msg = (probe && probe.error) || 'unknown error';
+            setFeedback(`Handshake failed for "${serverName}": ${msg}`, 'error');
+            showToast(`Handshake failed for ${serverName}: ${msg}`, 'error');
           }
         } catch (err) {
           setFeedback(`Handshake failed for "${serverName}": ${err.message}`, 'error');
+          showToast(`Handshake failed for ${serverName}: ${err.message}`, 'error');
         }
       }
     });

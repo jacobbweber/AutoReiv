@@ -9,7 +9,7 @@
  * 5. Runtime State Transition badge & formatted Payload Inspector.
  */
 
-import { $ } from '../dom.js';
+import { $, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 
 const SWIMLANE_MAP = Object.freeze({
@@ -327,7 +327,10 @@ export function initJourneyCanvas(_state, _callbacks = {}) {
   function play() {
     if (!activeScenario || !activeScenario.steps) return;
     isPlaying = true;
-    if (playBtn) playBtn.innerHTML = '<i data-lucide="pause" class="w-3.5 h-3.5"></i><span>Pause</span>';
+    if (playBtn) {
+      playBtn.innerHTML = '<i data-lucide="pause" class="w-3.5 h-3.5"></i><span>Pause</span>';
+      safeCreateIcons();
+    }
 
     playInterval = setInterval(() => {
       const total = activeScenario.steps.length;
@@ -346,7 +349,10 @@ export function initJourneyCanvas(_state, _callbacks = {}) {
       clearInterval(playInterval);
       playInterval = null;
     }
-    if (playBtn) playBtn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5"></i><span>Play</span>';
+    if (playBtn) {
+      playBtn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5"></i><span>Play</span>';
+      safeCreateIcons();
+    }
   }
 
   function stepNext() {

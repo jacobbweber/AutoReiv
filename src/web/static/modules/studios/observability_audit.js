@@ -175,6 +175,7 @@ export async function exportAuditReportToInboxEl({ observeSessionSelect, observe
     if (observeGenerateReportBtn) {
       observeGenerateReportBtn.disabled = true;
       observeGenerateReportBtn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Exporting…</span>';
+      if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     }
     const res = await fetch('/api/observability/audit/export', {
       method: 'POST',
