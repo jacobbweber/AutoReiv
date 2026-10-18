@@ -2,7 +2,7 @@
 id: CARD-715
 title: "Decompose backend monoliths over 800 lines (education.py, education_tools.py, course.py, job_phase_orchestrator.py, update_service.py, card_tools.py)"
 type: feature
-status: In Review
+status: Done
 priority: P3
 milestone: M31
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-715-backend-monolith-decomposition
 log: {minutes: 35, qa_runs: 1, findings: 0}
 created: 2026-10-17
+completed: 2026-10-18
 ---
 
 # CARD-715 Decompose backend monoliths over 800 lines (education.py, education_tools.py, course.py, job_phase_orchestrator.py, update_service.py, card_tools.py)
