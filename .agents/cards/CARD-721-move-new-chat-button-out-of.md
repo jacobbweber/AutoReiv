@@ -2,7 +2,7 @@
 id: CARD-721
 title: "Move New Chat Button Out of Options Drawer to Left of Options Button"
 type: feature
-status: In Progress
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-721-move-new-chat-button-out-of]
   checks: [tests/unit/test_card721_new_chat_composer_button.py]
 branch: feat/card-721-move-new-chat-button-out-of
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 8, qa_runs: 1, findings: 0}
 created: 2026-10-18
+completed: 2026-10-18
 ---
 
 # CARD-721 Move New Chat Button Out of Options Drawer to Left of Options Button
@@ -54,6 +55,13 @@ In the main Chat window's composer bar (`#chatForm`), `#newChatBtn` (`+ New`) si
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-721-move-new-chat-button-out-of` | desktop | PASS | `#newChatBtn` (`+ New`) at `x=84` left of `#chatOptionsToggleBtn` at `x=156`, removed from `#chatOptionsDrawer`, one-click new session creation, zero overflow (`1280px <= 1280px`) |
+| `card-721-move-new-chat-button-out-of` | phone | PASS | `#newChatBtn` (`+ New`) at `x=21` left of `#chatOptionsToggleBtn` at `x=93`, removed from `#chatOptionsDrawer`, one-click new session creation, zero overflow (`390px <= 390px`) |
+
+Screenshots:
+- `/tmp/autoreiv-qa/card-721/card-721-move-new-chat-button-out-of-desktop-01-1-verify-newchatbtn-new-is-visible-in-chatform-d.png`
+- `/tmp/autoreiv-qa/card-721/card-721-move-new-chat-button-out-of-desktop-02-2-click-newchatbtn-directly-with-options-drawer-.png`
+- `/tmp/autoreiv-qa/card-721/card-721-move-new-chat-button-out-of-phone-01-1-verify-newchatbtn-new-is-visible-in-chatform-d.png`
 
 ## Release note
 Moved the New Chat button (`#newChatBtn`, `+ New`) out of the `#chatOptionsDrawer` menu and placed it directly to the left of the Options button (`#chatOptionsToggleBtn`) in the main Chat composer bar for one-click new sessions (CARD-721).
