@@ -2,7 +2,7 @@
 id: CARD-710
 title: "Retire dead frontend studio mounts in app.js, dead backend no-ops, toolsmith special case in allowed_tools, and duplicate phase session HITL tool rows"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none
