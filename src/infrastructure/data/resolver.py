@@ -557,8 +557,6 @@ BLED_AGENT_SKILL_IDS: frozenset[str] = frozenset(
     {
         "personal_finance",
         "weekly-tasks",
-        "platform-health",
-        "session-inspect",
         "build",
         "plan",
         "test",
@@ -572,13 +570,23 @@ BLED_AGENT_SKILL_IDS: frozenset[str] = frozenset(
 )
 
 
+def _shipped_platform_skill_ids() -> frozenset[str]:
+    repo_skills = Path(__file__).resolve().parents[3] / "platform" / "skills"
+    if not repo_skills.is_dir():
+        return frozenset()
+    return frozenset(p.parent.name for p in repo_skills.glob("*/SKILL.md"))
+
+
 def prune_bled_platform_skills(skills_path: Union[str, Path]) -> list[str]:
-    """Remove known agent-specific skills that bled into $DATA_DIR/skills [CARD-203]."""
+    """Remove known agent-specific skills that bled into $DATA_DIR/skills [CARD-203, CARD-707]."""
     root = Path(skills_path)
     if not root.is_dir():
         return []
+    shipped_ids = _shipped_platform_skill_ids()
     pruned: list[str] = []
     for skill_name in BLED_AGENT_SKILL_IDS:
+        if skill_name in shipped_ids:
+            continue
         target = root / skill_name
         if target.is_dir():
             try:
@@ -588,6 +596,7 @@ def prune_bled_platform_skills(skills_path: Union[str, Path]) -> list[str]:
             except OSError as exc:
                 logger.warning("Failed to prune bled skill %s: %s", target, exc)
     return pruned
+
 
 
 def prune_orphan_databases(root_path: Union[str, Path]) -> list[str]:

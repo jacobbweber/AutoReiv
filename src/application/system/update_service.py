@@ -11,7 +11,6 @@ import logging
 import os
 import platform
 import re
-import shutil
 import subprocess
 import sys
 import uuid
@@ -912,6 +911,8 @@ class UpdateService:
 
 
     def _snapshot_database(self) -> Optional[str]:
+        import sqlite3
+
         candidate_paths = [
             self.data_dir / "database" / "autoreiv.db",
             self.data_dir / "autoreiv.db",
@@ -930,7 +931,13 @@ class UpdateService:
                 ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
                 backup_file = backups / f"{db_file.name}.pre-update-{ts}"
                 try:
-                    shutil.copy2(str(db_file), str(backup_file))
+                    src_conn = sqlite3.connect(str(db_file), timeout=10.0)
+                    dst_conn = sqlite3.connect(str(backup_file), timeout=10.0)
+                    try:
+                        src_conn.backup(dst_conn)
+                    finally:
+                        dst_conn.close()
+                        src_conn.close()
                     logger.info("Created database snapshot at %s", backup_file)
                     return str(backup_file)
                 except Exception as e:
