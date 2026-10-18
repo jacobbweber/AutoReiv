@@ -2,7 +2,7 @@
 id: CARD-712
 title: "Unify AgentKernel.run_turn and stream_turn onto one shared ReAct loop and decompose agent_kernel.py under 800 lines"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-712-kernel-unification-and-split
 log: {minutes: 25, qa_runs: 1, findings: 0}
 created: 2026-10-17
+completed: 2026-10-18
 ---
 
 # CARD-712 Unify AgentKernel.run_turn and stream_turn onto one shared ReAct loop and decompose agent_kernel.py under 800 lines
