@@ -380,8 +380,8 @@ export function initChatStudio(state, callbacks = {}) {
       }
       const data = await res.json();
       const proj = data && data.selected;
-      const isDeveloper = state.selectedAgentId === 'developer';
-      if (isDeveloper && proj && (proj.slug || proj.name || proj.path)) {
+      const isAutoreiv = state.selectedAgentId === 'autoreiv' || state.selectedAgentId === 'developer';
+      if (isAutoreiv && proj && (proj.slug || proj.name || proj.path)) {
         chatActiveProjectName.textContent = proj.slug || proj.name || 'active project';
         chatActiveProjectPill.classList.remove('hidden');
         chatActiveProjectPill.classList.add('inline-flex');

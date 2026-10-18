@@ -107,9 +107,9 @@ export const api = {
   },
 
   sessions: {
-    list: (agentId = null) => api.get('/api/chat/sessions', agentId ? { agent_id: agentId } : null),
-    get: (id) => api.get(`/api/chat/sessions/${encodeURIComponent(id)}`),
-    delete: (id) => api.delete(`/api/chat/sessions/${encodeURIComponent(id)}`),
+    list: (agentId = null) => api.get('/api/sessions', agentId ? { agent_id: agentId } : null),
+    get: (id) => api.get(`/api/sessions/${encodeURIComponent(id)}`),
+    delete: (id) => api.delete(`/api/sessions/${encodeURIComponent(id)}`),
   },
 
   routines: {

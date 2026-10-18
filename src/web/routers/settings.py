@@ -403,7 +403,10 @@ async def discover_models(
     pid = provider_id or getattr(gateway, "default_provider_id", "ollama") or "ollama"
 
     target_url = host_url or base_url
-    clean_key = (api_key or "").strip()
+    header_key = None
+    if hasattr(request, "headers") and request.headers:
+        header_key = request.headers.get("x-provider-api-key") or request.headers.get("X-Provider-Api-Key")
+    clean_key = (header_key or api_key or "").strip()
     store = getattr(request.app.state, "store", None)
     if (not clean_key or clean_key.startswith("••")) and store:
         prov_settings = store.get_setting("provider_settings") or {}
@@ -640,6 +643,10 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
             from src.infrastructure.mcp.companion_author import author_mcp_companion_skill
 
             data_dir = getattr(request.app.state, "data_dir", None)
+            if not data_dir:
+                paths = getattr(request.app.state, "data_dir_paths", None)
+                if paths is not None and getattr(paths, "root", None):
+                    data_dir = str(paths.root)
             author_mcp_companion_skill(
                 server_name=req.name,
                 tools=outcome["tools"],

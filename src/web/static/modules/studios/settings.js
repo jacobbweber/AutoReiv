@@ -758,9 +758,12 @@ export function initSettingsStudio(state, callbacks = {}) {
     try {
       let queryUrl = `/api/models/discover?available_ram_gib=${customRam}&provider_id=${encodeURIComponent(selectedPreset)}`;
       if (currentHost) queryUrl += `&host_url=${encodeURIComponent(currentHost)}`;
-      if (currentKey && !currentKey.startsWith('••')) queryUrl += `&api_key=${encodeURIComponent(currentKey)}`;
+      const fetchOpts = {};
+      if (currentKey && !currentKey.startsWith('••')) {
+        fetchOpts.headers = { 'X-Provider-Api-Key': currentKey };
+      }
 
-      const res = await fetch(queryUrl);
+      const res = await fetch(queryUrl, fetchOpts);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const models = data.models || [];

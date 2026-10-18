@@ -545,6 +545,7 @@ def create_app(
         app.state.wiki_status = None
         app.state.deploy_mode = "local"
     app.state.data_dir_paths = data_paths
+    app.state.data_dir = str(data_paths.root)
     app.state.user_skill_catalog = getattr(registry, "user_skill_catalog", None)
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)

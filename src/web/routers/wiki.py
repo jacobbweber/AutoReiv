@@ -24,10 +24,22 @@ router = APIRouter(tags=["Wiki"])
 
 
 def _get_wiki_service(request: Request) -> WikiService:
-    if hasattr(request.app.state, "wiki_service") and request.app.state.wiki_service:
-        return request.app.state.wiki_service
-    wiki_path = getattr(request.app.state, "wiki_path", "./data/wiki")
-    return WikiService(wiki_root=wiki_path)
+    from pathlib import Path
+
+    from src.infrastructure.data.resolver import DataDirResolver
+
+    wiki_path = getattr(request.app.state, "wiki_path", None)
+    if not wiki_path:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        wiki_path = str(paths.wiki_path) if paths is not None else str(DataDirResolver().resolve().wiki_path)
+    existing = getattr(request.app.state, "wiki_service", None)
+    if existing is not None:
+        existing_root = getattr(getattr(existing, "store", None), "root_dir", None)
+        if existing_root and Path(existing_root).resolve() == Path(wiki_path).resolve():
+            return existing
+    svc = WikiService(wiki_root=str(wiki_path))
+    request.app.state.wiki_service = svc
+    return svc
 
 
 @router.post("/api/export/wiki")

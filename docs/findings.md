@@ -25,7 +25,3 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 - 2026-09-27 | teach | reloaded Teach card still says "On for <agent>" after the skill is removed (folded from CARD-507) | CARD-561 triage | src/web/static/modules/studios/chat/render.js
 - 2026-09-28 | live-qa | the journey hangs (instead of failing) when the chat stream returns an error event before any reply | from CARD-562 | tests/e2e/journeys/card-562-developer-one-card-to-in-review.mjs
 - 2026-09-29 | tests | 5 legacy capability-authoring / MCP-building tests stay skipped (commit_skill, agent builder job phase, MCP dev deploy, oc428, oc429) | from CARD-571 | tests/unit/orchestration, tests/integration/mcp, tests/integration/operator_contracts
-
-## M29 Self-development and dogfooding
-- 2026-10-17 | projects-ui | `#chatActiveProjectPill` (`chat.js:385`) and `#projectsPairDeveloperBtn` (`projects.js:782`) still hardcode `selectedAgentId === 'developer'` after `developer` was folded into `autoreiv` (`CARD-682`), hiding the active-project pill for `autoreiv` | from CARD-697 | src/web/static/modules/studios/chat.js, src/web/static/modules/studios/projects.js, tests/unit/frontend/developer_projects_integration.test.js
-
