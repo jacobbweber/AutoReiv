@@ -2,7 +2,7 @@
 id: CARD-720
 title: "Comprehensive UI Audit and Button Functionality Fixes"
 type: bug
-status: In Progress
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -10,8 +10,9 @@ proof:
   journeys: [card-720-comprehensive-ui-audit-and-button-functionality]
   checks: [tests/unit/test_card720_ui_audit_contracts.py]
 branch: feat/card-720-comprehensive-ui-audit-and-button-functionality
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 45, qa_runs: 2, findings: 10}
 created: 2026-10-18
+completed: 2026-10-18
 ---
 
 # CARD-720 Comprehensive UI Audit and Button Functionality Fixes
@@ -108,8 +109,14 @@ A full audit of every studio, modal, drawer, and interactive control across Auto
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-720-comprehensive-ui-audit-and-button-functionality` | desktop | PASS | Post-send composer height 20px, first-click `.copy-msg-btn` `"Copied!"` + toast, `#toggleSidebarBtn` drawer toggle, `#forgeAvatarPreview` 0 nested SVGs, `#forgeMemoryEnabled` toggle, Capabilities Escape key (`stopPropagation`), Wiki folder overview, Education Due Hide button, Settings wiring, zero overflow (`1280px <= 1280px`) |
+| `card-720-comprehensive-ui-audit-and-button-functionality` | phone | PASS | Post-send composer height 20px, first-click `.copy-msg-btn` `"Copied!"` + toast, `#toggleSidebarBtn` drawer toggle, `#forgeAvatarPreview` 0 nested SVGs, `#forgeMemoryEnabled` toggle, Capabilities Escape key (`stopPropagation`), Wiki folder overview, Education Due Hide button, Settings wiring, zero overflow (`390px <= 390px`) |
 
-Screenshots: `/tmp/autoreiv-qa/card-720/...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-720/card-720-comprehensive-ui-audit-and-button-functionality-desktop-01-1-chat-studio-composer-shrinks-on-send-first-cli.png`
+- `/tmp/autoreiv-qa/card-720/card-720-comprehensive-ui-audit-and-button-functionality-desktop-02-2-agents-studio-avatar-preview-updates-without-n.png`
+- `/tmp/autoreiv-qa/card-720/card-720-comprehensive-ui-audit-and-button-functionality-phone-01-1-chat-studio-composer-shrinks-on-send-first-cli.png`
+- `/tmp/autoreiv-qa/card-720/card-720-comprehensive-ui-audit-and-button-functionality-phone-03-3-capabilities-wiki-education-and-settings-studi.png`
 
 ## Release note
 Fixed UI button wiring, feedback toasts, modal z-index elevation, composer post-send sizing, Wiki folder deletion reload, Projects copy-path toast, Agent avatar preview and memory toggle, Education due-review panel controls, Observability live log polling, and Settings duplicate listeners across all studios (CARD-720).
