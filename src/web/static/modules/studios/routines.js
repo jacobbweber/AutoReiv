@@ -288,7 +288,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
 
   async function openRoutineModal(routine = null, preselectedAgentId = null) {
     if (!routineModal) return;
-    const targetAgentId = routine ? routine.agent_id : (preselectedAgentId || 'assistant');
+    const targetAgentId = routine ? routine.agent_id : (preselectedAgentId || 'autoreiv');
     await populateRoutineAgentSelect(targetAgentId);
     if (routine && routine.schedule_rule) applyScheduleRuleToUi(routine.schedule_rule);
     else { schedSelectedMonths = new Set(); schedSelectedDows = new Set(); schedSelectedDoms = new Set(); mountStructuredScheduleChips(); }
@@ -443,10 +443,17 @@ export function initRoutinesStudio(state, callbacks = {}) {
         // Toggle listener
         card.querySelector('.toggle-routine-btn')?.addEventListener('click', async () => {
           try {
-            await fetch(`/api/routines/${r.id}/toggle`, { method: 'POST' });
-            showRoutineBanner(`Routine '${r.name}' ${r.enabled ? 'paused' : 'resumed'}.`);
+            const toggleRes = await fetch(`/api/routines/${r.id}/toggle`, { method: 'POST' });
+            if (!toggleRes.ok) {
+              const err = await toggleRes.json().catch(() => ({}));
+              throw new Error(err.detail || `HTTP ${toggleRes.status}`);
+            }
+            const msg = `Routine '${r.name}' ${r.enabled ? 'paused' : 'resumed'}.`;
+            showToast(msg, 'info');
+            showRoutineBanner(msg);
             await loadRoutines();
           } catch (err) {
+            showToast(`Failed to toggle routine: ${err.message}`, 'error');
             showRoutineBanner(`Failed to toggle routine: ${err.message}`, true);
           }
         });
@@ -479,8 +486,10 @@ export function initRoutinesStudio(state, callbacks = {}) {
           btn.disabled = true;
           try {
             const runRes = await fetch(`/api/routines/${r.id}/run`, { method: 'POST' });
-            const runData = await runRes.json();
+            const runData = await runRes.json().catch(() => ({}));
+            if (!runRes.ok) throw new Error(runData.detail || `HTTP ${runRes.status}`);
             btn.innerHTML = `<span>Completed!</span>`;
+            showToast(`Routine '${r.name}' finished (${runData.status || 'ok'})`, 'success');
             showRoutineBanner(
               `Routine '${r.name}' finished with status: ${runData.status} (${runData.duration_ms || 0}ms)`
             );
@@ -491,6 +500,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
             }, 2500);
           } catch (err) {
             btn.innerHTML = `<span>Failed</span>`;
+            showToast(`Routine execution error: ${err.message}`, 'error');
             showRoutineBanner(`Routine execution error: ${err.message}`, true);
             setTimeout(() => {
               btn.innerHTML = origHtml;

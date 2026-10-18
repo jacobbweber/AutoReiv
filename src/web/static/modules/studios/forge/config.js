@@ -123,9 +123,9 @@ export async function discoverModelsForAgent() {
 }
 
 export function updateAvatarPreview(iconName) {
-  const forgeAvatarPreview = $('forgeAvatarIcon');
+  const forgeAvatarPreview = $('forgeAvatarPreview') || $('forgeAvatarIcon');
   if (forgeAvatarPreview) {
-    forgeAvatarPreview.innerHTML = `<i data-lucide="${iconName}" class="w-7 h-7"></i>`;
+    forgeAvatarPreview.innerHTML = `<i data-lucide="${iconName}" id="forgeAvatarIcon" class="w-7 h-7"></i>`;
     safeCreateIcons();
   }
 }
@@ -162,10 +162,10 @@ export async function loadAgentAssignedRoutines(agentId, callbacks = {}) {
           </div>
         </div>
         <div class="flex items-center space-x-1 flex-shrink-0">
-          <button class="forge-routine-run-btn p-1.5 rounded bg-slate-700 hover:bg-brand-600 text-slate-200 hover:text-white transition" title="Run Routine Now">
+          <button type="button" class="forge-routine-run-btn p-1.5 rounded bg-slate-700 hover:bg-brand-600 text-slate-200 hover:text-white transition" title="Run Routine Now">
             <i data-lucide="play" class="w-3 h-3"></i>
           </button>
-          <button class="forge-routine-edit-btn p-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 transition" title="Edit Routine">
+          <button type="button" class="forge-routine-edit-btn p-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 transition" title="Edit Routine">
             <i data-lucide="edit-3" class="w-3 h-3"></i>
           </button>
         </div>
@@ -173,8 +173,8 @@ export async function loadAgentAssignedRoutines(agentId, callbacks = {}) {
       forgeAssignedRoutinesList.appendChild(item);
 
       $query('.forge-routine-edit-btn', item)?.addEventListener('click', () => {
-        const routinesTabBtn = $query('.tab-btn[data-tab="routines"]');
-        if (routinesTabBtn) routinesTabBtn.click();
+        if (typeof callbacks.switchTab === 'function') callbacks.switchTab('routines');
+        else $query('.tab-btn[data-tab="routines"]')?.click();
         if (callbacks.openRoutineModal) callbacks.openRoutineModal(r);
       });
 
@@ -182,8 +182,10 @@ export async function loadAgentAssignedRoutines(agentId, callbacks = {}) {
         const btn = e.currentTarget;
         btn.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>`;
         try {
-          await fetch(`/api/routines/${r.id}/run`, { method: 'POST' });
+          const runRes = await fetch(`/api/routines/${r.id}/run`, { method: 'POST' });
+          if (!runRes.ok) throw new Error(`HTTP ${runRes.status}`);
           btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>`;
+          safeCreateIcons();
           setTimeout(() => {
             btn.innerHTML = `<i data-lucide="play" class="w-3 h-3"></i>`;
             safeCreateIcons();

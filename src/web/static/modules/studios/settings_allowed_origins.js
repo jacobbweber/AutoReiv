@@ -56,6 +56,8 @@ export function setupAllowedOrigins({
     els.status.className = `text-[11px] ${ok ? 'text-emerald-400' : 'text-rose-400'}`;
   };
   loadAllowedOrigins(els, { fetchFn }).catch((err) => setStatus(String(err.message || err), false));
+  if (els.saveBtn.dataset && els.saveBtn.dataset.wired === '1') return;
+  if (els.saveBtn.dataset) els.saveBtn.dataset.wired = '1';
   els.saveBtn.addEventListener('click', async () => {
     try {
       await saveAllowedOrigins(els, { fetchFn });

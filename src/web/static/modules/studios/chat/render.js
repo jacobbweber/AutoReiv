@@ -123,7 +123,7 @@ export async function openArtifactModal(artifactId, { fetchFn = null, showToastF
   try {
     const res = await fn(`/api/artifacts/${encodeURIComponent(artifactId)}`);
     if (!res.ok) {
-      if (typeof showToastFn === 'function') showToastFn('error', `Failed to load artifact ${artifactId}`);
+      if (typeof showToastFn === 'function') showToastFn(`Failed to load artifact ${artifactId}`, 'error');
       return;
     }
     const data = await res.json();
@@ -178,11 +178,11 @@ export async function openArtifactModal(artifactId, { fetchFn = null, showToastF
             art.is_pinned = nextPinned;
             updatePinUI(nextPinned);
             if (typeof showToastFn === 'function') {
-              showToastFn('success', nextPinned ? 'Artifact pinned (immune to TTL cleanup)' : 'Artifact unpinned (7-day TTL active)');
+              showToastFn(nextPinned ? 'Artifact pinned (immune to TTL cleanup)' : 'Artifact unpinned (7-day TTL active)', 'success');
             }
           }
         } catch (err) {
-          if (typeof showToastFn === 'function') showToastFn('error', `Failed to toggle pin: ${err.message}`);
+          if (typeof showToastFn === 'function') showToastFn(`Failed to toggle pin: ${err.message}`, 'error');
         }
       };
     }
@@ -201,14 +201,14 @@ export async function openArtifactModal(artifactId, { fetchFn = null, showToastF
             }),
           });
           if (promRes.ok) {
-            if (typeof showToastFn === 'function') showToastFn('success', `Promoted artifact to Wiki Vault at '${cleanSlug}'!`);
+            if (typeof showToastFn === 'function') showToastFn(`Promoted artifact to Wiki Vault at '${cleanSlug}'!`, 'success');
             closeModal();
           } else {
             const errData = await promRes.json();
-            if (typeof showToastFn === 'function') showToastFn('error', `Promotion failed: ${errData.detail || 'Unknown error'}`);
+            if (typeof showToastFn === 'function') showToastFn(`Promotion failed: ${errData.detail || 'Unknown error'}`, 'error');
           }
         } catch (err) {
-          if (typeof showToastFn === 'function') showToastFn('error', `Promotion failed: ${err.message}`);
+          if (typeof showToastFn === 'function') showToastFn(`Promotion failed: ${err.message}`, 'error');
         }
       };
     }
@@ -219,18 +219,18 @@ export async function openArtifactModal(artifactId, { fetchFn = null, showToastF
         try {
           const dRes = await fn(`/api/artifacts/${encodeURIComponent(art.id)}`, { method: 'DELETE' });
           if (dRes.ok) {
-            if (typeof showToastFn === 'function') showToastFn('success', 'Artifact deleted.');
+            if (typeof showToastFn === 'function') showToastFn('Artifact deleted.', 'success');
             closeModal();
           } else {
-            if (typeof showToastFn === 'function') showToastFn('error', 'Deletion failed.');
+            if (typeof showToastFn === 'function') showToastFn('Deletion failed.', 'error');
           }
         } catch (err) {
-          if (typeof showToastFn === 'function') showToastFn('error', `Deletion failed: ${err.message}`);
+          if (typeof showToastFn === 'function') showToastFn(`Deletion failed: ${err.message}`, 'error');
         }
       };
     }
   } catch (err) {
-    if (typeof showToastFn === 'function') showToastFn('error', `Error opening artifact: ${err.message}`);
+    if (typeof showToastFn === 'function') showToastFn(`Error opening artifact: ${err.message}`, 'error');
   }
 }
 
@@ -431,6 +431,7 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
   const copyToClipboardFn = extraOptions?.copyToClipboardFn || actualOptions?.copyToClipboardFn || copyToClipboard;
   const exportMessageToWikiFn = extraOptions?.exportMessageToWikiFn || actualOptions?.exportMessageToWikiFn || null;
   const onTeachAgent = extraOptions?.onTeachAgent || actualOptions?.onTeachAgent || null;
+  const showToastFn = extraOptions?.showToastFn || actualOptions?.showToastFn || null;
 
   const isUser = (role || '').toLowerCase() === 'user';
   const bubble = document.createElement('div');
@@ -439,19 +440,19 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
   const copyBtnHtml = !isUser
     ? `
     <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5 items-center">${offersAskDeveloper(role, content) ? askDeveloperButtonHtml(content) : ''}
-      <button class="msg-teach-agent-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition shadow-sm" data-message-id="${escapeHtml(actualOptions?.messageId || '')}" data-content="${escapeHtml(content)}" title="Teach agent a runbook skill from this turn [CARD-352]">
+      <button type="button" class="msg-teach-agent-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition shadow-sm" data-message-id="${escapeHtml(actualOptions?.messageId || '')}" data-content="${escapeHtml(content)}" title="Teach agent a runbook skill from this turn [CARD-352]">
         <i data-lucide="lightbulb" class="w-3 h-3 text-amber-400"></i>
         <span>Teach Agent</span>
       </button>
-      <button class="workbench-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-brand-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Open message artifact in Dual-Pane Workbench">
+      <button type="button" class="workbench-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-brand-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Open message artifact in Dual-Pane Workbench">
         <i data-lucide="layout" class="w-3 h-3"></i>
         <span>Workbench</span>
       </button>
-      <button class="copy-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-slate-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}">
+      <button type="button" class="copy-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-slate-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Copy reply to clipboard" aria-label="Copy reply to clipboard">
         <i data-lucide="copy" class="w-3 h-3"></i>
         <span>Copy</span>
       </button>
-      <button class="wiki-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-800/50 transition" data-content="${escapeHtml(content)}">
+      <button type="button" class="wiki-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-800/50 transition" data-content="${escapeHtml(content)}" title="Save reply to Wiki">
         <i data-lucide="book-open" class="w-3 h-3"></i>
         <span>Save to Wiki</span>
       </button>
@@ -514,17 +515,12 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
     wireReasoningDrawer(bubble, reasoningText);
   }
   const bodyEl = bubble.querySelector('.msg-body');
-  if (typeof renderMarkdownFn === 'function') {
-    renderMarkdownFn(bodyEl, content || '');
-  }
+  if (typeof renderMarkdownFn === 'function') renderMarkdownFn(bodyEl, content || '');
 
   bubble.querySelectorAll('.msg-teach-agent-btn').forEach((b) => {
     b.addEventListener('click', () => {
       if (typeof onTeachAgent === 'function') {
-        onTeachAgent({
-          messageId: b.getAttribute('data-message-id') || null,
-          content: b.getAttribute('data-content') || '',
-        });
+        onTeachAgent({ messageId: b.getAttribute('data-message-id') || null, content: b.getAttribute('data-content') || '' });
       }
     });
   });
@@ -532,28 +528,24 @@ export function appendMessageBubble(role, content, options = null, extraOptions 
   bubble.querySelectorAll('.workbench-msg-btn').forEach((b) => {
     b.addEventListener('click', () => {
       if (typeof openWorkbenchFn === 'function') {
-        openWorkbenchFn({
-          title: `${activeAgentTitle ? activeAgentTitle.textContent : 'Agent'} Output`,
-          meta: 'Turn Artifact',
-          content: b.dataset.content || '',
-        });
+        openWorkbenchFn({ title: `${activeAgentTitle ? activeAgentTitle.textContent : 'Agent'} Output`, meta: 'Turn Artifact', content: b.dataset.content || '' });
       }
     });
   });
 
   bubble.querySelectorAll('.copy-msg-btn').forEach((b) => {
-    b.addEventListener('click', () => {
-      if (typeof copyToClipboardFn === 'function') {
-        copyToClipboardFn(b.dataset.content || '');
-      }
+    b.addEventListener('click', async () => {
+      if (typeof copyToClipboardFn !== 'function') return;
+      await copyToClipboardFn(b.dataset.content || '');
+      const span = typeof b.querySelector === 'function' ? b.querySelector('span') : null;
+      if (span) { span.textContent = 'Copied!'; setTimeout(() => { span.textContent = 'Copy'; }, 1500); }
+      if (typeof showToastFn === 'function') showToastFn('Copied to clipboard', 'success');
     });
   });
 
   bubble.querySelectorAll('.wiki-msg-btn').forEach((b) => {
     b.addEventListener('click', () => {
-      if (typeof exportMessageToWikiFn === 'function') {
-        exportMessageToWikiFn(b.dataset.content || '');
-      }
+      if (typeof exportMessageToWikiFn === 'function') exportMessageToWikiFn(b.dataset.content || '');
     });
   });
 
@@ -660,6 +652,7 @@ export function renderMessageItem(msg, _idx, _allMessages, {
       openWorkbenchFn,
       exportMessageToWikiFn,
       onTeachAgent,
+      showToastFn: proposalOptions?.showToastFn || null,
     });
     return;
   }

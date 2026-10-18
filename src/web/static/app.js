@@ -86,14 +86,7 @@ export function initApp() {
     });
   }
 
-  // Desktop & Mobile Sidebar Toggle [CARD-138, CARD-139]
-  const toggleSidebarBtn = $('toggleSidebarBtn');
-  if (toggleSidebarBtn && sidebar) {
-    toggleSidebarBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('md:hidden');
-      sidebar.classList.toggle('-translate-x-full');
-    });
-  }
+  // Note: #toggleSidebarBtn in Chat header is bound by chat/scroll.js (CARD-720).
 
   // Studios and Controllers references
   let chatCtrl = null;
@@ -300,7 +293,7 @@ export function initApp() {
     onTalkToForge: async (targetAgentId = null) => {
       switchTab('chat');
       if (chatCtrl && typeof chatCtrl.switchSelectedAgent === 'function') {
-        await chatCtrl.switchSelectedAgent('forge');
+        await chatCtrl.switchSelectedAgent('autoreiv');
       }
       const promptInput = $('promptInput');
       if (promptInput) {

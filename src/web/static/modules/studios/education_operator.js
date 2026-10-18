@@ -400,6 +400,31 @@ export function initEducationStudioOperator(callbacks = {}) {
       await openStudioDueReviews({ toast });
     });
   }
+  const dueHide = $('educationOperatorDueHideBtn');
+  if (dueHide) {
+    dueHide.addEventListener('click', (e) => {
+      e.preventDefault();
+      _showPanel('educationOperatorDuePanel', false);
+    });
+  }
+  const dueList = $('educationOperatorDueList');
+  if (dueList) {
+    dueList.addEventListener('click', async (e) => {
+      const btn = e.target && typeof e.target.closest === 'function' ? e.target.closest('.edu-op-due-item') : null;
+      if (!btn) return;
+      e.preventDefault();
+      const binding = _studioBinding();
+      if (!binding) return;
+      await enterTutorEducationMode({
+        topic: binding.topic,
+        switchTab: callbacks.switchTab,
+        getChatCtrl: callbacks.getChatCtrl,
+        toast,
+        skipPrompt: true,
+        preferStudioContext: true,
+      });
+    });
+  }
 
   const progressBtn = $('educationOperatorProgressBtn');
   if (progressBtn) {

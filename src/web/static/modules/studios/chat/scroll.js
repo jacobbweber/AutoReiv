@@ -117,7 +117,6 @@ export function setupChatScroll({
   if (toggleSidebarBtn && !toggleSidebarBtn.dataset.card296Bound) {
     toggleSidebarBtn.dataset.card296Bound = '1';
     toggleSidebarBtn.addEventListener('click', () => {
-      if (typeof document !== 'undefined' && document.body.classList.contains('radical-desktop-demo')) return;
       if (!chatSessionsDrawer) return;
       if (isChatSessionsDrawerOpen(chatSessionsDrawer)) {
         collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);

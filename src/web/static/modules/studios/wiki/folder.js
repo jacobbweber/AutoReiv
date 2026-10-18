@@ -92,7 +92,7 @@ export function selectWikiFolder(
   folderTitle,
   notesList = [],
   isRoot = false,
-  { onNoteSelect = null, onClearActiveNote = null } = {}
+  { onNoteSelect = null, onClearActiveNote = null, onReloadVault = null, getActiveNotePath = null } = {}
 ) {
   activeWikiFolderPath = folderRelPath;
   if (typeof onClearActiveNote === 'function') {
@@ -150,7 +150,11 @@ export function selectWikiFolder(
   if (wikiEditorTextarea) wikiEditorTextarea.classList.add('hidden');
   if (wikiViewerContent) wikiViewerContent.classList.remove('hidden');
 
-  renderFolderOverview(folderRelPath, folderTitle, notesList, isRoot, { onNoteSelect });
+  renderFolderOverview(folderRelPath, folderTitle, notesList, isRoot, {
+    onNoteSelect,
+    onReloadVault,
+    getActiveNotePath,
+  });
 }
 
 /**
@@ -166,7 +170,7 @@ export function renderFolderOverview(
   folderTitle,
   notesList = [],
   isRoot = false,
-  { onNoteSelect = null } = {}
+  { onNoteSelect = null, onReloadVault = null, getActiveNotePath = null } = {}
 ) {
   const wikiViewerContent = $('wikiViewerContent');
   if (!wikiViewerContent) return;
@@ -269,7 +273,8 @@ export function renderFolderOverview(
   if (overviewDelBtn) {
     overviewDelBtn.addEventListener('click', () => {
       deleteWikiFolder(folderRelPath, {
-        onReloadVault: typeof onNoteSelect === 'function' ? onNoteSelect : null,
+        onReloadVault: typeof onReloadVault === 'function' ? onReloadVault : null,
+        getActiveNotePath,
       });
     });
   }

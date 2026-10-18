@@ -58,8 +58,9 @@ export function showToast(message, type = 'info', duration = 4000) {
   const container = getOrCreateToastContainer();
   if (!container) return null;
 
+  const normalizedType = type === 'warn' ? 'warning' : type;
   const toast = doc.createElement('div');
-  const isError = type === 'error';
+  const isError = normalizedType === 'error';
   toast.setAttribute('role', isError ? 'alert' : 'status');
   toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
 
@@ -68,21 +69,21 @@ export function showToast(message, type = 'info', duration = 4000) {
     success: 'bg-slate-900/95 border-emerald-500/40 text-emerald-100',
     warning: 'bg-slate-900/95 border-amber-500/40 text-amber-100',
     error: 'bg-slate-900/95 border-rose-500/40 text-rose-100',
-  }[type] || 'bg-slate-900/95 border-slate-700 text-slate-200';
+  }[normalizedType] || 'bg-slate-900/95 border-slate-700 text-slate-200';
 
   const iconName = {
     info: 'info',
     success: 'check-circle-2',
     warning: 'alert-triangle',
     error: 'alert-circle',
-  }[type] || 'info';
+  }[normalizedType] || 'info';
 
   const iconColor = {
     info: 'text-indigo-400',
     success: 'text-emerald-400',
     warning: 'text-amber-400',
     error: 'text-rose-400',
-  }[type] || 'text-indigo-400';
+  }[normalizedType] || 'text-indigo-400';
 
   toast.className = `pointer-events-auto flex items-start space-x-3 p-3.5 rounded-xl border shadow-2xl backdrop-blur-md transition-all duration-200 transform translate-x-0 opacity-100 ${colorStyles}`;
 

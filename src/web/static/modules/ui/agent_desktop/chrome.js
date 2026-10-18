@@ -89,7 +89,18 @@ export function ensureDesktopChrome() {
  * Enhance known HITL dialogs to sit above the desktop window layer [CARD-344].
  */
 export function enhanceHitlDialogs() {
-  ['chatToolsModal', 'routineModal'].forEach((id) => {
+  [
+    'chatToolsModal',
+    'routineModal',
+    'forgeNewAgentModal',
+    'teachAgentModal',
+    'manageTonesModal',
+    'deleteAgentModal',
+    'agentBrainDrawer',
+    'wikiNewNoteModal',
+    'wikiMindMapModal',
+    'artifactModal',
+  ].forEach((id) => {
     const modal = $(id);
     if (!modal) return;
     modal.classList.add('desktop-dialog-host');

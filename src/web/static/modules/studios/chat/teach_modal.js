@@ -82,8 +82,14 @@ export function setupTeachAgentModal(state, elements = {}, {
 
   if (cancelTeachAgentBtn) cancelTeachAgentBtn.addEventListener('click', closeTeachAgentModal);
   if (closeTeachAgentModalBtn) closeTeachAgentModalBtn.addEventListener('click', closeTeachAgentModal);
+  if (teachAgentModal) {
+    teachAgentModal.addEventListener('click', (e) => {
+      if (e.target === teachAgentModal) closeTeachAgentModal();
+    });
+  }
 
   if (submitTeachAgentBtn) {
+    const defaultBtnHtml = '<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>Auto-Diagnose &amp; Draft</span>';
     submitTeachAgentBtn.addEventListener('click', async () => {
       const targetAgent = activeTeachTargetAgentId || state.selectedAgentId || 'autoreiv';
       const guidance = teachAgentGuidanceInput ? teachAgentGuidanceInput.value.trim() : '';
@@ -115,7 +121,10 @@ export function setupTeachAgentModal(state, elements = {}, {
         showToast(`Distillation failed: ${err.message}`, 'error');
       } finally {
         submitTeachAgentBtn.disabled = false;
-        submitTeachAgentBtn.textContent = 'Distill Skill Runbook';
+        submitTeachAgentBtn.innerHTML = defaultBtnHtml;
+        submitTeachAgentBtn.textContent = 'Auto-Diagnose & Draft';
+        submitTeachAgentBtn.innerHTML = defaultBtnHtml;
+        safeCreateIcons();
       }
     });
   }

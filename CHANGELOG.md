@@ -10,6 +10,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Fixed UI button wiring, feedback toasts, modal z-index elevation, composer post-send sizing, Wiki folder deletion reload, Projects copy-path toast, Agent avatar preview and memory toggle, Education due-review panel controls, Observability live log polling, and Settings duplicate listeners across all studios [CARD-720].
 - Enabled MCP servers now auto-author a companion `mcp-<server>` skill with `tools:` frontmatter and bind it to the agent so `mcp_<Server>_*` tools are immediately callable; proposal/attachment HITL gates honor the Chat Auto-run checkbox; LLM-facing tool messages reference Capabilities Studio instead of Tools Studio; and Telemetry RCA ignores caller validation errors on built-in platform tools [CARD-718].
 
 ## [1.3.0] - 2026-10-18
