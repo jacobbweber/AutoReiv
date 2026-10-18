@@ -118,7 +118,10 @@ export function setupComposerSizing({
   promptInput.addEventListener('pointerdown', engage);
   promptInput.addEventListener('keydown', engage);
   promptInput.addEventListener('focus', fit);
-  promptInput.addEventListener('input', fit);
+  promptInput.addEventListener('input', () => {
+    if (!promptInput.value) engaged = false;
+    fit();
+  });
   promptInput.addEventListener('blur', () => {
     engaged = false;
     // A click inside the composer (Options drawer, send, toolbar) must land before we shrink.

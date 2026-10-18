@@ -1,5 +1,5 @@
 /**
- * CARD-466: New chat lives under + Options; sessions drawer has no New Conversation.
+ * CARD-466 / CARD-721: New chat lives in the composer bar left of Options; sessions and options drawers have no New Conversation.
  */
 import { openApp } from './lib/app.mjs';
 import { waitFor } from './lib/runner.mjs';
@@ -14,9 +14,9 @@ async function ensureChat(page) {
 export default {
   id: 'card-466-new-chat-in-options',
   card: 'CARD-466',
-  title: 'New chat under + Options menu',
+  title: 'New chat button in composer bar left of Options',
   async run(j, { page, base }) {
-    await j.step('+ Options shows New chat; sessions drawer does not', async () => {
+    await j.step('Composer bar shows + New left of Options; options and sessions drawers do not', async () => {
       await openApp(page, base);
       await ensureChat(page);
       const n = await page.locator('#newChatBtn').count();
@@ -24,18 +24,17 @@ export default {
       if (await page.locator('#chatSessionsDrawer #newChatBtn').count()) {
         throw new Error('newChatBtn still inside sessions drawer');
       }
-      const drawer = page.locator('#chatOptionsDrawer');
-      if (await drawer.evaluate((el) => el.classList.contains('hidden'))) {
-        await page.locator('#chatOptionsToggleBtn').click();
+      if (await page.locator('#chatOptionsDrawer #newChatBtn').count()) {
+        throw new Error('newChatBtn still inside options drawer');
       }
-      await page.locator('#chatOptionsDrawer #newChatBtn').waitFor({ state: 'visible', timeout: 5000 });
-      const label = (await page.locator('#chatOptionsDrawer #newChatBtn').innerText()).replace(/\s+/g, ' ').trim();
-      if (!/New chat/i.test(label)) throw new Error('label was: ' + label);
+      await page.locator('#chatForm #newChatBtn').waitFor({ state: 'visible', timeout: 5000 });
+      const label = (await page.locator('#chatForm #newChatBtn').innerText()).replace(/\s+/g, ' ').trim();
+      if (!/New/i.test(label)) throw new Error('label was: ' + label);
     });
 
-    await j.step('New chat closes Options and starts a conversation', async () => {
+    await j.step('New chat closes Options (if open) and starts a conversation', async () => {
       const before = await page.locator('#sessionList > div').count().catch(() => 0);
-      await page.locator('#chatOptionsDrawer #newChatBtn').click();
+      await page.locator('#newChatBtn').click();
       await waitFor(async () => {
         const expanded = await page.locator('#chatOptionsToggleBtn').getAttribute('aria-expanded');
         return expanded === 'false';

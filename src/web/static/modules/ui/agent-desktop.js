@@ -558,28 +558,7 @@ export function initAgentDesktop(opts = {}) {
       }
     });
 
-    const toggleSidebarBtn = $('toggleSidebarBtn');
-    if (toggleSidebarBtn) {
-      toggleSidebarBtn.addEventListener(
-        'click',
-        (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const drawer = $('chatSessionsDrawer');
-          const view = $('view-chat');
-          if (!drawer) return;
-          const open = !drawer.classList.contains('hidden');
-          if (open) {
-            drawer.classList.add('hidden');
-            if (view) view.classList.remove('sessions-drawer-open');
-          } else {
-            drawer.classList.remove('hidden');
-            if (view) view.classList.add('sessions-drawer-open');
-          }
-        },
-        true
-      );
-    }
+    // #toggleSidebarBtn is canonically bound in chat/scroll.js [CARD-720]
   }
 
   // Initialize desktop chrome and dock

@@ -16,5 +16,5 @@ description: The only Done checklist. A machine loop can check every line.
 - [ ] `git status` shows nothing untracked outside `scratch/`.
 
 ## Done needs
-- [ ] Jacob said `merge to qa` for this card.
-- [ ] Skill `merge-to-qa` finished: merged `--no-ff`, CHANGELOG line added, pushed, branch deleted.
+- [ ] All In Review checks above are complete and GREEN.
+- [ ] Skill `merge-to-qa` finished automatically: merged `--no-ff` into `qa`, CHANGELOG line added, pushed, branch deleted.

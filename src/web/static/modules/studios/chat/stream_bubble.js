@@ -50,6 +50,7 @@ export function bindStreamBubbleElements(streamBubble) {
   const reasoningToggle = streamBubble.querySelector('.reasoning-toggle');
   const reasoningIndicator = streamBubble.querySelector('.reasoning-indicator');
   const toolBadge = streamBubble.querySelector('.tool-status-badge');
+  const reflexionBadge = streamBubble.querySelector('.reflexion-status-badge');
   const hitlCard = streamBubble.querySelector('.hitl-approval-card');
   const planMilestoneCard = streamBubble.querySelector('.plan-milestone-card');
   const planStepsContainer = streamBubble.querySelector('.plan-steps-container');
@@ -68,6 +69,7 @@ export function bindStreamBubbleElements(streamBubble) {
     reasoningDrawer,
     reasoningContent,
     toolBadge,
+    reflexionBadge,
     hitlCard,
     planMilestoneCard,
     planStepsContainer,
@@ -92,7 +94,7 @@ export function renderToolStatusBadge(toolBadge, badge, safeCreateIconsFn) {
 export function updateStandingJobPayload(job) {
   const id = String((job && (job.jobId || job.job_id)) || '').trim();
   if (!id) return null;
-  const agentId = (job && (job.agentId || job.agent_id)) || 'developer';
+  const agentId = (job && (job.agentId || job.agent_id)) || 'autoreiv';
   return {
     id,
     agentId,

@@ -132,7 +132,7 @@ export function renderWikiTree(
       expandedWikiFolders.add('inbox');
       renderWikiTree(tree, currentQuery, { onNoteSelect, onClearActiveNote, getActiveNotePath });
     }
-    selectWikiFolder('00_Inbox', 'inbox (Staging)', inboxNotes, true, { onNoteSelect, onClearActiveNote });
+    selectWikiFolder('00_Inbox', 'inbox (Staging)', inboxNotes, true, { onNoteSelect, onClearActiveNote, onReloadVault: () => loadWikiVault({ onNoteSelect, onClearActiveNote, getActiveNotePath }), getActiveNotePath });
   });
 
   const inboxBody = inboxWrapper.querySelector('.wiki-inbox-body');
@@ -184,7 +184,7 @@ export function renderWikiTree(
       expandedWikiFolders.add('notes');
       renderWikiTree(tree, currentQuery, { onNoteSelect, onClearActiveNote, getActiveNotePath });
     }
-    selectWikiFolder('01_Notes', 'notes (Warehouse)', allWarehouseNotes, true, { onNoteSelect, onClearActiveNote });
+    selectWikiFolder('01_Notes', 'notes (Warehouse)', allWarehouseNotes, true, { onNoteSelect, onClearActiveNote, onReloadVault: () => loadWikiVault({ onNoteSelect, onClearActiveNote, getActiveNotePath }), getActiveNotePath });
   });
 
   const notesBody = notesWrapper.querySelector('.wiki-notes-body');
@@ -231,7 +231,7 @@ export function renderWikiTree(
         expandedWikiFolders.add(domainKey);
         renderWikiTree(tree, currentQuery, { onNoteSelect, onClearActiveNote, getActiveNotePath });
       }
-      selectWikiFolder(domainRelPath, `🎓 ${domain}`, allDomainNotes, false, { onNoteSelect, onClearActiveNote });
+      selectWikiFolder(domainRelPath, `🎓 ${domain}`, allDomainNotes, false, { onNoteSelect, onClearActiveNote, onReloadVault: () => loadWikiVault({ onNoteSelect, onClearActiveNote, getActiveNotePath }), getActiveNotePath });
     });
 
     domainWrapper.querySelector('.wiki-folder-delete-btn')?.addEventListener('click', (e) => {
@@ -291,7 +291,7 @@ export function renderWikiTree(
           expandedWikiFolders.add(topicKey);
           renderWikiTree(tree, currentQuery, { onNoteSelect, onClearActiveNote, getActiveNotePath });
         }
-        selectWikiFolder(topicRelPath, `📁 ${topic}`, topicNotes, false, { onNoteSelect, onClearActiveNote });
+        selectWikiFolder(topicRelPath, `📁 ${topic}`, topicNotes, false, { onNoteSelect, onClearActiveNote, onReloadVault: () => loadWikiVault({ onNoteSelect, onClearActiveNote, getActiveNotePath }), getActiveNotePath });
       });
 
       topicWrapper.querySelector('.wiki-folder-delete-btn')?.addEventListener('click', (e) => {
@@ -354,7 +354,7 @@ export function renderWikiTree(
       expandedWikiFolders.add('resources');
       renderWikiTree(tree, currentQuery, { onNoteSelect, onClearActiveNote, getActiveNotePath });
     }
-    selectWikiFolder('02_Resources', 'resources (Aids/Templates)', allResNotes, true, { onNoteSelect, onClearActiveNote });
+    selectWikiFolder('02_Resources', 'resources (Aids/Templates)', allResNotes, true, { onNoteSelect, onClearActiveNote, onReloadVault: () => loadWikiVault({ onNoteSelect, onClearActiveNote, getActiveNotePath }), getActiveNotePath });
   });
 
   const resBody = resWrapper.querySelector('.wiki-res-body');
@@ -399,7 +399,7 @@ export function renderWikiTree(
         expandedWikiFolders.add(subKey);
         renderWikiTree(tree, currentQuery, { onNoteSelect, onClearActiveNote, getActiveNotePath });
       }
-      selectWikiFolder(subRelPath, `📦 ${sub}`, notes, false, { onNoteSelect, onClearActiveNote });
+      selectWikiFolder(subRelPath, `📦 ${sub}`, notes, false, { onNoteSelect, onClearActiveNote, onReloadVault: () => loadWikiVault({ onNoteSelect, onClearActiveNote, getActiveNotePath }), getActiveNotePath });
     });
 
     subWrapper.querySelector('.wiki-folder-delete-btn')?.addEventListener('click', (e) => {
@@ -464,7 +464,7 @@ export function renderWikiTree(
       expandedWikiFolders.add('archive');
       renderWikiTree(tree, currentQuery, { onNoteSelect, onClearActiveNote, getActiveNotePath });
     }
-    selectWikiFolder('03_Archive', 'archive (Preserved)', archiveNotes, true, { onNoteSelect, onClearActiveNote });
+    selectWikiFolder('03_Archive', 'archive (Preserved)', archiveNotes, true, { onNoteSelect, onClearActiveNote, onReloadVault: () => loadWikiVault({ onNoteSelect, onClearActiveNote, getActiveNotePath }), getActiveNotePath });
   });
 
   const archiveBody = archiveWrapper.querySelector('.wiki-archive-body');

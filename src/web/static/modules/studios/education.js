@@ -35,10 +35,11 @@ function loadModule(label, loader, start) {
 export function initEducationStudio(state, callbacks = {}) {
   clearLegacyEducationSessions();
 
+  let operatorApi = null;
   // CARD-447: operator bar (topic box, Set active, Pair Tutor, Due, Progress, Wiki curate).
   loadModule('operator', () => import('./education_operator.js'), (mod) => {
     if (mod && typeof mod.initEducationStudioOperator === 'function') {
-      mod.initEducationStudioOperator({
+      operatorApi = mod.initEducationStudioOperator({
         showToast: callbacks.showToast,
         switchTab: callbacks.switchTab,
         getChatCtrl: callbacks.getChatCtrl,
@@ -55,6 +56,9 @@ export function initEducationStudio(state, callbacks = {}) {
 
   return {
     loadEducationStudio: () => {
+      if (operatorApi && typeof operatorApi.hydrateEducationStudioActiveContext === 'function') {
+        operatorApi.hydrateEducationStudioActiveContext().catch(() => {});
+      }
       safeCreateIcons();
     },
   };

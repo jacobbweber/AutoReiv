@@ -129,14 +129,22 @@ def mcp_save_http_body(name: str, outcome: dict, *, mount_error: str) -> dict:
     return body
 
 
-async def reconcile_saved_mcp_server(mcp_manager: Any, req: Any, store: Any = None) -> dict:
-    """Mount when enabled, unmount when disabled.
+async def reconcile_saved_mcp_server(
+    mcp_manager: Any,
+    req: Any,
+    store: Any = None,
+    *,
+    data_dir: Any = None,
+    agent_registry: Any = None,
+    agent_id: Optional[str] = None,
+) -> dict:
+    """Mount when enabled, unmount when disabled [CARD-424, CARD-718].
 
     Returns mounted, tools (ToolDefinition list on a successful mount),
     tool_names, failure ("mount" | "unmount" | None), and exc.
     """
-    enabled = bool(getattr(req, "enabled", False))
-    name = getattr(req, "name", "")
+    enabled = bool(_cfg_val(req, "enabled", False))
+    name = str(_cfg_val(req, "name", "") or "")
     if mcp_manager is None:
         return {
             "mounted": enabled,
@@ -151,13 +159,37 @@ async def reconcile_saved_mcp_server(mcp_manager: Any, req: Any, store: Any = No
         try:
             tools = await mcp_manager.mount_server(
                 name=name,
-                command=getattr(req, "command", None),
+                command=_cfg_val(req, "command", None),
                 env=resolved["env"],
-                transport=getattr(req, "transport", "stdio") or "stdio",
-                url=getattr(req, "url", None),
+                transport=_cfg_val(req, "transport", "stdio") or "stdio",
+                url=_cfg_val(req, "url", None),
                 headers=resolved["headers"],
             )
             tool_list = list(tools or [])
+            if tool_list and name:
+                try:
+                    from src.infrastructure.mcp.companion_author import (
+                        author_mcp_companion_skill,
+                        mcp_companion_skill_id,
+                    )
+
+                    author_mcp_companion_skill(
+                        server_name=name,
+                        tools=tool_list,
+                        url=_cfg_val(req, "url", None),
+                        data_dir=data_dir,
+                    )
+                    if agent_id and agent_registry is not None:
+                        from src.application.agent_skills.skill_list import add_skill_to_agent
+
+                        add_skill_to_agent(
+                            store,
+                            agent_registry,
+                            agent_id=agent_id,
+                            skill_id=mcp_companion_skill_id(name),
+                        )
+                except Exception:
+                    pass
             return {
                 "mounted": True,
                 "tools": tool_list,
@@ -186,6 +218,20 @@ async def reconcile_saved_mcp_server(mcp_manager: Any, req: Any, store: Any = No
             "failure": "unmount",
             "exc": exc,
         }
+
+    if agent_id and agent_registry is not None and name:
+        try:
+            from src.application.agent_skills.skill_list import remove_skill_from_agent
+            from src.infrastructure.mcp.companion_author import mcp_companion_skill_id
+
+            remove_skill_from_agent(
+                store,
+                agent_registry,
+                agent_id=agent_id,
+                skill_id=mcp_companion_skill_id(name),
+            )
+        except Exception:
+            pass
 
     active = _mounted_map(mcp_manager)
     still = False if active is None else name in active

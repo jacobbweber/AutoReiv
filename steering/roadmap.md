@@ -25,6 +25,7 @@
 - [x] **1.2.0 released 2026-10-17** (tag `v1.2.0`). Every card on the board is Done.
 - [x] **M31 Codebase Tightening, Modularization & Architectural Hygiene**: fix lifecycle/data-loss hazards, kernel concurrency state clobbering, per-step DDL/full-scan overhead, and broken UI/API wiring (Phase 1: CARD-707..709); prune superseded studios (`skill_studio`, `tools_studio`, `skill_authoring`), disconnected HITL `ApprovalManager`, retired `architect`/`developer`/`toolsmith` special cases, and consolidate duplicate frontmatter/`SKILL.md`/DDL definitions (Phase 2: CARD-710..711); decompose backend and frontend monoliths (`agent_kernel.py`, `chat.py`, `wiki/store.py`, `education*.py`, `job_phase_orchestrator.py`, `update_service.py`, `settings.js`, `index.html`) and enforce clean `domain` -> `application` -> `infrastructure` -> `web` layering under the 800-line ceiling (Phase 3: CARD-712..716); point MCP buttons to Capabilities Studio and support Credential Vault auth on MCP servers (CARD-717).
 - [x] **1.3.0 released 2026-10-18** (tag `v1.3.0`). Every card on the board is Done.
+- [x] **1.4.0 released 2026-10-18** (tag `v1.4.0`): `web-search` platform skill (`fetch_url` & `web_search` with DuckDuckGo/Tavily/Brave Search config), Docker in-app software updates & editable Origin URL, composer `+ New` Chat button, auto-authored `mcp-<server>` companion skills & HITL Auto-run, and comprehensive studio UI audit fixes (`CARD-718`..`CARD-722`). Every card on the board is Done.
 
 ## Next
 

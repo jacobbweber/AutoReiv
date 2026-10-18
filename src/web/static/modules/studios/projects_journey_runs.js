@@ -111,7 +111,6 @@ export function resetViewerReadingPane({ clearTree = false } = {}) {
   if (viewerPane && isMobile()) {
     viewerPane.classList.add('hidden');
     viewerPane.classList.remove('flex');
-    if (!clearTree) return;
   }
   if (emptyNotice) emptyNotice.classList.remove('hidden');
   if (mdEl) {

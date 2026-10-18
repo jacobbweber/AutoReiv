@@ -29,6 +29,7 @@ from src.web.mcp_mount_reconcile import (
 )
 from src.web.routers.settings_data_backup import _data_dir_paths  # noqa: F401 - re-exported for data_dir_migrate
 from src.web.routers.settings_data_backup import router as data_backup_router
+from src.web.routers.settings_web_search import router as web_search_router
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ class HardwareFitQueryRequest(BaseModel):
 
 router = APIRouter(tags=["Settings"])
 router.include_router(data_backup_router)
+router.include_router(web_search_router)
 
 
 
@@ -644,16 +646,24 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
     store.set_setting("mcp_servers", servers)
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
-    outcome = await reconcile_saved_mcp_server(mcp_manager, req, store=store)
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if not data_dir:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        if paths is not None and getattr(paths, "root", None):
+            data_dir = str(paths.root)
+    agent_reg = getattr(request.app.state, "registry", None) or getattr(request.app.state, "agent_reg", None)
+    outcome = await reconcile_saved_mcp_server(
+        mcp_manager,
+        req,
+        store=store,
+        data_dir=data_dir,
+        agent_registry=agent_reg,
+        agent_id="autoreiv",
+    )
     if outcome["failure"] != "mount" and req.enabled and outcome["tools"]:
         try:
             from src.infrastructure.mcp.companion_author import author_mcp_companion_skill
 
-            data_dir = getattr(request.app.state, "data_dir", None)
-            if not data_dir:
-                paths = getattr(request.app.state, "data_dir_paths", None)
-                if paths is not None and getattr(paths, "root", None):
-                    data_dir = str(paths.root)
             author_mcp_companion_skill(
                 server_name=req.name,
                 tools=outcome["tools"],

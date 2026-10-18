@@ -1,13 +1,13 @@
 ---
 name: merge-to-qa
-description: The batched merge after Jacob says "merge to qa". Use only then.
+description: Automatically merge verified cards into qa once preflight --fast and live-qa pass.
 ---
 # Merge to qa
 
-Only for the cards Jacob named in `merge to qa`. Never reset `qa`. Stop and report on any unexpected state.
+Run automatically once a card (or batch) passes `preflight.py --fast` and `live_qa.py` and completes the In Review checklist. Never reset `qa`. Stop and report on any unexpected state.
 
 1. `git status` is clean. `git switch qa`. `git log -1` is the tip you expect.
-2. For each branch, in the order Jacob gave (or oldest first):
+2. For each branch, in order (oldest first):
    1. On the branch: set each card `status: Done`, add `completed: YYYY-MM-DD`, commit `docs(card-N): Done`.
    2. `git switch qa && git merge --no-ff feat/card-N-slug -m "merge: CARD-N <title>"`.
    3. Resolve conflicts by keeping both sides. Branches never edit CHANGELOG or roadmap, so conflicts should be rare.

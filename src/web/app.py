@@ -418,7 +418,9 @@ def create_app(
         except Exception:
             logger.exception("Startup session retention prune failed")
 
-        # Auto-mount configured and enabled MCP servers [REQ-MCP-005, CARD-717]
+        # Auto-mount configured and enabled MCP servers [REQ-MCP-005, CARD-717, CARD-718]
+        from src.application.agent_skills.skill_list import add_skill_to_agent
+        from src.infrastructure.mcp.companion_author import author_mcp_companion_skill, mcp_companion_skill_id
         from src.web.mcp_mount_reconcile import resolve_mcp_server_auth
 
         stored_mcp = store.get_setting("mcp_servers")
@@ -427,7 +429,7 @@ def create_app(
                 if s.get("enabled", True) and s.get("name") and (s.get("command") or s.get("url")):
                     resolved_auth = resolve_mcp_server_auth(s, store)
                     try:
-                        await mcp_manager.mount_server(
+                        mounted_tools = await mcp_manager.mount_server(
                             name=s["name"],
                             command=s.get("command"),
                             env=resolved_auth["env"],
@@ -435,10 +437,17 @@ def create_app(
                             url=s.get("url"),
                             headers=resolved_auth["headers"],
                         )
+                        if mounted_tools:
+                            author_mcp_companion_skill(
+                                server_name=s["name"],
+                                tools=list(mounted_tools),
+                                url=s.get("url"),
+                                data_dir=str(data_paths.root),
+                            )
                     except Exception as e:
                         logger.warning(f"Failed to auto-mount MCP server '{s.get('name')}': {e}")
 
-        # Auto-mount per-agent configured and enabled MCP servers [CARD-183, CARD-184, CARD-717]
+        # Auto-mount per-agent configured and enabled MCP servers [CARD-183, CARD-184, CARD-717, CARD-718]
         try:
             for profile in registry.list_agents():
                 for srv in getattr(profile, "mcp_servers", []) or []:
@@ -446,7 +455,7 @@ def create_app(
                     if s_dict.get("enabled", True) and s_dict.get("name"):
                         resolved_auth = resolve_mcp_server_auth(s_dict, store)
                         try:
-                            await mcp_manager.mount_server(
+                            mounted_tools = await mcp_manager.mount_server(
                                 name=s_dict["name"],
                                 command=s_dict.get("command"),
                                 env=resolved_auth["env"],
@@ -454,6 +463,19 @@ def create_app(
                                 url=s_dict.get("url"),
                                 headers=resolved_auth["headers"],
                             )
+                            if mounted_tools:
+                                author_mcp_companion_skill(
+                                    server_name=s_dict["name"],
+                                    tools=list(mounted_tools),
+                                    url=s_dict.get("url"),
+                                    data_dir=str(data_paths.root),
+                                )
+                                add_skill_to_agent(
+                                    store,
+                                    registry,
+                                    agent_id=profile.id,
+                                    skill_id=mcp_companion_skill_id(s_dict["name"]),
+                                )
                         except Exception as e:
                             logger.warning(f"Failed to auto-mount agent '{profile.id}' MCP server '{s_dict.get('name')}': {e}")
         except Exception as e:

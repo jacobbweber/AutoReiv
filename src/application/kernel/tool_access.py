@@ -90,6 +90,9 @@ READ_TOOLS: frozenset[str] = frozenset(
         "list_journey_reports",
         "read_journey_report",
         "summarize_journey_failures",
+        # web search and direct URL fetch [CARD-719]
+        "fetch_url",
+        "web_search",
     }
 )
 

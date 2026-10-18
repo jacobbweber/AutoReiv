@@ -6,6 +6,7 @@ import logging
 import os
 import platform
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import Any, List, Optional, Sequence
 
 from src.domain.system.models import (
+    DEFAULT_ORIGIN_URL,
     BranchListItem,
     BranchListResult,
     SystemVersionInfo,
@@ -23,9 +25,11 @@ logger = logging.getLogger(__name__)
 
 SETTING_LAST_FETCH = "system_update_last_fetch_at"
 
-# Fixed allowlist of git verbs — never accept user-supplied argv beyond validated branch names.
+# Fixed allowlist of git verbs — never accept user-supplied argv beyond validated branch/remote names.
 _GIT_ALLOWED_VERBS = frozenset(
     {
+        "init",
+        "reset",
         "rev-parse",
         "status",
         "fetch",
@@ -45,6 +49,7 @@ _GIT_ALLOWED_VERBS = frozenset(
 )
 
 _BRANCH_NAME_RE = re.compile(r"^[A-Za-z0-9._/\-]+$")
+_SAFE_URL_RE = re.compile(r"^(https?://|ssh://|git@|file://|[A-Za-z]:[\\/]|/)[^\s\x00-\x1f]+$")
 
 _IN_PROGRESS_FILES = (
     "MERGE_HEAD",
@@ -59,8 +64,12 @@ _IN_PROGRESS_FILES = (
 
 def _default_uv_sync(repo_root: Path) -> tuple[bool, str]:
     try:
+        if shutil.which("uv") and (repo_root / ".venv").exists():
+            cmd = ["uv", "sync"]
+        else:
+            cmd = [sys.executable, "-m", "pip", "install", "--no-cache-dir", "--no-deps", "-e", "."]
         res = subprocess.run(
-            ["uv", "sync"],
+            cmd,
             cwd=str(repo_root),
             capture_output=True,
             text=True,
@@ -69,8 +78,8 @@ def _default_uv_sync(repo_root: Path) -> tuple[bool, str]:
             shell=False,
         )
         if res.returncode != 0:
-            return False, (res.stderr or res.stdout or "uv sync failed").strip()
-        return True, "uv sync ok"
+            return False, (res.stderr or res.stdout or "dependency sync failed").strip()
+        return True, "dependency sync ok"
     except Exception as exc:
         return False, str(exc)
 
@@ -92,7 +101,7 @@ class UpdateGitOpsMixin:
         verb = args[0]
         if verb not in _GIT_ALLOWED_VERBS:
             raise ValueError(f"git verb not allowlisted: {verb}")
-        cmd = ["git", *args]
+        cmd = ["git", "-c", f"safe.directory={self.repo_root}", *args]
         return subprocess.run(
             cmd,
             cwd=str(self.repo_root),
@@ -137,6 +146,24 @@ class UpdateGitOpsMixin:
             return False
         return True
 
+    def _validate_origin_url(self, url: str) -> bool:
+        cleaned = (url or "").strip()
+        if not cleaned or cleaned.startswith("-"):
+            return False
+        return bool(_SAFE_URL_RE.match(cleaned))
+
+    def _set_git_origin_url(self, origin_url: str) -> bool:
+        if not self._is_git_repo():
+            return False
+        ok, current = self._git_ok(["remote", "get-url", "origin"])
+        if ok:
+            if current.strip() == origin_url:
+                return True
+            ok_set, _ = self._git_ok(["remote", "set-url", "origin", origin_url])
+            return ok_set
+        ok_add, _ = self._git_ok(["remote", "add", "origin", origin_url])
+        return ok_add
+
     # ------------------------------------------------------------------
     # Status / version
     # ------------------------------------------------------------------
@@ -179,6 +206,18 @@ class UpdateGitOpsMixin:
             ok, out = self._git_ok(["remote", "get-url", "origin"])
             if ok:
                 remote_url = out
+
+        if not remote_url:
+            cfg_fn = getattr(self, "get_update_config", None)
+            if callable(cfg_fn):
+                try:
+                    remote_url = cfg_fn().upstream_repo_url or DEFAULT_ORIGIN_URL
+                except Exception:
+                    remote_url = DEFAULT_ORIGIN_URL
+            else:
+                remote_url = DEFAULT_ORIGIN_URL
+            if is_git and remote_url:
+                self._set_git_origin_url(remote_url)
 
         if is_git and upstream:
             ahead, behind = self._ahead_behind(upstream)
@@ -331,7 +370,7 @@ class UpdateGitOpsMixin:
                             return match.group(1)
             except Exception:
                 pass
-        return "1.3.0"
+        return "1.4.0"
 
     def _detect_deployment_mode(self, is_git: bool) -> str:
         if os.environ.get("AUTOREIV_CONTAINER"):

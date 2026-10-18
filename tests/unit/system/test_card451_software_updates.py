@@ -221,11 +221,11 @@ def test_branch_switch_rejects_arbitrary_name(update_service):
 
 
 def test_config_migration_drops_url_and_tracked_branch(update_service, mock_store):
-    """[REQ-451-016, REQ-451-017] Legacy URL/tracked_branch ignored; only auto prefs saved."""
+    """[REQ-451-016, CARD-722] Legacy daily cadence migrates; valid upstream_repo_url and tracked_branch persist."""
     mock_store.set_setting(
         "system_update_config",
         {
-            "upstream_repo_url": "https://evil.example/repo.git",
+            "upstream_repo_url": "https://github.com/jacobbweber/AutoReiv.git",
             "tracked_branch": "main",
             "auto_check_cadence": "daily",
         },
@@ -233,13 +233,18 @@ def test_config_migration_drops_url_and_tracked_branch(update_service, mock_stor
     cfg = update_service.get_update_config()
     assert cfg.auto_update_enabled is True  # migrated from daily cadence
     saved = update_service.save_update_config(
-        UpdateConfig(auto_update_enabled=False, auto_update_time="04:30", upstream_repo_url="x", tracked_branch="y")
+        UpdateConfig(
+            auto_update_enabled=False,
+            auto_update_time="04:30",
+            upstream_repo_url="https://github.com/jacobbweber/AutoReiv.git",
+            tracked_branch="main",
+        )
     )
     assert saved.auto_update_enabled is False
     assert saved.auto_update_time == "04:30"
     raw = mock_store.get_setting("system_update_config")
-    assert "upstream_repo_url" not in raw
-    assert "tracked_branch" not in raw
+    assert raw["upstream_repo_url"] == "https://github.com/jacobbweber/AutoReiv.git"
+    assert raw["tracked_branch"] == "main"
 
 
 def test_deps_change_install_failure_blocks_restart(update_service, git_pair):

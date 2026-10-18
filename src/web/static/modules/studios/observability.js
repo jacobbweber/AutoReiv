@@ -212,6 +212,7 @@ export function initObservability(state, _callbacks = {}) {
   async function loadObservability() {
     try {
       await populateAgentKpiSelect();
+      await populateSessionSelectEl(observeAgentKpiSelect, observeSessionSelect);
       const agentId = observeAgentKpiSelect ? observeAgentKpiSelect.value.trim() : '';
       const url = agentId
         ? `/api/observability/kpi?agent_id=${encodeURIComponent(agentId)}`
@@ -267,6 +268,7 @@ export function initObservability(state, _callbacks = {}) {
       await loadSystemLogs();
       await loadJourneyChips();
       await checkArchitecturalProposalsCount();
+      loadFrictionRecommendations();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load observability data:', err);
     }
@@ -388,10 +390,8 @@ export function initObservability(state, _callbacks = {}) {
   const journeyCanvas = initJourneyCanvas(state, _callbacks);
 
   setInterval(() => {
-    const activeTab = $query('.tab-view:not(.hidden)');
-    if (activeTab && activeTab.id === 'view-observability' && !isLogStreamPaused) {
-      loadSystemLogs();
-    }
+    const obsView = $('view-observability');
+    if (obsView && !obsView.classList.contains('hidden') && !isLogStreamPaused) loadSystemLogs();
   }, 2500);
 
   return {

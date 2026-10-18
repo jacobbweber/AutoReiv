@@ -4,6 +4,24 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-18
+
+Web Search & URL Fetch platform skill (`fetch_url` and `web_search` tools with zero-key DuckDuckGo Lite plus Vault-encrypted Tavily and Brave Search keys), Docker in-app git software updates and branch switching with an editable default Origin URL (`https://github.com/jacobbweber/AutoReiv.git`), one-click `+ New` Chat button in the main composer bar, auto-authored `mcp-<server>` companion skills with Chat Auto-run support, and comprehensive UI audit fixes across all studios (`CARD-718`..`CARD-722`).
+
+### Added
+
+- Added the `web-search` platform skill (`fetch_url` and `web_search` tools) and a **Web Search & URL Fetch** configuration card in **Settings -> Connections** supporting zero-key DuckDuckGo Lite search, Vault-encrypted Tavily and Brave Search API keys, and direct webpage text extraction [CARD-719].
+
+### Changed
+
+- Enabled in-app git updates, branch switching, and container auto-restart for Docker deployments, and made the Origin URL in **Settings -> Preferences -> System & Software Updates** editable with `https://github.com/jacobbweber/AutoReiv.git` as the default [CARD-722].
+- Moved the New Chat button (`#newChatBtn`, `+ New`) out of `#chatOptionsDrawer` and placed it directly to the left of the Options button (`#chatOptionsToggleBtn`) in the main Chat composer bar for one-click new sessions [CARD-721].
+
+### Fixed
+
+- Fixed UI button wiring, feedback toasts, modal z-index elevation, composer post-send sizing, Wiki folder deletion reload, Projects copy-path toast, Agent avatar preview and memory toggle, Education due-review panel controls, Observability live log polling, and Settings duplicate listeners across all studios [CARD-720].
+- Enabled MCP servers now auto-author a companion `mcp-<server>` skill with `tools:` frontmatter and bind it to the agent so `mcp_<Server>_*` tools are immediately callable; proposal/attachment HITL gates honor the Chat Auto-run checkbox; LLM-facing tool messages reference Capabilities Studio instead of Tools Studio; and Telemetry RCA ignores caller validation errors on built-in platform tools [CARD-718].
+
 ## [1.3.0] - 2026-10-18
 
 Codebase tightening, modularization, architectural hygiene, and MCP Credential Vault authentication (`M31`). Decomposes every Python, JavaScript, HTML, and CSS file in `src/` under the 800-line ceiling (guarded by `test_card715_python_file_size_guard.py` and `test_card716_frontend_file_size_guard.py`), unifies `AgentKernel.run_turn` and `stream_turn` onto a single ReAct execution loop (`src/application/kernel/react_loop.py`), extracts chat streaming and job orchestration into `src/application/chat/`, enforces zero upward imports in `src/domain/`, consolidates YAML frontmatter and SQLite DDL onto canonical definitions, adds Credential Vault references (Bearer Token, Basic Auth, Custom Header, Environment Variable) to MCP server configurations, and points Settings and Agents Studio MCP deep-link buttons to Capabilities Studio.
