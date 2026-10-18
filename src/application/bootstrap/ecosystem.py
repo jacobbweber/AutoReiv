@@ -46,6 +46,7 @@ from src.application.skills.sysadmin_tools import SysadminTools
 from src.application.skills.system_agent_tools import SystemAgentTools
 from src.application.skills.user_catalog import UserSkillCatalog
 from src.application.skills.verification_tools import VerificationTools
+from src.application.skills.web_tools import WebTools
 from src.application.skills.wiki_tools import WikiTools
 from src.application.skills.worker_tools import BatchWorkerTools
 from src.domain.agents.profiles import BUILTIN_PROFILES
@@ -246,6 +247,11 @@ def bootstrap_ecosystem(
     )
     native_tool_engineering.register_tools(tool_registry)
     agent_registry.native_tool_engineering = native_tool_engineering
+
+    # 12d. Web Search & Direct URL Fetch Tools [CARD-719]
+    web_tools = WebTools(state_store=store)
+    web_tools.register_tools(tool_registry)
+    agent_registry.web_tools = web_tools
 
     # 13. User agentskills.io skills (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
     catalog = UserSkillCatalog(skills_dir=skills_dir, tool_registry=tool_registry)
