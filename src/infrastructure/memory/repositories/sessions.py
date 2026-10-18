@@ -232,6 +232,9 @@ class SessionRepositoryMixin:
 
         conn = self._get_connection()
         try:
+            if getattr(conn, "in_transaction", False):
+                conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
             cur = conn.cursor()
             if message.role == Role.TOOL and message.tool_call_id:
                 cur.execute(
@@ -249,13 +252,17 @@ class SessionRepositoryMixin:
                     conn.commit()
                     return existing_id
 
-            cur.execute("SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM messages WHERE session_id = ?", (session_id,))
-            next_seq = cur.fetchone()[0]
-
             cur.execute(
                 """
-                INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, reasoning, sequence_num, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO messages (
+                    id, session_id, agent_id, role, content, tool_calls_json,
+                    tool_call_id, name, reasoning, sequence_num, created_at
+                )
+                VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    (SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM messages WHERE session_id = ?),
+                    ?
+                )
                 """,
                 (
                     msg_id,
@@ -267,12 +274,16 @@ class SessionRepositoryMixin:
                     message.tool_call_id,
                     message.name,
                     getattr(message, "reasoning", None),
-                    next_seq,
+                    session_id,
                     now.isoformat(),
                 ),
             )
             cur.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now.isoformat(), session_id))
             conn.commit()
+        except Exception:
+            if getattr(conn, "in_transaction", False):
+                conn.rollback()
+            raise
         finally:
             if self._mem_conn is None:
                 conn.close()

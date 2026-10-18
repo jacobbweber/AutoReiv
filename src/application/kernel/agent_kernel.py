@@ -165,7 +165,32 @@ class AgentKernel:
         self.user_skill_catalog = user_skill_catalog
         self.ace_skill_id: Optional[str] = None
         self._ace_tool_errors: List[Dict[str, Any]] = []
+        self._turn_matched_capability_ids: Optional[list] = None
+        self._turn_planning_phase: bool = False
+        self._last_turn_tool_stats: Dict[str, Any] = {}
+        self._last_progressive_skills: List[str] = []
+        self._last_episodic_memory: List[str] = []
+        self._turn_depth: int = 0
         self.capability_gap_repo = CapabilityGapRepository(state_store)
+
+    def _snapshot_turn_state(self) -> Dict[str, Any]:
+        return {
+            "react_state": self.react_state,
+            "_ace_tool_errors": list(self._ace_tool_errors or []),
+            "_turn_matched_capability_ids": (
+                list(self._turn_matched_capability_ids)
+                if isinstance(self._turn_matched_capability_ids, list)
+                else self._turn_matched_capability_ids
+            ),
+            "_turn_planning_phase": self._turn_planning_phase,
+            "_last_turn_tool_stats": dict(self._last_turn_tool_stats or {}),
+            "_last_progressive_skills": list(self._last_progressive_skills or []),
+            "_last_episodic_memory": list(self._last_episodic_memory or []),
+        }
+
+    def _restore_turn_state(self, snap: Dict[str, Any]) -> None:
+        for k, v in snap.items():
+            setattr(self, k, v)
 
     def _resolve_ace_data_dir(self) -> Optional[str]:
         if self.data_dir:
@@ -828,6 +853,37 @@ class AgentKernel:
 
         When resume=True, continue from persisted history without appending a USER message.
         """
+        nested_snap = self._snapshot_turn_state() if self._turn_depth > 0 else None
+        self._turn_depth += 1
+        try:
+            return await self._run_turn_inner(
+                agent=agent,
+                session_id=session_id,
+                user_content=user_content,
+                save_to_history=save_to_history,
+                approval_mode=approval_mode,
+                resume=resume,
+                routine_id=routine_id,
+                phase_id=phase_id,
+                job_id=job_id,
+            )
+        finally:
+            self._turn_depth -= 1
+            if nested_snap is not None:
+                self._restore_turn_state(nested_snap)
+
+    async def _run_turn_inner(
+        self,
+        agent: AgentProfile,
+        session_id: str,
+        user_content: Optional[str] = None,
+        save_to_history: bool = True,
+        approval_mode: str = "ask",
+        resume: bool = False,
+        routine_id: Optional[str] = None,
+        phase_id: Optional[str] = None,
+        job_id: Optional[str] = None,
+    ) -> ChatMessage:
         self._ace_tool_errors = []
         self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id, agent=agent)
         self._turn_planning_phase = self._is_planning_phase(phase_id)
@@ -1218,6 +1274,36 @@ class AgentKernel:
         parts_request: the operator's typed message; when given, a multi-part request gets the CARD-599
         skipped-parts check after the final reply (Chat short turns only).
         """
+        nested_snap = self._snapshot_turn_state() if self._turn_depth > 0 else None
+        self._turn_depth += 1
+        try:
+            async for ev in self._stream_turn_inner(
+                agent=agent,
+                session_id=session_id,
+                user_content=user_content,
+                approval_mode=approval_mode,
+                resume=resume,
+                phase_id=phase_id,
+                job_id=job_id,
+                parts_request=parts_request,
+            ):
+                yield ev
+        finally:
+            self._turn_depth -= 1
+            if nested_snap is not None:
+                self._restore_turn_state(nested_snap)
+
+    async def _stream_turn_inner(
+        self,
+        agent: AgentProfile,
+        session_id: str,
+        user_content: Optional[str] = None,
+        approval_mode: str = "ask",
+        resume: bool = False,
+        phase_id: Optional[str] = None,
+        job_id: Optional[str] = None,
+        parts_request: Optional[str] = None,
+    ) -> AsyncIterator[KernelEvent]:
         self._ace_tool_errors = []
         self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id, agent=agent)
         self._turn_planning_phase = self._is_planning_phase(phase_id)

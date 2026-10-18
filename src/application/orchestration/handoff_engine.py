@@ -582,7 +582,7 @@ class HandoffIsolationEngine:
         profile = None
         if resolved_agent_id:
             profile = self.agent_registry.get_agent(resolved_agent_id) or self.agent_registry.get_profile(resolved_agent_id)
-        exec_kernel = self.kernel
+        exec_kernel = (self.kernel_factory(profile) if (self.kernel_factory and profile) else None) or self.kernel
         if not exec_kernel or not profile:
             return {"status": "skipped", "reason": "kernel or child profile unavailable"}
 
