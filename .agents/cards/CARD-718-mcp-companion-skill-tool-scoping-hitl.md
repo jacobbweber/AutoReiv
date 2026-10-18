@@ -2,7 +2,7 @@
 id: CARD-718
 title: "MCP Companion Skill Tool Scoping, HITL Auto-Run, and Capabilities Studio Copy"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -13,6 +13,7 @@ proof:
 branch: feat/card-718-mcp-companion-skill-tool-scoping-hitl
 log: {minutes: 35, qa_runs: 2, findings: 0}
 created: 2026-10-18
+completed: 2026-10-18
 ---
 
 # CARD-718 MCP Companion Skill Tool Scoping, HITL Auto-Run, and Capabilities Studio Copy

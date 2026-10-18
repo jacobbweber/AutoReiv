@@ -5,18 +5,17 @@ Rules in `.agents/rules/` are always loaded and machine-checkable. Skills in `.a
 Nothing in this file is repeated elsewhere. This is the only root instruction file.
 
 ## People and words
-- Jacob: sets milestones, answers product, design and architecture decisions, reads one check-in per card or batch, approves merges.
-- Agent: owns engineering, design details, tests, live QA, finding bugs, and advising Jacob. One assistant does planning, building and verifying today; see `steering/self-development.md` for the future split.
+- Jacob: sets milestones, answers product, design and architecture decisions, reads one check-in per card or batch, approves releases (`qa` -> `main`).
+- Agent: owns engineering, design details, tests, live QA, finding bugs, merging verified cards to `qa`, and advising Jacob. One assistant does planning, building and verifying today; see `steering/self-development.md` for the future split.
 - Jacob's reply words (exact):
   - `build`: approve a plan that had a product, design or architecture decision.
-  - `merge to qa`: approve merging the named cards.
-  - `continue`: go on. It never counts as `build` or `merge to qa`.
+  - `continue`: go on. It never counts as `build`.
 - Talk in plain sentences: what Jacob will see, real names, exact paths.
 - A question to Jacob is 2-3 options with your recommendation. Never an open question.
 
 ## Hard rules
 1. No product code without a card: `.agents/cards/CARD-N-slug.md`. Only card files live in `.agents/cards/`.
-2. Never push, merge, tag, reset `qa`, force anything, or delete user data unless Jacob said so in this session.
+2. Never merge to `main`, tag, reset `qa`, force anything, or delete user data unless Jacob said so in this session. Verified cards merge to `qa` automatically via skill `merge-to-qa`.
 3. Never work around a known bug. Mark it expected-fail with its card id (`.agents/rules/testing.md`).
 4. Never weaken, skip or delete a valid assertion to go green.
 5. Stay inside `.agents/rules/boundaries.md` (data locations, capability scoping).
@@ -33,8 +32,8 @@ Nothing in this file is repeated elsewhere. This is the only root instruction fi
 8. **Fast check.** Skill `preflight`, fast tier. Must be green.
 9. **Verify.** Skill `live-qa` with the card's journeys, desktop and phone. "Model endpoint down" is not a card failure: wait and rerun.
 10. **In Review.** Complete `.agents/rules/definition-of-done.md`, set `status: In Review`, fill `log:`.
-11. **Check-in.** One message per card or batch: what changed, results table, findings, open decisions, 2-3 screenshots under `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\`. Stop.
-12. **Merge.** Only after `merge to qa`: skill `merge-to-qa`.
+11. **Merge.** Automatically run skill `merge-to-qa` once Fast check and Verify pass (`status: Done`, merge `--no-ff` into `qa`, update `CHANGELOG.md`, push `qa`, delete branch).
+12. **Check-in.** One message per card or batch after merging to `qa`: what changed, results table, findings, open decisions, merge commit/range, and 2-3 screenshots under `C:\Users\jacob\AppData\Local\Temp\autoreiv-qa\card-N\` (or `/tmp/autoreiv-qa/card-N/`). Stop.
 
 At most 2 Build -> Verify rounds per card (steps 6-9). If round 2 still fails, stop and report to Jacob with the results.
 
