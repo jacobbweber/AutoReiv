@@ -473,17 +473,21 @@ class SkillDistillationService:
         return s or "custom-skill"
 
     def _parse_frontmatter(self, md: str, fallback_id: str) -> tuple[str, str]:
+        from src.domain.frontmatter import split_frontmatter
+
+        meta, body = split_frontmatter(md)
         title = fallback_id.replace("-", " ").title()
-        desc = f"Runbook for {fallback_id}"
-        m_title = re.search(r"^#\s+(.+)$", md, re.MULTILINE)
+        desc = str(meta.get("description") or "").strip() or f"Runbook for {fallback_id}"
+        m_title = re.search(r"^#\s+(.+)$", body or md, re.MULTILINE)
         if m_title:
             title = m_title.group(1).strip()
-        m_desc = re.search(r"description:\s*(.+)$", md, re.MULTILINE)
-        if m_desc:
-            desc = m_desc.group(1).strip()
-            if len(desc) > 1 and desc[0] == desc[-1] and desc[0] in "\"'":
-                try:
-                    desc = json.loads(desc) if desc[0] == '"' else desc[1:-1].replace("''", "'")
-                except ValueError:
-                    desc = desc[1:-1]
+        if not meta.get("description"):
+            m_desc = re.search(r"description:\s*(.+)$", md, re.MULTILINE)
+            if m_desc:
+                desc = m_desc.group(1).strip()
+                if len(desc) > 1 and desc[0] == desc[-1] and desc[0] in "\"'":
+                    try:
+                        desc = json.loads(desc) if desc[0] == '"' else desc[1:-1].replace("''", "'")
+                    except ValueError:
+                        desc = desc[1:-1]
         return title, clip_description(desc)

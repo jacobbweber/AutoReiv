@@ -248,24 +248,16 @@ class UserSkillCatalog:
                 return set()
             raw = {str(s).strip() for s in (getattr(agent, "allowed_skill", None) or []) if str(s).strip()}
         if AUTO_SKILL_WILDCARD in raw or AUTO_USER_SKILL_WILDCARD in raw:
-            expanded = {
-                s
-                for s in raw
-                if s not in (AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD)
-            }
-            if AUTO_SKILL_WILDCARD in raw:
-                expanded |= {m.id for m in self.list_manifests()}
-                expanded |= set(ticked_skills({"allowed_skill": [AUTO_SKILL_WILDCARD]}))
-            if AUTO_USER_SKILL_WILDCARD in raw:
-                expanded |= {m.id for m in self.list_manifests()}
-                expanded |= set(
-                    ticked_skills(
-                        {
-                            "id": str(ctx.get("agent_id") or ""),
-                            "allowed_skill": [AUTO_USER_SKILL_WILDCARD],
-                        }
-                    )
+            expanded = set(
+                ticked_skills(
+                    {
+                        "id": str(ctx.get("agent_id") or ""),
+                        "allowed_skill": list(raw),
+                    }
                 )
+            )
+            expanded |= {m.id for m in self.list_manifests()}
+            expanded |= {s for s in raw if s not in (AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD)}
             return expanded
         return raw
 

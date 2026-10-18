@@ -6,11 +6,10 @@ Orchestrates delegated specialist handoffs and structured knowledge retrieval ac
 from __future__ import annotations
 
 import logging
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import yaml
+from src.domain.frontmatter import split_frontmatter
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +40,6 @@ CATEGORY_DIR_MAP: Dict[str, str] = {
     "50-runbooks": "50-runbooks",
     "templates": "templates",
 }
-
-FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$", re.DOTALL)
 
 
 def get_homelab_docs_root(base_dir: Optional[Path | str] = None) -> Path:
@@ -110,15 +107,7 @@ def lookup_homelab_docs(
                 logger.warning("Failed to read %s: %s", md_file, err)
                 continue
 
-            metadata: Dict[str, Any] = {}
-            body = raw_text
-            fm_match = FRONTMATTER_RE.match(raw_text)
-            if fm_match:
-                try:
-                    metadata = yaml.safe_load(fm_match.group(1)) or {}
-                except Exception:
-                    metadata = {}
-                body = fm_match.group(2)
+            metadata, body = split_frontmatter(raw_text)
 
             if type_lower and str(metadata.get("doc_type", "")).lower() != type_lower:
                 continue

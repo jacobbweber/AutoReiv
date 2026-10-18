@@ -9,30 +9,16 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import yaml
-
+from src.domain.frontmatter import split_frontmatter
 from src.domain.gateway.models import ToolDefinition
 from src.domain.skills.user_skill import UserSkillManifest
 
 logger = logging.getLogger(__name__)
 
-_FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---\s*\r?\n", re.DOTALL)
-
 
 def _split_frontmatter(text: str) -> Tuple[Dict[str, Any], str]:
     """Parse YAML frontmatter only. Body is returned uninterpreted."""
-    frontmatter_match = _FRONTMATTER_RE.match(text)
-    meta: Dict[str, Any] = {}
-    body = text
-    if frontmatter_match:
-        try:
-            loaded = yaml.safe_load(frontmatter_match.group(1))
-            meta = loaded if isinstance(loaded, dict) else {}
-        except Exception as exc:
-            logger.warning("YAML parse error in SKILL frontmatter: %s", exc)
-            meta = {}
-        body = text[frontmatter_match.end() :]
-    return meta, body
+    return split_frontmatter(text)
 
 
 class DynamicSkillLoader:

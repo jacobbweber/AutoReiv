@@ -204,9 +204,10 @@ CREATE TABLE IF NOT EXISTS settings (
     value_json TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+"""
+)
 
-
-
+AGENT_CAPABILITY_GAPS_SQL = """
 CREATE TABLE IF NOT EXISTS agent_capability_gaps (
     id TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL,
@@ -220,7 +221,59 @@ CREATE TABLE IF NOT EXISTS agent_capability_gaps (
 );
 
 CREATE INDEX IF NOT EXISTS idx_gaps_agent_status ON agent_capability_gaps(agent_id, status);
+"""
 
+PROMPT_CATALOG_SQL = """
+CREATE TABLE IF NOT EXISTS prompt_catalog (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'general',
+    template_text TEXT NOT NULL,
+    tags TEXT,
+    is_builtin INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);
+"""
+
+CREDENTIALS_SQL = """
+CREATE TABLE IF NOT EXISTS credentials (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    encrypted_value TEXT NOT NULL,
+    nonce TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_credentials_type ON credentials(type);
+"""
+
+REMOTE_HOSTS_SQL = """
+CREATE TABLE IF NOT EXISTS remote_hosts (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    host TEXT NOT NULL,
+    port INTEGER NOT NULL DEFAULT 22,
+    username TEXT NOT NULL,
+    auth_type TEXT NOT NULL DEFAULT 'password',
+    credential_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_remote_hosts_label ON remote_hosts(label);
+"""
+
+INIT_SCHEMA_SQL = (
+    INIT_SCHEMA_SQL
+    + AGENT_CAPABILITY_GAPS_SQL
+    + """
 CREATE TABLE IF NOT EXISTS episodic_facts (
     id TEXT PRIMARY KEY,
     entity TEXT NOT NULL,
@@ -271,48 +324,9 @@ CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at
     + PROPOSALS_SQL
     + TONES_SQL
     + EPISODIC_FACTS_FTS_SQL
-    + """
-CREATE TABLE IF NOT EXISTS prompt_catalog (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT,
-    category TEXT DEFAULT 'general',
-    template_text TEXT NOT NULL,
-    tags TEXT,
-    is_builtin INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);
-
-CREATE TABLE IF NOT EXISTS credentials (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    encrypted_value TEXT NOT NULL,
-    nonce TEXT NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_credentials_type ON credentials(type);
-
-CREATE TABLE IF NOT EXISTS remote_hosts (
-    id TEXT PRIMARY KEY,
-    label TEXT NOT NULL,
-    host TEXT NOT NULL,
-    port INTEGER NOT NULL DEFAULT 22,
-    username TEXT NOT NULL,
-    auth_type TEXT NOT NULL DEFAULT 'password',
-    credential_id TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_remote_hosts_label ON remote_hosts(label);
-"""
+    + PROMPT_CATALOG_SQL
+    + CREDENTIALS_SQL
+    + REMOTE_HOSTS_SQL
 )
 
 # CARD-577: the factory_* tables (Agent Training Factory, ADR-0060) are retired; connection.py drops them.

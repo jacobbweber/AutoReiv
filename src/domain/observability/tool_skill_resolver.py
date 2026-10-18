@@ -10,8 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional, Set, Tuple, Union
 
-import yaml
-
+from src.domain.frontmatter import split_frontmatter
 from src.domain.observability.models import (
     CODE_CHANGE,
     TOOL_ESCALATION,
@@ -88,14 +87,10 @@ class ToolSkillResolver:
     def _parse_skill_tools(self, skill_md_path: Path) -> Set[str]:
         """Parse YAML frontmatter tools list from SKILL.md."""
         try:
-            content = skill_md_path.read_text(encoding="utf-8")
-            if content.startswith("---"):
-                parts = content.split("---", 2)
-                if len(parts) >= 3:
-                    fm = yaml.safe_load(parts[1])
-                    if isinstance(fm, dict):
-                        raw_tools = fm.get("tools") or []
-                        return {str(t).strip() for t in raw_tools}
+            meta, _body = split_frontmatter(skill_md_path.read_text(encoding="utf-8"))
+            raw_tools = meta.get("tools") or []
+            if isinstance(raw_tools, (list, tuple, set)):
+                return {str(t).strip() for t in raw_tools if str(t).strip()}
         except Exception:
             pass
         return set()
