@@ -21,6 +21,7 @@ Invariants:
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
@@ -179,6 +180,15 @@ async def save_skill_file(
         else:
             meta.setdefault("name", clean_id.replace("-", " ").replace("_", " ").title())
             meta.setdefault("description", f"Capabilities for {meta['name']}.")
+        if not meta.get("tools"):
+            referenced_mcp: list[str] = []
+            for m in re.finditer(r"\b(mcp_[A-Za-z0-9_-]+)\b", body):
+                cand = m.group(1)
+                known = (tool_registry is not None and cand in tool_registry) or store.is_known_tool(cand)
+                if known and cand not in referenced_mcp:
+                    referenced_mcp.append(cand)
+            if referenced_mcp:
+                meta["tools"] = referenced_mcp
         saved = store.skills.save(clean_id, meta, body)
         _activate_current_session(clean_id)
         return {

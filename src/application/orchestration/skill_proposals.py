@@ -257,12 +257,20 @@ def propose_skill_draft(
             if value is not None:
                 payload[key] = value
 
+    from src.application.kernel.tool_registry import get_tool_context
+    from src.application.safety.approval_mode import normalize_approval_mode, resolve_approval_mode
+
+    ctx_mode = normalize_approval_mode((get_tool_context() or {}).get("approval_mode"))
+    effective_mode = ctx_mode or resolve_approval_mode(store)
+    is_auto_run = effective_mode == "hands_off"
+    initial_status = ProposalStatus.APPROVED if is_auto_run else ProposalStatus.DRAFT
+
     proposal = store.create_proposal(
         Proposal(
             id=_new_proposal_id(),
             kind=kind,
             payload_json=json.dumps(payload),
-            status=ProposalStatus.DRAFT,
+            status=initial_status,
             requested_by_job_id=(requested_by_job_id or "").strip() or None,
         )
     )
@@ -282,7 +290,7 @@ def propose_skill_draft(
         "where": jailed,
         "sprawl_warning": warning,
         "target_skill_id": target_skill,
-        "auto_run": False,
+        "auto_run": is_auto_run,
     }
     if python_note:
         approval_args["python_builtin_note"] = python_note
@@ -303,12 +311,18 @@ def propose_skill_draft(
         arguments=approval_args,
         routine_id=rid,
     )
+    if is_auto_run and hasattr(store, "resolve_approval"):
+        store.resolve_approval(
+            approval_id=approval_id,
+            decision="approved",
+            reason=f"Auto-approved ({effective_mode} mode)",
+        )
 
     return {
         "proposal_id": proposal.id,
         "approval_id": approval_id,
         "kind": kind.value,
-        "status": ProposalStatus.DRAFT.value,
+        "status": initial_status.value,
         "what": what_text,
         "why": why_text,
         "how": how_text,
@@ -317,7 +331,7 @@ def propose_skill_draft(
         "target_skill_id": target_skill,
         "requested_by_agent_id": agent,
         "requested_by_session_id": session,
-        "auto_run": False,
+        "auto_run": is_auto_run,
         "disk_written": False,
         "python_builtin_note": python_note,
         "apply_on_approve": False,

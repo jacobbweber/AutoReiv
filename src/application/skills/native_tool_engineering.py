@@ -91,7 +91,7 @@ class NativeToolEngineeringTools:
             name="register_native_tool",
             description=(
                 "Save a native AutoReiv custom tool (no MCP server). It is saved disabled: only Jacob enables it "
-                "in Tools Studio, after reading the code. "
+                "in Capabilities Studio, after reading the code. "
                 "Code must define run(**kwargs). Declare risk: read_only (only reads or looks things up; runs "
                 "without asking once enabled), write, network or destructive (ask before each call). "
                 "Pass target_agent_id for the agent that needs it: this creates a pending proposal to attach the "
@@ -163,7 +163,7 @@ class NativeToolEngineeringTools:
             name="plan_native_folder",
             description=(
                 "Given a filesystem path from developer chat, list one suggested tool per script. "
-                "Does not register tools and does not open a Tools Studio folder picker."
+                "Does not register tools and does not open a Capabilities Studio folder picker."
             ),
             parameters={
                 "type": "object",

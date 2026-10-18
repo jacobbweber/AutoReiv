@@ -165,7 +165,7 @@ class NativeCustomToolService:
         message = check.operator_message()
         if not mounted:
             message = (
-                f"{message} Saved to the data dir; Jacob must enable it in Tools Studio before any agent can use it."
+                f"{message} Saved to the data dir; Jacob must enable it in Capabilities Studio before any agent can use it."
             )
         if relaxed:
             message = f"{message} It no longer asks before each call, so Jacob must enable it again."
@@ -191,7 +191,7 @@ class NativeCustomToolService:
         return body
 
     def view(self, name: str) -> dict[str, Any]:
-        """Read-only: record, code and approval state of one runtime-built tool (Toolsmith, Tools Studio)."""
+        """Read-only: record, code and approval state of one runtime-built tool (Toolsmith, Capabilities Studio)."""
         key = str(name or "").strip()
         row = self.get(key)
         if row is None:
@@ -235,7 +235,7 @@ class NativeCustomToolService:
                     "packaging_lanes": ["native", "mcp"],
                     "note": (
                         "Chat context only. The developer registers each entry. "
-                        "Tools Studio has no folder picker."
+                        "Capabilities Studio has no folder picker."
                     ),
                 }
             )
@@ -305,7 +305,7 @@ class NativeCustomToolService:
         if record.get("approval") != "enabled":
             raise NativeToolError(
                 f"Native tool '{key}' is not enabled (or its code changed since approval). "
-                "Jacob enables it in Tools Studio.",
+                "Jacob enables it in Capabilities Studio.",
                 409,
             )
         if key not in self.tool_registry:

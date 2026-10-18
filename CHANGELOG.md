@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- Enabled MCP servers now auto-author a companion `mcp-<server>` skill with `tools:` frontmatter and bind it to the agent so `mcp_<Server>_*` tools are immediately callable; proposal/attachment HITL gates honor the Chat Auto-run checkbox; LLM-facing tool messages reference Capabilities Studio instead of Tools Studio; and Telemetry RCA ignores caller validation errors on built-in platform tools [CARD-718].
+
 ## [1.3.0] - 2026-10-18
 
 Codebase tightening, modularization, architectural hygiene, and MCP Credential Vault authentication (`M31`). Decomposes every Python, JavaScript, HTML, and CSS file in `src/` under the 800-line ceiling (guarded by `test_card715_python_file_size_guard.py` and `test_card716_frontend_file_size_guard.py`), unifies `AgentKernel.run_turn` and `stream_turn` onto a single ReAct execution loop (`src/application/kernel/react_loop.py`), extracts chat streaming and job orchestration into `src/application/chat/`, enforces zero upward imports in `src/domain/`, consolidates YAML frontmatter and SQLite DDL onto canonical definitions, adds Credential Vault references (Bearer Token, Basic Auth, Custom Header, Environment Variable) to MCP server configurations, and points Settings and Agents Studio MCP deep-link buttons to Capabilities Studio.
