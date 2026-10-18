@@ -2,7 +2,7 @@
 id: CARD-714
 title: "Decompose src/domain/wiki/store.py (2,137 lines), fix double vault file parsing in graph/mindmap, and remove upward domain imports"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none
