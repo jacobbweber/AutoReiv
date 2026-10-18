@@ -2,7 +2,7 @@
 id: CARD-711
 title: "Consolidate duplicate YAML frontmatter parsers, SKILL.md path/tool resolvers, and duplicate SQLite DDL table definitions"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none

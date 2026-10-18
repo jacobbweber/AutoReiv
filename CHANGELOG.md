@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Changed
 
+- Consolidated markdown YAML frontmatter parsers onto `src/domain/frontmatter.py`, unified wildcard skill and tool extraction onto canonical helpers, and deduplicated inline SQLite `CREATE TABLE` DDL in `connection.py` onto `schema.py` constants [CARD-711].
 - Unmounted superseded `Skill Studio` and `Tools Studio` controllers from `app.js` (routing legacy tab aliases directly to `#view-capabilities`), removed dead backend no-op helpers, retired the `toolsmith` ID special case in `allowed_tools.py`, and fixed `/api/approvals/{id}/decision` so job phase tool rows are not duplicated into parent chat sessions [CARD-710].
 - Capability gap cards in Agents Studio now show a single **Build with AutoReiv** action (plus **Dismiss**) that opens a new Chat session with AutoReiv pre-prompted with the capability gap details [CARD-706].
 
