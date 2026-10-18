@@ -1,21 +1,40 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment + Visual Amplifiers API [CARD-242..249]."""
+"""Education Retrieval + Retention + Learner Model + Course API [CARD-242..327, CARD-715]."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from src.web.routers.education_courses import router as education_courses_router
+from src.web.routers.education_deps import (
+    _compose_current_step as _compose_current_step,
+)
+from src.web.routers.education_deps import (
+    _course_wiki_tools as _course_wiki_tools,
+)
+from src.web.routers.education_deps import (
+    _memory_repo as _memory_repo,
+)
+from src.web.routers.education_deps import (
+    _repeat_of as _repeat_of,
+)
+from src.web.routers.education_deps import (
+    _wiki_store as _wiki_store,
+)
+from src.web.routers.education_practice import router as education_practice_router
+
 router = APIRouter(tags=["Education"])
+router.include_router(education_practice_router)
+router.include_router(education_courses_router)
 
 
 class GradePayload(BaseModel):
     agent_id: str = "autoreiv"
     item_id: str
     answer: str = ""
-    # Optional: register item before grade when extracting on the fly
     topic: Optional[str] = None
     wiki_path: Optional[str] = None
     prompt: Optional[str] = None
@@ -59,27 +78,6 @@ class AskPressurePayload(BaseModel):
     limit: int = Field(default=3, ge=1, le=10)
 
 
-
-class ElaborationExtractPayload(BaseModel):
-    agent_id: str = "autoreiv"
-    wiki_path: str
-    topic: Optional[str] = None
-    persist: bool = True
-
-
-class ElaborationGradePayload(BaseModel):
-    agent_id: str = "autoreiv"
-    item_id: str
-    answer: str = ""
-    topic: Optional[str] = None
-    wiki_path: Optional[str] = None
-    prompt: Optional[str] = None
-    expected_answer: Optional[str] = None
-    required_concepts: Optional[List[str]] = None
-    write_wiki: bool = True
-    write_memory: bool = True
-
-
 class SelectedEducationContextPayload(BaseModel):
     topic: Optional[str] = None
     course_id: Optional[str] = None
@@ -91,79 +89,6 @@ class TutorContextPayload(BaseModel):
     agent_id: str = "autoreiv"
     topic: str = ""
     limit: int = Field(default=5, ge=1, le=20)
-
-
-class ConstructionAskPayload(BaseModel):
-    agent_id: str = "autoreiv"
-    topic: str
-    wiki_path: Optional[str] = None
-    wiki_title: Optional[str] = None
-    teach_style: Optional[str] = None
-
-
-
-
-class ApplicationExtractPayload(BaseModel):
-    agent_id: str = "autoreiv"
-    wiki_path: str
-    topic: Optional[str] = None
-    persist: bool = True
-
-
-class ApplicationGradePayload(BaseModel):
-    agent_id: str = "autoreiv"
-    item_id: str
-    answer: str = ""
-    topic: Optional[str] = None
-    wiki_path: Optional[str] = None
-    prompt: Optional[str] = None
-    expected_answer: Optional[str] = None
-    required_concepts: Optional[List[str]] = None
-    phase_id: Optional[str] = None
-    replan_count: int = 0
-    mint_on_fail: bool = True
-    write_wiki: bool = True
-    write_memory: bool = True
-
-
-class ApplicationMintPayload(BaseModel):
-    agent_id: str = "autoreiv"
-    item_id: str
-    topic: Optional[str] = None
-    wiki_path: Optional[str] = None
-    prompt: Optional[str] = None
-    expected_answer: Optional[str] = None
-    required_concepts: Optional[List[str]] = None
-    session_id: Optional[str] = None
-
-
-def _memory_repo(request: Request, agent_id: str):
-    from src.infrastructure.data.resolver import DataDirResolver
-    from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-
-    injected = getattr(request.app.state, "memory_repo", None)
-    if injected is not None:
-        return injected
-
-    data_dir = getattr(request.app.state, "data_dir", None)
-    if not data_dir:
-        paths = getattr(request.app.state, "data_dir_paths", None)
-        if paths is not None and getattr(paths, "root", None):
-            data_dir = str(paths.root)
-    if not data_dir:
-        data_dir = str(DataDirResolver().platform_default())
-    repo = AgentMemoryRepository(agent_id=agent_id, data_dir=data_dir)
-    repo.initialize_schema()
-    return repo
-
-
-def _wiki_store(request: Request):
-    from src.domain.wiki.store import WikiStore
-
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(request.app.state, "wiki_root", None)
-    if wiki_root:
-        return WikiStore(root_dir=wiki_root)
-    return WikiStore()
 
 
 @router.get("/api/education/mastery")
@@ -190,10 +115,7 @@ async def progress_summary(
     topic_id: Optional[str] = None,
     course_id: Optional[str] = None,
 ):
-    """Non-Studio trustable progress: course + mastery + due from Learning OS [CARD-441].
-
-    Failures return success=false with empty mastery_pct=None - never fabricate 100%.
-    """
+    """Non-Studio trustable progress: course + mastery + due from Learning OS [CARD-441]."""
     from src.application.education.progress_summary import build_progress_summary
 
     repo = _memory_repo(request, agent_id)
@@ -212,7 +134,6 @@ async def upsert_item(request: Request, payload: UpsertItemPayload):
     repo = _memory_repo(request, payload.agent_id)
     item_id = payload.item_id
     if not item_id:
-        # stable id from path+prompt
         fake = extract_quiz_items_from_note(
             f"## Quiz\n- Q: {payload.prompt}\n  A: {payload.expected_answer}\n",
             wiki_path=payload.wiki_path,
@@ -297,7 +218,6 @@ async def grade_quiz(request: Request, payload: GradePayload):
         existing = repo.get_education_mastery(payload.item_id)
     assert existing is not None
     expected = existing.get("expected_answer") or payload.expected_answer or ""
-    # CARD-318: binary grade needs a non-empty expected_answer (Priming anchors must seed it)
     if not str(expected).strip():
         raise HTTPException(
             status_code=422,
@@ -354,14 +274,7 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
         row = repo.get_education_mastery(payload.force_due_item_id)
         if not row:
             raise HTTPException(status_code=404, detail="item not found")
-        # Make due now for smoke
-        past = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        # set next_due in the past while preserving grade
-        with repo.get_connection() as conn:
-            conn.execute(
-                "UPDATE education_mastery SET next_due = ?, pending_job_id = NULL, updated_at = ? WHERE item_id = ?",
-                (past, past, payload.force_due_item_id),
-            )
+        repo.force_education_mastery_due(payload.force_due_item_id, now=datetime.now(timezone.utc))
 
     store = request.app.state.store
     orch = getattr(request.app.state, "job_orchestrator", None) or getattr(
@@ -380,7 +293,6 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
             enabled=True,
         )
 
-    # CARD-319: honor Routines Studio pause - no mint when disabled (no new Edu chrome).
     if not bool(getattr(routine, "enabled", True)):
         return {
             "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
@@ -394,7 +306,6 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
             "enabled": False,
         }
 
-    # Prefer live session creation when available
     session_id = f"edu-retention-api-{datetime.now(timezone.utc).strftime('%H%M%S')}"
     try:
         if hasattr(store, "create_session"):
@@ -411,8 +322,6 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
         session_id=session_id,
         respect_enabled=True,
     )
-    # CARD-319: do NOT save_routine here — a synthetic enabled=True fallback
-    # would overwrite Routines Studio pause. Mint path updates pending_job_id only.
     return {
         "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
         "result": result,
@@ -449,7 +358,6 @@ async def quiz_next(
     )
 
     repo = _memory_repo(request, agent_id)
-    # Selection still from ledger / miss-reason pressure — never from delivery profile.
     items = select_quiz_with_miss_reason_pressure(repo, limit=limit, topic=topic)
     analysis_summary = summarize_analysis(repo, limit=20)
     if profile_id:
@@ -521,7 +429,6 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
     )
 
     repo = _memory_repo(request, payload.agent_id)
-    # Oversample then keep miss/due only — never pressure random strong passes [CARD-243]
     ranked = select_quiz_items(repo, limit=max(payload.limit * 5, 10), topic=payload.topic or None)
     weak = [
         r
@@ -529,7 +436,6 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
         if (str(r.get("grade") or "").lower() == "miss") or int(r.get("miss_count") or 0) > 0
     ][: payload.limit]
     if not weak:
-        # Fall back to global misses when topic has none
         ranked = select_quiz_items(repo, limit=max(payload.limit * 5, 10), topic=None)
         weak = [
             r
@@ -540,7 +446,6 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
     env_profile = get_active_delivery_profile(repo)
     clause = clause + build_environment_ask_clause(env_profile)
 
-    # Prefer Studio JS builder when available; mirror Priming/Dual/custom here for API smoke.
     topic = (payload.topic or "").strip() or (
         (weak[0].get("topic") if weak else "") or "Education review"
     )
@@ -661,589 +566,6 @@ async def tutor_topic_context(request: Request, payload: TutorContextPayload):
     )
 
 
-@router.post("/api/education/elaboration/extract")
-async def extract_elaboration(request: Request, payload: ElaborationExtractPayload):
-    """Extract explain-it-back items from a Wiki note [CARD-244]."""
-    from src.application.education.elaboration import extract_elaboration_items_from_note
-
-    store = _wiki_store(request)
-    try:
-        note = store.read_note(payload.wiki_path)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path}") from exc
-    if not isinstance(note, dict) or note.get("success") is False:
-        err = (note or {}).get("error") if isinstance(note, dict) else "not found"
-        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path} ({err})")
-    content = note.get("content") or note.get("body") or ""
-    title = payload.topic or note.get("title") or payload.wiki_path
-    items = extract_elaboration_items_from_note(
-        content,
-        wiki_path=payload.wiki_path,
-        topic=title,
-    )
-    persisted: List[Dict[str, Any]] = []
-    if payload.persist and items:
-        repo = _memory_repo(request, payload.agent_id)
-        for it in items:
-            expected = it.get("expected_answer") or ", ".join(it.get("required_concepts") or [])
-            mid = repo.upsert_education_mastery(
-                item_id=it["item_id"],
-                topic=it["topic"],
-                wiki_path=it["wiki_path"],
-                prompt=it["prompt"],
-                expected_answer=expected,
-                grade="unseen",
-            )
-            row = repo.get_education_mastery(mid)
-            if row:
-                persisted.append(row)
-    return {
-        "wiki_path": payload.wiki_path,
-        "items": items,
-        "persisted": persisted,
-        "count": len(items),
-        "kind": "elaboration",
-    }
-
-
-@router.get("/api/education/elaboration/next")
-async def elaboration_next(
-    request: Request,
-    agent_id: str = "autoreiv",
-    limit: int = 1,
-    topic: Optional[str] = None,
-):
-    """Prefer due/weak mastery items shaped as explain-it-back prompts [CARD-244]."""
-    from src.application.education.elaboration import (
-        build_elaboration_ask_clause,
-        elaboration_from_mastery_row,
-    )
-    from src.application.education.learner_model import select_quiz_items
-
-    repo = _memory_repo(request, agent_id)
-    ranked = select_quiz_items(repo, limit=max(limit * 5, 10), topic=topic)
-    items = [elaboration_from_mastery_row(r) for r in ranked[:limit]]
-    return {
-        "agent_id": agent_id,
-        "items": items,
-        "count": len(items),
-        "selection": "due_weak_miss_over_random",
-        "kind": "elaboration",
-        "ask_clause": build_elaboration_ask_clause(items),
-    }
-
-
-@router.post("/api/education/elaboration/grade")
-async def grade_elaboration(request: Request, payload: ElaborationGradePayload):
-    """Binary external explain-it-back grade + ledger + Wiki/memory write-back [CARD-244]."""
-    from src.application.education.elaboration import grade_and_record_elaboration
-
-    repo = _memory_repo(request, payload.agent_id)
-    existing = repo.get_education_mastery(payload.item_id)
-    concepts = list(payload.required_concepts or [])
-    if existing is None:
-        if not (payload.prompt and (payload.expected_answer or concepts) and payload.wiki_path):
-            raise HTTPException(status_code=404, detail=f"Unknown mastery item: {payload.item_id}")
-        item = {
-            "item_id": payload.item_id,
-            "topic": payload.topic or payload.wiki_path,
-            "wiki_path": payload.wiki_path,
-            "prompt": payload.prompt,
-            "expected_answer": payload.expected_answer or "",
-            "required_concepts": concepts,
-        }
-    else:
-        item = {
-            "item_id": existing["item_id"],
-            "topic": payload.topic or existing.get("topic"),
-            "wiki_path": payload.wiki_path or existing.get("wiki_path"),
-            "prompt": payload.prompt or existing.get("prompt"),
-            "expected_answer": payload.expected_answer or existing.get("expected_answer") or "",
-            "required_concepts": concepts,
-        }
-
-    wiki_store = None
-    if payload.write_wiki:
-        try:
-            wiki_store = _wiki_store(request)
-        except Exception:  # noqa: BLE001
-            wiki_store = None
-
-    result = grade_and_record_elaboration(
-        repo=repo,
-        item=item,
-        given=payload.answer,
-        wiki_store=wiki_store,
-        write_wiki=bool(payload.write_wiki and wiki_store is not None),
-        write_memory=payload.write_memory,
-    )
-    return result
-
-
-@router.post("/api/education/construction/ask-clause")
-async def construction_ask_clause(payload: ConstructionAskPayload):
-    """Return Construction-shaped Education Ask clause (wiki_note_* only)."""
-    from src.application.education.construction import build_construction_ask_clause
-
-    topic = (payload.topic or "").strip()
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic is required")
-    clause = build_construction_ask_clause(
-        topic=topic,
-        wiki_path=payload.wiki_path or "",
-        wiki_title=payload.wiki_title or "",
-        teach_style=payload.teach_style or "",
-    )
-    return {
-        "agent_id": payload.agent_id,
-        "kind": "construction",
-        "ask_clause": clause,
-        "allowlist": ["wiki_note_search", "wiki_note_list", "wiki_note_read", "wiki_note_create", "wiki_note_append"],
-        "forbidden": ["wiki_overview", "wiki_graph"],
-    }
-
-
-@router.post("/api/education/application/extract")
-async def extract_application(request: Request, payload: ApplicationExtractPayload):
-    """Extract Application / Exercise items from a Wiki note [CARD-246]."""
-    from src.application.education.application import extract_application_items_from_note
-
-    store = _wiki_store(request)
-    try:
-        note = store.read_note(payload.wiki_path)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path}") from exc
-    if not isinstance(note, dict) or note.get("success") is False:
-        err = (note or {}).get("error") if isinstance(note, dict) else "not found"
-        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path} ({err})")
-    content = note.get("content") or note.get("body") or ""
-    title = payload.topic or note.get("title") or payload.wiki_path
-    items = extract_application_items_from_note(
-        content,
-        wiki_path=payload.wiki_path,
-        topic=title,
-    )
-    persisted: List[Dict[str, Any]] = []
-    if payload.persist and items:
-        repo = _memory_repo(request, payload.agent_id)
-        for it in items:
-            expected = it.get("expected_answer") or ", ".join(it.get("required_concepts") or [])
-            mid = repo.upsert_education_mastery(
-                item_id=it["item_id"],
-                topic=it["topic"],
-                wiki_path=it["wiki_path"],
-                prompt=it["prompt"],
-                expected_answer=expected,
-                grade="unseen",
-            )
-            row = repo.get_education_mastery(mid)
-            if row:
-                persisted.append(row)
-    return {
-        "wiki_path": payload.wiki_path,
-        "items": items,
-        "persisted": persisted,
-        "count": len(items),
-        "kind": "application",
-    }
-
-
-@router.get("/api/education/application/next")
-async def application_next(
-    request: Request,
-    agent_id: str = "autoreiv",
-    limit: int = 1,
-    topic: Optional[str] = None,
-):
-    """Prefer due/weak mastery items shaped as Application exercises [CARD-246]."""
-    from src.application.education.application import (
-        application_from_mastery_row,
-        build_application_ask_clause,
-    )
-    from src.application.education.learner_model import select_quiz_items
-
-    repo = _memory_repo(request, agent_id)
-    ranked = select_quiz_items(repo, limit=max(limit * 5, 10), topic=topic)
-    items = [application_from_mastery_row(r) for r in ranked[:limit]]
-    return {
-        "agent_id": agent_id,
-        "items": items,
-        "count": len(items),
-        "selection": "due_weak_miss_over_random",
-        "kind": "application",
-        "ask_clause": build_application_ask_clause(items),
-    }
-
-
-@router.post("/api/education/application/mint")
-async def mint_application_exercise(request: Request, payload: ApplicationMintPayload):
-    """Mint a standing Exercise Job for an Application item [CARD-246]."""
-    from src.application.education.application import mint_exercise_job
-
-    repo = _memory_repo(request, payload.agent_id)
-    existing = repo.get_education_mastery(payload.item_id)
-    concepts = list(payload.required_concepts or [])
-    if existing is None:
-        if not (payload.prompt and (payload.expected_answer or concepts) and payload.wiki_path):
-            raise HTTPException(status_code=404, detail=f"Unknown mastery item: {payload.item_id}")
-        item = {
-            "item_id": payload.item_id,
-            "topic": payload.topic or payload.wiki_path,
-            "wiki_path": payload.wiki_path,
-            "prompt": payload.prompt,
-            "expected_answer": payload.expected_answer or "",
-            "required_concepts": concepts,
-        }
-    else:
-        item = {
-            "item_id": existing["item_id"],
-            "topic": payload.topic or existing.get("topic"),
-            "wiki_path": payload.wiki_path or existing.get("wiki_path"),
-            "prompt": payload.prompt or existing.get("prompt"),
-            "expected_answer": payload.expected_answer or existing.get("expected_answer") or "",
-            "required_concepts": concepts,
-        }
-
-    orch = getattr(request.app.state, "job_orchestrator", None) or getattr(
-        request.app.state, "orchestrator", None
-    )
-    if orch is None:
-        raise HTTPException(status_code=503, detail="orchestrator unavailable for Exercise Job mint")
-
-    result = mint_exercise_job(
-        orch=orch,
-        memory_repo=repo,
-        item=item,
-        agent_id=payload.agent_id,
-        session_id=payload.session_id,
-    )
-    if not result.get("success"):
-        raise HTTPException(status_code=422, detail=result)
-    return result
-
-
-@router.post("/api/education/application/grade")
-async def grade_application(request: Request, payload: ApplicationGradePayload):
-    """Binary external Application grade + fail park/replan + mastery/Wiki/memory [CARD-246]."""
-    from src.application.education.application import grade_and_record_application
-
-    repo = _memory_repo(request, payload.agent_id)
-    existing = repo.get_education_mastery(payload.item_id)
-    concepts = list(payload.required_concepts or [])
-    if existing is None:
-        if not (payload.prompt and (payload.expected_answer or concepts) and payload.wiki_path):
-            raise HTTPException(status_code=404, detail=f"Unknown mastery item: {payload.item_id}")
-        item = {
-            "item_id": payload.item_id,
-            "topic": payload.topic or payload.wiki_path,
-            "wiki_path": payload.wiki_path,
-            "prompt": payload.prompt,
-            "expected_answer": payload.expected_answer or "",
-            "required_concepts": concepts,
-        }
-    else:
-        item = {
-            "item_id": existing["item_id"],
-            "topic": payload.topic or existing.get("topic"),
-            "wiki_path": payload.wiki_path or existing.get("wiki_path"),
-            "prompt": payload.prompt or existing.get("prompt"),
-            "expected_answer": payload.expected_answer or existing.get("expected_answer") or "",
-            "required_concepts": concepts,
-        }
-
-    wiki_store = None
-    if payload.write_wiki:
-        try:
-            wiki_store = _wiki_store(request)
-        except Exception:  # noqa: BLE001
-            wiki_store = None
-
-    orch = getattr(request.app.state, "job_orchestrator", None) or getattr(
-        request.app.state, "orchestrator", None
-    )
-
-    result = grade_and_record_application(
-        repo=repo,
-        item=item,
-        given=payload.answer,
-        wiki_store=wiki_store,
-        orch=orch,
-        phase_id=payload.phase_id,
-        replan_count=payload.replan_count,
-        agent_id=payload.agent_id,
-        write_wiki=bool(payload.write_wiki and wiki_store is not None),
-        write_memory=payload.write_memory,
-        mint_on_fail=payload.mint_on_fail,
-    )
-    return result
-
-
-class AnalysisWikiPayload(BaseModel):
-    agent_id: str = "autoreiv"
-    wiki_path: str
-    item_id: Optional[str] = None
-    miss_reason: Optional[str] = None
-    given: str = ""
-    prompt: Optional[str] = None
-
-
-@router.get("/api/education/analysis")
-async def analysis_summary(request: Request, agent_id: str = "autoreiv", limit: int = 50):
-    """Error log + metacog patterns from memory.db [CARD-247]."""
-    from src.application.education.analysis import summarize_analysis
-
-    repo = _memory_repo(request, agent_id)
-    summary = summarize_analysis(repo, limit=limit)
-    summary["agent_id"] = agent_id
-    return summary
-
-
-@router.get("/api/education/analysis/errors")
-async def analysis_errors(request: Request, agent_id: str = "autoreiv", limit: int = 50):
-    from src.application.education.analysis import list_error_log
-
-    repo = _memory_repo(request, agent_id)
-    errors = list_error_log(repo, limit=limit)
-    return {"agent_id": agent_id, "errors": errors, "count": len(errors)}
-
-
-@router.get("/api/education/analysis/patterns")
-async def analysis_patterns(request: Request, agent_id: str = "autoreiv", limit: int = 50):
-    from src.application.education.analysis import active_miss_reasons, list_metacog_patterns
-
-    repo = _memory_repo(request, agent_id)
-    patterns = list_metacog_patterns(repo, limit=limit)
-    return {
-        "agent_id": agent_id,
-        "patterns": patterns,
-        "count": len(patterns),
-        "active_miss_reasons": active_miss_reasons(repo),
-    }
-
-
-class EnvironmentSelectPayload(BaseModel):
-    agent_id: str = "autoreiv"
-    profile_id: str
-
-
-@router.get("/api/education/environment/profiles")
-async def environment_profiles():
-    """List study-session delivery profiles (tone/timer/bite-size) [CARD-248]."""
-    from src.application.education.environment import list_delivery_profiles
-
-    profiles = list_delivery_profiles()
-    return {
-        "profiles": profiles,
-        "count": len(profiles),
-        "replaces_srs": False,
-        "replaces_ledger": False,
-        "due_source": "mastery_ledger_srs",
-    }
-
-
-@router.get("/api/education/environment")
-async def environment_summary(request: Request, agent_id: str = "autoreiv"):
-    """Active delivery profile preference from memory.db [CARD-248]."""
-    from src.application.education.environment import summarize_environment
-
-    repo = _memory_repo(request, agent_id)
-    summary = summarize_environment(repo)
-    summary["agent_id"] = agent_id
-    return summary
-
-
-@router.post("/api/education/environment/select")
-async def environment_select(request: Request, payload: EnvironmentSelectPayload):
-    """Select active delivery profile (presentation preference only — never SRS)."""
-    from src.application.education.environment import select_delivery_profile
-
-    repo = _memory_repo(request, payload.agent_id)
-    result = select_delivery_profile(repo, payload.profile_id)
-    return {
-        "agent_id": payload.agent_id,
-        **result,
-    }
-
-
-@router.post("/api/education/environment/apply-ask")
-async def environment_apply_ask(request: Request, payload: dict):
-    """Shape an Ask string with the active (or requested) delivery profile."""
-    from src.application.education.environment import (
-        apply_delivery_to_ask,
-        get_active_delivery_profile,
-        get_delivery_profile,
-    )
-
-    agent_id = str(payload.get("agent_id") or "autoreiv")
-    ask = str(payload.get("ask") or "")
-    profile_id = payload.get("profile_id")
-    repo = _memory_repo(request, agent_id)
-    profile = get_delivery_profile(profile_id) if profile_id else get_active_delivery_profile(repo)
-    shaped = apply_delivery_to_ask(ask, profile=profile)
-    shaped["agent_id"] = agent_id
-    return shaped
-
-
-class AmplifierExtractPayload(BaseModel):
-    content: str
-    wiki_path: str
-    topic: str = ""
-
-
-class AmplifierAttachPayload(BaseModel):
-    agent_id: str = "autoreiv"
-    item_id: str
-    content: Optional[str] = None
-    wiki_path: Optional[str] = None
-    topic: str = ""
-    amplifier_id: Optional[str] = None
-    mermaid: Optional[str] = None
-    steps: Optional[list] = None
-    visuals_only: bool = False
-
-
-@router.post("/api/education/amplifiers/extract")
-async def amplifiers_extract(payload: AmplifierExtractPayload):
-    """Extract Mermaid/step-through amplifier candidates from a Dual Coding note [CARD-249]."""
-    from src.application.education.visual_amplifiers import extract_amplifiers_from_note
-
-    amps = extract_amplifiers_from_note(
-        payload.content,
-        wiki_path=payload.wiki_path,
-        topic=payload.topic,
-    )
-    return {
-        "amplifiers": amps,
-        "count": len(amps),
-        "shippable": False,
-        "retrieval_required": True,
-        "note": "Candidates are not shippable until attached to a mastery/quiz item_id",
-    }
-
-
-@router.post("/api/education/amplifiers/attach")
-async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
-    """Attach amplifier to Retrieval-backed mastery item; refuse visuals-only [CARD-249]."""
-    from fastapi import HTTPException
-
-    from src.application.education.visual_amplifiers import (
-        VisualsOnlyRejected,
-        attach_amplifier_to_retrieval,
-        build_step_through,
-        extract_amplifiers_from_note,
-        refuse_visuals_only,
-    )
-
-    try:
-        refuse_visuals_only(
-            {"item_id": payload.item_id, "visuals_only": payload.visuals_only}
-        )
-    except VisualsOnlyRejected as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    repo = _memory_repo(request, payload.agent_id)
-    amplifier = None
-    if payload.content and payload.wiki_path:
-        candidates = extract_amplifiers_from_note(
-            payload.content,
-            wiki_path=payload.wiki_path,
-            topic=payload.topic,
-        )
-        if payload.amplifier_id:
-            for c in candidates:
-                if c.get("amplifier_id") == payload.amplifier_id:
-                    amplifier = c
-                    break
-        if amplifier is None and candidates:
-            amplifier = candidates[0]
-    if amplifier is None:
-        mermaid = payload.mermaid
-        steps = payload.steps
-        if mermaid and not steps:
-            steps = build_step_through(mermaid)
-        if not mermaid and not steps:
-            raise HTTPException(
-                status_code=400,
-                detail="Amplifier attach needs Dual Coding content/wiki_path or mermaid/steps",
-            )
-        amplifier = {
-            "amplifier_id": payload.amplifier_id or "amp_manual",
-            "kind": "mermaid" if mermaid else "step_through",
-            "topic": payload.topic or payload.wiki_path or "",
-            "wiki_path": payload.wiki_path or "",
-            "mermaid": mermaid,
-            "steps": steps or [],
-            "step_count": len(steps or []),
-            "has_step_through": bool(steps),
-            "retrieval_required": True,
-            "item_id": None,
-            "shippable": False,
-        }
-    try:
-        attached = attach_amplifier_to_retrieval(amplifier, payload.item_id, repo=repo)
-    except VisualsOnlyRejected as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {
-        "agent_id": payload.agent_id,
-        "attached": attached,
-        "retrieval_required": True,
-        "replaces_srs": False,
-        "replaces_ledger": False,
-    }
-
-
-@router.get("/api/education/amplifiers")
-async def amplifiers_summary(request: Request, agent_id: str = "autoreiv", limit: int = 50):
-    """List persisted visual amplifiers (Retrieval-backed only) [CARD-249]."""
-    from src.application.education.visual_amplifiers import summarize_amplifiers
-
-    repo = _memory_repo(request, agent_id)
-    summary = summarize_amplifiers(repo, limit=limit)
-    summary["agent_id"] = agent_id
-    return summary
-
-
-@router.get("/api/education/amplifiers/{item_id}")
-async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "autoreiv"):
-    """Get amplifier for a mastery item; 404 if none; 400 if item not on ledger."""
-    from fastapi import HTTPException
-
-    from src.application.education.visual_amplifiers import (
-        VisualsOnlyRejected,
-        get_amplifier_for_item,
-    )
-
-    repo = _memory_repo(request, agent_id)
-    try:
-        amp = get_amplifier_for_item(repo, item_id)
-    except VisualsOnlyRejected as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if amp is None:
-        raise HTTPException(status_code=404, detail=f"No amplifier for item_id={item_id}")
-    return {
-        "agent_id": agent_id,
-        "item_id": item_id,
-        "amplifier": amp,
-        "retrieval_required": True,
-    }
-
-
-@router.post("/api/education/amplifiers/refuse-check")
-async def amplifiers_refuse_check(payload: dict):
-    """Smoke helper: prove visuals-only is refused [CARD-249]."""
-    from fastapi import HTTPException
-
-    from src.application.education.visual_amplifiers import (
-        VisualsOnlyRejected,
-        refuse_visuals_only,
-    )
-
-    try:
-        return refuse_visuals_only(payload)
-    except VisualsOnlyRejected as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
 # --- CARD-320 Course + Mastery -------------------------------------------------
 
 
@@ -1277,72 +599,6 @@ class CourseMasteryGradePayload(BaseModel):
     agent_id: str = "autoreiv"
     item_id: str
     answer: str = ""
-
-
-@router.get("/api/education/knowledge-types")
-async def education_knowledge_types():
-    """List available knowledge types and artifact shape specifications [CARD-334]."""
-    from src.application.education.knowledge_types import KNOWLEDGE_SHAPES, VALID_KNOWLEDGE_TYPES
-
-    return {
-        "knowledge_types": list(VALID_KNOWLEDGE_TYPES),
-        "shapes": KNOWLEDGE_SHAPES,
-    }
-
-
-class WikiCuratePayload(BaseModel):
-    """CARD-440: Tutor Learning OS wiki curation from link or curriculum."""
-
-    mode: str = "link"  # link | curriculum
-    url: Optional[str] = None
-    curriculum: Optional[str] = None
-    topic: Optional[str] = None
-    title: Optional[str] = None
-    template: Optional[str] = None
-    raw_source: bool = False
-    body: Optional[str] = None
-    max_items: int = Field(default=12, ge=1, le=30)
-    agent_id: str = "tutor"
-
-
-@router.get("/api/education/wiki/templates")
-async def education_wiki_templates():
-    """Catalogued education-* Wiki templates for Learning OS curation [CARD-440]."""
-    from src.application.education.wiki_curation import catalog_education_templates
-
-    items = catalog_education_templates()
-    return {"templates": items, "count": len(items), "skill_hint": "education-wiki-curation"}
-
-
-@router.post("/api/education/wiki/curate")
-async def education_wiki_curate(request: Request, payload: WikiCuratePayload):
-    """Curate link/curriculum into durable Wiki notes via wiki_note_create [CARD-440].
-
-    Failures return success=false without claiming the library was updated.
-    """
-    from src.application.education.wiki_curation import curate
-    from src.application.skills.wiki_tools import WikiTools
-
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-    result = curate(
-        tools,
-        mode=payload.mode,
-        url=payload.url,
-        curriculum=payload.curriculum,
-        topic=payload.topic or "",
-        title=payload.title,
-        template=payload.template,
-        raw_source=bool(payload.raw_source),
-        body=payload.body,
-        max_items=payload.max_items,
-    )
-    # Honest HTTP: 200 with success=false for domain failures (fetch/write);
-    # 400 only for clearly invalid mode/required fields already handled in curate.
-    return {"agent_id": payload.agent_id, **result}
-
 
 
 @router.post("/api/education/course/start")
@@ -1385,58 +641,6 @@ async def course_get(
         course_id=(course or {}).get("course_id") or course_id or "",
     )
     return {"agent_id": agent_id, "course": course, "chrome": chrome, "pipeline_default": True}
-
-
-def _course_wiki_tools(request: Request):
-    from src.application.skills.wiki_tools import WikiTools
-
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(request.app.state, "wiki_root", None)
-    return WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-
-
-async def _compose_current_step(
-    request: Request,
-    repo: Any,
-    course_id: str,
-    tools: Any,
-    learner_explanation: Optional[str] = None,
-    lab_submission: Optional[str] = None,
-) -> Optional[Dict[str, Any]]:
-    """Grounded content for the course's current step, built from the learner's wiki notes via one
-    model call [CARD-640, CARD-646]. None for steps that need none; a skip dict when it can't be grounded."""
-    from src.application.education.grounded import find_duplicate_item, ledger_items
-    from src.application.education.grounded_steps import compose_course_step
-    from src.application.education.priming_schema import slug_topic
-
-    current = repo.get_education_course(course_id) or {}
-    topic = current.get("topic_id") or ""
-    step = current.get("current_step") or ""
-    # CARD-650: show the model the questions already asked on this topic (not this step's own item,
-    # which a re-run replaces) so it asks about something different.
-    own = f"course_{slug_topic(topic.strip())}_{step}"[:48]
-    asked = [
-        (str(r.get("prompt") or ""), str(r.get("expected_answer") or ""))
-        for r in ledger_items(repo)
-        if (r.get("topic") or "").strip() == topic.strip() and r.get("item_id") != own
-    ]
-    avoid = [q for q, _ in asked]
-    return await compose_course_step(
-        getattr(request.app.state, "gateway", None),
-        tools,
-        topic,
-        step,
-        learner_explanation=learner_explanation,
-        lab_submission=lab_submission,
-        avoid_questions=avoid,
-        # CARD-654: a question that repeats any saved item is asked about once more, naming the repeat.
-        duplicate_of=lambda q, a: _repeat_of(find_duplicate_item(repo, q, a, own_item_id=own)),
-        asked=asked,
-    )
-
-
-def _repeat_of(row: Optional[Dict[str, Any]]) -> Optional[Tuple[str, str]]:
-    """The saved (question, answer) a new course question repeats [CARD-654]."""
-    return (str(row.get("prompt") or ""), str(row.get("expected_answer") or "")) if row else None
 
 
 @router.post("/api/education/course/complete-step")
@@ -1504,7 +708,6 @@ async def course_mastery_grade(request: Request, payload: CourseMasteryGradePayl
     if not (payload.item_id or "").strip():
         raise HTTPException(status_code=400, detail="item_id is required")
     repo = _memory_repo(request, payload.agent_id)
-    # pin binary helper name for CARD-320 router source assert
     _ = grade_answer_binary
     try:
         result = grade_course_mastery(repo, item_id=payload.item_id, answer=payload.answer or "")
@@ -1512,398 +715,4 @@ async def course_mastery_grade(request: Request, payload: CourseMasteryGradePayl
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"agent_id": payload.agent_id, **result}
-
-
-class DualCodingPreviewPayload(BaseModel):
-    topic: str
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/dual-coding/preview")
-async def course_dual_coding_preview(request: Request, payload: DualCodingPreviewPayload):
-    """Dual coding built from your wiki notes on the topic, or the reason it was skipped [CARD-321, CARD-640]."""
-    from src.application.education.dual_coding import compose_dual_coding
-
-    if not (payload.topic or "").strip():
-        raise HTTPException(status_code=400, detail="topic is required")
-    composed = await compose_dual_coding(
-        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), payload.topic
-    )
-    return {"agent_id": payload.agent_id, **composed}
-
-
-class CourseElaborationPreviewPayload(BaseModel):
-    topic: str
-    learner_explanation: Optional[str] = None
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/elaboration/preview")
-async def course_elaboration_preview(request: Request, payload: CourseElaborationPreviewPayload):
-    """The elaboration ask; follow-up questions only from the learner's own explanation [CARD-323, CARD-644]."""
-    from src.application.education.elaboration import build_elaboration_preview
-    from src.application.education.grounded_steps import compose_step_content
-
-    if not (payload.topic or "").strip():
-        raise HTTPException(status_code=400, detail="topic is required")
-    data = build_elaboration_preview(payload.topic)
-    composed = await compose_step_content(
-        getattr(request.app.state, "gateway", None),
-        _course_wiki_tools(request),
-        payload.topic,
-        "elaboration",
-        learner_text=payload.learner_explanation,
-    )
-    if composed.get("ok"):
-        data["probing_questions"] = list(composed.get("probes") or [])
-    return {
-        "success": True,
-        "agent_id": payload.agent_id,
-        **data,
-        "skip_reason": composed.get("skip_reason"),
-        "sources": composed.get("sources") or [],
-    }
-
-
-class CourseElaborationCompletePayload(BaseModel):
-    course_id: str
-    topic: Optional[str] = None
-    learner_explanation: Optional[str] = None
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/elaboration/complete")
-async def course_elaboration_complete(request: Request, payload: CourseElaborationCompletePayload):
-    """Complete elaboration step: persist explain-in-own-words note to Wiki, anchor ledger, advance [CARD-323]."""
-    from src.application.education.course import complete_course_step, course_chrome_snapshot
-    from src.application.skills.wiki_tools import WikiTools
-
-    if not (payload.course_id or "").strip():
-        raise HTTPException(status_code=400, detail="course_id is required")
-    repo = _memory_repo(request, payload.agent_id)
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-    composed = await _compose_current_step(request, repo, payload.course_id, tools, payload.learner_explanation)
-    try:
-        result = complete_course_step(
-            repo,
-            course_id=payload.course_id,
-            wiki_tools_or_store=tools,
-            learner_explanation=payload.learner_explanation,
-            composed=composed,
-        )
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    course = result.get("course") or {}
-    chrome = course_chrome_snapshot(
-        repo,
-        topic_id=course.get("topic_id") or payload.topic or "",
-        course_id=course.get("course_id") or payload.course_id,
-    )
-    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
-
-
-class CourseLabPreviewPayload(BaseModel):
-    topic: Optional[str] = None
-    course_id: Optional[str] = None
-    step: Optional[str] = "construction"
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/lab/preview")
-async def course_lab_preview(request: Request, payload: CourseLabPreviewPayload):
-    """Lab built from your wiki notes on the topic, or the reason it was skipped [CARD-324, CARD-643]."""
-    from src.application.education.grounded_steps import compose_step_content
-
-    topic = (payload.topic or "").strip()
-    step = (payload.step or "construction").strip()
-    if not topic and payload.course_id:
-        repo = _memory_repo(request, payload.agent_id)
-        course = repo.get_education_course(payload.course_id)
-        if course:
-            topic = course.get("topic_id") or ""
-            step = payload.step or course.get("current_step") or "construction"
-
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
-    if step not in ("construction", "application"):
-        step = "construction"
-
-    composed = await compose_step_content(
-        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), topic, step
-    )
-    return {"success": True, "agent_id": payload.agent_id, **composed, "step": step}
-
-
-class CourseLabGradePayload(BaseModel):
-    course_id: str
-    step: Optional[str] = None
-    submission: str
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/lab/grade")
-async def course_lab_grade(request: Request, payload: CourseLabGradePayload):
-    """Grade lab submission with objective pressure: write Wiki note, update ledger, advance course if passed [CARD-324]."""
-    from src.application.education.course import complete_course_step, course_chrome_snapshot
-    from src.application.skills.wiki_tools import WikiTools
-
-    sub = (payload.submission or "").strip()
-    if not sub:
-        raise HTTPException(status_code=422, detail="Lab submission cannot be empty.")
-
-    if not (payload.course_id or "").strip():
-        raise HTTPException(status_code=400, detail="course_id is required")
-
-    repo = _memory_repo(request, payload.agent_id)
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-    # CARD-643: graded only against a lab grounded in the learner's notes.
-    composed = await _compose_current_step(request, repo, payload.course_id, tools)
-
-    try:
-        result = complete_course_step(
-            repo,
-            course_id=payload.course_id,
-            wiki_tools_or_store=tools,
-            lab_submission=payload.submission,
-            composed=composed,
-        )
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    course = result.get("course") or {}
-    chrome = course_chrome_snapshot(
-        repo,
-        topic_id=course.get("topic_id") or "",
-        course_id=course.get("course_id") or payload.course_id,
-    )
-    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
-
-
-class CourseConstructionCompletePayload(BaseModel):
-    course_id: str
-    submission: str
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/construction/complete")
-async def course_construction_complete(request: Request, payload: CourseConstructionCompletePayload):
-    """Complete construction step via graded lab evaluation [CARD-324]."""
-    return await course_lab_grade(
-        request,
-        CourseLabGradePayload(
-            course_id=payload.course_id,
-            step="construction",
-            submission=payload.submission,
-            agent_id=payload.agent_id,
-        ),
-    )
-
-
-class CourseApplicationCompletePayload(BaseModel):
-    course_id: str
-    submission: str
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/application/complete")
-async def course_application_complete(request: Request, payload: CourseApplicationCompletePayload):
-    """Complete application step via graded lab evaluation [CARD-324]."""
-    return await course_lab_grade(
-        request,
-        CourseLabGradePayload(
-            course_id=payload.course_id,
-            step="application",
-            submission=payload.submission,
-            agent_id=payload.agent_id,
-        ),
-    )
-
-
-class CourseEnvironmentPreviewPayload(BaseModel):
-    topic: Optional[str] = None
-    course_id: Optional[str] = None
-    profile_id: Optional[str] = None
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/environment/preview")
-async def course_environment_preview(request: Request, payload: CourseEnvironmentPreviewPayload):
-    """Where to practise the topic, from your wiki notes, with your delivery profile [CARD-325, CARD-642]."""
-    from src.application.education.environment import get_active_delivery_profile, get_delivery_profile
-    from src.application.education.grounded_steps import compose_step_content
-
-    repo = _memory_repo(request, payload.agent_id)
-    topic = (payload.topic or "").strip()
-    if not topic and payload.course_id:
-        course = repo.get_education_course(payload.course_id)
-        if course:
-            topic = course.get("topic_id") or ""
-
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
-
-    profile = get_delivery_profile(payload.profile_id) if payload.profile_id else get_active_delivery_profile(repo)
-    composed = await compose_step_content(
-        getattr(request.app.state, "gateway", None), _course_wiki_tools(request), topic, "environment"
-    )
-    return {"success": True, "agent_id": payload.agent_id, **composed, "profile": profile}
-
-
-class CourseEnvironmentCompletePayload(BaseModel):
-    course_id: str
-    profile_id: Optional[str] = None
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/environment/complete")
-async def course_environment_complete(request: Request, payload: CourseEnvironmentCompletePayload):
-    """Complete environment framing step: persist profile, write note, advance course [CARD-325]."""
-    from src.application.education.course import complete_course_step, course_chrome_snapshot
-    from src.application.education.environment import select_delivery_profile
-    from src.application.skills.wiki_tools import WikiTools
-
-    if not (payload.course_id or "").strip():
-        raise HTTPException(status_code=400, detail="course_id is required")
-
-    repo = _memory_repo(request, payload.agent_id)
-    if payload.profile_id:
-        select_delivery_profile(repo, payload.profile_id)
-
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-    composed = await _compose_current_step(request, repo, payload.course_id, tools)
-
-    try:
-        result = complete_course_step(
-            repo,
-            course_id=payload.course_id,
-            wiki_tools_or_store=tools,
-            composed=composed,
-        )
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    course = result.get("course") or {}
-    chrome = course_chrome_snapshot(
-        repo,
-        topic_id=course.get("topic_id") or "",
-        course_id=course.get("course_id") or payload.course_id,
-    )
-    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
-
-
-class CourseAnalysisHandoffPayload(BaseModel):
-    course_id: Optional[str] = None
-    topic: Optional[str] = None
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/analysis/handoff")
-async def course_analysis_handoff(request: Request, payload: CourseAnalysisHandoffPayload):
-    """Execute analysis to retention handoff: schedule next_due and anchor semantic fact [CARD-325]."""
-    from src.application.education.analysis import execute_analysis_retention_handoff
-    from src.application.education.course import course_chrome_snapshot
-
-    repo = _memory_repo(request, payload.agent_id)
-    topic = (payload.topic or "").strip()
-    if not topic and payload.course_id:
-        course = repo.get_education_course(payload.course_id)
-        if course:
-            topic = course.get("topic_id") or ""
-
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
-
-    result = execute_analysis_retention_handoff(
-        repo,
-        topic=topic,
-        course_id=payload.course_id,
-    )
-
-    chrome = None
-    if payload.course_id:
-        chrome = course_chrome_snapshot(
-            repo,
-            topic_id=topic,
-            course_id=payload.course_id,
-        )
-
-    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
-
-
-@router.get("/api/education/course/depth")
-async def course_depth_get(
-    request: Request,
-    topic: Optional[str] = None,
-    course_id: Optional[str] = None,
-    agent_id: str = "autoreiv",
-):
-    """Retrieve adaptive mastery depth ladder and milestones for a topic [CARD-327]."""
-    from src.application.education.depth import get_topic_depth
-
-    repo = _memory_repo(request, agent_id)
-    resolved_topic = (topic or "").strip()
-    if not resolved_topic and course_id:
-        course = repo.get_education_course(course_id)
-        if course:
-            resolved_topic = course.get("topic_id") or ""
-
-    if not resolved_topic:
-        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
-
-    depth = get_topic_depth(repo, topic=resolved_topic)
-    return {"success": True, "agent_id": agent_id, "depth": depth}
-
-
-class CoursePortfolioCreatePayload(BaseModel):
-    topic: Optional[str] = None
-    course_id: Optional[str] = None
-    agent_id: str = "autoreiv"
-
-
-@router.post("/api/education/course/portfolio/create")
-async def course_portfolio_create(request: Request, payload: CoursePortfolioCreatePayload):
-    """Generate and file a durable growth portfolio note in 00_Inbox/ [CARD-327]."""
-    from src.application.education.depth import create_growth_portfolio_note
-    from src.application.skills.wiki_tools import WikiTools
-
-    repo = _memory_repo(request, payload.agent_id)
-    topic = (payload.topic or "").strip()
-    if not topic and payload.course_id:
-        course = repo.get_education_course(payload.course_id)
-        if course:
-            topic = course.get("topic_id") or ""
-
-    if not topic:
-        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
-
-    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
-        request.app.state, "wiki_root", None
-    )
-    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
-
-    result = create_growth_portfolio_note(
-        tools,
-        repo,
-        topic=topic,
-        course_id=payload.course_id,
-    )
-    if not result.get("success"):
-        raise HTTPException(status_code=500, detail="Failed to create growth portfolio note")
-
     return {"agent_id": payload.agent_id, **result}

@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Changed
 
+- Decomposed `education.py`, `education_tools.py`, `course.py`, `job_phase_orchestrator.py`, `update_service.py`, and `card_tools.py` under the 800-line ceiling and enforced a Python file-size guard test [CARD-715].
 - Split `src/domain/wiki/store.py` (2,125 lines) into focused modules under 800 lines, eliminated double vault file reads in `get_graph`/`get_mindmap`, and enforced zero upward imports in `src/domain/` [CARD-714].
 - Extracted chat turn streaming, background job execution, plan/escalation resume, attachment storage, and active stream tracking into `src/application/chat/` (shrinking `src/web/routers/chat.py` from 2,706 to 784 lines) and moved ecosystem bootstrap out of `src/infrastructure/agents/registry.py` into `src/application/bootstrap/ecosystem.py` [CARD-713].
 - Unified `AgentKernel.run_turn` and `stream_turn` onto a single ReAct execution core (`src/application/kernel/react_loop.py`) and split `agent_kernel.py` (2,045 lines) into focused modules under 800 lines [CARD-712].

@@ -220,6 +220,62 @@ def mark_education_mastery_resurfaced(
     return row
 
 
+def force_education_mastery_due(
+    self,
+    item_id: str,
+    *,
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Force an education_mastery item to be due immediately and clear pending_job_id [CARD-715]."""
+    base = now or datetime.now(timezone.utc)
+    if base.tzinfo is None:
+        base = base.replace(tzinfo=timezone.utc)
+    past = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    with self.get_connection() as conn:
+        conn.execute(
+            """
+            UPDATE education_mastery SET
+                next_due = ?,
+                pending_job_id = NULL,
+                updated_at = ?
+            WHERE item_id = ?
+            """,
+            (past, past, item_id),
+        )
+    row = self.get_education_mastery(item_id)
+    assert row is not None
+    return row
+
+
+def schedule_education_mastery_due(
+    self,
+    *,
+    item_id: str,
+    next_due: str,
+    interval_stage: int,
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Schedule next_due and interval_stage on an education_mastery item [CARD-715]."""
+    base = now or datetime.now(timezone.utc)
+    if base.tzinfo is None:
+        base = base.replace(tzinfo=timezone.utc)
+    stamp = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    with self.get_connection() as conn:
+        conn.execute(
+            """
+            UPDATE education_mastery SET
+                next_due = ?,
+                interval_stage = ?,
+                updated_at = ?
+            WHERE item_id = ?
+            """,
+            (next_due, int(interval_stage), stamp, item_id),
+        )
+    row = self.get_education_mastery(item_id)
+    assert row is not None
+    return row
+
+
 def install_on(cls):
     """Bind mastery methods onto AgentMemoryRepository."""
     cls.upsert_education_mastery = upsert_education_mastery
@@ -228,4 +284,7 @@ def install_on(cls):
     cls.list_due_education_mastery = list_due_education_mastery
     cls.record_education_grade = record_education_grade
     cls.mark_education_mastery_resurfaced = mark_education_mastery_resurfaced
+    cls.force_education_mastery_due = force_education_mastery_due
+    cls.schedule_education_mastery_due = schedule_education_mastery_due
     return cls
+
