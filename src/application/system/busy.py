@@ -50,21 +50,11 @@ class BusyDetector:
 
 def _default_chat_streams_busy() -> bool:
     try:
-        from src.web.routers import chat as chat_mod
+        from src.application.chat.stream_registry import has_active_chat_streams
 
-        tasks = getattr(chat_mod, "_active_stream_tasks", {}) or {}
-        for task in list(tasks.values()):
-            if task is None:
-                continue
-            done = getattr(task, "done", None)
-            if callable(done):
-                if not done():
-                    return True
-            else:
-                return True
+        return has_active_chat_streams()
     except Exception:
         return False
-    return False
 
 
 def make_store_busy_detector(store: Any) -> BusyDetector:

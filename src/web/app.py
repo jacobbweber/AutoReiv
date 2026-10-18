@@ -538,15 +538,18 @@ def create_app(
     app.state.job_orchestrator = job_orchestrator
     app.state.wiki_service = wiki_service
     app.state.wiki_path = resolved_wiki_path
-    try:
-        app.state.wiki_status = wiki_status
-        app.state.deploy_mode = resolve_deploy_mode()
-    except NameError:
-        app.state.wiki_status = None
-        app.state.deploy_mode = "local"
+    app.state.wiki_status = wiki_status
+    app.state.deploy_mode = deploy_mode
     app.state.data_dir_paths = data_paths
     app.state.data_dir = str(data_paths.root)
-    app.state.user_skill_catalog = getattr(registry, "user_skill_catalog", None)
+    if _early_skill_catalog is None:
+        from src.application.skills.user_catalog import UserSkillCatalog
+
+        _early_skill_catalog = UserSkillCatalog(skills_dir=str(data_paths.skills_path), tool_registry=tool_reg)
+        job_orchestrator._skill_catalog = _early_skill_catalog
+    app.state.user_skill_catalog = _early_skill_catalog
+    if getattr(registry, "orchestration_tools", None) is not None:
+        registry.orchestration_tools.orchestrator = job_orchestrator
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
@@ -563,28 +566,6 @@ def create_app(
                 "safe_tools": [],
             },
         )
-
-    from pathlib import Path as _Path
-
-    from src.application.skills.user_catalog import UserSkillCatalog
-    _data_dir = getattr(app.state, "data_dir", None)
-    if _data_dir is None:
-        _settings = getattr(app.state, "settings", None)
-        _data_dir = getattr(_settings, "data_dir", None) if _settings else None
-    if _data_dir:
-        _skills = _Path(_data_dir) / "skills"
-    else:
-        from src.infrastructure.data.resolver import DataDirResolver as _DDR
-
-        _skills = _Path(_DDR().resolve().root) / "skills"
-    _catalog = getattr(app.state, "user_skill_catalog", None) or UserSkillCatalog(skills_dir=_skills)
-    app.state.user_skill_catalog = _catalog
-    try:
-        job_orchestrator._skill_catalog = _catalog
-    except NameError:
-        orch_state = getattr(app.state, "job_orchestrator", None)
-        if orch_state is not None:
-            orch_state._skill_catalog = _catalog
 
     # 8. Middleware
     # CARD-602: CORS only for this host / LAN / configured extras (not "*").
@@ -677,5 +658,14 @@ def create_app(
     return app
 
 
-app = create_app()
+_default_app: Optional[FastAPI] = None
+
+
+def __getattr__(name: str):
+    global _default_app
+    if name == "app":
+        if _default_app is None:
+            _default_app = create_app()
+        return _default_app
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

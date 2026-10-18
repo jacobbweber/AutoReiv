@@ -45,7 +45,7 @@ class AgentBuilderTools:
         self.tool_registry = (
             tool_registry
             if tool_registry is not None
-            else getattr(agent_registry, "master_tool_registry", ScopedToolRegistry())
+            else (getattr(agent_registry, "master_tool_registry", None) or ScopedToolRegistry())
         )
         self.store = store if store is not None else getattr(agent_registry, "state_store", None)
         self.data_dir = Path(data_dir) if data_dir is not None else None

@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Changed
 
+- Extracted chat turn streaming, background job execution, plan/escalation resume, attachment storage, and active stream tracking into `src/application/chat/` (shrinking `src/web/routers/chat.py` from 2,706 to 784 lines) and moved ecosystem bootstrap out of `src/infrastructure/agents/registry.py` into `src/application/bootstrap/ecosystem.py` [CARD-713].
 - Unified `AgentKernel.run_turn` and `stream_turn` onto a single ReAct execution core (`src/application/kernel/react_loop.py`) and split `agent_kernel.py` (2,045 lines) into focused modules under 800 lines [CARD-712].
 - Consolidated markdown YAML frontmatter parsers onto `src/domain/frontmatter.py`, unified wildcard skill and tool extraction onto canonical helpers, and deduplicated inline SQLite `CREATE TABLE` DDL in `connection.py` onto `schema.py` constants [CARD-711].
 - Unmounted superseded `Skill Studio` and `Tools Studio` controllers from `app.js` (routing legacy tab aliases directly to `#view-capabilities`), removed dead backend no-op helpers, retired the `toolsmith` ID special case in `allowed_tools.py`, and fixed `/api/approvals/{id}/decision` so job phase tool rows are not duplicated into parent chat sessions [CARD-710].
