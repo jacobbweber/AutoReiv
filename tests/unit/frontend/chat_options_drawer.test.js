@@ -168,27 +168,28 @@ describe('Chat Context & Tools Helpers [CARD-161]', () => {
 });
 
 
-describe('New chat under + Options [CARD-466]', () => {
+describe('New chat button in composer bar left of Options [CARD-721]', () => {
   let html;
   beforeEach(() => {
     html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
   });
 
-  it('places exactly one newChatBtn inside chatOptionsDrawer, not sessions drawer', () => {
+  it('places exactly one newChatBtn in chatForm to the left of chatOptionsToggleBtn, not in options or sessions drawers', () => {
     expect((html.match(/id="newChatBtn"/g) || []).length).toBe(1);
-    const optStart = html.indexOf('id="chatOptionsDrawer"');
-    const optEnd = html.indexOf('</div>', html.indexOf('data-card="307"', optStart)); // loose
-    // Prefer slicing by finding the drawer open tag through Inspectors section end is fragile; use contains order
-    const optionsIdx = html.indexOf('id="chatOptionsDrawer"');
     const sessionsIdx = html.indexOf('id="chatSessionsDrawer"');
-    const btnIdx = html.indexOf('id="newChatBtn"');
-    expect(btnIdx).toBeGreaterThan(optionsIdx);
-    expect(html).toContain('>New chat<');
-    expect(html).toContain('Conversation');
-    // sessions drawer slice before options must not contain the button
     const sessEnd = html.indexOf('</aside>', sessionsIdx);
     expect(html.slice(sessionsIdx, sessEnd)).not.toContain('id="newChatBtn"');
-    expect(btnIdx).toBeLessThan(html.indexOf('id="verifyToggle"')); // before Runtime Modes controls
+
+    const optionsDrawerIdx = html.indexOf('id="chatOptionsDrawer"');
+    const chatFormIdx = html.indexOf('id="chatForm"');
+    expect(html.slice(optionsDrawerIdx, chatFormIdx)).not.toContain('id="newChatBtn"');
+
+    const btnIdx = html.indexOf('id="newChatBtn"');
+    const optionsBtnIdx = html.indexOf('id="chatOptionsToggleBtn"');
+    expect(btnIdx).toBeGreaterThan(chatFormIdx);
+    expect(btnIdx).toBeLessThan(optionsBtnIdx);
+    expect(html.slice(btnIdx, optionsBtnIdx)).toContain('data-lucide="plus"');
+    expect(html.slice(btnIdx, optionsBtnIdx)).toContain('>New<');
   });
 });
 

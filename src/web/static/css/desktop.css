@@ -310,6 +310,7 @@ body.radical-desktop-demo #view-chat.desktop-view-hosted #chatInputWrapper {
   z-index: 30;
 }
 body.radical-desktop-demo #view-chat.desktop-view-hosted #chatForm,
+body.radical-desktop-demo #view-chat.desktop-view-hosted #newChatBtn,
 body.radical-desktop-demo #view-chat.desktop-view-hosted #chatOptionsToggleBtn {
   pointer-events: auto;
   position: relative;
