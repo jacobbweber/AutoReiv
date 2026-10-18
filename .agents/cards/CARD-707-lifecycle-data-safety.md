@@ -2,7 +2,7 @@
 id: CARD-707
 title: "Fix reboot skill-pruning data loss, Vault key persistence & path resolution, fail-closed tool checks, and online SQLite backup snapshots"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-707-lifecycle-data-safety
 log: {minutes: 12, qa_runs: 2, findings: 0}
 created: 2026-10-17
+completed: 2026-10-17
 ---
 
 # CARD-707 Fix reboot skill-pruning data loss, Vault key persistence & path resolution, fail-closed tool checks, and online SQLite backup snapshots
