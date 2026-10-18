@@ -9,7 +9,6 @@ from typing import Any, Iterable, Optional, Sequence
 from src.application.skills.runbook_frontmatter import (
     apply_workshop_metadata,
     frontmatter_view,
-    split_skill_markdown,
 )
 from src.application.skills.user_catalog import ARCHIVE_DIRNAME
 from src.infrastructure.content.store import get_store, split_frontmatter
@@ -260,8 +259,4 @@ def persist_workshop_skill(
 
 
 def extract_tools(skill_content: str) -> list[str]:
-    meta, _body = split_skill_markdown(skill_content)
-    raw = meta.get("tools") if meta.get("tools") is not None else meta.get("tools") or []
-    if not isinstance(raw, list):
-        return []
-    return [str(item).strip() for item in raw if str(item).strip()]
+    return list(frontmatter_view(skill_content).get("tools") or [])

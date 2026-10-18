@@ -11,8 +11,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-import yaml
-
+from src.domain.frontmatter import split_frontmatter_with_error
 from src.domain.skills.contract import (
     LintReport,
     LintSeverity,
@@ -156,25 +155,8 @@ class SkillContractCompiler:
         return contract, violations
 
     def _parse_frontmatter_and_body(self, text: str) -> Tuple[Dict[str, Any], str, Optional[str]]:
-        if not text.startswith("---"):
-            return {}, text, None
-
-        parts = text.split("---", 2)
-        if len(parts) < 3:
-            return {}, text, None
-
-        frontmatter_str = parts[1]
-        body = parts[2]
-        try:
-            parsed = yaml.safe_load(frontmatter_str) or {}
-            if isinstance(parsed, dict):
-                return parsed, body.strip(), None
-            return {}, body.strip(), "YAML frontmatter must be a key-value mapping"
-        except Exception as exc:
-            logger.debug("Failed to parse YAML frontmatter: %s", exc)
-            return {}, body.strip(), str(exc)
-
-        return {}, body.strip(), None
+        meta, body, err = split_frontmatter_with_error(text)
+        return meta, (body.strip() if text.startswith("---") else body), err
 
     def _resolve_tools(self, frontmatter: Dict[str, Any], body: str) -> List[str]:
         raw_tools = frontmatter.get("tools")

@@ -23,11 +23,10 @@ import logging
 import re
 import shutil
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
-import yaml
+from src.domain.frontmatter import join_frontmatter, split_frontmatter
 
 logger = logging.getLogger(__name__)
 
@@ -46,32 +45,6 @@ class InvalidIdError(ValueError):
 
 def content_hash(text: str) -> str:
     return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()[:16]
-
-
-@lru_cache(maxsize=512)
-def _split_frontmatter_cached(clean: str) -> tuple[dict[str, Any], str]:
-    if not clean.startswith("---\n"):
-        return {}, clean
-    parts = clean.split("---\n", 2)
-    if len(parts) < 3:
-        return {}, clean
-    try:
-        meta = yaml.safe_load(parts[1]) or {}
-    except yaml.YAMLError as exc:
-        logger.warning("Unreadable frontmatter: %s", exc)
-        meta = {}
-    return (meta if isinstance(meta, dict) else {}), parts[2]
-
-
-def split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
-    clean = text.replace("\r\n", "\n")
-    meta, body = _split_frontmatter_cached(clean)
-    return dict(meta), body
-
-
-def join_frontmatter(meta: dict[str, Any], body: str) -> str:
-    head = yaml.safe_dump(meta, sort_keys=False, allow_unicode=True, width=10000)
-    return f"---\n{head}---\n{body.strip()}\n"
 
 
 def check_id(item_id: str) -> str:
