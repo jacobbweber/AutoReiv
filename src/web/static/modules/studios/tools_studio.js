@@ -662,11 +662,5 @@ export function initToolsStudio(_state, callbacks = {}) {
   };
 
   activeController = controller;
-  if (typeof window !== 'undefined' && typeof callbacks.openToolsStudio === 'function') {
-    window.openToolsStudio = (link = {}) => {
-      const plan = planToolsStudioDeepLink(link);
-      callbacks.openToolsStudio(plan.agentId, plan.scope);
-    };
-  }
   return controller;
 }

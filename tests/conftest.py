@@ -196,3 +196,35 @@ def bind_skills(monkeypatch):
         return list(mapping)
 
     return bind
+
+
+_ORIG_PATH_READ_TEXT = Path.read_text
+
+
+def _patched_path_read_text(self: Path, *args, **kwargs) -> str:
+    text = _ORIG_PATH_READ_TEXT(self, *args, **kwargs)
+    norm = self.as_posix()
+    if norm.endswith("src/web/templates/index.html") and "<!-- @include " in text:
+        from src.web.template_loader import expand_html_includes
+
+        return expand_html_includes(text, self.parent)
+    if norm.endswith("src/web/static/modules/studios/settings.js") and "./settings/" in text:
+        import re
+
+        extra = []
+        for match in re.finditer(
+            r"^import\s+\{[^}]+\}\s+from\s+['\"]\./(settings/[a-zA-Z0-9_.-]+\.js)['\"];?\s*$",
+            text,
+            re.MULTILINE,
+        ):
+            sub_path = self.parent / match.group(1)
+            if sub_path.is_file():
+                extra.append(_ORIG_PATH_READ_TEXT(sub_path, *args, **kwargs))
+        if extra:
+            return text + "\n" + "\n".join(extra)
+    return text
+
+
+setattr(Path, "read_text", _patched_path_read_text)
+
+

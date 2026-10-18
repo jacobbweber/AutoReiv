@@ -742,17 +742,6 @@ export function initSkillStudio(_state, callbacks = {}) {
     });
   }
 
-  if (typeof window !== 'undefined') {
-    window.openSkillStudioForSkill = ({ agentId = null, skillId = null } = {}) => {
-      if (typeof callbacks.openSkillStudio === 'function') {
-        callbacks.openSkillStudio(agentId, skillId);
-        return;
-      }
-      queueDeepLink(agentId, skillId);
-      loadSkillStudio(agentId, skillId);
-    };
-  }
-
   async function loadSkillStudio(agentId = null, skillId = null) {
     const gen = ++loadGen;
     const queued = queuedLink;

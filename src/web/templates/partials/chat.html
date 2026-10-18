@@ -1,0 +1,476 @@
+      <!-- ==================== VIEW 1: CHAT ==================== -->
+      <section id="view-chat" role="tabpanel" aria-labelledby="tab-chat" aria-hidden="false" class="tab-view flex-1 flex flex-col h-full overflow-hidden relative">
+        <!-- Chat Top Bar (Edge-touching top) [CARD-137, CARD-138] -->
+        <div class="px-3 md:px-6 py-2 bg-[#0e1015]/80 border-b border-white/[0.06] flex items-center justify-between backdrop-blur-md flex-shrink-0 z-10">
+          <div class="flex items-center space-x-2 min-w-0">
+            <!-- Sessions drawer toggle button (visible on mobile & desktop) [CARD-342] -->
+            <button id="toggleSidebarBtn" type="button" class="flex items-center justify-center p-2 sm:p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] transition flex-shrink-0" title="Toggle Chat sessions drawer" aria-label="Toggle Chat sessions drawer">
+              <i data-lucide="panel-left" class="w-4 h-4"></i>
+            </button>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20 ring-offset-1 ring-offset-[#08090c] flex-shrink-0" title="Control Plane Online"></span>
+            <div class="min-w-0 flex items-center space-x-2">
+              <!-- Agent Selector [ADR-0054, CARD-361, CARD-388] -->
+              <div id="chatEngineSelector" class="flex items-center min-w-0">
+                <select id="agentSelect" class="flex-1 sm:flex-none min-w-[150px] bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium" title="Switch active agent" aria-label="Active agent">
+                  <!-- Dynamically populated via loadAgents -->
+                </select>
+              </div>
+              <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">AutoReiv</h2>
+              <button id="chatActiveProjectPill" type="button" class="hidden items-center space-x-1 px-2 py-0.5 rounded-full bg-brand-950/80 hover:bg-brand-900 border border-brand-700/60 text-[10px] font-mono text-brand-300 transition shrink-0 shadow-sm" title="Active Project — click to open in Projects Studio">
+                <i data-lucide="folder-kanban" class="w-3 h-3 text-brand-400"></i>
+                <span id="chatActiveProjectName" class="max-w-[120px] truncate font-medium">None</span>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5 flex-shrink-0">
+            <button id="chatStudyEntryBtn" type="button" data-card="437" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-800/60 text-[11px] md:text-xs font-medium text-emerald-200 transition shadow-sm" title="Study: Tutor education mode + course bind" aria-label="Study entry - Tutor education mode">
+              <i data-lucide="book-open-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span class="hidden sm:inline">Study</span>
+            </button>
+            <button id="workbenchToggleBtn" type="button" class="relative flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench — opens message/tool artifacts for this chat" aria-label="Toggle Workbench Canvas" data-card="306">
+              <i data-lucide="layout" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="hidden sm:inline">Workbench</span>
+              <span id="workbenchArtifactBadge" class="hidden absolute -top-1 -right-1 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white items-center justify-center leading-none shadow ring-2 ring-slate-900" aria-hidden="true"></span>
+            </button>
+            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Save entire thread to Wiki">
+              <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span class="hidden sm:inline">Save to Wiki</span>
+            </button>
+            <button id="copyThreadBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Copy conversation">
+              <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span class="hidden sm:inline">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Job/Phase status strip [REQ-ORCH-042, REQ-JOBMINT-005] -->
+        <div id="jobPhaseStatusStrip" class="hidden px-3 md:px-6 py-1.5 bg-[#0e1015]/95 border-b border-white/[0.06] flex-shrink-0 backdrop-blur-sm transition" role="status" aria-live="polite" aria-atomic="true">
+          <div class="max-w-4xl mx-auto flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+            <span data-job-phase="status" class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-200">Job</span>
+            <span data-job-phase="job-id" class="chat-job-chrome-id hidden px-2 py-0.5 rounded-md bg-[#08090c] border border-brand-700/50 text-brand-300 select-all" title="Standing job id"></span>
+            <button type="button" data-job-phase="copy-job-id" class="chat-job-chrome-copy-btn hidden inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300 transition" title="Copy job id" aria-label="Copy job id">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Copy</span>
+            </button>
+            <button type="button" data-job-phase="view-job" data-testid="chat-job-chrome-view-btn" class="chat-job-chrome-view-btn hidden inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-800/60 text-emerald-200 transition" title="Open this job in Metrics" aria-label="View Job">
+              <i data-lucide="bar-chart-3" class="w-3 h-3"></i>
+              <span>View Job</span>
+            </button>
+            <span data-job-phase="phase" class="px-2 py-0.5 rounded-md bg-indigo-950/80 border border-indigo-800/80 text-indigo-300 font-medium">Phase</span>
+            <span data-job-phase="agent" class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300">agent</span>
+            <span data-job-phase="link" class="hidden px-2 py-0.5 rounded-md bg-violet-950/80 border border-violet-800/80 text-violet-300 font-medium" title="parent child standing handoff">parent↔child</span>
+            <span data-job-phase="react" class="job-phase-react px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300 font-semibold tracking-wide"></span>
+            <!-- CARD-490: a job paused by Stop continues from where it stopped -->
+            <button type="button" data-job-phase="resume" data-testid="chat-job-resume-btn" class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-950/70 hover:bg-amber-900/80 border border-amber-700/70 text-amber-100 font-semibold transition" title="Continue this job from the step where it was stopped" aria-label="Resume the stopped job">
+              <i data-lucide="play" class="w-3 h-3"></i>
+              <span>Resume</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARD-437: Tutor education-mode rails (Study entry) -->
+        <div id="chatEducationModeStrip" class="hidden px-3 md:px-6 py-1.5 bg-emerald-950/40 border-b border-emerald-800/50 flex-shrink-0 backdrop-blur-sm" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true" data-card="437">
+          <div class="max-w-4xl mx-auto flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+            <span class="px-2 py-0.5 rounded-md bg-emerald-900/80 border border-emerald-700/70 text-emerald-200 font-semibold tracking-wide">Education mode</span>
+            <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300">skill <span id="chatEducationModeSkill" class="text-emerald-300">start-resume-topic</span></span>
+            <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300">topic <span id="chatEducationModeTopic" class="text-sky-300">—</span></span>
+            <span class="px-2 py-0.5 rounded-md bg-[#08090c] border border-brand-700/50 text-brand-300" title="Durable course id from Learning OS">course <span id="chatEducationModeCourseId" class="select-all">—</span></span>
+            <span class="px-2 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-400">agent tutor</span>
+                        <button type="button" id="chatEducationModeCurateBtn" data-operator-home="studio" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-950/50 hover:bg-sky-900/60 border border-sky-800/50 text-sky-200 transition" title="Curate link or curriculum into Wiki (Learning OS)" aria-label="Open wiki curation in Tutor education mode" data-card="440">
+              <i data-lucide="library" class="w-3 h-3"></i>
+              <span>Wiki curate</span>
+            </button>
+<button type="button" id="chatEducationModeDueBtn" data-operator-home="studio" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/50 text-amber-200 transition" title="Open due reviews (Learning OS mastery/due)" aria-label="Open due reviews in Tutor education mode" data-card="439">
+              <i data-lucide="alarm-clock" class="w-3 h-3"></i>
+              <span>Due reviews</span>
+              <span id="chatEducationModeDueCount" class="font-mono text-amber-300/90">-</span>
+            </button>
+                        <button type="button" id="chatEducationModeProgressBtn" data-operator-home="studio" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-950/50 hover:bg-violet-900/60 border border-violet-800/50 text-violet-200 transition" title="Trustable course/mastery/due progress (Learning OS)" aria-label="Open progress summary in Tutor education mode" data-card="441">
+              <i data-lucide="gauge" class="w-3 h-3"></i>
+              <span>Progress</span>
+              <span id="chatEducationModeProgressBadge" class="font-mono text-violet-300/90">-</span>
+            </button>
+<button type="button" id="chatEducationModeOpenStudioBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-800/50 text-emerald-200 transition" title="Education Studio is the operator console (Due / Progress / Wiki curate)" aria-label="Open Education Studio operator console" data-card="447">
+              <i data-lucide="layout-dashboard" class="w-3 h-3"></i>
+              <span>Studio console</span>
+            </button>
+<button type="button" id="chatEducationModeExitBtn" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300 transition" title="Exit education-mode chrome (course row stays durable)" aria-label="Exit Tutor education mode chrome">
+              <i data-lucide="x" class="w-3 h-3"></i>
+              <span>Exit mode</span>
+            </button>
+          </div>
+          <!-- CARD-439: due reviews panel (Learning OS mastery/due; Studio due chrome stays) -->
+          <div id="chatEducationModeDuePanel" class="hidden max-w-4xl mx-auto mt-1.5 rounded-lg border border-amber-900/40 bg-[#08090c]/80 p-2" aria-live="polite" data-card="439">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <div class="text-[10px] font-semibold uppercase tracking-wider text-amber-200/90">Due reviews (Learning OS)</div>
+              <button type="button" id="chatEducationModeDueRefreshBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Refresh</button>
+            </div>
+            <div id="chatEducationModeDueList" class="max-h-40 overflow-y-auto space-y-1 text-xs text-slate-300">
+              <div class="text-[11px] text-slate-500 px-1">No due reviews.</div>
+            </div>
+            <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">/api/education/mastery/due</code>. Delivery profiles do not replace ledger/SRS. Education Studio due panel stays.</p>
+          </div>
+
+          <!-- CARD-440: wiki curation panel (links / curriculum -> durable Wiki notes; Studio wiki chrome stays) -->
+          <div id="chatEducationModeCuratePanel" class="hidden max-w-4xl mx-auto mt-1.5 rounded-lg border border-sky-900/40 bg-[#08090c]/80 p-2" aria-live="polite" data-card="440">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <div class="text-[10px] font-semibold uppercase tracking-wider text-sky-200/90">Wiki curation (Learning OS)</div>
+              <button type="button" id="chatEducationModeCurateHideBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Hide</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-1.5">
+              <button type="button" id="chatEducationModeCurateLinkBtn" class="text-[10px] px-2 py-1 rounded-md bg-sky-950/60 hover:bg-sky-900/70 border border-sky-800/50 text-sky-100">Curate link</button>
+              <button type="button" id="chatEducationModeCurateCurriculumBtn" class="text-[10px] px-2 py-1 rounded-md bg-sky-950/60 hover:bg-sky-900/70 border border-sky-800/50 text-sky-100">Curate curriculum</button>
+              <button type="button" id="chatEducationModeCurateRawBtn" class="text-[10px] px-2 py-1 rounded-md bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300" title="Raw/source note without education tags">Raw source link</button>
+            </div>
+            <div id="chatEducationModeCurateResult" class="max-h-36 overflow-y-auto space-y-1 text-xs text-slate-300">
+              <div class="text-[11px] text-slate-500 px-1">Supply a link or curriculum outline. Notes stage in 00_Inbox/ via wiki_note_create.</div>
+            </div>
+            <p class="mt-1 text-[10px] text-slate-500">Uses <code class="text-slate-400">POST /api/education/wiki/curate</code> + skill <code class="text-slate-400">education-wiki-curation</code>. Failures do not claim library updated.</p>
+          </div>
+
+
+          <!-- CARD-441: trustable progress panel (Learning OS course/mastery/due; Studio chrome stays) -->
+          <div id="chatEducationModeProgressPanel" class="hidden max-w-4xl mx-auto mt-1.5 rounded-lg border border-violet-900/40 bg-[#08090c]/80 p-2" aria-live="polite" aria-hidden="true" data-card="441">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <div class="text-[10px] font-semibold uppercase tracking-wider text-violet-200/90">Progress (Learning OS)</div>
+              <div class="flex items-center gap-1">
+                <button type="button" id="chatEducationModeProgressRefreshBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Refresh</button>
+                <button type="button" id="chatEducationModeProgressHideBtn" class="text-[10px] px-1.5 py-0.5 rounded bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300">Hide</button>
+              </div>
+            </div>
+            <div id="chatEducationModeProgressBody" class="space-y-1 text-xs text-slate-300">
+              <div class="text-[11px] text-slate-500 px-1">Open Progress to load course, mastery, and due from Learning OS.</div>
+            </div>
+            <p class="mt-1 text-[10px] text-slate-500">Sourced from <code class="text-slate-400">GET /api/education/progress</code> (course + mastery + due). Failures show empty/error — never a fake 100%.</p>
+          </div>
+
+        </div>
+
+        <!-- Chat Workspace Area (Dual-Pane on Desktop, Pop-Out Drawer on Mobile) [CARD-138] -->
+        <div class="flex-1 flex overflow-hidden relative min-h-0">
+          <!-- CARD-296: in-studio Sessions drawer (not Agent Desktop window) -->
+          <aside id="chatSessionsDrawer" class="hidden absolute inset-y-0 left-0 z-50 w-72 max-w-[85%] flex flex-col bg-[#0e1015]/98 border-r border-white/[0.08] shadow-2xl shadow-black/60 backdrop-blur-xl" aria-label="Chat sessions" data-card="296" data-card-626="drawer-above-composer">
+            <div class="px-3 py-2.5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+              <div>
+                <h3 class="text-xs font-bold text-white">Sessions</h3>
+                <p class="text-[10px] text-slate-500 font-mono">Recent</p>
+              </div>
+              <button type="button" id="chatSessionsDrawerCloseBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close sessions" aria-label="Close sessions drawer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
+              <div class="flex items-center justify-between pt-1 flex-shrink-0">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
+              </div>
+              <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 pb-28" data-card-626="list-clears-composer">
+                <!-- Populated via API -->
+              </div>
+            </div>
+          </aside>
+          <!-- Left / Main: Chat Messages Stream & Floating Input -->
+          <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
+            <!-- Message list viewport: list + Jump to latest; shrinks as the composer grows [CARD-465] -->
+            <div id="chatMessagesViewport" class="relative flex-1 min-h-0 flex flex-col">
+              <!-- Chat Messages Container -->
+              <div id="messagesContainer" role="log" aria-live="polite" aria-atomic="false" class="flex-1 min-h-0 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
+                <div class="text-center py-12 text-slate-400 space-y-2">
+                  <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
+                    <i data-lucide="bot" class="w-6 h-6"></i>
+                  </div>
+                  <p class="text-sm font-medium">Select or create a conversation to begin.</p>
+                </div>
+              </div>
+
+              <!-- Jump to latest sits on the list's bottom edge, never behind the composer [CARD-465] -->
+              <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-3 z-20 flex justify-center">
+                <button type="button" id="chatJumpToLatestBtn" class="hidden pointer-events-auto items-center space-x-1.5 px-3 py-1.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-900/40 border border-brand-400/30 transition" title="Jump to latest messages" aria-label="Jump to latest">
+                  <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                  <span>Jump to latest</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="pendingHitlHost" class="px-3 md:px-8 pb-2 space-y-2 w-full max-w-4xl mx-auto"></div>
+
+            <!-- Chat Input Bar (Ergonomic Unified Floating Card with Options Popout Drawer) [CARD-137, CARD-142] -->
+            <div id="chatInputWrapper" class="px-3 md:px-6 py-2 md:py-3 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent flex-shrink-0 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-none">
+              <div class="max-w-4xl mx-auto w-full pointer-events-auto flex flex-col gap-2">
+
+                <!-- Collapsible Chat Options Drawer [CARD-142] -->
+                <div id="chatOptionsDrawer" class="hidden bg-[#0e1015]/95 border border-white/[0.08] rounded-2xl p-3.5 shadow-2xl shadow-black/80 backdrop-blur-xl transition duration-150 space-y-3" role="region" aria-label="Chat Options and Modes">
+                  <!-- Drawer Header -->
+                  <div class="flex items-center justify-between border-b border-white/[0.06] pb-2 text-xs text-slate-300">
+                    <div class="flex items-center space-x-1.5 font-semibold text-white">
+                      <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-brand-400"></i>
+                      <span>Chat Modes & Options</span>
+                    </div>
+                    <button type="button" id="chatOptionsCloseBtn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close Options">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+
+                  <!-- CARD-466: New chat under + Options -->
+                  <div data-card="466">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Conversation</span>
+                    <button id="newChatBtn" type="button" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition">
+                      <i data-lucide="plus" class="w-4 h-4"></i>
+                      <span>New chat</span>
+                    </button>
+                  </div>
+
+                  <!-- Section 1: Runtime Modes -->
+                  <div>
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Runtime Modes</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <!-- Self-Verify Chip -->
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs text-slate-200 cursor-pointer select-none transition" title="Enable reflexion self-verification check">
+                        <input type="checkbox" id="verifyToggle" class="rounded bg-[#08090c] border-white/[0.08] text-brand-500 focus:ring-brand-500/20 w-3.5 h-3.5 cursor-pointer">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-105 transition"></i>
+                        <span class="font-medium">Self-Verify</span>
+                      </label>
+
+                      <!-- Auto-run Chip -->
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs text-slate-200 cursor-pointer select-none transition" title="Off: AutoReiv asks before write, shell and code tools. On: they run without asking. Blocked tools stay blocked.">
+                        <input type="checkbox" id="approvalToggle" class="rounded bg-[#08090c] border-white/[0.08] text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
+                        <i data-lucide="zap" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-105 transition"></i>
+                        <span class="font-medium">Auto-run</span>
+                      </label>
+
+                      <!-- Run as a job Chip [CARD-572]: the only way a chat message becomes a standing Job; resets after each send -->
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs text-slate-200 cursor-pointer select-none transition" title="Send the next message as a job: AutoReiv plans it, then runs it in phases. Unticks itself after sending.">
+                        <input type="checkbox" id="runAsJobToggle" data-testid="run-as-job-toggle" class="rounded bg-[#08090c] border-white/[0.08] text-violet-500 focus:ring-violet-500/20 w-3.5 h-3.5 cursor-pointer">
+                        <i data-lucide="list-checks" class="w-3.5 h-3.5 text-violet-400 group-hover:scale-105 transition"></i>
+                        <span class="font-medium">Run as a job</span>
+                      </label>
+
+                    </div>
+                  </div>
+
+
+                  <!-- CARD-307: Journey + Debug under + Options (same drawers) -->
+                  <div class="pt-2 border-t border-white/[0.06]" data-card="307">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Inspectors</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs font-medium text-slate-200 transition" title="Show Execution Journey Timeline for this chat">
+                        <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Journey</span>
+                      </button>
+                      <button id="chatDebugToggleBtn" type="button" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs font-medium text-slate-200 transition" title="Inspect turn payloads and diagnostics for this chat">
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Debug</span>
+                      </button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1.5">Live thread only — opens the same Journey / Debug panels as before.</p>
+                  </div>
+
+                  <!-- Section 2.5: Context Budget & Compaction [CARD-161] -->
+                  <div class="pt-2 border-t border-white/[0.06] space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-1.5">
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Context Budget</span>
+                        <span id="chatContextTokensBadge" class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300">0 / 8,192 tokens (0%)</span>
+                      </div>
+                      <button type="button" id="chatManualCompactBtn" class="flex items-center space-x-1 px-2 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200 text-xs font-medium transition shadow-sm" title="Compact earlier chat turns to free up context">
+                        <i data-lucide="minimize-2" class="w-3 h-3 text-amber-400"></i>
+                        <span>Compact</span>
+                      </button>
+                    </div>
+                    <div class="w-full bg-[#08090c] rounded-full h-1.5 overflow-hidden border border-white/[0.06]">
+                      <div id="chatContextProgressBar" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                  </div>
+
+                  <!-- Section 2.6: Active Agent Tools [CARD-161] -->
+                  <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                    <div class="flex items-center space-x-1.5">
+                      <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Loaded Tools</span>
+                      <span id="chatToolsCountBadge" class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-[#141721] border border-white/[0.08] text-slate-300">0 tools</span>
+                    </div>
+                    <button type="button" id="chatViewToolsBtn" class="flex items-center space-x-1 px-2 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200 text-xs font-medium transition shadow-sm" title="View all tools authorized for this agent">
+                      <i data-lucide="wrench" class="w-3 h-3 text-sky-400"></i>
+                      <span>View Tools</span>
+                    </button>
+                  </div>
+
+                  <!-- Section 3: Action Shortcuts (Foundations for Slices 2 & 3) -->
+                  <div class="pt-1 border-t border-white/[0.06] flex items-center gap-2 flex-wrap">
+                    <!-- Active Attach File Button [CARD-143] -->
+                    <button type="button" id="chatAttachBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200 text-xs transition shadow-sm" title="Attach Media or Documents">
+                      <i data-lucide="paperclip" class="w-3.5 h-3.5 text-brand-400"></i>
+                      <span>Attach File</span>
+                    </button>
+                    <input type="file" id="chatFileInput" multiple class="hidden" accept="image/*,video/*,audio/*,.pdf,.txt,.md,.json,.csv,.py,.js,.html,.ts,.yml,.yaml">
+
+                    <!-- Active Prompt Catalog Quick-Picker [CARD-152] -->
+                    <div class="relative">
+                      <button type="button" id="chatPromptsBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-200 text-xs transition shadow-sm" title="Quick Prompts">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Quick Prompts</span>
+                      </button>
+
+                      <!-- Lightweight Dropdown / Popover [CARD-152] -->
+                      <div id="chatPromptsQuickPicker" class="hidden absolute bottom-full left-0 mb-2 w-72 sm:w-80 bg-[#0e1015]/98 border border-white/[0.08] rounded-2xl p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl z-50 flex flex-col space-y-2">
+                        <div class="relative">
+                          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                          <input type="text" id="chatPromptsQuickSearch" placeholder="Filter prompts..." class="w-full bg-[#141721] border border-white/[0.08] rounded-xl pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div id="chatPromptsQuickList" class="max-h-56 overflow-y-auto space-y-1 pr-0.5">
+                          <!-- Populated dynamically via chat.js -->
+                        </div>
+                        <div class="pt-1.5 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
+                          <button type="button" id="chatManagePromptsBtn" class="text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1 transition">
+                            <span>Manage in Prompts Studio</span>
+                            <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sleek Compact Input Form -->
+                <form id="chatForm" class="bg-[#0e1015]/95 border border-white/[0.08] focus-within:border-brand-500/80 rounded-2xl p-2 md:p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl transition duration-150 flex flex-col gap-1.5 pointer-events-auto">
+                  <!-- Staged Attachments Preview List [CARD-143] -->
+                  <div id="chatAttachmentsPreviewList" class="hidden flex items-center gap-2 overflow-x-auto px-1 py-1 max-w-full">
+                    <!-- Dynamic attachment chips rendered here -->
+                  </div>
+
+                  <!-- Prompt Input Textarea -->
+                  <div class="w-full px-1">
+                    <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none leading-relaxed"></textarea>
+                  </div>
+
+                  <!-- Compact Controls Bar -->
+                  <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.06] text-xs">
+                    <!-- Left: Options Toggle Button + Active Badges -->
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <button type="button" id="chatOptionsToggleBtn" aria-expanded="false" aria-controls="chatOptionsDrawer" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] text-xs font-medium transition shadow-sm" title="Toggle Chat Options & Modes">
+                        <i id="chatOptionsToggleIcon" data-lucide="plus" class="w-3.5 h-3.5 text-brand-400 transition-transform"></i>
+                        <span class="hidden sm:inline">Options</span>
+                      </button>
+
+                      <!-- Active Modes Quick Pill / Indicator -->
+                      <div id="chatActiveModesIndicator" class="flex items-center gap-1 overflow-x-auto min-w-0">
+                        <span id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-800/80 text-emerald-300 font-mono whitespace-nowrap">
+                          Verify Active
+                        </span>
+                        <span id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-teal-950/80 border border-teal-600/80 text-teal-300 font-mono whitespace-nowrap" title="Auto-run is on: write, shell and code tools run without asking">
+                          Auto-run ON
+                        </span>
+                        <span id="runAsJobBadge" data-testid="run-as-job-badge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-violet-950/80 border border-violet-700/80 text-violet-300 font-mono whitespace-nowrap" title="The next message runs as a job">
+                          Run as a job
+                        </span>
+                        <span id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono whitespace-nowrap">
+                          🎯 Multi-phase job
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Right: Send / Stop Action Buttons -->
+                    <div class="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+                      <button type="submit" id="sendBtn" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg shadow-md shadow-brand-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0" title="Send Message (Enter)">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                      </button>
+                      <button type="button" id="stopBtn" class="hidden p-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg shadow-md shadow-rose-500/20 transition flex-shrink-0" title="Stop Generation">
+                        <i data-lucide="square" class="w-4 h-4 fill-current"></i>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right / Mobile Drawer: Dual-Pane Workbench Canvas [CARD-138] -->
+          <div id="chatWorkbenchPane" class="hidden absolute inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:w-[46%] xl:w-[48%] flex-col bg-[#0e1015]/95 lg:bg-[#0e1015]/85 border-l border-white/[0.06] backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
+            <!-- Workbench Header -->
+            <div class="p-3 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0 bg-[#08090c]/40">
+              <div class="flex items-center space-x-2 min-w-0">
+                <button type="button" id="workbenchMobileBackBtn" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Back to Chat">
+                  <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                </button>
+                <span id="workbenchArtifactIcon" class="w-7 h-7 rounded-lg bg-indigo-950/60 border border-indigo-800/40 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                  <i data-lucide="file-text" class="w-4 h-4"></i>
+                </span>
+                <div class="min-w-0">
+                  <h3 id="workbenchArtifactTitle" class="text-xs font-bold text-white truncate max-w-[170px] sm:max-w-xs">Workbench Canvas</h3>
+                  <span id="workbenchArtifactMeta" class="text-[10px] font-mono text-slate-400 block">Artifact Viewer</span>
+                </div>
+              </div>
+
+              <!-- Tabs & Actions -->
+              <div class="flex items-center space-x-1.5 flex-shrink-0">
+                <div class="flex items-center space-x-1 bg-[#141721] p-0.5 rounded-lg border border-white/[0.08] text-[11px]">
+                  <button type="button" id="workbenchTabPreview" class="px-2 py-0.5 rounded bg-brand-600 text-white font-medium transition">Preview</button>
+                  <button type="button" id="workbenchTabRaw" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">Raw</button>
+                </div>
+                <button type="button" id="workbenchCopyBtn" class="p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-slate-300 transition" title="Copy Content">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" id="workbenchSaveWikiBtn" class="p-1.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800/60 text-indigo-300 transition" title="Save to Wiki">
+                  <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" id="workbenchCloseBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close Workbench">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Workbench Content -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3">
+              <div id="workbenchContentPreview" class="prose prose-invert text-xs md:text-sm break-words leading-relaxed max-w-none">
+                <div class="text-center py-12 text-slate-400 space-y-2">
+                  <i data-lucide="layout" class="w-8 h-8 text-slate-600 mx-auto"></i>
+                  <p class="text-xs">No artifact selected. Click an artifact chip in chat to inspect.</p>
+                </div>
+              </div>
+              <pre id="workbenchContentRaw" class="hidden text-xs font-mono bg-[#08090c]/80 p-4 rounded-xl border border-white/[0.06] text-slate-300 overflow-x-auto whitespace-pre-wrap select-all"></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Journey Inspector Drawer (Concentric & Edge-touching) [CARD-135, CARD-137] -->
+        <div id="chatJourneyDrawer" class="hidden absolute top-0 right-0 w-full sm:w-96 md:w-[28rem] h-full bg-[#0e1015]/95 border-l border-white/[0.06] shadow-2xl z-30 flex flex-col backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
+          <div class="p-3.5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="milestone" class="w-4 h-4 text-emerald-400"></i>
+              <h3 class="text-sm font-bold text-white">Execution Journey</h3>
+            </div>
+            <button id="chatJourneyCloseBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close journey inspector">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div id="chatJourneyContent" class="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+            <div class="text-slate-400 text-center py-8">Loading journey timeline...</div>
+          </div>
+        </div>
+
+        <!-- Per-Chat Debug Inspector Pane (Concentric & Edge-touching) [CARD-136, CARD-137] -->
+        <div id="chatDebugPane" class="hidden absolute top-0 right-0 w-full sm:w-96 md:w-[32rem] h-full bg-[#0e1015]/95 border-l border-white/[0.06] shadow-2xl z-30 flex flex-col backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
+          <div class="p-3.5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="terminal" class="w-4 h-4 text-amber-400"></i>
+              <h3 class="text-sm font-bold text-white">Chat Debug Inspector</h3>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <button id="chatDebugCopyBtn" type="button" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-mono text-slate-200 border border-white/[0.08] transition shadow-sm" title="Copy active tab JSON">
+                Copy JSON
+              </button>
+              <button id="chatDebugCloseBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close debug inspector">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1 p-2 border-b border-white/[0.06] text-[11px] font-medium bg-[#08090c]/60 flex-shrink-0">
+            <button id="chatDebugTabMessages" type="button" class="px-2.5 py-1 rounded-lg bg-brand-600 text-white transition">Messages</button>
+            <button id="chatDebugTabTools" type="button" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200 transition">Tools</button>
+            <button id="chatDebugTabMetrics" type="button" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200 transition">Metrics</button>
+            <button id="chatDebugTabSystem" type="button" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-slate-200 transition">System</button>
+          </div>
+          <div id="chatDebugContent" class="flex-1 overflow-y-auto p-3 text-xs font-mono">
+            <div class="text-slate-400 text-center py-8">Loading debug diagnostics...</div>
+          </div>
+        </div>
+      </section>
+

@@ -385,10 +385,6 @@ export function setupRunbookEditor({
       openSkillStudio(agentId || '', skillId || null);
       return;
     }
-    if (typeof window !== 'undefined' && typeof window.openSkillStudioForSkill === 'function') {
-      window.openSkillStudioForSkill({ agentId: agentId || '', skillId: skillId || null });
-      return;
-    }
     showToast('Skill Studio is not ready yet', 'error');
   }
 

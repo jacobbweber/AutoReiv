@@ -299,10 +299,6 @@ export function setupAgentMcpControls({ openToolsStudio = null } = {}) {
     const agentId = select ? String(select.value || '').trim() : '';
     if (typeof openToolsStudio === 'function') {
       openToolsStudio(agentId);
-      return;
-    }
-    if (typeof window !== 'undefined' && typeof window.openToolsStudio === 'function') {
-      window.openToolsStudio({ scope: agentId ? 'agent' : 'platform', agentId: agentId || null });
     }
   });
 }
