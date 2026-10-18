@@ -101,7 +101,7 @@ class UpdateGitOpsMixin:
         verb = args[0]
         if verb not in _GIT_ALLOWED_VERBS:
             raise ValueError(f"git verb not allowlisted: {verb}")
-        cmd = ["git", *args]
+        cmd = ["git", "-c", f"safe.directory={self.repo_root}", *args]
         return subprocess.run(
             cmd,
             cwd=str(self.repo_root),

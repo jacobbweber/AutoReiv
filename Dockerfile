@@ -46,7 +46,8 @@ COPY --chown=autoreiv:autoreiv README.md ./
 # Persistent data mount points. Do NOT mkdir /data/wiki here [ADR-0056 / CARD-414]:
 # Docker/daemon hard-fail requires a missing configured wiki path to stay missing until the operator mounts it.
 RUN mkdir -p /data/database /data/skills && \
-    chown -R autoreiv:autoreiv /data
+    chown -R autoreiv:autoreiv /data /app && \
+    su autoreiv -c "git config --global --add safe.directory /app && git sparse-checkout set --no-cone '/src/**' '/platform/**' '/templates/**' '/pyproject.toml' '/README.md' && git checkout -- ."
 
 # Default environment configuration
 ENV PYTHONUNBUFFERED=1 \
