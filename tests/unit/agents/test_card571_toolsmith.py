@@ -175,7 +175,7 @@ def test_attach_is_refused_until_the_runtime_tool_is_enabled(data):
     request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(store=state)))
     with pytest.raises(HTTPException) as exc:
         asyncio.run(hitl.resolve_approval_endpoint(request, pid, hitl.DecisionRequest(decision="APPROVED")))
-    assert exc.value.status_code == 409 and "Tools Studio" in exc.value.detail
+    assert exc.value.status_code == 409 and "Capabilities Studio" in exc.value.detail
     assert state.get_approval(pid)["status"] == "pending"  # still waiting for the enable
     files.enable("c571_tool")
     assert tool_attachment.runtime_tool_not_enabled("c571_tool") is None

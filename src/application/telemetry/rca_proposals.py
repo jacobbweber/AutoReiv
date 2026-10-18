@@ -235,6 +235,15 @@ class RcaProposalService:
             file_path = loc["file_path"]
             current_code = loc["code"]
 
+            if kind == "tool" and not (skill_id and file_path):
+                # Only stage self-repair proposals for colocated Agora skill tools or runtime-built native tools.
+                # Built-in platform tools (e.g. register_native_tool, wiki_note_update) failing on caller validation
+                # are caller input errors, not broken tool implementations.
+                from src.application.tools.native_packaging import load_native_tool_names
+
+                if target_name not in load_native_tool_names(self.store):
+                    continue
+
             primary_trace = trace_ids[0] if trace_ids else "unknown"
             if kind == "tool" and skill_id and file_path:
                 repair_tool = "write_skill_file"

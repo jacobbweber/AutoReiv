@@ -408,10 +408,14 @@ def _hold_tool_additions(kind: "_Kind", skill_id: str, meta: dict[str, Any]) -> 
     current = kind.load(skill_id)
     old = set(current.tools) if current else set()
     added = [t for t in new if t not in old]
-    if not added or _SKILL_WRITE_GUARD is None or not _SKILL_WRITE_GUARD(skill_id, added):
+    if not added or _SKILL_WRITE_GUARD is None:
         return meta
+    verdict = _SKILL_WRITE_GUARD(skill_id, added)
+    if not verdict:
+        return meta
+    held_set = set(verdict) if isinstance(verdict, (list, set, tuple, frozenset)) else set(added)
     held = dict(meta)
-    held["tools"] = [t for t in new if t not in added]
+    held["tools"] = [t for t in new if t not in held_set]
     return held
 
 

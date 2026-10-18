@@ -8,12 +8,20 @@ the discovered tools.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import List, Optional, Union
 
+from src.domain.frontmatter import join_frontmatter
 from src.domain.gateway.models import ToolDefinition
 
 logger = logging.getLogger(__name__)
+
+
+def mcp_companion_skill_id(server_name: str) -> str:
+    """Canonical companion skill id ('mcp-<slug>') for a mounted MCP server [CARD-718]."""
+    clean_name = re.sub(r"[^a-z0-9_-]+", "-", str(server_name or "").strip().lower()).strip("-") or "server"
+    return f"mcp-{clean_name}"
 
 
 def author_mcp_companion_skill(
@@ -23,13 +31,13 @@ def author_mcp_companion_skill(
     data_dir: Optional[Union[str, Path]] = None,
 ) -> Optional[Path]:
     """
-    Author a companion SKILL.md runbook for a mounted MCP server [REQ-392-004].
+    Author a companion SKILL.md runbook for a mounted MCP server [REQ-392-004, CARD-718].
 
     Args:
-        server_name: The name of the mounted MCP server (e.g. 'homelab', 'cluster').
+        server_name: The name of the mounted MCP server (e.g. 'homelab', 'GameDock').
         tools: Discovered tools from tools/list.
         url: Optional remote URL if connected over HTTP/SSE.
-        data_dir: Optional custom data directory. If None, resolves default live data root.
+        data_dir: Optional custom data directory. If None, resolves active store or live data root.
 
     Returns:
         Path to the authored SKILL.md file, or None if skipped/errored.
@@ -37,8 +45,7 @@ def author_mcp_companion_skill(
     if not tools:
         return None
 
-    clean_name = server_name.strip().replace(" ", "-").lower()
-    skill_slug = f"mcp-{clean_name}"
+    skill_slug = mcp_companion_skill_id(server_name)
     display_title = server_name.replace("_", " ").replace("-", " ").title()
 
     # Resolve target directory
@@ -46,9 +53,15 @@ def author_mcp_companion_skill(
         base_dir = Path(data_dir) / "skills" / skill_slug
     else:
         try:
-            from src.infrastructure.data.resolver import DataDirResolver
+            from src.infrastructure.content.store import get_store
 
-            base_dir = Path(DataDirResolver().resolve().root) / "skills" / skill_slug
+            store_root = getattr(get_store(), "data_root", None)
+            if store_root:
+                base_dir = Path(store_root) / "skills" / skill_slug
+            else:
+                from src.infrastructure.data.resolver import DataDirResolver
+
+                base_dir = Path(DataDirResolver().resolve().root) / "skills" / skill_slug
         except Exception:
             base_dir = Path("user_data") / "skills" / skill_slug
 
@@ -57,19 +70,28 @@ def author_mcp_companion_skill(
         skill_file = base_dir / "SKILL.md"
 
         tool_lines = []
+        frontmatter_tools: list[str] = []
         for t in tools:
-            desc = t.description or "No description provided."
-            tool_lines.append(f"- `{t.name}`: {desc}")
+            t_name = str(getattr(t, "name", "") or "").strip()
+            if t_name and t_name not in frontmatter_tools:
+                frontmatter_tools.append(t_name)
+            desc = getattr(t, "description", None) or "No description provided."
+            if t_name:
+                tool_lines.append(f"- `{t_name}`: {desc}")
+
+        wildcard_pattern = f"mcp_{server_name.strip()}_*"
+        if wildcard_pattern not in frontmatter_tools:
+            frontmatter_tools.append(wildcard_pattern)
 
         tools_block = "\n".join(tool_lines)
         transport_desc = f"endpoint '{url}'" if url else "stdio subprocess"
 
-        content = f"""---
-name: {display_title} Remote MCP Capabilities
-description: Federated tools and agent dispatchers mounted from MCP server '{server_name}' ({transport_desc}).
----
-
-# {display_title} Remote MCP Capabilities
+        meta = {
+            "name": f"{display_title} Remote MCP Capabilities",
+            "description": f"Federated tools and agent dispatchers mounted from MCP server '{server_name}' ({transport_desc}).",
+            "tools": frontmatter_tools,
+        }
+        body = f"""# {display_title} Remote MCP Capabilities
 
 Federated capabilities and remote dispatch tools hosted on MCP server `{server_name}` ({transport_desc}).
 
@@ -92,7 +114,7 @@ Federated capabilities and remote dispatch tools hosted on MCP server `{server_n
 
 - Target remote operations have executed and structured responses have been returned.
 """
-        skill_file.write_text(content, encoding="utf-8")
+        skill_file.write_text(join_frontmatter(meta, body), encoding="utf-8", newline="\n")
         logger.info("Authored companion MCP SKILL.md at %s", skill_file)
         return skill_file
     except Exception as exc:

@@ -75,14 +75,21 @@ def make_skill_write_guard(state_store: Any):
     tool call, so accepting writes the tool.
     """
 
-    def guard(skill_id: str, added: list[str]) -> bool:
+    def guard(skill_id: str, added: list[str]):
+        from src.application.agent_skills.allowed_tools import resolve_allowed_tools
         from src.application.kernel.tool_registry import get_tool_context
+        from src.infrastructure.content.store import get_store
 
         ctx = get_tool_context()
         agent_id = str(ctx.get("agent_id") or "").strip()
         if not agent_id:
             return False
-        for tool in added:
+        agent_file = get_store().agents.load(agent_id)
+        already_allowed = resolve_allowed_tools(agent_file) if agent_file is not None else ()
+        held_tools = [t for t in added if not (str(t).startswith("mcp_") and t in already_allowed)]
+        if not held_tools:
+            return False
+        for tool in held_tools:
             propose_tool_attachment(
                 state_store,
                 tool=tool,
@@ -91,7 +98,7 @@ def make_skill_write_guard(state_store: Any):
                 skill_id=skill_id,
                 description=f"{agent_id} asked to add {tool} to skill {skill_id}.",
             )
-        return True
+        return held_tools
 
     return guard
 
@@ -126,7 +133,7 @@ def runtime_tool_not_enabled(tool: str) -> Optional[str]:
         return None
     return (
         f"{name} is a runtime-built tool that is not enabled (or its code changed since approval). "
-        "Enable it in Tools Studio > Runtime-built tools; enabling also accepts this proposal."
+        "Enable it in Capabilities Studio > Runtime-built tools; enabling also accepts this proposal."
     )
 
 
@@ -144,7 +151,7 @@ def runtime_tool_safety(tool: str) -> Optional[dict[str, bool]]:
 
 
 def pending_attach_proposals(store: Any, tool: str) -> list[dict[str, Any]]:
-    """Pending attach proposals for one tool (all agents), for Tools Studio and the one-step enable."""
+    """Pending attach proposals for one tool (all agents), for Capabilities Studio and the one-step enable."""
     out: list[dict[str, Any]] = []
     getter = getattr(store, "get_pending_approvals", None)
     if not callable(getter):
@@ -161,14 +168,14 @@ def accept_attach_proposals(
 ) -> list[dict[str, Any]]:
     """CARD-571 D5: Jacob enabling a runtime tool also accepts its pending attach proposals (one step).
 
-    Called only from the Tools Studio enable route, after the tool is enabled.
+    Called only from the Capabilities Studio enable route, after the tool is enabled.
     """
     accepted: list[dict[str, Any]] = []
     for item in pending_attach_proposals(store, tool):
         record = store.get_approval(item["approval_id"]) or {}
         result = apply_tool_attachment(store, agent_registry, tool_registry, record.get("arguments") or {}, data_root=data_root)
         store.resolve_approval(
-            approval_id=item["approval_id"], decision="approved", reason="Accepted by enabling the tool in Tools Studio."
+            approval_id=item["approval_id"], decision="approved", reason="Accepted by enabling the tool in Capabilities Studio."
         )
         accepted.append(result | {"approval_id": item["approval_id"]})
     return accepted

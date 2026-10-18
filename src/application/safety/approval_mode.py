@@ -34,6 +34,7 @@ _MODE_ALIASES: dict[str, str] = {
     "hands-off": "hands_off",
     "handsoff": "hands_off",
     "autonomous": "hands_off",
+    "run": "hands_off",
 }
 
 

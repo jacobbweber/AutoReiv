@@ -573,7 +573,19 @@ async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
     store = getattr(request.app.state, "store", None)
-    outcome = await reconcile_saved_mcp_server(mcp_manager, req, store=store)
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if not data_dir:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        if paths is not None and getattr(paths, "root", None):
+            data_dir = str(paths.root)
+    outcome = await reconcile_saved_mcp_server(
+        mcp_manager,
+        req,
+        store=store,
+        data_dir=data_dir,
+        agent_registry=registry,
+        agent_id=agent_id,
+    )
     return mcp_save_http_body(
         req.name,
         outcome,
@@ -594,6 +606,14 @@ async def delete_agent_mcp_server(request: Request, agent_id: str, server_name: 
     ]
     filtered = [s for s in existing_servers if s.get("name") != server_name]
     profile.mcp_servers = [MCPServerConfig.model_validate(s) for s in filtered]
+    try:
+        from src.infrastructure.mcp.companion_author import mcp_companion_skill_id
+
+        companion_sid = mcp_companion_skill_id(server_name)
+        if companion_sid in (profile.allowed_skill or []):
+            profile.allowed_skill = [s for s in profile.allowed_skill if s != companion_sid]
+    except Exception:
+        pass
 
     registry.save_agent(profile)  # CARD-570: full user copy of the agent file
 
@@ -622,6 +642,11 @@ async def mount_agent_mcp_server(request: Request, agent_id: str, server_name: s
         raise HTTPException(status_code=500, detail="MCP manager not initialized.")
 
     store = getattr(request.app.state, "store", None)
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if not data_dir:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        if paths is not None and getattr(paths, "root", None):
+            data_dir = str(paths.root)
     resolved_auth = resolve_mcp_server_auth(target_server, store)
     try:
         tools = await mcp_manager.mount_server(
@@ -632,6 +657,28 @@ async def mount_agent_mcp_server(request: Request, agent_id: str, server_name: s
             url=target_server.get("url"),
             headers=resolved_auth["headers"],
         )
+        if tools:
+            try:
+                from src.application.agent_skills.skill_list import add_skill_to_agent
+                from src.infrastructure.mcp.companion_author import (
+                    author_mcp_companion_skill,
+                    mcp_companion_skill_id,
+                )
+
+                author_mcp_companion_skill(
+                    server_name=target_server["name"],
+                    tools=list(tools),
+                    url=target_server.get("url"),
+                    data_dir=data_dir,
+                )
+                add_skill_to_agent(
+                    store,
+                    registry,
+                    agent_id=agent_id,
+                    skill_id=mcp_companion_skill_id(target_server["name"]),
+                )
+            except Exception:
+                pass
         return {
             "status": "mounted",
             "server_name": server_name,
