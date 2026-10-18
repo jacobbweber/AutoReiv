@@ -478,7 +478,7 @@ def is_known_tool(name: str) -> bool:
     try:
         return _TOOL_REGISTRY.get_tool_definition(name) is not None
     except Exception:
-        return True
+        return False
 
 
 def get_store() -> ContentStore:
