@@ -210,15 +210,6 @@
                     </button>
                   </div>
 
-                  <!-- CARD-466: New chat under + Options -->
-                  <div data-card="466">
-                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Conversation</span>
-                    <button id="newChatBtn" type="button" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition">
-                      <i data-lucide="plus" class="w-4 h-4"></i>
-                      <span>New chat</span>
-                    </button>
-                  </div>
-
                   <!-- Section 1: Runtime Modes -->
                   <div>
                     <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Runtime Modes</span>
@@ -343,10 +334,14 @@
 
                   <!-- Compact Controls Bar -->
                   <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.06] text-xs">
-                    <!-- Left: Options Toggle Button + Active Badges -->
+                    <!-- Left: New Chat + Options Toggle Button + Active Badges [CARD-721] -->
                     <div class="flex items-center gap-1.5 min-w-0">
-                      <button type="button" id="chatOptionsToggleBtn" aria-expanded="false" aria-controls="chatOptionsDrawer" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] text-xs font-medium transition shadow-sm" title="Toggle Chat Options & Modes">
-                        <i id="chatOptionsToggleIcon" data-lucide="plus" class="w-3.5 h-3.5 text-brand-400 transition-transform"></i>
+                      <button type="button" id="newChatBtn" class="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] text-xs font-medium transition shadow-sm flex-shrink-0" title="New chat" aria-label="New chat">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 text-brand-400"></i>
+                        <span>New</span>
+                      </button>
+                      <button type="button" id="chatOptionsToggleBtn" aria-expanded="false" aria-controls="chatOptionsDrawer" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] text-xs font-medium transition shadow-sm flex-shrink-0" title="Toggle Chat Options & Modes">
+                        <i id="chatOptionsToggleIcon" data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-brand-400 transition-transform"></i>
                         <span class="hidden sm:inline">Options</span>
                       </button>
 

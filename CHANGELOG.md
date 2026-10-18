@@ -8,6 +8,10 @@ What changed in each AutoReiv release, newest first.
 
 - Added the `web-search` platform skill (`fetch_url` and `web_search` tools) and a **Web Search & URL Fetch** configuration card in **Settings -> Connections** supporting zero-key DuckDuckGo Lite search, Vault-encrypted Tavily and Brave Search API keys, and direct webpage text extraction [CARD-719].
 
+### Changed
+
+- Moved the New Chat button (`#newChatBtn`, `+ New`) out of `#chatOptionsDrawer` and placed it directly to the left of the Options button (`#chatOptionsToggleBtn`) in the main Chat composer bar for one-click new sessions [CARD-721].
+
 ### Fixed
 
 - Fixed UI button wiring, feedback toasts, modal z-index elevation, composer post-send sizing, Wiki folder deletion reload, Projects copy-path toast, Agent avatar preview and memory toggle, Education due-review panel controls, Observability live log polling, and Settings duplicate listeners across all studios [CARD-720].
