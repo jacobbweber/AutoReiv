@@ -10,6 +10,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Changed
 
+- Enabled in-app git updates, branch switching, and container auto-restart for Docker deployments, and made the Origin URL in **Settings -> Preferences -> System & Software Updates** editable with `https://github.com/jacobbweber/AutoReiv.git` as the default [CARD-722].
 - Moved the New Chat button (`#newChatBtn`, `+ New`) out of `#chatOptionsDrawer` and placed it directly to the left of the Options button (`#chatOptionsToggleBtn`) in the main Chat composer bar for one-click new sessions [CARD-721].
 
 ### Fixed

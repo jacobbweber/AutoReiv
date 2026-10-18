@@ -9,6 +9,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+DEFAULT_ORIGIN_URL = "https://github.com/jacobbweber/AutoReiv.git"
+
 
 class SystemVersionInfo(BaseModel):
     """Runtime build metadata and environment detection [REQ-UPD-001]."""
@@ -37,17 +39,13 @@ class SystemVersionInfo(BaseModel):
     )
     last_fetch_at: Optional[str] = Field(default=None, description="ISO timestamp of last successful fetch")
     remote_name: str = Field(default="origin", description="Fixed remote name")
-    remote_url: str = Field(default="", description="Read-only origin URL")
+    remote_url: str = Field(default=DEFAULT_ORIGIN_URL, description="Origin repository URL [CARD-722]")
     detached_head: bool = Field(default=False, description="True when HEAD is detached")
     git_in_progress: bool = Field(default=False, description="True when merge/rebase/etc. in progress")
 
 
 class UpdateConfig(BaseModel):
-    """Operator preferences for software updates [REQ-451-007, REQ-451-016, REQ-451-017].
-
-    Legacy CARD-196 fields (upstream_repo_url, tracked_branch, auto_check_cadence) are
-    accepted on load for migration but ignored / stripped on save.
-    """
+    """Operator preferences for software updates [REQ-451-007, CARD-722]."""
 
     auto_update_enabled: bool = Field(
         default=False,
@@ -57,14 +55,13 @@ class UpdateConfig(BaseModel):
         default="03:00",
         description="Local time of day HH:MM for daily auto-update",
     )
-    # Legacy fields retained only for graceful migration of stored JSON:
     upstream_repo_url: Optional[str] = Field(
-        default=None,
-        description="DEPRECATED — ignored; remote is fixed origin",
+        default=DEFAULT_ORIGIN_URL,
+        description="Origin repository URL (defaults to official AutoReiv repo) [CARD-722]",
     )
     tracked_branch: Optional[str] = Field(
         default=None,
-        description="DEPRECATED — ignored; current branch upstream is used",
+        description="Optional tracked branch preference [CARD-722]",
     )
     auto_check_cadence: Optional[str] = Field(
         default=None,

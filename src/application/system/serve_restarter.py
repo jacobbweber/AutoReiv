@@ -54,12 +54,42 @@ def _own_data_args(windows: bool) -> list[str]:
     return args
 
 
+def _is_docker_container() -> bool:
+    if (os.environ.get("AUTOREIV_DEPLOY_MODE") or "").strip().lower() == "docker":
+        return True
+    if os.environ.get("AUTOREIV_CONTAINER"):
+        return True
+    if sys.platform != "win32":
+        try:
+            if Path("/.dockerenv").is_file() or Path("/run/.containerenv").is_file():
+                return True
+        except Exception:
+            pass
+    return False
+
+
 class DetachedScriptRestarter:
-    """Spawn scripts/restart_serve.ps1 (Windows) or restart_serve.py detached."""
+    """Spawn scripts/restart_serve.ps1 (Windows), restart_serve.py, or Docker PID 1 restart detached."""
 
     def schedule_restart(self, *, host: str, port: int, repo_root: Path) -> bool:
         root = Path(repo_root)
         try:
+            if _is_docker_container():
+                cmd = [
+                    sys.executable,
+                    "-c",
+                    "import os, signal, time; time.sleep(1.0); os.kill(1, signal.SIGTERM)",
+                ]
+                subprocess.Popen(
+                    cmd,
+                    cwd=str(root),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                    close_fds=True,
+                )
+                logger.info("Scheduled Docker container restart (PID 1 SIGTERM) host=%s port=%s", host, port)
+                return True
             if sys.platform.startswith("win"):
                 ps1 = root / "scripts" / "restart_serve.ps1"
                 if not ps1.is_file():

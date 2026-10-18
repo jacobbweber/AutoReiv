@@ -29,6 +29,10 @@ class SwitchBranchRequest(BaseModel):
     branch: str = Field(..., min_length=1, max_length=200)
 
 
+class ApplyUpdateRequest(BaseModel):
+    branch: Optional[str] = Field(default=None, max_length=200)
+
+
 def _get_update_service(request: Request) -> UpdateService:
     if hasattr(request.app.state, "update_service") and request.app.state.update_service:
         return request.app.state.update_service
@@ -85,24 +89,28 @@ async def get_update_config(request: Request):
 
 @router.put("/api/system/updates/config", response_model=UpdateConfig)
 async def save_update_config(request: Request, config: UpdateConfig):
-    """Persist auto-update preferences (fixed origin; no remote URL) [REQ-451-007, REQ-451-016]."""
+    """Persist auto-update preferences and origin URL [REQ-451-007, CARD-722]."""
     svc = _get_update_service(request)
-    return svc.save_update_config(config)
+    try:
+        return svc.save_update_config(config)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/api/system/updates/check", response_model=UpdateCheckResult)
 async def check_system_updates(request: Request, branch: Optional[str] = None):
-    """git fetch --prune origin then refresh status [REQ-451-002]. branch query ignored."""
+    """git fetch --prune origin then refresh status [REQ-451-002]."""
     del branch
     svc = _get_update_service(request)
     return svc.check_for_updates()
 
 
 @router.post("/api/system/updates/apply", response_model=UpdateApplyResult)
-async def apply_system_update(request: Request):
-    """Fast-forward current branch upstream; restart after success [REQ-451-003..006]."""
+async def apply_system_update(request: Request, body: Optional[ApplyUpdateRequest] = None):
+    """Fast-forward current (or selected) branch upstream; restart after success [REQ-451-003..006, CARD-722]."""
     svc = _get_update_service(request)
-    return svc.apply_update(trigger="manual")
+    target_branch = body.branch if body else None
+    return svc.apply_update(trigger="manual", target_branch=target_branch)
 
 
 @router.get("/api/system/updates/branches", response_model=BranchListResult)

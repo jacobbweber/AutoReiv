@@ -30,10 +30,13 @@ describe('System & Software Updates UI [CARD-196, REQ-UPD-001..005]', () => {
     expect(indexHtml).toContain('id="systemLastFetch"');
   });
 
-  // CARD-456: CARD-451 (REQ-451-016/021) removed the free-text repo URL and branch inputs.
-  it('shows origin read-only and a branch picker instead of free-text source inputs [REQ-UPD-002, REQ-451-016, REQ-451-021]', () => {
+  // CARD-722: Origin URL is pre-populated with official AutoReiv URL and editable with Save/Reset controls.
+  it('shows editable Origin URL with default AutoReiv repo and a branch picker [REQ-UPD-002, CARD-722]', () => {
     expect(indexHtml).toMatch(/<input id="updateRemoteName"[^>]*readonly[^>]*value="origin"/);
-    expect(indexHtml).toMatch(/<input id="updateRemoteUrl"[^>]*readonly/);
+    expect(indexHtml).toMatch(/<input id="updateRemoteUrl"[^>]*value="https:\/\/github\.com\/jacobbweber\/AutoReiv\.git"/);
+    expect(indexHtml).not.toMatch(/<input id="updateRemoteUrl"[^>]*readonly/);
+    expect(indexHtml).toContain('id="saveUpdateOriginBtn"');
+    expect(indexHtml).toContain('id="resetUpdateOriginBtn"');
     expect(indexHtml).toContain('id="updateBranchSelect"');
     expect(indexHtml).toContain('id="switchBranchBtn"');
     expect(indexHtml).toContain('id="switchBranchStatus"');
