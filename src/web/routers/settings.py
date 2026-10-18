@@ -29,6 +29,7 @@ from src.web.mcp_mount_reconcile import (
 )
 from src.web.routers.settings_data_backup import _data_dir_paths  # noqa: F401 - re-exported for data_dir_migrate
 from src.web.routers.settings_data_backup import router as data_backup_router
+from src.web.routers.settings_web_search import router as web_search_router
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ class HardwareFitQueryRequest(BaseModel):
 
 router = APIRouter(tags=["Settings"])
 router.include_router(data_backup_router)
+router.include_router(web_search_router)
 
 
 

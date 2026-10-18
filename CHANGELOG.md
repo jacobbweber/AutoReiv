@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Added
+
+- Added the `web-search` platform skill (`fetch_url` and `web_search` tools) and a **Web Search & URL Fetch** configuration card in **Settings -> Connections** supporting zero-key DuckDuckGo Lite search, Vault-encrypted Tavily and Brave Search API keys, and direct webpage text extraction [CARD-719].
+
 ### Fixed
 
 - Enabled MCP servers now auto-author a companion `mcp-<server>` skill with `tools:` frontmatter and bind it to the agent so `mcp_<Server>_*` tools are immediately callable; proposal/attachment HITL gates honor the Chat Auto-run checkbox; LLM-facing tool messages reference Capabilities Studio instead of Tools Studio; and Telemetry RCA ignores caller validation errors on built-in platform tools [CARD-718].

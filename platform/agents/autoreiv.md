@@ -17,6 +17,7 @@ skills:
 - capability-authoring
 - proposals
 - worker
+- web-search
 - project-cards
 - software-development
 - user:*
