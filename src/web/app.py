@@ -418,34 +418,41 @@ def create_app(
         except Exception:
             logger.exception("Startup session retention prune failed")
 
-        # Auto-mount configured and enabled MCP servers [REQ-MCP-005]
+        # Auto-mount configured and enabled MCP servers [REQ-MCP-005, CARD-717]
+        from src.web.mcp_mount_reconcile import resolve_mcp_server_auth
+
         stored_mcp = store.get_setting("mcp_servers")
         if isinstance(stored_mcp, list):
             for s in stored_mcp:
-                if s.get("enabled", True) and s.get("name") and s.get("command"):
+                if s.get("enabled", True) and s.get("name") and (s.get("command") or s.get("url")):
+                    resolved_auth = resolve_mcp_server_auth(s, store)
                     try:
                         await mcp_manager.mount_server(
                             name=s["name"],
-                            command=s["command"],
-                            env=s.get("env"),
+                            command=s.get("command"),
+                            env=resolved_auth["env"],
+                            transport=s.get("transport", "sse" if s.get("url") else "stdio"),
+                            url=s.get("url"),
+                            headers=resolved_auth["headers"],
                         )
                     except Exception as e:
                         logger.warning(f"Failed to auto-mount MCP server '{s.get('name')}': {e}")
 
-        # Auto-mount per-agent configured and enabled MCP servers [CARD-183, CARD-184]
+        # Auto-mount per-agent configured and enabled MCP servers [CARD-183, CARD-184, CARD-717]
         try:
             for profile in registry.list_agents():
                 for srv in getattr(profile, "mcp_servers", []) or []:
                     s_dict = srv.model_dump() if hasattr(srv, "model_dump") else (srv if isinstance(srv, dict) else {})
                     if s_dict.get("enabled", True) and s_dict.get("name"):
+                        resolved_auth = resolve_mcp_server_auth(s_dict, store)
                         try:
                             await mcp_manager.mount_server(
                                 name=s_dict["name"],
                                 command=s_dict.get("command"),
-                                env=s_dict.get("env"),
+                                env=resolved_auth["env"],
                                 transport=s_dict.get("transport", "stdio"),
                                 url=s_dict.get("url"),
-                                headers=s_dict.get("headers"),
+                                headers=resolved_auth["headers"],
                             )
                         except Exception as e:
                             logger.warning(f"Failed to auto-mount agent '{profile.id}' MCP server '{s_dict.get('name')}': {e}")

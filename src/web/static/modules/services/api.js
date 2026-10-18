@@ -156,6 +156,14 @@ export const api = {
           : `/api/settings/mcp/${cleanName}`;
       return api.delete(url);
     },
+    testMcpServer: (scope = 'platform', agentId = '', body = {}) => {
+      const url =
+        scope === 'agent'
+          ? `/api/agents/${encodeURIComponent(String(agentId || '').trim())}/mcp/test`
+          : '/api/settings/mcp/test';
+      return api.post(url, body);
+    },
+    listVaultCredentials: () => api.get('/api/vault/credentials'),
     listRcaProposals: (params = null) => api.get('/api/telemetry/rca-proposals', params),
     dismissRcaProposal: (proposalId) =>
       api.post(`/api/telemetry/rca-proposals/${encodeURIComponent(String(proposalId || '').trim())}/dismiss`),

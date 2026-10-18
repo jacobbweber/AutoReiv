@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Changed
 
+- Updated Settings and Agents Studio MCP deep-link buttons to "Open in Capabilities Studio" and added Credential Vault authentication references (Bearer Token, Basic Auth, Custom Header, Environment Variable) when configuring MCP servers [CARD-717].
 - Modularized `settings.js`, `study_entry.js`, `observability.js`, `projects.js`, `chat.js`, `education_players.js`, `desktop.css`, and `index.html` into focused modules and partials under 800 lines, and retired unused `store.js` exports and `window` studio globals [CARD-716].
 - Decomposed `education.py`, `education_tools.py`, `course.py`, `job_phase_orchestrator.py`, `update_service.py`, and `card_tools.py` under the 800-line ceiling and enforced a Python file-size guard test [CARD-715].
 - Split `src/domain/wiki/store.py` (2,125 lines) into focused modules under 800 lines, eliminated double vault file reads in `get_graph`/`get_mindmap`, and enforced zero upward imports in `src/domain/` [CARD-714].

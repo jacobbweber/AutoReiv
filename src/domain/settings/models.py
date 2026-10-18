@@ -120,4 +120,8 @@ class MCPServerConfig(BaseModel):
     url: Optional[str] = None
     headers: Optional[Dict[str, str]] = None
     env: Optional[Dict[str, str]] = None
+    credential_id: Optional[str] = None
+    auth_type: str = "bearer"
+    auth_header: Optional[str] = None
     enabled: bool = True
+

@@ -6,7 +6,72 @@ Disable unmounts. Enable mounts. The returned mounted flag is the
 post-action truth the HTTP response should report.
 """
 
+import base64
 from typing import Any, Optional
+
+
+def _cfg_val(config: Any, key: str, default: Any = None) -> Any:
+    if isinstance(config, dict):
+        return config.get(key, default)
+    return getattr(config, key, default)
+
+
+def lookup_mcp_credential_name(credential_id: Optional[str], store: Any = None) -> Optional[str]:
+    """Return the human-readable Vault credential name for UI display without exposing the secret [CARD-717]."""
+    cid = (credential_id or "").strip()
+    if not cid or store is None:
+        return None
+    getter = getattr(store, "get_credential", None)
+    if not callable(getter):
+        return None
+    try:
+        cred = getter(cid)
+        return getattr(cred, "name", None) if cred else None
+    except Exception:
+        return None
+
+
+def resolve_mcp_server_auth(config: Any, store: Any = None) -> dict:
+    """Resolve optional Vault credential_id into runtime headers or env without mutating stored config [CARD-717]."""
+    raw_headers = _cfg_val(config, "headers")
+    raw_env = _cfg_val(config, "env")
+    headers: dict[str, str] = dict(raw_headers) if isinstance(raw_headers, dict) else {}
+    env: dict[str, str] = dict(raw_env) if isinstance(raw_env, dict) else {}
+
+    cred_id = str(_cfg_val(config, "credential_id") or "").strip()
+    if cred_id and store is not None and callable(getattr(store, "get_credential", None)):
+        try:
+            cred = store.get_credential(cred_id)
+        except Exception:
+            cred = None
+        secret = str(getattr(cred, "secret", "") or "").strip() if cred else ""
+        if secret:
+            auth_type = str(_cfg_val(config, "auth_type") or "bearer").strip().lower()
+            auth_header = str(_cfg_val(config, "auth_header") or "").strip()
+            if auth_type == "env":
+                env[auth_header or "MCP_API_KEY"] = secret
+            elif auth_type in ("header", "api_key"):
+                headers[auth_header or "X-API-Key"] = secret
+            elif auth_type == "basic":
+                hdr_name = auth_header or "Authorization"
+                if secret.lower().startswith("basic "):
+                    headers[hdr_name] = secret
+                elif ":" in secret:
+                    b64 = base64.b64encode(secret.encode("utf-8")).decode("ascii")
+                    headers[hdr_name] = f"Basic {b64}"
+                else:
+                    headers[hdr_name] = f"Basic {secret}"
+            else:
+                hdr_name = auth_header or "Authorization"
+                if secret.lower().startswith("bearer "):
+                    headers[hdr_name] = secret
+                else:
+                    headers[hdr_name] = f"Bearer {secret}"
+
+    return {
+        "headers": headers if headers else None,
+        "env": env if env else None,
+    }
 
 
 def _mounted_map(mcp_manager: Any) -> Optional[dict]:
@@ -64,7 +129,7 @@ def mcp_save_http_body(name: str, outcome: dict, *, mount_error: str) -> dict:
     return body
 
 
-async def reconcile_saved_mcp_server(mcp_manager: Any, req: Any) -> dict:
+async def reconcile_saved_mcp_server(mcp_manager: Any, req: Any, store: Any = None) -> dict:
     """Mount when enabled, unmount when disabled.
 
     Returns mounted, tools (ToolDefinition list on a successful mount),
@@ -82,14 +147,15 @@ async def reconcile_saved_mcp_server(mcp_manager: Any, req: Any) -> dict:
         }
 
     if enabled:
+        resolved = resolve_mcp_server_auth(req, store)
         try:
             tools = await mcp_manager.mount_server(
                 name=name,
                 command=getattr(req, "command", None),
-                env=getattr(req, "env", None),
+                env=resolved["env"],
                 transport=getattr(req, "transport", "stdio") or "stdio",
                 url=getattr(req, "url", None),
-                headers=getattr(req, "headers", None),
+                headers=resolved["headers"],
             )
             tool_list = list(tools or [])
             return {

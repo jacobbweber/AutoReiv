@@ -252,10 +252,10 @@
                 <i data-lucide="plug" class="w-4 h-4 text-brand-400 shrink-0"></i>
                 <span class="truncate">Model Context Protocol (MCP) Servers</span>
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Attach, test, and remove MCP servers in Tools Studio. This page keeps hosting and a short attach status.</p>
+              <p class="text-xs text-slate-400 mt-0.5">Attach, test, and remove MCP servers in Capabilities Studio. This page keeps hosting and a short attach status.</p>
             </div>
             <button type="button" id="settingsOpenToolsStudioBtn" data-testid="settings-open-tools-studio" class="shrink-0 whitespace-nowrap self-start sm:self-auto px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
-              Open in Tools Studio
+              Open in Capabilities Studio
             </button>
           </div>
           <p id="settingsMcpAttachStatus" data-testid="settings-mcp-attach-status" class="text-xs text-slate-300">Loading attach status…</p>
@@ -286,7 +286,7 @@
           </div>
 
           <div id="mcpServerList" class="space-y-2" data-testid="settings-mcp-status-list">
-            <div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No platform MCP servers attached. Open Tools Studio to attach one.</div>
+            <div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No platform MCP servers attached. Open Capabilities Studio to attach one.</div>
           </div>
         </div>
 
@@ -324,6 +324,7 @@
                 <label class="font-medium text-slate-300 block mb-1">Type</label>
                 <select id="credTypeSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-brand-500 transition-all">
                   <option value="token">API Token / Bearer Key</option>
+                  <option value="basic_auth">Basic Auth (username:password or Base64)</option>
                   <option value="api_key">API Key (Header / Query)</option>
                   <option value="password">Password / Secret</option>
                   <option value="connection_string">Database Connection String</option>
