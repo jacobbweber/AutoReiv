@@ -28,15 +28,19 @@ def _get_wiki_service(request: Request) -> WikiService:
 
     from src.infrastructure.data.resolver import DataDirResolver
 
-    wiki_path = getattr(request.app.state, "wiki_path", None)
-    if not wiki_path:
+    explicit_wiki_path = getattr(request.app.state, "wiki_path", None)
+    if not explicit_wiki_path:
         paths = getattr(request.app.state, "data_dir_paths", None)
-        wiki_path = str(paths.wiki_path) if paths is not None else str(DataDirResolver().resolve().wiki_path)
+        if paths is not None and getattr(paths, "wiki_path", None):
+            explicit_wiki_path = str(paths.wiki_path)
     existing = getattr(request.app.state, "wiki_service", None)
     if existing is not None:
-        existing_root = getattr(getattr(existing, "store", None), "root_dir", None)
-        if existing_root and Path(existing_root).resolve() == Path(wiki_path).resolve():
+        if not explicit_wiki_path:
             return existing
+        existing_root = getattr(getattr(existing, "store", None), "root_dir", None)
+        if not isinstance(existing_root, (str, Path)) or Path(existing_root).resolve() == Path(explicit_wiki_path).resolve():
+            return existing
+    wiki_path = explicit_wiki_path or str(DataDirResolver().resolve().wiki_path)
     svc = WikiService(wiki_root=str(wiki_path))
     request.app.state.wiki_service = svc
     return svc

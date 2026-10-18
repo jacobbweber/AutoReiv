@@ -911,10 +911,11 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.evaluate(() => window.__autoreivSwitchTab('tools-studio'));
-    await expect(page.locator('#view-tools-studio')).toBeVisible({ timeout: 20000 });
+    await page.locator('#dock-capabilities').click();
+    await expect(page.locator('#view-capabilities')).toBeVisible({ timeout: 20000 });
+    await page.locator('[data-testid="capabilities-mcp-tree-node"]').click();
     // Scope platform MCP list
-    const row = page.locator('#toolsStudioMcpList [data-testid="tools-studio-mcp-row"][data-server-name="c627"]');
+    const row = page.locator('#capabilitiesMcpList [data-testid="tools-studio-mcp-row"][data-server-name="c627"]');
     await expect(row).toBeVisible({ timeout: 15000 });
     await row.locator('[data-action="toggle"]').click();
     await expect.poll(() => saves.length).toBe(1);
@@ -927,7 +928,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await row.locator('[data-action="test-saved"]').click();
     await expect.poll(() => tests.length).toBe(1);
     expect(tests[0].command).toEqual(CMD);
-    await expect(page.locator('#toolsStudioMcpTestResult')).toContainText('nonexistent_card627_mod');
+    await expect(page.locator('#capabilitiesFeedbackBanner')).toContainText('nonexistent_card627_mod');
   });
 
   // CARD-624: a toast's centre must hit-test to the toast, not a dock icon.
@@ -1527,30 +1528,44 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
-  // CARD-522 / CARD-692: Open in Skill Studio opens Capabilities with the new skill draft bar prefilled from the gap.
+  // CARD-522 / CARD-706: Capability gaps in Agent Studio show missing-tool status and Build with AutoReiv primary action.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
-    test(`TC-51 (${vp.name}): Open in Skill Studio fills a new skill from the capability gap [CARD-522]`, async ({ page }) => {
+    test(`TC-51 (${vp.name}): Capability gap row marks missing tool and triggers Build with AutoReiv [CARD-522]`, async ({ page }) => {
       const GAP = { id: 'gap-tc51', agent_id: 'autoreiv', status: 'pending', identified_capability: 'inventory_lookup', suggested_tool_name: 'get_tc51_inventory', turn_text: 'Look up TC51 inventory counts' };
+      const talks = [];
       await page.route('**/api/agents/autoreiv/gaps*', (route) => {
         if (route.request().method() !== 'GET') return route.continue();
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([GAP]) });
       });
+      await page.route('**/api/tools_studio/authoring/talk', (route) => {
+        const body = route.request().postDataJSON();
+        talks.push(body);
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            session_id: 'sess-tc51',
+            agent_id: 'toolsmith',
+            prompt: `Create tool ${body.draft.tool_name}: ${body.draft.behavior}`,
+            opened_chat: true,
+            opened_job: false,
+            job_id: null,
+          }),
+        });
+      });
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      const openGap = async () => {
-        await ensureAgentStudioPicked(page, 'autoreiv', 'AutoReiv');
-        await page.evaluate(() => { const d = document.getElementById('agentTrainingBacklogCard'); if (d) d.open = true; });
-        const row = page.locator('#agentTrainingBacklogCard [data-gap-id="gap-tc51"]').first();
-        await expect(row).toHaveAttribute('data-tool-missing', 'true', { timeout: 20000 });
-        await expect(row.locator('.btn-gap-ask-developer')).toHaveAttribute('data-primary', 'true');
-        await row.locator('.btn-gap-open-skill-studio').evaluate((b) => b.click());
-        await expect(page.locator('#view-capabilities')).toBeVisible();
-      };
-
-      await openGap();
-      await expect(page.locator('#capabilitiesCreateBar')).toBeVisible();
-      await expect(page.locator('#capabilitiesCreateNameInput')).toHaveValue('get_tc51_inventory');
-      await expect(page.locator('#capabilitiesFeedbackBanner')).toContainText('get_tc51_inventory');
+      await ensureAgentStudioPicked(page, 'autoreiv', 'AutoReiv');
+      await page.evaluate(() => { const d = document.getElementById('agentTrainingBacklogCard'); if (d) d.open = true; });
+      const row = page.locator('#agentTrainingBacklogCard [data-gap-id="gap-tc51"]').first();
+      await expect(row).toHaveAttribute('data-tool-missing', 'true', { timeout: 20000 });
+      await expect(row.locator('.btn-gap-build-autoreiv')).toHaveAttribute('data-primary', 'true');
+      await expect(row.locator('.btn-gap-build-autoreiv')).toHaveText('Build with AutoReiv');
+      await expect(row).toContainText('get_tc51_inventory');
+      await row.locator('.btn-gap-build-autoreiv').evaluate((b) => b.click());
+      await expect.poll(() => talks.length).toBe(1);
+      expect(talks[0].draft.tool_name).toBe('get_tc51_inventory');
+      expect(talks[0].draft.behavior).toContain('Look up TC51 inventory counts');
     });
 
     // CARD-516: an MCP server that cannot start shows "Failed to start" and why, not "Configured" or mounted.
@@ -1578,8 +1593,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     });
   }
 
-  // CARD-496: the Factory UI is retired (ADR-0060). Gaps open Skill Studio or Developer; old layouts drop the Factory window;
-  // the app never calls Factory jobs or the scaffold queue; Skill Studio still lists tools through its current routes.
+  // CARD-496 / CARD-706: the Factory UI is retired (ADR-0060). Gaps offer Build with AutoReiv; old layouts drop the Factory window;
+  // the app never calls Factory jobs or the scaffold queue; Capabilities Studio loads skills and tools through its current routes.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
     const GAP = { id: 'gap-tc39', agent_id: 'autoreiv', status: 'pending', identified_capability: 'tc39_inventory_lookup', suggested_tool_name: 'get_tc39_inventory', turn_text: 'Look up TC39 inventory counts' };
     async function openGaps(page) {
@@ -1593,16 +1608,15 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.evaluate(() => { const d = document.getElementById('agentTrainingBacklogCard'); if (d) d.open = true; });
       const card = page.locator('#agentTrainingBacklogCard');
       await expect(card.locator('summary')).toContainText('Capability gaps');
-      await expect(card.locator('.btn-gap-open-skill-studio')).toHaveText('Open in Skill Studio');
-      await expect(card.locator('.btn-gap-ask-developer')).toHaveText('Ask Developer');
+      await expect(card.locator('.btn-gap-build-autoreiv')).toHaveText('Build with AutoReiv');
       await expect(card.locator('.btn-dismiss-gap')).toBeVisible();
       await expect(card).not.toContainText('Factory');
       return card;
     }
 
-    test(`TC-39 (${vp.name}): a capability gap opens Skill Studio or a Developer chat, never the Factory [CARD-496]`, async ({ page, request }) => {
+    test(`TC-39 (${vp.name}): a capability gap opens Build with AutoReiv chat, never the Factory [CARD-496]`, async ({ page, request }) => {
       test.setTimeout(60000);
-      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'toolsmith', title: `D 496 ${vp.name}-${Date.now()}` } })).json();
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `D 496 ${vp.name}-${Date.now()}` } })).json();
       const talks = [];
       let devPrompt = '';
       await page.route('**/api/tools_studio/authoring/talk', (route) => {
@@ -1615,12 +1629,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         if (!route.request().url().includes(DEV.id)) return route.continue();
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ role: 'user', content: devPrompt }]) });
       });
-      let card = await openGaps(page);
-      await card.locator('.btn-gap-open-skill-studio').click();
-      await expect(page.locator('#view-capabilities')).toBeVisible();
+      const card = await openGaps(page);
       await expect(page.locator('#view-factory')).toHaveCount(0);
-      card = await openGaps(page);
-      await card.locator('.btn-gap-ask-developer').click();
+      await card.locator('.btn-gap-build-autoreiv').click();
       await expect.poll(() => talks.length).toBe(1);
       expect(talks[0].intent).toBe('create');
       expect(talks[0].draft.tool_name).toBe('get_tc39_inventory');
@@ -1629,7 +1640,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#messagesContainer')).toContainText('get_tc39_inventory');
     });
 
-    test(`TC-44 (${vp.name}): Ask Developer on a gap starts a Developer reply with no further input [CARD-497]`, async ({ page }) => {
+    test(`TC-44 (${vp.name}): Build with AutoReiv on a gap starts a reply with no further input [CARD-497]`, async ({ page }) => {
       const streamPosts = [];
       let release;
       const held = new Promise((r) => { release = r; });
@@ -1645,10 +1656,10 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         }).catch(() => {});
       });
       const card = await openGaps(page);
-      await card.locator('.btn-gap-ask-developer').click();
+      await card.locator('.btn-gap-build-autoreiv').click();
       await expect(page.locator('#view-chat')).toBeVisible();
       await expect.poll(() => streamPosts.length, { timeout: 15000 }).toBe(1);
-      expect(streamPosts[0].agent_id).toBe('toolsmith');  // CARD-571: Ask Developer opens Toolsmith
+      expect(streamPosts[0].agent_id).toBe('autoreiv');  // CARD-693 / CARD-706: consolidated onto autoreiv
       expect(streamPosts[0].resume).toBe(false);
       expect(streamPosts[0].content).toContain('get_tc39_inventory');
       expect(streamPosts[0].content).toContain('Look up TC39 inventory counts');
@@ -1685,7 +1696,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#view-chat')).toBeVisible();
     });
 
-    test(`TC-41 (${vp.name}): Agent, Skill and Tools Studio load with no Factory job or scaffold-queue calls; Skill Studio lists tools [CARD-496]`, async ({ page }) => {
+    test(`TC-41 (${vp.name}): Agent and Capabilities Studio load with no Factory job or scaffold-queue calls; Capabilities Studio lists skills [CARD-496]`, async ({ page }) => {
       const retired = [];
       page.on('request', (r) => {
         const u = r.url();
@@ -1698,16 +1709,12 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await expect(page.locator('#forgeScaffoldQueueCard')).toHaveCount(0);
       await page.locator('#dock-capabilities').click();
       await expect(page.locator('#view-capabilities')).toBeVisible();
-      await page.evaluate(() => window.__autoreivSwitchTab('skill-studio'));
-      await expect(page.locator('#view-skill-studio')).toBeVisible();
-      await expect.poll(() => page.locator('#factoryCapabilitiesContainer input[type="checkbox"][data-tool-name]').count(), { timeout: 20000 }).toBeGreaterThan(0);
-      await page.evaluate(() => window.__autoreivSwitchTab('tools-studio'));
-      await expect(page.locator('#view-tools-studio')).toBeVisible();
+      await expect.poll(() => page.locator('#capabilitiesTreeList [data-skill-folder]').count(), { timeout: 20000 }).toBeGreaterThan(0);
       await page.waitForTimeout(1000);
       expect(retired).toEqual([]);
     });
 
-    test(`TC-42 (${vp.name}): a broken native tool is refused; checked tools show their check in Tools Studio [CARD-511]`, async ({ page, request }) => {
+    test(`TC-42 (${vp.name}): a broken native tool is refused; checked tools return their check in /api/tools/native and Capabilities Studio loads cleanly [CARD-511]`, async ({ page, request }) => {
       const sfx = `${vp.name === 'desktop' ? 'd' : 'p'}${Date.now() % 100000}`;
       const good = `c511_good_${sfx}`;
       const high = `c511_high_${sfx}`;
@@ -1726,21 +1733,27 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       // CARD-570: a runtime-built tool is saved disabled; it joins the catalog once Jacob enables it.
       for (const name of [good, high]) expect((await request.post(`/api/tools/native/${name}/enable`)).status()).toBe(200);
 
+      const nativeRes = await request.get('/api/tools/native');
+      expect(nativeRes.status()).toBe(200);
+      const nativeData = await nativeRes.json();
+      const nativeRows = Array.isArray(nativeData) ? nativeData : (nativeData.tools || []);
+      const byName = new Map(nativeRows.map((r) => [r.name, r]));
+      expect(byName.get(good)?.check?.status).toBe('passed');
+      expect(byName.get(high)?.check?.status).toBe('checked_without_call');
+      expect(byName.get(high)?.check?.skip_reason).toContain('high risk: sample call skipped');
+      expect(byName.has(bad)).toBe(false);
+
       const errors = [];
       page.on('pageerror', (e) => errors.push(String(e)));
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.evaluate(() => window.__autoreivSwitchTab('tools-studio'));
-      await expect(page.locator('#view-tools-studio')).toBeVisible();
-      const row = (name) => page.locator(`[data-testid="tools-studio-catalog-row"][data-tool-name="${name}"]`);
-      await expect(row(good)).toHaveCount(1, { timeout: 20000 });
-      await expect(row(good).locator('[data-testid="tools-studio-check-label"]')).toHaveText('Checked');
-      await expect(row(high).locator('[data-testid="tools-studio-check-label"]')).toHaveText('Checked without a sample call: high risk: sample call skipped');
-      await expect(row(bad)).toHaveCount(0);
+      await page.locator('#dock-capabilities').click();
+      await expect(page.locator('#view-capabilities')).toBeVisible();
+      await expect(page.locator('[data-testid="capabilities-mcp-tree-node"]')).toBeVisible({ timeout: 20000 });
       expect(errors).toEqual([]);
     });
 
-    test(`TC-43 (${vp.name}): Skill Studio generates, saves and opens a skill through /api/skill_studio only [CARD-497]`, async ({ page, request }) => {
+    test(`TC-43 (${vp.name}): Capabilities Studio creates, saves and reopens a skill folder through /api/capabilities only [CARD-497]`, async ({ page, request }) => {
       const gone = await request.get('/api/agent_training_factory/jobs');
       expect(gone.status()).toBe(404);
       const studioCalls = [];
@@ -1748,42 +1761,42 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       page.on('request', (r) => {
         const u = r.url();
         if (u.includes('/api/agent_training_factory')) retired.push(u);
-        if (u.includes('/api/skill_studio/') || u.includes('/api/tools_studio/capabilities')) studioCalls.push(`${r.method()} ${new URL(u).pathname}`);
+        if (u.includes('/api/capabilities/')) studioCalls.push(`${r.method()} ${new URL(u).pathname}`);
       });
       const errors = [];
       page.on('pageerror', (e) => errors.push(String(e)));
-      const name = `TC43 ${vp.name} ${Date.now() % 100000}`;
-      const skillId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      const skillId = `tc43-${vp.name}-${Date.now() % 100000}`;
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await page.evaluate(() => window.__autoreivSwitchTab('skill-studio'));
-      await expect(page.locator('#view-skill-studio')).toBeVisible();
-      await expect.poll(() => page.locator('#factoryCapabilitiesContainer input[type="checkbox"][data-tool-name]').count(), { timeout: 20000 }).toBeGreaterThan(0);
-      await page.locator('#factoryNewSkillFormBtn').click();
-      await page.locator('#factorySkillNameInput').fill(name);
-      await page.locator('#factorySkillTriggerInput').fill('Smoke-test a Skill Studio save');
-      await page.locator('#factorySkillIntentInput').fill('Write one short procedure.');
-      await page.locator('#factoryGenerateRunbookBtn').click();
-      await expect.poll(() => page.inputValue('#factorySkillMarkdownEditor'), { timeout: 75000 }).toMatch(/^---/);
-      await expect(page.locator('#factorySkillIdInput')).toHaveValue(skillId);
-      await page.locator('#factorySaveSkillBtn').click();
-      await expect.poll(() => studioCalls.includes('POST /api/skill_studio/save'), { timeout: 20000 }).toBe(true);
-      await expect(page.locator('#factoryExistingSkillSelect')).toHaveValue(skillId, { timeout: 20000 });
+      await page.locator('#dock-capabilities').click();
+      await expect(page.locator('#view-capabilities')).toBeVisible();
+      await expect.poll(() => page.locator('#capabilitiesTreeList [data-skill-folder]').count(), { timeout: 20000 }).toBeGreaterThan(0);
+      await page.locator('#capabilitiesNewSkillBtn').click();
+      await expect(page.locator('#capabilitiesCreateBar')).toBeVisible();
+      await page.locator('#capabilitiesCreateNameInput').fill(skillId);
+      await page.locator('#capabilitiesCreateConfirmBtn').click();
+      await expect.poll(() => studioCalls.includes(`PUT /api/capabilities/skills/${skillId}/file`), { timeout: 20000 }).toBe(true);
+      await expect.poll(() => page.inputValue('#capabilitiesFileEditor'), { timeout: 20000 }).toMatch(/^---/);
+
+      const updatedContent = `---\nname: ${skillId}\ndescription: Smoke test skill folder ${skillId}\ntools: []\n---\n# ${skillId}\n\nUpdated body for ${skillId}.\n`;
+      await page.locator('#capabilitiesFileEditor').fill(updatedContent);
+      await page.locator('#capabilitiesSaveFileBtn').click();
+      await expect(page.locator('#capabilitiesFeedbackBanner')).toContainText(`Saved skills/${skillId}/SKILL.md`, { timeout: 20000 });
 
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await expect(page.locator('#dock-capabilities')).toBeVisible();
-      await page.waitForTimeout(1500);
-      if (!(await page.locator('#view-skill-studio').isVisible())) await page.evaluate(() => window.__autoreivSwitchTab('skill-studio'));
-      await expect(page.locator('#view-skill-studio')).toBeVisible();
-      await expect.poll(async () => page.locator(`#factoryExistingSkillSelect option[value="${skillId}"]`).count(), { timeout: 20000 }).toBe(1);
-      await page.selectOption('#factoryExistingSkillSelect', skillId);
-      await expect(page.locator('#factorySkillNameInput')).toHaveValue(name, { timeout: 20000 });
-      await expect.poll(() => page.inputValue('#factorySkillMarkdownEditor')).toContain(name);
+      if (!(await page.locator('#view-capabilities').isVisible())) {
+        await page.locator('#dock-capabilities').click();
+      }
+      await expect(page.locator('#view-capabilities')).toBeVisible();
+      const folderBtn = page.locator(`#capabilitiesTreeList [data-action="toggle-skill-folder"][data-skill-id="${skillId}"]`);
+      await expect(folderBtn).toBeVisible({ timeout: 20000 });
+      await folderBtn.click();
+      await expect.poll(() => page.inputValue('#capabilitiesFileEditor'), { timeout: 20000 }).toContain(`Updated body for ${skillId}.`);
 
-      expect(studioCalls).toContain('GET /api/tools_studio/capabilities');
-      expect(studioCalls).toContain('POST /api/skill_studio/runbook');
-      expect(studioCalls).toContain('GET /api/skill_studio/skills');
-      expect(studioCalls.some((c) => c.startsWith(`GET /api/skill_studio/skills/${skillId}`))).toBe(true);
+      expect(studioCalls).toContain('GET /api/capabilities/tree');
+      expect(studioCalls).toContain(`PUT /api/capabilities/skills/${skillId}/file`);
+      expect(studioCalls).toContain(`GET /api/capabilities/skills/${skillId}/file`);
       expect(retired).toEqual([]);
       expect(errors).toEqual([]);
     });
@@ -1844,7 +1857,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
   // CARD-520: Observability tool-escalation card: top-level section, Needs a tool, Ask Developer (real send), Asked Developer.
   for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844 }]) {
     test(`TC-45 (${vp.name}): a tool-escalation card offers Ask Developer, the Developer reply starts, the card shows Asked Developer [CARD-520]`, async ({ page, request }) => {
-      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'toolsmith', title: `D 520 ${vp.name}-${Date.now()}` } })).json();
+      const DEV = await (await request.post('/api/sessions', { data: { agent_id: 'autoreiv', title: `D 520 ${vp.name}-${Date.now()}` } })).json();
       const ESC = {
         id: 'rec_tc45', agent_id: 'autoreiv', skill_path: null, friction_type: 'payload_bloat', remedy_kind: 'tool_escalation',
         tool_name: 'get_tc45_dump', payload_bytes: 20790, session_id: 'sess_tc45', status: 'pending', created_at: '2026-09-26T17:00:00Z',
@@ -1896,7 +1909,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       expect(t.talks[0].draft.tool_name).toBe('get_tc45_dump');
       await expect(page.locator('#view-chat')).toBeVisible();
       await expect.poll(() => t.streamPosts.length, { timeout: 15000 }).toBe(1);
-      expect(t.streamPosts[0].agent_id).toBe('toolsmith');  // CARD-571: Ask Developer opens Toolsmith
+      expect(t.streamPosts[0].agent_id).toBe('autoreiv');  // CARD-693 / CARD-706: consolidated onto autoreiv
       expect(t.streamPosts[0].content).toContain('get_tc45_dump');
       await expect(page.locator('#messagesContainer [data-stream-bubble="true"]')).toBeVisible();
       await expect.poll(() => t.escalations.length).toBe(1);
