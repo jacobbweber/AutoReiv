@@ -16,6 +16,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
+from src.domain.data_root import (
+    LEGACY_WIKI_STRINGS as LEGACY_WIKI_STRINGS,
+)
+from src.domain.data_root import (
+    configure_domain_data_hooks,
+)
+
 logger = logging.getLogger(__name__)
 
 DATA_DIR_SETTING_KEY = "data_dir"
@@ -34,7 +41,6 @@ _LEGACY_DB_REL = Path("data") / "autoreiv.db"
 _LEGACY_WIKI_REL = Path("data") / "wiki"
 _LEGACY_DB_STRINGS = frozenset({"./data/autoreiv.db", "data/autoreiv.db", ".\\data\\autoreiv.db", "data\\autoreiv.db"})
 _LEGACY_WIKI_STRINGS = frozenset({"./data/wiki", "data/wiki", ".\\data\\wiki", "data\\wiki"})
-LEGACY_WIKI_STRINGS = frozenset({"./data/wiki", "data/wiki", ".\\data\\wiki", "data\\wiki", ""})
 
 
 class DataDirMigrationError(RuntimeError):
@@ -692,4 +698,12 @@ def resolve_agent_memory_path(
         root = ensure_live_data_root(DataDirResolver().resolve().root)
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
     return root / "agents" / safe_id / "memory.db"  # CARD-570: agents/<id>/memory.db
+
+
+configure_domain_data_hooks(
+    data_root_provider=lambda: DataDirResolver().resolve().root,
+    wiki_path_provider=lambda: Path(DataDirResolver().resolve().wiki_path).resolve(),
+    live_root_validator=lambda p: ensure_live_data_root(p),
+)
+
 

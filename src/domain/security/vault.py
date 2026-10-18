@@ -43,9 +43,9 @@ class CredentialVault:
             if key_file:
                 path = Path(key_file)
             else:
-                from src.infrastructure.data.resolver import DataDirResolver
+                from src.domain.data_root import resolve_default_data_root
 
-                base_dir = DataDirResolver().resolve().root
+                base_dir = resolve_default_data_root()
                 base_dir.mkdir(parents=True, exist_ok=True)
                 path = base_dir / ".vault_key"
 
