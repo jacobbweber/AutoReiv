@@ -190,8 +190,6 @@ class UserSkillCatalog:
         if not loaded:
             return {"success": False, "error": f"Failed to load SKILL.md for skill '{skill_id}'."}
 
-        # CARD-121: JSON `tools` in SKILL.md are labels in the runbook, not model callables.
-        skipped = self._mount_skill_tools(loaded)
         tools_meta = []
         for tool in loaded.get("tools") or []:
             tools_meta.append({"name": tool.name, "description": tool.description})
@@ -224,24 +222,8 @@ class UserSkillCatalog:
             "tools": tools_meta,
             "references": refs_list,
             "colocated_tools": colocated_list,
-            "skipped_tools": skipped,
+            "skipped_tools": [],
         }
-
-    def _mount_skill_tools(self, _loaded: Dict[str, Any]) -> List[str]:
-        """SKILL.md JSON stubs are labels, not registry callables (CARD-121)."""
-        return []
-
-    def _playbook_tool_handler(self, tool_name: str, skill_name: str):
-        def handler(**kwargs: Any) -> Dict[str, Any]:
-            return {
-                "success": False,
-                "error": (
-                    f"Tool '{tool_name}' is declared by user skill '{skill_name}' as an "
-                    "agentskills.io schema, not an executable Python builtin."
-                ),
-            }
-
-        return handler
 
     def _allowed_skill_ids_for_current_agent(self) -> Optional[set]:
         """Allowlist when a tool-call agent is in context; None if no agent context."""

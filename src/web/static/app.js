@@ -16,8 +16,6 @@ import { initWikiStudio, exportMessageToWiki, exportSessionToWiki } from './modu
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initCapabilitiesStudio } from './modules/studios/capabilities_studio.js';
-import { initSkillStudio } from './modules/studios/skill_studio.js';
-import { initToolsStudio } from './modules/studios/tools_studio.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
 import { initStudyEntry } from './modules/studios/study_entry.js';
 import { initThemeEngine } from './modules/ui/theme-engine.js';
@@ -107,8 +105,6 @@ export function initApp() {
   let projectsCtrl = null;
   let promptsCtrl = null;
   let capabilitiesCtrl = null;
-  let skillCtrl = null;
-  let toolsCtrl = null;
   let educationCtrl = null;
   let desktopCtrl = null;
 
@@ -130,7 +126,7 @@ export function initApp() {
       surfaceBtns.cockpit.className = activeSurfaceClass;
     } else if ((tabName === 'wiki' || tabName === 'projects') && surfaceBtns.vault) {
       surfaceBtns.vault.className = activeSurfaceClass;
-    } else if ((tabName === 'agents' || tabName === 'capabilities' || tabName === 'routines' || tabName === 'observability' || tabName === 'skill-studio' || tabName === 'tools-studio' || tabName === 'settings') && surfaceBtns.fleet) {
+    } else if ((tabName === 'agents' || tabName === 'capabilities' || tabName === 'routines' || tabName === 'observability' || tabName === 'settings') && surfaceBtns.fleet) {
       surfaceBtns.fleet.className = activeSurfaceClass;
     }
   }
@@ -142,6 +138,9 @@ export function initApp() {
   // Tab Switching & ARIA Synchronization [REQ-A11Y-001, REQ-A11Y-003]
   function switchTab(tabName) {
     if (!tabName) return;
+    if (tabName === 'skill-studio' || tabName === 'tools-studio') {
+      tabName = 'capabilities';
+    }
     state.activeTab = tabName;
     updateMobileSurfaces(tabName);
 
@@ -183,10 +182,6 @@ export function initApp() {
         forgeCtrl.loadAgentForge();
       } else if (tabName === 'capabilities' && capabilitiesCtrl) {
         capabilitiesCtrl.loadCapabilitiesStudio();
-      } else if (tabName === 'skill-studio' && skillCtrl) {
-        skillCtrl.loadSkillStudio();
-      } else if (tabName === 'tools-studio' && toolsCtrl) {
-        toolsCtrl.loadToolsStudio();
       } else if (tabName === 'settings' && settingsCtrl) {
         settingsCtrl.loadSettings();
       } else if (tabName === 'wiki' && wikiCtrl) {
@@ -397,18 +392,6 @@ export function initApp() {
       },
     },
     {
-      name: 'Skill Studio',
-      init: () => {
-        skillCtrl = initSkillStudio(state, sharedCallbacks);
-      },
-    },
-    {
-      name: 'Tools Studio',
-      init: () => {
-        toolsCtrl = initToolsStudio(state, sharedCallbacks);
-      },
-    },
-    {
       name: 'Education Studio',
       init: () => {
         // Dynamic import: one studio module failure must not blank initApp [REQ-EDU-SHELL-005]
@@ -446,15 +429,6 @@ export function initApp() {
   });
   studioRegistry.register('capabilities', {
     getController: () => capabilitiesCtrl,
-  });
-  studioRegistry.register('skill-studio', {
-    deactivate: () => {
-      if (skillCtrl && typeof skillCtrl.stopPolling === 'function') skillCtrl.stopPolling();
-    },
-    getController: () => skillCtrl,
-  });
-  studioRegistry.register('tools-studio', {
-    getController: () => toolsCtrl,
   });
   studioRegistry.register('settings', {
     getController: () => settingsCtrl,

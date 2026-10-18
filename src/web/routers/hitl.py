@@ -247,10 +247,11 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
             tool_call_id=orig_call_id,
         )
         routine_id = str((record or {}).get("routine_id") or "").strip()
+        is_phase_session = "_phase_" in approval_session or approval_session.startswith("job_")
         persist_sessions = []
         if approval_session:
             persist_sessions.append(approval_session)
-        if display_session and display_session not in persist_sessions and not routine_id:
+        if display_session and display_session not in persist_sessions and not routine_id and not is_phase_session:
             persist_sessions.append(display_session)
         if draft_proposal:
             # One decision note where the operator looks; no TOOL rows (the running turn already has the draft result).

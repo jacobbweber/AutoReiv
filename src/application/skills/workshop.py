@@ -94,14 +94,6 @@ def operator_skill_deletable(data_root: Path, skill_id: str, path: Optional[Path
     return Path(path).is_file()
 
 
-def clear_operator_skill_side_effects(
-    data_root: Path,
-    skill_id: str,
-    db_path: Optional[str] = None,
-) -> None:
-    """Nothing else holds a skill's tools since CARD-570 (the SKILL.md is the only source)."""
-    return None
-
 def _row_for_skill_file(path: Path, skill_id: str, source: str, data_root: Path) -> dict[str, Any]:
     view = frontmatter_view(_read_text(path) or "")
     name = str(view.get("name") or "").strip() or skill_id
