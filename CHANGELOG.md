@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed branch switching in **Settings -> Preferences -> System & Software Updates** to fast-forward stale local branches to `origin/<branch>` before restarting, and hardened update dependency sync to fall back cleanly to offline-capable `pip` when `uv` is unavailable [CARD-727].
+
 ## [1.4.1] - 2026-10-18
 
 Findings backlog resolution, API input validation, Teach card adoption reconciliation, update scheduler defer cap enforcement, runtime stderr logging, capability-authoring contract modernization, and card CLI filtering (`CARD-723`..`CARD-726`).
