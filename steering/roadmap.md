@@ -29,7 +29,7 @@
 - [x] **1.4.1 released 2026-10-18** (tag `v1.4.1`): findings backlog resolution, Chat/Settings API input validation, Teach card adoption state reconciliation, mobile sessions drawer auto-refresh, update scheduler defer cap enforcement, runtime stderr logging, modernized 3-agent capability-authoring contracts, and card CLI `--milestone`/`--priority` filtering (`CARD-723`..`CARD-726`). Every card on the board and every item in `docs/findings.md` is Done.
 
 ## Next
-- [ ] **M32 Projects as user data and development skills** ([ADR-0067](../docs/adr/0067-projects-are-user-data-and-process-lives-in-skills.md)): one user-data projects folder mounted in Docker like the wiki, project process in skills (repo onboarding, spec-driven development) instead of templates, project commands with approval, a dev toolchain in the image, and git clone/pull/push with GitHub MCP docs.
+- [x] **M32 Projects as user data and development skills** ([ADR-0067](../docs/adr/0067-projects-are-user-data-and-process-lives-in-skills.md)): one user-data projects folder mounted in Docker like the wiki, project process in skills (repo onboarding, spec-driven development) instead of templates, project commands with approval, a dev toolchain in the image, and git clone/pull/push with GitHub MCP docs.
 
 ## Horizon
 The parked ideas (Studio Maker, Help Studio, companion, video and others: CARD-146, 170, 275, 277, 280, 283-289, 331, 393, 466, 487, 493, 494, 499, 542) were closed as not pursued before 1.0. Any of them can come back as a new card.
