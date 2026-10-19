@@ -54,6 +54,7 @@ RUN set -e; \
         *) echo "No Godot Linux build for architecture $arch" >&2; exit 1 ;; \
       esac; \
       name="Godot_v${GODOT_VERSION}-stable_linux.${godot_arch}"; \
+      apt-get update && apt-get install -y --no-install-recommends libfontconfig1 && rm -rf /var/lib/apt/lists/*; \
       python -c "import io, sys, urllib.request, zipfile; data = urllib.request.urlopen(sys.argv[1]).read(); open('/usr/local/bin/godot', 'wb').write(zipfile.ZipFile(io.BytesIO(data)).read(sys.argv[2]))" \
         "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${name}.zip" "$name"; \
       chmod 0755 /usr/local/bin/godot; \
