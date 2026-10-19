@@ -119,3 +119,15 @@ def test_projects_files_list_and_read_jailed(client):
     res_escape_list = c.get("/api/projects/files/list?path=../../")
     assert res_escape_list.status_code in (400, 403, 404)
 
+
+
+def test_explorer_without_selection_uses_the_one_project_jail(client):
+    """CARD-728 finding: the explorer endpoints use ProjectsService.selected_or_refuse, the same jail as the tools."""
+    from src.application.sdlc.projects_service import NO_PROJECT_MESSAGE, ProjectsService
+
+    c, _ = client
+    assert not hasattr(ProjectsService, "require_selected_root")
+    for url in ("/api/projects/files/list", "/api/projects/files/read?path=README.md"):
+        res = c.get(url)
+        assert res.status_code == 400
+        assert res.json()["detail"] == NO_PROJECT_MESSAGE

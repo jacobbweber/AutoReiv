@@ -88,7 +88,7 @@ async def get_project_files_list(request: Request, path: str = ".", category: Op
     """List directory entries clamped inside the active project root [REQ-PROJ-014]."""
     svc = _service(request)
     try:
-        root = svc.require_selected_root()
+        root = svc.selected_or_refuse()
     except ProjectPathError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -180,7 +180,7 @@ async def get_project_file_content(request: Request, path: str):
 
     svc = _service(request)
     try:
-        root = svc.require_selected_root()
+        root = svc.selected_or_refuse()
     except ProjectPathError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

@@ -68,17 +68,6 @@ class ProjectsService:
         root = self.projects_dir()
         return target != root and root in target.parents
 
-    def require_selected_root(self) -> Path:
-        """Active project root only — no silent fallback to AutoReiv checkout [CARD-302]."""
-        selected = self.get_selected()
-        path = (selected or {}).get("path") if isinstance(selected, dict) else None
-        if not path:
-            raise ProjectPathError("No active project selected")
-        root = Path(path).expanduser().resolve()
-        if not root.exists() or not root.is_dir():
-            raise ProjectPathError(f"Active project directory not found: {root}")
-        return root
-
     def selected_root(self, project_root: Optional[str] = None) -> Optional[Path]:
         """The Projects Studio-selected project root; None when no project is selected [CARD-556, CARD-562].
 

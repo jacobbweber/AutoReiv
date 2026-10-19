@@ -6,3 +6,10 @@ Sunday triage turns worthwhile findings into cards and deletes the rest with a r
 Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 
 ## M31 Codebase Tightening, Modularization & Architectural Hygiene
+
+## M32 Projects as user data and development skills
+- 2026-10-19 | journeys | card-709 step 3 (Settings model discovery) times out: it calls `window.__autoreivSwitchTab`, which no longer exists | from CARD-728 | tests/e2e/journeys/card-709-web-and-ui-wiring-fixes.mjs
+- 2026-10-19 | kernel | `system_prompt_builder` keeps an `agent.id == "developer"` special case for a retired agent | from CARD-728 | src/application/kernel/system_prompt_builder.py
+- 2026-10-19 | approvals | `cli_exec` asks on every call; no "remember approved commands for this project" | from CARD-729 | src/application/safety/tool_policy_gate.py, src/application/kernel/hitl_engine.py
+- 2026-10-19 | docs | AGENTS.md product lock says the model sees at most 15 tools per turn; ADR-0064 removed the per-turn cap | from CARD-729 | AGENTS.md
+

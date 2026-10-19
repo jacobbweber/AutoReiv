@@ -2,7 +2,7 @@
 id: CARD-728
 title: "Projects live in one user-data folder"
 type: feature
-status: In Progress
+status: In Review
 priority: P1
 milestone: M32
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-728-projects-user-data-folder]
   checks: [tests/unit/architecture/test_card728_projects_user_data.py, tests/integration/test_projects_api.py]
 branch: feat/card-728-projects-user-data
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 250, qa_runs: 2, findings: 2}
 created: 2026-10-18
 ---
 
@@ -43,7 +43,7 @@ be cloned or dropped there and followed in VS Code on the host.
 ## What dies
 - Setting `projects_root`, `ProjectsService.get_projects_root/set_projects_root`, `PROJECTS_ROOT_KEY`,
   `ProjectsRootRequest`, `GET/PUT /api/settings/projects_root`, `#projectsRootInput`, `#projectsRootSaveBtn`,
-  `rPlaceholder()` in `projects.js`.
+  `rPlaceholder()` in `projects.js`, `ProjectsService.require_selected_root` (duplicate jail).
 
 ## Proof
 - Journey `card-728-projects-user-data-folder` (desktop and phone):
@@ -60,10 +60,27 @@ be cloned or dropped there and followed in VS Code on the host.
 - Technical: keep the `projects_root` key in API responses as the folder path to keep the UI and journeys simple.
 
 ## Findings
+- (fixed) Journeys card-562..566, 697, 698 built fixture repos in OS temp and selected them; selection is now jailed, so they
+  use the new shared helper `freshProjectDir()` in `tests/e2e/journeys/lib/app.mjs` (fixture inside the projects folder).
+- (logged) card-709 journey step 3 calls `window.__autoreivSwitchTab`, which no longer exists.
+- (fixed) `ProjectsService.require_selected_root` duplicated `selected_or_refuse`; the explorer endpoints now use
+  `selected_or_refuse` and `require_selected_root` is deleted (contract `test_explorer_without_selection_uses_the_one_project_jail`).
+- (logged) `system_prompt_builder` still has an `agent.id == "developer"` special case.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-728-projects-user-data-folder | desktop | PASS | 4/4 steps: folder shown, UI create = empty git repo, CLAUDE.md project active with no drift/Align, outside paths 400 |
+| card-728-projects-user-data-folder | phone | PASS | 4/4 steps |
+| card-634-projects-journey-runs (updated) | desktop, phone | PASS | no projects_root setup needed |
+| card-709-web-and-ui-wiring-fixes (updated) | desktop, phone | FAIL (step 3 only) | step 2 (create + select in the projects folder, active project pill) PASS; step 3 (Settings model discovery) fails before this card: it calls `window.__autoreivSwitchTab`, which no longer exists in `src/web/static` (finding) |
+| preflight --fast --base qa | - | GREEN | ruff, eslint, guard 307, changed 131, mapped 479, vitest 1139 |
+| pytest tests/unit + tests/integration | - | PASS | 3060 passed, 12 skipped |
+
+Screenshots:
+- /tmp/autoreiv-qa/card-728/card-728-projects-user-data-folder-desktop-01-projects-manager-shows-the-fixed-projects-folder.png
+- /tmp/autoreiv-qa/card-728/card-728-projects-user-data-folder-desktop-03-a-project-with-its-own-claude-md-becomes-active-.png
+- /tmp/autoreiv-qa/card-728/card-728-projects-user-data-folder-phone-02-create-a-project-from-the-ui-and-see-an-empty-gi.png
 
 ## Release note
 Changed: Projects now live in one user-data folder (`<data>/projects`, or `AUTOREIV_PROJECTS_DIR`), the same on native
