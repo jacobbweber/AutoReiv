@@ -3,7 +3,6 @@ CARD-429: agent-builder is not a live agent. Developer owns capability authoring
 The planner no longer switches prompts by agent id.
 """
 
-import pytest
 
 from src.application.agent_skills.allowed_tools import resolve_allowed_tools
 from src.application.kernel.plan_engine import PlanAndExecuteEngine
@@ -49,9 +48,10 @@ def test_planner_uses_one_prompt_for_every_agent():
     assert "Do not emit a graph" in pe._PLANNER_SYSTEM
 
 
-@pytest.mark.skip(reason="Capability authoring / MCP building is on no agent (CARD-571 Toolsmith builds native tools only)")
 def test_developer_pack_holds_builder_tools():
-    dev = platform_pack_profile("developer")
-    assert "propose_skill" in list(resolve_allowed_tools(dev))
-    assert "commit_skill" in list(resolve_allowed_tools(dev))
-    assert "save_agent_specification" not in list(resolve_allowed_tools(dev))
+    autoreiv = platform_pack_profile("autoreiv")
+    allowed = list(resolve_allowed_tools(autoreiv))
+    assert "propose_skill" in allowed
+    assert "commit_skill" in allowed
+    assert "write_skill_file" in allowed
+    assert "save_agent_specification" not in allowed

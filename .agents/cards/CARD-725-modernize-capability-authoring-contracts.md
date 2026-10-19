@@ -2,7 +2,7 @@
 id: CARD-725
 title: "Unskip and Modernize 5 Legacy Capability-Authoring and MCP Lifecycle Tests"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none
@@ -15,8 +15,9 @@ proof:
     - tests/unit/orchestration/test_agent_builder_job_phase.py
     - tests/unit/orchestration/test_commit_skill.py
 branch: feat/card-725-modernize-capability-authoring-contracts
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-18
+completed: 2026-10-18
 ---
 
 # CARD-725 Unskip and Modernize 5 Legacy Capability-Authoring and MCP Lifecycle Tests
@@ -36,7 +37,7 @@ When `CARD-571` temporarily removed skill/MCP authoring tools from `developer` a
 - Remove `@pytest.mark.skip` from all 5 tests and update their assertions to test the live M28/M31 architecture:
   1. `test_mcp_dev_deploy_lifecycle.py`: verify `MCPEngineeringTools` (`scaffold_mcp_server`, `test_mcp_server`, `deploy_mcp_container`, `register_mcp_service`) registers the server, writes the `mcp-<server>` companion `SKILL.md` under `$DATA_DIR/skills/`, and attaches it to `autoreiv`.
   2. `test_oc428_list_user_skills_runbooks.py`: verify `render_skill_index` and `list_user_skills` list ticked platform and user Agora skills for `autoreiv` (name and description only, without body tokens or copying `platform/skills/` into `$DATA_DIR/skills/`) and omit unticked skills.
-  3. `test_oc429_retire_agent_builder.py`: verify retired agents (`agent-builder`, `developer`, `toolsmith`, `architect`) are absent from `GET /api/agents` and rejected on `POST /api/agents`, `autoreiv` owns `capability-authoring` tools (`scaffold_skill`, `test_skill_tool`, `register_skill`, `audit_capabilities`), retired routines (`skill-eval-sleep`, `skill-curator`) are absent, and `GET /api/capabilities/tree` serves the unified Capabilities tree.
+  3. `test_oc429_retire_agent_builder.py`: verify retired agents (`agent-builder`, `developer`, `toolsmith`, `architect`) are absent from `GET /api/agents` and rejected on `POST /api/agents`, `autoreiv` owns `capability-authoring` tools (`propose_skill`, `propose_tool`, `commit_skill`, `list_available_skills_and_tools`, `write_skill_file`), retired routines (`skill-eval-sleep`, `skill-curator`) are absent, and `GET /api/capabilities/tree` serves the unified Capabilities tree.
   4. `test_agent_builder_job_phase.py`: update `test_developer_pack_holds_builder_tools` to assert `autoreiv`'s `capability-authoring` tools via `resolve_allowed_tools`.
   5. `test_commit_skill.py`: update `test_coding_cannot_execute_propose_skill` so an unprivileged agent is denied `propose_skill` while `autoreiv` with `capability-authoring` has its authoring toolset.
 
@@ -56,13 +57,18 @@ All 5 `@pytest.mark.skip(reason="Capability authoring / MCP building is on no ag
 - Preserve every negative boundary assertion (no `agent-builder`, no copying shipped `platform/skills/` into `$DATA_DIR/skills/`, no unauthorized tool execution) while updating the target agent from retired `developer` to `autoreiv`.
 
 ## Findings
-- None yet.
+- None.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-725-modernize-capability-authoring-contracts` | desktop | PASS | 2/2 steps pass (3-agent roster + retired agent rejection + Agent/Capabilities Studio verification) |
+| `card-725-modernize-capability-authoring-contracts` | phone | PASS | 2/2 steps pass |
 
-Screenshots: `/tmp/autoreiv-qa/card-725/...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-725/card-725-modernize-capability-authoring-contracts-desktop-01-api-roster-exposes-only-autoreiv-tutor-direct-rejects-ag.png`
+- `/tmp/autoreiv-qa/card-725/card-725-modernize-capability-authoring-contracts-desktop-02-agent-studio-shows-capability-authoring-ticked-on-autore.png`
+- `/tmp/autoreiv-qa/card-725/card-725-modernize-capability-authoring-contracts-phone-02-agent-studio-shows-capability-authoring-ticked-on-autore.png`
 
 ## Release note
 Unskipped and updated 5 capability-authoring and MCP lifecycle tests for the 3-agent Agora skill architecture.
