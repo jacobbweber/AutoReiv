@@ -2,7 +2,7 @@
 id: CARD-726
 title: "Card Status CLI Milestone/Priority Support, Smoke TC-7 Transition Wait, and Stale knownBug Cleanup"
 type: bug
-status: Ready
+status: Done
 priority: P2
 milestone: M31
 needs_decision: none
@@ -11,8 +11,9 @@ proof:
   checks:
     - tests/unit/skills/test_card726_list_card_status.py
 branch: feat/card-726-card-cli-and-theme-transition
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-18
+completed: 2026-10-18
 ---
 
 # CARD-726 Card Status CLI Milestone/Priority Support, Smoke TC-7 Transition Wait, and Stale knownBug Cleanup
@@ -47,13 +48,18 @@ One-shot mid-transition `getComputedStyle` evaluation in `smoke.spec.js` `TC-7`,
 - Normalize any status containing `superseded` to `Superseded`, and any status starting with `complete`/`completed`/`done` (without `superseded`) to `Done`.
 
 ## Findings
-- None yet.
+- None.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-726-card-cli-and-theme-transition` | desktop | PASS | 2/2 steps pass (amber-phosphor + emerald-matrix theme transition on `#checkForUpdatesBtn`) |
+| `card-726-card-cli-and-theme-transition` | phone | PASS | 2/2 steps pass |
 
-Screenshots: `/tmp/autoreiv-qa/card-726/...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-726/card-726-card-cli-and-theme-transition-desktop-01-select-amber-phosphor-preset-in-settings-studio-and-verify-c.png`
+- `/tmp/autoreiv-qa/card-726/card-726-card-cli-and-theme-transition-desktop-02-switch-to-emerald-matrix-preset-verify-checkforupdatesbtn-se.png`
+- `/tmp/autoreiv-qa/card-726/card-726-card-cli-and-theme-transition-phone-02-switch-to-emerald-matrix-preset-verify-checkforupdatesbtn-se.png`
 
 ## Release note
 Added `--milestone` and `--priority` support plus status normalization to `list_card_status.py`, fixed the mid-transition CSS race in smoke test `TC-7`, and removed the stale `CARD-535` `knownBug` marker from `card-520`.
