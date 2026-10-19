@@ -2,7 +2,8 @@
 id: CARD-729
 title: "Project process lives in skills, not templates"
 type: feature
-status: In Review
+status: Done
+completed: 2026-10-19
 priority: P1
 milestone: M32
 needs_decision: none
@@ -90,15 +91,16 @@ run the project's real build and test commands.
 |---|---|---|---|
 | card-728-projects-user-data-folder | desktop | PASS | 4/4 steps: folder shown, UI create = empty git repo, CLAUDE.md project active with no drift/Align, outside paths 400 |
 | card-728-projects-user-data-folder | phone | PASS | 4/4 steps |
+| card-728-projects-user-data-folder (rerun after the jail fix) | desktop, phone | PASS | `/tmp/autoreiv-qa/card-728-r2/` |
 | card-634-projects-journey-runs (updated) | desktop, phone | PASS | no projects_root setup needed |
 | card-709-web-and-ui-wiring-fixes (updated) | desktop, phone | FAIL (step 3 only) | step 2 (create + select in the projects folder, active project pill) PASS; step 3 (Settings model discovery) fails before this card: it calls `window.__autoreivSwitchTab`, which no longer exists in `src/web/static` (finding) |
 | preflight --fast --base qa | - | GREEN | ruff, eslint, guard 307, changed 131, mapped 479, vitest 1139 |
 | pytest tests/unit + tests/integration | - | PASS | 3060 passed, 12 skipped |
 
 Screenshots:
-- /tmp/autoreiv-qa/card-728/card-728-projects-user-data-folder-desktop-01-projects-manager-shows-the-fixed-projects-folder.png
-- /tmp/autoreiv-qa/card-728/card-728-projects-user-data-folder-desktop-03-a-project-with-its-own-claude-md-becomes-active-.png
-- /tmp/autoreiv-qa/card-728/card-728-projects-user-data-folder-phone-02-create-a-project-from-the-ui-and-see-an-empty-gi.png
+- /tmp/autoreiv-qa/card-728-r2/card-728-projects-user-data-folder-desktop-01-projects-manager-shows-the-fixed-projects-folder.png
+- /tmp/autoreiv-qa/card-728-r2/card-728-projects-user-data-folder-desktop-03-a-project-with-its-own-claude-md-becomes-active-.png
+- /tmp/autoreiv-qa/card-728-r2/card-728-projects-user-data-folder-phone-02-create-a-project-from-the-ui-and-see-an-empty-gi.png
 
 ## Release note
 Changed: Projects Studio no longer pushes AutoReiv's template onto repos (drift and Align removed, new projects are an
