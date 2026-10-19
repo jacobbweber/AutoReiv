@@ -15,10 +15,10 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
-@pytest.mark.skip(reason="Capability authoring / MCP building is on no agent (CARD-571 Toolsmith builds native tools only)")
 @pytest.mark.asyncio
-async def test_mcp_dev_deploy_lifecycle_end_to_end(tmp_path):
+async def test_mcp_dev_deploy_lifecycle_end_to_end(tmp_path, monkeypatch):
     data_dir = tmp_path / "user_data"
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data_dir))
     skills_dir = data_dir / "skills"
     project_root = tmp_path / "scratch" / "cluster_service"
 
@@ -120,11 +120,13 @@ async def test_mcp_dev_deploy_lifecycle_end_to_end(tmp_path):
     assert "Cluster Service" in skill_content
     assert "mcp_cluster_service_restart_node" in skill_content
 
-    # 7. Agent Authorization Verification
-    dev = registry.get_agent("developer")
-    assert dev is not None
-    # Developer pack has mcp-engineering in allowed_skill
-    assert "mcp-engineering" in dev.allowed_skill or "mcp-engineering" in list(resolve_allowed_tools(dev))
+    # 7. Agent Authorization Verification (AutoReiv via user:* and companion skill tools frontmatter)
+    autoreiv = registry.get_agent("autoreiv")
+    assert autoreiv is not None
+    assert "user:*" in (autoreiv.allowed_skill or [])
+    allowed = resolve_allowed_tools(autoreiv)
+    assert "mcp_cluster_service_restart_node" in allowed
+    assert "mcp_cluster_service_*" in allowed.patterns
 
 
 class _PassingChecker:

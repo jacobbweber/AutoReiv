@@ -260,7 +260,6 @@ async def test_agent_builder_tool_commits_after_approve(setup):
     assert (setup["skills_dir"] / "studio-pack" / "SKILL.md").is_file()
 
 
-@pytest.mark.skip(reason="Capability authoring / MCP building is on no agent (CARD-571 Toolsmith builds native tools only)")
 @pytest.mark.asyncio
 async def test_coding_cannot_execute_propose_skill(setup):
     registry = ScopedToolRegistry()
@@ -280,6 +279,6 @@ async def test_coding_cannot_execute_propose_skill(setup):
     assert result.success is False
     assert "not authorized" in (result.error or "")
     assert setup["store"].get_pending_approvals(session_id="sess_code") == []
-    developer = platform_pack_profile("developer")
-    assert "propose_skill" in list(resolve_allowed_tools(developer))
-    assert "save_agent_specification" not in list(resolve_allowed_tools(developer))
+    autoreiv = platform_pack_profile("autoreiv")
+    assert "propose_skill" in list(resolve_allowed_tools(autoreiv))
+    assert "save_agent_specification" not in list(resolve_allowed_tools(autoreiv))
