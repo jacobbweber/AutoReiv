@@ -15,11 +15,13 @@ const isHidden = (loc) => loc.evaluate((el) => el.classList.contains('hidden')).
 
 async function openProjectsManager(page) {
   if (!(await page.locator('#view-projects').isVisible().catch(() => false))) {
-    await page.locator('#dock-projects').click();
+    await clickExpect(page.locator('#dock-projects'), () => page.locator('#view-projects').isVisible(), {
+      label: 'Open Projects', timeoutMs: 20000,
+    });
   }
-  await page.locator('#view-projects').waitFor({ state: 'visible', timeout: 20000 });
-  await page.locator('#projectsModeManagerBtn').click();
-  await waitFor(async () => !(await isHidden(page.locator('#projectsManagerView'))), { timeoutMs: 10000 });
+  await clickExpect(page.locator('#projectsModeManagerBtn'), async () => !(await isHidden(page.locator('#projectsManagerView'))), {
+    label: 'Projects Manager', timeoutMs: 10000,
+  });
 }
 
 async function assertNoTemplatePush(page) {
@@ -72,9 +74,10 @@ export default {
 
       await j.step('A project with its own CLAUDE.md becomes active and the explorer lists its files', async () => {
         fs.writeFileSync(path.join(projPath, 'CLAUDE.md'), '# CLAUDE.md\n\nThis repo keeps its own rules.\n');
-        await page.locator('#projectsRefreshBtn').click();
         const setActive = page.locator(`#projectsList [data-act="set-active"][data-slug="${slug}"]`);
-        await setActive.waitFor({ state: 'visible', timeout: 15000 });
+        await clickExpect(page.locator('#projectsRefreshBtn'), () => setActive.isVisible(), {
+          label: 'Refresh projects', timeoutMs: 15000,
+        });
         await clickExpect(
           setActive,
           async () => (await page.locator('#projectsActiveName').innerText().catch(() => '')).includes(slug),
@@ -83,10 +86,10 @@ export default {
         const sel = await getJson(request, `${base}/api/projects/selected`);
         const picked = sel.selected || sel;
         if (picked.slug !== slug) throw new Error(`selected slug ${picked.slug}, expected ${slug}`);
-        await page.locator('#projectsModeExplorerBtn').click();
-        await waitFor(
+        await clickExpect(
+          page.locator('#projectsModeExplorerBtn'),
           async () => (await page.locator('#projectsTreeList', { hasText: 'CLAUDE.md' }).count()) > 0,
-          { timeoutMs: 15000, label: 'explorer lists CLAUDE.md' },
+          { label: 'Explorer lists CLAUDE.md', timeoutMs: 15000 },
         );
         await assertNoTemplatePush(page);
         if (fs.existsSync(path.join(projPath, 'AGENTS.md'))) throw new Error('AGENTS.md appeared next to CLAUDE.md');
