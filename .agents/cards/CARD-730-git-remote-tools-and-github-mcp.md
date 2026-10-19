@@ -2,7 +2,8 @@
 id: CARD-730
 title: "AutoReiv clones, pulls and pushes git repos and can use GitHub's MCP server"
 type: feature
-status: In Progress
+status: Done
+completed: 2026-10-19
 priority: P1
 milestone: M32
 needs_decision: none
@@ -10,7 +11,7 @@ proof:
   journeys: [card-730-git-remote-tools]
   checks: [tests/unit/skills/test_card730_git_remote_tools.py, tests/unit/mcp/test_remote_sse_adapter.py]
 branch: feat/card-730-git-remote-tools-and-github-mcp
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 75, qa_runs: 1, findings: 2}
 created: 2026-10-19
 ---
 
@@ -70,10 +71,26 @@ GitHub's MCP server for issues and pull requests, configured by him as a user (A
     remote transport (no new transport option in the UI).
 
 ## Findings
+- (fixed) The remote MCP transport only sent `Content-Type: application/json` and read a plain JSON body, so Streamable
+  HTTP servers (GitHub's) would answer 406 or an SSE frame it could not read. Now Accept, SSE replies and session id.
+- (fixed) `askAndApprove` had three copies; the card-697 version moved to `tests/e2e/journeys/lib/app.mjs` and is used
+  by card-697 and card-730.
+- (logged) card-562 and card-563 still keep their own `askAndApprove` with a different signature.
+- (logged) The GitHub MCP server was not exercised live: this host has no GitHub token. The protocol is covered by a
+  unit test that mimics GitHub's replies; the first real run is when Jacob adds the server with his token.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| card-730-git-remote-tools | desktop | PASS | 5/5 steps; one approval each for clone, pull, push; push on main refused, origin main unchanged |
+| card-730-git-remote-tools | phone | PASS | 5/5 steps |
+| preflight --fast --base qa | - | GREEN | guard 314, changed 23, mapped 386, vitest 1139 |
+| pytest tests/unit + tests/integration | - | PASS | 3076 passed after the tool-count update |
+
+Screenshots:
+- /tmp/autoreiv-qa/card-730/card-730-git-remote-tools-desktop-02-git-clone-after-approval-lands-in-the-projects-f.png
+- /tmp/autoreiv-qa/card-730/card-730-git-remote-tools-desktop-05-git-push-on-main-is-refused-and-origin-main-is-u.png
+- /tmp/autoreiv-qa/card-730/card-730-git-remote-tools-phone-04-git-push-after-approval-sends-the-work-branch-to.png
 
 ## Release note
 Added: AutoReiv can clone repos into the projects folder and pull and push work branches (approval per call; private
