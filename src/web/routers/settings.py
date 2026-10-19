@@ -357,13 +357,27 @@ async def update_purpose_matrix(request: Request, data: Dict[str, Any]):
             if mk and parsed > 0:
                 model_windows[str(mk)] = parsed
 
-    raw_slots = data.get("max_concurrent_generations", 1)
-    try:
-        slots = int(raw_slots)
-    except (TypeError, ValueError):
+    if "max_concurrent_generations" not in data or data.get("max_concurrent_generations") is None:
         slots = 1
-    if slots < 1 or slots > 3:
-        slots = 1
+    else:
+        raw_slots = data.get("max_concurrent_generations")
+        if isinstance(raw_slots, bool):
+            raise HTTPException(
+                status_code=400,
+                detail="max_concurrent_generations must be an integer between 1 and 3",
+            )
+        try:
+            slots = int(raw_slots)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail="max_concurrent_generations must be an integer between 1 and 3",
+            ) from None
+        if slots < 1 or slots > 3:
+            raise HTTPException(
+                status_code=400,
+                detail="max_concurrent_generations must be an integer between 1 and 3",
+            )
 
 
     store = getattr(request.app.state, "store", None)

@@ -4,6 +4,17 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-18
+
+Findings backlog resolution, API input validation, Teach card adoption reconciliation, update scheduler defer cap enforcement, runtime stderr logging, capability-authoring contract modernization, and card CLI filtering (`CARD-723`..`CARD-726`).
+
+### Fixed
+
+- Added `--milestone` and `--priority` support plus status normalization to `list_card_status.py`, fixed the mid-transition CSS race in smoke test `TC-7`, and removed the stale `CARD-535` `knownBug` marker from `card-520` [CARD-726].
+- Unskipped and updated 5 capability-authoring and MCP lifecycle tests for the 3-agent Agora skill architecture [CARD-725].
+- Enforced the daily defer-retry ceiling in `SoftwareUpdateScheduler`, added stderr `StreamHandler` forwarding for `src.*` logs in `setup_system_logging`, and added Windows restarter and Settings Updates first-paint tests [CARD-724].
+- Validated `max_concurrent_generations` (`1..3`) on `POST /api/settings/matrix` and `approval_mode` on `POST /api/chat/stream`, reconciled reloaded Teach card adoption state when a skill is removed, and refreshed the Chat sessions drawer on open [CARD-723].
+
 ## [1.4.0] - 2026-10-18
 
 Web Search & URL Fetch platform skill (`fetch_url` and `web_search` tools with zero-key DuckDuckGo Lite plus Vault-encrypted Tavily and Brave Search keys), Docker in-app git software updates and branch switching with an editable default Origin URL (`https://github.com/jacobbweber/AutoReiv.git`), one-click `+ New` Chat button in the main composer bar, auto-authored `mcp-<server>` companion skills with Chat Auto-run support, and comprehensive UI audit fixes across all studios (`CARD-718`..`CARD-722`).

@@ -54,9 +54,7 @@ from src.application.chat.stream_registry import (
     spawn_turn_side_task,
     sse_with_keepalive,
 )
-from src.application.chat.stream_registry import (
-    live_stream_session_ids as _live_stream_session_ids,
-)
+from src.application.chat.stream_registry import live_stream_session_ids as _live_stream_session_ids
 from src.application.chat.turn_streamer import (
     PHASE_COMPLETE_REFUSED_REASON,
     _apply_verify_gate,
@@ -93,9 +91,7 @@ from src.application.orchestration.session_activity import (
     job_has_running_phase,
     session_activity,
 )
-from src.application.orchestration.working_set_context import (
-    rebuild_working_set_after_resume,
-)
+from src.application.orchestration.working_set_context import rebuild_working_set_after_resume
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
 from src.domain.orchestration.models import PhaseStatus
@@ -252,6 +248,9 @@ async def get_session_messages(request: Request, session_id: str, include_archiv
         request.app.state.store,
         session_id,
         include_archived=include_archived,
+        registry=getattr(request.app.state, "registry", None),
+        catalog=getattr(request.app.state, "user_skill_catalog", None),
+        data_dir_paths=getattr(request.app.state, "data_dir_paths", None),
     )
 
 
@@ -302,6 +301,15 @@ async def get_session_debug_payload(request: Request, session_id: str):
     )
 
 
+_VALID_STREAM_APPROVAL_MODES = {
+    "ask": "ask",
+    "run": "run",
+    "strict": "ask",
+    "balanced": "ask",
+    "hands_off": "run",
+}
+
+
 @router.post("/api/chat/stream")
 async def chat_stream(request: Request, req: ChatStreamRequest):
     registry = request.app.state.registry
@@ -309,6 +317,17 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     reflexion_engine = getattr(request.app.state, "reflexion_engine", None)
     orch = getattr(request.app.state, "job_orchestrator", None)
     store = request.app.state.store
+
+    raw_mode = str(req.approval_mode or "ask").strip().lower() or "ask"
+    if raw_mode not in _VALID_STREAM_APPROVAL_MODES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid approval_mode '{req.approval_mode}'. "
+                "Must be one of: ask, run, strict, balanced, hands_off."
+            ),
+        )
+    req.approval_mode = _VALID_STREAM_APPROVAL_MODES[raw_mode]
 
     profile = registry.get_profile(req.agent_id)
     if not profile:
@@ -399,18 +418,13 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                 phase = orch.start_phase(phase.id)
                             resume_session = resume_session_for_phase(store, req.session_id, phase)
                             outcome = await _stream_turn_bound(
-                                queue=queue,
-                                kernel=kernel,
-                                orch=orch,
-                                store=store,
+                                queue=queue, kernel=kernel, orch=orch, store=store,
                                 reflexion_engine=reflexion_engine,
                                 profile=profile_for_phase(profile, phase, registry),
                                 session_id=resume_session,
                                 user_content=effective_content if answer_job is not None else None,
                                 approval_mode=req.approval_mode or "ask",
-                                resume=answer_job is None,
-                                job=job,
-                                phase=phase,
+                                resume=answer_job is None, job=job, phase=phase,
                                 self_verify=bool(phase.verify_checker),
                             )
                             if outcome == "question":
@@ -420,31 +434,20 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             if outcome == "done":
                                 # CARD-253: continue remaining phases (uses rebuild_working_set_after_resume).
                                 await continue_remaining_resumed_phases(
-                                    queue=queue,
-                                    store=store,
-                                    kernel=kernel,
-                                    orch=orch,
-                                    reflexion_engine=reflexion_engine,
-                                    profile=profile,
-                                    registry=registry,
-                                    job=job,
-                                    finished_phase=phase,
-                                    resume_session=resume_session,
-                                    parent_session_id=req.session_id,
+                                    queue=queue, store=store, kernel=kernel, orch=orch,
+                                    reflexion_engine=reflexion_engine, profile=profile,
+                                    registry=registry, job=job, finished_phase=phase,
+                                    resume_session=resume_session, parent_session_id=req.session_id,
                                     approval_mode=req.approval_mode or "ask",
-                                    effective_content=effective_content,
-                                    answer_job=answer_job,
+                                    effective_content=effective_content, answer_job=answer_job,
                                 )
                             return
 
             if req.agent_id == "direct":
                 turn_content = None if resume else effective_content
                 async for event in kernel.stream_turn(
-                    profile,
-                    req.session_id,
-                    turn_content,
-                    approval_mode=req.approval_mode or "ask",
-                    resume=resume,
+                    profile, req.session_id, turn_content,
+                    approval_mode=req.approval_mode or "ask", resume=resume,
                 ):
                     partial.observe(event)  # CARD-489: Direct replies keep their words on Stop too
                     if event.event_type == KernelEventType.TURN_END:
@@ -457,37 +460,24 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             if (not resume) and req.run_as_job:
                 # Fail-closed outcome mint [CARD-236 / REQ-JOBMINT-001]: cannot mint standing Job when orch missing.
                 can_mint = await check_job_mint_preconditions(
-                    queue=queue,
-                    store=store,
-                    orch=orch,
-                    profile=profile,
-                    session_id=req.session_id,
-                    effective_content=effective_content,
+                    queue=queue, store=store, orch=orch, profile=profile,
+                    session_id=req.session_id, effective_content=effective_content,
                 )
                 if not can_mint:
                     return
                 job = orch.create_job_from_catalog_resolve(
-                    intent=effective_content,
-                    session_id=req.session_id,
-                    agent_id=profile.id,
-                    role=profile.id,
+                    intent=effective_content, session_id=req.session_id,
+                    agent_id=profile.id, role=profile.id,
                     verify_checker=verify_checker if self_verify else None,
                 )
                 # Emits job_created, catalog_resolved, and plan_formulated, then runs phases.
                 await emit_and_execute_catalog_job(
-                    queue=queue,
-                    store=store,
-                    kernel=kernel,
-                    orch=orch,
-                    reflexion_engine=reflexion_engine,
-                    profile=profile,
-                    job=job,
-                    session_id=req.session_id,
-                    self_verify=self_verify,
+                    queue=queue, store=store, kernel=kernel, orch=orch,
+                    reflexion_engine=reflexion_engine, profile=profile, job=job,
+                    session_id=req.session_id, self_verify=self_verify,
                     approval_mode=req.approval_mode or "ask",
                     capability_catalog=getattr(request.app.state, "capability_catalog", None),
-                    wiki_root=getattr(request.app.state, "wiki_path", None),
-                    registry=registry,
+                    wiki_root=getattr(request.app.state, "wiki_path", None), registry=registry,
                 )
                 return
 
@@ -495,11 +485,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             turn_content = None if resume else effective_content
             last_plain = ""
             async for event in kernel.stream_turn(
-                profile,
-                req.session_id,
-                turn_content,
-                approval_mode=req.approval_mode or "ask",
-                resume=resume,
+                profile, req.session_id, turn_content,
+                approval_mode=req.approval_mode or "ask", resume=resume,
                 parts_request=None if resume else req.content,  # CARD-599: skipped-parts check on the typed text
             ):
                 if event.event_type == KernelEventType.TURN_END and event.content:
@@ -515,18 +502,11 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 )
                 data_dir = getattr(request.app.state, "data_dir", None) or getattr(kernel, "data_dir", None)
                 await finalize_plain_turn_verification_and_memory(
-                    queue=queue,
-                    profile=profile,
-                    session_id=req.session_id,
-                    effective_content=effective_content,
-                    last_plain=last_plain,
-                    self_verify=self_verify,
-                    verify_checker=verify_checker,
-                    reflexion_engine=reflexion_engine,
-                    llm_service=llm_service,
-                    data_dir=data_dir,
-                    spawn_side_task_fn=spawn_turn_side_task,
-                    extract_memory_fn=_background_extract_turn_memory,
+                    queue=queue, profile=profile, session_id=req.session_id,
+                    effective_content=effective_content, last_plain=last_plain,
+                    self_verify=self_verify, verify_checker=verify_checker,
+                    reflexion_engine=reflexion_engine, llm_service=llm_service, data_dir=data_dir,
+                    spawn_side_task_fn=spawn_turn_side_task, extract_memory_fn=_background_extract_turn_memory,
                 )
 
         except asyncio.CancelledError:

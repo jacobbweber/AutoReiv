@@ -363,16 +363,10 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(card).toBeVisible();
 
     // Verify primary button background turns to brand (#c4a35a -> rgb(196, 163, 90))
-    const updateBtnBg = await page.locator('#checkForUpdatesBtn').evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-    expect(updateBtnBg).toBe('rgb(196, 163, 90)');
+    await expect(page.locator('#checkForUpdatesBtn')).toHaveCSS('background-color', 'rgb(196, 163, 90)');
 
     // Verify window icon retains neutral slate chrome
-    const iconColor = await page.locator('#desktopWin-settings .desktop-win-icon').evaluate((el) => {
-      return window.getComputedStyle(el).color;
-    });
-    expect(iconColor).toBe('rgb(148, 163, 184)');
+    await expect(page.locator('#desktopWin-settings .desktop-win-icon')).toHaveCSS('color', 'rgb(148, 163, 184)');
 
     // Switch to Emerald Matrix (Teal) and verify button background turns to teal (#2dd4bf -> rgb(45, 212, 191))
     await page.locator('#dock-settings').click();
@@ -380,19 +374,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await emeraldPreset.scrollIntoViewIfNeeded();
     await emeraldPreset.click();
 
-    await page.waitForFunction(
-      () => {
-        const btn = document.getElementById('checkForUpdatesBtn');
-        if (!btn) return false;
-        return window.getComputedStyle(btn).backgroundColor === 'rgb(45, 212, 191)';
-      },
-      { timeout: 3000 }
-    );
-
-    const finalBg = await page.locator('#checkForUpdatesBtn').evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-    expect(finalBg).toBe('rgb(45, 212, 191)');
+    await expect(page.locator('#checkForUpdatesBtn')).toHaveCSS('background-color', 'rgb(45, 212, 191)');
   });
 
   test('TC-8: Chat composer grows on focus and the message list stays visible and scrollable [CARD-465]', async ({

@@ -46,6 +46,9 @@ class SoftwareUpdateScheduler:
             self._defer_count_date = day_key
             self._defer_count = 0
 
+        if self._defer_count >= MAX_DEFER_RETRIES_PER_DAY:
+            return None
+
         try:
             result = self.update_service.run_auto_update_if_due(now=current)
         except Exception as exc:
@@ -57,7 +60,7 @@ class SoftwareUpdateScheduler:
 
         if getattr(result, "refused", False) and "busy" in (getattr(result, "message", "") or "").lower():
             self._defer_count += 1
-            if self._defer_count > MAX_DEFER_RETRIES_PER_DAY:
+            if self._defer_count >= MAX_DEFER_RETRIES_PER_DAY:
                 logger.warning(
                     "Auto-update deferred %d times today; giving up until tomorrow",
                     self._defer_count,
