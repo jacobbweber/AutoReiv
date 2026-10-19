@@ -46,20 +46,31 @@ def test_kernel_has_no_hardcoded_cli_exec_advice_outside_the_guard():
     assert src.count("Use cli_exec") == 1  # only inside project_tool_guidance, behind `"cli_exec" in allowed_tools`
 
 
-@pytest.mark.parametrize("runner", RUNNERS)
-def test_gate_refuses_runner_for_developer(runner):
+def _gate_decision(runner: str):
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
-    d = ToolPolicyGate(store=store).evaluate(
+    return ToolPolicyGate(store=store).evaluate(
         ToolCall(id="c1", name=runner, arguments={"command": "node --test"}),
         platform_pack_profile("developer"),
         registry_tool_names={runner, "run_project_checks"},
     )
+
+
+def test_gate_refuses_code_runner_for_developer():
+    d = _gate_decision("execute_code")
     assert d.verdict == ToolPolicyVerdict.BLOCK
     assert d.policy_source == "agent_allowlist"
 
 
-@pytest.mark.parametrize("runner", RUNNERS)
+def test_gate_asks_approval_for_every_cli_exec_call():
+    """Amended by ADR-0067 / CARD-729 (Jacob decision 2026-10-18): cli_exec comes from software-development and
+    never runs without the operator's approval."""
+    d = _gate_decision("cli_exec")
+    assert d.verdict == ToolPolicyVerdict.REQUIRE_CONFIRM
+    assert d.verdict != ToolPolicyVerdict.ALLOW
+
+
+@pytest.mark.parametrize("runner", ["execute_code"])
 def test_registry_refuses_runner_for_developer(runner, tmp_path):
     from src.application.telemetry.collector import TelemetryCollector
     from src.infrastructure.agents.registry import BuiltinAgentRegistry

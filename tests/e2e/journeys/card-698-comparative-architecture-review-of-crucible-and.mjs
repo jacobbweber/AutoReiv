@@ -8,7 +8,6 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
 import {
@@ -20,6 +19,7 @@ import {
   send,
   trackStreams,
   waitReplyIdle,
+  freshProjectDir,
 } from './lib/app.mjs';
 
 const REPO_ROOT = process.cwd();
@@ -29,8 +29,7 @@ const README_REL = 'docs/README.md';
 const git = (cwd, ...args) => execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8' }).trim();
 const role = (m) => String((m && m.role) || '').toLowerCase();
 
-function makeDocProjectFixture(tag) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `autoreiv-card698-${tag}-`));
+function makeDocProjectFixture(root) {
   fs.mkdirSync(path.join(root, 'docs', 'adr'), { recursive: true });
   fs.mkdirSync(path.join(root, '.agents', 'cards'), { recursive: true });
   fs.mkdirSync(path.join(root, '.agents', 'templates'), { recursive: true });
@@ -125,7 +124,7 @@ export default {
       }, { timeoutMs: 15000 });
 
       await j.step('Select fixture project containing comparative review doc and open AutoReiv chat session', async () => {
-        root = makeDocProjectFixture(viewport.name);
+        root = makeDocProjectFixture(await freshProjectDir(request, base, `card698-${viewport.name}`));
         const res = await request.put(`${base}/api/projects/selected`, { data: { slug: 'docs-review', path: root } });
         if (!res.ok()) throw new Error(`select project -> ${res.status()}`);
 

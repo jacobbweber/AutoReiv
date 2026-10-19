@@ -957,10 +957,12 @@ async def test_stream_turn_uses_full_context_window(store, collector, registry):
     assert req.num_ctx != 32768
 
 
-def test_agent_kernel_injects_active_selected_project(store, collector, registry, tmp_path):
+def test_agent_kernel_injects_active_selected_project(store, collector, registry, tmp_path, monkeypatch):
     """Verify that the active selected project from ProjectsService is injected into system prompt."""
     from src.application.sdlc.projects_service import ProjectsService
 
+    monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", str(tmp_path))  # CARD-728: projects live in one folder
+    (tmp_path / "agentic-test").mkdir()
     proj_svc = ProjectsService(store=store)
     proj_svc.set_selected(slug="agentic-test", path=str(tmp_path / "agentic-test"))
 

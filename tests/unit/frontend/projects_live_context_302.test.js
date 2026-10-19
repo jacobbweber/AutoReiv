@@ -2,34 +2,26 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-describe('CARD-302 Projects live context + drift overlay', () => {
+describe('CARD-302 Projects live context (CARD-729: no template drift)', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
   const js = fs.readFileSync(path.resolve(__dirname, '../../../src/web/static/modules/studios/projects.js'), 'utf-8');
-  const manifest = fs.readFileSync(
-    path.resolve(__dirname, '../../../templates/sdlc-project/project_template_manifest.json'),
-    'utf-8',
-  );
 
-  it('ships a versioned project template path manifest', () => {
-    const data = JSON.parse(manifest);
-    expect(data.template_version).toBeTruthy();
-    expect(data.required_paths).toContain('AGENTS.md');
-    expect(data.required_paths).toContain('.agents/cards/.gitkeep'); // CARD-562: one card folder, no steering placeholders
-    expect(data.required_paths).not.toContain('.agents/steering/product.md');
+  it('ships no project template to push onto repos', () => {
+    expect(fs.existsSync(path.resolve(__dirname, '../../../templates/sdlc-project'))).toBe(false);
   });
 
-  it('renders drift banner + align control inside Artifact Explorer', () => {
-    expect(html).toContain('id="projectsDriftBanner"');
-    expect(html).toContain('id="projectsAlignBtn"');
+  it('keeps the active root bar and drops the drift banner and Align control', () => {
     expect(html).toContain('id="projectsActiveRootBar"');
     // CARD-303: dedicated Explorer view replaces overlay z-index
     expect(html).toContain('id="projectsExplorerView"');
+    expect(html).not.toContain('id="projectsDriftBanner"');
+    expect(html).not.toContain('id="projectsAlignBtn"');
   });
 
-  it('wires Active switch to reload tree + drift from disk APIs', () => {
-    expect(js).toContain('/api/projects/drift');
-    expect(js).toContain('/api/projects/align');
-    expect(js).toContain('loadDrift');
+  it('reloads the tree on Active switch and never calls the retired drift/align APIs', () => {
+    expect(js).not.toContain('/api/projects/drift');
+    expect(js).not.toContain('/api/projects/align');
+    expect(js).not.toContain('loadDrift');
     expect(js).toContain("await loadTree('.', 'all')");
   });
 });

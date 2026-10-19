@@ -8,10 +8,9 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
+import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle, freshProjectDir } from './lib/app.mjs';
 
 const DEV_MODEL = process.env.AUTOREIV_QA_DEVELOPER_MODEL || 'qwen3.6:35b-a3b';
 const DEV_URL = process.env.AUTOREIV_QA_DEVELOPER_URL || 'http://192.168.1.29:11434';
@@ -71,8 +70,7 @@ const role = (m) => String((m && m.role) || '').toLowerCase();
 const statusOf = (file) => ((fs.readFileSync(file, 'utf8').match(/^status:\s*(.+)$/m) || [])[1] || '').trim();
 const cardsDir = (root) => path.join(root, '.agents', 'cards');
 
-function makeFixture(tag) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `autoreiv-card566-${tag}-`));
+function makeFixture(root) {
   fs.mkdirSync(cardsDir(root), { recursive: true });
   fs.writeFileSync(path.join(root, 'AGENTS.md'), AGENTS_MD);
   fs.writeFileSync(path.join(root, 'calc.js'), CALC);
@@ -128,7 +126,7 @@ export default {
     }, { timeoutMs: 30000 });
 
     await j.step('A throwaway repo with CARD-3 Ready is the active project; Auto-run is ticked in an Architect chat', async () => {
-      root = makeFixture(viewport.name);
+      root = makeFixture(await freshProjectDir(request, base, `card566-${viewport.name}`));
       const res = await request.put(`${base}/api/projects/selected`, { data: { slug: 'calc', path: root } });
       if (!res.ok()) throw new Error(`select project -> ${res.status()}`);
       const title = `QA 566 architect ${viewport.name} ${Date.now() % 100000}`;

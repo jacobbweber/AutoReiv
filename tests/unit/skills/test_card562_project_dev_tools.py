@@ -163,7 +163,7 @@ def test_git_create_branch_carries_card_edits_made_on_the_base_branch(project: P
 def svc(tmp_path: Path) -> ProjectsService:
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
-    return ProjectsService(store=store, default_checkout=tmp_path / "checkout")
+    return ProjectsService(store=store, projects_dir=tmp_path)  # CARD-728
 
 
 def test_no_project_selected_refuses_instead_of_using_the_checkout(svc: ProjectsService, project: Path):

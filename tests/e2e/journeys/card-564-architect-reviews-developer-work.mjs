@@ -14,10 +14,9 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
+import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle, freshProjectDir } from './lib/app.mjs';
 
 const REVIEW_TOOLS = ['review_card', 'finish_review', 'hand_off_card', 'read_card', 'list_cards'];
 const FORBIDDEN = ['write_project_file', 'patch_project_file', 'run_project_checks', 'git_commit', 'git_create_branch',
@@ -92,8 +91,7 @@ const readmeDocumentsZero = (root) => {
   return text !== README && /throw|error/i.test(text) && /zero|\b0\b/i.test(text);
 };
 
-function makeFixture(tag) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `autoreiv-card564-${tag}-`));
+function makeFixture(root) {
   fs.mkdirSync(cardsDir(root), { recursive: true });
   fs.writeFileSync(path.join(root, 'AGENTS.md'), AGENTS_MD);
   fs.writeFileSync(path.join(root, 'calc.js'), CALC);
@@ -211,7 +209,7 @@ export default {
     }, { timeoutMs: 30000 });
 
     await j.step('A throwaway repo with CARD-3 In Review (round 1 seeded without the README line) is the active project', async () => {
-      root = makeFixture(viewport.name);
+      root = makeFixture(await freshProjectDir(request, base, `card564-${viewport.name}`));
       mainHead = git(root, 'rev-parse', 'main');
       const res = await request.put(`${base}/api/projects/selected`, { data: { slug: 'calc', path: root } });
       if (!res.ok()) throw new Error(`select project -> ${res.status()}`);
