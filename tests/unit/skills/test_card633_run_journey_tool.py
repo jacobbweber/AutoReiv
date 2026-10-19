@@ -87,9 +87,9 @@ def test_run_journey_timeout_kills_subprocess(tmp_path: Path):
 
 
 def test_skill_and_developer_include_run_journey():
-    skill = Path("platform/skills/software-development/SKILL.md").read_text(encoding="utf-8")
+    # CARD-729: journey tools moved to their own on-demand skill (software-development hit the tool cap with cli_exec).
+    skill = Path("platform/skills/live-journeys/SKILL.md").read_text(encoding="utf-8")
     assert "run_journey" in skill
-    wf = Path("platform/skills/software-development/references/workflow.md").read_text(encoding="utf-8")
-    assert "throwaway" in wf.lower()
+    assert "throwaway" in skill.lower()
     text = Path("platform/agents/autoreiv.md").read_text(encoding="utf-8")
-    assert "- software-development" in text
+    assert "- live-journeys" in text

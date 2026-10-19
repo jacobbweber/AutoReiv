@@ -95,10 +95,6 @@ export function initProjectsStudio(state, callbacks = {}) {
     }
   }
 
-  function rPlaceholder() {
-    return 'D:\\Projects\\Active';
-  }
-
   function refreshIcons() {
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons();
@@ -107,13 +103,6 @@ export function initProjectsStudio(state, callbacks = {}) {
 
   async function loadProjects() {
     try {
-      const rootRes = await fetchJSON('/api/settings/projects_root');
-      const rootInput = $('projectsRootInput');
-      if (rootInput) {
-        rootInput.value = rootRes.projects_root || '';
-        rootInput.placeholder = rootRes.placeholder || rPlaceholder();
-      }
-
       await loadFolderBrowser('.');
 
       const data = await fetchJSON('/api/projects');
@@ -128,7 +117,7 @@ export function initProjectsStudio(state, callbacks = {}) {
         } catch { preferred = 'explorer'; }
         setProjectsMode(preferred === 'manager' ? 'manager' : 'explorer');
         await loadTree('.', currentCategory || 'all');
-        await loadDrift();
+        updateRootBar();
         if (projectsMode === 'manager') {
           await loadFolderBrowser(browseCwd);
           await loadJourneyRuns();
@@ -137,6 +126,7 @@ export function initProjectsStudio(state, callbacks = {}) {
         activeProject = null;
         updateActiveHeader(null);
         clearWorkspace();
+        updateRootBar();
         setProjectsMode('manager');
         await loadFolderBrowser(browseCwd);
         await loadJourneyRuns();
@@ -181,7 +171,7 @@ export function initProjectsStudio(state, callbacks = {}) {
 
   function renderFolderBrowser(data) {
     const list = $('projectsList');
-    const meta = $('projectsMeta');
+    const folderPath = $('projectsFolderPath');
     const countBadge = $('projectsCountBadge');
     const cwdEl = $('projectsBrowseCwd');
     const upBtn = $('projectsBrowseUpBtn');
@@ -190,11 +180,7 @@ export function initProjectsStudio(state, callbacks = {}) {
     if (cwdEl) cwdEl.textContent = browseCwd === '.' ? (data.projects_root || '.') : browseCwd;
     if (upBtn) upBtn.disabled = !data.parent && browseCwd === '.';
 
-    if (meta) {
-      meta.textContent = data.projects_root
-        ? `Root: ${data.projects_root} · browsing ${browseCwd}`
-        : 'Set projects_root to browse folders.';
-    }
+    if (folderPath) folderPath.textContent = data.projects_root || '';
 
     const folders = filterFoldersOnly(data.folders || []);
     if (countBadge) countBadge.textContent = String(folders.length);
@@ -242,49 +228,13 @@ export function initProjectsStudio(state, callbacks = {}) {
     }
   }
 
-  async function loadDrift() {
-    const banner = $('projectsDriftBanner');
-    const summary = $('projectsDriftSummary');
-    const missingEl = $('projectsDriftMissing');
+  function updateRootBar() {
     const rootBar = $('projectsActiveRootBar');
-    if (rootBar) {
-      rootBar.textContent = activeProject && activeProject.path
-        ? `Active root: ${activeProject.path}`
-        : 'No active project';
-      rootBar.title = rootBar.textContent;
-    }
-    if (!activeProject) {
-      if (banner) banner.classList.add('hidden');
-      return;
-    }
-    try {
-      const data = await fetchJSON('/api/projects/drift');
-      if (!banner || !summary || !missingEl) return;
-      const missing = data.missing || [];
-      if (!data.success) {
-        banner.classList.remove('hidden');
-        summary.textContent = data.error || 'Drift check failed';
-        missingEl.innerHTML = '';
-        return;
-      }
-      if (!missing.length) {
-        banner.classList.add('hidden');
-        missingEl.innerHTML = '';
-        summary.textContent = '';
-        return;
-      }
-      banner.classList.remove('hidden');
-      summary.textContent = `${missing.length} missing path(s) vs template ${data.template_version || ''} — contents not graded.`;
-      missingEl.innerHTML = missing
-        .map((p) => `<div class="proj-missing-path">missing: ${escapeHtml(p)}</div>`)
-        .join('');
-      refreshIcons();
-    } catch (err) {
-      if (banner && summary) {
-        banner.classList.remove('hidden');
-        summary.textContent = String(err.message || err);
-      }
-    }
+    if (!rootBar) return;
+    rootBar.textContent = activeProject && activeProject.path
+      ? `Active root: ${activeProject.path}`
+      : 'No active project';
+    rootBar.title = rootBar.textContent;
   }
 
   async function loadTree(path = '.', category = currentCategory) {
@@ -479,24 +429,6 @@ export function initProjectsStudio(state, callbacks = {}) {
 
   // --- EVENT LISTENERS ---
 
-  // Save root
-  const saveRootBtn = $('projectsRootSaveBtn');
-  if (saveRootBtn) {
-    saveRootBtn.addEventListener('click', async () => {
-      const input = $('projectsRootInput');
-      try {
-        await fetchJSON('/api/settings/projects_root', {
-          method: 'PUT',
-          body: JSON.stringify({ path: (input && input.value) || '' }),
-        });
-        toast('projects_root saved', 'success');
-        await loadProjects();
-      } catch (err) {
-        toast(String(err.message || err), 'error');
-      }
-    });
-  }
-
   // Create project
   const createBtn = $('projectsCreateBtn');
   if (createBtn) {
@@ -552,7 +484,7 @@ export function initProjectsStudio(state, callbacks = {}) {
           selectedFilePath = null;
           setProjectsMode('explorer');
           await loadTree('.', 'all');
-          await loadDrift();
+          updateRootBar();
           await loadFolderBrowser(browseCwd);
         } else if (act === 'delete') {
           const ok = window.confirm(`Delete project "${slug}"? This cannot be undone.`);
@@ -602,7 +534,7 @@ export function initProjectsStudio(state, callbacks = {}) {
       setProjectsMode('explorer');
       if (activeProject) {
         await loadTree('.', currentCategory || 'all');
-        await loadDrift();
+        updateRootBar();
       }
     });
   }
@@ -734,24 +666,6 @@ export function initProjectsStudio(state, callbacks = {}) {
 
 
   setProjectsMode('explorer');
-
-  const alignBtn = $('projectsAlignBtn');
-  if (alignBtn && !alignBtn.dataset.card302Bound) {
-    alignBtn.dataset.card302Bound = '1';
-    alignBtn.addEventListener('click', async () => {
-      try {
-        alignBtn.disabled = true;
-        const res = await fetchJSON('/api/projects/align', { method: 'POST', body: '{}' });
-        toast(`Aligned: scaffolded ${((res && res.scaffolded) || []).length} path(s)`, 'success');
-        await loadTree('.', 'all');
-        await loadDrift();
-      } catch (err) {
-        toast(String(err.message || err), 'error');
-      } finally {
-        alignBtn.disabled = false;
-      }
-    });
-  }
 
   return {
     loadProjects,

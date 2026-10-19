@@ -1,5 +1,5 @@
 """
-Projects studio API [REQ-SDLC-050, REQ-SDLC-051].
+Projects studio API [REQ-SDLC-050, REQ-SDLC-051, CARD-728, CARD-729].
 """
 
 from pathlib import Path
@@ -12,7 +12,8 @@ from src.web.app import create_app
 
 
 @pytest.fixture
-def client(tmp_path: Path):
+def client(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", str(tmp_path / "lab"))
     store = SQLiteStateStore(db_path=str(tmp_path / "p.db"))
     store.initialize_db()
     app = create_app(state_store=store)
@@ -20,19 +21,19 @@ def client(tmp_path: Path):
         yield c, tmp_path
 
 
-def test_projects_root_and_crud_jail(client):
+def test_projects_folder_and_crud_jail(client):
     c, tmp_path = client
     lab = tmp_path / "lab"
-    lab.mkdir()
-    root_get = c.get("/api/settings/projects_root")
-    assert root_get.status_code == 200
-    assert root_get.json()["projects_root"] == ""
-    assert "placeholder" in root_get.json()
-    saved = c.put("/api/settings/projects_root", json={"path": str(lab)})
-    assert saved.status_code == 200
+    # CARD-728: the folder comes from AUTOREIV_PROJECTS_DIR / <data>/projects; there is no settings endpoint.
+    assert c.get("/api/settings/projects_root").status_code in (404, 405)
+    assert c.put("/api/settings/projects_root", json={"path": str(tmp_path)}).status_code in (404, 405)
+    assert Path(c.get("/api/projects").json()["projects_root"]) == lab.resolve()
     created = c.post("/api/projects", json={"slug": "demo-app"})
     assert created.status_code == 200
     assert (lab / "demo-app").is_dir()
+    # CARD-729: an empty git repo, no AutoReiv template files.
+    assert not (lab / "demo-app" / "AGENTS.md").exists()
+    assert not (lab / "demo-app" / ".agents").exists()
     escaped = c.post("/api/projects", json={"slug": "../nope"})
     assert escaped.status_code == 400
     listed = c.get("/api/projects")
@@ -47,11 +48,30 @@ def test_projects_root_and_crud_jail(client):
     assert selected.status_code == 404
 
 
+def test_selection_outside_projects_folder_or_running_checkout_is_refused(client):
+    from src.infrastructure.data.resolver import repo_root
+
+    c, tmp_path = client
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    assert c.put("/api/projects/selected", json={"path": str(outside)}).status_code == 400
+    assert c.put("/api/projects/selected", json={"path": str(repo_root())}).status_code == 400
+    assert c.get("/api/projects/selected").json()["selected"] == {}
+    c.post("/api/projects", json={"slug": "ok"})
+    picked = c.put("/api/projects/selected", json={"slug": "ok"})
+    assert picked.status_code == 200
+    assert Path(c.get("/api/projects/selected").json()["selected"]["path"]) == (tmp_path / "lab" / "ok").resolve()
+
+
+def test_drift_and_align_endpoints_are_gone(client):
+    c, _ = client
+    assert c.get("/api/projects/drift").status_code in (404, 405)
+    assert c.post("/api/projects/align", json={}).status_code in (404, 405)
+
+
 def test_projects_files_list_and_read_jailed(client):
     c, tmp_path = client
     lab = tmp_path / "lab"
-    lab.mkdir()
-    c.put("/api/settings/projects_root", json={"path": str(lab)})
     c.post("/api/projects", json={"slug": "demo-app"})
     c.put("/api/projects/selected", json={"slug": "demo-app"})
 

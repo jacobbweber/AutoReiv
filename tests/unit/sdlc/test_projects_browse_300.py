@@ -1,4 +1,4 @@
-"""CARD-300: folder-only browse under projects_root."""
+"""CARD-300: folder-only browse under the projects folder (CARD-728)."""
 
 from pathlib import Path
 
@@ -9,12 +9,11 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 def _svc(tmp_path: Path) -> ProjectsService:
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
-    svc = ProjectsService(store=store, default_checkout=tmp_path)
+    svc = ProjectsService(store=store, projects_dir=tmp_path)
     (tmp_path / "Active").mkdir()
     (tmp_path / "Active" / "AppOne").mkdir()
     (tmp_path / "Active" / "readme.txt").write_text("x", encoding="utf-8")
     (tmp_path / "scratch").mkdir()
-    svc.set_projects_root(str(tmp_path))
     return svc
 
 

@@ -17,10 +17,6 @@ READ_MAX_CHARS = 100000
 router = APIRouter(tags=["Projects"])
 
 
-class ProjectsRootRequest(BaseModel):
-    path: str = ""
-
-
 class CreateProjectRequest(BaseModel):
     slug: str
     name: Optional[str] = None
@@ -37,18 +33,6 @@ def _service(request: Request) -> ProjectsService:
         svc = ProjectsService(store=request.app.state.store)
         request.app.state.projects_service = svc
     return svc
-
-
-@router.get("/api/settings/projects_root")
-async def get_projects_root(request: Request):
-    svc = _service(request)
-    return {"projects_root": svc.get_projects_root(), "placeholder": r"D:\Projects\Active"}
-
-
-@router.put("/api/settings/projects_root")
-async def put_projects_root(request: Request, req: ProjectsRootRequest):
-    svc = _service(request)
-    return svc.set_projects_root(req.path)
 
 
 @router.get("/api/projects")
@@ -88,32 +72,16 @@ async def get_selected_project(request: Request):
 async def put_selected_project(request: Request, req: SelectProjectRequest):
     res = _service(request).set_selected(slug=req.slug, path=req.path)
     if not res.get("success"):
-        raise HTTPException(status_code=404, detail=res.get("error", "not found"))
+        error = res.get("error") or "not found"
+        raise HTTPException(status_code=404 if "not found" in error.lower() else 400, detail=error)
     return res
-
-
 
 
 @router.get("/api/projects/browse")
 async def browse_project_folders(request: Request, path: str = "."):
-    """Folder-only tree under projects_root with up/back [CARD-300]."""
+    """Folder-only tree under the projects folder with up/back [CARD-300, CARD-728]."""
     return _service(request).browse_folders(relative=path)
 
-
-
-@router.get("/api/projects/drift")
-async def get_project_drift(request: Request):
-    """Structure-only template drift for the active project [CARD-302]."""
-    return _service(request).detect_drift()
-
-
-@router.post("/api/projects/align")
-async def align_active_project(request: Request):
-    """Scaffold missing manifest paths into the active project (adopt/align)."""
-    res = _service(request).align_project()
-    if not res.get("success"):
-        raise HTTPException(status_code=400, detail=res.get("error", "align failed"))
-    return res
 
 @router.get("/api/projects/files/list")
 async def get_project_files_list(request: Request, path: str = ".", category: Optional[str] = None):

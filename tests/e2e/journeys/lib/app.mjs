@@ -1,6 +1,8 @@
 /**
  * CARD-532 shared AutoReiv UI helpers for journeys (real clicks against the real SPA).
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { waitFor } from './runner.mjs';
 
 export const STREAM_PATH = '/api/chat/stream';
@@ -69,6 +71,16 @@ export async function getJson(request, url) {
   const res = await request.get(url);
   if (!res.ok()) throw new Error(`GET ${url} -> ${res.status()}`);
   return res.json();
+}
+
+/** CARD-728: an empty folder for a fixture project inside the server's user-data projects folder. */
+export async function freshProjectDir(request, base, slug) {
+  const listed = await getJson(request, `${base}/api/projects`);
+  if (!listed.projects_root) throw new Error('GET /api/projects returned no projects_root');
+  const root = path.join(listed.projects_root, slug);
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.mkdirSync(root, { recursive: true });
+  return root;
 }
 
 /** Latest job status for a chat session (journey API), or ''. */

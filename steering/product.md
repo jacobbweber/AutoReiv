@@ -49,7 +49,7 @@ AutoReiv has 10 studios in one responsive web app. The sidebar names them Chat S
 
 6. **Capabilities (`capabilities_studio.js`), Education, Projects, Prompts, Wiki**:
    - Capabilities: unified Agora directory tree studio (`#view-capabilities`, ADR-0065) for browsing and editing `skills/<id>/` folders (`SKILL.md`, `references/*.md`, `tools/*.py`), toggling colocated tools, and managing MCP servers (`mcp/`).
-   - Education: Tutor-first learning (ADR-0059). Projects: the active code project for `AutoReiv` (`project-cards` and `software-development` skills, ADR-0066). Prompts: saved prompts. Wiki: the vault and notes.
+   - Education: Tutor-first learning (ADR-0059). Projects: the user-data projects folder and the active code project for `AutoReiv` (`repo-onboarding`, `software-development`, `spec-driven-development`, `project-cards` skills; ADR-0066, ADR-0067). Prompts: saved prompts. Wiki: the vault and notes.
 
 7. **System documentation (no Docs Studio ship)**:
    - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, education, forge (Agent Studio), observability, projects, prompts, routines, settings, capabilities, wiki). The Agent Training Factory is retired ([ADR-0060](../docs/adr/0060-retire-the-agent-training-factory.md)); its leftover screen was removed in CARD-496.

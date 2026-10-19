@@ -87,11 +87,6 @@ body.radical-desktop-demo #view-education.desktop-view-hosted {
 #projectsExplorerView {
   min-height: 0;
 }
-#projectsDriftBanner .proj-missing-path {
-  color: #fb7185;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
-}
 
 /* --- CARD-299 Agent Studio collapsible sections --- */
 #view-agents details.forge-section {

@@ -66,11 +66,7 @@ export default {
     });
 
     await j.step('Projects Manager shows the run and opens detail', async () => {
-      // Throwaway env has no projects_root; set one so Projects Studio does not toast an error.
-      const rootRes = await request.put(base + '/api/settings/projects_root', {
-        data: { path: path.join(process.cwd(), 'scratch') },
-      });
-      if (!rootRes.ok()) throw new Error('set projects_root -> ' + rootRes.status());
+      // CARD-728: the projects folder always exists under user data; nothing to set up.
       await openApp(page, base);
       await openProjectsManager(page);
       await page.locator('#projectsJourneyRunsRefreshBtn').click();

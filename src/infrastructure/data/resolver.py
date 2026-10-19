@@ -33,6 +33,7 @@ ENV_DATA_DIR = "AUTOREIV_DATA_DIR"
 ENV_DB_PATH = "AUTOREIV_DB_PATH"
 ENV_WIKI_PATH = "AUTOREIV_WIKI_PATH"
 ENV_BACKUP_DIR = "AUTOREIV_BACKUP_DIR"
+ENV_PROJECTS_DIR = "AUTOREIV_PROJECTS_DIR"
 ENV_DEPLOY_MODE = "AUTOREIV_DEPLOY_MODE"
 WIKI_PATH_SETTING_KEY = "wiki_path"
 WIKI_SCAFFOLD_CONFIRMED_KEY = "wiki_scaffold_confirmed"
@@ -56,10 +57,13 @@ class DataDirPaths:
     agents_path: Path
     job_templates_path: Path
     backups_path: Optional[Path] = None
+    projects_path: Optional[Path] = None  # CARD-728: code projects (AUTOREIV_PROJECTS_DIR or root/projects)
 
     def __post_init__(self) -> None:
         if self.backups_path is None:
             object.__setattr__(self, "backups_path", self.root / "backups")
+        if self.projects_path is None:
+            object.__setattr__(self, "projects_path", self.root / "projects")
 
 
 def repo_root() -> Path:
@@ -230,6 +234,16 @@ class DataDirResolver:
                 return value.strip()
         return None
 
+    def _explicit_projects_dir(self) -> Optional[Path]:
+        """AUTOREIV_PROJECTS_DIR at deploy time; never inside the checkout outside scratch/ [CARD-728, ADR-0067]."""
+        raw = os.environ.get(ENV_PROJECTS_DIR)
+        if raw is not None and str(raw).strip():
+            candidate = Path(str(raw).strip()).expanduser()
+            if not is_checkout_live_tree_path(candidate, checkout=self.checkout_root):
+                return candidate
+            logger.warning("Ignoring %s inside the git checkout: %s", ENV_PROJECTS_DIR, candidate)
+        return None
+
     def _explicit_backup_dir(self) -> Optional[Path]:
         raw = os.environ.get(ENV_BACKUP_DIR)
         if raw is not None and str(raw).strip():
@@ -269,6 +283,7 @@ class DataDirResolver:
         db_path = explicit_db if explicit_db is not None else root / "database" / "autoreiv.db"
         wiki_path = explicit_wiki if explicit_wiki is not None else root / "wiki"
         backups_path = explicit_backup if explicit_backup is not None else root / "backups"
+        explicit_projects = self._explicit_projects_dir()
         return DataDirPaths(
             root=root,
             db_path=db_path,
@@ -277,6 +292,7 @@ class DataDirResolver:
             agents_path=root / "agents",
             job_templates_path=root / "templates" / "jobs",
             backups_path=backups_path,
+            projects_path=explicit_projects if explicit_projects is not None else root / "projects",
         )
 
     def ensure_layout(self, paths: DataDirPaths, *, scaffold_wiki: bool = False) -> None:
@@ -291,6 +307,7 @@ class DataDirResolver:
         paths.agents_path.mkdir(parents=True, exist_ok=True)
         paths.job_templates_path.mkdir(parents=True, exist_ok=True)
         paths.backups_path.mkdir(parents=True, exist_ok=True)
+        paths.projects_path.mkdir(parents=True, exist_ok=True)
 
     def _db_migrate_source(self, dest_db: Path) -> Optional[Path]:
         explicit = self._explicit_db_path()

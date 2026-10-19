@@ -1,71 +1,72 @@
 """
-Projects root, listing, create/delete jail, and selected project [REQ-SDLC-050..052].
+Projects folder, listing, create/delete jail, and selected project [REQ-SDLC-050..052, CARD-728, ADR-0067].
+
+Projects live in one user-data folder: `DataDirResolver().resolve().projects_path` (AUTOREIV_PROJECTS_DIR, else
+<data root>/projects). How to work in a project (conventions, specs, cards) lives in skills, never in a template here.
 """
 
 from __future__ import annotations
 
-import json
 import re
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.application.sdlc.paths import ProjectPathError, detect_autoreiv_root, jail_join
+from src.application.sdlc.paths import ProjectPathError, jail_join
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 SLUG_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$")
-PROJECTS_ROOT_KEY = "projects_root"
 SELECTED_PROJECT_KEY = "selected_project"
 NO_PROJECT_MESSAGE = (
     "No project is selected. Select a project in Projects Studio (or pass project_root) and try again."
 )
 
-# CARD-562: AGENTS.md fact sheet + one card folder + ADRs; process lives in agent skills.
-REQUIRED_SCAFFOLD = (
-    ".gitignore",
-    "AGENTS.md",
-    "CHANGELOG.md",
-    "VERSION",
-    "README.md",
-    ".agents/cards/.gitkeep",
-    ".agents/templates/card.template.md",
-    ".agents/templates/adr.template.md",
-    "docs/adr/.gitkeep",
-)
-NAME_PLACEHOLDER = "{{project_name}}"
+
+def _touches_running_checkout(target: Path) -> bool:
+    """True when ``target`` is, contains, or sits inside the AutoReiv code this serve runs from [CARD-728].
+
+    The checkout's gitignored ``scratch/`` stays allowed (test and live QA data live there).
+    """
+    from src.infrastructure.data.resolver import is_checkout_live_tree_path, repo_root
+
+    code = repo_root().resolve()
+    return target in code.parents or is_checkout_live_tree_path(target, checkout=code)
 
 
-def default_template_dir() -> Path:
-    here = Path(__file__).resolve()
-    repo = here.parents[3] if len(here.parents) >= 4 else Path.cwd()
-    candidate = repo / "templates" / "sdlc-project"
-    if candidate.is_dir():
-        return candidate
-    cwd = Path.cwd() / "templates" / "sdlc-project"
-    return cwd
+def ensure_commit_identity(git_bin: str, repo: Path) -> None:
+    """Set a repo-local author only when git has none, so commits work on a bare serve (e.g. Docker)."""
+    for key, fallback in (("user.email", "autoreiv@local"), ("user.name", "AutoReiv")):
+        have = subprocess.run([git_bin, "-C", str(repo), "config", key], capture_output=True, text=True, check=False)
+        if not (have.stdout or "").strip():
+            subprocess.run([git_bin, "-C", str(repo), "config", key, fallback], capture_output=True, check=False)
 
 
 class ProjectsService:
-    """Filesystem projects under a configured root. Not the wiki."""
+    """Filesystem projects under the user-data projects folder. Not the wiki."""
 
-    def __init__(self, store: Optional[SQLiteStateStore] = None, default_checkout: Optional[Path] = None):
+    def __init__(self, store: Optional[SQLiteStateStore] = None, projects_dir: Optional[Path] = None):
         if store is None:
             store = SQLiteStateStore(db_path=":memory:")
             store.initialize_db()
         self.store = store
-        self.default_checkout = Path(default_checkout).resolve() if default_checkout else detect_autoreiv_root()
+        self._projects_dir = Path(projects_dir) if projects_dir is not None else None
 
-    def get_projects_root(self) -> str:
-        raw = self.store.get_setting(PROJECTS_ROOT_KEY)
-        if isinstance(raw, dict):
-            return str(raw.get("path") or "")
-        return str(raw or "")
+    def projects_dir(self) -> Path:
+        """The projects folder (created on first use) [CARD-728]."""
+        if self._projects_dir is not None:
+            root = self._projects_dir
+        else:
+            from src.infrastructure.data.resolver import DataDirResolver
 
-    def set_projects_root(self, path: str) -> Dict[str, Any]:
-        value = (path or "").strip()
-        self.store.set_setting(PROJECTS_ROOT_KEY, value)
-        return {"success": True, "projects_root": value}
+            root = DataDirResolver().resolve().projects_path
+        root = Path(root).expanduser()
+        root.mkdir(parents=True, exist_ok=True)
+        return root.resolve()
+
+    def _inside_projects_dir(self, target: Path) -> bool:
+        root = self.projects_dir()
+        return target != root and root in target.parents
 
     def require_selected_root(self) -> Path:
         """Active project root only — no silent fallback to AutoReiv checkout [CARD-302]."""
@@ -78,20 +79,11 @@ class ProjectsService:
             raise ProjectPathError(f"Active project directory not found: {root}")
         return root
 
-    def resolve_root(self, project_root: Optional[str] = None) -> Path:
-        if project_root:
-            return Path(project_root).expanduser().resolve()
-        selected = self.get_selected()
-        path = (selected or {}).get("path") if isinstance(selected, dict) else None
-        if path:
-            return Path(path).expanduser().resolve()
-        return Path(self.default_checkout).resolve()
-
     def selected_root(self, project_root: Optional[str] = None) -> Optional[Path]:
         """The Projects Studio-selected project root; None when no project is selected [CARD-556, CARD-562].
 
         A passed project_root must be the selected project (else ProjectPathError naming the active project); it is
-        never used when nothing is selected. Unlike `resolve_root`, this never falls back to the AutoReiv checkout.
+        never used when nothing is selected. It never falls back to the AutoReiv checkout.
         """
         selected = self.get_selected()
         path = (selected or {}).get("path") if isinstance(selected, dict) else None
@@ -127,18 +119,32 @@ class ProjectsService:
         return scratch
 
     def get_selected(self) -> Dict[str, Any]:
+        """The stored selection; one outside the projects folder is ignored (ADR-0067, no old-format reader)."""
         raw = self.store.get_setting(SELECTED_PROJECT_KEY)
-        return raw if isinstance(raw, dict) else {}
+        if not isinstance(raw, dict) or not raw.get("path"):
+            return {}
+        target = Path(str(raw["path"])).expanduser().resolve()
+        if not self._inside_projects_dir(target) or _touches_running_checkout(target):
+            return {}
+        return raw
 
     def set_selected(self, slug: Optional[str] = None, path: Optional[str] = None) -> Dict[str, Any]:
         if path:
             target = Path(path).expanduser().resolve()
+            if _touches_running_checkout(target):
+                return {"success": False, "error": "The running AutoReiv code cannot be a project. Clone a copy instead."}
+            if not self._inside_projects_dir(target):
+                return {"success": False, "error": f"Projects must be inside the projects folder: {self.projects_dir()}"}
+            if not target.is_dir():
+                return {"success": False, "error": f"Project '{target.name}' not found"}
             payload = {"slug": slug or target.name, "path": str(target)}
         elif slug:
             listed = self.list_projects()
             match = next((p for p in listed.get("projects", []) if p["slug"] == slug), None)
             if not match:
                 return {"success": False, "error": f"Project '{slug}' not found"}
+            if _touches_running_checkout(Path(match["path"])):
+                return {"success": False, "error": "The running AutoReiv code cannot be a project. Clone a copy instead."}
             payload = {"slug": match["slug"], "path": match["path"]}
         else:
             self.store.set_setting(SELECTED_PROJECT_KEY, {})
@@ -146,31 +152,8 @@ class ProjectsService:
         self.store.set_setting(SELECTED_PROJECT_KEY, payload)
         return {"success": True, "selected": payload}
 
-    def _require_root(self) -> Path:
-        raw = self.get_projects_root()
-        if not raw:
-            raise ProjectPathError("projects_root is not set")
-        root = Path(raw).expanduser().resolve()
-        if not root.exists():
-            raise ProjectPathError(f"projects_root does not exist: {root}")
-        if not root.is_dir():
-            raise ProjectPathError(f"projects_root is not a directory: {root}")
-        return root
-
     def list_projects(self) -> Dict[str, Any]:
-        raw = self.get_projects_root()
-        if not raw:
-            return {"success": True, "projects_root": "", "projects": [], "selected": self.get_selected()}
-        root = Path(raw).expanduser()
-        if not root.is_dir():
-            return {
-                "success": True,
-                "projects_root": str(root),
-                "projects": [],
-                "selected": self.get_selected(),
-                "warning": "projects_root is not a directory",
-            }
-        root = root.resolve()
+        root = self.projects_dir()
         projects: List[Dict[str, Any]] = []
         for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
             if not child.is_dir():
@@ -185,31 +168,9 @@ class ProjectsService:
             "selected": self.get_selected(),
         }
 
-
     def browse_folders(self, relative: str = ".") -> Dict[str, Any]:
-        """Folder-only navigator under projects_root [CARD-300]. Never lists files."""
-        if not self.get_projects_root():
-            return {
-                "success": True,
-                "projects_root": "",
-                "cwd": ".",
-                "parent": None,
-                "folders": [],
-                "selected": self.get_selected(),
-            }
-        try:
-            root = self._require_root()
-        except ProjectPathError as exc:
-            return {
-                "success": False,
-                "error": str(exc),
-                "projects_root": self.get_projects_root(),
-                "cwd": ".",
-                "parent": None,
-                "folders": [],
-                "selected": self.get_selected(),
-            }
-
+        """Folder-only navigator under the projects folder [CARD-300]. Never lists files."""
+        root = self.projects_dir()
         rel = (relative or ".").strip() or "."
         rel = rel.replace("\\", "/").strip("/")
         if rel in ("", "."):
@@ -267,154 +228,31 @@ class ProjectsService:
             "selected": self.get_selected(),
         }
 
-
-    def load_template_manifest(self) -> Dict[str, Any]:
-        """Versioned path manifest for Project scaffold / drift [CARD-302]."""
-        path = default_template_dir() / "project_template_manifest.json"
-        if path.is_file():
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-                if isinstance(data, dict) and data.get("required_paths"):
-                    return data
-            except Exception:
-                pass
-        return {
-            "template_id": "sdlc-project",
-            "template_version": "1.0.0",
-            "required_paths": list(REQUIRED_SCAFFOLD),
-        }
-
-    def detect_drift(self, project_root: Optional[str] = None) -> Dict[str, Any]:
-        """Structure-only drift vs template manifest (missing paths only)."""
-        root = self.resolve_root(project_root) if project_root else None
-        selected = self.get_selected()
-        if root is None:
-            path = (selected or {}).get("path") if isinstance(selected, dict) else None
-            if not path:
-                return {
-                    "success": False,
-                    "error": "No active project selected",
-                    "missing": [],
-                    "present": [],
-                    "template_version": self.load_template_manifest().get("template_version"),
-                }
-            root = Path(path).expanduser().resolve()
-        if not root.exists() or not root.is_dir():
-            return {
-                "success": False,
-                "error": f"Project root not found: {root}",
-                "missing": [],
-                "present": [],
-                "template_version": self.load_template_manifest().get("template_version"),
-            }
-
-        manifest = self.load_template_manifest()
-        required = [str(p).replace("\\", "/") for p in manifest.get("required_paths") or REQUIRED_SCAFFOLD]
-        missing: List[str] = []
-        present: List[str] = []
-        for rel in required:
-            target = root / rel
-            if target.exists():
-                present.append(rel)
-            else:
-                missing.append(rel)
-        agents_md = root / "AGENTS.md"
-        missing_sections: List[str] = []
-        if agents_md.is_file():
-            from src.domain.sdlc.agents_contract import parse_agents_md
-
-            missing_sections = parse_agents_md(agents_md.read_text(encoding="utf-8", errors="replace")).missing_sections
-        return {
-            "success": True,
-            "project_root": str(root),
-            "selected": selected,
-            "agents_md_missing_sections": missing_sections,  # CARD-562: reported, never overwritten
-            "template_id": manifest.get("template_id", "sdlc-project"),
-            "template_version": manifest.get("template_version", "1.0.0"),
-            "missing": missing,
-            "present": present,
-            "aligned": len(missing) == 0,
-        }
-
-    def align_project(self, project_root: Optional[str] = None) -> Dict[str, Any]:
-        """Scaffold only missing manifest paths into an existing project (adopt/align)."""
-        drift = self.detect_drift(project_root)
-        if not drift.get("success"):
-            return drift
-        root = Path(drift["project_root"]).resolve()
-        template = default_template_dir()
-        created: List[str] = []
-        for rel in drift.get("missing") or []:
-            dest = root / rel
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            src = template / rel
-            if src.is_file() and rel in ("AGENTS.md", "README.md"):
-                text = src.read_text(encoding="utf-8").replace(NAME_PLACEHOLDER, root.name)
-                dest.write_text(text, encoding="utf-8")
-            elif src.is_file():
-                shutil.copy2(src, dest)
-            elif rel.endswith("/.gitkeep") or rel.endswith(".gitkeep"):
-                dest.write_text("", encoding="utf-8")
-            elif rel.endswith(".md"):
-                dest.write_text(f"# {Path(rel).stem}\n\n", encoding="utf-8")
-            else:
-                dest.write_text("", encoding="utf-8")
-            created.append(rel)
-        refreshed = self.detect_drift(str(root))
-        return {
-            "success": True,
-            "project_root": str(root),
-            "scaffolded": created,
-            "template_version": refreshed.get("template_version"),
-            "missing": refreshed.get("missing") or [],
-            "agents_md_missing_sections": refreshed.get("agents_md_missing_sections") or [],
-            "aligned": refreshed.get("aligned"),
-        }
-
     def create_project(self, slug: str, name: Optional[str] = None) -> Dict[str, Any]:
+        """An empty folder with `git init -b main`. Starter files come from skills, on request [CARD-729]."""
         clean = (slug or "").strip()
         if not SLUG_RE.match(clean):
             return {"success": False, "error": "Invalid slug. Use letters, numbers, dot, underscore, hyphen."}
         try:
-            root = self._require_root()
-            target = jail_join(root, clean)
+            target = jail_join(self.projects_dir(), clean)
         except ProjectPathError as exc:
             return {"success": False, "error": str(exc)}
         if target.exists():
             return {"success": False, "error": f"Project already exists: {clean}"}
-        template = default_template_dir()
-        if template.is_dir():
-            shutil.copytree(template, target)
-            for rel in ("AGENTS.md", "README.md"):
-                doc = target / rel
-                if doc.is_file():
-                    doc.write_text(
-                        doc.read_text(encoding="utf-8").replace(NAME_PLACEHOLDER, name or clean), encoding="utf-8"
-                    )
-        else:
-            target.mkdir(parents=True, exist_ok=False)
+        target.mkdir(parents=True, exist_ok=False)
         git_bin = shutil.which("git")
-        if git_bin and not (target / ".git").exists():
-            try:
-                subprocess.run([git_bin, "-C", str(target), "init", "-b", "main"], capture_output=True, check=False)
-                email = subprocess.run([git_bin, "-C", str(target), "config", "user.email"], capture_output=True, text=True)
-                if not (email.stdout or "").strip():
-                    subprocess.run([git_bin, "-C", str(target), "config", "user.email", "autoreiv@local"], capture_output=True, check=False)
-                uname = subprocess.run([git_bin, "-C", str(target), "config", "user.name"], capture_output=True, text=True)
-                if not (uname.stdout or "").strip():
-                    subprocess.run([git_bin, "-C", str(target), "config", "user.name", "AutoReiv"], capture_output=True, check=False)
-            except Exception:
-                pass
-        files = []
-        for rel in REQUIRED_SCAFFOLD:
-            if (target / rel).exists():
-                files.append(rel)
+        git_ready = False
+        if git_bin:
+            init = subprocess.run([git_bin, "-C", str(target), "init", "-b", "main"], capture_output=True, check=False)
+            git_ready = init.returncode == 0
+            if git_ready:
+                ensure_commit_identity(git_bin, target)
         return {
             "success": True,
             "slug": clean,
             "name": name or clean,
             "path": str(target),
-            "scaffold": files,
+            "git": git_ready,
         }
 
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
@@ -424,8 +262,7 @@ class ProjectsService:
         if not SLUG_RE.match(clean):
             return {"success": False, "error": "Invalid slug"}
         try:
-            root = self._require_root()
-            target = jail_join(root, clean)
+            target = jail_join(self.projects_dir(), clean)
         except ProjectPathError as exc:
             return {"success": False, "error": str(exc)}
         if not target.exists():
@@ -441,28 +278,17 @@ class ProjectsService:
     def register_tools(self, registry) -> None:
         registry.register_tool(
             name="create_project",
-            description="Create a project folder under projects_root by copying the SDD template. HITL in ask mode.",
+            description=(
+                "Create an empty project folder (git init, branch main) in the projects folder. "
+                "Writes no starter files; follow the repo-onboarding skill for those."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
-                    "slug": {"type": "string", "description": "Folder name under projects_root"},
+                    "slug": {"type": "string", "description": "Folder name inside the projects folder"},
                     "name": {"type": "string"},
                 },
                 "required": ["slug"],
             },
             handler=self.create_project,
         )
-        registry.register_tool(
-            name="detect_drift",
-            description="Inspect the active project for missing template scaffold paths or AGENTS.md sections [CARD-697].",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: self.detect_drift(),
-            risk="read_only",
-        )
-        registry.register_tool(
-            name="align_project",
-            description="Scaffold any missing template manifest paths into the active project without overwriting existing files [CARD-697].",
-            parameters={"type": "object", "properties": {}, "required": []},
-            handler=lambda: self.align_project(),
-        )
-

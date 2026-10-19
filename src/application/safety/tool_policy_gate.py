@@ -46,7 +46,6 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "repo_remove_worktree",
         "hand_off_card",  # CARD-563
         "run_journey",  # CARD-633
-        "align_project",  # CARD-697
     }
 )
 
@@ -70,7 +69,6 @@ _DEFAULT_SAFE: frozenset[str] = frozenset(
         "repo_file_read",
         "list_project_dir",
         "read_project_file",
-        "detect_drift",
     }
 )
 

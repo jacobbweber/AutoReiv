@@ -20,9 +20,10 @@ from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
-def test_developer_tools_resolve_active_project_root():
+def test_developer_tools_resolve_active_project_root(monkeypatch):
     """Developer project file tools dynamically resolve relative paths against active project."""
     with tempfile.TemporaryDirectory() as tmp_dir:
+        monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", tmp_dir)  # CARD-728: projects live in one folder
         proj_root = Path(tmp_dir) / "my_project"
         proj_root.mkdir(parents=True)
         (proj_root / "src").mkdir()
@@ -30,10 +31,10 @@ def test_developer_tools_resolve_active_project_root():
 
         store = SQLiteStateStore(db_path=":memory:")
         store.initialize_db()
-        proj_svc = ProjectsService(store=store)
+        proj_svc = ProjectsService(store=store, projects_dir=Path(tmp_dir))
         proj_svc.set_selected(slug="my_project", path=str(proj_root))
 
-        tools = ProjectFileTools(root_resolver=proj_svc.resolve_root)
+        tools = ProjectFileTools(root_resolver=proj_svc.selected_or_refuse)
 
         # 1. list_project_dir
         list_res = tools.list_project_dir(path="src")
@@ -54,18 +55,19 @@ def test_developer_tools_resolve_active_project_root():
         assert (proj_root / "src" / "utils.py").read_text(encoding="utf-8") == "def add(a, b): return a + b"
 
 
-def test_developer_tools_reject_path_escaping_active_project():
+def test_developer_tools_reject_path_escaping_active_project(monkeypatch):
     """Negative assertion: project tools strictly reject directory traversal outside active project [REQ-391-004]."""
     with tempfile.TemporaryDirectory() as tmp_dir:
+        monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", tmp_dir)  # CARD-728: projects live in one folder
         proj_root = Path(tmp_dir) / "jailed_project"
         proj_root.mkdir(parents=True)
 
         store = SQLiteStateStore(db_path=":memory:")
         store.initialize_db()
-        proj_svc = ProjectsService(store=store)
+        proj_svc = ProjectsService(store=store, projects_dir=Path(tmp_dir))
         proj_svc.set_selected(slug="jailed_project", path=str(proj_root))
 
-        tools = ProjectFileTools(root_resolver=proj_svc.resolve_root)
+        tools = ProjectFileTools(root_resolver=proj_svc.selected_or_refuse)
 
         # Attempt to write outside project root using relative traversal
         write_escape = tools.write_project_file(path="../escaped.txt", content="malicious")
@@ -78,27 +80,29 @@ def test_developer_tools_reject_path_escaping_active_project():
         assert "escapes project_root" in read_escape["error"]
 
 
-def test_git_tools_run_against_active_project_root():
+def test_git_tools_run_against_active_project_root(monkeypatch):
     """GitTools resolves its working directory from the active project root."""
     with tempfile.TemporaryDirectory() as tmp_dir:
+        monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", tmp_dir)  # CARD-728: projects live in one folder
         proj_root = Path(tmp_dir) / "git_project"
         proj_root.mkdir(parents=True)
 
         store = SQLiteStateStore(db_path=":memory:")
         store.initialize_db()
-        proj_svc = ProjectsService(store=store)
+        proj_svc = ProjectsService(store=store, projects_dir=Path(tmp_dir))
         proj_svc.set_selected(slug="git_project", path=str(proj_root))
 
-        git_tools = GitTools(root_resolver=proj_svc.resolve_root)
+        git_tools = GitTools(root_resolver=proj_svc.selected_or_refuse)
         status_res = git_tools.git_status()
         # Not a git repository yet, but properly targeted to git_project
         assert status_res["success"] is False
         assert "not a git repository" in status_res["error"].lower()
 
 
-def test_developer_agent_kernel_prompt_grounding_with_active_project():
+def test_developer_agent_kernel_prompt_grounding_with_active_project(monkeypatch):
     """AgentKernel injects active project path, AGENTS.md, and work cards into Developer system prompt."""
     with tempfile.TemporaryDirectory() as tmp_dir:
+        monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", tmp_dir)  # CARD-728: projects live in one folder
         proj_root = Path(tmp_dir) / "grounded_project"
         proj_root.mkdir(parents=True)
         (proj_root / "AGENTS.md").write_text("# Project Constitution\n", encoding="utf-8")
@@ -108,7 +112,7 @@ def test_developer_agent_kernel_prompt_grounding_with_active_project():
 
         store = SQLiteStateStore(db_path=":memory:")
         store.initialize_db()
-        proj_svc = ProjectsService(store=store)
+        proj_svc = ProjectsService(store=store, projects_dir=Path(tmp_dir))
         proj_svc.set_selected(slug="grounded_project", path=str(proj_root))
 
         registry = ScopedToolRegistry()
@@ -141,16 +145,17 @@ def test_developer_agent_kernel_prompt_grounding_with_active_project():
         assert "cli_exec" not in assembled and "execute_code" not in assembled  # CARD-562: only allowed tools named
 
 
-def test_non_project_agent_excludes_active_project_from_prompt():
+def test_non_project_agent_excludes_active_project_from_prompt(monkeypatch):
     """Negative assertion: Non-project agents (e.g. Tutor) do NOT receive project paths or cards in system prompt."""
     with tempfile.TemporaryDirectory() as tmp_dir:
+        monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", tmp_dir)  # CARD-728: projects live in one folder
         proj_root = Path(tmp_dir) / "isolated_project"
         proj_root.mkdir(parents=True)
         (proj_root / "AGENTS.md").write_text("# Project Constitution\n", encoding="utf-8")
 
         store = SQLiteStateStore(db_path=":memory:")
         store.initialize_db()
-        proj_svc = ProjectsService(store=store)
+        proj_svc = ProjectsService(store=store, projects_dir=Path(tmp_dir))
         proj_svc.set_selected(slug="isolated_project", path=str(proj_root))
 
         registry = ScopedToolRegistry()
@@ -176,15 +181,16 @@ def test_non_project_agent_excludes_active_project_from_prompt():
         assert str(proj_root) not in assembled
 
 
-def test_read_only_project_agent_receives_read_only_guidance():
+def test_read_only_project_agent_receives_read_only_guidance(monkeypatch):
     """Agents with read-only project tools receive project context with inspection guidance only."""
     with tempfile.TemporaryDirectory() as tmp_dir:
+        monkeypatch.setenv("AUTOREIV_PROJECTS_DIR", tmp_dir)  # CARD-728: projects live in one folder
         proj_root = Path(tmp_dir) / "review_project"
         proj_root.mkdir(parents=True)
 
         store = SQLiteStateStore(db_path=":memory:")
         store.initialize_db()
-        proj_svc = ProjectsService(store=store)
+        proj_svc = ProjectsService(store=store, projects_dir=Path(tmp_dir))
         proj_svc.set_selected(slug="review_project", path=str(proj_root))
 
         registry = ScopedToolRegistry()

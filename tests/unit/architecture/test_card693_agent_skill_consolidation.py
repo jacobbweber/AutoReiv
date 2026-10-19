@@ -104,10 +104,14 @@ def test_autoreiv_mounts_project_cards_and_software_development_on_demand(tmp_pa
 
         for skill_id in ("capability-authoring", "project-cards", "software-development"):
             assert skill_id in profile.allowed_skill
-        assert ON_DEMAND_SHIPPED_SKILLS == frozenset({"project-cards", "software-development"})
+        # CARD-729: project process skills all mount on demand.
+        assert ON_DEMAND_SHIPPED_SKILLS == frozenset(
+            {"project-cards", "software-development", "repo-onboarding", "spec-driven-development", "live-journeys"}
+        )
         assert "capability-authoring" in pinned_skills(profile)
-        assert "project-cards" not in pinned_skills(profile)
-        assert "software-development" not in pinned_skills(profile)
+        for on_demand in ON_DEMAND_SHIPPED_SKILLS:
+            assert on_demand in profile.allowed_skill
+            assert on_demand not in pinned_skills(profile)
 
         allowed = resolve_allowed_tools(profile)
         assert "write_skill_file" in allowed

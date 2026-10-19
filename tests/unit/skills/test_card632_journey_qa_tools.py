@@ -107,8 +107,8 @@ def test_default_report_root_uses_temp_when_env_unset(monkeypatch: pytest.Monkey
 
 def test_developer_ticks_journey_qa_skill():
     text = Path("platform/agents/autoreiv.md").read_text(encoding="utf-8")
-    assert "- software-development" in text
-    skill = Path("platform/skills/software-development/SKILL.md").read_text(encoding="utf-8")
+    assert "- live-journeys" in text
+    skill = Path("platform/skills/live-journeys/SKILL.md").read_text(encoding="utf-8")
     assert "list_journey_reports" in skill
-    # CARD-633 / CARD-693: software-development skill includes run_journey and journey report readers.
+    # CARD-633 / CARD-729: the live-journeys skill holds run_journey and the journey report readers.
     assert "run_journey" in skill
