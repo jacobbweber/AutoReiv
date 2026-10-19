@@ -135,3 +135,39 @@ async def test_mcp_client_manager_mount_remote_server():
     # Unmount
     await manager.unmount_server("docker-node")
     assert "mcp_docker-node_container_status" not in registry
+
+
+@pytest.mark.asyncio
+async def test_remote_adapter_speaks_streamable_http_like_the_github_mcp_server():
+    """CARD-730: Streamable HTTP servers (e.g. https://api.githubcopilot.com/mcp/) need Accept for JSON and SSE,
+    may answer as an SSE frame, and hand out an Mcp-Session-Id that later requests must send back."""
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        accept = request.headers.get("accept", "")
+        if "application/json" not in accept or "text/event-stream" not in accept:
+            return httpx.Response(406, text="Not Acceptable")
+        body = json.loads(request.content)
+        seen.append((body["method"], request.headers.get("mcp-session-id")))
+        if "id" not in body:
+            return httpx.Response(202)
+        if body["method"] == "initialize":
+            result = {"protocolVersion": "2025-03-26", "capabilities": {}, "serverInfo": {"name": "gh"}}
+            return httpx.Response(200, json={"jsonrpc": "2.0", "id": body["id"], "result": result},
+                                  headers={"Mcp-Session-Id": "sess-1"})
+        frame = json.dumps({"jsonrpc": "2.0", "id": body["id"], "result": {"tools": [
+            {"name": "get_me", "description": "Who am I", "inputSchema": {"type": "object", "properties": {}}}]}})
+        return httpx.Response(200, text=f"event: message\ndata: {frame}\n\n",
+                              headers={"Content-Type": "text/event-stream"})
+
+    adapter = MCPClientAdapter(
+        server_name="github",
+        transport="sse",
+        url="https://api.githubcopilot.com/mcp/",
+        headers={"Authorization": "Bearer pat"},
+        _http_transport=httpx.MockTransport(handler),
+    )
+    tools = await adapter.list_tools()
+    assert [t.name for t in tools] == ["mcp_github_get_me"]
+    assert seen[0] == ("initialize", None)
+    assert ("tools/list", "sess-1") in seen

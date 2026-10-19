@@ -34,6 +34,9 @@ project in Projects Studio. There is no self-copy mechanism; the running AutoRei
 - Commands run only through `cli_exec` from `software-development`: it runs in the active project, asks for approval on
   every call and blocks dangerous commands (ADR-0067 amends the CARD-562 "no shell" rule). No code runner.
 - `git_commit` refuses main/master/qa; `git_create_branch` carries card edits from HEAD.
+- `git_clone` clones into the projects folder (local sources only from inside it); `git_pull` only fast-forwards;
+  `git_push` never forces and refuses main/master/qa. GitHub HTTPS auth comes from `GITHUB_TOKEN` in the git process
+  environment only (CARD-730).
 - `set_card_status` to In Review needs the card branch, a clean tree and a green check for HEAD, then writes the Evidence and commits the card.
 - Cards are written only with `write_card` (next CARD-N id; Developer's new cards are Proposed); file tools refuse card folders.
 - Tool building (Tools Studio, Ask Developer, scaffold_agent_pack) is parked until slice 2.

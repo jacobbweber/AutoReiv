@@ -14,15 +14,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
 import {
-  HITL_CARD,
+  askAndApprove,
   freshProjectDir,
   getJson,
-  isStreaming,
   openApp,
   openSessionByTitle,
-  send,
   trackStreams,
-  waitReplyIdle,
 } from './lib/app.mjs';
 
 const REQUIRED_TOOLS = [
@@ -115,35 +112,6 @@ async function allRows(request, base, sid) {
   return out;
 }
 
-async function askAndApprove(page, streams, text, done, timeoutMs) {
-  const n = streams.count;
-  await send(page, text);
-  await waitFor(() => streams.count > n, { timeoutMs: 20000 });
-  let approvals = 0;
-  let idlePolls = 0;
-  await waitFor(
-    async () => {
-      const cards = page.locator(HITL_CARD);
-      const count = await cards.count();
-      for (let i = 0; i < count; i += 1) {
-        const approve = cards.nth(i).locator('[data-hitl-decision="APPROVED"]').first();
-        if (await approve.isVisible().catch(() => false)) {
-          await approve.click();
-          approvals += 1;
-          await page.waitForTimeout(1500);
-          return false;
-        }
-      }
-      const streaming = await isStreaming(page);
-      if (!streaming && (await done())) return true;
-      idlePolls = streaming ? 0 : idlePolls + 1;
-      return idlePolls >= 8;
-    },
-    { timeoutMs, intervalMs: 2000 },
-  ).catch(() => {});
-  await waitReplyIdle(page, { timeoutMs: 60000 }).catch(() => {});
-  return approvals;
-}
 
 export default {
   id: 'card-697-exercise-and-harden-end-to-end',

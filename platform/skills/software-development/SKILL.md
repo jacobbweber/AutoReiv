@@ -14,6 +14,8 @@ tools:
 - git_branch
 - git_create_branch
 - git_commit
+- git_pull
+- git_push
 version: 1.0.0
 tier: platform
 safety:
@@ -49,3 +51,8 @@ branch-test-verify workflow.
 6. **Commit (`git_commit`).** Commit on the work branch with the repo's commit style
    (`git_commit(subject="feat(scope): summary", paths=["path/to/file"])`; always pass `paths`). When the repo uses
    cards, move the card with `set_card_status` (`project-cards`) once checks are green.
+7. **Sync and share (`git_pull`, `git_push`).** Before starting, `git_pull` fast-forwards the current branch from
+   `origin` (it never merges; if branches diverged, ask the operator). When the work is committed and checked,
+   `git_push` sends the work branch to `origin` and sets upstream; it never forces and refuses `main`, `master` and
+   `qa`. Then open a pull request with the GitHub MCP server's tools if the operator has added it, otherwise give the
+   operator the branch name. A person merges. See `reference="github.md"` for GitHub auth and the MCP server.

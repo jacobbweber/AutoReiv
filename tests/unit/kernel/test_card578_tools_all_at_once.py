@@ -78,8 +78,8 @@ def test_developer_turn_one_gets_its_full_set():
     names = resolve_allowed_tools(dev).names
     sent = [t.name for t in _kernel(_registry_with(names))._resolve_active_tools(dev, user_content="hi")]
     # CARD-693/697: project-cards + software-development; CARD-729 moved the journey tools to live-journeys
-    # and project creation to repo-onboarding, and added cli_exec.
-    assert len(sent) == len(names) == 27, sorted(sent)
+    # and project creation to repo-onboarding, and added cli_exec; CARD-730 added git_pull and git_push.
+    assert len(sent) == len(names) == 29, sorted(sent)
     for tool in ("read_project_file", "patch_project_file", "search_project", "run_project_checks", "skill_view",
                  "cli_exec"):
         assert tool in sent

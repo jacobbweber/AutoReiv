@@ -23,7 +23,7 @@ NO_PROJECT_MESSAGE = (
 )
 
 
-def _touches_running_checkout(target: Path) -> bool:
+def touches_running_checkout(target: Path) -> bool:
     """True when ``target`` is, contains, or sits inside the AutoReiv code this serve runs from [CARD-728].
 
     The checkout's gitignored ``scratch/`` stays allowed (test and live QA data live there).
@@ -113,14 +113,14 @@ class ProjectsService:
         if not isinstance(raw, dict) or not raw.get("path"):
             return {}
         target = Path(str(raw["path"])).expanduser().resolve()
-        if not self._inside_projects_dir(target) or _touches_running_checkout(target):
+        if not self._inside_projects_dir(target) or touches_running_checkout(target):
             return {}
         return raw
 
     def set_selected(self, slug: Optional[str] = None, path: Optional[str] = None) -> Dict[str, Any]:
         if path:
             target = Path(path).expanduser().resolve()
-            if _touches_running_checkout(target):
+            if touches_running_checkout(target):
                 return {"success": False, "error": "The running AutoReiv code cannot be a project. Clone a copy instead."}
             if not self._inside_projects_dir(target):
                 return {"success": False, "error": f"Projects must be inside the projects folder: {self.projects_dir()}"}
@@ -132,7 +132,7 @@ class ProjectsService:
             match = next((p for p in listed.get("projects", []) if p["slug"] == slug), None)
             if not match:
                 return {"success": False, "error": f"Project '{slug}' not found"}
-            if _touches_running_checkout(Path(match["path"])):
+            if touches_running_checkout(Path(match["path"])):
                 return {"success": False, "error": "The running AutoReiv code cannot be a project. Clone a copy instead."}
             payload = {"slug": match["slug"], "path": match["path"]}
         else:
@@ -244,6 +244,46 @@ class ProjectsService:
             "git": git_ready,
         }
 
+    def git_clone(self, url: str, slug: Optional[str] = None, select: bool = True) -> Dict[str, Any]:
+        """Clone ``url`` into the projects folder and make it the active project [CARD-730].
+
+        GitHub HTTPS auth comes from env GITHUB_TOKEN (``git_remote``); nothing secret is written to the repo.
+        """
+        from src.application.sdlc.git_remote import REMOTE_TIMEOUT_S, check_remote_url, remote_env, scrub
+
+        text = (url or "").strip()
+        problem = check_remote_url(text, self.projects_dir())
+        if problem:
+            return {"success": False, "error": problem}
+        clean = (slug or "").strip() or re.sub(r"\.git$", "", text.rstrip("/").replace(":", "/").split("/")[-1])
+        if not SLUG_RE.match(clean):
+            return {"success": False, "error": "Invalid slug. Use letters, numbers, dot, underscore, hyphen."}
+        try:
+            target = jail_join(self.projects_dir(), clean)
+        except ProjectPathError as exc:
+            return {"success": False, "error": str(exc)}
+        if target.exists():
+            return {"success": False, "error": f"Project already exists: {clean}. Pick another slug or use git_pull."}
+        git_bin = shutil.which("git")
+        if not git_bin:
+            return {"success": False, "error": "git is not installed on this server."}
+        try:
+            proc = subprocess.run(
+                [git_bin, "clone", "--", text, str(target)],
+                capture_output=True, text=True, check=False, env=remote_env(text), timeout=REMOTE_TIMEOUT_S,
+            )
+        except subprocess.TimeoutExpired:
+            shutil.rmtree(target, ignore_errors=True)
+            return {"success": False, "error": f"git clone timed out after {REMOTE_TIMEOUT_S} s."}
+        if proc.returncode != 0:
+            shutil.rmtree(target, ignore_errors=True)
+            return {"success": False, "error": scrub(proc.stderr.strip()) or "git clone failed"}
+        ensure_commit_identity(git_bin, target)
+        out: Dict[str, Any] = {"success": True, "slug": clean, "path": str(target), "output": scrub(proc.stderr.strip())}
+        if select:
+            out["selected"] = self.set_selected(path=str(target)).get("selected", {})
+        return out
+
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
         if not confirm:
             return {"success": False, "error": "delete requires confirm=true"}
@@ -280,4 +320,22 @@ class ProjectsService:
                 "required": ["slug"],
             },
             handler=self.create_project,
+        )
+        registry.register_tool(
+            name="git_clone",
+            description=(
+                "Clone a git repository (https://, ssh:// or git@host:owner/repo) into the projects folder and make "
+                "it the active project. Private GitHub repos use the serve's GITHUB_TOKEN; never put a token in the "
+                "URL. Asks the operator first."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "e.g. https://github.com/owner/repo.git"},
+                    "slug": {"type": "string", "description": "Folder name; default: the repo name"},
+                    "select": {"type": "boolean", "default": True, "description": "Make it the active project"},
+                },
+                "required": ["url"],
+            },
+            handler=self.git_clone,
         )
