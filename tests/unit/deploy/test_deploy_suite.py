@@ -58,14 +58,14 @@ def test_windows_deploy_suite_files():
     assert "Stop-Service" in uninstall_content or "nssm stop" in uninstall_content
 
 
-def test_dockerfile_templates_and_layout():
-    """Verify Dockerfile copies templates and configures volume mount."""
+def test_dockerfile_layout():
+    """Verify Dockerfile configures the data volume and port."""
     dockerfile = REPO_ROOT / "Dockerfile"
     assert dockerfile.is_file(), "Dockerfile must exist"
     content = dockerfile.read_text(encoding="utf-8")
 
-    # Must copy templates directory for Developer Agent
-    assert "COPY --chown=autoreiv:autoreiv templates/ ./templates/" in content
+    # templates/ is retired by CARD-729 (ADR-0067: no template push); the image must not copy it
+    assert "templates/" not in content
     assert "AUTOREIV_DATA_DIR=/data" in content
     assert "EXPOSE 8000" in content
 

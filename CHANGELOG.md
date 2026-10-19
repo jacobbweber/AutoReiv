@@ -4,6 +4,16 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Added
+
+- Docker mounts the projects folder at `/data/projects` (`AUTOREIV_PROJECTS_HOST_PATH`), passes `GITHUB_TOKEN` through, and the image ships Node.js 22, npm, uv, make, g++ and Godot headless for project work [CARD-731].
+- New `repo-onboarding` and `spec-driven-development` skills on AutoReiv adopt a repo's own conventions (AGENTS.md, CLAUDE.md, Copilot or Cursor rules) and write specs before code; `software-development` can run project commands through `cli_exec` with approval on every call [CARD-729].
+
+### Changed
+
+- Projects now live in one user-data folder (`<data>/projects`, or `AUTOREIV_PROJECTS_DIR`), the same on native installs and Docker; the `projects_root` setting is gone, only folders inside it can be the active project, and the running AutoReiv checkout can never be selected [CARD-728].
+- Projects Studio no longer pushes AutoReiv's template onto repos: drift and Align are removed and new projects are an empty git repository [CARD-729].
+
 ### Fixed
 
 - Fixed branch switching in **Settings -> Preferences -> System & Software Updates** to fast-forward stale local branches to `origin/<branch>` before restarting, and hardened update dependency sync to fall back cleanly to offline-capable `pip` when `uv` is unavailable [CARD-727].

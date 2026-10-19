@@ -102,10 +102,15 @@ Start:
 ```bash
 docker compose up -d
 # optional: export AUTOREIV_WIKI_HOST_PATH=/path/to/wiki first, to keep the wiki in a folder on the host
+# optional: export AUTOREIV_PROJECTS_HOST_PATH=/path/to/projects first, to keep your projects in a folder on the host
+# optional: export GITHUB_TOKEN=<token> first, to clone and push private GitHub repositories
 ```
 
 - Data: the named volume `autoreiv-data`, mounted at `/data` in the container (`AUTOREIV_DATA_DIR=/data`).
 - Wiki: if `AUTOREIV_WIKI_HOST_PATH` is set, that host folder is mounted at `/data/wiki`; otherwise the `autoreiv-wiki` volume is used. The container will not start without a readable wiki folder.
+- Projects: if `AUTOREIV_PROJECTS_HOST_PATH` is set (for example `D:/AutoReivProjects` on Windows or `/home/you/projects` on Linux), that host folder is mounted at `/data/projects`; otherwise the `autoreiv-projects` volume is used. AutoReiv clones, builds and runs projects only in this folder (`AUTOREIV_PROJECTS_DIR=/data/projects`). With a host folder you can open the same project in VS Code on the host while AutoReiv works on it.
+- Toolchains in the image: Python 3.12, git, Node.js 22 with npm, npx and corepack, uv, make and g++ (for native npm and pip modules), and Godot 4 headless. Project commands run inside the container, so they only have these tools. Unity and Unreal are not supported in the container. To build the image without Godot, run `docker compose build --build-arg INSTALL_GODOT=0`.
+- GitHub: set `GITHUB_TOKEN` to a GitHub personal access token to clone, pull and push private repositories on github.com over HTTPS. Public repositories need no token.
 - Logs: `docker compose logs -f`.
 
 Uninstall (stop and remove the container):
