@@ -139,6 +139,15 @@ def setup_system_logging(buffer: Optional[SystemLogBuffer] = None) -> SystemLogB
     # Cleanly replace any existing MemoryLogHandlers
     root_logger.handlers = [h for h in root_logger.handlers if not isinstance(h, MemoryLogHandler)]
     root_logger.addHandler(handler)
+    has_stream_handler = any(
+        isinstance(h, logging.StreamHandler) and not isinstance(h, MemoryLogHandler)
+        for h in root_logger.handlers
+    )
+    if not has_stream_handler:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+        stream_handler.setLevel(logging.INFO)
+        root_logger.addHandler(stream_handler)
 
     uvicorn_logger = logging.getLogger("uvicorn")
     uvicorn_logger.setLevel(logging.INFO)
