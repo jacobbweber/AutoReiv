@@ -23,6 +23,9 @@ DEFAULT_HIGH_RISK_TOOLS: tuple[str, ...] = (
     "run_project_checks",  # CARD-562: runs AGENTS.md commands; the unattended level (slice 4) relaxes it
     "create_project",
     "git_commit",
+    "git_clone",  # CARD-730: network fetch into the projects folder
+    "git_pull",  # CARD-730
+    "git_push",  # CARD-730: always asks
     "sync_card_issue",
     "repo_file_write",
     "repo_file_patch",

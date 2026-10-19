@@ -37,6 +37,9 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "write_project_file",
         "create_project",
         "git_commit",
+        "git_clone",  # CARD-730
+        "git_pull",  # CARD-730
+        "git_push",  # CARD-730
         "sync_card_issue",
         "execute_agent_database",
         "repo_file_write",

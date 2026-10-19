@@ -4,6 +4,7 @@ description: Set up or adopt a project in the projects folder, find and follow t
 tools:
 - active_project_info
 - create_project
+- git_clone
 - list_project_dir
 - read_project_file
 - search_project
@@ -30,8 +31,10 @@ or asks "how does this repo work?". The repo's own rules always win over AutoRei
 ## Workflow
 
 1. **Find the project.** Call `active_project_info`. If no project is selected, ask the operator to select one in
-   Projects Studio. To start a brand-new one, call `create_project(slug)` (an empty git repo in the projects folder),
-   then ask the operator to select it.
+   Projects Studio. To bring in a repo, call `git_clone(url)` (https://, ssh:// or git@host:owner/repo; private
+   GitHub repos use the serve's `GITHUB_TOKEN`, never a token in the URL); it lands in the projects folder and becomes
+   the active project. To start a brand-new one, call `create_project(slug)` (an empty git repo in the projects
+   folder), then ask the operator to select it.
 2. **Read what is there first.** With `list_project_dir` and `read_project_file`, read every instruction file that
    exists (see `conventions.md`): `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`,
    `.cursor/rules/`, `.cursorrules`, `CONTRIBUTING.md`, `README.md`, and the build files (`package.json` scripts,
