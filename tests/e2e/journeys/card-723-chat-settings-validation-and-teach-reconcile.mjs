@@ -101,7 +101,7 @@ export default {
       const adoptBtn = proposalCard.locator('.btn-adopt-skill');
       await clickExpect(
         adoptBtn,
-        async () => (await proposalCard.innerText()).includes('On for'),
+        async () => (await proposalCard.innerText()).toLowerCase().includes('on for'),
         { label: 'Adopt Skill', what: 'On for autoreiv banner', timeoutMs: 20000 }
       );
 
@@ -122,7 +122,7 @@ export default {
       const reloadedCard = page.locator('.skill-proposal-card').last();
       await reloadedCard.waitFor({ state: 'visible', timeout: 15000 });
       const cardText = await reloadedCard.innerText();
-      if (cardText.includes('On for autoreiv')) {
+      if (cardText.toLowerCase().includes('on for autoreiv')) {
         throw new Error(`Reloaded Teach card still shows 'On for autoreiv' after skill deletion: ${cardText}`);
       }
       const adoptAgainVisible = await reloadedCard.locator('.btn-adopt-skill').isVisible();
