@@ -139,6 +139,7 @@ export function initChatStudio(state, callbacks = {}) {
     chatSessionsDrawerCloseBtn,
     toggleSidebarBtn,
     viewChat,
+    onOpenSessionsDrawer: () => loadSessions(),
   });
 
   if (chatActiveProjectPill) {

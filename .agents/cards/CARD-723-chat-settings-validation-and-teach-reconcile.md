@@ -2,7 +2,7 @@
 id: CARD-723
 title: "Chat and Settings API Validation, Teach Card Reconciliation, and Drawer Session Refresh"
 type: bug
-status: Ready
+status: Done
 priority: P1
 milestone: M31
 needs_decision: none
@@ -11,8 +11,9 @@ proof:
   checks:
     - tests/unit/web/test_card723_validation_and_teach_reconcile.py
 branch: feat/card-723-chat-settings-validation-and-teach-reconcile
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 25, qa_runs: 2, findings: 0}
 created: 2026-10-18
+completed: 2026-10-18
 ---
 
 # CARD-723 Chat and Settings API Validation, Teach Card Reconciliation, and Drawer Session Refresh
@@ -47,13 +48,18 @@ Silent fallback of invalid `max_concurrent_generations` to `1` and silent fallba
 - Return HTTP `400` with a clear message when `max_concurrent_generations` is outside `1..3` or when `/api/chat/stream` receives an unknown `approval_mode`, matching the existing `approval_mode` validation on `POST /api/settings/matrix`.
 
 ## Findings
-- None yet.
+- None.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-723-chat-settings-validation-and-teach-reconcile` | desktop | PASS | 3/3 steps pass (matrix/stream 400 validation, Tutor drawer refresh, Teach card adoption & post-delete reconciliation) |
+| `card-723-chat-settings-validation-and-teach-reconcile` | phone | PASS | 3/3 steps pass |
 
-Screenshots: `/tmp/autoreiv-qa/card-723/...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-723/card-723-chat-settings-validation-and-teach-reconcile-desktop-02-opensessionbytitle-opens-an-api-created-tutor-ch.png`
+- `/tmp/autoreiv-qa/card-723/card-723-chat-settings-validation-and-teach-reconcile-desktop-03-adopt-a-teach-lesson-on-autoreiv-remove-the-skil.png`
+- `/tmp/autoreiv-qa/card-723/card-723-chat-settings-validation-and-teach-reconcile-phone-03-adopt-a-teach-lesson-on-autoreiv-remove-the-skil.png`
 
 ## Release note
 Validated `max_concurrent_generations` (`1..3`) on `POST /api/settings/matrix` and `approval_mode` on `POST /api/chat/stream`, reconciled reloaded Teach card adoption state when a skill is removed, and refreshed the Chat sessions drawer on open.

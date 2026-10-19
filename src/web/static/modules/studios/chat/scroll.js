@@ -73,6 +73,7 @@ export function setupChatScroll({
   chatSessionsDrawerCloseBtn,
   toggleSidebarBtn,
   viewChat,
+  onOpenSessionsDrawer = null,
 } = {}) {
   let chatStickToBottom = true;
 
@@ -122,6 +123,9 @@ export function setupChatScroll({
         collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
       } else {
         openChatSessionsDrawer(chatSessionsDrawer, viewChat);
+        if (typeof onOpenSessionsDrawer === 'function') {
+          void onOpenSessionsDrawer();
+        }
       }
     });
   }

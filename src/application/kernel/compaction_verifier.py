@@ -310,13 +310,83 @@ def reset_compaction_backoff(session_id: str | None = None) -> None:
         _SESSION_BACKOFF.pop(session_id, None)
 
 
+def _reconcile_skill_proposal_content(
+    raw_content: str | None,
+    *,
+    store: object,
+    message_id: str | None,
+    registry: object | None,
+    catalog: object | None,
+    data_dir_paths: object | None,
+) -> str | None:
+    """Reconcile SKILL_PROPOSAL adoption_state when the skill was later removed or unticked [CARD-723]."""
+    if not raw_content:
+        return raw_content
+    import json
+    from pathlib import Path
+
+    try:
+        cdata = json.loads(raw_content)
+    except Exception:
+        return raw_content
+    if not isinstance(cdata, dict) or cdata.get("adoption_state") != "adopted":
+        return raw_content
+
+    skill_id = str(cdata.get("skill_id") or "").strip()
+    target_agent_id = str(cdata.get("target_agent_id") or "autoreiv").strip()
+    if not skill_id:
+        return raw_content
+
+    skill_exists = True
+    if catalog is not None and hasattr(catalog, "read_skill"):
+        try:
+            res = catalog.read_skill(skill_id)
+            skill_exists = bool(isinstance(res, dict) and res.get("success") and not res.get("archived"))
+        except Exception:
+            skill_exists = False
+    elif data_dir_paths is not None and getattr(data_dir_paths, "skills_path", None):
+        skill_exists = (Path(getattr(data_dir_paths, "skills_path")) / skill_id / "SKILL.md").is_file()
+    else:
+        try:
+            from src.application.agent_skills.skill_list import studio_can_show_skill
+
+            skill_exists = studio_can_show_skill(skill_id)
+        except Exception:
+            skill_exists = True
+
+    agent_has_skill = True
+    if registry is not None and hasattr(registry, "get_agent"):
+        try:
+            agent = registry.get_agent(target_agent_id)
+            agent_has_skill = bool(
+                agent is not None and skill_id in list(getattr(agent, "allowed_skill", None) or [])
+            )
+        except Exception:
+            agent_has_skill = True
+
+    if skill_exists and agent_has_skill:
+        return raw_content
+
+    cdata["adoption_state"] = "pending"
+    updated = json.dumps(cdata)
+    if message_id and hasattr(store, "update_message"):
+        try:
+            getattr(store, "update_message")(message_id, updated)
+        except Exception:
+            pass
+    return updated
+
+
 def serialize_session_messages(
     store: object,
     session_id: str,
     *,
     include_archived: bool = False,
+    registry: object | None = None,
+    catalog: object | None = None,
+    data_dir_paths: object | None = None,
 ) -> list[dict[str, object]]:
-    """Serialize session messages with optional archived rows and archive_links metadata [CARD-699]."""
+    """Serialize session messages with optional archived rows and archive_links metadata [CARD-699, CARD-723]."""
     from src.application.kernel.empty_reply import skip_empty_assistant_rows
 
     get_msgs = getattr(store, "get_messages")
@@ -334,10 +404,20 @@ def serialize_session_messages(
     out: list[dict[str, object]] = []
     for m in msgs:
         mid = getattr(m, "id", None)
+        content = m.content
+        if m.role == Role.SKILL_PROPOSAL and (registry is not None or catalog is not None or data_dir_paths is not None):
+            content = _reconcile_skill_proposal_content(
+                content,
+                store=store,
+                message_id=str(mid) if mid else None,
+                registry=registry,
+                catalog=catalog,
+                data_dir_paths=data_dir_paths,
+            )
         row: dict[str, object] = {
             "id": mid,
             "role": m.role.value,
-            "content": m.content,
+            "content": content,
             "name": m.name,
             "tool_calls": [tc.model_dump() for tc in m.tool_calls] if m.tool_calls else None,
             "tool_call_id": m.tool_call_id,
