@@ -558,8 +558,16 @@ class UpdateService(UpdateGitOpsMixin):
         backup_path = self._snapshot_database()
         dep_before = self._dep_fingerprints()
 
+        if match.is_remote:
+            self._git_ok(["fetch", "--prune", "origin"], timeout=120.0)
+
         if match.is_local:
             ok, err = self._git_ok(["checkout", name])
+            if ok and match.is_remote:
+                self._git_ok(["branch", f"--set-upstream-to=origin/{name}", name])
+                ahead, behind = self._ahead_behind(f"origin/{name}")
+                if ahead == 0 and behind > 0:
+                    self._git_ok(["pull", "--ff-only", "origin", name], timeout=120.0)
         else:
             ok, err = self._git_ok(["checkout", "--track", "-b", name, f"origin/{name}"])
             if not ok:

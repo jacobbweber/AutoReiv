@@ -63,25 +63,32 @@ _IN_PROGRESS_FILES = (
 
 
 def _default_uv_sync(repo_root: Path) -> tuple[bool, str]:
-    try:
-        if shutil.which("uv") and (repo_root / ".venv").exists():
-            cmd = ["uv", "sync"]
-        else:
-            cmd = [sys.executable, "-m", "pip", "install", "--no-cache-dir", "--no-deps", "-e", "."]
-        res = subprocess.run(
-            cmd,
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-            timeout=600,
-            check=False,
-            shell=False,
-        )
-        if res.returncode != 0:
-            return False, (res.stderr or res.stdout or "dependency sync failed").strip()
-        return True, "dependency sync ok"
-    except Exception as exc:
-        return False, str(exc)
+    candidates: list[list[str]] = []
+    if shutil.which("uv") and (repo_root / ".venv").exists():
+        candidates.append(["uv", "sync"])
+    candidates.append(
+        [sys.executable, "-m", "pip", "install", "--no-cache-dir", "--no-build-isolation", "--no-deps", "-e", "."]
+    )
+    candidates.append([sys.executable, "-m", "pip", "install", "--no-cache-dir", "--no-deps", "-e", "."])
+
+    last_err = "dependency sync failed"
+    for cmd in candidates:
+        try:
+            res = subprocess.run(
+                cmd,
+                cwd=str(repo_root),
+                capture_output=True,
+                text=True,
+                timeout=600,
+                check=False,
+                shell=False,
+            )
+            if res.returncode == 0:
+                return True, "dependency sync ok"
+            last_err = (res.stderr or res.stdout or last_err).strip()
+        except Exception as exc:
+            last_err = str(exc)
+    return False, last_err
 
 
 class UpdateGitOpsMixin:

@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml .
 COPY src/ ./src/
-RUN pip install --no-cache-dir --prefix=/install .
+RUN pip install --no-cache-dir --prefix=/install setuptools wheel .
 
 # Stage 2: Final Minimal Runtime Image
 FROM python:3.12-slim AS runner
