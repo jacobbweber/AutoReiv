@@ -83,7 +83,7 @@ export default {
             return null;
           }
         }
-        // No nudging (CARD-535 is a known bug): if the Developer goes idle with nothing to approve, stop here.
+        // No nudging: if the Developer goes idle with nothing to approve, stop here.
         stoppedChecks = (await isStreaming(page)) ? 0 : stoppedChecks + 1;
         if (stoppedChecks >= 10) return { stopped: true }; // ~15 s idle
         return null;
@@ -99,7 +99,7 @@ export default {
       await waitReplyIdle(page, { timeoutMs: 300000 });
       const inTray = page.locator(`${HITL_CARD}[data-approval-id="${proposal.id}"]`);
       j.note(`proposal card visible in the Developer chat tray: ${await inTray.isVisible().catch(() => false)}`);
-    }, { timeoutMs: 1300000, knownBug: 'CARD-535' });
+    }, { timeoutMs: 1300000 });
 
     await j.step('Accept the proposal in Agent Studio; the skill shows ticked', async () => {
       const a = proposal.arguments || {};

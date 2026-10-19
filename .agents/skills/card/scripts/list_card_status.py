@@ -13,7 +13,7 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Optional
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -27,6 +27,8 @@ except ImportError:
     yaml = None
 
 STATUS_BQ = re.compile(r">\s*\*\*Status\*\*:\s*(.+)", re.IGNORECASE)
+PRIORITY_BQ = re.compile(r">\s*\*\*Priority\*\*:\s*(.+)", re.IGNORECASE)
+MILESTONE_BQ = re.compile(r">\s*\*\*Milestone\*\*:\s*(.+)", re.IGNORECASE)
 CREATED_BQ = re.compile(r">\s*\*\*Created\*\*:\s*(.+)", re.IGNORECASE)
 COMPLETED_BQ = re.compile(r">\s*\*\*Completed\*\*:\s*(.+)", re.IGNORECASE)
 ADR_BQ = re.compile(r">\s*\*\*ADR(?: Reference)?\*\*:\s*(.+)", re.IGNORECASE)
@@ -53,6 +55,18 @@ def parse_labels(raw: Any) -> List[str]:
     return [item.strip().strip("`\"'") for item in items if item.strip()]
 
 
+def normalize_status(status_str: Optional[str]) -> str:
+    raw = (status_str or "").strip()
+    if not raw:
+        return "UNKNOWN"
+    low = raw.lower()
+    if "superseded" in low:
+        return "Superseded"
+    if low in {"complete", "completed", "done"} or low.startswith("done ") or low.startswith("complete"):
+        return "Done"
+    return raw
+
+
 def classify_status(status_str: str) -> str:
     s = (status_str or "").lower().strip()
     if any(k in s for k in CLOSED_KEYWORDS):
@@ -67,6 +81,8 @@ def parse_card(path: Path) -> dict:
     text = resolved_path.read_text(encoding="utf-8", errors="replace")
 
     status = None
+    priority = None
+    milestone = None
     created = None
     completed = None
     adr = None
@@ -83,6 +99,8 @@ def parse_card(path: Path) -> dict:
                 fm = yaml.safe_load(parts[1])
                 if isinstance(fm, dict):
                     status = fm.get("status")
+                    priority = fm.get("priority")
+                    milestone = fm.get("milestone")
                     created = fm.get("created")
                     completed = fm.get("completed")
                     adr = fm.get("adr") or fm.get("adr_reference")
@@ -100,6 +118,14 @@ def parse_card(path: Path) -> dict:
         m = STATUS_BQ.search(head)
         if m:
             status = m.group(1).strip().strip("*").strip()
+    if not priority:
+        m = PRIORITY_BQ.search(head)
+        if m:
+            priority = m.group(1).strip().strip("*").strip()
+    if not milestone:
+        m = MILESTONE_BQ.search(head)
+        if m:
+            milestone = m.group(1).strip().strip("*").strip()
     if not created:
         m = CREATED_BQ.search(head)
         if m:
@@ -151,7 +177,8 @@ def parse_card(path: Path) -> dict:
         lines = [line.strip() for line in intent_match.group(1).strip().splitlines() if line.strip()]
         intent_text = " ".join(lines[:3])[:300]
 
-    category = classify_status(status or "Unknown")
+    norm_status = normalize_status(str(status) if status is not None else None)
+    category = classify_status(norm_status)
 
     try:
         rel_path = str(resolved_path.relative_to(repo_root())).replace("\\", "/")
@@ -162,7 +189,9 @@ def parse_card(path: Path) -> dict:
         "id": card_id,
         "number": card_number,
         "title": title,
-        "status": status or "UNKNOWN",
+        "status": norm_status,
+        "priority": str(priority).strip() if priority else None,
+        "milestone": str(milestone).strip() if milestone else None,
         "category": category,
         "created": str(created) if created else None,
         "completed": str(completed) if completed else None,
@@ -182,6 +211,10 @@ def search_matches(row: dict, query: str) -> bool:
         return True
     if any(q in lbl.lower() for lbl in row["labels"]):
         return True
+    if row.get("milestone") and q in row["milestone"].lower():
+        return True
+    if row.get("priority") and q in row["priority"].lower():
+        return True
     if row["adr"] and q in row["adr"].lower():
         return True
     if row["intent"] and q in row["intent"].lower():
@@ -194,6 +227,10 @@ def print_card_detail(card: dict) -> None:
     print(f" [{card['id']}] {card['title']}")
     print("=" * 80)
     print(f"  Status:       {card['status']} ({card['category']})")
+    if card.get("priority"):
+        print(f"  Priority:     {card['priority']}")
+    if card.get("milestone"):
+        print(f"  Milestone:    {card['milestone']}")
     print(f"  Created:      {card['created'] or 'N/A'}")
     if card["completed"]:
         print(f"  Completed:    {card['completed']}")
@@ -250,7 +287,7 @@ def main() -> int:
     filter_group.add_argument(
         "-q",
         "--search",
-        help="Search across ID, title, labels, ADR, and intent excerpt (case-insensitive)",
+        help="Search across ID, title, labels, milestone, priority, ADR, and intent excerpt (case-insensitive)",
     )
     filter_group.add_argument(
         "--label",
@@ -260,6 +297,14 @@ def main() -> int:
     filter_group.add_argument(
         "--status",
         help="Filter by status substring (e.g. 'Ready', 'In Review', 'Parked')",
+    )
+    filter_group.add_argument(
+        "--milestone",
+        help="Filter by milestone (e.g. 'M31')",
+    )
+    filter_group.add_argument(
+        "--priority",
+        help="Filter by priority (e.g. 'P1', 'P2')",
     )
     filter_group.add_argument(
         "--recent",
@@ -327,7 +372,7 @@ def main() -> int:
     total_count = len(all_cards)
 
     # Determine default filtering:
-    # If explicit filters (--all, --done, --parked, --status, --recent, --search, --label) were NOT passed, default to open cards.
+    # If explicit filters (--all, --done, --parked, --status, --recent, --search, --label, --milestone, --priority) were NOT passed, default to open cards.
     has_explicit_filter = any(
         [
             args.all,
@@ -335,6 +380,8 @@ def main() -> int:
             args.done,
             args.parked,
             args.status,
+            args.milestone,
+            args.priority,
             args.recent is not None,
             args.search,
             args.label,
@@ -360,6 +407,16 @@ def main() -> int:
         needle = args.status.lower()
         rows = [r for r in rows if needle in r["status"].lower()]
         filter_label += f" matching status '{args.status}'"
+
+    if args.milestone:
+        needle = args.milestone.lower()
+        rows = [r for r in rows if (r.get("milestone") or "").lower() == needle or needle in (r.get("milestone") or "").lower()]
+        filter_label += f" matching milestone '{args.milestone}'"
+
+    if args.priority:
+        needle = args.priority.lower()
+        rows = [r for r in rows if (r.get("priority") or "").lower() == needle]
+        filter_label += f" matching priority '{args.priority}'"
 
     if args.label:
         needle = args.label.lower()
@@ -399,13 +456,15 @@ def main() -> int:
         out("  (No cards match the current filter criteria)")
         return 0
 
-    out(f"{'ID':<10} {'STATUS':<14} {'LABELS':<28} {'TITLE'}")
-    out("-" * 96)
+    out(f"{'ID':<10} {'STATUS':<14} {'PRI':<5} {'MILESTONE':<10} {'LABELS':<20} {'TITLE'}")
+    out("-" * 104)
     for r in rows:
-        labels_preview = ", ".join(r["labels"])[:26]
+        labels_preview = ", ".join(r["labels"])[:18]
         title_preview = r["title"][:42]
         status_preview = r["status"][:13]
-        out(f"{r['id']:<10} {status_preview:<14} {labels_preview:<28} {title_preview}")
+        pri_preview = (r.get("priority") or "-")[:4]
+        ms_preview = (r.get("milestone") or "-")[:9]
+        out(f"{r['id']:<10} {status_preview:<14} {pri_preview:<5} {ms_preview:<10} {labels_preview:<20} {title_preview}")
 
     return 0
 
