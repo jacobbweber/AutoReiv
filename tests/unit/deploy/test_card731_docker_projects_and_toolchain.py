@@ -76,4 +76,6 @@ def test_update_machinery_from_card722_is_kept():
     assert "COPY --chown=autoreiv:autoreiv .git/ ./.git/" in DOCKERFILE
     assert "git config --global --add safe.directory /app" in DOCKERFILE
     assert "git sparse-checkout set" in DOCKERFILE
-    assert "'/templates/**'" in DOCKERFILE
+    assert "'/platform/**'" in DOCKERFILE
+    # templates/ is retired by CARD-729 (ADR-0067): neither copied nor checked out
+    assert "templates/" not in DOCKERFILE and "'/templates/**'" not in DOCKERFILE

@@ -68,11 +68,10 @@ RUN groupadd -g 1000 autoreiv && \
 # Copy installed dependencies from builder
 COPY --from=builder /install /usr/local
 
-# Copy application source, platform agents/skills, templates, and git metadata [CARD-669, CARD-722]
+# Copy application source, platform agents/skills and git metadata [CARD-669, CARD-722]
 COPY --chown=autoreiv:autoreiv .git/ ./.git/
 COPY --chown=autoreiv:autoreiv src/ ./src/
 COPY --chown=autoreiv:autoreiv platform/ ./platform/
-COPY --chown=autoreiv:autoreiv templates/ ./templates/
 COPY --chown=autoreiv:autoreiv pyproject.toml ./
 COPY --chown=autoreiv:autoreiv README.md ./
 
@@ -82,7 +81,7 @@ COPY --chown=autoreiv:autoreiv README.md ./
 # every directory for the app user (safe.directory '*') [CARD-731].
 RUN mkdir -p /data/database /data/skills /data/projects && \
     chown -R autoreiv:autoreiv /data /app && \
-    su autoreiv -c "git config --global --add safe.directory /app && git config --global --add safe.directory '*' && git sparse-checkout set --no-cone '/src/**' '/platform/**' '/templates/**' '/pyproject.toml' '/README.md' && git checkout -- ."
+    su autoreiv -c "git config --global --add safe.directory /app && git config --global --add safe.directory '*' && git sparse-checkout set --no-cone '/src/**' '/platform/**' '/pyproject.toml' '/README.md' && git checkout -- ."
 
 # Default environment configuration
 ENV PYTHONUNBUFFERED=1 \
