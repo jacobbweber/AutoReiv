@@ -2,7 +2,8 @@
 id: CARD-731
 title: "Docker mounts the projects folder and ships a dev toolchain"
 type: feature
-status: In Review
+status: Done
+completed: 2026-10-19
 priority: P1
 milestone: M32
 needs_decision: none
@@ -57,8 +58,8 @@ Nothing.
 
 ## Findings
 - (fixed) Godot headless printed `libfontconfig.so.1: cannot open shared object file` on every start; `libfontconfig1` added with Godot.
-- (open, for the lead) Plain `git init` in the container prints the "Using 'master' as the name for the initial branch" hint and makes `master`. CARD-728's `create_project` should pass `-b main` (or the image could set `init.defaultBranch main`); not changed here.
-- (open, for the lead) Until CARD-729 lands, a container built from this branch has no `templates/sdlc-project`, so the old `create_project` template copy would fail inside Docker. Intended ordering per the lead: CARD-731 merges first, CARD-729 right after.
+- (resolved by CARD-728) Plain `git init` makes `master`; CARD-728's `create_project` runs `git init -b main`.
+- (resolved) The image no longer copies `templates/`; CARD-728/729 merged to qa first, so `create_project` never needs it.
 - Building from a git worktree fails the CARD-722 `COPY .git/` step's purpose (`.git` is a pointer file there), so the smoke image was built from a clean `git clone` of the branch under `scratch/card731/build`. Real installs are normal clones.
 
 ## Results
