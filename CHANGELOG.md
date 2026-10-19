@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-18
+
+Findings backlog resolution, API input validation, Teach card adoption reconciliation, update scheduler defer cap enforcement, runtime stderr logging, capability-authoring contract modernization, and card CLI filtering (`CARD-723`..`CARD-726`).
+
 ### Fixed
 
 - Added `--milestone` and `--priority` support plus status normalization to `list_card_status.py`, fixed the mid-transition CSS race in smoke test `TC-7`, and removed the stale `CARD-535` `knownBug` marker from `card-520` [CARD-726].
