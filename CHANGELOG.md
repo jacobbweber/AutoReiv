@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-19
+
+Projects as user data, process in Agora skills (`repo-onboarding`, `spec-driven-development`, `live-journeys`), project command runner via `cli_exec` with approval, Docker `/data/projects` mount and dev toolchain (Node 22, uv, make, g++, Godot 4 headless), `git_clone`/`git_pull`/`git_push` with env-only GitHub auth, Streamable HTTP MCP client support, and resilient branch switching (`CARD-727`..`CARD-731`).
+
 ### Added
 
 - AutoReiv can clone repos into the projects folder and pull and push work branches (approval per call; never force, never `main`/`master`/`qa`; private GitHub repos via `GITHUB_TOKEN`, never written into the repo), and remote MCP servers that speak Streamable HTTP, such as GitHub's `https://api.githubcopilot.com/mcp/`, now work in Capabilities [CARD-730].
