@@ -10,6 +10,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Fixed an empty amber box (`.reflexion-status-badge`) appearing above the Thinking Process panel while chat responses are streaming [CARD-734].
 - Retired the leftover `agent.id == "developer"` prompt check in `system_prompt_builder.py`, replaced removed `window.__autoreivSwitchTab` calls in live journeys with shared `openTab` in `lib/app.mjs`, and unified `askAndApprove` across journeys [CARD-732].
 
 ## [1.5.0] - 2026-10-19
