@@ -34,6 +34,7 @@ class DecisionRequest(BaseModel):
     decision: str  # "APPROVED" or "REJECTED"
     reason: Optional[str] = None
     session_id: Optional[str] = None
+    remember_for_project: bool = False
 
 
 router = APIRouter(tags=["HITL"])
@@ -107,6 +108,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
 
     execution = None
     background_call = None  # CARD-593: (tool_reg, tool_call, profile) of an approved hand-off, run in the background
+    remembered_for_project = False
     decision_norm = (req.decision or "").strip().lower()
     # CARD-530 REQ-530-006: propose_* drafts never park the turn; their tool call already has its result.
     draft_proposal = bool(record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS | {ATTACH_TOOL_PROPOSAL})
@@ -175,6 +177,13 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                 "skill_proposal": skill_result,
             }
     elif decision_norm in {"approved", "approve"} and record:
+        if req.remember_for_project and record.get("tool_name") == "cli_exec":
+            from src.application.sdlc.projects_service import ProjectsService
+
+            raw_cmd = (record.get("arguments") or {}).get("command") or (record.get("arguments") or {}).get("cmd") or ""
+            proj_svc = getattr(request.app.state, "projects_service", None) or ProjectsService(store=store)
+            remember_res = proj_svc.add_approved_command(str(raw_cmd))
+            remembered_for_project = bool(remember_res.get("success"))
         if record.get("tool_name") == "goal_plan_review":
             execution = {
                 "ran": False,
@@ -347,6 +356,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
         "status": decision_norm,
         "approval_id": approval_id,
         "execution": execution,
+        "remembered_for_project": remembered_for_project,
         "resume_chat": not draft_proposal,  # CARD-530 REQ-530-002
         "nested": nested,
         "routine_id": routine_id or None,

@@ -8,6 +8,8 @@ import { copyToClipboard } from '../utils/clipboard.js';
 import { showToast } from '../ui/toast.js';
 import { setComposerText } from './chat/composer.js';
 import {
+  renderApprovedCommandsList,
+  revokeApprovedCommand,
   renderJourneyRunsList,
   renderJourneyRunDetail,
   resetViewerReadingPane,
@@ -91,6 +93,7 @@ export function initProjectsStudio(state, callbacks = {}) {
       localStorage.setItem('autoreiv.projectsStudioMode', projectsMode);
     } catch { /* ignore */ }
     if (projectsMode === 'manager') {
+      renderApprovedCommandsList();
       loadJourneyRuns();
     }
   }
@@ -118,6 +121,7 @@ export function initProjectsStudio(state, callbacks = {}) {
         setProjectsMode(preferred === 'manager' ? 'manager' : 'explorer');
         await loadTree('.', currentCategory || 'all');
         updateRootBar();
+        await renderApprovedCommandsList();
         if (projectsMode === 'manager') {
           await loadFolderBrowser(browseCwd);
           await loadJourneyRuns();
@@ -129,6 +133,7 @@ export function initProjectsStudio(state, callbacks = {}) {
         updateRootBar();
         setProjectsMode('manager');
         await loadFolderBrowser(browseCwd);
+        await renderApprovedCommandsList();
         await loadJourneyRuns();
       }
     } catch (err) {
@@ -486,6 +491,7 @@ export function initProjectsStudio(state, callbacks = {}) {
           await loadTree('.', 'all');
           updateRootBar();
           await loadFolderBrowser(browseCwd);
+          await renderApprovedCommandsList();
         } else if (act === 'delete') {
           const ok = window.confirm(`Delete project "${slug}"? This cannot be undone.`);
           if (!ok) return;
@@ -535,6 +541,24 @@ export function initProjectsStudio(state, callbacks = {}) {
       if (activeProject) {
         await loadTree('.', currentCategory || 'all');
         updateRootBar();
+      }
+    });
+  }
+
+  // CARD-733: revoke remembered cli_exec commands for active project
+  const approvedCommandsList = $('projectsApprovedCommandsList');
+  if (approvedCommandsList && !approvedCommandsList.dataset.card733Bound) {
+    approvedCommandsList.dataset.card733Bound = '1';
+    approvedCommandsList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-revoke-command]');
+      if (!btn) return;
+      const cmd = btn.getAttribute('data-revoke-command') || '';
+      if (!cmd) return;
+      try {
+        await revokeApprovedCommand(cmd);
+        toast(`Removed approved command: ${cmd}`, 'info');
+      } catch (err) {
+        toast(String(err.message || err), 'error');
       }
     });
   }
