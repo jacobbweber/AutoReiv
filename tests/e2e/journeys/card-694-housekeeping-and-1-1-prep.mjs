@@ -6,32 +6,10 @@
  *    and verify it answers directly from AUTOREIV_CONCEPTS without tool calls.
  */
 import { waitFor } from './lib/runner.mjs';
-import { getJson, openApp, send, waitReplyIdle } from './lib/app.mjs';
+import { getJson, openApp, openTab, send, waitReplyIdle } from './lib/app.mjs';
 
 const AGENT_ID = 'autoreiv';
 const RETIRED_AGENTS = ['architect', 'developer', 'toolsmith'];
-
-async function openTab(page, tabName) {
-  const viewId = `#view-${tabName}`;
-  if (await page.locator(viewId).isVisible().catch(() => false)) return;
-  const dockBtn = page.locator(`#dock-${tabName}`);
-  if (await dockBtn.isVisible().catch(() => false)) {
-    await dockBtn.click();
-  } else {
-    const mobileMenu = page.locator('#mobileMenuBtn');
-    if (await mobileMenu.isVisible().catch(() => false)) {
-      const sidebarTab = page.locator(`#tab-${tabName}`);
-      if (!(await sidebarTab.isVisible().catch(() => false))) {
-        await mobileMenu.click();
-      }
-      await sidebarTab.waitFor({ state: 'visible', timeout: 10000 });
-      await sidebarTab.click();
-    } else {
-      await page.locator(`#tab-${tabName}`).click();
-    }
-  }
-  await page.locator(viewId).waitFor({ state: 'visible', timeout: 20000 });
-}
 
 export default {
   id: 'card-694-housekeeping-and-1-1-prep',

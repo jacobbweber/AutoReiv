@@ -11,8 +11,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle, freshProjectDir } from './lib/app.mjs';
+import { askAndApprove, getJson, openApp, openSessionByTitle, trackStreams, freshProjectDir } from './lib/app.mjs';
 
 const SDLC_TOOLS = ['git_status', 'git_diff', 'git_create_branch', 'git_commit', 'read_card', 'write_card', 'set_card_status',
   'run_project_checks', 'search_project', 'patch_project_file', 'active_project_info'];
@@ -87,33 +86,6 @@ function toolOrder(rows, from = 0) {
     .join(' > ') || 'none';
 }
 
-async function askAndApprove(page, request, base, streams, text, done, timeoutMs) {
-  const n = streams.count;
-  await send(page, text);
-  await waitFor(() => streams.count > n, { timeoutMs: 15000 });
-  let approvals = 0;
-  let idlePolls = 0; // CARD-562: stop as soon as the turn has ended (idle ~16 s, no approval pending), not at timeoutMs
-  await waitFor(async () => {
-    const cards = page.locator(HITL_CARD);
-    const count = await cards.count();
-    for (let i = 0; i < count; i += 1) {
-      const approve = cards.nth(i).locator('[data-hitl-decision="APPROVED"]').first();
-      if (await approve.isVisible().catch(() => false)) {
-        await approve.click();
-        approvals += 1;
-        await page.waitForTimeout(1500);
-        return false;
-      }
-    }
-    const streaming = await isStreaming(page);
-    if (!streaming && (await done())) return true;
-    idlePolls = streaming ? 0 : idlePolls + 1;
-    return idlePolls >= 8;
-  }, { timeoutMs, intervalMs: 2000 }).catch(() => {});
-  await waitReplyIdle(page, { timeoutMs: 60000 }).catch(() => {});
-  return approvals;
-}
-
 export default {
   id: 'card-562-developer-one-card-to-in-review',
   card: 'CARD-562',
@@ -159,7 +131,7 @@ export default {
     }, { timeoutMs: 60000 });
 
     await j.step('Developer works CARD-1: branch, fix, checks green, one commit, card In Review', async () => {
-      const approvals = await askAndApprove(page, request, base, streams,
+      const approvals = await askAndApprove(page, streams,
         'Work card CARD-1 in the active project, following your skills, and stop when it is In Review.',
         async () => statusOf(cardFile()) === 'In Review', 1500000);
       const branch = git(root, 'branch', '--show-current');
@@ -193,7 +165,7 @@ export default {
       const head = git(root, 'rev-parse', 'HEAD');
       const calcBefore = fs.readFileSync(path.join(root, 'calc.js'), 'utf8');
       const rowsBefore = (await allRows(request, base, sid)).length;
-      const approvals = await askAndApprove(page, request, base, streams,
+      const approvals = await askAndApprove(page, streams,
         'Now do a quick audit of the active project (skill codebase-audit): file one card for the most important problem you find outside CARD-1. Do not change code.',
         async () => cardFiles(root).some((f) => !before.has(f)), 900000);
       const added = cardFiles(root).filter((f) => !before.has(f));
@@ -218,7 +190,7 @@ export default {
         const tail = rows.slice(-12);
         return tail.some((m) => /No project is selected|Projects Studio/i.test(String(m.content || '')));
       };
-      await askAndApprove(page, request, base, streams,
+      await askAndApprove(page, streams,
         'List the cards in the active project.', refused, 300000);
       const rows = await allRows(request, base, sid);
       const toolRefusal = rows.slice(-12).some((m) => role(m) === 'tool' && /No project is selected/.test(String(m.content || '')));

@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { clickExpect, waitFor } from './lib/runner.mjs';
-import { getJson, openApp, send, waitReplyIdle } from './lib/app.mjs';
+import { getJson, openApp, openTab, send, waitReplyIdle } from './lib/app.mjs';
 
 const AGENT_ID = 'autoreiv';
 
@@ -127,18 +127,7 @@ export default {
       }, { timeoutMs: 210000 });
 
       await j.step('Open Capabilities Studio and verify staged RCA proposal card renders with trace reference and Repair in Chat', async () => {
-        if (!(await page.locator('#view-capabilities').isVisible().catch(() => false))) {
-          const dockBtn = page.locator('#dock-capabilities');
-          if (await dockBtn.isVisible().catch(() => false)) {
-            await dockBtn.click();
-          } else {
-            await page.evaluate(() => {
-              if (typeof window.__autoreivSwitchTab === 'function') {
-                window.__autoreivSwitchTab('capabilities');
-              }
-            });
-          }
-        }
+        await openTab(page, 'capabilities');
         await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 20000 });
         await page.locator('#capabilitiesRcaProposalsPanel').waitFor({ state: 'visible', timeout: 15000 });
 

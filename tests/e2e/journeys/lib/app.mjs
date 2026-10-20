@@ -26,6 +26,29 @@ export async function openApp(page, base) {
   await page.locator('#dock-chat').waitFor({ state: 'visible', timeout: 20000 });
 }
 
+/** Switch to `#view-<tabName>` across desktop and phone viewports [CARD-732]. */
+export async function openTab(page, tabName) {
+  const viewId = `#view-${tabName}`;
+  if (await page.locator(viewId).isVisible().catch(() => false)) return;
+  const dockBtn = page.locator(`#dock-${tabName}`);
+  if (await dockBtn.isVisible().catch(() => false)) {
+    await dockBtn.click();
+  } else {
+    const mobileMenu = page.locator('#mobileMenuBtn');
+    if (await mobileMenu.isVisible().catch(() => false)) {
+      const sidebarTab = page.locator(`#tab-${tabName}`);
+      if (!(await sidebarTab.isVisible().catch(() => false))) {
+        await mobileMenu.click();
+      }
+      await sidebarTab.waitFor({ state: 'visible', timeout: 10000 });
+      await sidebarTab.click();
+    } else {
+      await page.locator(`#tab-${tabName}`).click();
+    }
+  }
+  await page.locator(viewId).waitFor({ state: 'visible', timeout: 20000 });
+}
+
 export async function isStreaming(page) {
   return page.locator('#stopBtn').isVisible().catch(() => false);
 }
@@ -92,12 +115,20 @@ export async function sessionJobStatus(request, base, sessionId) {
 }
 
 /** Send text, approve every approval card until done() or the turn goes idle; returns approvals pressed. */
-export async function askAndApprove(page, streams, text, done, timeoutMs) {
+export async function askAndApprove(
+  page,
+  streams,
+  text,
+  done,
+  timeoutMs,
+  { idleLimit = 8, progress = null, onApprove = null } = {},
+) {
   const n = streams.count;
   await send(page, text);
   await waitFor(() => streams.count > n, { timeoutMs: 20000 });
   let approvals = 0;
   let idlePolls = 0;
+  let lastProgress = -1;
   await waitFor(
     async () => {
       const cards = page.locator(HITL_CARD);
@@ -105,19 +136,30 @@ export async function askAndApprove(page, streams, text, done, timeoutMs) {
       for (let i = 0; i < count; i += 1) {
         const approve = cards.nth(i).locator('[data-hitl-decision="APPROVED"]').first();
         if (await approve.isVisible().catch(() => false)) {
+          if (onApprove) {
+            const label = (await cards.nth(i).innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 80);
+            onApprove(label);
+          }
           await approve.click();
           approvals += 1;
+          idlePolls = 0;
           await page.waitForTimeout(1500);
           return false;
         }
       }
-      const streaming = await isStreaming(page);
+      const deciding =
+        (await page.locator(`${HITL_CARD} .hitl-card-status`).filter({ hasText: /Developer is working|Approving/ }).count()) > 0;
+      const streaming = (await isStreaming(page)) || deciding;
       if (!streaming && (await done())) return true;
-      idlePolls = streaming ? 0 : idlePolls + 1;
-      return idlePolls >= 8;
+      const p = progress ? await progress() : 0;
+      const moved = p !== lastProgress;
+      lastProgress = p;
+      idlePolls = streaming || moved ? 0 : idlePolls + 1;
+      return idlePolls >= idleLimit;
     },
     { timeoutMs, intervalMs: 2000 },
   ).catch(() => {});
   await waitReplyIdle(page, { timeoutMs: 60000 }).catch(() => {});
   return approvals;
 }
+

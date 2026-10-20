@@ -180,6 +180,19 @@ def test_non_project_agent_excludes_active_project_from_prompt(monkeypatch):
         assert "isolated_project" not in assembled
         assert str(proj_root) not in assembled
 
+        # CARD-732 negative assertion: retired id='developer' without project tools must not trigger project injection
+        bare_dev = AgentProfile(
+            id="developer",
+            name="Legacy Developer",
+            description="No project tools granted",
+            system_prompt="You have no project tools.",
+            allowed_skill=[],
+        )
+        bare_dev_assembled = kernel._build_effective_system_message(bare_dev).content
+        assert "## Active Selected Project" not in bare_dev_assembled
+        assert "isolated_project" not in bare_dev_assembled
+
+
 
 def test_read_only_project_agent_receives_read_only_guidance(monkeypatch):
     """Agents with read-only project tools receive project context with inspection guidance only."""

@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- Retired the leftover `agent.id == "developer"` prompt check in `system_prompt_builder.py`, replaced removed `window.__autoreivSwitchTab` calls in live journeys with shared `openTab` in `lib/app.mjs`, and unified `askAndApprove` across journeys [CARD-732].
+
 ## [1.5.0] - 2026-10-19
 
 Projects as user data, process in Agora skills (`repo-onboarding`, `spec-driven-development`, `live-journeys`), project command runner via `cli_exec` with approval, Docker `/data/projects` mount and dev toolchain (Node 22, uv, make, g++, Godot 4 headless), `git_clone`/`git_pull`/`git_push` with env-only GitHub auth, Streamable HTTP MCP client support, and resilient branch switching (`CARD-727`..`CARD-731`).
