@@ -2,7 +2,7 @@
 id: CARD-733
 title: "Remember approved cli_exec commands for the active project"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M32
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-733-remember-approved-cli-exec
 log: {minutes: 25, qa_runs: 2, findings: 1}
 created: 2026-10-19
+completed: 2026-10-20
 ---
 
 # CARD-733 Remember approved cli_exec commands for the active project
