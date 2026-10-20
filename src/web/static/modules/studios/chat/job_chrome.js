@@ -262,8 +262,14 @@ export function applyInlineJobChromeEvent(bubble, eventType, ev, priorModel) {
   return next;
 }
 
+const REFLEXION_EVENT_TYPES = new Set([
+  'reflexion_attempt',
+  'reflexion_critique',
+  'reflexion_verified',
+]);
+
 export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
-  if (!badgeEl) return;
+  if (!badgeEl || !REFLEXION_EVENT_TYPES.has(eventType)) return;
   if (typeof badgeEl.classList?.remove === 'function') badgeEl.classList.remove('hidden');
   if (typeof badgeEl.classList?.add === 'function') badgeEl.classList.add('flex', 'flex-col');
 
