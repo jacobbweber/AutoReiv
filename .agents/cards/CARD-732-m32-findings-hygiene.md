@@ -2,7 +2,8 @@
 id: CARD-732
 title: "M32 findings hygiene: retire developer prompt check, fix journey tab navigation, and share askAndApprove"
 type: bug
-status: In Review
+status: Done
+completed: 2026-10-19
 priority: P2
 milestone: M32
 needs_decision: none
