@@ -1,12 +1,13 @@
 ---
 id: CARD-734
 title: Hide empty reflexion badge during chat streaming
-status: In Review
+status: Done
 priority: P2
 milestone: M32
 tags: [frontend, chat, streaming, bug]
 created: 2026-10-20
 updated: 2026-10-20
+completed: 2026-10-20
 depends_on: []
 needs_decision: none
 proof:
