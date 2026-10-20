@@ -9,29 +9,7 @@
  * 4) Verify zero horizontal overflow (`scrollWidth <= innerWidth`) on both desktop (`1280x800`) and phone (`390x844`).
  */
 import { waitFor } from './lib/runner.mjs';
-import { openApp } from './lib/app.mjs';
-
-async function openTab(page, tabName) {
-  const viewId = `#view-${tabName}`;
-  if (await page.locator(viewId).isVisible().catch(() => false)) return;
-  const dockBtn = page.locator(`#dock-${tabName}`);
-  if (await dockBtn.isVisible().catch(() => false)) {
-    await dockBtn.click();
-  } else {
-    const mobileMenu = page.locator('#mobileMenuBtn');
-    if (await mobileMenu.isVisible().catch(() => false)) {
-      const sidebarTab = page.locator(`#tab-${tabName}`);
-      if (!(await sidebarTab.isVisible().catch(() => false))) {
-        await mobileMenu.click();
-      }
-      await sidebarTab.waitFor({ state: 'visible', timeout: 10000 });
-      await sidebarTab.click();
-    } else {
-      await page.locator(`#tab-${tabName}`).click();
-    }
-  }
-  await page.locator(viewId).waitFor({ state: 'visible', timeout: 20000 });
-}
+import { openApp, openTab } from './lib/app.mjs';
 
 export default {
   id: 'card-692-consolidate-mcp-servers-and-deep-links',

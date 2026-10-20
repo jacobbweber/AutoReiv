@@ -13,8 +13,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle, freshProjectDir } from './lib/app.mjs';
+import { askAndApprove, getJson, openApp, openSessionByTitle, trackStreams, waitReplyIdle, freshProjectDir } from './lib/app.mjs';
 
 const PLANNING = ['active_project_info', 'read_project_file', 'search_project', 'list_project_dir', 'read_steering',
   'list_cards', 'read_card', 'write_card', 'set_card_status', 'hand_off_card'];
@@ -91,43 +90,6 @@ function toolOrder(rows, from = 0) {
     .join(' > ') || 'none';
 }
 
-async function askAndApprove(page, streams, text, done, timeoutMs, { idleLimit = 10, progress = null } = {}) {
-  const n = streams.count;
-  await send(page, text);
-  await waitFor(() => streams.count > n, { timeoutMs: 15000 });
-  let approvals = 0;
-  const approved = [];
-  let idlePolls = 0;
-  let lastProgress = -1;
-  await waitFor(async () => {
-    const cards = page.locator(HITL_CARD);
-    const count = await cards.count();
-    for (let i = 0; i < count; i += 1) {
-      const approve = cards.nth(i).locator('[data-hitl-decision="APPROVED"]').first();
-      if (await approve.isVisible().catch(() => false)) {
-        const label = (await cards.nth(i).innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 80);
-        await approve.click();
-        approvals += 1;
-        approved.push(label);
-        idlePolls = 0;
-        await page.waitForTimeout(1500);
-        return false;
-      }
-    }
-    // Approving a hand-off runs Developer inside the decision request: the card says so and the chat is not streaming.
-    const deciding = (await page.locator(`${HITL_CARD} .hitl-card-status`).filter({ hasText: /Developer is working|Approving/ }).count()) > 0;
-    const streaming = (await isStreaming(page)) || deciding;
-    if (!streaming && (await done())) return true;
-    const p = progress ? await progress() : 0;
-    const moved = p !== lastProgress;
-    lastProgress = p;
-    idlePolls = streaming || moved ? 0 : idlePolls + 1;
-    return idlePolls >= idleLimit;
-  }, { timeoutMs, intervalMs: 2000 }).catch(() => {});
-  await waitReplyIdle(page, { timeoutMs: 120000 }).catch(() => {});
-  return { approvals, approved };
-}
-
 export default {
   id: 'card-563-architect-plans-and-hands-off',
   card: 'CARD-563',
@@ -194,20 +156,20 @@ export default {
       const head = git(root, 'rev-parse', 'HEAD');
       const found = () => cardFiles(root).filter((f) => !before.has(f));
       const readyCard = () => found().some((f) => statusOf(path.join(cardsDir(root), f)) === 'Ready');
-      const r1 = await askAndApprove(page, streams,
+      const approvals1 = await askAndApprove(page, streams,
         'divide() should refuse division by zero: divide(a, 0) should throw an Error instead of returning Infinity, with a node test for it. '
         + 'Write a card for it. Ask me at most one question; if the scope is clear, file it as Ready.',
         async () => readyCard(), 900000);
-      let r2 = { approvals: 0 };
+      let approvals2 = 0;
       if (!readyCard()) {
-        r2 = await askAndApprove(page, streams, 'Your recommendation is fine. The scope is clear: write the card now with status Ready.',
+        approvals2 = await askAndApprove(page, streams, 'Your recommendation is fine. The scope is clear: write the card now with status Ready.',
           async () => readyCard(), 900000);
       }
       const added = found();
       newCard = added.find((f) => statusOf(path.join(cardsDir(root), f)) === 'Ready') || added[0] || '';
       newId = (newCard.match(/^CARD-\d+/) || [''])[0];
       const rows = await rowsOf(request, base, sid);
-      j.note(`approvals ${r1.approvals + r2.approvals}; new cards ${added.join(', ') || 'none'}; tool order: ${toolOrder(rows)}`);
+      j.note(`approvals ${approvals1 + approvals2}; new cards ${added.join(', ') || 'none'}; tool order: ${toolOrder(rows)}`);
       if (!newCard) throw new Error('no new card');
       if (statusOf(path.join(cardsDir(root), newCard)) !== 'Ready') throw new Error(`new card is ${statusOf(path.join(cardsDir(root), newCard))}`);
       if (newId !== 'CARD-3') throw new Error(`new card id ${newId}, expected the next id CARD-3`);
@@ -241,8 +203,10 @@ export default {
         const child = (Array.isArray(list) ? list : []).find((s) => String(s.id).startsWith(`${sid}_child_`));
         return (await rowsOf(request, base, sid)).length + (child ? (await rowsOf(request, base, child.id)).length : 0);
       };
-      const r = await askAndApprove(page, streams, `Hand ${newId} to Developer.`,
-        async () => statusOf(file()) === 'In Review' && (await outcomeRow()), 2700000, { idleLimit: 150, progress: devRowCount });
+      const approved = [];
+      const approvals = await askAndApprove(page, streams, `Hand ${newId} to Developer.`,
+        async () => statusOf(file()) === 'In Review' && (await outcomeRow()), 2700000,
+        { idleLimit: 150, progress: devRowCount, onApprove: (label) => approved.push(label) });
       const minutes = ((Date.now() - t0) / 60000).toFixed(1);
       await waitReplyIdle(page, { timeoutMs: 300000 }).catch(() => {});
       const rows = await rowsOf(request, base, sid);
@@ -259,7 +223,7 @@ export default {
       const devSessions = await getJson(request, `${base}/api/sessions?agent_id=developer`).catch(() => []);
       const devChat = (Array.isArray(devSessions) ? devSessions : []).find((s) => String(s.id).startsWith(`${sid}_child_`));
       const devRows = devChat ? await rowsOf(request, base, devChat.id) : [];
-      j.note(`minutes ${minutes}; approvals ${r.approvals} (${r.approved.map((a) => a.slice(0, 40)).join(' | ')})`);
+      j.note(`minutes ${minutes}; approvals ${approvals} (${approved.map((a) => a.slice(0, 40)).join(' | ')})`);
       j.note(`branch ${branch}; commits ${log.join(' | ')}; card ${statusOf(file())}; tests pass ${testsPass}; dirty '${dirty}'; remotes '${remotes}'`);
       j.note(`architect tool order: ${toolOrder(rows, from)}`);
       j.note(`developer chat ${devChat ? `${devChat.id} "${devChat.title}"` : 'not listed'}; developer tool order: ${toolOrder(devRows)}`);

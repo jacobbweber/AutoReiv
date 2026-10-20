@@ -46,7 +46,7 @@ At most 2 Build -> Verify rounds per card (steps 6-9). If round 2 still fails, s
 
 ## Product locks (do not reverse)
 - Skill = one `SKILL.md` runbook. Tool = one callable. Pack = one agent. Say Platform, not Global.
-- Chat shows the tools of the agent's ticked skills; the model sees at most 15 per turn (ADR-0061; cap raised from 8 by CARD-562, ADR-0054 amendment).
+- Chat shows the tools of the agent's ticked skills; the model receives pinned skill tools plus any on-demand skill tools mounted in the session via `skill_view` without a per-turn cap (ADR-0061, ADR-0064, ADR-0065).
 - An agent's own databases live under user data `agents/<id>/` (`memory.db`, `storage.db`).
 
 ## Where things live

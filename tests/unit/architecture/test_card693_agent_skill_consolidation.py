@@ -248,3 +248,22 @@ def test_autoreiv_can_plan_transition_and_review_cards_with_mechanical_gate(tmp_
         assert "=== Review Done:" in verdict
     finally:
         _tool_context.reset(token)
+
+
+def test_card732_no_retired_developer_prompt_branch_or_journey_switch_tab_globals():
+    """CARD-732 guard: system_prompt_builder has no developer id special case, AGENTS.md drops 15-tool cap, journeys share openTab/askAndApprove."""
+    repo_root = REPO_PLATFORM.parent
+    spb_text = (repo_root / "src" / "application" / "kernel" / "system_prompt_builder.py").read_text(encoding="utf-8")
+    assert '== "developer"' not in spb_text and "is_developer" not in spb_text
+
+    agents_md = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+    assert "at most 15 per turn" not in agents_md
+
+    journeys_dir = repo_root / "tests" / "e2e" / "journeys"
+    for jpath in sorted(journeys_dir.glob("*.mjs")):
+        text = jpath.read_text(encoding="utf-8")
+        if jpath.name != "card-716-frontend-modularization.mjs":
+            assert "__autoreivSwitchTab" not in text, f"{jpath.name} still calls retired window.__autoreivSwitchTab"
+        assert "function askAndApprove(" not in text, f"{jpath.name} defines a duplicate askAndApprove instead of importing lib/app.mjs"
+        assert "function openTab(" not in text, f"{jpath.name} defines a duplicate openTab instead of importing lib/app.mjs"
+

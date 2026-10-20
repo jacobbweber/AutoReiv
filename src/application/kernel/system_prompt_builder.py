@@ -97,7 +97,6 @@ def build_effective_system_message(
         try:
             from src.application.sdlc.projects_service import ProjectsService
 
-            is_developer = getattr(agent, "id", None) == "developer"
             allowed_tools: set[str] = set(resolve_allowed_tools(agent).names)
             has_project_tools = bool(
                 allowed_tools.intersection(
@@ -105,7 +104,7 @@ def build_effective_system_message(
                 )
             )
 
-            if is_developer or has_project_tools:
+            if has_project_tools:
                 proj_svc = ProjectsService(store=kernel.state_store)
                 selected_proj = proj_svc.get_selected()
                 if selected_proj and selected_proj.get("path"):

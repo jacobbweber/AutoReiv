@@ -1,16 +1,8 @@
 /**
  * CARD-720: Comprehensive UI Audit and Button Functionality Fixes.
  */
-import { openApp, send, waitReplyIdle } from './lib/app.mjs';
+import { openApp, openTab, send, waitReplyIdle } from './lib/app.mjs';
 import { waitFor } from './lib/runner.mjs';
-
-async function openTab(page, tabName) {
-  const viewId = `#view-${tabName}`;
-  await page.evaluate((t) => {
-    document.getElementById(`tab-${t}`)?.click();
-  }, tabName);
-  await page.locator(viewId).waitFor({ state: 'visible', timeout: 20000 });
-}
 
 export default {
   id: 'card-720-comprehensive-ui-audit-and-button-functionality',
