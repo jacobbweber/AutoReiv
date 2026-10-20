@@ -219,6 +219,40 @@ def test_vision_marked_model_gets_the_image_once(spark_client):
     assert spark.image_counts() == [1, 0]
 
 
+def test_vision_model_retry_after_failed_turn_reattaches_images(spark_client):
+    """CARD-735 operator contract: if an image turn fails (e.g. timeout / job failure), a retry turn without re-uploading still sends the images."""
+    client, store, spark = spark_client
+    res = client.post("/api/settings/model-capabilities", json={"model_id": f"vllm/{VISION}", "vision": True})
+    assert res.status_code == 200, res.text
+    _use_model(client, store, VISION)
+    sid = _session(client)
+    att = _upload(client, sid)
+
+    failed_user = (
+        f"Review these images carefully\n\n---\n![shot.png]({att['url']})\n"
+        f"*(Attached Image: `shot.png`, {len(PNG)} bytes, format: `image/png`, Local Path: `{att['path']}`)*"
+    )
+    store.save_message(session_id=sid, agent_id="direct", message=ChatMessage(role=Role.USER, content=failed_user))
+    store.save_message(
+        session_id=sid,
+        agent_id="direct",
+        message=ChatMessage(
+            role=Role.ASSISTANT,
+            content="Job job_102c9da3b55f FAILED during Formulate: phase failed. Not done — Journey shows FAILED; no deliverable claimed.",
+        ),
+    )
+
+    events = _send(client, sid, "Looks like we hit a timeout. Let's try it again")
+    assert f"Reply from {VISION} (images seen: 1)" in _text(events)
+    assert spark.image_counts() == [1]
+
+    # Once answered, a subsequent turn does not re-send the image
+    events = _send(client, sid, "Thanks!")
+    assert f"Reply from {VISION} (images seen: 0)" in _text(events)
+    assert spark.image_counts() == [1, 0]
+
+
+
 def test_wrongly_marked_model_is_retried_once_without_images(spark_client):
     client, store, spark = spark_client
     res = client.post("/api/settings/model-capabilities", json={"model_id": f"vllm/{TEXT_ONLY}", "vision": True})

@@ -47,8 +47,8 @@ services:
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
       - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
       - TOGETHER_BASE_URL=${TOGETHER_BASE_URL:-https://api.together.xyz/v1}
-      # Gateway & Reliability Timeouts
-      - GATEWAY_DEFAULT_TIMEOUT_SECONDS=${GATEWAY_DEFAULT_TIMEOUT_SECONDS:-180.0}
+      # Gateway & Reliability Timeouts (blank = Settings > Reply limits / 1800s default [CARD-592, CARD-735])
+      - AUTOREIV_PROVIDER_IDLE_SECONDS=${AUTOREIV_PROVIDER_IDLE_SECONDS:-}
     volumes:
       - autoreiv-data:/data
       # Host wiki vault (required). Example Windows: D:/AutoReivWiki:/data/wiki

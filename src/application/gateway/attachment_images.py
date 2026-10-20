@@ -105,6 +105,37 @@ def _model_note(names: List[str]) -> str:
     )
 
 
+def _is_failed_or_stopped_reply(msg: ChatMessage) -> bool:
+    """True when an assistant message records a failed job, stream error, or stopped turn [CARD-735]."""
+    if msg.tool_calls:
+        return False
+    text = (msg.content or "").strip()
+    if not text:
+        return False
+    return (
+        text.startswith("⚠️ **Error**:")
+        or (text.startswith("Job ") and " FAILED" in text)
+        or text.endswith("*[Stopped.]*")
+    )
+
+
+def _unanswered_turn_images(
+    messages: List[ChatMessage], last_user: int, attachments_dir: AttachmentsDir
+) -> List[dict]:
+    """Images from the preceding user turn when every assistant reply after it failed/errored/stopped [CARD-735]."""
+    for idx in range(last_user - 1, -1, -1):
+        if messages[idx].role != Role.USER:
+            continue
+        imgs = current_turn_images(messages[idx].content or "", attachments_dir)
+        if not imgs:
+            continue
+        intervening = [m for m in messages[idx + 1 : last_user] if m.role == Role.ASSISTANT]
+        if intervening and all(_is_failed_or_stopped_reply(m) for m in intervening):
+            return imgs
+        return []
+    return []
+
+
 def prepare_image_turn(
     messages: List[ChatMessage], *, can_view_images: bool, attachments_dir: AttachmentsDir = None
 ) -> Tuple[List[ChatMessage], Optional[List[str]], bool]:
@@ -112,6 +143,8 @@ def prepare_image_turn(
 
     Every message loses ``images`` except the latest user message, which gets the
     current turn's images when the model can view them, or a note when it cannot.
+    When the latest user message is a retry after a failed/error/stopped image turn,
+    those unanswered images are carried forward for vision models [CARD-735].
     """
     last_user = next((i for i in range(len(messages) - 1, -1, -1) if messages[i].role == Role.USER), None)
     out: List[ChatMessage] = []
@@ -122,14 +155,20 @@ def prepare_image_turn(
             out.append(m.model_copy(update={"images": None}) if m.images else m)
             continue
         images = current_turn_images(m.content or "", attachments_dir)
+        carried_retry = False
+        if not images and can_view_images:
+            images = _unanswered_turn_images(messages, last_user, attachments_dir)
+            carried_retry = bool(images)
         if not images:
             out.append(m.model_copy(update={"images": None}) if m.images else m)
         elif can_view_images:
             out.append(m.model_copy(update={"images": images}))
             attached = True
-        else:
+        elif not carried_retry:
             dropped = [img["filename"] for img in images]
             out.append(m.model_copy(update={"images": None, "content": (m.content or "") + _model_note(dropped)}))
+        else:
+            out.append(m.model_copy(update={"images": None}) if m.images else m)
     return out, dropped, attached
 
 

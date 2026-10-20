@@ -40,6 +40,10 @@ AGENT_NOTE = (
     "*(Note for Agent: The user has attached the files/images above. You can read documents using "
     "`read_document_file` or filesystem tools if needed.)*"
 )
+IMAGE_ONLY_NOTE = (
+    "*(Note for Agent: The user has attached the images above. Vision-capable models receive the image "
+    "bytes directly in this turn; do not call `read_document_file` on image files.)*"
+)
 DIRECT_NOTE = "*(The user attached the files above. Their text is included here; there are no tools in this chat.)*"
 
 NOT_UPLOADED = "not an uploaded file"
@@ -159,5 +163,5 @@ def build_attachment_prompt(
             failures.append(f"Couldn't read `{fname}`: {reason}.")
         blocks.append(block)
 
-    note = DIRECT_NOTE if direct else AGENT_NOTE
+    note = DIRECT_NOTE if direct else (AGENT_NOTE if readable else IMAGE_ONLY_NOTE)
     return AttachmentPrompt(f"{text}\n\n---\n" + "\n\n".join(blocks) + f"\n\n{note}", failures)
