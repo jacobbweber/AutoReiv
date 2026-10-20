@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed vision image attachments timing out at 180s in Docker (`GATEWAY_DEFAULT_TIMEOUT_SECONDS`), losing attached images on a follow-up retry after a failed turn, and instructing agents to call `read_document_file` on image-only turns [CARD-735].
+
 ## [1.5.1] - 2026-10-20
 
 Per-project remembered `cli_exec` approvals with Projects Studio revocation, hidden empty reflexion badge during normal chat streaming, and M32 findings hygiene (`CARD-732`..`CARD-734`).
