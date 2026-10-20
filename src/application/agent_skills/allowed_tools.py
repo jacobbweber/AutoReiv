@@ -66,7 +66,9 @@ def _field(agent: Any, *names: str) -> Any:
 AUTO_SKILL_WILDCARD = "*"
 AUTO_USER_SKILL_WILDCARD = "user:*"
 _AUTO_SKILL_TOKENS = frozenset({AUTO_SKILL_WILDCARD, AUTO_USER_SKILL_WILDCARD})
-ON_DEMAND_SHIPPED_SKILLS = frozenset({"project-cards", "software-development"})
+ON_DEMAND_SHIPPED_SKILLS = frozenset(
+    {"project-cards", "software-development", "repo-onboarding", "spec-driven-development", "live-journeys"}  # CARD-729
+)
 
 
 def _raw_skill_tokens(agent: Any) -> list[str]:

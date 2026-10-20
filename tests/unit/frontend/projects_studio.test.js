@@ -21,10 +21,12 @@ describe('Projects Studio Web Workspace UI [REQ-PROJ-010..014]', () => {
     expect(indexHtml).toContain('id="projectsRefreshBtn"');
   });
 
-  it('declares collapsible project drawer and preserves root/creation inputs [REQ-SDLC-050, REQ-SDLC-051]', () => {
+  it('declares the project drawer with a read-only projects folder and create input [REQ-SDLC-050, CARD-728]', () => {
     expect(indexHtml).toContain('id="projectsDrawer"');
-    expect(indexHtml).toContain('id="projectsRootInput"');
-    expect(indexHtml).toContain('id="projectsRootSaveBtn"');
+    expect(indexHtml).toContain('id="projectsFolderPath"');
+    expect(indexHtml).not.toContain('id="projectsRootInput"');
+    expect(indexHtml).not.toContain('id="projectsRootSaveBtn"');
+    expect(projectsJs).not.toContain('/api/settings/projects_root');
     expect(indexHtml).toContain('id="projectsSlugInput"');
     expect(indexHtml).toContain('id="projectsCreateBtn"');
     expect(indexHtml).toContain('id="projectsList"');

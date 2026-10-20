@@ -14,10 +14,10 @@ PROJECT_TOOL_CLASSES = ("CardTools", "GitTools", "ProjectFileTools", "GitHubIssu
 
 
 @pytest.fixture
-def svc():
+def svc(tmp_path: Path):
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
-    return ProjectsService(store=store)
+    return ProjectsService(store=store, projects_dir=tmp_path)  # CARD-728: projects live in one folder
 
 
 def test_refuses_without_selection_even_with_project_root(svc, tmp_path: Path):

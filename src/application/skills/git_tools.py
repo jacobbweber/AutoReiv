@@ -61,13 +61,30 @@ class GitTools:
             raise FileNotFoundError("git executable not found")
         return found
 
-    def _run(self, root: Path, args: List[str]) -> Dict[str, Any]:
+    def _run(self, root: Path, args: List[str], remote: Optional[str] = None) -> Dict[str, Any]:
+        """Run git in ``root``. ``remote`` (the remote URL) adds the CARD-730 auth env and a timeout."""
         for token in FORBIDDEN_TOKENS:
             joined = " ".join(args)
             if token in joined:
                 return {"success": False, "error": f"Refused git flag: {token}"}
         cmd = [self._git_bin(), "-C", str(root), *args]
-        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if remote is None:
+            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        else:
+            from src.application.sdlc.git_remote import REMOTE_TIMEOUT_S, remote_env, scrub
+
+            try:
+                proc = subprocess.run(
+                    cmd, capture_output=True, text=True, check=False, env=remote_env(remote), timeout=REMOTE_TIMEOUT_S
+                )
+            except subprocess.TimeoutExpired:
+                return {"success": False, "exit_code": -1, "stdout": "", "stderr": f"timed out after {REMOTE_TIMEOUT_S} s"}
+            return {
+                "success": proc.returncode == 0,
+                "exit_code": proc.returncode,
+                "stdout": scrub(proc.stdout),
+                "stderr": scrub(proc.stderr),
+            }
         return {
             "success": proc.returncode == 0,
             "exit_code": proc.returncode,
@@ -292,6 +309,56 @@ class GitTools:
             "stdout": result.get("stdout") or "",
         }
 
+    def _origin(self, root: Path) -> Dict[str, Any]:
+        """Current branch and origin URL, or an error the model can act on [CARD-730]."""
+        branch = (self._run(root, ["branch", "--show-current"]).get("stdout") or "").strip()
+        if not branch:
+            return {"success": False, "error": "Not on a branch (detached HEAD or not a git repository)."}
+        url = self._run(root, ["remote", "get-url", "origin"])
+        if not url["success"]:
+            return {"success": False, "error": "This project has no 'origin' remote. Clone it with git_clone first."}
+        return {"success": True, "branch": branch, "url": (url.get("stdout") or "").strip()}
+
+    def git_pull(self, project_root: Optional[str] = None) -> Dict[str, Any]:
+        """Fast-forward the current branch from origin; never merges or rebases [CARD-730]."""
+        try:
+            root = self._root(project_root)
+        except ProjectPathError as exc:
+            return {"success": False, "error": str(exc)}
+        origin = self._origin(root)
+        if not origin["success"]:
+            return origin
+        res = self._run(root, ["pull", "--ff-only", "origin", origin["branch"]], remote=origin["url"])
+        if not res["success"]:
+            return {
+                "success": False,
+                "error": (res.get("stderr") or "git pull failed").strip()
+                + " (git_pull only fast-forwards; ask the operator how to reconcile diverged branches.)",
+                "branch": origin["branch"],
+            }
+        return {"success": True, "project_root": str(root), "branch": origin["branch"], "output": res["stdout"].strip()}
+
+    def git_push(self, project_root: Optional[str] = None) -> Dict[str, Any]:
+        """Push the current work branch to origin (sets upstream). Never forces; refuses main, master and qa [CARD-730]."""
+        try:
+            root = self._root(project_root)
+        except ProjectPathError as exc:
+            return {"success": False, "error": str(exc)}
+        origin = self._origin(root)
+        if not origin["success"]:
+            return origin
+        branch = origin["branch"]
+        if branch in PROTECTED_COMMIT_BRANCHES or not BRANCH_NAME.match(branch):
+            return {
+                "success": False,
+                "error": f"Refusing to push '{branch}'. Push a work branch and open a pull request; a person merges.",
+                "branch": branch,
+            }
+        res = self._run(root, ["push", "--set-upstream", "origin", f"{branch}:{branch}"], remote=origin["url"])
+        if not res["success"]:
+            return {"success": False, "error": (res.get("stderr") or "git push failed").strip(), "branch": branch}
+        return {"success": True, "project_root": str(root), "branch": branch, "output": res["stderr"].strip()}
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         registry.register_tool(
             name="git_status",
@@ -346,4 +413,22 @@ class GitTools:
                 },
             },
             handler=self.git_commit,
+        )
+        registry.register_tool(
+            name="git_pull",
+            description=(
+                "Fast-forward the active project's current branch from origin (never merges or rebases). "
+                "Private GitHub repos use the serve's GITHUB_TOKEN. Asks the operator first."
+            ),
+            parameters={"type": "object", "properties": {}},
+            handler=self.git_pull,
+        )
+        registry.register_tool(
+            name="git_push",
+            description=(
+                "Push the active project's current work branch to origin and set upstream. Never forces; refuses "
+                "main, master and qa (open a pull request instead). Asks the operator first."
+            ),
+            parameters={"type": "object", "properties": {}},
+            handler=self.git_push,
         )

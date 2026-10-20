@@ -1,6 +1,6 @@
 # ==============================================================================
 # AutoReiv Control Plane - Docker Compose Manifest [REQ-DEPLOY-005]
-# Persistent volume mounts for database & PARA-Wiki storage
+# Persistent volume mounts for database, PARA-Wiki and projects storage
 # CARD-414: AUTOREIV_WIKI_PATH + wiki volume are REQUIRED. Process hard-fails if unset/unreadable.
 # ==============================================================================
 
@@ -19,6 +19,10 @@ services:
       # ADR-0056 / CARD-414: wiki is required in docker/daemon mode (hard-fail if missing)
       - AUTOREIV_DEPLOY_MODE=docker
       - AUTOREIV_WIKI_PATH=${AUTOREIV_WIKI_PATH:-/data/wiki}
+      # ADR-0067 / CARD-731: projects folder (clone, build and run projects here)
+      - AUTOREIV_PROJECTS_DIR=/data/projects
+      # Optional GitHub token for private clones and pushes over HTTPS (git_clone / git_pull / git_push)
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - PORT=8000
       - HOST=0.0.0.0
       # Local & Self-Hosted Providers
@@ -50,6 +54,9 @@ services:
       # Host wiki vault (required). Example Windows: D:/AutoReivWiki:/data/wiki
       # Example Linux: /var/lib/autoreiv/wiki:/data/wiki
       - ${AUTOREIV_WIKI_HOST_PATH:-autoreiv-wiki}:/data/wiki
+      # Host projects folder (optional; open the same folder in VS Code on the host).
+      # Example Windows: D:/AutoReivProjects   Example Linux: /home/you/projects
+      - ${AUTOREIV_PROJECTS_HOST_PATH:-autoreiv-projects}:/data/projects
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -62,3 +69,4 @@ services:
 volumes:
   autoreiv-data:
   autoreiv-wiki:
+  autoreiv-projects:

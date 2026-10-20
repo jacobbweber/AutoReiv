@@ -1,5 +1,5 @@
 """
-Projects root jail, create, delete confirm [REQ-SDLC-050, REQ-SDLC-051].
+Projects folder jail, create, delete confirm [REQ-SDLC-050, REQ-SDLC-051, CARD-728].
 """
 
 from pathlib import Path
@@ -12,11 +12,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 def _svc(tmp_path: Path) -> ProjectsService:
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
-    svc = ProjectsService(store=store, default_checkout=tmp_path / "checkout")
-    (tmp_path / "checkout").mkdir()
-    svc.set_projects_root(str(tmp_path / "lab"))
-    (tmp_path / "lab").mkdir()
-    return svc
+    return ProjectsService(store=store, projects_dir=tmp_path / "lab")
 
 
 def test_create_list_jail_and_delete_confirm(tmp_path: Path):
@@ -41,7 +37,7 @@ def test_selected_project_is_card_default_root(tmp_path: Path):
     svc = _svc(tmp_path)
     svc.create_project(slug="alpha")
     svc.set_selected(slug="alpha")
-    skill = CardTools(root_resolver=svc.resolve_root)
+    skill = CardTools(root_resolver=svc.selected_or_refuse)
     (tmp_path / "lab" / "alpha" / ".github" / "cards").mkdir(parents=True, exist_ok=True)
     (tmp_path / "lab" / "alpha" / "AGENTS.md").write_text("# A\n", encoding="utf-8")
     listed = skill.list_cards()
@@ -62,32 +58,13 @@ def test_create_project_tool_registered_and_hitl():
     assert engine.requires_approval(ToolCall(id="1", name="create_project", arguments={"slug": "x"}))
 
 
-def test_create_project_scaffolds_the_agents_md_contract(tmp_path: Path):
-    """[REQ-SDLC-060, CARD-562] create_project writes an AGENTS.md fact sheet, one card folder and ADRs."""
-    from src.domain.sdlc.agents_contract import parse_agents_md
-
+def test_create_project_is_an_empty_git_repo_without_template(tmp_path: Path):
+    """[CARD-729] create_project makes an empty git repo; starter files come from skills, on request."""
     svc = _svc(tmp_path)
     res = svc.create_project(slug="kiro-app", name="Kiro App")
     assert res["success"] is True
 
     proj_dir = tmp_path / "lab" / "kiro-app"
-    assert (proj_dir / ".gitignore").is_file()
     assert (proj_dir / ".git").is_dir()
-    assert (proj_dir / ".agents" / "cards").is_dir()
-    assert (proj_dir / "docs" / "adr").is_dir()
-    for gone in (".agents/steering", ".agents/specs", ".github/cards", "docs/specs", "CONTRIBUTING.md"):
+    for gone in ("AGENTS.md", "README.md", "CHANGELOG.md", ".agents", "docs", ".gitignore"):
         assert not (proj_dir / gone).exists(), gone
-
-    agents = (proj_dir / "AGENTS.md").read_text(encoding="utf-8")
-    assert agents.startswith("# AGENTS.md - Kiro App")
-    contract = parse_agents_md(agents)
-    assert contract.missing_sections == []
-    assert contract.base_branch == "main"
-    assert contract.checks == {}  # placeholders are not commands
-    for word in ("AutoReiv", "Jacob", "Conductor", "Discuss"):
-        assert word not in agents, word
-
-    card = (proj_dir / ".agents" / "templates" / "card.template.md").read_text(encoding="utf-8")
-    assert "status: Proposed" in card and "## Acceptance criteria" in card
-    assert "AutoReiv" not in card and "qa" not in card.split()
-    assert (proj_dir / ".agents" / "templates" / "adr.template.md").is_file()

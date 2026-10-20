@@ -92,18 +92,26 @@ UNRESTRICTED_RUNNERS = {
 }
 
 
-def test_developer_never_gets_an_unrestricted_shell_or_code_runner():
-    """CARD-562 guard: Developer's resolved tools never include a shell/code runner (only AGENTS.md checks)."""
+def test_developer_runs_commands_only_through_gated_cli_exec():
+    """CARD-562 guard, amended by ADR-0067 / CARD-729 (Jacob decision 2026-10-18): the only command runner is
+    cli_exec, granted only by software-development, always asking for approval and behind the dangerous filter."""
+    from src.application.kernel.hitl_engine import DEFAULT_HIGH_RISK_TOOLS
+    from src.application.safety.tool_policy_gate import _DEFAULT_REQUIRE_CONFIRM
+    from src.application.skills.command_filter import DangerousCommandFilter
     from tests.unit.agent_skills.catalog import platform_pack_profile
 
     dev = platform_pack_profile("developer")
-    names = set(resolve_allowed_tools(dev))
-    assert not names & UNRESTRICTED_RUNNERS, names & UNRESTRICTED_RUNNERS
-    assert not {n for n in names if n.endswith("_exec") or "shell" in n}
+    allowed = resolve_allowed_tools(dev)
+    names = set(allowed)
+    assert names & UNRESTRICTED_RUNNERS == {"cli_exec"}, names & UNRESTRICTED_RUNNERS
+    assert allowed.skills_for("cli_exec") == ("software-development",)
+    assert {n for n in names if n.endswith("_exec") or "shell" in n} == {"cli_exec"}
+    assert "cli_exec" in DEFAULT_HIGH_RISK_TOOLS and "cli_exec" in _DEFAULT_REQUIRE_CONFIRM
+    assert DangerousCommandFilter.is_dangerous("rm -rf /")[0] is True
     assert {"run_project_checks", "patch_project_file", "git_create_branch", "git_commit"} <= names
     for s in PACK["skills"]:
         if s["id"] in PACK["allowed_skill"]:
-            assert not set(s["tools"]) & UNRESTRICTED_RUNNERS, s["id"]
+            assert set(s["tools"]) & UNRESTRICTED_RUNNERS <= {"cli_exec"}, s["id"]
 
 
 def test_tool_building_stays_off_developer():

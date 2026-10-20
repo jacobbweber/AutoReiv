@@ -1,6 +1,6 @@
 ---
 name: Software Development
-description: Inspect, patch, test, commit, and verify code changes on the active project in Projects Studio.
+description: Inspect, patch, build, test, commit, and verify code changes on the active project in Projects Studio, following the repo's own conventions.
 tools:
 - read_project_file
 - write_project_file
@@ -8,15 +8,14 @@ tools:
 - list_project_dir
 - search_project
 - run_project_checks
+- cli_exec
 - git_status
 - git_diff
 - git_branch
 - git_create_branch
 - git_commit
-- list_journey_reports
-- read_journey_report
-- summarize_journey_failures
-- run_journey
+- git_pull
+- git_push
 version: 1.0.0
 tier: platform
 safety:
@@ -25,18 +24,35 @@ safety:
   untrusted_input_allowed: false
 verification:
   kind: assertion
-  rule: Code changes are committed on a card branch and verified with run_project_checks (passed=true) before In Review.
+  rule: Code changes are committed on a work branch and verified with the repo's own test commands (run_project_checks when AGENTS.md has a Checks section) before review.
 ---
 
 # Software Development
 
-Use this runbook when implementing, testing, debugging, or verifying code changes in the active project selected in **Projects Studio**. Open `skill_view(skill_id="software-development", reference="workflow.md")` for the full branch-test-verify workflow.
+Use this runbook when implementing, testing, debugging, or verifying code changes in the active project selected in
+**Projects Studio**. Open `skill_view(skill_id="software-development", reference="workflow.md")` for the full
+branch-test-verify workflow.
 
 ## Workflow
 
-1. **Read `AGENTS.md` first** — Call `read_project_file(path="AGENTS.md")` in the active project; its check commands, base branch, and rules govern the repo.
-2. **Branch first (`git_create_branch`)** — Always create and switch to the card branch (`git_create_branch(name="feat/card-N-slug")` or `fix/card-N-slug`) BEFORE making code or card edits. `git_commit` refuses `main`, `master`, and `qa`.
-3. **Reproduce & Test-First** — Use `search_project` and `read_project_file` to find the root cause. Add or update a test that fails for that cause before applying the fix.
-4. **Edit & Scavenge (`patch_project_file` / `write_project_file`)** — Make minimal, focused edits. Delete everything listed under the card's "What dies" and use `search_project` to ensure zero orphaned references remain.
-5. **Commit & Verify (`git_commit`, `run_project_checks`, `run_journey`)** — Stage and commit on the card branch with `git_commit(subject="feat(scope): summary", paths=["path/to/file"])` (always pass `paths` and a conventional `subject`), run `run_project_checks` until `passed=true`, and then transition the card with `set_card_status(card_id="CARD-N", status="In Review")`.
-
+1. **Follow the repo's own rules first.** Read its instruction files (`AGENTS.md`, `CLAUDE.md`, Copilot or Cursor
+   rules, `CONTRIBUTING.md`) and build files; if you have not yet, open `repo-onboarding`. Its commands, base branch,
+   style and "don't touch" rules govern the work, not AutoReiv's habits.
+2. **Branch first (`git_create_branch`).** Create and switch to a work branch named the way the repo does it
+   (`feat/<slug>`, `fix/<slug>`, or `feat/card-N-slug` when the repo uses cards) BEFORE editing. `git_commit` refuses
+   `main`, `master`, and `qa`.
+3. **Reproduce and test first.** Use `search_project` and `read_project_file` to find the root cause. Add or update a
+   test that fails for that cause before applying the fix.
+4. **Edit (`patch_project_file` / `write_project_file`).** Make minimal, focused edits. Remove what the change
+   replaces and use `search_project` to ensure no orphaned references remain.
+5. **Build and test (`cli_exec`, `run_project_checks`).** Run the repo's real commands with `cli_exec` (it runs in the
+   active project and asks the operator to approve each command): install, build, test, lint, run a game headless.
+   When `AGENTS.md` has a `## Checks` section, `run_project_checks` runs exactly those and records a green check.
+6. **Commit (`git_commit`).** Commit on the work branch with the repo's commit style
+   (`git_commit(subject="feat(scope): summary", paths=["path/to/file"])`; always pass `paths`). When the repo uses
+   cards, move the card with `set_card_status` (`project-cards`) once checks are green.
+7. **Sync and share (`git_pull`, `git_push`).** Before starting, `git_pull` fast-forwards the current branch from
+   `origin` (it never merges; if branches diverged, ask the operator). When the work is committed and checked,
+   `git_push` sends the work branch to `origin` and sets upstream; it never forces and refuses `main`, `master` and
+   `qa`. Then open a pull request with the GitHub MCP server's tools if the operator has added it, otherwise give the
+   operator the branch name. A person merges. See `reference="github.md"` for GitHub auth and the MCP server.

@@ -32,11 +32,10 @@ def test_get_system_info_offline_fallback():
 
 
 
-def test_autoreiv_profile_has_telemetry_and_developer_has_no_cli_exec():
+def test_autoreiv_profile_has_telemetry_and_cli_exec_only_through_software_development():
     autoreiv = platform_pack_profile("autoreiv")
     pinned = ["system_info", "get_recent_errors", "inspect_system_health"]
-    assert set(pinned) <= set(list(resolve_allowed_tools(autoreiv)))
-    assert "cli_exec" not in list(resolve_allowed_tools(autoreiv))
-
-    developer = platform_pack_profile("developer")
-    assert "cli_exec" not in list(resolve_allowed_tools(developer))  # CARD-562: no shell/code runner on Developer
+    allowed = resolve_allowed_tools(autoreiv)
+    assert set(pinned) <= set(list(allowed))
+    # ADR-0067 / CARD-729: project commands run through cli_exec, granted only by software-development.
+    assert allowed.skills_for("cli_exec") == ("software-development",)

@@ -10,7 +10,8 @@ def test_autoreiv_pack_profile_delegates_developer_capabilities():
     profile = platform_pack_profile("autoreiv")
     assert profile.id == "autoreiv"
     assert profile.show_in_chat is True
-    assert "cli_exec" not in list(resolve_allowed_tools(profile))
+    # ADR-0067 / CARD-729: cli_exec only through software-development (approval per call).
+    assert resolve_allowed_tools(profile).skills_for("cli_exec") == ("software-development",)
     assert "sdlc-engineering" not in profile.allowed_skill
     assert "handoff_to_agent" not in list(resolve_allowed_tools(profile))
 

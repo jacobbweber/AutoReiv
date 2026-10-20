@@ -50,6 +50,31 @@ class MCPClientAdapter:
         self.last_error: Optional[str] = None
         self._initialized: bool = False
         self._init_lock = asyncio.Lock()
+        self._session_id: Optional[str] = None  # CARD-730: Streamable HTTP Mcp-Session-Id
+
+    def _remote_headers(self) -> Dict[str, str]:
+        """Streamable HTTP headers: JSON or SSE replies, and the session id once the server gave one [CARD-730]."""
+        headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream", **self.headers}
+        if self._session_id:
+            headers["Mcp-Session-Id"] = self._session_id
+        return headers
+
+    @staticmethod
+    def _reply_payload(resp: Any, req_id: str) -> Dict[str, Any]:
+        """The JSON-RPC reply from a plain JSON body or from SSE ``data:`` frames [CARD-730]."""
+        if "text/event-stream" not in (resp.headers.get("content-type") or "").lower():
+            return resp.json()
+        frames = []
+        for line in resp.text.splitlines():
+            if line.startswith("data:"):
+                try:
+                    frames.append(json.loads(line[5:].strip()))
+                except ValueError:
+                    continue
+        replies = [f for f in frames if isinstance(f, dict) and str(f.get("id")) == req_id]
+        if not replies:
+            raise RuntimeError("Remote MCP server sent an event stream without a reply to the request.")
+        return replies[-1]
 
     async def _send_notification_remote(self, method: str, params: Optional[Dict[str, Any]] = None) -> None:
         """Send JSON-RPC notification over HTTP/SSE endpoint (no response expected)."""
@@ -64,7 +89,7 @@ class MCPClientAdapter:
         if self._http_transport is not None:
             client_kwargs["transport"] = self._http_transport
 
-        merged_headers = {"Content-Type": "application/json", **self.headers}
+        merged_headers = self._remote_headers()
         target_url = self.url or ""
         if not target_url:
             return
@@ -143,7 +168,7 @@ class MCPClientAdapter:
         if self._http_transport is not None:
             client_kwargs["transport"] = self._http_transport
 
-        merged_headers = {"Content-Type": "application/json", **self.headers}
+        merged_headers = self._remote_headers()
         target_url = self.url or ""
         if not target_url:
             raise RuntimeError(f"Remote MCP server '{self.server_name}' has no URL configured.")
@@ -154,7 +179,9 @@ class MCPClientAdapter:
                 raise RuntimeError(
                     f"Remote MCP server '{self.server_name}' returned status {resp.status_code}: {resp.text}"
                 )
-            payload = resp.json()
+            if resp.headers.get("mcp-session-id"):
+                self._session_id = resp.headers["mcp-session-id"]
+            payload = self._reply_payload(resp, req_id)
             if "error" in payload:
                 raise RuntimeError(f"MCP JSON-RPC Error: {payload['error']}")
             return payload.get("result", {})

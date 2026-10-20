@@ -1,8 +1,7 @@
 """Unit tests for AutoReiv pack alignment and shell tool exclusion [CARD-407, REQ-407-003, REQ-407-004].
 
-Enforces negative assertions that AutoReiv never carries raw shell tool cli_exec,
-that platform-health uses application telemetry, and that shell execution is delegated
-to developer via handoff_to_agent.
+Enforces that AutoReiv carries cli_exec only through software-development (ADR-0067 / CARD-729,
+approval per call) and that platform-health and diagnostics use application telemetry, never a shell.
 """
 
 from __future__ import annotations
@@ -13,16 +12,16 @@ from tests.unit.agent_skills.catalog import SHIPPED_SKILL_TOOLS as DYNAMIC_SKILL
 from tests.unit.agent_skills.catalog import pack_dict
 
 
-def test_autoreiv_pack_excludes_cli_exec():
+def test_autoreiv_pack_gets_cli_exec_only_through_software_development():
+    """Amended by ADR-0067 / CARD-729 (Jacob decision 2026-10-18): project commands run through cli_exec, which only
+    the software-development skill grants; every other ticked skill stays shell-free."""
     pack_data = pack_dict("autoreiv")  # CARD-570: platform/agents/autoreiv.md + its skills
 
-    # 1. pack_tool_names must not contain cli_exec
-    skill_tool_list = pack_data.get("pack_tool_names", [])
-    assert "cli_exec" not in skill_tool_list, "cli_exec must not be in autoreiv pack_tool_names"
-
-    # 2. None of autoreiv's skill definitions may include cli_exec
     for skill in pack_data.get("skills", []):
         skill_tools = skill.get("tools", [])
+        if skill.get("id") == "software-development":
+            assert "cli_exec" in skill_tools
+            continue
         assert "cli_exec" not in skill_tools, (
             f"cli_exec must not be in skill '{skill.get('id')}' for autoreiv"
         )

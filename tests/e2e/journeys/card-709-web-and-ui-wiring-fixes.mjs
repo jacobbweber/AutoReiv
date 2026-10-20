@@ -3,19 +3,14 @@
  * live wiki_service refresh, API key query leak, and active project pill on AutoReiv.
  * 1) Sets an active study topic via PUT /api/education/selected, clicks #chatStudyEntryBtn in Chat,
  *    and verifies #promptInput is populated with [Tutor Education Mode] and the topic on desktop and phone.
- * 2) Creates and selects a project in a throwaway projects_root, switches #agentSelect to 'autoreiv',
+ * 2) Creates and selects a project in the user-data projects folder (CARD-728), switches #agentSelect to 'autoreiv',
  *    and verifies #chatActiveProjectPill is visible in the Chat header with the active project slug.
  * 3) Opens Settings Studio (#view-settings), fills #provKeyInput with a test secret, clicks #discoverModelsBtn,
  *    and verifies the GET /api/models/discover URL does not leak api_key in the query string and instead
  *    sends the X-Provider-Api-Key request header.
  */
-import fs from 'node:fs';
-import path from 'node:path';
 import { clickExpect, waitFor } from './lib/runner.mjs';
 import { openApp } from './lib/app.mjs';
-
-const REPO_ROOT = process.cwd();
-const QA_PROJECTS_ROOT = path.join(REPO_ROOT, 'scratch', 'live_qa_data', 'qa_projects_709');
 
 export default {
   id: 'card-709-web-and-ui-wiring-fixes',
@@ -63,17 +58,15 @@ export default {
       });
 
       await j.step('Select an active project and verify #chatActiveProjectPill appears for AutoReiv in Chat', async () => {
-        const projPath = path.join(QA_PROJECTS_ROOT, projSlug);
-        fs.mkdirSync(projPath, { recursive: true });
-        const rootRes = await request.put(`${base}/api/settings/projects_root`, {
-          data: { path: QA_PROJECTS_ROOT },
-        });
-        if (!rootRes.ok()) {
-          throw new Error(`PUT /api/settings/projects_root -> ${rootRes.status()}`);
+        // CARD-728: projects live in the fixed user-data projects folder; create one there.
+        await request.delete(`${base}/api/projects/${encodeURIComponent(projSlug)}?confirm=true`).catch(() => {});
+        const createRes = await request.post(`${base}/api/projects`, { data: { slug: projSlug } });
+        if (!createRes.ok()) {
+          throw new Error(`POST /api/projects -> ${createRes.status()}`);
         }
 
         const pickRes = await request.put(`${base}/api/projects/selected`, {
-          data: { slug: projSlug, path: projPath },
+          data: { slug: projSlug },
         });
         if (!pickRes.ok()) {
           throw new Error(`PUT /api/projects/selected -> ${pickRes.status()}`);

@@ -1,6 +1,8 @@
 /**
  * CARD-532 shared AutoReiv UI helpers for journeys (real clicks against the real SPA).
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { waitFor } from './runner.mjs';
 
 export const STREAM_PATH = '/api/chat/stream';
@@ -71,10 +73,51 @@ export async function getJson(request, url) {
   return res.json();
 }
 
+/** CARD-728: an empty folder for a fixture project inside the server's user-data projects folder. */
+export async function freshProjectDir(request, base, slug) {
+  const listed = await getJson(request, `${base}/api/projects`);
+  if (!listed.projects_root) throw new Error('GET /api/projects returned no projects_root');
+  const root = path.join(listed.projects_root, slug);
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.mkdirSync(root, { recursive: true });
+  return root;
+}
+
 /** Latest job status for a chat session (journey API), or ''. */
 export async function sessionJobStatus(request, base, sessionId) {
   const j = await getJson(request, `${base}/api/chat/sessions/${encodeURIComponent(sessionId)}/journey`);
   const jobs = Array.isArray(j.jobs) ? j.jobs : [];
   const job = jobs[jobs.length - 1] || jobs[0];
   return job ? String(job.status || '') : '';
+}
+
+/** Send text, approve every approval card until done() or the turn goes idle; returns approvals pressed. */
+export async function askAndApprove(page, streams, text, done, timeoutMs) {
+  const n = streams.count;
+  await send(page, text);
+  await waitFor(() => streams.count > n, { timeoutMs: 20000 });
+  let approvals = 0;
+  let idlePolls = 0;
+  await waitFor(
+    async () => {
+      const cards = page.locator(HITL_CARD);
+      const count = await cards.count();
+      for (let i = 0; i < count; i += 1) {
+        const approve = cards.nth(i).locator('[data-hitl-decision="APPROVED"]').first();
+        if (await approve.isVisible().catch(() => false)) {
+          await approve.click();
+          approvals += 1;
+          await page.waitForTimeout(1500);
+          return false;
+        }
+      }
+      const streaming = await isStreaming(page);
+      if (!streaming && (await done())) return true;
+      idlePolls = streaming ? 0 : idlePolls + 1;
+      return idlePolls >= 8;
+    },
+    { timeoutMs, intervalMs: 2000 },
+  ).catch(() => {});
+  await waitReplyIdle(page, { timeoutMs: 60000 }).catch(() => {});
+  return approvals;
 }

@@ -18,7 +18,8 @@ def test_developer_is_separate_pack_and_not_in_autoreiv():
     autoreiv = platform_pack_profile("autoreiv")
     assert autoreiv.id == "autoreiv"
     assert "sdlc-engineering" not in autoreiv.allowed_skill
-    assert "cli_exec" not in list(resolve_allowed_tools(autoreiv))
+    # ADR-0067 / CARD-729: cli_exec only through software-development (approval per call).
+    assert resolve_allowed_tools(autoreiv).skills_for("cli_exec") == ("software-development",)
     assert "handoff_to_agent" not in list(resolve_allowed_tools(autoreiv))  # CARD-596
 
     dev = platform_pack_profile("developer")
@@ -26,7 +27,8 @@ def test_developer_is_separate_pack_and_not_in_autoreiv():
     assert "software-development" in dev.allowed_skill  # CARD-562, CARD-693
     assert "write_project_file" in list(resolve_allowed_tools(dev))
     assert "read_project_file" in list(resolve_allowed_tools(dev))
-    assert "cli_exec" not in list(resolve_allowed_tools(dev))  # CARD-562: no shell/code runner on Developer
+    assert resolve_allowed_tools(dev).skills_for("cli_exec") == ("software-development",)  # ADR-0067 amends CARD-562
+    assert "execute_code" not in list(resolve_allowed_tools(dev))
 
 
 def test_tutor_absorbed_into_autoreiv_profile():
@@ -61,7 +63,7 @@ def test_autoreiv_profile_definition():
     assert "get_system_logs" in list(resolve_allowed_tools(agent))
     assert "get_recent_errors" in list(resolve_allowed_tools(agent))
     assert "system_info" in list(resolve_allowed_tools(agent))
-    assert "cli_exec" not in list(resolve_allowed_tools(agent))
+    assert resolve_allowed_tools(agent).skills_for("cli_exec") == ("software-development",)  # ADR-0067
     assert "wiki_note_create" in list(resolve_allowed_tools(agent))
     assert "wiki_note_read" in list(resolve_allowed_tools(agent))
     assert "get_or_create_weekly_note" not in list(resolve_allowed_tools(agent))

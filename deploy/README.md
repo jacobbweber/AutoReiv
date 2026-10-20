@@ -46,5 +46,8 @@ Day-to-day: `systemctl status autoreiv.service`, `journalctl -u autoreiv.service
 - `docker compose up -d` starts AutoReiv on port 8000 (set `PORT` to publish another host port).
 - Your data is in the named volume `autoreiv-data` at `/data`: `database/autoreiv.db`, `wiki/`, `agents/` and `skills/`.
 - The wiki is mounted at `/data/wiki`: the host folder in `AUTOREIV_WIKI_HOST_PATH` if you set it, otherwise the `autoreiv-wiki` volume. The container will not start without a readable wiki folder.
+- Projects are mounted at `/data/projects` (`AUTOREIV_PROJECTS_DIR`): the host folder in `AUTOREIV_PROJECTS_HOST_PATH` if you set it (for example `D:/AutoReivProjects` or `/home/you/projects`), otherwise the `autoreiv-projects` volume. Open the same host folder in VS Code to work alongside AutoReiv.
+- The image ships Python 3.12, git, Node.js 22 (npm, npx, corepack), uv, make, g++ and Godot 4 headless (`--build-arg INSTALL_GODOT=0` leaves Godot out, `--build-arg GODOT_VERSION=...` picks another release). Unity and Unreal are not supported in the container.
+- `GITHUB_TOKEN` (optional) lets AutoReiv clone, pull and push private github.com repositories over HTTPS.
 - Model settings can be passed as environment variables (for example `OLLAMA_HOST`, `OPENAI_API_KEY`); see `.env.example`.
 - `docker compose down` stops and removes the container and keeps the volumes. `docker compose down -v` deletes the volumes and your data, so use it only to wipe.

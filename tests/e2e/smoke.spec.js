@@ -1921,7 +1921,6 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       await page.route('**/api/projects/files/read*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         path: 'README.md', content: '# TC47\n\nhello', chars: 13, truncated: false, is_markdown: true,
       }) }));
-      await page.route('**/api/projects/drift*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ drift: [], items: [] }) }));
       await page.addInitScript(() => { try { localStorage.setItem('autoreiv.projectsStudioMode', 'explorer'); } catch { /* storage blocked: default mode is explorer */ } });
 
       await page.goto('/', { waitUntil: 'domcontentloaded' });

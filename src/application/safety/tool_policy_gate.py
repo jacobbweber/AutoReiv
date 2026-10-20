@@ -37,6 +37,9 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "write_project_file",
         "create_project",
         "git_commit",
+        "git_clone",  # CARD-730
+        "git_pull",  # CARD-730
+        "git_push",  # CARD-730
         "sync_card_issue",
         "execute_agent_database",
         "repo_file_write",
@@ -46,7 +49,6 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "repo_remove_worktree",
         "hand_off_card",  # CARD-563
         "run_journey",  # CARD-633
-        "align_project",  # CARD-697
     }
 )
 
@@ -70,7 +72,6 @@ _DEFAULT_SAFE: frozenset[str] = frozenset(
         "repo_file_read",
         "list_project_dir",
         "read_project_file",
-        "detect_drift",
     }
 )
 

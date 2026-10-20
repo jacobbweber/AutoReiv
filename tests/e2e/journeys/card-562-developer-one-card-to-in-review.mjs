@@ -10,10 +10,9 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
+import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle, freshProjectDir } from './lib/app.mjs';
 
 const SDLC_TOOLS = ['git_status', 'git_diff', 'git_create_branch', 'git_commit', 'read_card', 'write_card', 'set_card_status',
   'run_project_checks', 'search_project', 'patch_project_file', 'active_project_info'];
@@ -56,8 +55,7 @@ const toolNames = (a) => new Set((a.allowed_tools || []).map((t) => String(typeo
 const statusOf = (file) => ((fs.readFileSync(file, 'utf8').match(/^status:\s*(.+)$/m) || [])[1] || '').trim();
 const cardFiles = (root) => fs.readdirSync(path.join(root, '.agents', 'cards')).filter((f) => /^CARD-.*\.md$/.test(f));
 
-function makeFixture(tag) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `autoreiv-card562-${tag}-`));
+function makeFixture(root) {
   fs.mkdirSync(path.join(root, '.agents', 'cards'), { recursive: true });
   fs.writeFileSync(path.join(root, 'AGENTS.md'), AGENTS_MD);
   fs.writeFileSync(path.join(root, 'calc.js'), CALC);
@@ -138,7 +136,7 @@ export default {
     }, { timeoutMs: 30000 });
 
     await j.step('A throwaway git repo in the OS temp folder becomes the active project', async () => {
-      root = makeFixture(viewport.name);
+      root = makeFixture(await freshProjectDir(request, base, `card562-${viewport.name}`));
       const res = await request.put(`${base}/api/projects/selected`, { data: { slug: 'calc', path: root } });
       if (!res.ok()) throw new Error(`select project -> ${res.status()}`);
       const sel = await getJson(request, `${base}/api/projects/selected`);

@@ -33,14 +33,14 @@ def fake_checkout(tmp_path, monkeypatch) -> Path:
 
 
 @pytest.fixture
-def svc() -> ProjectsService:
+def svc(tmp_path) -> ProjectsService:
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
-    return ProjectsService(store=store)
+    return ProjectsService(store=store, projects_dir=tmp_path)  # CARD-728
 
 
 def _tools(svc, scratch: Path) -> ProjectFileTools:
-    return ProjectFileTools(root_resolver=svc.resolve_root, project_resolver=svc.selected_root, scratch_root=scratch)
+    return ProjectFileTools(root_resolver=svc.selected_or_refuse, project_resolver=svc.selected_root, scratch_root=scratch)
 
 
 def test_no_project_selected_writes_to_scratch_not_checkout(fake_checkout, svc, tmp_path):
@@ -97,7 +97,7 @@ def test_guard_the_real_checkout_is_never_a_write_root(svc, tmp_path, monkeypatc
     monkeypatch.delenv("AUTOREIV_CHECKOUT_ROOT", raising=False)
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path / "data"))
     assert any(_inside(REPO, r) and _inside(r, REPO) for r in autoreiv_checkout_roots())
-    for tools in (ProjectFileTools(), ProjectFileTools(root_resolver=svc.resolve_root, project_resolver=svc.selected_root)):
+    for tools in (ProjectFileTools(), ProjectFileTools(root_resolver=svc.selected_or_refuse, project_resolver=svc.selected_root)):
         res = tools.write_project_file("card556_probe.txt", "x")
         assert res["success"] is True, res
         assert not _inside(Path(res["full_path"]), REPO)
@@ -116,8 +116,9 @@ def test_default_scratch_is_in_the_os_temp_folder(monkeypatch, tmp_path):
 def test_selected_root_is_none_without_a_project(svc, tmp_path):
     assert svc.selected_root() is None
     assert svc.selected_root(str(tmp_path)) is None  # CARD-562: a passed root never replaces a selection
-    svc.set_selected(slug="p", path=str(tmp_path))
-    assert svc.selected_root() == tmp_path.resolve()
+    (tmp_path / "p").mkdir()
+    svc.set_selected(slug="p", path=str(tmp_path / "p"))
+    assert svc.selected_root() == (tmp_path / "p").resolve()
 
 
 def test_description_names_scratch_and_checkout_tools(tmp_path):

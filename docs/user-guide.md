@@ -41,6 +41,12 @@ Editing a shipped agent saves your own copy in the data folder; **Use shipped ve
 You can browse and edit every skill folder, inspect or toggle its tools, and attach MCP servers in **Capabilities**. Pure read-only tools are enabled automatically when written; tools that reach outside (files, network, subprocesses) stay switched off until you enable them in **Capabilities**.
 
 
+## GitHub repos
+
+- **Clone, pull and push.** Ask AutoReiv to clone a repo; it lands in the projects folder and becomes the active project. AutoReiv can pull (fast-forward only) and push work branches; it never force-pushes and never pushes `main`, `master` or `qa`. Each of these asks for approval.
+- **Private repos.** Set `GITHUB_TOKEN` for the serve (Docker: in `.env` next to `docker-compose.yml`, then `docker compose up -d`). A fine-grained token with **Contents: read and write** is enough. The token is never written into the repo.
+- **Issues and pull requests.** Add GitHub's MCP server in **Capabilities -> MCP servers**: store a personal access token in the **Credential Vault**, then add server `github`, transport **HTTP / SSE**, URL `https://api.githubcopilot.com/mcp/`, auth **Bearer Token** with that credential. AutoReiv picks up the companion `mcp-github` skill automatically; other agents need it ticked in **Agents**.
+
 ## Approvals and Auto-run
 
 Reading is always allowed. Before an agent writes files, runs a shell command or runs code, the chat shows an approval card and waits for **Approve** or **Reject**.

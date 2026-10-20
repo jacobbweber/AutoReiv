@@ -372,7 +372,7 @@
               <span>Pair with Developer</span>
             </button>
             <div id="projectsModeSwitch" class="flex items-center rounded-lg border border-white/[0.08] bg-[#08090c] p-0.5" role="tablist" aria-label="Projects studio mode" data-card="303">
-              <button type="button" id="projectsModeManagerBtn" role="tab" aria-selected="false" class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition" title="Projects Manager — browse, Set Active, create, align">
+              <button type="button" id="projectsModeManagerBtn" role="tab" aria-selected="false" class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition" title="Projects Manager — browse, Set Active, create">
                 Projects Manager <span class="text-slate-500 font-mono">(<span id="projectsCountBadge">0</span>)</span>
               </button>
               <button type="button" id="projectsModeExplorerBtn" role="tab" aria-selected="true" class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-brand-600 text-white transition" title="Artifact Explorer — live disk tree for Active project">
@@ -390,13 +390,10 @@
         <div id="projectsManagerView" class="hidden flex-1 flex-col min-h-0 overflow-hidden bg-[#0e1015]/95" data-card="303">
         <div id="projectsDrawer" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div class="bg-[#08090c]/70 border border-white/[0.06] rounded-xl p-3.5 space-y-2">
-              <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block font-mono">projects_root</label>
-              <div class="flex gap-2">
-                <input id="projectsRootInput" type="text" placeholder="D:\Projects\Active" class="flex-1 bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-all font-mono">
-                <button id="projectsRootSaveBtn" class="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 border border-white/[0.08] transition-all">Save</button>
-              </div>
-              <p id="projectsMeta" class="text-[10px] text-slate-500 truncate">Set folder that contains your coding projects.</p>
+            <div class="bg-[#08090c]/70 border border-white/[0.06] rounded-xl p-3.5 space-y-2" data-card="728">
+              <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block font-mono">Projects folder</label>
+              <p id="projectsFolderPath" class="text-xs text-white font-mono break-all">…</p>
+              <p id="projectsMeta" class="text-[10px] text-slate-500">Clone or copy repos here. On Docker this folder is the AUTOREIV_PROJECTS_HOST_PATH mount, so you can open it on the host too.</p>
             </div>
             <div class="bg-[#08090c]/70 border border-white/[0.06] rounded-xl p-3.5 space-y-2">
               <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block font-mono">Create project</label>
@@ -404,14 +401,14 @@
                 <input id="projectsSlugInput" type="text" placeholder="my-app" class="flex-1 bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-all font-mono">
                 <button id="projectsCreateBtn" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white shadow-sm transition-all">Create</button>
               </div>
-              <p class="text-[10px] text-slate-500">Scaffolds .agents directory with cards, specs, and steering.</p>
+              <p class="text-[10px] text-slate-500">Creates an empty git repository. Ask AutoReiv to add starter files if you want them.</p>
             </div>
           </div>
           <div id="projectsFolderBrowser" class="space-y-2" data-card="300">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 min-w-0">
                 <button type="button" id="projectsBrowseUpBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition disabled:opacity-40" title="Up one folder" disabled>Up</button>
-                <button type="button" id="projectsBrowseRootBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition" title="Back to projects_root">Root</button>
+                <button type="button" id="projectsBrowseRootBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition" title="Back to the projects folder">Root</button>
                 <span id="projectsBrowseCwd" class="text-[11px] font-mono text-slate-400 truncate">.</span>
               </div>
               <span class="text-[10px] text-slate-500 flex-shrink-0">Folders only</span>
@@ -472,16 +469,8 @@
                 <input type="text" id="projectsTreeFilter" placeholder="Filter files..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-all font-mono">
               </div>
             </div>
-            <!-- Active root + structure drift [CARD-302] -->
+            <!-- Active root [CARD-302] -->
             <div id="projectsActiveRootBar" class="px-2.5 py-1.5 border-b border-white/[0.06] bg-[#08090c]/50 text-[10px] font-mono text-slate-400 truncate flex-shrink-0" title="Active project root">No active project</div>
-            <div id="projectsDriftBanner" class="hidden px-2.5 py-2 border-b border-rose-500/30 bg-rose-950/30 space-y-1.5 flex-shrink-0" data-card="302">
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-[11px] font-semibold text-rose-300">Scaffold drift (structure only)</span>
-                <button type="button" id="projectsAlignBtn" class="px-2 py-0.5 rounded-md bg-rose-600 hover:bg-rose-500 text-[10px] font-semibold text-white">Align to template</button>
-              </div>
-              <p id="projectsDriftSummary" class="text-[10px] text-rose-200/90"></p>
-              <div id="projectsDriftMissing" class="flex flex-col gap-0.5 max-h-24 overflow-y-auto"></div>
-            </div>
             <!-- Tree Navigation List -->
             <div id="projectsTreeList" class="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs font-mono select-none min-h-0 touch-pan-y overscroll-contain">
               <!-- Populated dynamically via API -->

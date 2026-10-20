@@ -12,10 +12,9 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { waitFor } from './lib/runner.mjs';
-import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle } from './lib/app.mjs';
+import { HITL_CARD, getJson, isStreaming, openApp, openSessionByTitle, send, trackStreams, waitReplyIdle, freshProjectDir } from './lib/app.mjs';
 
 const PLANNING = ['active_project_info', 'read_project_file', 'search_project', 'list_project_dir', 'read_steering',
   'list_cards', 'read_card', 'write_card', 'set_card_status', 'hand_off_card'];
@@ -64,8 +63,7 @@ const statusOf = (file) => ((fs.readFileSync(file, 'utf8').match(/^status:\s*(.+
 const cardsDir = (root) => path.join(root, '.agents', 'cards');
 const cardFiles = (root) => fs.readdirSync(cardsDir(root)).filter((f) => /^CARD-.*\.md$/.test(f));
 
-function makeFixture(tag) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `autoreiv-card563-${tag}-`));
+function makeFixture(root) {
   fs.mkdirSync(cardsDir(root), { recursive: true });
   fs.writeFileSync(path.join(root, 'AGENTS.md'), AGENTS_MD);
   fs.writeFileSync(path.join(root, 'calc.js'), CALC);
@@ -169,7 +167,7 @@ export default {
     }, { timeoutMs: 30000 });
 
     await j.step('A throwaway git repo is the active project and an Architect chat is open', async () => {
-      root = makeFixture(viewport.name);
+      root = makeFixture(await freshProjectDir(request, base, `card563-${viewport.name}`));
       const res = await request.put(`${base}/api/projects/selected`, { data: { slug: 'calc', path: root } });
       if (!res.ok()) throw new Error(`select project -> ${res.status()}`);
       const sel = await getJson(request, `${base}/api/projects/selected`);
