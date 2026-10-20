@@ -388,6 +388,31 @@ class ToolPolicyGate:
                     reason=reason or "Prohibited dangerous command",
                     policy_source="dangerous_command_filter",
                 )
+            if (
+                self._store is not None
+                and hasattr(self._store, "get_setting")
+                and name not in self._policy["require_confirm_tools"]
+            ):
+                from src.application.safety.approval_mode import resolve_approval_mode
+                from src.application.sdlc.projects_service import ProjectsService, normalize_approved_command
+
+                if resolve_approval_mode(self._store) != "strict":
+                    norm_cmd = normalize_approved_command(command)
+                    if norm_cmd:
+                        proj_svc = ProjectsService(store=self._store)
+                        try:
+                            valid_root = proj_svc.selected_root(args.get("project_root")) is not None
+                        except Exception:
+                            valid_root = False
+                        selected = proj_svc.get_selected() if valid_root else {}
+                        slug = str((selected or {}).get("slug") or "").strip()
+                        if slug and norm_cmd in proj_svc.get_approved_commands(slug):
+                            return ToolPolicyDecision(
+                                verdict=ToolPolicyVerdict.ALLOW,
+                                tool_name=name,
+                                reason=f"Command approved and remembered for project '{slug}'",
+                                policy_source="project_approved_command",
+                            )
 
         # Dangerous MCP tool names -> REQUIRE_CONFIRM -> existing HITL [CARD-225].
         if (

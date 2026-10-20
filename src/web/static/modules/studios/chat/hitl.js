@@ -272,20 +272,24 @@ export function buildHitlCardInnerHtml({ title, toolName, message, argsText, res
     <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName || 'tool')}</strong></div>
     ${message ? `<div class="text-slate-400">${escapeHtml(message)}</div>` : ''}
     ${argsText ? `<pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText)}</pre>` : ''}
-    <div class="flex items-center space-x-2 pt-1">
+    <div class="flex flex-wrap items-center gap-2 pt-1">
       <button type="button" disabled data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50 pointer-events-none text-xs font-semibold">Approve</button>
       <button type="button" disabled data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50 pointer-events-none text-xs font-semibold">Reject</button>
       <span class="hitl-card-status ${isApproved ? 'text-emerald-300' : 'text-rose-300'}">${escapeHtml(statusText || (isApproved ? 'Approved.' : 'Rejected.'))}</span>
     </div>
   `;
   }
+  const canRememberProject = String(toolName || '') === 'cli_exec';
+  const rememberBtn = canRememberProject
+    ? '\n      <button type="button" data-hitl-decision="APPROVED" data-hitl-remember="project" class="px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Approve &amp; remember for project</button>'
+    : '';
   return `
     <div class="font-semibold text-amber-200">${escapeHtml(title || 'Approval required')}</div>
     <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName || 'tool')}</strong></div>
     <div class="text-slate-400">${escapeHtml(message || 'Waiting for operator approval')}</div>
     <pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText || '')}</pre>
-    <div class="flex items-center space-x-2 pt-1">
-      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Approve</button>
+    <div class="flex flex-wrap items-center gap-2 pt-1">
+      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Approve</button>${rememberBtn}
       <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Reject</button>
       <span class="hitl-card-status text-amber-200"></span>
     </div>
@@ -300,7 +304,7 @@ export function approvingText(cardEl) {
     : 'Approving…';
 }
 
-export async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
+export async function submitHitlDecision(approvalId, decision, cardEl, sessionId, { rememberForProject = false } = {}) {
   const buttons = cardEl.querySelectorAll('[data-hitl-decision]');
   buttons.forEach((btn) => {
     btn.disabled = true;
@@ -313,10 +317,12 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
     statusEl.textContent = decision === 'APPROVED' ? approvingText(cardEl) : 'Rejecting…';
   }
   try {
+    const payload = { decision, session_id: sessionId || undefined };
+    if (rememberForProject) payload.remember_for_project = true;
     const res = await fetch(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decision, session_id: sessionId || undefined }),
+      body: JSON.stringify(payload),
     });
     let body = {};
     try {
@@ -333,7 +339,8 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
       if (body.nested && body.nested.status === 'running') {
         statusEl.textContent = backgroundStatusText(body.nested, decision);
       } else if (decision === 'APPROVED') {
-        statusEl.textContent = ran ? 'Approved. Tool ran.' : 'Approved.';
+        const prefix = body.remembered_for_project ? 'Approved & remembered for project.' : 'Approved.';
+        statusEl.textContent = ran ? `${prefix} Tool ran.` : prefix;
       } else {
         statusEl.textContent = 'Rejected. Tool did not run.';
       }
@@ -345,6 +352,8 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
           btn.classList.remove(
             'bg-emerald-700',
             'hover:bg-emerald-600',
+            'bg-teal-700',
+            'hover:bg-teal-600',
             'bg-rose-800',
             'hover:bg-rose-700',
             'hover:bg-emerald-700',
@@ -493,7 +502,8 @@ export function wireHitlCardButtons(cardEl, { approvalId, approvalSessionId, sta
     btn.addEventListener('click', async () => {
       const openSid = (state && state.activeSessionId) || '';
       const decision = btn.getAttribute('data-hitl-decision');
-      const result = await submitHitlDecision(approvalId, decision, cardEl, openSid);
+      const rememberForProject = btn.getAttribute('data-hitl-remember') === 'project';
+      const result = await submitHitlDecision(approvalId, decision, cardEl, openSid, { rememberForProject });
       let nested = result.body && result.body.nested ? result.body.nested : null;
       if (result.ok && nested && nested.status === 'running') {
         // CARD-593: the hand-off works in the background; wait for it here without holding a request open.

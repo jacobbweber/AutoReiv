@@ -10,7 +10,7 @@
  *    sends the X-Provider-Api-Key request header.
  */
 import { clickExpect, waitFor } from './lib/runner.mjs';
-import { openApp } from './lib/app.mjs';
+import { openApp, openTab } from './lib/app.mjs';
 
 export default {
   id: 'card-709-web-and-ui-wiring-fixes',
@@ -95,11 +95,7 @@ export default {
           }
         });
 
-        await page.evaluate(() => {
-          if (typeof window.__autoreivSwitchTab === 'function') {
-            window.__autoreivSwitchTab('settings');
-          }
-        });
+        await openTab(page, 'settings');
         await page.locator('#view-settings').waitFor({ state: 'visible', timeout: 15000 });
         await page.evaluate(() => {
           const det = document.querySelector('[data-settings-section="providers"]');

@@ -416,6 +416,22 @@
             <div id="projectsList" class="space-y-1.5"></div>
           </div>
 
+          <!-- CARD-733: per-project remembered cli_exec commands -->
+          <div id="projectsApprovedCommands" class="space-y-2" data-card="733">
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">
+              <div>
+                <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="terminal" class="w-3.5 h-3.5 text-teal-400"></i>
+                  <span>Approved CLI commands</span>
+                </h3>
+                <p class="text-[10px] text-slate-500">Exact cli_exec commands remembered for the active project in balanced mode.</p>
+              </div>
+            </div>
+            <div id="projectsApprovedCommandsList" class="space-y-1.5">
+              <div class="text-xs text-slate-500 italic p-2">No remembered commands for the active project.</div>
+            </div>
+          </div>
+
           <!-- CARD-634: live QA journey runs (CARD-532 reports) -->
           <div id="projectsJourneyRuns" class="space-y-2" data-card="634">
             <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">

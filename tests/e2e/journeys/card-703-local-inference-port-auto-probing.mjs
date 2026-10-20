@@ -9,7 +9,7 @@
  *    are activated in the UI and persisted in /api/settings with zero horizontal overflow on desktop and phone.
  */
 import { clickExpect, waitFor } from './lib/runner.mjs';
-import { getJson, openApp } from './lib/app.mjs';
+import { getJson, openApp, openTab } from './lib/app.mjs';
 
 export default {
   id: 'card-703-local-inference-port-auto-probing',
@@ -19,22 +19,7 @@ export default {
   async run(j, { page, request, base, viewport }) {
     await j.step('Open Settings Studio and verify Local Inference Auto-Probe card is visible', async () => {
       await openApp(page, base);
-
-      const dockBtn = page.locator('#dock-settings');
-      if (await dockBtn.isVisible().catch(() => false)) {
-        await clickExpect(
-          dockBtn,
-          async () => page.locator('#settingsLocalProbeCard').isVisible().catch(() => false),
-          { what: 'open Settings Studio', label: '#dock-settings' },
-        );
-      } else {
-        await page.evaluate(() => {
-          if (typeof window.__autoreivSwitchTab === 'function') {
-            window.__autoreivSwitchTab('settings');
-          }
-        });
-      }
-
+      await openTab(page, 'settings');
       await page.locator('#settingsLocalProbeCard').waitFor({ state: 'visible', timeout: 15000 });
       await page.locator('#scanLocalServersBtn').waitFor({ state: 'visible', timeout: 10000 });
       j.note(`Local Inference Auto-Probe card visible on ${viewport.name}`);

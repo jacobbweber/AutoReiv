@@ -7,8 +7,8 @@
  *    state_change, and destructive tool authoring via /api/capabilities/skills/{id}/file.
  * 3) Restores "balanced" mode and verifies zero horizontal overflow on desktop and phone.
  */
-import { clickExpect, waitFor } from './lib/runner.mjs';
-import { getJson, openApp } from './lib/app.mjs';
+import { waitFor } from './lib/runner.mjs';
+import { getJson, openApp, openTab } from './lib/app.mjs';
 
 const SKILL_MD = `---
 name: qa-701-approval-skill
@@ -66,22 +66,7 @@ export default {
       if (!skillRes.ok()) throw new Error(`Create SKILL.md -> ${skillRes.status()}`);
 
       await openApp(page, base);
-
-      const dockBtn = page.locator('#dock-settings');
-      if (await dockBtn.isVisible().catch(() => false)) {
-        await clickExpect(
-          dockBtn,
-          async () => page.locator('#settingsApprovalModeCard').isVisible().catch(() => false),
-          { what: 'open Settings Studio', label: '#dock-settings' },
-        );
-      } else {
-        await page.evaluate(() => {
-          if (typeof window.__autoreivSwitchTab === 'function') {
-            window.__autoreivSwitchTab('settings');
-          }
-        });
-      }
-
+      await openTab(page, 'settings');
       await page.locator('#settingsApprovalModeCard').waitFor({ state: 'visible', timeout: 15000 });
       await page.locator('#approvalModeSelect').waitFor({ state: 'visible', timeout: 10000 });
       await page.locator('#approvalModeSaveBtn').waitFor({ state: 'visible', timeout: 10000 });

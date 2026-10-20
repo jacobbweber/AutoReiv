@@ -18,9 +18,15 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 SLUG_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$")
 SELECTED_PROJECT_KEY = "selected_project"
+PROJECT_APPROVED_COMMANDS_KEY = "project_approved_commands"
 NO_PROJECT_MESSAGE = (
     "No project is selected. Select a project in Projects Studio (or pass project_root) and try again."
 )
+
+
+def normalize_approved_command(command: Any) -> str:
+    """Normalize a cli_exec command string for exact per-project matching [CARD-733]."""
+    return str(command or "").strip()
 
 
 def touches_running_checkout(target: Path) -> bool:
@@ -284,6 +290,77 @@ class ProjectsService:
             out["selected"] = self.set_selected(path=str(target)).get("selected", {})
         return out
 
+    def _read_approved_commands_map(self) -> Dict[str, List[str]]:
+        raw = self.store.get_setting(PROJECT_APPROVED_COMMANDS_KEY)
+        if not isinstance(raw, dict):
+            return {}
+        out: Dict[str, List[str]] = {}
+        for k, vals in raw.items():
+            key = str(k or "").strip()
+            if not key or not isinstance(vals, (list, tuple, set)):
+                continue
+            seen: List[str] = []
+            for item in vals:
+                norm = normalize_approved_command(item)
+                if norm and norm not in seen:
+                    seen.append(norm)
+            if seen:
+                out[key] = seen
+        return out
+
+    def get_approved_commands(self, slug: Optional[str] = None) -> List[str]:
+        """Remembered cli_exec commands for ``slug`` (default: the active project) [CARD-733]."""
+        target_slug = (slug or (self.get_selected() or {}).get("slug") or "").strip()
+        if not target_slug:
+            return []
+        return list(self._read_approved_commands_map().get(target_slug, []))
+
+    def add_approved_command(self, command: str, slug: Optional[str] = None) -> Dict[str, Any]:
+        """Remember an approved cli_exec command for ``slug`` (default: the active project) [CARD-733]."""
+        from src.application.skills.command_filter import DangerousCommandFilter
+
+        target_slug = (slug or (self.get_selected() or {}).get("slug") or "").strip()
+        if not target_slug:
+            return {"success": False, "error": NO_PROJECT_MESSAGE, "commands": []}
+        norm = normalize_approved_command(command)
+        if not norm:
+            return {
+                "success": False,
+                "error": "Command cannot be empty.",
+                "slug": target_slug,
+                "commands": self.get_approved_commands(target_slug),
+            }
+        is_bad, reason = DangerousCommandFilter.is_dangerous(norm)
+        if is_bad:
+            return {
+                "success": False,
+                "error": reason or "Prohibited dangerous command",
+                "slug": target_slug,
+                "commands": self.get_approved_commands(target_slug),
+            }
+        mapping = self._read_approved_commands_map()
+        cmds = list(mapping.get(target_slug, []))
+        if norm not in cmds:
+            cmds.append(norm)
+        mapping[target_slug] = cmds
+        self.store.set_setting(PROJECT_APPROVED_COMMANDS_KEY, mapping)
+        return {"success": True, "slug": target_slug, "command": norm, "commands": cmds}
+
+    def remove_approved_command(self, command: str, slug: Optional[str] = None) -> Dict[str, Any]:
+        """Revoke a remembered cli_exec command for ``slug`` (default: the active project) [CARD-733]."""
+        target_slug = (slug or (self.get_selected() or {}).get("slug") or "").strip()
+        if not target_slug:
+            return {"success": False, "error": NO_PROJECT_MESSAGE, "commands": []}
+        norm = normalize_approved_command(command)
+        mapping = self._read_approved_commands_map()
+        cmds = [c for c in mapping.get(target_slug, []) if c != norm]
+        if cmds:
+            mapping[target_slug] = cmds
+        else:
+            mapping.pop(target_slug, None)
+        self.store.set_setting(PROJECT_APPROVED_COMMANDS_KEY, mapping)
+        return {"success": True, "slug": target_slug, "commands": cmds}
+
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
         if not confirm:
             return {"success": False, "error": "delete requires confirm=true"}
@@ -302,6 +379,10 @@ class ProjectsService:
         shutil.rmtree(target)
         if selected.get("path") and Path(selected["path"]).resolve() == target:
             self.store.set_setting(SELECTED_PROJECT_KEY, {})
+        mapping = self._read_approved_commands_map()
+        if clean in mapping:
+            mapping.pop(clean, None)
+            self.store.set_setting(PROJECT_APPROVED_COMMANDS_KEY, mapping)
         return {"success": True, "slug": clean, "deleted": True}
 
     def register_tools(self, registry) -> None:

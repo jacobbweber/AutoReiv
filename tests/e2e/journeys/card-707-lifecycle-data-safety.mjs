@@ -10,7 +10,7 @@
  *    in the Credential Vault list (`#vaultCredentialsList`) with its masked preview.
  */
 import { clickExpect, waitFor } from './lib/runner.mjs';
-import { getJson, openApp } from './lib/app.mjs';
+import { getJson, openApp, openTab } from './lib/app.mjs';
 
 export default {
   id: 'card-707-lifecycle-data-safety',
@@ -50,11 +50,7 @@ export default {
         }
 
         await openApp(page, base);
-        await page.evaluate(() => {
-          if (typeof window.__autoreivSwitchTab === 'function') {
-            window.__autoreivSwitchTab('capabilities');
-          }
-        });
+        await openTab(page, 'capabilities');
         await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 15000 });
 
         await waitFor(
@@ -103,11 +99,7 @@ export default {
           throw new Error(`Expected masked_preview ending in 9876, got: ${found.masked_preview}`);
         }
 
-        await page.evaluate(() => {
-          if (typeof window.__autoreivSwitchTab === 'function') {
-            window.__autoreivSwitchTab('settings');
-          }
-        });
+        await openTab(page, 'settings');
         await page.locator('#view-settings').waitFor({ state: 'visible', timeout: 15000 });
         await waitFor(
           async () => {

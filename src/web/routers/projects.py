@@ -48,6 +48,29 @@ async def create_project(request: Request, req: CreateProjectRequest):
     return res
 
 
+@router.get("/api/projects/approved-commands")
+async def get_project_approved_commands(request: Request):
+    """List remembered cli_exec commands for the active project [CARD-733]."""
+    svc = _service(request)
+    selected = svc.get_selected()
+    slug = (selected or {}).get("slug")
+    return {
+        "success": True,
+        "slug": slug,
+        "commands": svc.get_approved_commands(slug) if slug else [],
+    }
+
+
+@router.delete("/api/projects/approved-commands")
+async def delete_project_approved_command(request: Request, command: str):
+    """Revoke a remembered cli_exec command for the active project [CARD-733]."""
+    svc = _service(request)
+    res = svc.remove_approved_command(command)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "revoke failed"))
+    return res
+
+
 @router.delete("/api/projects/{slug}")
 async def delete_project(request: Request, slug: str, confirm: bool = False):
     res = _service(request).delete_project(slug=slug, confirm=confirm)
