@@ -125,3 +125,41 @@ export function resetViewerReadingPane({ clearTree = false } = {}) {
   if (metaEl) metaEl.textContent = '';
   if (copyBtn) copyBtn.classList.add('hidden');
 }
+
+export async function renderApprovedCommandsList() {
+  const list = $('projectsApprovedCommandsList');
+  if (!list) return;
+  try {
+    const data = await fetchJSON('/api/projects/approved-commands');
+    const slug = data && data.slug;
+    const commands = (data && data.commands) || [];
+    if (!slug) {
+      list.innerHTML = '<div class="text-xs text-slate-500 italic p-2">Select a project to view remembered commands.</div>';
+      return;
+    }
+    if (!commands.length) {
+      list.innerHTML = '<div class="text-xs text-slate-500 italic p-2">No remembered commands for the active project.</div>';
+      return;
+    }
+    list.innerHTML = commands
+      .map(
+        (cmd) => `<div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border border-white/[0.06] bg-[#08090c]/70">
+          <code class="text-xs font-mono text-teal-300 break-all">${escapeHtml(cmd)}</code>
+          <button type="button" data-revoke-command="${escapeHtml(cmd)}" class="px-2 py-1 rounded-md bg-rose-900/70 hover:bg-rose-800 text-[11px] font-semibold text-white transition">Remove</button>
+        </div>`,
+      )
+      .join('');
+    refreshIcons();
+  } catch (err) {
+    list.innerHTML = `<div class="text-xs text-rose-300 p-2">${escapeHtml(String(err.message || err))}</div>`;
+  }
+}
+
+export async function revokeApprovedCommand(command) {
+  const q = encodeURIComponent(String(command || ''));
+  await fetchJSON(`/api/projects/approved-commands?command=${q}`, {
+    method: 'DELETE',
+  });
+  await renderApprovedCommandsList();
+}
+

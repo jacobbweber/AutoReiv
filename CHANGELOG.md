@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Added
+
+- `cli_exec` approval cards can now remember an approved command for the active project (`Approve & remember for project`) so repeat test and build runs do not prompt every time, with a revoke list in **Projects Studio** [CARD-733].
+
 ### Fixed
 
 - Retired the leftover `agent.id == "developer"` prompt check in `system_prompt_builder.py`, replaced removed `window.__autoreivSwitchTab` calls in live journeys with shared `openTab` in `lib/app.mjs`, and unified `askAndApprove` across journeys [CARD-732].

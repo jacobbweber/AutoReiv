@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { buildHitlCardInnerHtml, submitHitlDecision } from '../../../src/web/static/modules/studios/chat/hitl.js';
 
 describe('Projects Studio Web Workspace UI [REQ-PROJ-010..014]', () => {
   const indexHtml = fs.readFileSync(
@@ -76,5 +77,56 @@ describe('Projects Studio Web Workspace UI [REQ-PROJ-010..014]', () => {
     expect(projectsJs).toContain('closeReadingPane');
     expect(projectsJs).toContain('projectsViewerCloseBtn');
   });
+
+  it('renders Approve & remember for project button on cli_exec HITL cards and declares Projects Studio revoke list [CARD-733]', async () => {
+    expect(indexHtml).toContain('id="projectsApprovedCommands"');
+    expect(indexHtml).toContain('id="projectsApprovedCommandsList"');
+
+    const cliHtml = buildHitlCardInnerHtml({
+      title: 'Approval required',
+      toolName: 'cli_exec',
+      message: 'Waiting for operator approval',
+      argsText: 'pytest -q',
+    });
+    expect(cliHtml).toContain('data-hitl-remember="project"');
+    expect(cliHtml).toContain('Approve &amp; remember for project');
+
+    const otherHtml = buildHitlCardInnerHtml({
+      title: 'Approval required',
+      toolName: 'write_project_file',
+      message: 'Waiting for operator approval',
+      argsText: 'path: README.md',
+    });
+    expect(otherHtml).not.toContain('data-hitl-remember="project"');
+
+    let postedBody = null;
+    const originalFetch = global.fetch;
+    global.fetch = async (_url, opts) => {
+      postedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        json: async () => ({ remembered_for_project: true, execution: { ran: true, output: 'ok' } }),
+      };
+    };
+    const statusSpan = { textContent: '' };
+    const card = {
+      textContent: 'cli_exec',
+      querySelectorAll: () => [],
+      querySelector: (sel) => (sel === '.hitl-card-status' ? statusSpan : null),
+    };
+    try {
+      const res = await submitHitlDecision('appr_733', 'APPROVED', card, 'sess_733', { rememberForProject: true });
+      expect(res.ok).toBe(true);
+      expect(postedBody).toEqual({
+        decision: 'APPROVED',
+        session_id: 'sess_733',
+        remember_for_project: true,
+      });
+      expect(statusSpan.textContent).toBe('Approved & remembered for project. Tool ran.');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });
+
 
