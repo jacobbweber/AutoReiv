@@ -2,7 +2,7 @@
 id: CARD-735
 title: "Fix vision attachment timeout, retry carry-forward, and image prompt note"
 type: bug
-status: In Progress
+status: Done
 priority: P2
 milestone: M32
 needs_decision: none
@@ -12,8 +12,9 @@ proof:
     - tests/unit/gateway/test_card735_vision_retry_and_note.py
     - tests/integration/operator_contracts/test_oc475_image_turn_text_only_model.py
 branch: feat/card-735-fix-vision-attachment-timeout-retry-carry
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 12, qa_runs: 1, findings: 0}
 created: 2026-10-20
+completed: 2026-10-20
 ---
 
 # CARD-735 Fix vision attachment timeout, retry carry-forward, and image prompt note
@@ -45,13 +46,18 @@ When sending multiple screenshot attachments (16 PNGs, ~22.4 MB) to a vision-cap
 - Approved by Jacob in session (`Let's go with recommended`): fix all three compounding causes (Docker 180s timeout override, retry carry-forward after failed/error/stopped turns, and image-only attachment note).
 
 ## Findings
-- None yet.
+- None.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `preflight.py --fast --base qa` | — | GREEN | ruff PASS, eslint PASS, 322 guard tests PASS, 13 changed tests PASS, 41 mapped tests PASS, 1142 vitest tests PASS (15s) |
+| `card-735-fix-vision-attachment-timeout-retry-carry` | desktop | PASS | Verified `IMAGE_ONLY_NOTE` and clean image attachment turn on `qwen3.8:latest` |
+| `card-735-fix-vision-attachment-timeout-retry-carry` | phone | PASS | Verified `IMAGE_ONLY_NOTE` and clean image attachment turn on `qwen3.8:latest` |
 
-Screenshots: `/tmp/autoreiv-qa/card-735/...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-735/card-735-fix-vision-attachment-timeout-retry-carry-desktop-01-attach-a-png-image-in-chat-send-the-turn-and-ver.png`
+- `/tmp/autoreiv-qa/card-735/card-735-fix-vision-attachment-timeout-retry-carry-phone-01-attach-a-png-image-in-chat-send-the-turn-and-ver.png`
 
 ## Release note
 Fixed vision image attachments timing out at 180s in Docker, losing attached images on a follow-up retry after a failed turn, and instructing agents to call `read_document_file` on image-only turns.
