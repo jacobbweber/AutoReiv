@@ -48,7 +48,7 @@ _LEGACY_RETIRED_AGENT_SPECS: dict[str, dict] = {
         "show_in_chat": False,
         "visibility": "internal",
         "max_turns": 12,
-        "skills": ["capability-authoring"],
+        "skills": ["capability-authoring", "proposals"],
         "body": "You are Toolsmith (consolidated into AutoReiv via ADR-0066).",
     },
 }

@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidated `education-application` into `socratic-tutoring` with progressive `references/*.md` guides across `wiki-knowledge`, `socratic-tutoring`, and `proposals`, and moved `wiki-curation`, `proposals`, and `worker` (plus standalone native-tool registration schemas) to on-demand session mounting [CARD-737].
+
 ### Fixed
 
 - Fixed Agent Studio LLM Provider Overrides so selecting a provider pre-fills its saved Base URL from Settings, auto-refreshes live models without overwriting the global gateway provider, and surfaces connection errors instead of silently displaying static preset models as live [CARD-736].
