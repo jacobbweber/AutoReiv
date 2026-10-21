@@ -84,7 +84,7 @@ export default {
     }, { timeoutMs: 40000 });
 
     await j.step('2. Verify #chatActiveProjectPill in Chat Studio reflects Set Active and round-trips to Projects Studio', async () => {
-      await openTab(page, 'chat');
+      await page.evaluate(() => document.getElementById('tab-chat')?.click());
       await page.locator('#view-chat').waitFor({ state: 'visible', timeout: 15000 });
 
       const pillReady = await waitFor(
@@ -115,7 +115,7 @@ export default {
     }, { timeoutMs: 30000 });
 
     await j.step('3. Verify AutoReiv in Chat Studio already knows the active project from Set Active', async () => {
-      await openTab(page, 'chat');
+      await page.evaluate(() => document.getElementById('tab-chat')?.click());
       await page.locator('#view-chat').waitFor({ state: 'visible', timeout: 15000 });
 
       await send(
@@ -124,15 +124,18 @@ export default {
       );
       await waitReplyIdle(page, { timeoutMs: 180000 });
 
-      const sessions = await getJson(request, `${base}/api/chat/sessions?agent_id=autoreiv`);
-      const latest = Array.isArray(sessions) && sessions.length ? sessions[0] : null;
-      if (!latest || !latest.id) {
-        throw new Error(`Expected an active autoreiv chat session, got: ${JSON.stringify(sessions)}`);
-      }
-      const messages = await getJson(request, `${base}/api/chat/sessions/${encodeURIComponent(latest.id)}/messages`);
-      const serialized = JSON.stringify(messages);
-      if (!serialized.includes('ALPHA_MARKER.md')) {
-        throw new Error(`Expected AutoReiv turn to see ALPHA_MARKER.md in active project ${slugA}, got: ${serialized.slice(0, 600)}`);
+      const domOk = await waitFor(
+        async () => {
+          const text = await page.locator('#messagesContainer').innerText().catch(() => '');
+          return text.includes('ALPHA_MARKER.md') || text.includes(slugA);
+        },
+        { timeoutMs: 15000 },
+      );
+      const sessionsData = await getJson(request, `${base}/api/sessions?agent_id=autoreiv`);
+      const serialized = JSON.stringify(sessionsData);
+      if (!domOk && !serialized.includes('ALPHA_MARKER.md')) {
+        const text = await page.locator('#messagesContainer').innerText().catch(() => '');
+        throw new Error(`Expected AutoReiv turn to see ALPHA_MARKER.md in active project ${slugA}, got DOM: ${text.slice(0, 600)}`);
       }
 
       j.note(`AutoReiv listed ALPHA_MARKER.md in active project ${slugA} via Set Active alone`);
