@@ -17,7 +17,7 @@ from src.application.skills.user_catalog import UserSkillCatalog
 from src.infrastructure.content.store import REPO_PLATFORM, ContentStore, split_frontmatter
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
-PLATFORM_ID = "wiki"
+PLATFORM_ID = "wiki-knowledge"
 PLATFORM_FILE = REPO_PLATFORM / "skills" / PLATFORM_ID / "SKILL.md"
 
 
