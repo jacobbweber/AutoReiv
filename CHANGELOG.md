@@ -4,6 +4,18 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-10-21
+
+Wiki and Education Agora skill consolidation with progressive `references/*.md` guides, reduced Turn 1 pinned tool schemas, and end-to-end active-project SDLC and `Tutor` study progression hardening (`CARD-738`..`CARD-739`).
+
+### Changed
+
+- Consolidated `education-priming`, `education-dual-coding`, `education-construction`, `diagnostics`, `wiki`, and `wiki-templates` into `socratic-tutoring`, `platform-health`, `wiki-knowledge`, and on-demand `wiki-curation` with progressive `references/*.md` across Wiki and Education skills [CARD-738].
+
+### Fixed
+
+- Hardened multi-turn active-project software development (`create_project` auto-select and root commit on `main`, `Proposed -> In Progress/In Review` transitions for `AutoReiv`, bytecode-clean `run_project_checks`) and `Tutor` study progression (`socratic-tutoring` policy gate and slug-vs-title topic matching in `education_progress_summary`) [CARD-739].
+
 ## [1.5.2] - 2026-10-20
 
 Vision attachment timeout and retry carry-forward fixes, Agent Studio LLM Provider Override URL prefill and live model discovery diagnostics, and Agora skill progressive `references/*.md` consolidation with trimmed Turn 1 pinned tool schemas (`CARD-735`..`CARD-737`).

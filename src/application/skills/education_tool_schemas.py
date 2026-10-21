@@ -197,7 +197,7 @@ class EducationWikiProgressMixin:
         limit: int = 200,
     ) -> Dict[str, Any]:
         """Mastery counts from education_mastery for progress-summary (no fake %)."""
-        from src.application.education.progress_summary import summarize_mastery_rows
+        from src.application.education.progress_summary import summarize_mastery_rows, topic_matches
 
         agent = self._resolve_agent_id(agent_id)
         try:
@@ -206,7 +206,7 @@ class EducationWikiProgressMixin:
             rows = list(repo.list_education_mastery(limit=lim) or [])
             topic_s = (topic or "").strip()
             if topic_s:
-                rows = [r for r in rows if str(r.get("topic") or "") == topic_s]
+                rows = [r for r in rows if topic_matches(r.get("topic"), topic_s)]
             summary = summarize_mastery_rows(rows)
         except Exception as exc:  # noqa: BLE001
             return _json_safe(

@@ -25,6 +25,9 @@ verification:
 
 Treat Wiki as the education library. Curate from **links** and **curriculum outlines** into durable notes.
 
+## Progressive References (`skill_view`)
+- `skill_view(skill_id="education-wiki-curation", reference="library-templates.md")`: Catalogued `education-*` template slugs (`education-concept`, `education-priming`, `education-dual-coding`, `education-quiz`, `education-flashcard`), link vs. curriculum curation modes, and raw-source tag rules.
+
 ## Durable contracts (CARD-440)
 
 - `POST /api/education/wiki/curate` — mode=`link`|`curriculum`

@@ -12,7 +12,6 @@ skills:
 - wiki_tasks
 - wiki-knowledge
 - wiki-inbox
-- wiki-templates
 - wiki-curation
 - capability-authoring
 - proposals

@@ -41,6 +41,9 @@ def git_branch(root: Path) -> str:
     return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
+_IGNORED_CACHE_SEGMENTS = frozenset({"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"})
+
+
 def git_dirty_paths(root: Path) -> List[str]:
     """Uncommitted paths (tracked changes and untracked files), forward-slash relative to the repo root."""
     proc = run_git(root, ["status", "--porcelain=v1", "-uall"])
@@ -53,7 +56,10 @@ def git_dirty_paths(root: Path) -> List[str]:
         rel = line[3:]
         if " -> " in rel:
             rel = rel.split(" -> ", 1)[1]
-        paths.append(rel.strip().strip('"').replace("\\", "/"))
+        norm = rel.strip().strip('"').replace("\\", "/")
+        if any(seg in _IGNORED_CACHE_SEGMENTS for seg in norm.split("/")):
+            continue
+        paths.append(norm)
     return paths
 
 

@@ -146,10 +146,12 @@ EDUCATION_WIKI_NOTE_TOOLS: frozenset[str] = frozenset(
 
 _EDUCATION_SKILL_MARKERS: frozenset[str] = frozenset(
     {
+        "skill.socratic-tutoring",
         "skill.education-priming",
         "skill.education-dual-coding",
         "skill.education-construction",
         "skill.education-application",
+        "socratic-tutoring",
         "education-priming",
         "education-dual-coding",
         "education-construction",
@@ -172,7 +174,8 @@ def _is_education_skill_id(cid: str) -> bool:
     if raw in _EDUCATION_SKILL_MARKERS:
         return True
     return (
-        raw.endswith("education-priming")
+        raw.endswith("socratic-tutoring")
+        or raw.endswith("education-priming")
         or raw.endswith("education-dual-coding")
         or raw.endswith("education-construction")
         or raw.endswith("education-application")

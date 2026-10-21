@@ -31,6 +31,8 @@
 - [x] **1.5.0 released 2026-10-19** (tag `v1.5.0`). Every card on the board is Done.
 - [x] **1.5.1 released 2026-10-20** (tag `v1.5.1`): per-project remembered `cli_exec` approvals with Projects Studio revocation, hidden empty reflexion badge during chat streaming, and M32 findings hygiene (`CARD-732`..`CARD-734`). Every card on the board and every item in `docs/findings.md` is Done.
 - [x] **1.5.2 released 2026-10-20** (tag `v1.5.2`): vision attachment timeout and retry carry-forward fixes, Agent Studio LLM provider override URL prefill and live model discovery diagnostics, and Agora skill progressive `references/*.md` consolidation with trimmed Turn 1 pinned tool schemas (`CARD-735`..`CARD-737`). Every card on the board and every item in `docs/findings.md` is Done.
+- [x] **M33 Domain Skill Consolidation (Wiki & Education) & Real-Project Dogfooding**: retire duplicate/empty legacy skill folders (`education-priming`, `education-dual-coding`, `education-construction`, `diagnostics`, `wiki`), fold `wiki-templates` into on-demand `wiki-curation` with progressive `references/*.md` guides across Wiki and Education skills (`CARD-738`), and dogfood multi-turn project development in `<data>/projects` alongside a full `Tutor` study loop (`CARD-739`).
+- [x] **1.5.3 released 2026-10-21** (tag `v1.5.3`): Wiki and Education Agora skill consolidation with progressive `references/*.md` guides (`platform/skills/` 33 -> 27, `AutoReiv` Turn 1 pinned tools 38 -> 36) and multi-turn active-project SDLC and `Tutor` study progression hardening (`CARD-738`..`CARD-739`). Every card on the board and every item in `docs/findings.md` is Done.
 
 ## Next
 

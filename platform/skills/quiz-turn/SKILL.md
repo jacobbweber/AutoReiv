@@ -24,6 +24,9 @@ verification:
 
 Execute a single retrieval quiz turn with durable grading.
 
+## Progressive References (`skill_view`)
+- `skill_view(skill_id="quiz-turn", reference="grading-rubric.md")`: Binary grading contract (`quiz_engine.grade_answer_binary`), `<note>-quiz.md` extraction rules, and mastery ledger state transitions.
+
 ## Turn shape (Tutor education mode)
 
 1. **Select item** — call `education_quiz_next` (optional `topic`). If empty, `education_quiz_extract` from a Wiki note with `persist=true`. A plain note (no quiz section) gets suggested questions saved in a separate quiz note (`<note>-quiz.md`); if it returns `needs_questions`, write 3-7 short-answer questions and call it again with `questions=[{prompt, answer}]`. Never edit the source note to add a quiz.

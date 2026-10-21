@@ -204,6 +204,11 @@ class GitTools:
             if not switched["success"]:
                 return {"success": False, "error": switched.get("stderr") or "git switch failed", "project_root": str(root)}
             return {"success": True, "project_root": str(root), "branch": clean, "created": False, "switched": True}
+        if self._run(root, ["rev-parse", "--verify", "--quiet", "HEAD"])["exit_code"] != 0:
+            from src.application.sdlc.projects_service import ensure_commit_identity
+
+            ensure_commit_identity(self._git_bin(), root)
+            self._run(root, ["commit", "--allow-empty", "-m", "chore(repo): initialize repository"])
         start = (base or "").strip() or self._contract_base(root) or current or "HEAD"
         if not BRANCH_NAME.match(start) and start != "HEAD":
             return {"success": False, "error": f"Invalid base '{start}'."}

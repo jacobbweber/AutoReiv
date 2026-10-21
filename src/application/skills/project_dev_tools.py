@@ -88,6 +88,7 @@ class ProjectDevTools:
                 proc = subprocess.run(
                     cmd, shell=True, cwd=str(root), capture_output=True, text=True,
                     encoding="utf-8", errors="replace", timeout=timeout, check=False,
+                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
                 )
                 out = (proc.stdout or "") + (("\n" + proc.stderr) if proc.stderr else "")
                 results.append({

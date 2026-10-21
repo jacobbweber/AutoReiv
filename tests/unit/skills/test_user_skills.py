@@ -137,7 +137,7 @@ def test_missing_skills_dir_still_registers_python_builtins(tmp_path):
     assert "cli_exec" in tool_names
     assert "handoff_to_agent" in tool_names
     ids = {m.id for m in registry.user_skill_catalog.list_manifests()}
-    assert "wiki" in ids
+    assert "wiki-knowledge" in ids
 
 
 def test_skill_view_loads_body_and_declared_tools_on_demand(tmp_path):

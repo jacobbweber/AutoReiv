@@ -255,7 +255,12 @@ def resolve_turn_active_tools(
             tools = [t for t in tools if t.name in subset or t.name in REQUIRED_PLATFORM_TOOLS]
         else:
             id_list = [str(x) for x in (ids or [])]
-            if any(s.endswith("education-priming") or s.endswith("education-dual-coding") for s in id_list):
+            if any(
+                s.endswith("socratic-tutoring")
+                or s.endswith("education-priming")
+                or s.endswith("education-dual-coding")
+                for s in id_list
+            ):
                 tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
     except Exception:
         pass
