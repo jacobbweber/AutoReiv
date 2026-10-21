@@ -12,7 +12,7 @@ export default defineConfig({
     ['html', { open: 'never', outputFolder: 'playwright-report' }],
   ],
   use: {
-    baseURL: process.env.AUTOREIV_BASE_URL || 'http://127.0.0.1:8765',
+    baseURL: process.env.AUTOREIV_BASE_URL || 'http://127.0.0.1:8768',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
@@ -25,10 +25,10 @@ export default defineConfig({
   ],
   // CARD-467: scripts/smoke_server.py force-pins data dir / DB / wiki / backups under
   // scratch/smoke_data (wiped each start) and refuses to start on live AppData.
-  // Never reuse a server already on :8765 - the guard cannot vet a server it did not start.
+  // Never reuse a server already on :8768 - the guard cannot vet a server it did not start.
   webServer: process.env.AUTOREIV_NO_SERVER ? undefined : {
-    command: 'python scripts/smoke_server.py --host 127.0.0.1 --port 8765',
-    url: 'http://127.0.0.1:8765/health',
+    command: 'python scripts/smoke_server.py --host 127.0.0.1 --port 8768',
+    url: 'http://127.0.0.1:8768/health',
     reuseExistingServer: false,
     timeout: 30000,
     env: {

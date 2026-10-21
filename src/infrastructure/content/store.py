@@ -116,6 +116,7 @@ CONSOLIDATED_SKILL_ALIASES: dict[str, str] = {
     "code-review": "software-development",
     "codebase-audit": "software-development",
     "journey-qa": "software-development",
+    "education-application": "socratic-tutoring",
 }
 
 

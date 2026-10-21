@@ -30,6 +30,7 @@
 - [x] **M32 Projects as user data and development skills** ([ADR-0067](../docs/adr/0067-projects-are-user-data-and-process-lives-in-skills.md)): one user-data projects folder mounted in Docker like the wiki, project process in skills (repo onboarding, spec-driven development) instead of templates, project commands with approval, a dev toolchain in the image, and git clone/pull/push with GitHub MCP docs.
 - [x] **1.5.0 released 2026-10-19** (tag `v1.5.0`). Every card on the board is Done.
 - [x] **1.5.1 released 2026-10-20** (tag `v1.5.1`): per-project remembered `cli_exec` approvals with Projects Studio revocation, hidden empty reflexion badge during chat streaming, and M32 findings hygiene (`CARD-732`..`CARD-734`). Every card on the board and every item in `docs/findings.md` is Done.
+- [x] **1.5.2 released 2026-10-20** (tag `v1.5.2`): vision attachment timeout and retry carry-forward fixes, Agent Studio LLM provider override URL prefill and live model discovery diagnostics, and Agora skill progressive `references/*.md` consolidation with trimmed Turn 1 pinned tool schemas (`CARD-735`..`CARD-737`). Every card on the board and every item in `docs/findings.md` is Done.
 
 ## Next
 

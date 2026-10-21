@@ -4,6 +4,19 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-20
+
+Vision attachment timeout and retry carry-forward fixes, Agent Studio LLM Provider Override URL prefill and live model discovery diagnostics, and Agora skill progressive `references/*.md` consolidation with trimmed Turn 1 pinned tool schemas (`CARD-735`..`CARD-737`).
+
+### Changed
+
+- Consolidated `education-application` into `socratic-tutoring` with progressive `references/*.md` guides across `wiki-knowledge`, `socratic-tutoring`, and `proposals`, and moved `wiki-curation`, `proposals`, and `worker` (plus standalone native-tool registration schemas) to on-demand session mounting [CARD-737].
+
+### Fixed
+
+- Fixed Agent Studio LLM Provider Overrides so selecting a provider pre-fills its saved Base URL from Settings, auto-refreshes live models without overwriting the global gateway provider, and surfaces connection errors instead of silently displaying static preset models as live [CARD-736].
+- Fixed vision image attachments timing out at 180s in Docker (`GATEWAY_DEFAULT_TIMEOUT_SECONDS`), losing attached images on a follow-up retry after a failed turn, and instructing agents to call `read_document_file` on image-only turns [CARD-735].
+
 ## [1.5.1] - 2026-10-20
 
 Per-project remembered `cli_exec` approvals with Projects Studio revocation, hidden empty reflexion badge during normal chat streaming, and M32 findings hygiene (`CARD-732`..`CARD-734`).

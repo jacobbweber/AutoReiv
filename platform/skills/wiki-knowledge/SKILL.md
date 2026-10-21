@@ -6,7 +6,7 @@ tools:
 - wiki_note_read
 - wiki_note_list
 - wiki_graph
-version: 1.0.0
+version: 1.1.0
 tier: platform
 safety:
   read_only: true
@@ -21,6 +21,10 @@ verification:
 
 Search, inspect, and read verified facts, architecture decisions, and notes from AutoReiv's local Markdown Wiki vault.
 
+## Progressive References (`skill_view`)
+- `skill_view(skill_id="wiki-knowledge", reference="vault-taxonomy.md")`: Four-folder vault architecture (`00_Inbox/`, `01_Notes/`, `02_Resources/_Templates/`, `03_Archive/`), frontmatter schema, and One-Door Policy.
+- `skill_view(skill_id="wiki-knowledge", reference="curation-and-templates.md")`: How `wiki-inbox`, `wiki-templates`, `wiki_tasks`, and on-demand `wiki-curation` work together.
+
 ## Available Tools
 - `wiki_note_search`: Full-text and keyword search across notes in the vault.
 - `wiki_note_read`: Retrieve the frontmatter, backlinks, and content of a specific note by relative path.
@@ -31,6 +35,7 @@ Search, inspect, and read verified facts, architecture decisions, and notes from
 1. Always call `wiki_note_search` or `wiki_note_list` first before claiming whether information exists.
 2. Read the full context of relevant notes with `wiki_note_read`.
 3. Quote or reference exact relative paths (e.g. `01_Notes/systems_engineering/architecture.md`); never fabricate quotes or paths.
+4. When asked to graduate inbox notes, reorganize topics, or archive superseded notes, open `skill_view(skill_id="wiki-curation")` to mount curation tools (`wiki_note_organize`, `wiki_note_archive`, `wiki_overview`).
 
 ## Done-when
 - Verified facts are cited directly from existing notes in the vault.

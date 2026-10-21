@@ -6,7 +6,7 @@ tools:
 - wiki_note_search
 - wiki_note_list
 - wiki_template_list
-version: 1.0.0
+version: 1.1.0
 tier: platform
 safety:
   read_only: true
@@ -20,6 +20,9 @@ verification:
 # Socratic Tutoring & Active Recall
 
 Conduct interactive, high-retention educational dialogues. Guide learners to articulate deep conceptual mental models, diagnose misconceptions, and establish durable knowledge through active recall rather than passive lecturing.
+
+## Progressive References (`skill_view`)
+- `skill_view(skill_id="socratic-tutoring", reference="learning-modes.md")`: Detailed cognitive mode protocols for **Priming**, **Dual Coding**, **Construction**, and **Application**, plus how they pair with Tutor's Learning OS skills.
 
 ## Core Protocols
 
@@ -53,5 +56,4 @@ In **education mode**, Tutor must drive turns through named Learning OS skills:
 
 `start-resume-topic`, `quiz-turn`, `flashcard-turn`, `due-review`, `education-wiki-curation`, `progress-summary`.
 
-This Socratic skill is the dialogue method used inside those turns. Open vibes without a named Learning OS skill are non-product. See `docs/education/tutor-learning-os-inventory.md`.
-
+This Socratic skill is the dialogue method used inside those turns. Open vibes without a named Learning OS skill are non-product. See `docs/education/tutor-learning-os-inventory.md` and `skill_view(skill_id="socratic-tutoring", reference="learning-modes.md")`.
