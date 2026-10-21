@@ -15,7 +15,6 @@ import { formatAgentSelectOption } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
 import { publishAgentsLoaded } from '../state/store.js';
 import { storageGet, storageSet } from '../utils/storage.js';
-import { PRESETS_DEFAULTS } from './settings.js';
 import {
   PICKER_KEYS,
   bindStudioAgentPickers,
@@ -75,6 +74,8 @@ import {
   loadAgentTelemetry,
   loadTones,
   setCachedDiscoveredModels,
+  setCachedProviderSettings,
+  getDefaultProviderBaseUrl,
 } from './forge/config.js';
 import { setupAgentFileStatus } from './forge/agent_file_status.js';
 
@@ -252,6 +253,21 @@ export function initAgentForge(state, callbacks = {}) {
       await loadPlatformSkillsWrapper();
 
       try {
+        const setRes = await fetch('/api/settings');
+        if (setRes.ok) {
+          const setData = await setRes.json();
+          if (state) state.settings = setData;
+          setCachedProviderSettings(setData.providers || null);
+        } else if (state && state.settings && state.settings.providers) {
+          setCachedProviderSettings(state.settings.providers);
+        }
+      } catch {
+        if (state && state.settings && state.settings.providers) {
+          setCachedProviderSettings(state.settings.providers);
+        }
+      }
+
+      try {
         const modRes = await fetch('/api/models/discover');
         if (modRes.ok) {
           const modData = await modRes.json();
@@ -323,7 +339,7 @@ export function initAgentForge(state, callbacks = {}) {
     const agentProv = agent.provider || 'default';
     if (forgeProviderSelect) forgeProviderSelect.value = agentProv;
     if (forgeApiBaseUrlInput) {
-      forgeApiBaseUrlInput.value = agent.api_base_url || (PRESETS_DEFAULTS[agentProv] ? PRESETS_DEFAULTS[agentProv].url : '');
+      forgeApiBaseUrlInput.value = agent.api_base_url || getDefaultProviderBaseUrl(agentProv);
     }
     if (forgeApiKeyInput) {
       forgeApiKeyInput.value = agent.api_key || '';

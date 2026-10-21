@@ -12,6 +12,7 @@ import { PRESETS_DEFAULTS } from '../settings.js';
 
 let cachedDiscoveredModels = [];
 let cachedTones = [];
+let cachedProviderSettings = null;
 
 export function getCachedDiscoveredModels() {
   return cachedDiscoveredModels;
@@ -19,6 +20,20 @@ export function getCachedDiscoveredModels() {
 
 export function setCachedDiscoveredModels(models) {
   cachedDiscoveredModels = models || [];
+}
+
+export function setCachedProviderSettings(providers) {
+  cachedProviderSettings = providers || null;
+}
+
+export function getDefaultProviderBaseUrl(provider, providersOverride = null) {
+  const p = (provider || 'default').toLowerCase();
+  if (p === 'default') return '';
+  const provs = providersOverride || cachedProviderSettings || {};
+  const provMap = provs.providers || {};
+  if (provMap[p] && provMap[p].base_url) return provMap[p].base_url;
+  if (p === 'ollama' && provs.ollama_host) return provs.ollama_host;
+  return PRESETS_DEFAULTS[p] ? PRESETS_DEFAULTS[p].url : '';
 }
 
 export function populateAgentModelSelect(selectedProvider, targetModel = 'default') {
@@ -35,7 +50,8 @@ export function populateAgentModelSelect(selectedProvider, targetModel = 'defaul
   filteredModels.forEach((m) => {
     const opt = document.createElement('option');
     opt.value = m.name;
-    opt.textContent = prov === 'default' ? `${m.name} (${m.provider})` : m.name;
+    const baseLabel = prov === 'default' ? `${m.name} (${m.provider})` : m.name;
+    opt.textContent = m.using_fallback_presets ? `${baseLabel} (preset — host unreachable)` : baseLabel;
     forgeAgentModelSelect.appendChild(opt);
   });
 
@@ -87,19 +103,23 @@ export async function discoverModelsForAgent() {
 
   try {
     const params = new URLSearchParams();
+    const fetchOpts = {};
     if (isCustom) {
       params.set('provider_id', prov);
       if (url) params.set('host_url', url);
-      if (key) params.set('api_key', key);
+      if (key && !key.startsWith('••')) {
+        fetchOpts.headers = { 'X-Provider-Api-Key': key };
+      }
     }
     const query = params.toString();
     const endpoint = query ? `/api/models/discover?${query}` : '/api/models/discover';
-    const res = await fetch(endpoint);
+    const res = Object.keys(fetchOpts).length ? await fetch(endpoint, fetchOpts) : await fetch(endpoint);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
     const data = await res.json();
-    const discovered = data.models || [];
+    const usingFallback = Boolean(data.using_fallback_presets);
+    const discovered = (data.models || []).map((m) => (usingFallback ? { ...m, using_fallback_presets: true } : m));
     if (isCustom) {
       cachedDiscoveredModels = [
         ...cachedDiscoveredModels.filter((m) => (m.provider || '').toLowerCase() !== prov.toLowerCase()),
@@ -110,7 +130,14 @@ export async function discoverModelsForAgent() {
     }
     const curModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
     populateAgentModelSelect(prov, curModel);
-    showToast(`Discovered ${discovered.length} model(s) for ${prov}`, 'success');
+    if (usingFallback || data.discovery_error) {
+      showToast(
+        `Could not reach ${prov} (${url || 'default'}): ${data.discovery_error || 'host unreachable'}. Showing preset placeholders.`,
+        'warning'
+      );
+    } else {
+      showToast(`Discovered ${discovered.length} model(s) for ${prov}`, 'success');
+    }
   } catch (err) {
     console.warn('[AutoReiv UI] Failed to discover models:', err);
     showToast(`Failed to discover models: ${err.message || err}`, 'error');
@@ -542,17 +569,23 @@ export function setupAgentModelConfig() {
   const forgeMemoryRetentionDaysLabel = $('forgeMemoryRetentionDaysLabel');
 
   if (forgeProviderSelect) {
-    forgeProviderSelect.addEventListener('change', () => {
+    forgeProviderSelect.addEventListener('change', async () => {
       const p = forgeProviderSelect.value;
       updateProviderConfigVisibility(p);
-      if (p !== 'default' && PRESETS_DEFAULTS[p]) {
-        const knownUrls = Object.values(PRESETS_DEFAULTS).map((preset) => preset.url);
-        if (forgeApiBaseUrlInput && (!forgeApiBaseUrlInput.value || knownUrls.includes(forgeApiBaseUrlInput.value))) {
-          forgeApiBaseUrlInput.value = PRESETS_DEFAULTS[p].url;
+      if (p !== 'default') {
+        const defaultUrl = getDefaultProviderBaseUrl(p);
+        const savedUrls = Object.values((cachedProviderSettings && cachedProviderSettings.providers) || {})
+          .map((cfg) => cfg && cfg.base_url)
+          .filter(Boolean);
+        const knownUrls = [...Object.values(PRESETS_DEFAULTS).map((preset) => preset.url), ...savedUrls];
+        if (forgeApiBaseUrlInput && defaultUrl && (!forgeApiBaseUrlInput.value || knownUrls.includes(forgeApiBaseUrlInput.value))) {
+          forgeApiBaseUrlInput.value = defaultUrl;
         }
+        await discoverModelsForAgent();
+      } else {
+        const currentModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
+        populateAgentModelSelect(p, currentModel);
       }
-      const currentModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
-      populateAgentModelSelect(p, currentModel);
     });
   }
 
