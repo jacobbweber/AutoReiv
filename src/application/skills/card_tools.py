@@ -342,6 +342,9 @@ class CardTools:
         target_n = normalize_status(status)
         actor = str(get_tool_context().get("agent_id") or "").lower()
         passed_through = ""
+        if actor == "autoreiv" and normalize_status(fm.status) == "Proposed" and target_n in ("In Progress", "In Review"):
+            fm.status = "Ready"
+            passed_through = f"Proposed -> Ready -> {target_n}"
         if actor in ("developer", "autoreiv") and target_n == "In Review" and normalize_status(fm.status) in ("Ready", "Returned"):
             # CARD-562 / CARD-693: Ready -> In Review goes through In Progress in one call (CARD-564: also Returned, same round rule)
             start = normalize_status(fm.status)
@@ -352,7 +355,7 @@ class CardTools:
             if not ok:
                 return {"success": False, "error": err, "id": extract_card_id(path.name, content), "status": fm.status}
             fm.status = "In Progress"
-            passed_through = f"{start} -> In Progress -> In Review"
+            passed_through = passed_through or f"{start} -> In Progress -> In Review"
         if actor == "developer" and (normalize_status(fm.status), target_n) not in DEVELOPER_TRANSITIONS:
             return {
                 "success": False,
