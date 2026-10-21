@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-20
+
+Vision attachment timeout and retry carry-forward fixes, Agent Studio LLM Provider Override URL prefill and live model discovery diagnostics, and Agora skill progressive `references/*.md` consolidation with trimmed Turn 1 pinned tool schemas (`CARD-735`..`CARD-737`).
+
 ### Changed
 
 - Consolidated `education-application` into `socratic-tutoring` with progressive `references/*.md` guides across `wiki-knowledge`, `socratic-tutoring`, and `proposals`, and moved `wiki-curation`, `proposals`, and `worker` (plus standalone native-tool registration schemas) to on-demand session mounting [CARD-737].
