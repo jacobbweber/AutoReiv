@@ -7,10 +7,18 @@ Education Studio chrome stays; this module is the Tutor/Wiki progress source.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 PROGRESS_SKILL_HINT = "progress-summary"
 PROGRESS_HTTP_CONTRACT = "GET /api/education/progress"
+
+
+def topic_matches(row_topic: Any, query_topic: Any) -> bool:
+    """Match topic labels across slug ('distributed-consensus') and title ('Distributed Consensus') forms [CARD-739]."""
+    left = re.sub(r"[\s_-]+", " ", str(row_topic or "").strip().casefold())
+    right = re.sub(r"[\s_-]+", " ", str(query_topic or "").strip().casefold())
+    return bool(left and right and left == right)
 
 
 def _grade_bucket(row: Dict[str, Any]) -> str:
@@ -143,7 +151,7 @@ def build_progress_summary(
             scoped_mastery = [
                 r
                 for r in mastery_raw
-                if str(r.get("topic") or "") == resolved_topic
+                if topic_matches(r.get("topic"), resolved_topic)
             ]
             if not scoped_mastery:
                 # Honest: show global ledger when topic has zero rows (do not invent)

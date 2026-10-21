@@ -223,8 +223,8 @@ class ProjectsService:
             "selected": self.get_selected(),
         }
 
-    def create_project(self, slug: str, name: Optional[str] = None) -> Dict[str, Any]:
-        """An empty folder with `git init -b main`. Starter files come from skills, on request [CARD-729]."""
+    def create_project(self, slug: str, name: Optional[str] = None, select: bool = True) -> Dict[str, Any]:
+        """An empty folder with `git init -b main`. Starter files come from skills, on request [CARD-729, CARD-739]."""
         clean = (slug or "").strip()
         if not SLUG_RE.match(clean):
             return {"success": False, "error": "Invalid slug. Use letters, numbers, dot, underscore, hyphen."}
@@ -242,13 +242,21 @@ class ProjectsService:
             git_ready = init.returncode == 0
             if git_ready:
                 ensure_commit_identity(git_bin, target)
-        return {
+                subprocess.run(
+                    [git_bin, "-C", str(target), "commit", "--allow-empty", "-m", "chore(repo): initialize repository"],
+                    capture_output=True,
+                    check=False,
+                )
+        out: Dict[str, Any] = {
             "success": True,
             "slug": clean,
             "name": name or clean,
             "path": str(target),
             "git": git_ready,
         }
+        if select:
+            out["selected"] = self.set_selected(path=str(target)).get("selected", {})
+        return out
 
     def git_clone(self, url: str, slug: Optional[str] = None, select: bool = True) -> Dict[str, Any]:
         """Clone ``url`` into the projects folder and make it the active project [CARD-730].
@@ -389,14 +397,15 @@ class ProjectsService:
         registry.register_tool(
             name="create_project",
             description=(
-                "Create an empty project folder (git init, branch main) in the projects folder. "
-                "Writes no starter files; follow the repo-onboarding skill for those."
+                "Create an empty project folder (git init, branch main) in the projects folder and make it "
+                "the active project. Writes no starter files; follow the repo-onboarding skill for those."
             ),
             parameters={
                 "type": "object",
                 "properties": {
                     "slug": {"type": "string", "description": "Folder name inside the projects folder"},
                     "name": {"type": "string"},
+                    "select": {"type": "boolean", "default": True, "description": "Make it the active project"},
                 },
                 "required": ["slug"],
             },
