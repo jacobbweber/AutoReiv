@@ -2,7 +2,7 @@
 id: CARD-737
 title: "Consolidate Agora skill references and trim per-turn pinned tool schemas"
 type: feature
-status: In Review
+status: Done
 priority: P2
 milestone: M32
 needs_decision: none
@@ -14,6 +14,7 @@ proof:
 branch: feat/card-737-consolidate-agora-skill-references-and-trim
 log: {minutes: 15, qa_runs: 1, findings: 0}
 created: 2026-10-20
+completed: 2026-10-20
 ---
 
 # CARD-737 Consolidate Agora skill references and trim per-turn pinned tool schemas
