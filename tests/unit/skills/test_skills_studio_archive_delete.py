@@ -161,9 +161,9 @@ def test_delete_rejects_path_traversal_outside_skills_jail():
 
 def test_delete_bundled_wiki_seed_stays_without_confirm_seed():
     client = _client()
-    wiki = _skills_root() / "wiki" / "SKILL.md"
+    wiki = _skills_root() / "wiki-knowledge" / "SKILL.md"
     assert wiki.is_file()
-    res = client.delete("/api/skills/user-skills/wiki", params={"confirm": True})
+    res = client.delete("/api/skills/user-skills/wiki-knowledge", params={"confirm": True})
     assert res.status_code == 409
     assert wiki.is_file()
 
