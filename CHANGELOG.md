@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Fixed Agent Studio LLM Provider Overrides so selecting a provider pre-fills its saved Base URL from Settings, auto-refreshes live models without overwriting the global gateway provider, and surfaces connection errors instead of silently displaying static preset models as live [CARD-736].
 - Fixed vision image attachments timing out at 180s in Docker (`GATEWAY_DEFAULT_TIMEOUT_SECONDS`), losing attached images on a follow-up retry after a failed turn, and instructing agents to call `read_document_file` on image-only turns [CARD-735].
 
 ## [1.5.1] - 2026-10-20
