@@ -430,28 +430,43 @@ async def discover_models(
         header_key = request.headers.get("x-provider-api-key") or request.headers.get("X-Provider-Api-Key")
     clean_key = (header_key or api_key or "").strip()
     store = getattr(request.app.state, "store", None)
+    prov_settings = (store.get_setting("provider_settings") if store else None) or {}
+    prov_map = prov_settings.get("providers", {}) if isinstance(prov_settings, dict) else {}
     if (not clean_key or clean_key.startswith("••")) and store:
-        prov_settings = store.get_setting("provider_settings") or {}
-        prov_map = prov_settings.get("providers", {})
         target_cred_id = prov_map.get(pid, {}).get("vault_cred_id") or f"llm-provider-{pid}"
         cred = store.get_credential(target_cred_id)
         if cred and cred.secret:
             clean_key = cred.secret
 
-    if target_url:
-        clean_host = target_url.strip()
-        adapter: LLMProviderPort
-        if pid == "ollama" or ":11434" in clean_host:
-            adapter = OllamaProviderAdapter(base_url=clean_host, provider_id=pid)
-        elif pid == "anthropic":
-            adapter = AnthropicProviderAdapter(base_url=clean_host, api_key=clean_key, provider_id=pid)
-        else:
-            adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=clean_key, provider_id=pid)
-        gateway.register_provider(adapter)
+    existing = gateway.get_provider(pid) if hasattr(gateway, "get_provider") else None
+    probe_url = (target_url or "").strip()
+    if not probe_url and isinstance(prov_map, dict):
+        saved_url = (
+            prov_map.get(pid, {}).get("base_url")
+            or (prov_settings.get("ollama_host") if pid == "ollama" else "")
+            or ""
+        ).strip()
+        existing_url = getattr(existing, "base_url", "") or ""
+        if saved_url and existing_url.rstrip("/") != saved_url.rstrip("/"):
+            probe_url = saved_url
 
+    if probe_url:
+        probe_adapter: LLMProviderPort
+        if pid == "ollama" or ":11434" in probe_url:
+            probe_adapter = OllamaProviderAdapter(base_url=probe_url, provider_id=pid)
+        elif pid == "anthropic":
+            probe_adapter = AnthropicProviderAdapter(base_url=probe_url, api_key=clean_key, provider_id=pid)
+        else:
+            probe_adapter = OpenAIProviderAdapter(base_url=probe_url, api_key=clean_key, provider_id=pid)
+        gateway.register_provider(probe_adapter)
+
+    using_fallback_presets = False
+    discovery_error: Optional[str] = None
     try:
         models = await gateway.list_models(provider_id=pid)
     except Exception as e:
+        using_fallback_presets = True
+        discovery_error = str(e)
         logger.warning(f"Live model discovery failed for provider '{pid}': {e}. Using curated catalog presets.")
         preset = get_preset_by_id(pid)
         preset_models = preset.get("recommended_models", ["default"]) if preset else ["default"]
@@ -466,6 +481,9 @@ async def discover_models(
             )
             for m in preset_models
         ]
+    finally:
+        if probe_url and existing is not None and isinstance(getattr(gateway, "_providers", None), dict):
+            gateway._providers[pid] = existing
 
     specs = None
     if available_ram_gib is not None:
@@ -483,7 +501,7 @@ async def discover_models(
         merge_vision_metadata,
     )
 
-    if store is not None:
+    if store is not None and not using_fallback_presets:
         try:
             store.set_setting(METADATA_SETTING, merge_vision_metadata(store.get_setting(METADATA_SETTING), models))
         except Exception as e:
@@ -525,7 +543,11 @@ async def discover_models(
             }
         )
 
-    return {"models": discovered}
+    return {
+        "models": discovered,
+        "using_fallback_presets": using_fallback_presets,
+        "discovery_error": discovery_error,
+    }
 
 
 class ModelVisionOverride(BaseModel):

@@ -293,8 +293,13 @@ export function initSettingsStudio(state, callbacks = {}) {
       const data = await res.json();
       const models = data.models || [];
 
+      const usingFallback = Boolean(data.using_fallback_presets);
       if (modelDiscoveryStatus) {
-        modelDiscoveryStatus.textContent = `Discovered ${models.length} model(s) from ${selectedPreset} (${currentHost || 'default'}).`;
+        if (usingFallback || data.discovery_error) {
+          modelDiscoveryStatus.textContent = `Could not reach ${selectedPreset} (${currentHost || 'default'}): ${data.discovery_error || 'host unreachable'} — showing preset placeholders.`;
+        } else {
+          modelDiscoveryStatus.textContent = `Discovered ${models.length} model(s) from ${selectedPreset} (${currentHost || 'default'}).`;
+        }
       }
 
       if (provModelSelect) {
@@ -303,7 +308,9 @@ export function initSettingsStudio(state, callbacks = {}) {
         models.forEach((m) => {
           const opt = document.createElement('option');
           opt.value = m.name;
-          opt.textContent = `${m.name} (${m.provider})`;
+          opt.textContent = usingFallback
+            ? `${m.name} (${m.provider} — preset)`
+            : `${m.name} (${m.provider})`;
           provModelSelect.appendChild(opt);
         });
 
@@ -315,7 +322,7 @@ export function initSettingsStudio(state, callbacks = {}) {
         });
         provModelSelect.value = resolution.selected;
         state.savedDefaultModel = resolution.selected;
-        if (resolution.staleSaved && modelDiscoveryStatus) {
+        if (resolution.staleSaved && modelDiscoveryStatus && !usingFallback) {
           modelDiscoveryStatus.textContent =
             `Discovered ${models.length} model(s) from ${selectedPreset} (${currentHost || 'default'}). ` +
             `Saved default "${resolution.staleSaved}" is not on this endpoint — cleared; pick a live model.`;
