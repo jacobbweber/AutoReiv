@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-10-21
+
+Wiki and Education Agora skill consolidation with progressive `references/*.md` guides, reduced Turn 1 pinned tool schemas, and end-to-end active-project SDLC and `Tutor` study progression hardening (`CARD-738`..`CARD-739`).
+
 ### Changed
 
 - Consolidated `education-priming`, `education-dual-coding`, `education-construction`, `diagnostics`, `wiki`, and `wiki-templates` into `socratic-tutoring`, `platform-health`, `wiki-knowledge`, and on-demand `wiki-curation` with progressive `references/*.md` across Wiki and Education skills [CARD-738].
