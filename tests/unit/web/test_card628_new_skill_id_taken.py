@@ -38,25 +38,25 @@ def _client(app) -> AsyncClient:
 @pytest.mark.asyncio
 async def test_new_skill_refuses_shipped_id_with_suggested_free_id(app_env):
     app, data_dir = app_env
-    shipped = REPO_PLATFORM / "skills" / "diagnostics" / "SKILL.md"
-    assert shipped.is_file(), "platform diagnostics skill must exist for this proof"
+    shipped = REPO_PLATFORM / "skills" / "platform-health" / "SKILL.md"
+    assert shipped.is_file(), "platform-health skill must exist for this proof"
     async with _client(app) as ac:
         resp = await ac.post(
             "/api/skill_studio/save",
             json={
-                "skill_id": "diagnostics",
+                "skill_id": "platform-health",
                 "skill_content": MD,
-                "name": "Diagnostics",
+                "name": "Platform health",
                 "is_new": True,
             },
         )
     assert resp.status_code == 409, resp.text
     detail = resp.json()["detail"]
     assert detail["code"] == "skill_id_taken"
-    assert detail["skill_id"] == "diagnostics"
-    assert "Diagnostics" in detail["existing_name"] or "diagnostics" in detail["existing_name"].lower()
-    assert detail["suggested_id"] == "diagnostics_2"
-    assert not (data_dir / "skills" / "diagnostics" / "SKILL.md").exists()
+    assert detail["skill_id"] == "platform-health"
+    assert "platform" in detail["existing_name"].lower() or "health" in detail["existing_name"].lower()
+    assert detail["suggested_id"] == "platform-health_2"
+    assert not (data_dir / "skills" / "platform-health" / "SKILL.md").exists()
     assert shipped.read_text(encoding="utf-8").startswith("---")
 
 
@@ -89,13 +89,13 @@ async def test_new_skill_can_use_suggested_free_id(app_env):
     async with _client(app) as ac:
         blocked = await ac.post(
             "/api/skill_studio/save",
-            json={"skill_id": "diagnostics", "skill_content": MD, "is_new": True},
+            json={"skill_id": "platform-health", "skill_content": MD, "is_new": True},
         )
         assert blocked.status_code == 409
         suggested = blocked.json()["detail"]["suggested_id"]
         ok = await ac.post(
             "/api/skill_studio/save",
-            json={"skill_id": suggested, "skill_content": MD, "name": "Diagnostics 2", "is_new": True},
+            json={"skill_id": suggested, "skill_content": MD, "name": "Platform health 2", "is_new": True},
         )
     assert ok.status_code == 200, ok.text
     assert (data_dir / "skills" / suggested / "SKILL.md").is_file()

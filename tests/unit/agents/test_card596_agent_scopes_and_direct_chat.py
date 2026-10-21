@@ -62,7 +62,7 @@ def test_agent_ticked_skills_scopes():
     autoreiv = platform_pack_profile("autoreiv")
     assert "socratic-tutoring" not in autoreiv.allowed_skill
     assert "coordination" not in autoreiv.allowed_skill
-    assert "wiki-templates" in autoreiv.allowed_skill
+    assert "wiki-curation" in autoreiv.allowed_skill
 
     tutor = platform_pack_profile("tutor")
     education_skills = {

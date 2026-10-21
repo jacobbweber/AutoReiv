@@ -119,7 +119,9 @@ def shipped_skill_tools() -> dict[str, tuple[str, ...]]:
 
 
 SHIPPED_SKILL_TOOLS = shipped_skill_tools()
-BUNDLED_SKILL_IDS: tuple[str, ...] = tuple(sorted(item.id for item in ContentStore(data_root=None).skills.list()))
+BUNDLED_SKILL_IDS: tuple[str, ...] = tuple(
+    sorted({item.id for item in ContentStore(data_root=None).skills.list()} | set(CONSOLIDATED_SKILL_ALIASES))
+)
 
 
 def bundled_skill_md(skill_id: str) -> Path:
@@ -147,6 +149,7 @@ def seed_bundled_skill_rows(skills_path, skill_ids=None) -> None:
 
     dest_root = Path(skills_path)
     for sid in skill_ids or BUNDLED_SKILL_IDS:
-        src = REPO_PLATFORM / "skills" / sid
+        target = CONSOLIDATED_SKILL_ALIASES.get(sid, sid)
+        src = REPO_PLATFORM / "skills" / target
         if src.is_dir() and not (dest_root / sid).exists():
             shutil.copytree(src, dest_root / sid)

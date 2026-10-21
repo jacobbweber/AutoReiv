@@ -21,6 +21,9 @@ verification:
 
 Manage weekly work logs, daily standup items, task checklists (`- [ ]`), and weekly carry-over. Ground all task tracking in the user's weekly notes located at `01_Notes/weekly/YYYY-Www.md` (e.g. `01_Notes/weekly/2026-W39.md`).
 
+## Progressive References (`skill_view`)
+- `skill_view(skill_id="wiki_tasks", reference="weekly-rollover.md")`: Detailed ISO week naming, weekly template structure (`weekly_notes`), daily standup sections, and carry-over rules.
+
 ## Core Invariants
 1. **Never Confuse Tasks with General Notes**:
    - Weekly worklogs are exclusively for daily task tracking, to-do checklists (`- [ ]`), and project goals.

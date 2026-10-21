@@ -23,6 +23,9 @@ verification:
 
 Run **one** flashcard / SRS card turn. Keep the ReAct tool loop tiny so the turn finishes under Tutor's default `max_turns` (do not burn the budget on Wiki side quests).
 
+## Progressive References (`skill_view`)
+- `skill_view(skill_id="flashcard-turn", reference="srs-loop.md")`: Two-step happy-path SRS loop (`next -> grade`), empty-due single-note seeding rules, and `CARD-444` turn-budget discipline.
+
 ## Minimal tool loop (CARD-444) — stay under the turn budget
 
 Happy path (due ledger has at least one item) — **at most two education tool calls**:

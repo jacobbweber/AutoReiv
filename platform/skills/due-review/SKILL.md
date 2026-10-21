@@ -24,6 +24,9 @@ verification:
 
 Surface due reviews and complete them with durable Learning OS grading from Tutor education mode / Study.
 
+## Progressive References (`skill_view`)
+- `skill_view(skill_id="due-review", reference="retention-schedule.md")`: SRS interval stages (`srs.next_due_after_grade`), empty-queue honesty rules, and `education_retention_run` standing job dispatch.
+
 ## Turn shape (Tutor education mode)
 
 1. **List due** - call `education_due_review_list` (or `education_mastery_due`). If `empty` is true / `empty_state` is "No due reviews.", tell the operator honestly - do **not** invent items.

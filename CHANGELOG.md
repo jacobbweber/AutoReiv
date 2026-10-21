@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidated `education-priming`, `education-dual-coding`, `education-construction`, `diagnostics`, `wiki`, and `wiki-templates` into `socratic-tutoring`, `platform-health`, `wiki-knowledge`, and on-demand `wiki-curation` with progressive `references/*.md` across Wiki and Education skills [CARD-738].
+
 ## [1.5.2] - 2026-10-20
 
 Vision attachment timeout and retry carry-forward fixes, Agent Studio LLM Provider Override URL prefill and live model discovery diagnostics, and Agora skill progressive `references/*.md` consolidation with trimmed Turn 1 pinned tool schemas (`CARD-735`..`CARD-737`).

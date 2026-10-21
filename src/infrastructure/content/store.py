@@ -117,6 +117,13 @@ CONSOLIDATED_SKILL_ALIASES: dict[str, str] = {
     "codebase-audit": "software-development",
     "journey-qa": "software-development",
     "education-application": "socratic-tutoring",
+    "education-priming": "socratic-tutoring",
+    "education-dual-coding": "socratic-tutoring",
+    "education-construction": "socratic-tutoring",
+    "diagnostics": "platform-health",
+    "wiki": "wiki-knowledge",
+    "wiki-templates": "wiki-curation",
+    "wiki-tasks": "wiki_tasks",
 }
 
 
