@@ -135,8 +135,37 @@ def build_effective_system_message(
                     if extra_lines:
                         project_context = project_context + "\n" + "\n".join(f"- {line}" for line in extra_lines)
                     base_prompt = f"{base_prompt}\n\n{project_context}"
+
+            has_education_tools = bool(
+                allowed_tools.intersection(
+                    {
+                        "education_course_start_or_resume",
+                        "education_progress_summary",
+                        "education_quiz_next",
+                        "education_quiz_grade",
+                        "education_mastery_due",
+                    }
+                )
+            )
+            if has_education_tools:
+                from src.application.education.selected_context import get_selected_education_context
+
+                selected_edu = get_selected_education_context(kernel.state_store)
+                if selected_edu and selected_edu.get("topic"):
+                    edu_topic = selected_edu["topic"]
+                    edu_course = selected_edu.get("course_id") or ""
+                    edu_lines = [
+                        "## Active Selected Study Context",
+                        f"- Topic: {edu_topic}",
+                    ]
+                    if edu_course:
+                        edu_lines.append(f"- Course ID: {edu_course}")
+                    edu_lines.append(
+                        "Use this active study topic and course by default when tutoring, quizzing, or checking progress unless the learner asks for another topic."
+                    )
+                    base_prompt = f"{base_prompt}\n\n" + "\n".join(edu_lines)
         except Exception as e:
-            logger.debug("Active project context injection skipped: %s", e)
+            logger.debug("Active project/study context injection skipped: %s", e)
 
     if getattr(agent, "id", None) != "direct":
         base_prompt = f"{base_prompt}\n\n## Your domain\n{domain_line(agent)}"

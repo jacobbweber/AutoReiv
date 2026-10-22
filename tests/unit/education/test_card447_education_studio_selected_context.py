@@ -61,3 +61,36 @@ def test_education_selected_routes_exist_in_router_source():
     assert "put_selected_education_context_api" in text
     assert "SelectedEducationContextPayload" in text
     assert "projects_parallel" in text
+
+
+def test_tutor_system_prompt_injects_selected_education_context(tmp_path):
+    """CARD-741: Set active in Education Studio injects ## Active Selected Study Context into Tutor's system prompt."""
+    from types import SimpleNamespace
+
+    from src.application.kernel.system_prompt_builder import build_effective_system_message
+    from src.domain.kernel.models import AgentProfile
+
+    store = _store()
+    set_selected_education_context(
+        store, topic="Raft Consensus", course_id="course_raft_01", agent_id="tutor"
+    )
+    tutor = AgentProfile(
+        id="tutor",
+        name="Tutor",
+        description="Socratic tutor",
+        system_prompt="You are Tutor.",
+        allowed_skill=["start-resume-topic", "socratic-tutoring", "quiz-turn", "due-reviews", "progress"],
+        memory_enabled=False,
+    )
+    kernel = SimpleNamespace(
+        state_store=store,
+        user_skill_catalog=None,
+        data_dir=tmp_path,
+        _last_progressive_skills=[],
+        _last_episodic_memory=[],
+    )
+    msg = build_effective_system_message(kernel, tutor, user_content="What is my active study topic?")
+    assert "## Active Selected Study Context" in msg.content
+    assert "- Topic: Raft Consensus" in msg.content
+    assert "- Course ID: course_raft_01" in msg.content
+
