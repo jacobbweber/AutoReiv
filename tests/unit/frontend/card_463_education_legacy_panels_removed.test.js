@@ -63,11 +63,12 @@ describe('CARD-463 Education Studio legacy panels removed', () => {
     const topic = sec.indexOf('id="educationTopicInput"');
     expect(topic).toBeGreaterThan(opStart);
     expect(topic).toBeLessThan(playersStart);
-    for (const id of ['educationSetActiveContextBtn', 'educationPairTutorBtn', 'educationOperatorDueBtn',
+    for (const id of ['educationSetActiveContextBtn', 'educationOperatorDueBtn',
       'educationOperatorProgressBtn', 'educationOperatorCurateBtn', 'educationPlayerModeFlashcardBtn',
       'educationPlayerModeQuizBtn', 'educationPlayerModeTestBtn']) {
       expect(sec, id).toContain(`id="${id}"`);
     }
+    expect(sec).not.toContain('id="educationPairTutorBtn"');
   });
 
   it('education.js is a thin shell that loads the operator and players modules [REQ-463-007]', () => {

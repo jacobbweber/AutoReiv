@@ -251,13 +251,15 @@ describe('CARD-437 Study entry = Tutor education mode (thin shell)', () => {
     expect(toasts.some((t) => t.type === 'error')).toBe(true);
   });
 
-  it('Education Studio Pair Tutor reuses Study entry path (operator bar since CARD-463)', () => {
+  it('Education Studio Set active reuses Study entry context assembly without redundant Pair Tutor button [CARD-437, CARD-741]', () => {
     const operatorJs = fs.readFileSync(
       path.resolve(__dirname, '../../../src/web/static/modules/studios/education_operator.js'),
       'utf-8',
     );
     expect(operatorJs).toContain("from './study_entry.js'");
-    expect(operatorJs).toContain('enterTutorEducationMode');
+    expect(operatorJs).toContain('assembleStudyTutorContext');
+    expect(operatorJs).toContain('startOrResumeStudyCourse');
+    expect(operatorJs).not.toContain('educationPairTutorBtn');
     expect(educationJs).toContain('CARD-437');
     expect(studyJs).toContain('/api/education/tutor/context');
   });

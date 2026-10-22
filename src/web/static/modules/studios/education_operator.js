@@ -37,12 +37,16 @@ function _escapeHtml(s) {
 export function renderEducationActiveContextChrome(selected) {
   const topicEl = $('educationActiveTopic');
   const courseEl = $('educationActiveCourseId');
+  const playerTopicEl = $('educationPlayerContextTopic');
+  const playerCourseEl = $('educationPlayerContextCourse');
   const topic = selected && selected.topic ? String(selected.topic) : '';
   const courseId = selected && (selected.course_id || selected.courseId)
     ? String(selected.course_id || selected.courseId)
     : '';
   if (topicEl) topicEl.textContent = topic || '-';
   if (courseEl) courseEl.textContent = courseId || '-';
+  if (playerTopicEl) playerTopicEl.textContent = topic || '-';
+  if (playerCourseEl) playerCourseEl.textContent = courseId || '-';
   safeCreateIcons();
 }
 
@@ -362,27 +366,6 @@ export function initEducationStudioOperator(callbacks = {}) {
     setActiveBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       await setEducationStudioActiveContext({ toast });
-    });
-  }
-
-  const pairBtn = $('educationPairTutorBtn');
-  if (pairBtn) {
-    pairBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const selected = loadStudioActiveEducationContext() || (await fetchSelectedEducationContext().then((d) => d.selected).catch(() => ({})));
-      const topic = (selected && selected.topic) || '';
-      if (!topic) {
-        toast('Set an active topic/course first, then Pair Tutor.', 'error');
-        return;
-      }
-      await enterTutorEducationMode({
-        topic,
-        switchTab: callbacks.switchTab,
-        getChatCtrl: callbacks.getChatCtrl,
-        toast,
-        skipPrompt: true,
-        preferStudioContext: true,
-      });
     });
   }
 
