@@ -2,7 +2,7 @@
 id: CARD-742
 title: "Prune dead view-skill-studio and view-tools-studio DOM and JS remnants"
 type: bug
-status: In Progress
+status: Done
 priority: P2
 milestone: M33
 needs_decision: none
@@ -13,8 +13,9 @@ proof:
     - tests/unit/frontend/dom_audit.test.js
     - tests/unit/frontend/card_692_capabilities_consolidation.test.js
 branch: feat/card-742-prune-dead-view-skill-studio-and
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 25, qa_runs: 1, findings: 0}
 created: 2026-10-24
+completed: 2026-10-24
 ---
 
 # CARD-742 Prune dead view-skill-studio and view-tools-studio DOM and JS remnants
@@ -58,8 +59,13 @@ After `CARD-690` and `CARD-692` consolidated Skill Studio and Tools Studio into 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-742-prune-dead-view-skill-studio-and` | desktop | PASS | 0 legacy Skill/Tools Studio DOM nodes, `#view-capabilities` Agora skill tree, `+ New Skill` bar, and `#capabilitiesMcpPane` verified at `1280px <= 1280px`. |
+| `card-742-prune-dead-view-skill-studio-and` | phone | PASS | 0 legacy Skill/Tools Studio DOM nodes, `#view-capabilities` Agora skill tree, `+ New Skill` bar, and `#capabilitiesMcpPane` verified at `390px <= 390px`. |
 
-Screenshots: `/tmp/autoreiv-qa/card-742/...`
+Screenshots:
+- `/tmp/autoreiv-qa/card-742/card-742-prune-dead-view-skill-studio-and-desktop-02-2-open-capabilities-studio-and-verify-agora-skil.png`
+- `/tmp/autoreiv-qa/card-742/card-742-prune-dead-view-skill-studio-and-desktop-03-3-select-mcp-mcp-servers-in-capabilities-studio-.png`
+- `/tmp/autoreiv-qa/card-742/card-742-prune-dead-view-skill-studio-and-phone-02-2-open-capabilities-studio-and-verify-agora-skil.png`
 
 ## Release note
 - **Fixed (CARD-742):** Pruned the superseded `#view-skill-studio` and `#view-tools-studio` DOM trees and unmounted `skill_studio.js` / `tools_studio.js` controllers so `#view-capabilities` (`capabilities_studio.js`) is the single Capabilities Studio surface.
