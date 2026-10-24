@@ -16,7 +16,7 @@ function read(rel) {
 describe('Agent Studio MCP status shell [CARD-183, CARD-421]', () => {
   const indexHtml = read('src/web/templates/index.html');
   const forgeJs = read('src/web/static/modules/studios/forge.js') + read('src/web/static/modules/studios/forge/tools.js');
-  const toolsJs = read('src/web/static/modules/studios/tools_studio.js')
+  const toolsJs = read('src/web/static/modules/studios/capabilities_studio.js')
     + read('src/web/static/modules/studios/tools_studio_catalog.js');
 
   it('renders status and Open in Tools Studio, not a second attach form [REQ-421-005]', () => {

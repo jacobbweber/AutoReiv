@@ -65,3 +65,22 @@ def test_app_deep_links_route_skill_and_tools_studio_to_capabilities():
     assert "openCapabilitiesStudio(" in block
     assert "switchTab('skill-studio')" not in block
     assert "switchTab('tools-studio')" not in block
+
+
+def test_dead_skill_and_tools_studio_dom_and_controllers_pruned():
+    """CARD-742: Superseded #view-skill-studio and #view-tools-studio DOM and JS controllers are deleted."""
+    prompts_edu_html = _read("src/web/templates/partials/prompts_education_skill_studio.html")
+    tools_cap_html = _read("src/web/templates/partials/tools_capabilities.html")
+    assert 'id="view-skill-studio"' not in prompts_edu_html
+    assert 'id="skillStudio"' not in prompts_edu_html
+    assert 'id="view-tools-studio"' not in tools_cap_html
+    assert 'id="toolsStudio"' not in tools_cap_html
+    assert 'id="view-capabilities"' in tools_cap_html
+
+    assert not (REPO_ROOT / "src/web/static/modules/studios/skill_studio.js").exists()
+    assert not (REPO_ROOT / "src/web/static/modules/studios/tools_studio.js").exists()
+
+    desktop_js = _read("src/web/static/modules/ui/agent-desktop.js")
+    assert "'view-skill-studio'" not in desktop_js
+    assert "'view-tools-studio'" not in desktop_js
+

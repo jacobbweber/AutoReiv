@@ -64,10 +64,10 @@ async def test_runbook_generator_gets_the_whole_description(app_env):  # noqa: F
 
 
 def test_form_says_200_and_does_not_cut_at_60():
-    html = Path("src/web/templates/index.html").read_text(encoding="utf-8")
-    assert 'id="factorySkillTriggerInput" data-testid="factory-skill-description" rows="3" maxlength="200"' in html
-    assert "up to about 200 chars" in html and "&le; 60 chars" not in html and ">0/200<" in html
     js = Path("src/web/static/modules/studios/skill_studio/workshop_meta.js").read_text(encoding="utf-8")
+    assert "SKILL_DESCRIPTION_LIMIT = 200" in js
     assert ".slice(0, 60)" not in js
-    studio = Path("src/web/static/modules/studios/skill_studio.js").read_text(encoding="utf-8")
+    studio = Path("src/web/static/modules/studios/capabilities_studio.js").read_text(encoding="utf-8")
     assert "}/60`" not in studio and "'0/60'" not in studio and "<= 60" not in studio
+    assert not Path("src/web/static/modules/studios/skill_studio.js").exists()
+

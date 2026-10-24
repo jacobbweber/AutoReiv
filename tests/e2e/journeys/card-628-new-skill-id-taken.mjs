@@ -1,14 +1,14 @@
 /**
  * CARD-628: New skill whose id is taken is refused; suggested free id saves; shipped skill unchanged.
  */
-import { clickExpect, waitFor } from './lib/runner.mjs';
+import { waitFor } from './lib/runner.mjs';
 import { getJson, openApp } from './lib/app.mjs';
 
-async function openSkillStudio(page) {
-  if (!(await page.locator('#view-skill-studio').isVisible().catch(() => false))) {
-    await page.locator('#dock-skill-studio').click();
+async function openCapabilitiesStudio(page) {
+  if (!(await page.locator('#view-capabilities').isVisible().catch(() => false))) {
+    await page.locator('#dock-capabilities').click();
   }
-  await page.locator('#view-skill-studio').waitFor({ state: 'visible', timeout: 20000 });
+  await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 20000 });
 }
 
 async function shippedDiagnosticsUnchanged(request, base) {
@@ -31,31 +31,35 @@ export default {
   allowConsole: ['409 (Conflict)', 'Failed to load resource'],
   async run(j, { page, request, base, viewport }) {
     const marker = 'card628-' + viewport.name + '-' + String(Date.now() % 100000);
+    const md = '---\nname: Diagnostics\ndescription: A throwaway skill for CARD-628 ' + marker + '\ntools: []\n---\n# Diagnostics\nDo nothing special.\n';
 
-    await j.step('Open Skill Studio and start a New skill named Diagnostics', async () => {
+    await j.step('Open Capabilities Studio and verify diagnostics exists in tree', async () => {
       await openApp(page, base);
-      await openSkillStudio(page);
-      await page.locator('#factoryNewSkillFormBtn').click();
-      await page.locator('#factorySkillNameInput').fill('Diagnostics');
-      await page.locator('#factorySkillNameInput').dispatchEvent('input');
-      await expectId(page, 'diagnostics');
-      await page.locator('#factorySkillTriggerInput').fill('When to use this throwaway ' + marker);
-      await page.locator('#factorySkillMarkdownEditor').fill(
-        '---\nname: Diagnostics\ndescription: A throwaway skill for CARD-628 ' + marker + '\ntools: []\n---\n# Diagnostics\nDo nothing special.\n',
-      );
+      await openCapabilitiesStudio(page);
+      await page.locator('#capabilitiesTreeList').waitFor({ state: 'visible', timeout: 20000 });
     });
 
-    await j.step('Save is refused with id-taken offer; shipped Diagnostics unchanged', async () => {
-      await page.locator('#factorySaveSkillBtn').click();
-      await page.locator('[data-testid="skill-studio-id-taken"]').waitFor({ state: 'visible', timeout: 15000 });
-      await expectText(page, '[data-testid="skill-studio-id-taken"]', /already uses id/i);
+    await j.step('Save with new_skill=true on taken id diagnostics is refused with 409 and suggested_skill_id; shipped Diagnostics unchanged', async () => {
+      const res = await request.post(base + '/api/skill_studio/save', {
+        data: { skill_id: 'diagnostics', new_skill: true, skill_content: md },
+      });
+      if (res.status() !== 409) {
+        throw new Error('expected 409 on taken skill id, got ' + res.status());
+      }
+      const body = await res.json();
+      if (!body?.detail?.suggested_skill_id) {
+        throw new Error('expected suggested_skill_id in 409 detail: ' + JSON.stringify(body));
+      }
       await shippedDiagnosticsUnchanged(request, base);
     });
 
     await j.step('Use suggested id diagnostics_2 and Save succeeds', async () => {
-      await page.locator('[data-action="use-suggested-id"]').click();
-      await expectId(page, 'diagnostics_2');
-      await page.locator('#factorySaveSkillBtn').click();
+      const res = await request.post(base + '/api/skill_studio/save', {
+        data: { skill_id: 'diagnostics_2', new_skill: true, skill_content: md },
+      });
+      if (!res.ok()) {
+        throw new Error('save diagnostics_2 failed: ' + res.status());
+      }
       await waitFor(async () => {
         const list = await getJson(request, base + '/api/skill_studio/skills');
         const ids = (list.skills || []).map((s) => s.id);
@@ -69,14 +73,3 @@ export default {
     });
   },
 };
-
-async function expectId(page, id) {
-  await waitFor(async () => (await page.locator('#factorySkillIdInput').inputValue()) === id, { timeoutMs: 5000 });
-  const v = await page.locator('#factorySkillIdInput').inputValue();
-  if (v !== id) throw new Error('expected skill id ' + id + ' got ' + v);
-}
-
-async function expectText(page, sel, re) {
-  const t = await page.locator(sel).innerText();
-  if (!re.test(t)) throw new Error('expected ' + re + ' in ' + t);
-}

@@ -31,14 +31,6 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-function sliceView(html, startId, endId) {
-  const start = html.indexOf(`id="${startId}"`);
-  const end = html.indexOf(`id="${endId}"`);
-  expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
-  return html.slice(start, end);
-}
-
 const draft = {
   skill_id: 'wiki_digest',
   name: 'Wiki Digest',
@@ -51,10 +43,10 @@ const draft = {
   source_context: '',
 };
 
-describe('Skill Studio authoring by Toolsmith [CARD-420, CARD-574]', () => {
+describe('Skill Studio authoring by Toolsmith [CARD-420, CARD-574, CARD-742]', () => {
   const html = read('src/web/templates/index.html');
-  const skillView = sliceView(html, 'view-skill-studio', 'artifactModal');
-  const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
+  const capView = html.slice(html.indexOf('id="view-capabilities"'));
+  const capStudio = read('src/web/static/modules/studios/capabilities_studio.js');
   const authoring = read('src/web/static/modules/studios/skill_authoring.js');
   const pills = read('src/web/static/modules/studios/forge/skill_pills.js');
 
@@ -160,52 +152,19 @@ describe('Skill Studio authoring by Toolsmith [CARD-420, CARD-574]', () => {
     expect(rejected.draft.markdown).toBe(draft.markdown);
   });
 
-  it('Skill Studio shows Generate, Save, and Delete, not Ask developer [REQ-420-005]', () => {
-    expect(skillView).not.toContain('id="skillStudioAskDeveloperBtn"');
-    expect(skillView).not.toContain('>Ask developer</span>');
-    expect(skillView).not.toContain('id="skillStudioBuildBtn"');
-    expect(skillView).not.toContain('id="skillStudioReviewBtn"');
-    expect(skillView).not.toContain('id="skillStudioWatchBtn"');
-    expect(skillView).not.toContain('id="skillStudioChatBtn"');
-    expect(skillView).not.toContain('id="skillStudioJobId"');
-    expect(skillView).not.toContain('id="skillStudioAuthoringBar"');
-    expect(skillView).not.toContain('id="skillStudioAcceptBtn"');
-    expect(skillView).not.toContain('id="skillStudioRejectBtn"');
-    expect(skillView).not.toContain('id="skillStudioLintPanel"');
-    expect(skillView).not.toContain('Watch in Observe');
-    expect(skillView).not.toContain('Open in Chat');
-    expect(skillView).toContain('id="factorySaveSkillBtn"');
-    expect(skillView).toContain('>Save skill</span>');
-    expect(skillView).toContain('id="factoryGenerateRunbookBtn"');
-    expect(skillView).toContain('data-testid="skill-studio-generate"');
-    const generateBtn = skillView.slice(
-      skillView.indexOf('id="factoryGenerateRunbookBtn"'),
-      skillView.indexOf('id="skillStudioDeleteBtn"'),
-    );
-    expect(generateBtn).toContain('text-[11px]');
-    expect(generateBtn).toContain('bg-transparent');
-    expect(generateBtn).not.toContain('bg-sky-600');
-    expect(generateBtn).not.toContain('bg-emerald-600');
+  it('Capabilities Studio does not show Ask developer and legacy view-skill-studio is retired [REQ-420-005, CARD-742]', () => {
+    expect(html).not.toContain('id="view-skill-studio"');
+    expect(capView).not.toContain('id="skillStudioAskDeveloperBtn"');
+    expect(capView).not.toContain('>Ask developer</span>');
+    expect(capView).not.toContain('id="skillStudioBuildBtn"');
+    expect(capView).toContain('id="capabilitiesSaveFileBtn"');
+    expect(capView).toContain('id="capabilitiesNewSkillBtn"');
 
-    const sourceIdx = skillView.indexOf('id="factorySourceContextInput"');
-    const editorIdx = skillView.indexOf('id="factorySkillMarkdownEditor"');
-    const toolsIdx = skillView.indexOf('3. Capabilities');
-    expect(sourceIdx).toBeGreaterThan(-1);
-    expect(sourceIdx).toBeLessThan(editorIdx);
-    expect(sourceIdx).toBeLessThan(toolsIdx);
-
-    expect(skillView).toContain('id="skillStudioDeleteBtn"');
-    expect(skillView).toContain('>Delete skill</span>');
-    expect(skillView).toContain('data-testid="skill-studio-delete"');
-
-    expect(skillStudio).not.toContain('bindSkillStudioAuthoring');
-    expect(skillStudio).not.toContain('openObserveJob');
-    expect(skillStudio).not.toContain('skillStudioAskDeveloperBtn');
-    expect(skillStudio).toContain('/api/skill_studio/save');
-    expect(skillStudio).toContain('skillDeleteRequest');
-    expect(skillStudio).toContain('window.confirm');
-    expect(skillStudio).not.toContain('confirm_seed');
-    expect(skillStudio).not.toContain('allowed_skill');
+    expect(capStudio).not.toContain('bindSkillStudioAuthoring');
+    expect(capStudio).not.toContain('openObserveJob');
+    expect(capStudio).not.toContain('skillStudioAskDeveloperBtn');
+    expect(capStudio).not.toContain('confirm_seed');
+    expect(capStudio).not.toContain('allowed_skill');
     expect(authoring).toContain('submitSkillAuthoring');
     expect(authoring).toContain('applyAuthoringPatches');
     expect(authoring).not.toContain('bindSkillStudioAuthoring');

@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { DOCK_LAUNCHERS } from '../../../src/web/static/modules/ui/agent-desktop.js';
+import { DOCK_LAUNCHERS, VIEW_BY_TAB, resolveDesktopStudioTab } from '../../../src/web/static/modules/ui/agent-desktop.js';
 import {
   MCP_TREE_NODE_ID,
   renderCapabilitiesTreeHtml,
@@ -21,12 +21,17 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-describe('Capabilities Studio consolidation [CARD-692]', () => {
-  it('retires dock-skill-studio and dock-tools-studio from DOCK_LAUNCHERS while keeping dock-capabilities', () => {
+describe('Capabilities Studio consolidation [CARD-692, CARD-742]', () => {
+  it('retires dock-skill-studio and dock-tools-studio from DOCK_LAUNCHERS and VIEW_BY_TAB while keeping dock-capabilities', () => {
     const ids = DOCK_LAUNCHERS.map((d) => d.id);
     expect(ids).toContain('dock-capabilities');
     expect(ids).not.toContain('dock-skill-studio');
     expect(ids).not.toContain('dock-tools-studio');
+    expect(VIEW_BY_TAB.capabilities).toBe('view-capabilities');
+    expect(VIEW_BY_TAB['skill-studio']).toBeUndefined();
+    expect(VIEW_BY_TAB['tools-studio']).toBeUndefined();
+    expect(resolveDesktopStudioTab('skill-studio')).toBe('capabilities');
+    expect(resolveDesktopStudioTab('tools-studio')).toBe('capabilities');
   });
 
   it('renders the top-level mcp/ (MCP Servers) node in the Capabilities tree', () => {
@@ -88,8 +93,12 @@ describe('Capabilities Studio consolidation [CARD-692]', () => {
     expect(gapPlan.gap.suggested_tool_name).toBe('convert_units');
   });
 
-  it('embeds #capabilitiesMcpPane inside #view-capabilities in index.html', () => {
+  it('embeds #capabilitiesMcpPane inside #view-capabilities and deletes legacy #view-skill-studio / #view-tools-studio DOM & JS', () => {
     const html = read('src/web/templates/index.html');
+    expect(html).not.toContain('id="view-skill-studio"');
+    expect(html).not.toContain('id="view-tools-studio"');
+    expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/skill_studio.js'))).toBe(false);
+    expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/tools_studio.js'))).toBe(false);
     const start = html.indexOf('id="view-capabilities"');
     expect(start).toBeGreaterThan(-1);
     const viewHtml = html.slice(start);

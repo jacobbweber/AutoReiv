@@ -10,6 +10,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Pruned the superseded `#view-skill-studio` and `#view-tools-studio` DOM trees and unmounted `skill_studio.js` / `tools_studio.js` controllers so `#view-capabilities` (`capabilities_studio.js`) is the single Capabilities Studio surface [CARD-742].
 - Prevented `#agentSelect` and `#chatActiveProjectPill` from overlapping in the Chat top bar on `390px` phone screens, retired the redundant `Pair Tutor` button (`#educationPairTutorBtn`) in Education Studio in favor of `Set active` (`#educationSetActiveContextBtn`), and injected `## Active Selected Study Context` into `Tutor`'s system prompt on every turn [CARD-741].
 
 ## [1.5.3] - 2026-10-21
