@@ -225,23 +225,20 @@ describe('D7, D8, D10 and leftovers', () => {
   });
 });
 
-describe('REQ-496-009/010: Skill Studio keeps working on the existing backend', () => {
-  it('Skill Studio imports the moved helpers and calls its own routes (CARD-497 moved them)', () => {
-    const skill = read(`${STATIC}/modules/studios/skill_studio.js`);
-    expect(skill).toContain("from './skill_studio/workshop_meta.js'");
-    expect(skill).toContain("from './skill_studio/skill_scope.js'");
-    expect(skill).toContain('/api/skill_studio/save');
-    expect(skill).toContain('/api/tools_studio/capabilities');
-    expect(skill).not.toContain('getFactoryCtrl');
+describe('REQ-496-009/010: Capabilities Studio replaces legacy Factory and Skill Studio UI [CARD-742]', () => {
+  it('Capabilities Studio and shared helpers call their own routes without getFactoryCtrl', () => {
+    const cap = read(`${STATIC}/modules/studios/capabilities_studio.js`);
+    expect(cap).toContain("from './capabilities_tree_model.js'");
+    expect(cap).toContain("from './tools_studio_catalog.js'");
+    expect(cap).not.toContain('getFactoryCtrl');
     expect(read(`${STATIC}/modules/studios/tools_studio_catalog.js`)).toContain('/api/tools_studio/capabilities');
+    expect(exists(`${STATIC}/modules/studios/skill_studio.js`)).toBe(false);
+    expect(exists(`${STATIC}/modules/studios/tools_studio.js`)).toBe(false);
   });
 
-  it('Skill Studio keeps its factory* ids (ADR-0060 D5)', () => {
-    const start = indexHtml.indexOf('id="view-skill-studio"');
-    expect(start).toBeGreaterThan(0);
-    const skillView = indexHtml.slice(start, start + 60000);
-    for (const id of ['factorySkillIdInput', 'factorySaveSkillBtn', 'factoryCapabilitiesContainer']) {
-      expect(skillView, id).toContain(`id="${id}"`);
-    }
+  it('index.html hosts #view-capabilities and drops #view-skill-studio / #view-tools-studio', () => {
+    expect(indexHtml).toContain('id="view-capabilities"');
+    expect(indexHtml).not.toContain('id="view-skill-studio"');
+    expect(indexHtml).not.toContain('id="view-tools-studio"');
   });
 });

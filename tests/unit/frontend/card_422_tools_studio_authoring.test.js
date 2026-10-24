@@ -20,14 +20,6 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-function sliceView(html, startId, endId) {
-  const start = html.indexOf(`id="${startId}"`);
-  const end = html.indexOf(`id="${endId}"`, start + 1);
-  expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
-  return html.slice(start, end);
-}
-
 const draft = {
   intent: 'create',
   tool_name: 'wiki_note_peek',
@@ -38,43 +30,23 @@ const draft = {
   packaging_preference: 'native',
 };
 
-describe('Tools Studio intent form [CARD-422]', () => {
+describe('Tools Studio authoring helper contracts [CARD-422, CARD-742]', () => {
   const html = read('src/web/templates/index.html');
-  const toolsView = sliceView(html, 'view-tools-studio', 'manageTonesModal');
-  const studio = read('src/web/static/modules/studios/tools_studio.js');
   const chat = read('src/web/static/modules/studios/chat.js');
 
-  it('shows an intent form and no code editor [REQ-422-003]', () => {
-    expect(toolsView).toContain('id="toolsStudioIntentForm"');
-    expect(toolsView).toContain('id="toolsStudioBehaviorInput"');
-    expect(toolsView).toContain('What the tool should do');
-    expect(toolsView).toContain('id="toolsStudioTalkBtn"');
-    expect(toolsView).toContain('Talk to Toolsmith');
-    expect(toolsView).toContain('id="toolsStudioSubmitBtn"');
-    expect(toolsView).toContain('Submit to Toolsmith');
-    expect(toolsView).toContain('id="toolsStudioPackagingSelect"');
-    expect(toolsView).toContain('note only');
-    expect(toolsView).not.toContain('id="toolsStudioCodeInput"');
-    expect(toolsView).not.toContain('monaco');
-    expect(toolsView).toContain('Do not paste implementation code.');
-    const textareas = toolsView.match(/<textarea/g) || [];
-    expect(textareas).toHaveLength(1);
-    expect(toolsView).toContain('id="toolsStudioCatalog"');
-    expect(toolsView).toContain('id="toolsStudioMcpSaveBtn"');
+  it('retires legacy view-tools-studio and tools_studio.js [CARD-742]', () => {
+    expect(html).not.toContain('id="view-tools-studio"');
+    expect(html).not.toContain('id="toolsStudioCodeInput"');
+    expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/tools_studio.js'))).toBe(false);
   });
 
-  it('routes create, modify, and delete through Talk and Submit [REQ-422-001][REQ-422-004]', () => {
+  it('routes create, modify, and delete through Talk and Submit in tools_studio_authoring.js [REQ-422-001][REQ-422-004]', () => {
     const authoring = read('src/web/static/modules/studios/tools_studio_authoring.js');
     expect(authoring).toContain('/api/tools_studio/authoring/talk');
     expect(authoring).toContain('/api/tools_studio/authoring/jobs');
-    expect(studio).toContain('TOOLS_AUTHORING_TALK_URL');
-    expect(studio).toContain('TOOLS_AUTHORING_JOBS_URL');
-    expect(studio).toContain('interpretAuthoringTalk');
-    expect(studio).toContain('interpretAuthoringSubmit');
-    expect(studio).toContain('openDeveloperSession');
-    expect(studio).toContain("fillIntent('modify'");
-    expect(studio).toContain("fillIntent('delete'");
-    expect(studio).not.toContain('skill_tool_bindings');
+    expect(authoring).toContain('interpretAuthoringTalk');
+    expect(authoring).toContain('interpretAuthoringSubmit');
+    expect(authoring).toContain('openDeveloperSession');
     expect(chat).toContain('openDeveloperSession');
     expect(chat).toContain("async function openDeveloperSession(sessionId, composerText = '', agentId = 'toolsmith')");
     const markup = renderCatalogMarkup([
@@ -207,9 +179,8 @@ describe('CARD-511: Submit carries the tool check result', () => {
     expect(formatToolCheckLines(null)).toEqual([]);
   });
 
-  it('Tools Studio shows the check lines in the Submit result', () => {
-    const view = read('src/web/static/modules/studios/tools_studio.js');
-    expect(view).toContain('formatToolCheckLines(plan.toolChecks)');
-    expect(view).toContain('data-testid="tools-studio-tool-check"');
+  it('tools_studio_authoring.js exports formatToolCheckLines', () => {
+    const authoring = read('src/web/static/modules/studios/tools_studio_authoring.js');
+    expect(authoring).toContain('export function formatToolCheckLines');
   });
 });

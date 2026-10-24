@@ -15,11 +15,10 @@ function read(rel) {
 describe('Forge vs Factory skill lever [CARD-411]', () => {
   const html = read('src/web/templates/index.html');
   const runbook = read('src/web/static/modules/studios/forge/runbook.js');
-  const factory = read('src/web/static/modules/studios/skill_studio.js')
-    + read('src/web/static/modules/studios/skill_studio/workshop_meta.js')
+  const factory = read('src/web/static/modules/studios/skill_studio/workshop_meta.js')
     + read('src/web/static/modules/studios/skill_studio/skill_scope.js');
 
-  it('Agent Studio does not inspect runbooks inline and opens Skill Studio [CARD-419]', () => {
+  it('Agent Studio does not inspect runbooks inline and opens Capabilities Studio [CARD-419, CARD-742]', () => {
     expect(html).not.toContain('id="studioRunbookEditor"');
     expect(html).not.toContain('id="studioRunbookOpenFactoryBtn"');
     expect(html).toContain('Manage skills'); // CARD-656
@@ -39,12 +38,10 @@ describe('Forge vs Factory skill lever [CARD-411]', () => {
     expect(runbook).not.toContain('studioRunbookSaveBtn');
   });
 
-  it('Factory workshop edits safety and required tools and writes tier user [CARD-429, CARD-570]', () => {
+  it('Workshop metadata helpers edit safety and required tools and write tier user [CARD-429, CARD-570, CARD-742]', () => {
     expect(html).not.toContain('id="factorySkillTierSelect"');
     expect(html).not.toContain('data-testid="factory-skill-tier-advanced"');
-    expect(html).toContain('id="factorySkillSafetyHitl"');
-    expect(html).toContain('id="factoryRequiredToolsChips"');
-    expect(html).toContain('id="factoryExistingSkillSelect"');
+    expect(html).not.toContain('id="view-skill-studio"');
     expect(factory).toContain('tools');
     expect(factory).toContain('applyWorkshopMetadata');
     expect(factory).toContain('/api/skill_studio/skills/');

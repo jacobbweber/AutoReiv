@@ -1,17 +1,21 @@
 /**
  * CARD-627: MCP command arrays with spaced args survive Disable, Enable, Test, Edit→Save.
  */
-import { clickExpect, waitFor } from './lib/runner.mjs';
+import { waitFor } from './lib/runner.mjs';
 import { getJson, openApp } from './lib/app.mjs';
 
 const CODE_CMD = ['python', '-c', 'import sys; print(1)'];
 const WIN_CMD = ['C:\\Program Files\\AutoReivQA\\python.exe', '-c', 'print(2)'];
 
-async function openToolsStudio(page) {
-  if (!(await page.locator('#view-tools-studio').isVisible().catch(() => false))) {
-    await page.locator('#dock-tools-studio').click();
+async function openCapabilitiesMcp(page) {
+  if (!(await page.locator('#view-capabilities').isVisible().catch(() => false))) {
+    await page.locator('#dock-capabilities').click();
   }
-  await page.locator('#view-tools-studio').waitFor({ state: 'visible', timeout: 20000 });
+  await page.locator('#view-capabilities').waitFor({ state: 'visible', timeout: 20000 });
+  const mcpNode = page.locator('[data-action="select-mcp-node"]').first();
+  await mcpNode.waitFor({ state: 'visible', timeout: 15000 });
+  await mcpNode.click();
+  await page.locator('#capabilitiesMcpPane').waitFor({ state: 'visible', timeout: 15000 });
 }
 
 async function saveServer(request, base, name, command, enabled = true) {
@@ -61,10 +65,10 @@ export default {
       }
     });
 
-    await j.step('Open Tools Studio and Disable then Enable the code server', async () => {
+    await j.step('Open Capabilities Studio MCP pane and Disable then Enable the code server', async () => {
       await openApp(page, base);
-      await openToolsStudio(page);
-      const row = page.locator('#toolsStudioMcpList [data-testid="tools-studio-mcp-row"][data-server-name="' + codeName + '"]');
+      await openCapabilitiesMcp(page);
+      const row = page.locator('#capabilitiesMcpList [data-testid="tools-studio-mcp-row"][data-server-name="' + codeName + '"]');
       await row.waitFor({ state: 'visible', timeout: 20000 });
       await row.locator('[data-action="toggle"]').click();
       await waitFor(async () => {
@@ -87,7 +91,7 @@ export default {
     });
 
     await j.step('Test keeps the stored command (probe may fail; array must match)', async () => {
-      const row = page.locator('#toolsStudioMcpList [data-testid="tools-studio-mcp-row"][data-server-name="' + codeName + '"]');
+      const row = page.locator('#capabilitiesMcpList [data-testid="tools-studio-mcp-row"][data-server-name="' + codeName + '"]');
       const posts = [];
       page.on('request', (req) => {
         if (req.method() === 'POST' && req.url().includes('/api/settings/mcp/test')) {
@@ -102,16 +106,16 @@ export default {
     });
 
     await j.step('Edit → Save the Program Files server keeps the path argument intact', async () => {
-      const row = page.locator('#toolsStudioMcpList [data-testid="tools-studio-mcp-row"][data-server-name="' + winName + '"]');
+      const row = page.locator('#capabilitiesMcpList [data-testid="tools-studio-mcp-row"][data-server-name="' + winName + '"]');
       await row.scrollIntoViewIfNeeded();
       await row.locator('[data-action="edit"]').click();
-      const commandEl = page.locator('#toolsStudioMcpCommandInput');
+      const commandEl = page.locator('#capabilitiesMcpCommandInput');
       await commandEl.waitFor({ state: 'visible', timeout: 10000 });
       const shown = await commandEl.inputValue();
       if (!/Program Files/i.test(shown)) {
         throw new Error('Edit form lost Program Files quoting: ' + shown);
       }
-      await page.locator('#toolsStudioMcpSaveBtn').click();
+      await page.locator('#capabilitiesMcpSaveBtn').click();
       await waitFor(async () => {
         const s = await readServer(request, base, winName);
         return s && JSON.stringify(s.command) === JSON.stringify(WIN_CMD);

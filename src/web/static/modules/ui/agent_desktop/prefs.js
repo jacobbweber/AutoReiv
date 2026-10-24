@@ -7,8 +7,8 @@ import { $ } from '../../dom.js';
 
 export const PREFS_KEY = 'autoreiv.agentDesktop.v1';
 
-/** Tabs that are no longer desktop windows: Sessions (CARD-305) and the retired Factory (CARD-496, ADR-0060). */
-export const RETIRED_DESKTOP_TABS = Object.freeze(['sessions', 'factory']);
+/** Tabs that are no longer desktop windows: Sessions (CARD-305), the retired Factory (CARD-496, ADR-0060), and Skill/Tools Studio (CARD-692, CARD-742). */
+export const RETIRED_DESKTOP_TABS = Object.freeze(['sessions', 'factory', 'skill-studio', 'tools-studio']);
 
 /**
  * CARD-305/CARD-279/CARD-496: drop retired windows (Sessions, Factory) from stale prefs and normalize schema.

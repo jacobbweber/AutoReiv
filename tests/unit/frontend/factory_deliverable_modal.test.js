@@ -25,8 +25,9 @@ describe('Retirement of Tabbed HITL Promotion Deliverable Inspector [CARD-197, C
     expect(html).not.toContain('id="factoryTabContentTool"');
     expect(html).not.toContain('id="factoryTabContentDiff"');
 
-    // Replaced by live in-place editor in Column 2
-    expect(html).toContain('id="factorySkillMarkdownEditor"');
+    // Replaced by live in-place editor in Capabilities Studio [CARD-692, CARD-742]
+    expect(html).not.toContain('id="factorySkillMarkdownEditor"');
+    expect(html).toContain('id="capabilitiesFileEditor"');
   });
 
   it('prunes Inspect Deliverables trigger with retired HITL card [CARD-386]', () => {
