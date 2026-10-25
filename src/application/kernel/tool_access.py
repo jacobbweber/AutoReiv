@@ -103,6 +103,8 @@ WRITE_TOOLS: frozenset[str] = frozenset(
         "wiki_note_append",
         "wiki_note_archive",
         "wiki_note_organize",
+        "wiki_note_move",
+        "wiki_note_delete",
         "wiki_template_create",
         "wiki_template_update",
         "promote_artifact_to_wiki",

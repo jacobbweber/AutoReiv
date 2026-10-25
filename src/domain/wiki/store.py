@@ -8,7 +8,6 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import re
-import shutil
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -415,50 +414,10 @@ class WikiStore:
         reason: str = "archived",
         preserve_source: bool = False,
     ) -> Dict[str, Any]:
-        """
-        Safely archive a note to 03_Archive/<slug>_<timestamp>.md [CARD-409].
-        Preserves frontmatter, sets status='archived', and updates archive metadata.
-        """
-        self.scaffold()
-        target_path = self._resolve_safe_path(relative_path)
-        if target_path is None or not target_path.is_file():
-            return {"success": False, "error": f"Note '{relative_path}' not found."}
+        """Safely archive a note to 03_Archive/<slug>_<timestamp>.md and prune empty source folders [CARD-409, CARD-744]."""
+        from .note_ops import archive_note as _archive_note
 
-        raw_text = target_path.read_text(encoding="utf-8", errors="replace")
-        meta, body = FrontmatterParser.parse(raw_text)
-        meta_dict = meta.model_dump()
-        meta_dict["status"] = "archived"
-        meta_dict["archived_at"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if reason:
-            meta_dict["archive_reason"] = reason
-
-        archive_dir = self.root_dir / "03_Archive"
-        archive_dir.mkdir(parents=True, exist_ok=True)
-
-        stem = target_path.stem
-        ts = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        archive_filename = f"{stem}_{ts}.md"
-        dest_path = archive_dir / archive_filename
-        counter = 1
-        while dest_path.exists():
-            dest_path = archive_dir / f"{stem}_{ts}_{counter}.md"
-            counter += 1
-
-        updated_meta = WikiNoteMeta.model_validate(meta_dict)
-        full_text = FrontmatterParser.dump(updated_meta, body)
-        dest_path.write_text(full_text, encoding="utf-8")
-
-        if not preserve_source:
-            target_path.unlink(missing_ok=True)
-
-        rel_dest = str(dest_path.relative_to(self.root_dir)).replace("\\", "/")
-        return {
-            "success": True,
-            "source_path": relative_path.replace("\\", "/"),
-            "archive_path": rel_dest,
-            "title": updated_meta.title,
-            "status": "archived",
-        }
+        return _archive_note(self, relative_path=relative_path, reason=reason, preserve_source=preserve_source)
 
     def write_note(
         self,
@@ -500,64 +459,45 @@ class WikiStore:
             "title": updated_meta.title,
         }
 
+    def remove_note(self, relative_path: str, reason: str = "deleted") -> Dict[str, Any]:
+        """Delete a note under 00_Inbox/ or 01_Notes/ and prune any now-empty parent directories [CARD-744]."""
+        from .note_ops import remove_note as _remove_note
+
+        return _remove_note(self, relative_path=relative_path, reason=reason)
+
     def delete_note(self, relative_path: str) -> bool:
-        """Delete a note from disk."""
-        target_path = self._resolve_safe_path(relative_path)
-        if target_path and target_path.is_file():
-            target_path.unlink()
-            return True
-        return False
+        """Delete a note from disk and prune empty parent directories under 00_Inbox/ or 01_Notes/."""
+        from .note_ops import delete_note as _delete_note
+
+        return _delete_note(self, relative_path=relative_path)
+
+    def move_note(
+        self,
+        source_path: str,
+        destination_path: Optional[str] = None,
+        domain: Optional[str] = None,
+        topic: Optional[str] = None,
+        new_title: Optional[str] = None,
+        update_frontmatter: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Move or rename a note under 00_Inbox/ or 01_Notes/, update frontmatter, and prune empty source folders [CARD-744]."""
+        from .note_ops import move_note as _move_note
+
+        return _move_note(
+            self,
+            source_path=source_path,
+            destination_path=destination_path,
+            domain=domain,
+            topic=topic,
+            new_title=new_title,
+            update_frontmatter=update_frontmatter,
+        )
 
     def delete_folder(self, relative_path: str) -> Dict[str, Any]:
-        """
-        Delete a subfolder from the wiki vault [REQ-WIKI-024, REQ-WIKI-025].
-        Strictly prevents deleting root folders (00_Inbox, 01_Notes, 02_Resources, 03_Archive, or the vault root).
-        """
-        clean_rel = (relative_path or "").replace("\\", "/").strip().strip("/")
-        clean_lower = clean_rel.lower()
+        """Delete a subfolder from the wiki vault, strictly guarding root folders [REQ-WIKI-024, REQ-WIKI-025]."""
+        from .note_ops import delete_folder as _delete_folder
 
-        protected_roots = {
-            "",
-            ".",
-            "00_inbox",
-            "inbox",
-            "01_notes",
-            "notes",
-            "02_resources",
-            "resources",
-            "03_archive",
-            "archive",
-        }
-        if not clean_rel or clean_lower in protected_roots:
-            return {
-                "success": False,
-                "error": f"Cannot delete protected root vault folder '{relative_path}'.",
-            }
-
-        target_path = self._resolve_safe_path(clean_rel)
-        if target_path is None:
-            return {"success": False, "error": "Path traversal detected: target path is outside wiki root."}
-
-        resolved_str = str(target_path.resolve())
-        root_str = str(self.root_dir.resolve())
-        if resolved_str == root_str:
-            return {"success": False, "error": "Cannot delete protected root vault directory."}
-
-        for root_name in ["00_Inbox", "01_Notes", "02_Resources", "03_Archive", "inbox", "notes", "resources", "archive"]:
-            if resolved_str == str((self.root_dir / root_name).resolve()):
-                return {
-                    "success": False,
-                    "error": f"Cannot delete protected root vault folder '{relative_path}'.",
-                }
-
-        if not target_path.exists() or not target_path.is_dir():
-            return {"success": False, "error": f"Folder '{relative_path}' not found."}
-
-        try:
-            shutil.rmtree(target_path)
-            return {"success": True, "path": clean_rel}
-        except Exception as e:
-            return {"success": False, "error": f"Failed to delete folder '{clean_rel}': {e}"}
+        return _delete_folder(self, relative_path=relative_path)
 
     # --- Templates [CARD-178, CARD-349, CARD-603] ---
 
@@ -672,61 +612,18 @@ class WikiStore:
         new_title: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Move a note (e.g. from 00_Inbox/ to 01_Notes/<domain>/<topic>/) and hydrate frontmatter."""
-        source_file = self._resolve_safe_path(source_path)
-        if not source_file or not source_file.is_file():
-            return {"success": False, "error": f"Source note '{source_path}' does not exist."}
+        from .note_ops import organize_note as _organize_note
 
-        raw_text = source_file.read_text(encoding="utf-8", errors="replace")
-        meta, body = FrontmatterParser.parse(raw_text)
-        meta_dict = meta.model_dump()
-
-        safe_domain = _SLUG_CLEAN_PATTERN.sub("_", (target_domain or "general").lower()).strip("_")
-        safe_topic = _SLUG_CLEAN_PATTERN.sub("_", (target_topic or "general").lower()).strip("_")
-        slug = source_file.stem
-
-        target_folder = "01_Notes" if (self.root_dir / "01_Notes").exists() else "notes"
-        target_rel = f"{target_folder}/{safe_domain}/{safe_topic}/{slug}.md"
-        target_file = self._resolve_safe_path(target_rel)
-        if target_file is None:
-            return {"success": False, "error": "Invalid destination path."}
-
-        meta_dict["domain"] = safe_domain
-        meta_dict["topic"] = safe_topic
-        meta_dict["category"] = "notes"
-        meta_dict["document_type"] = document_type
-        meta_dict["status"] = "final"
-        if new_title:
-            meta_dict["title"] = new_title
-        if summary:
-            meta_dict["summary"] = summary
-        if tags is not None:
-            meta_dict["tags"] = tags
-        meta_dict["last_updated"] = dt.datetime.now().strftime("%Y-%m-%d")
-
-        word_count = compute_word_count(body)
-        meta_dict["word_count"] = word_count
-        meta_dict["context_tokens"] = compute_context_tokens(body)
-
-        updated_meta = WikiNoteMeta.model_validate(meta_dict)
-        full_text = FrontmatterParser.dump(updated_meta, body)
-
-        target_file.parent.mkdir(parents=True, exist_ok=True)
-        target_file.write_text(full_text, encoding="utf-8")
-
-        if source_file.resolve() != target_file.resolve():
-            source_file.unlink(missing_ok=True)
-
-        return {
-            "success": True,
-            "source_path": source_path,
-            "target_path": target_rel,
-            "title": updated_meta.title,
-            "domain": safe_domain,
-            "topic": safe_topic,
-            "document_type": updated_meta.document_type,
-            "tags": updated_meta.tags,
-            "summary": updated_meta.summary,
-        }
+        return _organize_note(
+            self,
+            source_path=source_path,
+            target_domain=target_domain,
+            target_topic=target_topic,
+            document_type=document_type,
+            summary=summary,
+            tags=tags,
+            new_title=new_title,
+        )
 
     # --- Indexing, Search, Graph, Mindmap, Tree ---
 

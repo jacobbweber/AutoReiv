@@ -47,6 +47,7 @@ from src.application.kernel.reply_rules import (
     is_toolsmith,
     memory_not_done_lines,
     memory_retry_prompt,
+    record_deferred_sibling_tool_calls,
     settle_memory_retry,
     track_failure,
 )
@@ -532,7 +533,7 @@ async def execute_react_loop(
 
         # Execute tool calls
         clarify_q: Optional[str] = None
-        for tc in collected_tool_calls:
+        for tc_idx, tc in enumerate(collected_tool_calls):
             if clarify_q is not None:
                 skipped_msg = ChatMessage(
                     role=Role.TOOL, content=CLARIFICATION_SKIPPED_RESULT, tool_call_id=tc.id, name=tc.name
@@ -688,6 +689,9 @@ async def execute_react_loop(
             history.append(tool_msg)
 
             if parked:
+                record_deferred_sibling_tool_calls(
+                    kernel.state_store, session_id, agent.id, tc.name, collected_tool_calls[tc_idx + 1 :], history, save_to_history
+                )
                 parked_ev = kernel._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
                 if stream and parked_ev:
                     yield parked_ev
