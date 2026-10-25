@@ -154,11 +154,12 @@ async def test_remote_host_probe_runs_in_worker_thread():
 
 
 def test_chat_projects_and_api_js_wiring():
-    """chat.js and projects.js must wire active project pill and Pair button to 'autoreiv', and api.sessions must use /api/sessions."""
+    """chat.js and projects.js must wire active project pill to 'autoreiv' and '/api/projects/selected' [CARD-709, CARD-740], and api.sessions must use /api/sessions."""
     chat_js = (REPO_ROOT / "src/web/static/modules/studios/chat.js").read_text(encoding="utf-8")
     projects_js = (REPO_ROOT / "src/web/static/modules/studios/projects.js").read_text(encoding="utf-8")
     api_js = (REPO_ROOT / "src/web/static/modules/services/api.js").read_text(encoding="utf-8")
 
     assert "state.selectedAgentId === 'autoreiv'" in chat_js
-    assert "agentSelect.value = 'autoreiv'" in projects_js
+    assert "'/api/projects/selected'" in projects_js
+    assert "projectsPairDeveloperBtn" not in projects_js
     assert "api.get('/api/sessions'" in api_js
