@@ -76,6 +76,8 @@ ON_DEMAND_SHIPPED_SKILLS = frozenset(
         "wiki-curation",
         "proposals",
         "worker",  # CARD-737
+        "capability-authoring",
+        "mcp-engineering",  # CARD-743
     }
 )
 

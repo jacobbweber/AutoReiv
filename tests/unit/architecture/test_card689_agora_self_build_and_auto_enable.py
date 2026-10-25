@@ -160,3 +160,63 @@ async def test_broken_or_unsafe_tool_is_refused_and_not_written(_clean_store: Pa
 
     with pytest.raises(ValueError, match="Path traversal"):
         await save_skill_file(st, "broken-skill", "../escape.md", "bad")
+
+
+async def test_card743_rejects_untyped_kwargs_and_hallucinated_imports(_clean_store: Path):
+    st = content_store.get_store()
+    reg = ScopedToolRegistry()
+
+    # 1. Bare def run(**kwargs) with no explicit typed parameters must be rejected
+    untyped_kwargs_code = (
+        '"""Delete a note."""\n'
+        "from pathlib import Path\n\n"
+        "def run(**kwargs) -> dict:\n"
+        '    return {"deleted": True}\n'
+    )
+    res_kwargs = await save_skill_file(
+        st,
+        "wiki-note-delete",
+        "tools/delete_note.py",
+        untyped_kwargs_code,
+        tool_registry=reg,
+    )
+    assert res_kwargs["success"] is False
+    assert res_kwargs["saved"] is False
+    assert "explicit typed parameters" in (res_kwargs.get("message") or "")
+    assert not (_clean_store / "skills" / "wiki-note-delete" / "tools" / "delete_note.py").exists()
+
+    # 2. Hallucinated platform/MCP imports (`from functions import ...` or `from mcp_* import ...`) must fail static check
+    hallucinated_import_code = (
+        '"""Delete a note."""\n'
+        "from pathlib import Path\n"
+        "from functions import wiki_note_update\n\n"
+        "def run(note_path: str = '01_Notes/test.md') -> dict:\n"
+        '    return {"deleted": Path(note_path).name}\n'
+    )
+    res_import = await save_skill_file(
+        st,
+        "wiki-note-delete",
+        "tools/delete_note.py",
+        hallucinated_import_code,
+        tool_registry=reg,
+    )
+    assert res_import["success"] is False
+    assert res_import["saved"] is False
+    assert "No module named 'functions'" in (res_import.get("message") or "")
+    assert not (_clean_store / "skills" / "wiki-note-delete" / "tools" / "delete_note.py").exists()
+
+
+def test_card743_capability_authoring_and_mcp_engineering_mount_on_demand(_clean_store: Path):
+    from src.application.agent_skills.allowed_tools import ON_DEMAND_SHIPPED_SKILLS, pinned_skills
+    from src.infrastructure.agents.agent_files import profile_from_file
+
+    st = content_store.get_store()
+    autoreiv_file = st.agents.load("autoreiv")
+    assert autoreiv_file is not None
+    profile = profile_from_file(autoreiv_file)
+
+    for skill_id in ("capability-authoring", "mcp-engineering"):
+        assert skill_id in ON_DEMAND_SHIPPED_SKILLS
+        assert skill_id in profile.allowed_skill
+        assert skill_id not in pinned_skills(profile)
+

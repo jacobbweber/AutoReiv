@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- Hardened Agora skill and tool self-authoring by mounting `capability-authoring` and `mcp-engineering` on demand via `skill_view`, rejecting untyped `def run(**kwargs)` signatures and hallucinated module imports at static-check time, and emitting an inline Chat HITL approval card to enable non-`read_only` colocated tools [CARD-743].
+
 ## [1.5.4] - 2026-10-24
 
 Single-lever active context cleanup across Projects Studio (`Set Active`), Education Studio (`Set active` with `Active Selected Study Context` prompt injection), and Chat (`#chatActiveProjectPill` on desktop and phone), plus pruning of the superseded `#view-skill-studio` and `#view-tools-studio` DOM trees and controllers (`CARD-740`..`CARD-742`).

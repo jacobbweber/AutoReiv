@@ -84,12 +84,17 @@ def make_skill_write_guard(state_store: Any):
         agent_id = str(ctx.get("agent_id") or "").strip()
         if not agent_id:
             return False
-        agent_file = get_store().agents.load(agent_id)
+        store = get_store()
+        agent_file = store.agents.load(agent_id)
         already_allowed = resolve_allowed_tools(agent_file) if agent_file is not None else ()
+        user_md = store.skills.user_path(skill_id)
+        colocated_dir = (user_md.parent / "tools") if user_md is not None else None
         held_tools = [t for t in added if not (str(t).startswith("mcp_") and t in already_allowed)]
         if not held_tools:
             return False
         for tool in held_tools:
+            if colocated_dir is not None and (colocated_dir / f"{tool}.py").is_file():
+                continue
             propose_tool_attachment(
                 state_store,
                 tool=tool,
