@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+### Added
+
+- Added HITL-gated `wiki_note_delete` and `wiki_note_move` tools to `wiki-curation` with automatic pruning of empty parent topic folders (`CARD-744`).
+
 ### Fixed
 
 - Hardened Agora skill and tool self-authoring by mounting `capability-authoring` and `mcp-engineering` on demand via `skill_view`, rejecting untyped `def run(**kwargs)` signatures and hallucinated module imports at static-check time, and emitting an inline Chat HITL approval card to enable non-`read_only` colocated tools [CARD-743].

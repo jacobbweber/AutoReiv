@@ -155,6 +155,38 @@ REPLY_RULES_BLOCK = (
 
 CLARIFICATION_SKIPPED_RESULT = "Not run: the turn ended to wait for the user's answer to the clarification question."
 
+
+def record_deferred_sibling_tool_calls(
+    state_store: Any,
+    session_id: str,
+    agent_id: str,
+    parked_tool_name: str,
+    remaining_calls: Sequence[Any],
+    history: list,
+    save_to_history: bool,
+) -> None:
+    """CARD-744: When a tool call parks for operator approval, record a Role.TOOL message for each remaining
+    sibling tool call in the same assistant batch so the model knows on resume that those calls have not run yet."""
+    if not remaining_calls:
+        return
+    from src.domain.gateway.models import ChatMessage, Role
+
+    for sibling_tc in remaining_calls:
+        sibling_name = str(getattr(sibling_tc, "name", "") or "tool")
+        deferred_msg = ChatMessage(
+            role=Role.TOOL,
+            content=(
+                f"Not run yet: '{parked_tool_name}' earlier in this turn paused for operator approval before "
+                f"'{sibling_name}' could run. Call '{sibling_name}' again now to execute it."
+            ),
+            tool_call_id=getattr(sibling_tc, "id", None),
+            name=sibling_name,
+        )
+        if save_to_history and state_store is not None:
+            state_store.save_message(session_id=session_id, agent_id=agent_id, message=deferred_msg)
+        history.append(deferred_msg)
+
+
 _NOTE_ERROR_MAX = 160
 # Words that already tell the user a step did not work.
 _FAILURE_WORDS = re.compile(

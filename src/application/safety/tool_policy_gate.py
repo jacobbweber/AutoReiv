@@ -30,6 +30,8 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "wiki_note_create",
         "wiki_note_update",
         "wiki_note_organize",
+        "wiki_note_move",
+        "wiki_note_delete",
         "execute_code",
         "write_card",
         "write_spec",
@@ -435,10 +437,12 @@ class ToolPolicyGate:
         safe = set(_DEFAULT_SAFE) | self._policy["safe_tools"]
 
         if name in require and name not in self._policy["safe_tools"]:
+            is_destr = str(tool_risk or "").strip().lower() == "destructive" or name == "wiki_note_delete"
+            risk_label = "destructive/write/high-risk" if is_destr else "write/shell/high-risk"
             return ToolPolicyDecision(
                 verdict=ToolPolicyVerdict.REQUIRE_CONFIRM,
                 tool_name=name,
-                reason=f"Tool '{name}' requires operator confirmation (write/shell/high-risk)",
+                reason=f"Tool '{name}' requires operator confirmation ({risk_label})",
                 policy_source="settings.require_confirm_tools"
                 if name in self._policy["require_confirm_tools"]
                 else "default_high_risk",
