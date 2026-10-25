@@ -225,3 +225,34 @@ def test_14_developer_guidance_mentions_the_check():
     prompt = format_developer_prompt(build_packet("create", {"tool_name": "x_tool", "behavior": "Do x."}))
     assert "sample_arguments" in prompt
     assert "Not registered" in prompt
+
+
+async def test_15_card743_file_access_tool_with_hallucinated_import_fails_static_check():
+    # Missing run() error must not bait the model into writing untyped def run(**kwargs)
+    missing_run = await ToolCheckService().check_native(
+        name="c743_no_run", code="x = 1\n", parameters={}, risk_level="low"
+    )
+    assert missing_run.status == "failed"
+    assert missing_run.stage == "static"
+    assert "module-level" in (missing_run.error or "")
+    assert "def run(**kwargs)" not in (missing_run.error or "")
+
+    # A tool with file/network access (which skips sandbox execution for review) must still fail
+    # static verification if it imports a non-existent or hallucinated module like `functions` or `mcp_*`.
+    hallucinated_file_tool = (
+        "from pathlib import Path\n"
+        "from functions import wiki_note_update\n\n"
+        "def run(note_path: str = 'a.md') -> dict:\n"
+        "    p = Path(note_path)\n"
+        "    return {'exists': p.exists()}\n"
+    )
+    res = await ToolCheckService().check_native(
+        name="c743_bad_import",
+        code=hallucinated_file_tool,
+        parameters={"type": "object", "properties": {"note_path": {"type": "string"}}},
+        risk_level="medium",
+    )
+    assert res.status == "failed"
+    assert res.stage == "static"
+    assert "No module named 'functions'" in (res.error or "")
+

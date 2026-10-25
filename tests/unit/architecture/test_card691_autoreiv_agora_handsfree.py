@@ -141,13 +141,13 @@ def test_autoreiv_mounts_user_wildcard_skill_tools_on_demand_after_skill_view(_c
     assert "custom-hash" in idx
     assert "coding" not in idx
 
-    # 2. Before skill_view("custom-hash"), pinned tools are active, but compute_tag_hash is not mounted yet
+    # 2. Before skill_view, pinned tools are active, while capability-authoring and compute_tag_hash are not mounted yet
     before = {t.name for t in kernel._resolve_active_tools(autoreiv, session_id="sess-auto-1", history=[])}
     assert "wiki_note_read" in before
-    assert "write_skill_file" in before
+    assert "write_skill_file" not in before
     assert "compute_tag_hash" not in before
 
-    # 3. Calling skill_view("custom-hash") under AutoReiv's tool context succeeds and mounts compute_tag_hash
+    # 3. Calling skill_view("capability-authoring") and skill_view("custom-hash") under AutoReiv's tool context mounts both
     from src.application.kernel.tool_registry import _tool_context
 
     token = _tool_context.set(
@@ -158,9 +158,12 @@ def test_autoreiv_mounts_user_wildcard_skill_tools_on_demand_after_skill_view(_c
         }
     )
     try:
+        cap_res = catalog.skill_view(skill_id="capability-authoring")
         view_res = catalog.skill_view(skill_id="custom-hash")
     finally:
         _tool_context.reset(token)
+    assert cap_res.get("success") is True, f"skill_view failed for capability-authoring: {cap_res}"
     assert view_res.get("success") is True, f"skill_view failed for user:* skill: {view_res}"
     after = {t.name for t in kernel._resolve_active_tools(autoreiv, session_id="sess-auto-1", history=[])}
+    assert "write_skill_file" in after
     assert "compute_tag_hash" in after

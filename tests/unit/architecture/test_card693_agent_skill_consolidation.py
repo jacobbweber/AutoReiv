@@ -105,7 +105,7 @@ def test_autoreiv_mounts_project_cards_and_software_development_on_demand(tmp_pa
 
         for skill_id in ("capability-authoring", "project-cards", "software-development"):
             assert skill_id in profile.allowed_skill
-        # CARD-729 + CARD-737: project process and specialized curation/proposal/worker skills mount on demand.
+        # CARD-729 + CARD-737 + CARD-743: project process, curation/proposal/worker, and capability/mcp authoring skills mount on demand.
         assert ON_DEMAND_SHIPPED_SKILLS == frozenset(
             {
                 "project-cards",
@@ -116,9 +116,11 @@ def test_autoreiv_mounts_project_cards_and_software_development_on_demand(tmp_pa
                 "wiki-curation",
                 "proposals",
                 "worker",
+                "capability-authoring",
+                "mcp-engineering",
             }
         )
-        assert "capability-authoring" in pinned_skills(profile)
+        assert "wiki-knowledge" in pinned_skills(profile)
         for on_demand in ON_DEMAND_SHIPPED_SKILLS:
             assert on_demand in profile.allowed_skill
             assert on_demand not in pinned_skills(profile)
@@ -157,20 +159,21 @@ def test_autoreiv_mounts_project_cards_and_software_development_on_demand(tmp_pa
             user_skill_catalog=catalog,
         )
 
-        # 1. Progressive skill index includes project-cards and software-development
+        # 1. Progressive skill index includes capability-authoring, project-cards, and software-development
         index_md = render_skill_index(profile.allowed_skill, catalog=catalog, agent_id=profile.id)
+        assert "capability-authoring" in index_md
         assert "project-cards" in index_md
         assert "software-development" in index_md
 
-        # 2. Before skill_view, pinned tools are mounted, while project-cards and software-development stay unmounted
+        # 2. Before skill_view, pinned tools are mounted, while capability-authoring, project-cards, and software-development stay unmounted
         session_id = "sess-card693-ondemand"
         before = {t.name for t in kernel._resolve_active_tools(profile, session_id=session_id, history=[])}
         assert "wiki_note_read" in before
-        assert "write_skill_file" in before
+        assert "write_skill_file" not in before
         assert "write_card" not in before
         assert "patch_project_file" not in before
 
-        # 3. Calling skill_view("project-cards") and skill_view("software-development") mounts their tools and reads references
+        # 3. Calling skill_view("capability-authoring"), skill_view("project-cards"), and skill_view("software-development") mounts their tools and reads references
         token = _tool_context.set(
             {
                 "agent_id": profile.id,
@@ -179,17 +182,21 @@ def test_autoreiv_mounts_project_cards_and_software_development_on_demand(tmp_pa
             }
         )
         try:
+            res_cap = catalog.skill_view(skill_id="capability-authoring", reference="authoring-guide.md")
             res_cards = catalog.skill_view(skill_id="project-cards", reference="card-rubric.md")
             res_dev = catalog.skill_view(skill_id="software-development", reference="workflow.md")
         finally:
             _tool_context.reset(token)
 
+        assert res_cap.get("success") is True, res_cap
+        assert "Agora Skill Folder Authoring Guide" in (res_cap.get("content") or "")
         assert res_cards.get("success") is True, res_cards
         assert "Card Template" in (res_cards.get("content") or "")
         assert res_dev.get("success") is True, res_dev
         assert "Branch & Commit Discipline" in (res_dev.get("content") or "")
 
         after = {t.name for t in kernel._resolve_active_tools(profile, session_id=session_id, history=[])}
+        assert "write_skill_file" in after
         assert "write_card" in after
         assert "review_card" in after
         assert "patch_project_file" in after

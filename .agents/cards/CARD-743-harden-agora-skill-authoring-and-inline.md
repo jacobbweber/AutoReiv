@@ -2,15 +2,15 @@
 id: CARD-743
 title: "Harden Agora skill and tool self-authoring with on-demand mounting, AST import/signature validation, and inline chat approval"
 type: bug
-status: Ready
+status: In Review
 priority: P1
 milestone: M34
 needs_decision: none
 proof:
   journeys: [card-743-harden-agora-skill-authoring-and-inline]
-  checks: [tests/integration/test_card689_agora_inline_authoring.py, tests/unit/tools/test_card511_tool_check_service.py]
+  checks: [tests/integration/test_card689_agora_self_build_contract.py, tests/unit/architecture/test_card689_agora_self_build_and_auto_enable.py, tests/unit/tools/test_tool_check.py]
 branch: feat/card-743-harden-agora-skill-authoring-and-inline
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 30, qa_runs: 2, findings: 1}
 created: 2026-10-24
 ---
 
@@ -33,7 +33,7 @@ In live dogfooding (`session 75a7d7eb`, `session e0647574`, `session 9886cad3`):
 - `platform/agents/autoreiv.md`, `src/application/agent_skills/allowed_tools.py`, `src/infrastructure/content/store.py`: add `mcp-engineering` to `AutoReiv` skills and reconciliation, and add `capability-authoring` and `mcp-engineering` to `ON_DEMAND_SHIPPED_SKILLS` so their tools mount on demand via `skill_view`.
 - `src/application/tools/tool_check.py`: update `_static_native` to require explicit typed parameter annotations on `def run(...)` (rejecting bare `def run(**kwargs)` with no typed parameters and any unannotated parameters) and validate imported top-level module roots with `importlib.util.find_spec` so hallucinated modules (`functions`, `mcp_*`, etc.) fail the static check immediately even when `access` is non-empty.
 - `platform/skills/capability-authoring/SKILL.md`, `platform/skills/capability-authoring/references/authoring-guide.md`: document the sandbox execution environment (`AUTOREIV_WIKI_PATH`, `AUTOREIV_DATA_DIR`, `AUTOREIV_PROJECTS_DIR`, isolated `/tmp` CWD, no `from functions import ...` or `/slash-command` inventions).
-- `src/application/skills/agora_authoring.py`, `src/web/routers/hitl.py`, `src/web/routers/capabilities.py`: when `save_skill_file` saves a disabled colocated tool from an agent turn, create a `pending_approvals` entry (`tool_name="enable_skill_tool"`) and return `approval_id`; resolving that approval in Chat (`POST /api/approvals/{approval_id}/decision`) calls `enable_skill_tool` and activates the skill for the session, and toggling the tool in Capabilities Studio resolves any matching pending approval.
+- `src/application/skills/agora_authoring.py`, `src/web/routers/hitl.py`, `src/web/routers/capabilities.py`, `src/application/agent_skills/tool_attachment.py`: when `save_skill_file` saves a disabled colocated tool from an agent turn, create a `pending_approvals` entry (`tool_name="enable_skill_tool"`) and return `approval_id`; resolving that approval in Chat (`POST /api/approvals/{approval_id}/decision`) calls `enable_skill_tool` and activates the skill for the session, and toggling the tool in Capabilities Studio resolves any matching pending approval.
 
 ## What dies
 - Nothing (hardens existing `_static_native`, `save_skill_file`, and `ON_DEMAND_SHIPPED_SKILLS` single levers).
@@ -43,16 +43,19 @@ In live dogfooding (`session 75a7d7eb`, `session e0647574`, `session 9886cad3`):
   1. Verifies `capability-authoring` and `mcp-engineering` are listed as on-demand skills on `AutoReiv` and mount their tools on `skill_view`.
   2. Verifies `write_skill_file` rejects untyped `def run(**kwargs)` and hallucinated `from functions import ...` imports with a clear static-check error.
   3. Authors a file-access colocated tool in Chat, verifies an inline `enable_skill_tool` approval card appears in Chat, approves it inline without leaving Chat, and verifies the tool is enabled, mounted, and callable immediately on the next turn.
-- Checks: `tests/integration/test_card689_agora_inline_authoring.py`, `tests/unit/tools/test_card511_tool_check_service.py`.
+- Checks: `tests/integration/test_card689_agora_self_build_contract.py`, `tests/unit/architecture/test_card689_agora_self_build_and_auto_enable.py`, `tests/unit/tools/test_tool_check.py`.
 
 ## Plan and decisions
 - Approved by Jacob (`Option A`): Move `capability-authoring` and `mcp-engineering` to `ON_DEMAND_SHIPPED_SKILLS`, enforce typed `def run(...)` signatures and real module imports in `_static_native`, document the sandbox env contract in `authoring-guide.md`, and emit an inline `enable_skill_tool` HITL approval card in Chat when `write_skill_file` saves a non-`read_only` tool.
 
 ## Findings
+- Fixed (in-area): When an agent wrote `SKILL.md` with `tools: [<colocated_tool>]` before writing `tools/<colocated_tool>.py` in the same skill folder, `make_skill_write_guard` created a duplicate `attach_tool_to_skill` approval card alongside `enable_skill_tool`. Updated `resolve_pending_skill_tool_approvals` and `make_skill_write_guard` so colocated tools in `skills/<skill_id>/tools/<name>.py` are governed solely by `enable_skill_tool` / `.tool_approvals.json`.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-743-harden-agora-skill-authoring-and-inline` | desktop | PASS | Static check rejected untyped `**kwargs` and `from functions import ...`; inline `enable_skill_tool` card rendered, approved in Chat, and `check_wiki_root` executed (`/tmp/autoreiv-qa/card-743/card-743-harden-agora-skill-authoring-and-inline-desktop-02-in-chat-autoreiv-opens-capability-authoring-via-.png`, `/tmp/autoreiv-qa/card-743/card-743-harden-agora-skill-authoring-and-inline-desktop-03-approve-enable-skill-tool-inline-in-chat-and-exe.png`) |
+| `card-743-harden-agora-skill-authoring-and-inline` | phone | PASS | Single inline `enable_skill_tool` card rendered and approved in Chat; `check_wiki_root` enabled, mounted, and executed (`/tmp/autoreiv-qa/card-743/card-743-harden-agora-skill-authoring-and-inline-phone-02-in-chat-autoreiv-opens-capability-authoring-via-.png`, `/tmp/autoreiv-qa/card-743/card-743-harden-agora-skill-authoring-and-inline-phone-03-approve-enable-skill-tool-inline-in-chat-and-exe.png`) |
 
 ## Release note
 - **Fixed**: Hardened Agora skill and tool self-authoring by mounting `capability-authoring` and `mcp-engineering` on demand via `skill_view`, rejecting untyped `def run(**kwargs)` signatures and hallucinated module imports at static-check time, and emitting an inline Chat HITL approval card to enable non-`read_only` colocated tools (`CARD-743`).

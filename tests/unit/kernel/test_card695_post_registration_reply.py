@@ -135,6 +135,9 @@ async def test_stream_turn_synthesizes_reply_when_model_returns_empty_after_writ
     )
     kernel, store, reg = _build_kernel(tmp_path, llm)
     session = store.create_session(agent_id="autoreiv", title="dogfood-skill")
+    from src.application.skills.session_skills import record_session_skill_activation
+
+    record_session_skill_activation(session.id, "capability-authoring")
 
     events = [
         ev
@@ -191,6 +194,9 @@ async def test_run_turn_synthesizes_reply_when_model_returns_empty_after_write_s
     )
     kernel, store, _ = _build_kernel(tmp_path, llm)
     session = store.create_session(agent_id="autoreiv", title="dogfood-run-turn")
+    from src.application.skills.session_skills import record_session_skill_activation
+
+    record_session_skill_activation(session.id, "capability-authoring")
 
     reply = await kernel.run_turn(
         _autoreiv_profile(),

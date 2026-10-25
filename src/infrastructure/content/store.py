@@ -204,7 +204,7 @@ class _Kind:
         raw_skills = [str(s).strip() for s in (meta.get("skills") or []) if str(s).strip()]
         normalized = [CONSOLIDATED_SKILL_ALIASES.get(s, s) for s in raw_skills]
         consolidated_req = {
-            "capability-authoring", "project-cards", "software-development", "repo-onboarding",
+            "capability-authoring", "mcp-engineering", "project-cards", "software-development", "repo-onboarding",
             "spec-driven-development", "live-journeys", "web-search", "user:*",
         }
         missing_consolidated = not consolidated_req.issubset(set(normalized)) and "*" not in normalized
