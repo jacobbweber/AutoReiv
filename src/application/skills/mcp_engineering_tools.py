@@ -1,5 +1,5 @@
 """
-Enterprise MCP Server Engineering Tools [CARD-394, ADR-0054].
+Enterprise MCP Server Engineering Tools [CARD-394, CARD-745, ADR-0054].
 Provides tooling for scaffolding FastMCP servers, executing automated JSON-RPC 2.0 protocol testing,
 deploying containerized servers with health checks, and registering services into AutoReiv.
 """
@@ -18,7 +18,16 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.kernel.tool_registry import ScopedToolRegistry, get_tool_context
+from src.application.skills.mcp_docker_helpers import (
+    build_fastmcp_server_code,
+    build_mcp_dockerfile,
+    build_tool_code_block,
+    normalize_mcp_registration_url,
+    resolve_mcp_endpoint_url,
+    translate_volume_spec,
+    wait_for_mcp_http_health,
+)
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
@@ -58,6 +67,19 @@ class MCPEngineeringTools:
         clean = re.sub(r"_+", "_", clean).strip("_")
         return clean or "custom_mcp"
 
+    def _default_projects_dir(self) -> Path:
+        env_projects = os.environ.get("AUTOREIV_PROJECTS_DIR", "").strip()
+        if env_projects:
+            root = Path(env_projects).expanduser()
+        elif self.data_dir is not None:
+            root = Path(self.data_dir).expanduser() / "projects"
+        else:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            root = DataDirResolver().resolve().projects_path
+        root.mkdir(parents=True, exist_ok=True)
+        return root.resolve()
+
     def scaffold_mcp_server(
         self,
         name: str,
@@ -78,7 +100,6 @@ class MCPEngineeringTools:
                 "diagnostics": ["Provide a valid name, e.g. 'jira-connector' or 'redis_cache'."],
             }
 
-        # Parse tools_spec
         parsed_tools: List[Dict[str, Any]] = []
         if isinstance(tools_spec, str):
             try:
@@ -103,94 +124,21 @@ class MCPEngineeringTools:
             dest_dir = Path(target_dir).resolve()
         elif self.root_resolver is not None:
             try:
-                dest_dir = Path(self.root_resolver(None)).resolve() / clean_name
+                resolved = self.root_resolver(None)
             except Exception as exc:
                 return {"success": False, "error": str(exc)}
-        else:
-            dest_dir = Path("scratch") / "mcp_servers" / clean_name
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        tool_code_blocks = []
-        for tool in parsed_tools:
-            t_name = self._clean_server_name(tool.get("name", "example_tool"))
-            t_desc = tool.get("description", f"Executes {t_name} operation.")
-            params = tool.get("parameters", {})
-            param_signatures = []
-            param_docs = []
-            if isinstance(params, dict) and "properties" in params:
-                props = params.get("properties", {})
-                reqs = set(params.get("required", []))
-                for p_name, p_meta in props.items():
-                    p_type_str = p_meta.get("type", "string")
-                    py_type = "str"
-                    if p_type_str == "integer":
-                        py_type = "int"
-                    elif p_type_str == "number":
-                        py_type = "float"
-                    elif p_type_str == "boolean":
-                        py_type = "bool"
-                    elif p_type_str == "array":
-                        py_type = "list"
-                    elif p_type_str == "object":
-                        py_type = "dict"
-
-                    p_clean = re.sub(r"[^a-zA-Z0-9_]", "_", p_name)
-                    is_req = p_clean in reqs or p_name in reqs
-                    if is_req:
-                        param_signatures.append(f"{p_clean}: {py_type}")
-                    else:
-                        param_signatures.append(f"{p_clean}: Optional[{py_type}] = None")
-                    param_docs.append(f"        {p_clean}: {p_meta.get('description', 'Parameter')}")
-            elif isinstance(params, list):
-                for p in params:
-                    p_name = p.get("name", "arg")
-                    p_clean = re.sub(r"[^a-zA-Z0-9_]", "_", p_name)
-                    py_type = p.get("type", "str")
-                    if p.get("required", True):
-                        param_signatures.append(f"{p_clean}: {py_type}")
-                    else:
-                        param_signatures.append(f"{p_clean}: Optional[{py_type}] = None")
-                    param_docs.append(f"        {p_clean}: {p.get('description', 'Parameter')}")
-
-            sig_str = ", ".join(param_signatures)
-            doc_str = "\n".join(param_docs)
-            if doc_str:
-                full_doc = f'    """{t_desc}\n\n    Args:\n{doc_str}\n    """'
+            if resolved is not None:
+                dest_dir = Path(resolved).resolve() / clean_name
             else:
-                full_doc = f'    """{t_desc}"""'
+                dest_dir = self._default_projects_dir() / clean_name
+        else:
+            dest_dir = self._default_projects_dir() / clean_name
 
-            tool_block = f"""@mcp.tool()
-def {t_name}({sig_str}) -> str:
-{full_doc}
-    # Operational execution logic for {t_name}
-    return f"Executed {t_name} successfully."
-"""
-            tool_code_blocks.append(tool_block)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        tool_code_blocks = [build_tool_code_block(tool, self._clean_server_name) for tool in parsed_tools]
 
-        # Build server.py
-        server_py_content = f'''"""
-FastMCP Server: {clean_name}
-{description}
-"""
+        server_py_content = build_fastmcp_server_code(clean_name, description, tool_code_blocks)
 
-from typing import Any, Dict, List, Optional
-from mcp.server.fastmcp import FastMCP
-
-mcp = FastMCP("{clean_name}", description="{description}")
-
-
-@mcp.tool()
-def health() -> str:
-    """Health check endpoint for container and client monitoring [REQ-394-004]."""
-    return "OK"
-
-
-{chr(10).join(tool_code_blocks)}
-
-if __name__ == "__main__":
-    mcp.run(transport="stdio")
-'''
-
-        # Build pyproject.toml
         pyproject_content = f"""[project]
 name = "{clean_name}"
 version = "0.1.0"
@@ -210,29 +158,8 @@ build-backend = "hatchling.build"
 only-include = ["server.py"]
 """
 
-        # Build Dockerfile with non-root security and active HEALTHCHECK [REQ-394-004, REQ-394-005]
-        dockerfile_content = f"""# Multi-stage enterprise container for {clean_name}
-FROM python:3.12-slim
+        dockerfile_content = build_mcp_dockerfile(clean_name)
 
-WORKDIR /app
-
-# Non-root user creation for enterprise security hardening
-RUN useradd -m -u 1000 mcpuser
-
-COPY pyproject.toml README.md* server.py ./
-RUN pip install --no-cache-dir .
-
-USER mcpuser
-EXPOSE 8000
-
-# Automated healthcheck validation to prevent zombie processes [REQ-394-004, REQ-394-005]
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \\
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()" || exit 1
-
-CMD ["python", "server.py"]
-"""
-
-        # Build README.md
         readme_content = f"""# {clean_name}
 
 {description}
@@ -242,15 +169,10 @@ CMD ["python", "server.py"]
 python server.py
 ```
 
-## Running with FastMCP Inspector / Dev
-```bash
-mcp dev server.py
-```
-
 ## Building & Running with Docker
 ```bash
 docker build -t mcp-{clean_name}:latest .
-docker run -d --name mcp-{clean_name} -p 8000:8000 mcp-{clean_name}:latest
+docker run -d --name mcp-{clean_name} -p 8765:8000 mcp-{clean_name}:latest
 ```
 
 ## AutoReiv Registration
@@ -269,13 +191,10 @@ Register into AutoReiv using the `register_mcp_service` tool:
             "server_name": clean_name,
             "project_path": str(dest_dir),
             "files": ["server.py", "pyproject.toml", "Dockerfile", "README.md"],
-            "tools_count": len(parsed_tools) + 1,  # including health()
+            "tools_count": len(parsed_tools) + 1,
             "diagnostics": [
                 f"Scaffolded FastMCP project '{clean_name}' at {dest_dir}.",
-                "Contains typed schemas, non-root Dockerfile, and healthcheck.",
-                # CARD-516: the AutoReiv venv has no mcp SDK, so the default command cannot start it.
-                "server.py imports the MCP SDK: run it with a Python that has it (pip install mcp), "
-                "or the Docker image. The AutoReiv environment does not include it.",
+                "Contains typed schemas, dual stdio/SSE runtime, non-root Dockerfile, and healthcheck.",
             ],
         }
 
@@ -301,7 +220,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
         code = server_py.read_text(encoding="utf-8")
         diagnostics: List[str] = []
 
-        # 1. AST Syntax Analysis
         try:
             tree = ast.parse(code, filename=str(server_py))
         except SyntaxError as syn_err:
@@ -315,7 +233,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
                 ],
             }
 
-        # 2. Extract tools and validate JSON-RPC schema compliance
         discovered_tools: List[Dict[str, Any]] = []
         schema_errors: List[str] = []
 
@@ -323,7 +240,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
             if isinstance(node, ast.FunctionDef):
                 is_tool = False
                 for dec in node.decorator_list:
-                    # check @mcp.tool() or @tool()
                     if isinstance(dec, ast.Call):
                         func = dec.func
                         if isinstance(func, ast.Attribute) and func.attr == "tool":
@@ -337,7 +253,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
 
                 if is_tool:
                     tool_name = node.name
-                    # JSON-RPC tool name validation: no spaces, must match identifier regex
                     if not re.match(r"^[a-zA-Z0-9_-]+$", tool_name):
                         schema_errors.append(f"Tool '{tool_name}' contains invalid characters for JSON-RPC.")
 
@@ -345,7 +260,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     if not docstring:
                         diagnostics.append(f"Warning: Tool '{tool_name}' lacks a docstring description.")
 
-                    # Inspect parameters
                     tool_args = []
                     for arg in node.args.args:
                         arg_name = arg.arg
@@ -364,7 +278,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
                         }
                     )
 
-        # REQ-394-005 Negative assertion: Reject invalid JSON-RPC schemas
         if schema_errors:
             return {
                 "success": False,
@@ -375,7 +288,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
 
         diagnostics.append(f"AST Analysis complete. Found {len(discovered_tools)} tool definitions.")
 
-        # 3. Protocol verification: check if test_tool was requested
         if test_tool:
             matching = next((t for t in discovered_tools if t["name"] == test_tool), None)
             if not matching:
@@ -391,7 +303,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     ],
                 }
 
-            # Validate test_args against required params
             if test_args is not None and not isinstance(test_args, dict):
                 return {
                     "success": False,
@@ -400,8 +311,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     "diagnostics": ["Provide test arguments as a dictionary: {'param': 'val'}"],
                 }
 
-        # 4. Simulated JSON-RPC 2.0 handshake verification
-        # Tests standard initialize and tools/list protocol responses
         simulated_tools_list = [
             {
                 "name": t["name"],
@@ -432,14 +341,15 @@ Register into AutoReiv using the `register_mcp_service` tool:
         self,
         project_path: str,
         container_name: Optional[str] = None,
-        port: int = 8000,
+        port: int = 8765,
         env_vars: Optional[Dict[str, str]] = None,
+        volumes: Optional[List[str]] = None,
         check_health: bool = True,
         force_stdio: bool = False,
     ) -> Dict[str, Any]:
         """
         Deploy the MCP server into a Docker container with health checking,
-        or gracefully fall back to local stdio transport if Docker is unavailable [REQ-394-004, REQ-394-005].
+        or gracefully fall back to local stdio transport if Docker is unavailable [REQ-394-004, REQ-394-005, CARD-745].
         """
         p = Path(project_path).resolve()
         dockerfile = p / "Dockerfile"
@@ -452,7 +362,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
                 "diagnostics": ["Ensure the project has been scaffolded with Dockerfile."],
             }
 
-        # REQ-394-005 Negative assertion: Reject container deployments without health checks
         dockerfile_content = dockerfile.read_text(encoding="utf-8")
         if check_health and "HEALTHCHECK" not in dockerfile_content.upper():
             return {
@@ -466,8 +375,9 @@ Register into AutoReiv using the `register_mcp_service` tool:
             }
 
         c_name = container_name or f"mcp-{self._clean_server_name(p.name)}"
+        if int(port or 8765) == 8000:
+            port = 8765
 
-        # Check Docker CLI availability and daemon responsiveness
         docker_bin = shutil.which("docker") if not force_stdio else None
         docker_active = False
 
@@ -484,10 +394,8 @@ Register into AutoReiv using the `register_mcp_service` tool:
             except Exception as e:
                 logger.debug("Docker info check timed out or failed: %s", e)
 
-        # Path A: Docker daemon is active -> Build and run container
         if docker_active and docker_bin:
             try:
-                # 1. Build Docker image
                 build_cmd = [docker_bin, "build", "-t", f"{c_name}:latest", str(p)]
                 build_res = subprocess.run(
                     build_cmd,
@@ -495,7 +403,7 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    timeout=1800.0,  # CARD-592: image builds can be slow (was 180 s)
+                    timeout=1800.0,
                 )
                 if build_res.returncode != 0:
                     return {
@@ -504,8 +412,18 @@ Register into AutoReiv using the `register_mcp_service` tool:
                         "diagnostics": [build_res.stderr.strip()],
                     }
 
-                # 2. Run container
-                run_cmd = [docker_bin, "run", "-d", "--name", c_name, "-p", f"{port}:8000"]
+                subprocess.run(
+                    [docker_bin, "rm", "-f", c_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=15.0,
+                )
+
+                run_cmd = [docker_bin, "run", "-d", "--name", c_name, "-p", f"{port}:8000", "-e", "MCP_TRANSPORT=sse"]
+                for vol in volumes or []:
+                    vol_str = translate_volume_spec(str(vol))
+                    if vol_str:
+                        run_cmd.extend(["-v", vol_str])
                 if env_vars:
                     for k, v in env_vars.items():
                         run_cmd.extend(["-e", f"{k}={v}"])
@@ -517,7 +435,7 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    timeout=120.0,  # CARD-592 (was 30 s)
+                    timeout=120.0,
                 )
                 if run_res.returncode != 0:
                     return {
@@ -527,7 +445,8 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     }
 
                 container_id = run_res.stdout.strip()
-                endpoint_url = f"http://localhost:{port}/sse"
+                wait_for_mcp_http_health(port, timeout_s=3.0)
+                endpoint_url = resolve_mcp_endpoint_url(port)
 
                 return {
                     "success": True,
@@ -545,7 +464,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
             except Exception as exc:
                 logger.warning("Docker deployment encountered exception: %s. Falling back to stdio.", exc)
 
-        # Path B: Docker unavailable / daemon down -> Graceful stdio fallback
         return {
             "success": True,
             "mode": "stdio",
@@ -582,7 +500,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
         if not clean_name:
             return {"success": False, "error": "Invalid server name."}
 
-        # Resolve command and url based on transport
         cmd: Optional[List[str]] = None
         url: Optional[str] = None
 
@@ -594,9 +511,9 @@ Register into AutoReiv using the `register_mcp_service` tool:
             else:
                 cmd = [sys.executable, "server.py"]
         else:
-            url = str(url_or_command).strip() if url_or_command else "http://localhost:8000/sse"
+            raw_url = str(url_or_command).strip() if url_or_command else resolve_mcp_endpoint_url(8765)
+            url = normalize_mcp_registration_url(raw_url)
 
-        # CARD-511: check the server once before anything is saved or mounted.
         from src.application.tools.tool_check import ToolCheckService, record_check_on_job
 
         checker = self.tool_checker or ToolCheckService()
@@ -641,7 +558,6 @@ Register into AutoReiv using the `register_mcp_service` tool:
             "check": check.to_dict(),
         }
 
-        # 1. Update SQLite State Store (Single Lever Invariant)
         if self.state_store:
             servers = self.state_store.get_setting("mcp_servers")
             if not isinstance(servers, list):
@@ -653,10 +569,10 @@ Register into AutoReiv using the `register_mcp_service` tool:
                 servers.append(server_dict)
             self.state_store.set_setting("mcp_servers", servers)
 
-        # 2. Dynamic Live Mount & Companion SKILL.md authoring
         mounted = False
         mounted_tools: List[str] = []
         companion_written = False
+        companion_skill_id: Optional[str] = None
         mcp_mgr = self._get_mcp_manager()
 
         if mcp_mgr and enabled:
@@ -673,8 +589,13 @@ Register into AutoReiv using the `register_mcp_service` tool:
                 mounted_tools = [t.name for t in tools]
 
                 if tools:
-                    from src.infrastructure.mcp.companion_author import author_mcp_companion_skill
+                    from src.application.skills.session_skills import record_session_skill_activation
+                    from src.infrastructure.mcp.companion_author import (
+                        author_mcp_companion_skill,
+                        mcp_companion_skill_id,
+                    )
 
+                    companion_skill_id = mcp_companion_skill_id(clean_name)
                     skill_path = author_mcp_companion_skill(
                         server_name=clean_name,
                         tools=tools,
@@ -682,6 +603,11 @@ Register into AutoReiv using the `register_mcp_service` tool:
                         data_dir=self.data_dir,
                     )
                     companion_written = skill_path is not None
+                    if companion_written and companion_skill_id:
+                        ctx = get_tool_context() or {}
+                        sess_id = str(ctx.get("session_id") or "").strip() or None
+                        record_session_skill_activation(sess_id, companion_skill_id)
+                        record_session_skill_activation(None, companion_skill_id)
             except Exception as exc:
                 return {
                     "success": True,
@@ -698,16 +624,21 @@ Register into AutoReiv using the `register_mcp_service` tool:
             "success": True,
             "server_name": clean_name,
             "transport": transport,
+            "url": url,
             "saved": True,
             "mounted": mounted,
             "tool_count": len(mounted_tools),
             "tools": mounted_tools,
             "companion_skill_written": companion_written,
+            "companion_skill_id": companion_skill_id,
             "message": check.operator_message(),
             "check": check.to_dict(),
             "diagnostics": [
                 f"MCP server '{clean_name}' successfully registered in canonical store.",
-                f"Active mounted status: {mounted} ({len(mounted_tools)} tools discovered).",
+                f"Active mounted status: {mounted} ({len(mounted_tools)} tools discovered: {mounted_tools}).",
+                f"Companion skill '{companion_skill_id}' activated in this session; tools are mounted and ready to call."
+                if companion_skill_id
+                else "No companion skill generated.",
             ],
         }
 
@@ -715,18 +646,21 @@ Register into AutoReiv using the `register_mcp_service` tool:
         """Register MCP engineering tools into ScopedToolRegistry."""
         registry.register_tool(
             name="scaffold_mcp_server",
-            description="Scaffold an enterprise FastMCP project with typed schemas, non-root Dockerfile, and health check.",
+            description="Scaffold an enterprise FastMCP project with typed schemas, custom tool implementation bodies, non-root Dockerfile, and health check.",
             parameters={
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string", "description": "Unique server name (e.g. 'jira_tools', 'snowflake')."},
+                    "name": {"type": "string", "description": "Unique server name (e.g. 'host_fs_mcp', 'jira_tools')."},
                     "description": {"type": "string", "description": "Description of the server and its tools."},
                     "tools_spec": {
                         "type": "array",
                         "items": {"type": "object"},
-                        "description": "List of tool specifications or JSON array with name, description, parameters.",
+                        "description": (
+                            "List of tool specifications with 'name', 'description', 'parameters' (JSON Schema object), "
+                            "and optional 'code' (Python function body string returning the tool output)."
+                        ),
                     },
-                    "target_dir": {"type": "string", "description": "Optional destination directory."},
+                    "target_dir": {"type": "string", "description": "Optional destination directory (defaults to $AUTOREIV_PROJECTS_DIR/<name>)."},
                     "transport": {"type": "string", "enum": ["stdio", "sse"], "default": "stdio"},
                 },
                 "required": ["name", "description", "tools_spec"],
@@ -751,14 +685,19 @@ Register into AutoReiv using the `register_mcp_service` tool:
 
         registry.register_tool(
             name="deploy_mcp_container",
-            description="Deploy an MCP server into a Docker container with healthcheck monitoring or fallback to local stdio.",
+            description="Deploy an MCP server into a Docker container with healthcheck monitoring (and optional host volume mounts) or fallback to local stdio.",
             parameters={
                 "type": "object",
                 "properties": {
                     "project_path": {"type": "string", "description": "Path to the MCP server project directory."},
                     "container_name": {"type": "string", "description": "Optional Docker container name."},
-                    "port": {"type": "integer", "default": 8000, "description": "Host port mapping."},
+                    "port": {"type": "integer", "default": 8765, "description": "Host port mapping (use 8765+; avoid 8000 which AutoReiv uses)."},
                     "env_vars": {"type": "object", "description": "Environment variables dictionary."},
+                    "volumes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional Docker bind-mount volume strings (e.g. ['/home/spark:/host:ro']).",
+                    },
                     "check_health": {"type": "boolean", "default": True, "description": "Enforce HEALTHCHECK."},
                     "force_stdio": {"type": "boolean", "default": False, "description": "Force local stdio transport."},
                 },
@@ -770,9 +709,8 @@ Register into AutoReiv using the `register_mcp_service` tool:
         registry.register_tool(
             name="register_mcp_service",
             description=(
-                "Register a newly deployed MCP server into AutoReiv's canonical store and mount it live. "
-                "The server is started, listed and called once first [CARD-511]; a result starting "
-                "'Not registered:' means nothing was saved: tell the operator, fix the server, call again."
+                "Register a newly deployed MCP server into AutoReiv's canonical store, mount it live, and activate its "
+                "companion skill ('mcp-<name>') in the current session. The server is started, listed and called once first [CARD-511]."
             ),
             parameters={
                 "type": "object",
@@ -780,7 +718,7 @@ Register into AutoReiv using the `register_mcp_service` tool:
                     "name": {"type": "string", "description": "Server name."},
                     "transport": {"type": "string", "enum": ["stdio", "sse", "http"], "default": "stdio"},
                     "url_or_command": {
-                        "description": "Endpoint URL (for sse/http) or CLI command list/string (for stdio).",
+                        "description": "Endpoint URL (e.g. 'http://host.docker.internal:8765/sse' for sse/http) or CLI command list/string (for stdio).",
                     },
                     "headers": {"type": "object", "description": "Optional HTTP headers."},
                     "env": {"type": "object", "description": "Optional environment variables."},

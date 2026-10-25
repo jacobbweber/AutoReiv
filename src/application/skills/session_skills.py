@@ -56,30 +56,38 @@ def _first_skill(skills: Any) -> str:
 
 
 def session_activated_skills_from_history(history: Optional[Iterable[Any]] = None) -> set[str]:
-    """Extract skill ids opened via ``skill_view`` or authored via ``write_skill_file`` in history [CARD-688, CARD-689]."""
+    """Extract skill ids opened via ``skill_view``, authored via ``write_skill_file``, or mounted via ``register_mcp_service`` in history [CARD-688, CARD-689, CARD-745]."""
     activated: set[str] = set()
     for msg in history or []:
         for tc in getattr(msg, "tool_calls", None) or []:
-            if getattr(tc, "name", None) not in ("skill_view", "write_skill_file"):
+            tc_name = getattr(tc, "name", None)
+            if tc_name not in ("skill_view", "write_skill_file", "register_mcp_service"):
                 continue
             args = getattr(tc, "arguments", None) or getattr(tc, "args", None) or {}
             if isinstance(args, dict):
-                sid = (
-                    args.get("skill_id")
-                    or args.get("skill_name")
-                    or args.get("id")
-                    or args.get("name")
-                    or _first_skill(args.get("skills"))
-                )
-                if sid and str(sid).strip():
-                    activated.add(str(sid).strip())
-        if getattr(msg, "name", None) in ("skill_view", "write_skill_file"):
+                if tc_name == "register_mcp_service":
+                    srv = str(args.get("name") or "").strip()
+                    if srv:
+                        from src.infrastructure.mcp.companion_author import mcp_companion_skill_id
+
+                        activated.add(mcp_companion_skill_id(srv))
+                else:
+                    sid = (
+                        args.get("skill_id")
+                        or args.get("skill_name")
+                        or args.get("id")
+                        or args.get("name")
+                        or _first_skill(args.get("skills"))
+                    )
+                    if sid and str(sid).strip():
+                        activated.add(str(sid).strip())
+        if getattr(msg, "name", None) in ("skill_view", "write_skill_file", "register_mcp_service"):
             content = getattr(msg, "content", None)
             if isinstance(content, str) and content.strip().startswith("{"):
                 try:
                     payload = json.loads(content)
                     if isinstance(payload, dict) and payload.get("success"):
-                        sid = payload.get("id") or payload.get("skill_id")
+                        sid = payload.get("companion_skill_id") or payload.get("id") or payload.get("skill_id")
                         if sid and str(sid).strip():
                             activated.add(str(sid).strip())
                 except ValueError:

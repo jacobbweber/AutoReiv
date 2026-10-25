@@ -2,7 +2,7 @@
 id: CARD-745
 title: "Make MCP engineering Docker-aware and support host/Docker MCP container deployment from inside Docker"
 type: feature
-status: Ready
+status: Done
 priority: P2
 milestone: M34
 needs_decision: none
@@ -10,7 +10,7 @@ proof:
   journeys: [card-745-docker-aware-mcp-engineering-and-host]
   checks: [tests/integration/test_card745_docker_aware_mcp_engineering.py]
 branch: feat/card-745-docker-aware-mcp-engineering-and-host
-log: {minutes: 0, qa_runs: 0, findings: 0}
+log: {minutes: 35, qa_runs: 2, findings: 1}
 created: 2026-10-24
 ---
 
@@ -24,10 +24,10 @@ From inside the running `autoreiv-control-plane` Docker container, `AutoReiv` ca
 
 ## Change
 - `Dockerfile`, `docker-compose.yml`: include the static `docker` CLI binary in the runtime image, pass `AUTOREIV_PROJECTS_HOST_PATH` into the container environment, and mount `/var/run/docker.sock` so `deploy_mcp_container` can build and launch sibling MCP containers on the host daemon.
-- `src/application/skills/mcp_engineering_tools.py`:
-  1. Default `scaffold_mcp_server` `target_dir` to `$AUTOREIV_PROJECTS_DIR/<name>` (falling back to `$AUTOREIV_DATA_DIR/projects/<name>`) instead of `scratch/mcp_servers/<name>`, and generate FastMCP `server.py` supporting both `stdio` and `sse` (`MCP_TRANSPORT=sse`, `/health` route, and custom tool implementation bodies via `code` in `tools_spec`).
-  2. In `deploy_mcp_container`, translate container paths under `$AUTOREIV_PROJECTS_DIR` to `$AUTOREIV_PROJECTS_HOST_PATH` when needed, support optional `volumes: list[str]` (e.g. `["/home/spark:/host:ro"]`), replace any stale container with the same name (`docker rm -f`), wait for container health, and return `http://host.docker.internal:<port>/sse` when `AUTOREIV_DEPLOY_MODE=docker` (or inside `/.dockerenv`).
-  3. In `register_mcp_service`, normalize `localhost` / `127.0.0.1` URLs to `host.docker.internal` when running inside Docker and `localhost` is unreachable, and auto-tick the generated `mcp-<name>` companion skill on the calling agent so the newly mounted `mcp_<Name>_*` tools are immediately callable in the same session.
+- `src/application/skills/mcp_docker_helpers.py`, `src/application/skills/mcp_engineering_tools.py`:
+  1. Default `scaffold_mcp_server` `target_dir` to `$AUTOREIV_PROJECTS_DIR/<name>` (falling back to `$AUTOREIV_DATA_DIR/projects/<name>`) instead of `scratch/mcp_servers/<name>`, and generate dual-mode `stdio` + HTTP/SSE JSON-RPC 2.0 `server.py` (`MCP_TRANSPORT=sse`, `/health` and `/sse` routes, and custom tool implementation bodies via `code` in `tools_spec`).
+  2. In `deploy_mcp_container`, translate container paths under `$AUTOREIV_PROJECTS_DIR` to `$AUTOREIV_PROJECTS_HOST_PATH` when needed, support optional `volumes: list[str]` (e.g. `["/home/spark:/host:ro"]`), replace any stale container with the same name (`docker rm -f`), wait for `/health`, and return `http://host.docker.internal:<port>/sse` when `AUTOREIV_DEPLOY_MODE=docker` (or inside `/.dockerenv`).
+  3. In `register_mcp_service`, normalize `localhost` / `127.0.0.1` URLs to `host.docker.internal` when running inside Docker and `localhost` is unreachable, and record `mcp-<name>` session skill activation (`record_session_skill_activation` + `session_activated_skills_from_history`) so the newly mounted `mcp_<Name>_*` tools are immediately callable in the same turn and subsequent turns.
 - `platform/skills/mcp-engineering/SKILL.md`: document the Docker/Host MCP workflow (scaffolding into `/data/projects/<name>`, passing custom tool `code` and host `volumes`, deploying to the host Docker daemon, and registering via `http://host.docker.internal:<port>/sse`).
 
 ## What dies
@@ -40,13 +40,16 @@ From inside the running `autoreiv-control-plane` Docker container, `AutoReiv` ca
 - Checks: `tests/integration/test_card745_docker_aware_mcp_engineering.py`.
 
 ## Plan and decisions
-- Approved by Jacob (`Option A`): Make `scaffold_mcp_server`, `deploy_mcp_container`, and `register_mcp_service` Docker- and host-aware (`$AUTOREIV_PROJECTS_DIR`, host volume mounts, `host.docker.internal` endpoint resolution, and auto-ticking the `mcp-<name>` companion skill for immediate session use).
+- Approved by Jacob (`Option A`): Make `scaffold_mcp_server`, `deploy_mcp_container`, and `register_mcp_service` Docker- and host-aware (`$AUTOREIV_PROJECTS_DIR`, host volume mounts, `host.docker.internal` endpoint resolution, and auto-activating the `mcp-<name>` companion skill for immediate session use).
 
 ## Findings
+- Fixed (in-area): `session_activated_skills_from_history` in `src/application/skills/session_skills.py` only restored skills activated via `skill_view`, so `mcp-<name>` companion skills registered via `register_mcp_service` were not kept active across follow-up turns in the same session. Updated `register_mcp_service` to include `companion_skill_id` and `session_activated_skills_from_history` to restore `mcp-<name>` from `register_mcp_service` tool results.
 
 ## Results
 | Journey | Viewport | Result | Notes |
 |---|---|---|---|
+| `card-745-docker-aware-mcp-engineering-and-host` | desktop | PASS | `/tmp/autoreiv-qa/card-745/card-745-docker-aware-mcp-engineering-and-host-desktop-01-in-chat-autoreiv-opens-mcp-engineering-scaffolds.png`, `/tmp/autoreiv-qa/card-745/card-745-docker-aware-mcp-engineering-and-host-desktop-02-in-chat-autoreiv-deploys-host-fs-mcp-in-docker-w.png`, `/tmp/autoreiv-qa/card-745/card-745-docker-aware-mcp-engineering-and-host-desktop-03-verify-host-fs-mcp-is-registered-in-canonical-mc.png` |
+| `card-745-docker-aware-mcp-engineering-and-host` | phone | PASS | `/tmp/autoreiv-qa/card-745/card-745-docker-aware-mcp-engineering-and-host-phone-02-in-chat-autoreiv-deploys-host-fs-mcp-in-docker-w.png`, `/tmp/autoreiv-qa/card-745/card-745-docker-aware-mcp-engineering-and-host-phone-03-verify-host-fs-mcp-is-registered-in-canonical-mc.png` |
 
 ## Release note
 - **Added**: Made `mcp-engineering` Docker- and host-aware (`$AUTOREIV_PROJECTS_DIR` scaffolding, custom tool implementation bodies, host volume mounts, `host.docker.internal` endpoint resolution, and immediate session mounting of `mcp-<name>` companion skills) (`CARD-745`).

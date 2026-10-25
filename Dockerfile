@@ -40,6 +40,8 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
     ln -s ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack
 # uv and uvx for Python projects.
 COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /uvx /usr/local/bin/
+# Docker CLI for building and launching sibling MCP containers via /var/run/docker.sock [CARD-745].
+COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
 
 # Godot headless for game projects (export, tests, scripts). Build with --build-arg INSTALL_GODOT=0 to leave it out.
 ARG INSTALL_GODOT=1
