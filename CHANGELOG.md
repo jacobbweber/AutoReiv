@@ -11,6 +11,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Fixed
 
+- Hardened M34 live dogfooding by mounting `wiki_note_move` and `wiki_note_delete` alongside `wiki_note_create`, excluding skill/MCP authoring prompts from `wiki_thin_grounding`, rejecting `sys.exit()` in colocated tools, co-activating `mcp-engineering` when `capability-authoring` is opened, and reconciling stale `autoreiv.md` prompt bodies (`CARD-746`).
 - Hardened Agora skill and tool self-authoring by mounting `capability-authoring` and `mcp-engineering` on demand via `skill_view`, rejecting untyped `def run(**kwargs)` signatures and hallucinated module imports at static-check time, and emitting an inline Chat HITL approval card to enable non-`read_only` colocated tools [CARD-743].
 
 ## [1.5.4] - 2026-10-24
