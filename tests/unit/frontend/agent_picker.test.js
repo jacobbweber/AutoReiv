@@ -60,7 +60,7 @@ const AGENTS = [
   { id: 'tutor', name: 'Tutor', show_in_chat: true },
 ];
 
-describe('CARD-637 Routines / Observe / Tools pickers across agents:loaded refreshes', () => {
+describe('CARD-637 Routines / Observe pickers across agents:loaded refreshes', () => {
   let selects;
   let store;
 
@@ -75,7 +75,6 @@ describe('CARD-637 Routines / Observe / Tools pickers across agents:loaded refre
     selects = {
       routinesFilterAgent: createSelect('routinesFilterAgent', ''),
       observeAgentKpiSelect: createSelect('observeAgentKpiSelect', ''),
-      toolsStudioAgentSelect: createSelect('toolsStudioAgentSelect', ''),
     };
     globalThis.document = {
       getElementById: (id) => selects[id] || null,
@@ -88,7 +87,7 @@ describe('CARD-637 Routines / Observe / Tools pickers across agents:loaded refre
       const bound = bindStudioAgentPickers(AGENTS, {});
       expect(bound.routines).toBe('');
       expect(bound.observability).toBe('');
-      expect(bound.tools).toBe('');
+      expect(bound.tools).toBeUndefined();
     }
     expect(selects.routinesFilterAgent.value).toBe('');
     expect(selects.routinesFilterAgent.options[0].textContent).toBe('All agents');

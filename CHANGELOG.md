@@ -4,6 +4,19 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-10-24
+
+Single-lever active context cleanup across Projects Studio (`Set Active`), Education Studio (`Set active` with `Active Selected Study Context` prompt injection), and Chat (`#chatActiveProjectPill` on desktop and phone), plus pruning of the superseded `#view-skill-studio` and `#view-tools-studio` DOM trees and controllers (`CARD-740`..`CARD-742`).
+
+### Changed
+
+- Retired the redundant `Pair with Developer` button (`#projectsPairDeveloperBtn`) from Projects Studio so `Set Active` (`PUT /api/projects/selected`) and `#chatActiveProjectPill` remain the single lever for active project context [CARD-740].
+
+### Fixed
+
+- Pruned the superseded `#view-skill-studio` and `#view-tools-studio` DOM trees and unmounted `skill_studio.js` / `tools_studio.js` controllers so `#view-capabilities` (`capabilities_studio.js`) is the single Capabilities Studio surface [CARD-742].
+- Prevented `#agentSelect` and `#chatActiveProjectPill` from overlapping in the Chat top bar on `390px` phone screens, retired the redundant `Pair Tutor` button (`#educationPairTutorBtn`) in Education Studio in favor of `Set active` (`#educationSetActiveContextBtn`), and injected `## Active Selected Study Context` into `Tutor`'s system prompt on every turn [CARD-741].
+
 ## [1.5.3] - 2026-10-21
 
 Wiki and Education Agora skill consolidation with progressive `references/*.md` guides, reduced Turn 1 pinned tool schemas, and end-to-end active-project SDLC and `Tutor` study progression hardening (`CARD-738`..`CARD-739`).

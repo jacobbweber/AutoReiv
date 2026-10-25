@@ -164,6 +164,9 @@ export function initApp() {
     try {
       if (tabName === 'chat' && chatCtrl) {
         chatCtrl.updateActiveAgentHeader();
+        if (typeof chatCtrl.syncActiveProjectIndicator === 'function') {
+          chatCtrl.syncActiveProjectIndicator();
+        }
         if (!state.sessions || state.sessions.length === 0) {
           chatCtrl.loadSessions();
         }

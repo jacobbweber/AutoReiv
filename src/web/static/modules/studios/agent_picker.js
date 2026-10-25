@@ -12,11 +12,13 @@ export const PICKER_KEYS = Object.freeze({
   agents: 'autoreiv_forge_selected_agent_id',
   routines: 'autoreiv_routines_filter_agent',
   observability: 'autoreiv_observe_selected_agent_id',
-  tools: 'autoreiv_tools_studio_agent_id',
 });
 
-/** Picker keys whose studio is retired (CARD-496: the Factory, ADR-0060). */
-export const RETIRED_PICKER_STORAGE_KEYS = Object.freeze(['autoreiv_factory_selected_agent_id']);
+/** Picker keys whose studio is retired (CARD-496: Factory; CARD-742: Tools Studio). */
+export const RETIRED_PICKER_STORAGE_KEYS = Object.freeze([
+  'autoreiv_factory_selected_agent_id',
+  'autoreiv_tools_studio_agent_id',
+]);
 
 /**
  * Remove stored selections for retired studio pickers [CARD-496 D8].
@@ -239,26 +241,6 @@ export function bindStudioAgentPickers(agents, { state, root } = {}) {
     });
     storageSet(PICKER_KEYS.observability, bound.observability || '');
     remember(observeEl, PICKER_KEYS.observability);
-  }
-
-  const toolsEl = doc.getElementById('toolsStudioAgentSelect');
-  if (toolsEl) {
-    const toolsAgents = sortStudioAgentsAlphabetically(list.filter(isStudioAgentVisible));
-    const toolsIds = ['', ...toolsAgents.map((a) => a.id)];
-    const toolsSelected = resolvePickerSelection({
-      currentValue: toolsEl.value,
-      storedValue: storageGet(PICKER_KEYS.tools),
-      validIds: toolsIds,
-      placeholders: [''],
-      fallback: '',
-    });
-    bound.tools = fillAgentSelect(toolsEl, toolsAgents, {
-      selectedId: toolsSelected,
-      label: formatAgentSelectOption,
-      leading: { value: '', text: 'Select an agent' },
-    });
-    storageSet(PICKER_KEYS.tools, bound.tools || '');
-    remember(toolsEl, PICKER_KEYS.tools);
   }
 
   return bound;

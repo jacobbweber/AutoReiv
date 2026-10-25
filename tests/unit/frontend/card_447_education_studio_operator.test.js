@@ -258,4 +258,23 @@ describe('CARD-447 Education Studio operator + Tutor context', () => {
   it('agent id default remains tutor', () => {
     expect(STUDY_TUTOR_AGENT_ID).toBe('tutor');
   });
+
+  it('[CARD-741] Chat top bar keeps #chatEngineSelector shrink-0 with flex-wrap so #agentSelect and #chatActiveProjectPill do not overlap on phone', () => {
+    const chatHtml = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/web/templates/partials/chat.html'),
+      'utf-8',
+    );
+    expect(chatHtml).toMatch(/id="chatEngineSelector"[^>]*class="[^"]*shrink-0/);
+    expect(chatHtml).not.toMatch(/id="chatEngineSelector"[^>]*class="[^"]*min-w-0/);
+    expect(chatHtml).toMatch(/<select\s+id="agentSelect"[^>]*class="[^"]*min-w-\[150px\]/);
+  });
+
+  it('[CARD-741] Education Studio retires redundant #educationPairTutorBtn and syncs Players context chrome on Set active', () => {
+    expect(html).not.toContain('id="educationPairTutorBtn"');
+    expect(html).not.toContain('Pair Tutor');
+    expect(operatorJs).not.toContain('educationPairTutorBtn');
+    expect(operatorJs).toContain("const playerTopicEl = $('educationPlayerContextTopic');");
+    expect(operatorJs).toContain("const playerCourseEl = $('educationPlayerContextCourse');");
+  });
 });
+

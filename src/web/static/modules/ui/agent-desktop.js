@@ -166,8 +166,6 @@ export const VIEW_BY_TAB = {
   projects: 'view-projects',
   agents: 'view-agents',
   capabilities: 'view-capabilities',
-  'skill-studio': 'view-skill-studio',
-  'tools-studio': 'view-tools-studio',
   routines: 'view-routines',
   observability: 'view-observability',
   settings: 'view-settings',
@@ -179,14 +177,16 @@ export const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
 /**
  * Map the operator studio name onto a desktop tab id.
- * "observe" is the Observability window. [CARD-408]
+ * "observe" is the Observability window; legacy "skill-studio" and "tools-studio" map to "capabilities". [CARD-408, CARD-742]
  * @param {string} tab
  * @returns {string}
  */
 export function resolveDesktopStudioTab(tab) {
   const raw = String(tab || '').trim();
   if (!raw) return '';
-  if (raw.toLowerCase() === 'observe') return 'observability';
+  const lower = raw.toLowerCase();
+  if (lower === 'observe') return 'observability';
+  if (lower === 'skill-studio' || lower === 'tools-studio') return 'capabilities';
   return raw;
 }
 

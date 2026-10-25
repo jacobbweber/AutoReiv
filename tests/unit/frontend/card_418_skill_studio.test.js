@@ -8,7 +8,11 @@ import fs from 'fs';
 import path from 'path';
 import { DOCK_LAUNCHERS, VIEW_BY_TAB } from '../../../src/web/static/modules/ui/agent-desktop.js';
 import { openWindow } from '../../../src/web/static/modules/ui/agent_desktop/window.js';
-import { planSkillStudioDeepLink, SKILL_STUDIO_LABEL, SKILL_STUDIO_TAB } from '../../../src/web/static/modules/studios/skill_studio.js';
+import {
+  CAPABILITIES_STUDIO_LABEL,
+  CAPABILITIES_STUDIO_TAB,
+  planCapabilitiesStudioDeepLink,
+} from '../../../src/web/static/modules/studios/capabilities_studio.js';
 import { applyLoadedSkillView } from '../../../src/web/static/modules/studios/skill_studio/workshop_meta.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -17,25 +21,19 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-function sliceView(html, startId, endId) {
-  const start = html.indexOf(`id="${startId}"`);
-  const end = html.indexOf(`id="${endId}"`);
-  expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
-  return html.slice(start, end);
-}
-
-describe('Skill Studio dock and deep link [CARD-418]', () => {
+describe('Capabilities Studio dock and skill deep link [CARD-418, CARD-742]', () => {
   const html = read('src/web/templates/index.html');
-  const skillView = sliceView(html, 'view-skill-studio', 'artifactModal');
+  const capView = html.slice(html.indexOf('id="view-capabilities"'));
 
-  it('dock open presents Capabilities Studio and VIEW_BY_TAB keeps skill-studio without the Factory agent brief [REQ-418-001, CARD-692]', () => {
+  it('dock open presents Capabilities Studio and retires view-skill-studio [REQ-418-001, CARD-692, CARD-742]', () => {
     const capLauncher = DOCK_LAUNCHERS.find((d) => d.tab === 'capabilities');
     expect(capLauncher).toBeTruthy();
     expect(capLauncher.id).toBe('dock-capabilities');
-    expect(DOCK_LAUNCHERS.find((d) => d.tab === SKILL_STUDIO_TAB)).toBeUndefined();
-    expect(SKILL_STUDIO_LABEL).toBe('Skill Studio');
-    expect(VIEW_BY_TAB[SKILL_STUDIO_TAB]).toBe('view-skill-studio');
+    expect(DOCK_LAUNCHERS.find((d) => d.tab === 'skill-studio')).toBeUndefined();
+    expect(CAPABILITIES_STUDIO_LABEL).toBe('Capabilities');
+    expect(VIEW_BY_TAB[CAPABILITIES_STUDIO_TAB]).toBe('view-capabilities');
+    expect(VIEW_BY_TAB['skill-studio']).toBeUndefined();
+    expect(html).not.toContain('id="view-skill-studio"');
 
     const switched = [];
     const created = [];
@@ -73,25 +71,20 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
     expect(win.tab).toBe('capabilities');
     expect(switched).not.toContain('factory');
 
-    expect(skillView).toContain('id="factoryExistingSkillSelect"');
-    expect(skillView).toContain('id="factoryNewSkillFormBtn"');
-    expect(skillView).toContain('id="factorySkillMarkdownEditor"');
-    expect(skillView).toContain('id="factoryCapabilitiesContainer"');
-    expect(skillView).toContain('id="factorySaveSkillBtn"');
-    expect(skillView).not.toContain('data-testid="factory-skill-tier-advanced"');
-    expect(skillView).not.toContain('id="factorySkillTierSelect"');
-    expect(skillView).not.toContain('id="factoryAgentPromptInput"');
-    expect(skillView).not.toContain('id="factoryIntakeAgentCard"');
+    expect(capView).toContain('id="capabilitiesTreeList"');
+    expect(capView).toContain('id="capabilitiesNewSkillBtn"');
+    expect(capView).toContain('id="capabilitiesSaveFileBtn"');
+    expect(capView).not.toContain('id="factoryAgentPromptInput"');
+    expect(capView).not.toContain('id="factoryIntakeAgentCard"');
   });
 
-  it('Forge open hydrates a catalog skill in Skill Studio [REQ-418-002]', () => {
-    const plan = planSkillStudioDeepLink({ agentId: 'autoreiv', skillId: 'wiki-knowledge' });
-    expect(plan.tab).toBe('skill-studio');
-    expect(plan.label).toBe('Skill Studio');
+  it('Forge open hydrates a catalog skill in Capabilities Studio [REQ-418-002]', () => {
+    const plan = planCapabilitiesStudioDeepLink({ agentId: 'autoreiv', skillId: 'wiki-knowledge' });
+    expect(plan.tab).toBe('capabilities');
+    expect(plan.label).toBe('Capabilities');
     expect(plan.skillId).toBe('wiki-knowledge');
     expect(plan.agentId).toBe('autoreiv');
-    expect(plan.writeSurface).toBe('skill-studio');
-    expect(plan.writeSurface).not.toBe('factory');
+    expect(plan.filePath).toBe('SKILL.md');
 
     const view = applyLoadedSkillView({
       skill_id: 'wiki-knowledge',
@@ -117,26 +110,21 @@ describe('Skill Studio dock and deep link [CARD-418]', () => {
     expect(missing.ok).toBe(false);
   });
 
-  it('Factory is not a second skill write surface and Forge does not save [REQ-418-003, REQ-418-004]', () => {
-    // CARD-496: the Factory view is gone; its editor ids now exist only once, inside Skill Studio.
+  it('Factory and Skill Studio are not second skill write surfaces and Forge does not save [REQ-418-003, REQ-418-004]', () => {
     expect(html).not.toContain('id="view-factory"');
+    expect(html).not.toContain('id="view-skill-studio"');
     expect(html).not.toContain('id="factoryIntakeAgentCard"');
-    for (const id of ['factorySaveSkillBtn', 'factorySkillMarkdownEditor', 'factoryExistingSkillSelect', 'factoryCapabilitiesContainer']) {
-      expect(html.split(`id="${id}"`).length - 1, id).toBe(1);
-      expect(skillView, id).toContain(`id="${id}"`);
-    }
 
     const runbook = read('src/web/static/modules/studios/forge/runbook.js');
-    const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
+    const capStudio = read('src/web/static/modules/studios/capabilities_studio.js');
     expect(runbook).toContain('Manage skills'); // CARD-656: header link, not per row
     expect(html).not.toContain('id="studioRunbookEditor"');
     expect(html).not.toContain('Open in Factory Workshop');
     expect(html).not.toContain('Author skill in Factory');
     expect(runbook).not.toContain("method: 'PUT'");
     expect(runbook).not.toContain('studioRunbookSaveBtn');
-    expect(skillStudio).toContain('/api/skill_studio/save');
-    expect(skillStudio).toContain('tools');
-    // CARD-496: the Factory window is gone, so Skill Studio is the only caller of the save route.
+    expect(capStudio).toContain('api.capabilities.saveFile');
     expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/factory.js'))).toBe(false);
+    expect(fs.existsSync(path.join(repoRoot, 'src/web/static/modules/studios/skill_studio.js'))).toBe(false);
   });
 });

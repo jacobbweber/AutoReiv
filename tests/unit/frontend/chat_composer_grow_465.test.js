@@ -261,9 +261,7 @@ describe('setComposerText shared setter [REQ-465-005/009]', () => {
     'modules/studios/chat.js',
     'modules/studios/chat/stream.js',
     'modules/studios/chat/composer.js',
-    'modules/studios/tools_studio.js',
     'modules/studios/prompts.js',
-    'modules/studios/projects.js',
   ];
 
   it.each(writeSites)('%s writes the composer only through setComposerText', (rel) => {

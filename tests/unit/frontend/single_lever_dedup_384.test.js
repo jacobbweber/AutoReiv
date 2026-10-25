@@ -56,13 +56,13 @@ describe('CARD-384: Single Lever Audit & Shadow Function Deduplication', () => {
       expect(content).not.toContain('function isMobile');
     });
 
-    it('skill_studio.js and forge.js do not declare raw document.execCommand copy fallbacks', () => {
-      // CARD-496: factory.js is deleted; Skill Studio took over its workshop.
-      const skillPath = path.resolve('src/web/static/modules/studios/skill_studio.js');
+    it('capabilities_studio.js and forge.js do not declare raw document.execCommand copy fallbacks', () => {
+      // CARD-496 / CARD-742: factory.js and skill_studio.js are deleted; Capabilities Studio owns skills.
+      const capPath = path.resolve('src/web/static/modules/studios/capabilities_studio.js');
       const forgePath = path.resolve('src/web/static/modules/studios/forge.js');
-      const skillContent = fs.readFileSync(skillPath, 'utf-8');
+      const capContent = fs.readFileSync(capPath, 'utf-8');
       const forgeContent = fs.readFileSync(forgePath, 'utf-8');
-      expect(skillContent).not.toContain("document.execCommand('copy')");
+      expect(capContent).not.toContain("document.execCommand('copy')");
       expect(forgeContent).not.toContain("document.execCommand('copy')");
     });
   });

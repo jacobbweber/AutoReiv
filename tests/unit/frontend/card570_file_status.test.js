@@ -26,9 +26,9 @@ describe('CARD-570 agent and skill file status', () => {
     expect(skillFileStatusText({ shipped: false })).toBe('Your skill.');
   });
 
-  it('Skill Studio and Agent Studio have the status hosts', () => {
+  it('Capabilities Studio and Agent Studio have the status hosts', () => {
     const html = fs.readFileSync(path.join(repoRoot, 'src/web/templates/index.html'), 'utf-8');
-    expect(html).toContain('id="skillStudioFileStatus"');
+    expect(html).toContain('id="capabilitiesActiveSourceBadge"');
     expect(html).toContain('id="forgeUseShippedBtn"');
   });
 });

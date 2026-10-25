@@ -11,9 +11,6 @@ import { openWindow } from '../../../src/web/static/modules/ui/agent_desktop/win
 import {
   TOOLS_STUDIO_LABEL,
   TOOLS_STUDIO_TAB,
-  planToolsStudioDeepLink,
-} from '../../../src/web/static/modules/studios/tools_studio.js';
-import {
   buildCatalogGroups,
   buildMcpSaveBody,
   fetchMcpServers,
@@ -21,6 +18,7 @@ import {
   formatMcpAttachStatus,
   loadCatalogModel,
   mcpEndpoints,
+  planToolsStudioDeepLink,
   renderCatalogMarkup,
   renderMcpServerListMarkup,
   renderMcpStatusRowsMarkup,
@@ -81,21 +79,22 @@ const platformServers = [
   },
 ];
 
-describe('Tools Studio dock [CARD-421]', () => {
+describe('Tools Studio consolidated into Capabilities Studio [CARD-421, CARD-692, CARD-742]', () => {
   const html = read('src/web/templates/index.html');
-  const toolsView = sliceView(html, 'view-tools-studio', 'manageTonesModal');
+  const capView = html.slice(html.indexOf('id="view-capabilities"'));
   const settingsView = sliceView(html, 'view-settings', 'view-wiki');
   const agentsView = sliceView(html, 'view-agents', 'view-settings');
-  const skillView = sliceView(html, 'view-skill-studio', 'artifactModal');
 
-  it('dock open presents Capabilities Studio while VIEW_BY_TAB keeps tools-studio catalog and MCP attach [REQ-421-001, CARD-692]', () => {
+  it('dock open presents Capabilities Studio while retiring view-tools-studio [REQ-421-001, CARD-692, CARD-742]', () => {
     const capLauncher = DOCK_LAUNCHERS.find((item) => item.tab === 'capabilities');
     expect(capLauncher).toBeTruthy();
     expect(capLauncher.id).toBe('dock-capabilities');
     expect(DOCK_LAUNCHERS.find((item) => item.tab === TOOLS_STUDIO_TAB)).toBeUndefined();
     expect(TOOLS_STUDIO_LABEL).toBe('Tools Studio');
-    expect(VIEW_BY_TAB[TOOLS_STUDIO_TAB]).toBe('view-tools-studio');
+    expect(VIEW_BY_TAB[TOOLS_STUDIO_TAB]).toBeUndefined();
+    expect(VIEW_BY_TAB.capabilities).toBe('view-capabilities');
     expect(html).toContain('id="tab-capabilities"');
+    expect(html).not.toContain('id="view-tools-studio"');
 
     const switched = [];
     const created = [];
@@ -128,24 +127,20 @@ describe('Tools Studio dock [CARD-421]', () => {
     expect(created).toEqual(['Capabilities']);
     expect(switched).toEqual(['capabilities']);
     expect(win.tab).toBe('capabilities');
-    expect(toolsView).toContain('id="toolsStudioCatalog"');
-    expect(toolsView).toContain('id="toolsStudioFilterSearch"');
-    expect(toolsView).toContain('id="toolsStudioFilterSource"');
-    expect(toolsView).toContain('id="toolsStudioFilterStatus"');
-    expect(toolsView).toContain('id="toolsStudioMcpList"');
-    expect(toolsView).toContain('id="toolsStudioMcpSaveBtn"');
-    expect(toolsView).toContain('id="toolsStudioScopeSelect"');
-    expect(toolsView).toContain('id="toolsStudioAgentSelect"');
-    expect(toolsView).not.toContain('skill_tool_bindings');
+    expect(capView).toContain('id="capabilitiesMcpPane"');
+    expect(capView).toContain('id="capabilitiesMcpList"');
+    expect(capView).toContain('id="capabilitiesMcpSaveBtn"');
+    expect(capView).toContain('id="capabilitiesMcpScopeSelect"');
+    expect(capView).toContain('id="capabilitiesMcpAgentSelect"');
+    expect(capView).not.toContain('skill_tool_bindings');
   });
 
-  it('does not ship MCP hosting controls or a tool code editor [REQ-421-006]', () => {
-    expect(toolsView).not.toContain('Ask developer');
-    expect(toolsView).not.toContain('/api/mcp/sse');
-    expect(toolsView).not.toContain('Hosted MCP Server');
-    expect(toolsView).not.toContain('id="toolsStudioCodeInput"');
-    expect(toolsView).not.toContain('monaco');
-    const studio = read('src/web/static/modules/studios/tools_studio.js');
+  it('does not ship MCP hosting controls in Capabilities Studio [REQ-421-006]', () => {
+    expect(capView).not.toContain('Ask developer');
+    expect(capView).not.toContain('/api/mcp/sse');
+    expect(capView).not.toContain('Hosted MCP Server');
+    expect(capView).not.toContain('id="toolsStudioCodeInput"');
+    const studio = read('src/web/static/modules/studios/capabilities_studio.js');
     expect(studio).not.toContain('skill_tool_bindings');
     expect(studio).not.toContain('Ask developer');
     expect(studio).not.toContain('/api/mcp/sse');
@@ -183,18 +178,11 @@ describe('Tools Studio dock [CARD-421]', () => {
     expect(forgeTools).not.toContain('/mcp/test');
     expect(forgeTools).not.toContain('btn-delete-server');
 
-    const saveCount = (html.match(/id="toolsStudioMcpSaveBtn"/g) || []).length;
+    const saveCount = (html.match(/id="capabilitiesMcpSaveBtn"/g) || []).length;
     expect(saveCount).toBe(1);
   });
 
-  it('Skill Studio still binds tools with catalog checkboxes [REQ-421-004]', () => {
-    expect(skillView).toContain('id="factoryCapabilitiesContainer"');
-    expect(skillView).toContain('Select to bind to skill');
-    expect(skillView).toContain('id="factoryToolSearchInput"');
-    const skillStudio = read('src/web/static/modules/studios/skill_studio.js');
-    expect(skillStudio).toContain('type="checkbox"');
-    expect(skillStudio).toContain('data-tool-name');
-    expect(skillStudio).toContain('tools');
+  it('catalog markup renders read-only rows without checkboxes [REQ-421-004]', () => {
     const markup = renderCatalogMarkup(buildCatalogGroups({
       namespaces: sampleNamespaces,
       platformServers,

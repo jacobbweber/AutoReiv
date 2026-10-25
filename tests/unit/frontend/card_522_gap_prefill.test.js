@@ -13,7 +13,7 @@ import {
   titleCaseCapability,
 } from '../../../src/web/static/modules/studios/skill_studio/gap_prefill.js';
 import { SKILL_DESCRIPTION_LIMIT } from '../../../src/web/static/modules/studios/skill_studio/workshop_meta.js';
-import { planSkillStudioDeepLink } from '../../../src/web/static/modules/studios/skill_studio.js';
+import { planCapabilitiesStudioDeepLink } from '../../../src/web/static/modules/studios/capabilities_studio.js';
 import { capabilityGapRowHtml, openGapInSkillStudio } from '../../../src/web/static/modules/studios/forge/tools.js';
 
 const GAP = {
@@ -83,17 +83,16 @@ describe('gap prefill draft [CARD-522]', () => {
   });
 });
 
-describe('gap payload reaches Skill Studio [CARD-522]', () => {
+describe('gap payload reaches Capabilities Studio [CARD-522, CARD-742]', () => {
   it('Open in Skill Studio passes the gap', () => {
     const openSkillStudio = vi.fn();
     expect(openGapInSkillStudio('autoreiv', { openSkillStudio }, GAP)).toBe(true);
     expect(openSkillStudio).toHaveBeenCalledWith('autoreiv', null, { gap: GAP });
   });
 
-  it('the deep link carries the gap for a new skill only', () => {
-    expect(planSkillStudioDeepLink({ agentId: 'autoreiv', gap: GAP }).gap).toBe(GAP);
-    expect(planSkillStudioDeepLink({ agentId: 'autoreiv', skillId: 'wiki-knowledge', gap: GAP }).gap).toBeNull();
-    expect(planSkillStudioDeepLink({ agentId: 'autoreiv' }).gap).toBeNull();
+  it('the deep link carries the gap into capabilities studio', () => {
+    expect(planCapabilitiesStudioDeepLink({ agentId: 'autoreiv', gap: GAP }).gap).toBe(GAP);
+    expect(planCapabilitiesStudioDeepLink({ agentId: 'autoreiv' }).gap).toBeNull();
   });
 
   it('a gap row renders Build with AutoReiv as the primary button and notes when the tool is not built yet', () => {

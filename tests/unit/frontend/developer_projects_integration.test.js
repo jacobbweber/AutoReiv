@@ -1,7 +1,7 @@
 /**
- * CARD-391: Developer Agent and Projects Studio Workspace Integration.
- * Verifies that #projectsPairDeveloperBtn bridges Projects Studio with Developer in Chat Studio,
- * and #chatActiveProjectPill provides active workspace indication and round-trip navigation.
+ * CARD-391 / CARD-740: Projects Studio and Chat Studio Active Project Single Lever.
+ * Verifies that #projectsPairDeveloperBtn is retired and Set Active + #chatActiveProjectPill
+ * provides active workspace indication and round-trip navigation.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -14,15 +14,19 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-describe('Developer Agent and Projects Studio Workspace Integration [CARD-391]', () => {
+describe('Projects Studio and Chat Active Project Single Lever [CARD-391, CARD-740]', () => {
   const html = read('src/web/templates/index.html');
+  const wikiProjectsHtml = read('src/web/templates/partials/wiki_projects.html');
   const projectsJs = read('src/web/static/modules/studios/projects.js');
   const chatJs = read('src/web/static/modules/studios/chat.js');
 
-  it('[REQ-391-002] index.html provides Pair with Developer button in Projects Studio header', () => {
-    expect(html).toContain('id="projectsPairDeveloperBtn"');
-    expect(html).toContain('Pair with Developer');
-    expect(html).toContain('data-lucide="code-2"');
+  it('[CARD-740] Projects Studio header retires redundant Pair with Developer button', () => {
+    expect(html).not.toContain('id="projectsPairDeveloperBtn"');
+    expect(html).not.toContain('Pair with Developer');
+    expect(wikiProjectsHtml).not.toContain('id="projectsPairDeveloperBtn"');
+    expect(wikiProjectsHtml).not.toContain('Pair with Developer');
+    expect(wikiProjectsHtml).toContain('id="projectsActiveName"');
+    expect(wikiProjectsHtml).toContain('id="projectsActiveBadge"');
   });
 
   it('[REQ-391-001] index.html provides active project pill in Chat Studio header', () => {
@@ -32,21 +36,14 @@ describe('Developer Agent and Projects Studio Workspace Integration [CARD-391]',
     expect(html).toContain('Active Project — click to open in Projects Studio');
   });
 
-  it('[REQ-391-002] projects.js controls Pair with Developer button visibility based on active project', () => {
-    expect(projectsJs).toContain("const pairDevBtn = $('projectsPairDeveloperBtn');");
-    expect(projectsJs).toContain("pairDevBtn.classList.remove('hidden');");
-    expect(projectsJs).toContain("pairDevBtn.classList.add('hidden');");
-  });
-
-  it('[REQ-391-002] projects.js wires Pair with Developer click to switch to Chat, select Developer, and populate prompt', () => {
-    expect(projectsJs).toContain("pairDeveloperBtn.addEventListener('click'");
-    expect(projectsJs).toContain("$('tab-chat')");
-    expect(projectsJs).toContain("agentSelect.value = 'autoreiv'");
-    expect(projectsJs).toContain("agentSelect.dispatchEvent(new Event('change'))");
-    expect(projectsJs).toContain("$('promptInput')");
-    // CARD-465: composer writes go through the shared setter so the box resizes
-    expect(projectsJs).toContain('setComposerText(');
-    expect(projectsJs).toContain("`I'm pairing with you on ${projName}");
+  it('[CARD-740] projects.js updates active project badge without Pair with Developer button or composer prefill', () => {
+    expect(projectsJs).toContain("const activeName = $('projectsActiveName');");
+    expect(projectsJs).toContain("const activeBadge = $('projectsActiveBadge');");
+    expect(projectsJs).not.toContain('projectsPairDeveloperBtn');
+    expect(projectsJs).not.toContain('pairDevBtn');
+    expect(projectsJs).not.toContain('pairDeveloperBtn');
+    expect(projectsJs).not.toContain("I'm pairing with you on");
+    expect(projectsJs).not.toContain('setComposerText');
   });
 
   it('[REQ-391-001] chat.js caches chatActiveProjectPill and chatActiveProjectName elements', () => {
@@ -69,9 +66,12 @@ describe('Developer Agent and Projects Studio Workspace Integration [CARD-391]',
     expect(chatJs).toContain("chatActiveProjectPill.classList.add('hidden')");
   });
 
-  it('[REQ-391-SINGLE-LEVER] Zero duplicate levers: Developer uses canonical project root resolver without hardcoded fallback paths', () => {
-    // Assert no parallel ad-hoc project indicators or duplicate agent switchers
+  it('[REQ-391-SINGLE-LEVER] Zero duplicate levers: Set Active + chatActiveProjectPill is the single project binding path', () => {
+    const appJs = read('src/web/static/app.js');
     expect(html).not.toContain('id="chatActiveProjectPillSecondary"');
+    expect(html).not.toContain('id="projectsPairDeveloperBtn"');
     expect(html).not.toContain('id="projectsPairDeveloperBtnSecondary"');
+    expect(appJs).toContain('chatCtrl.syncActiveProjectIndicator()');
   });
 });
+

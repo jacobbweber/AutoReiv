@@ -19,14 +19,6 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-function sliceView(html, startId, endId) {
-  const start = html.indexOf(`id="${startId}"`);
-  const end = html.indexOf(`id="${endId}"`, start + 1);
-  expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
-  return html.slice(start, end);
-}
-
 const namespaces = [
   {
     id: 'builtin',
@@ -52,9 +44,8 @@ const namespaces = [
   },
 ];
 
-describe('Tools Studio origin labels [CARD-423]', () => {
+describe('Tools Studio origin labels [CARD-423, CARD-742]', () => {
   const html = read('src/web/templates/index.html');
-  const toolsView = sliceView(html, 'view-tools-studio', 'manageTonesModal');
 
   it('labels platform, native custom, and MCP by server [REQ-423-005]', () => {
     const groups = buildCatalogGroups({ namespaces });
@@ -82,15 +73,10 @@ describe('Tools Studio origin labels [CARD-423]', () => {
     expect(renderCatalogMarkup(filterCatalogGroups(groups, { status: 'available' }))).toContain('ask_clarification');
   });
 
-  it('keeps a path as text and does not add a folder picker [REQ-423-003]', () => {
-    expect(toolsView).toContain('id="toolsStudioPathInput"');
-    expect(toolsView).toContain('type="text"');
-    expect(toolsView).toContain('value="native"');
-    expect(toolsView).toContain('note only');
-    expect(toolsView).toContain('value="native">Native custom');
-    expect(toolsView).not.toContain('webkitdirectory');
-    expect(toolsView).not.toContain('type="file"');
-    expect(toolsView).not.toContain('folder picker');
+  it('does not add a folder picker and refuses packaging in tools_studio_authoring.js [REQ-423-003]', () => {
+    expect(html).not.toContain('id="view-tools-studio"');
+    expect(html).not.toContain('webkitdirectory');
+    expect(html).not.toContain('folder picker');
     const authoring = read('src/web/static/modules/studios/tools_studio_authoring.js');
     expect(authoring).toContain("throw new Error('Tools Studio must not apply tool packaging from this form.')");
   });
