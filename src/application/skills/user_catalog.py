@@ -262,7 +262,7 @@ class UserSkillCatalog:
         return raw
 
     def _activate_skill_for_session(self, skill_id: str) -> List[str]:
-        """Record session activation and ensure enabled colocated tools are mounted [CARD-688]."""
+        """Record session activation and ensure enabled colocated tools are mounted [CARD-688, CARD-746]."""
         from src.application.agent_skills.allowed_tools import platform_seed_tools
         from src.application.kernel.tool_registry import get_tool_context
         from src.application.skills.agora_loader import mount_all_enabled_skill_tools
@@ -270,11 +270,17 @@ class UserSkillCatalog:
 
         session_id = (get_tool_context() or {}).get("session_id")
         record_session_skill_activation(session_id, skill_id)
+        active_ids = [skill_id]
+        if skill_id == "capability-authoring":
+            allowed = self._allowed_skill_ids_for_current_agent()
+            if allowed is None or "mcp-engineering" in allowed:
+                record_session_skill_activation(session_id, "mcp-engineering")
+                active_ids.append("mcp-engineering")
         try:
             store = get_store()
             if self.tool_registry is not None:
                 mount_all_enabled_skill_tools(store, self.tool_registry)
-            return list(platform_seed_tools([skill_id]))
+            return list(platform_seed_tools(active_ids))
         except Exception:
             return []
 

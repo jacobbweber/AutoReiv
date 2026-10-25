@@ -90,6 +90,13 @@ def create_wiki_note_impl(
             res_dict["vault_root"] = vault_root
             res_dict["relative_path"] = res_dict.get("path", "")
             res_dict["template"] = extra_frontmatter.get("template", effective_template)
+            if str(res_dict.get("path", "")).startswith("00_Inbox/"):
+                res_dict["note"] = (
+                    "Staged in 00_Inbox/ per One-Door Policy. To move this note to a folder in "
+                    "01_Notes/ or 02_Resources/, call wiki_note_move(source_path='"
+                    + str(res_dict.get("path", ""))
+                    + "', destination_path='<target_path>')."
+                )
         return res_dict
 
     if relative_path:
