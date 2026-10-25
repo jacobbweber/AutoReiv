@@ -2,7 +2,7 @@
 id: CARD-743
 title: "Harden Agora skill and tool self-authoring with on-demand mounting, AST import/signature validation, and inline chat approval"
 type: bug
-status: In Review
+status: Done
 priority: P1
 milestone: M34
 needs_decision: none
@@ -12,6 +12,7 @@ proof:
 branch: feat/card-743-harden-agora-skill-authoring-and-inline
 log: {minutes: 30, qa_runs: 2, findings: 1}
 created: 2026-10-24
+completed: 2026-10-25
 ---
 
 # CARD-743 Harden Agora skill and tool self-authoring with on-demand mounting, AST import/signature validation, and inline chat approval
