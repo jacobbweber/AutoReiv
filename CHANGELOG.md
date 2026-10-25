@@ -6,6 +6,7 @@ What changed in each AutoReiv release, newest first.
 
 ### Added
 
+- Made `mcp-engineering` Docker- and host-aware (`$AUTOREIV_PROJECTS_DIR` scaffolding, custom tool implementation bodies, host volume mounts, `host.docker.internal` endpoint resolution, and immediate session mounting of `mcp-<name>` companion skills) (`CARD-745`).
 - Added HITL-gated `wiki_note_delete` and `wiki_note_move` tools to `wiki-curation` with automatic pruning of empty parent topic folders (`CARD-744`).
 
 ### Fixed
