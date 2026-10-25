@@ -354,10 +354,20 @@ def _static_native(code: str) -> tuple[Optional[str], list[str]]:
         return reason, []
     warnings: list[str] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
-            note = f"uses {node.func.id}() (line {node.lineno})"
-            if note not in warnings:
-                warnings.append(note)
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and func.id in {"exit", "quit"}:
+                return "Do not call sys.exit() or exit() inside a tool; return a dict with an 'error' key instead.", []
+            if (
+                isinstance(func, ast.Attribute)
+                and isinstance(func.value, ast.Name)
+                and ((func.value.id == "sys" and func.attr == "exit") or (func.value.id == "os" and func.attr == "_exit"))
+            ):
+                return "Do not call sys.exit() or exit() inside a tool; return a dict with an 'error' key instead.", []
+            if isinstance(func, ast.Name) and func.id in {"eval", "exec"}:
+                note = f"uses {func.id}() (line {node.lineno})"
+                if note not in warnings:
+                    warnings.append(note)
         if isinstance(node, ast.ExceptHandler) and node.type is None:
             warnings.append(f"bare except (line {node.lineno})")
     return None, warnings

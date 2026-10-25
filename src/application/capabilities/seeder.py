@@ -28,6 +28,8 @@ CANONICAL_SYNONYMS: dict[str, list[str]] = {
     "wiki_note_read": ["read", "lookup", "view", "get", "fetch", "note", "wiki", "document"],
     "wiki_note_search": ["search", "find", "query", "lookup", "filter", "note", "wiki"],
     "wiki_note_organize": ["organize", "triage", "move", "rename", "graduate", "archive", "note", "wiki"],
+    "wiki_note_move": ["move", "rename", "relocate", "folder", "note", "wiki", "path"],
+    "wiki_note_delete": ["delete", "remove", "unlink", "prune", "folder", "note", "wiki"],
 }
 
 

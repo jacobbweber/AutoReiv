@@ -80,7 +80,10 @@ def session_activated_skills_from_history(history: Optional[Iterable[Any]] = Non
                         or _first_skill(args.get("skills"))
                     )
                     if sid and str(sid).strip():
-                        activated.add(str(sid).strip())
+                        clean_sid = str(sid).strip()
+                        activated.add(clean_sid)
+                        if clean_sid == "capability-authoring":
+                            activated.add("mcp-engineering")
         if getattr(msg, "name", None) in ("skill_view", "write_skill_file", "register_mcp_service"):
             content = getattr(msg, "content", None)
             if isinstance(content, str) and content.strip().startswith("{"):
@@ -89,7 +92,10 @@ def session_activated_skills_from_history(history: Optional[Iterable[Any]] = Non
                     if isinstance(payload, dict) and payload.get("success"):
                         sid = payload.get("companion_skill_id") or payload.get("id") or payload.get("skill_id")
                         if sid and str(sid).strip():
-                            activated.add(str(sid).strip())
+                            clean_sid = str(sid).strip()
+                            activated.add(clean_sid)
+                            if clean_sid == "capability-authoring":
+                                activated.add("mcp-engineering")
                 except ValueError:
                     pass
     return activated

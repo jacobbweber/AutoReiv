@@ -68,6 +68,8 @@ _PROVENANCE_TOOLS = frozenset(
         "wiki_note_read",
         "wiki_note_update",
         "wiki_note_organize",
+        "wiki_note_move",
+        "wiki_note_delete",
         "wiki_note_archive",
         "wiki_template_create",
         "wiki_template_update",
@@ -75,10 +77,18 @@ _PROVENANCE_TOOLS = frozenset(
         "tool.wiki_note_read",
         "tool.wiki_note_update",
         "tool.wiki_note_organize",
+        "tool.wiki_note_move",
+        "tool.wiki_note_delete",
         "tool.wiki_note_archive",
         "tool.wiki_template_create",
         "tool.wiki_template_update",
     }
+)
+_NON_WIKI_CAPABILITY_ASK_RE = re.compile(
+    r"\b(create\s+a\s+(?:new\s+)?skill|author\s+a\s+skill|colocated\s+tool|native\s+tool"
+    r"|mcp\s+server|write_skill_file|scaffold_mcp_server|deploy_mcp_container"
+    r"|register_mcp_service|enable_skill_tool)\b|\brun\s+[a-z0-9_]+_[a-z0-9_]+\b",
+    re.IGNORECASE,
 )
 
 
@@ -114,10 +124,14 @@ def is_wiki_related_ask(intent: str | None) -> bool:
     text = (intent or "").strip()
     if not text:
         return False
+    lower = text.lower()
+    if "wiki_note_" in lower:
+        return True
+    if _NON_WIKI_CAPABILITY_ASK_RE.search(text):
+        return False
     if _WIKI_ASK_RE.search(text):
         return True
-    lower = text.lower()
-    return "wiki_note_" in lower or "00_inbox" in lower
+    return "00_inbox" in lower
 
 
 def is_wiki_create_ask(intent: str | None) -> bool:
@@ -392,7 +406,10 @@ def collect_provenanced_paths_from_tool_result(
         except Exception:
             return [normalize_wiki_path(m.group("path")) for m in _PATH_RE.finditer(text)]
     paths: list[str] = []
-    keys_to_check = ("path", "relative_path", "note_path", "target_path", "archive_path", "dest_path")
+    keys_to_check = (
+        "path", "relative_path", "note_path", "target_path", "archive_path", "dest_path",
+        "source_path", "destination_path",
+    )
     if isinstance(payload, Mapping):
         for key in keys_to_check:
             p = normalize_wiki_path(str(payload.get(key) or ""))

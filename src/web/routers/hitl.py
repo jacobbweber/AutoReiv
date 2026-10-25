@@ -112,7 +112,7 @@ def _decide_enable_skill_tool(request: Request, record: Dict[str, Any], decision
         **base,
         "output": (
             f"Enabled and mounted '{tool_name}' in skill '{skill_id}'. "
-            f"The skill is active for this session and '{tool_name}' can be called on the next message."
+            f"The skill is active for this session; call `{tool_name}` directly as a tool call on the next message (there is no `run_tool` wrapper)."
         ),
         "tool_spec": {k: v for k, v in spec.items() if k != "code"},
     }
