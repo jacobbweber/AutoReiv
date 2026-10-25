@@ -21,6 +21,7 @@ services:
       - AUTOREIV_WIKI_PATH=${AUTOREIV_WIKI_PATH:-/data/wiki}
       # ADR-0067 / CARD-731: projects folder (clone, build and run projects here)
       - AUTOREIV_PROJECTS_DIR=/data/projects
+      - AUTOREIV_PROJECTS_HOST_PATH=${AUTOREIV_PROJECTS_HOST_PATH:-}
       # Optional GitHub token for private clones and pushes over HTTPS (git_clone / git_pull / git_push)
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - PORT=8000
@@ -57,6 +58,10 @@ services:
       # Host projects folder (optional; open the same folder in VS Code on the host).
       # Example Windows: D:/AutoReivProjects   Example Linux: /home/you/projects
       - ${AUTOREIV_PROJECTS_HOST_PATH:-autoreiv-projects}:/data/projects
+      # Host Docker daemon socket for deploying sibling MCP containers [CARD-745]
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID:-988}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
