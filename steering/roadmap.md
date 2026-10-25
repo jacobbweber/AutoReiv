@@ -36,6 +36,7 @@
 - [x] **1.5.4 released 2026-10-24** (tag `v1.5.4`): single-lever active context cleanup across Projects Studio (`Set Active`), Education Studio (`Set active` with `Active Selected Study Context` prompt injection), and Chat (`#chatActiveProjectPill` on desktop and phone), plus pruning of the superseded `#view-skill-studio` and `#view-tools-studio` DOM trees and controllers (`CARD-740`..`CARD-742`). Every card on the board and every item in `docs/findings.md` is Done.
 
 ## Next
+- [ ] **M34 Self-Authoring Reliability, Wiki Curation Lifecycle & Docker/Host MCP Engineering**: move `capability-authoring` and `mcp-engineering` to on-demand session mounting on `AutoReiv`, harden `write_skill_file` static checks (typed `def run(...)` signature, import resolution against hallucinated modules, sandbox env contract) with inline Chat HITL approval to enable colocated tools (`CARD-743`); add HITL-gated `wiki_note_delete` and `wiki_note_move` with empty-folder pruning to `wiki-curation` (`CARD-744`); and make `mcp-engineering` Docker-aware so `AutoReiv` running in Docker can scaffold, deploy, and mount host/Docker MCP servers (`CARD-745`).
 
 ## Horizon
 The parked ideas (Studio Maker, Help Studio, companion, video and others: CARD-146, 170, 275, 277, 280, 283-289, 331, 393, 466, 487, 493, 494, 499, 542) were closed as not pursued before 1.0. Any of them can come back as a new card.

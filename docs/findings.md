@@ -11,3 +11,5 @@ Format: `- YYYY-MM-DD | area | symptom | from CARD-N | suspected files`
 
 ## M33 Domain Skill Consolidation (Wiki & Education) & Real-Project Dogfooding
 
+## M34 Self-Authoring Reliability, Wiki Curation Lifecycle & Docker/Host MCP Engineering
+
