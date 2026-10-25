@@ -4,6 +4,10 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-10-24
+
+Single-lever active context cleanup across Projects Studio (`Set Active`), Education Studio (`Set active` with `Active Selected Study Context` prompt injection), and Chat (`#chatActiveProjectPill` on desktop and phone), plus pruning of the superseded `#view-skill-studio` and `#view-tools-studio` DOM trees and controllers (`CARD-740`..`CARD-742`).
+
 ### Changed
 
 - Retired the redundant `Pair with Developer` button (`#projectsPairDeveloperBtn`) from Projects Studio so `Set Active` (`PUT /api/projects/selected`) and `#chatActiveProjectPill` remain the single lever for active project context [CARD-740].
