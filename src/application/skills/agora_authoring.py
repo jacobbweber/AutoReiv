@@ -42,8 +42,71 @@ from src.application.skills.agora_loader import (
     enable_skill_tool,
 )
 from src.application.skills.session_skills import record_session_skill_activation
-from src.application.tools.tool_check import ToolCheckService, access_warning, detect_access
+from src.application.tools.tool_check import ToolCheckResult, ToolCheckService, access_warning, detect_access
 from src.infrastructure.content.store import check_id, split_frontmatter
+
+ENABLE_SKILL_TOOL_PROPOSAL = "enable_skill_tool"
+
+
+def _validate_agora_tool_signature(tool_name: str, code: str) -> Optional[str]:
+    """Reject untyped `def run(**kwargs)` or unannotated parameters in Agora colocated tools [CARD-743]."""
+    try:
+        tree = ast.parse(code or "")
+    except SyntaxError:
+        return None
+    run_fn: Optional[ast.FunctionDef | ast.AsyncFunctionDef] = None
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "run":
+            run_fn = node
+            break
+    if run_fn is None:
+        return None
+    args = run_fn.args
+    explicit_args = [
+        a
+        for a in list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs)
+        if a.arg not in ("self", "cls")
+    ]
+    if args.kwarg is not None and not explicit_args:
+        return (
+            f"Agora tool tools/{tool_name}.py must declare explicit typed parameters on "
+            "def run(param: str, ...) -> dict instead of untyped def run(**kwargs) so its JSON Schema can be inferred."
+        )
+    unannotated = [a.arg for a in explicit_args if a.annotation is None]
+    if unannotated:
+        return (
+            f"Agora tool tools/{tool_name}.py must declare explicit typed parameters on def run(...) "
+            f"(missing type annotations for: {', '.join(unannotated)})."
+        )
+    return None
+
+
+def resolve_pending_skill_tool_approvals(
+    state_store: Any,
+    skill_id: str,
+    tool_name: str,
+    decision: str = "APPROVED",
+    include_enable: bool = True,
+) -> None:
+    """Resolve open `enable_skill_tool` (and redundant `attach_tool_to_skill`) approval rows for `(skill_id, tool_name)` [CARD-743]."""
+    if state_store is None or not hasattr(state_store, "get_pending_approvals"):
+        return
+    try:
+        for row in state_store.get_pending_approvals():
+            tname = row.get("tool_name")
+            r_args = row.get("arguments") or {}
+            if include_enable and tname == ENABLE_SKILL_TOOL_PROPOSAL:
+                if r_args.get("skill_id") == skill_id and r_args.get("tool_name") == tool_name:
+                    aid = str(row.get("id") or "")
+                    if aid and hasattr(state_store, "resolve_approval"):
+                        state_store.resolve_approval(approval_id=aid, decision=decision)
+            elif tname == "attach_tool_to_skill":
+                if r_args.get("skill_id") == skill_id and r_args.get("tool") == tool_name:
+                    aid = str(row.get("id") or "")
+                    if aid and hasattr(state_store, "resolve_approval"):
+                        state_store.resolve_approval(approval_id=aid, decision=decision)
+    except Exception:
+        pass
 
 
 def _ensure_user_skill_md(store: Any, skill_id: str) -> Path:
@@ -153,6 +216,7 @@ async def save_skill_file(
     sample_arguments: Optional[Mapping[str, Any]] = None,
     state_store: Any = None,
     approval_mode: Optional[str] = None,
+    create_inline_approval: bool = False,
 ) -> Dict[str, Any]:
     """Write `SKILL.md`, `references/<name>.md`, or `tools/<name>.py` into `<data>/skills/<skill_id>/`."""
     if store is None or store.skills.user_dir is None:
@@ -234,6 +298,26 @@ async def save_skill_file(
             if callable(get_origin) and get_origin(tool_name) == "platform":
                 raise ValueError(f"Tool '{tool_name}' collides with a platform built-in tool.")
 
+        sig_err = _validate_agora_tool_signature(tool_name, text)
+        if sig_err:
+            sig_check = ToolCheckResult(
+                tool=tool_name,
+                lane="native",
+                status="failed",
+                stage="static",
+                error=sig_err,
+                stages=[{"name": "static", "ok": False}],
+            )
+            return {
+                "success": False,
+                "saved": False,
+                "skill_id": clean_id,
+                "path": f"tools/{filename}",
+                "tool_name": tool_name,
+                "check": sig_check.to_dict(),
+                "message": sig_check.operator_message(),
+            }
+
         params, declared_risk, risk_level = _infer_spec_from_source(tool_name, text)
         svc = checker or ToolCheckService()
         check = await svc.check_native(
@@ -276,6 +360,7 @@ async def save_skill_file(
         warn = access_warning(list(check.access or []))
         if auto_enable:
             spec = enable_skill_tool(store, clean_id, tool_name, tool_registry=tool_registry)
+            resolve_pending_skill_tool_approvals(state_store, clean_id, tool_name, decision="APPROVED")
             _activate_current_session(clean_id)
             return {
                 "success": True,
@@ -300,6 +385,51 @@ async def save_skill_file(
             }
 
         spec = disable_skill_tool(store, clean_id, tool_name, tool_registry=tool_registry)
+        resolve_pending_skill_tool_approvals(
+            state_store, clean_id, tool_name, decision="REJECTED", include_enable=False
+        )
+        ctx = get_tool_context() or {}
+        session_id = str(ctx.get("session_id") or "").strip()
+        agent_id = str(ctx.get("agent_id") or "autoreiv").strip() or "autoreiv"
+        approval_id: Optional[str] = None
+        if (
+            state_store is not None
+            and (session_id or create_inline_approval)
+            and hasattr(state_store, "create_approval")
+        ):
+            target_session = session_id or "capability-proposal"
+            try:
+                if hasattr(state_store, "get_pending_approvals"):
+                    for row in state_store.get_pending_approvals(session_id=target_session):
+                        if row.get("tool_name") == ENABLE_SKILL_TOOL_PROPOSAL:
+                            r_args = row.get("arguments") or {}
+                            if r_args.get("skill_id") == clean_id and r_args.get("tool_name") == tool_name:
+                                approval_id = str(row.get("id") or "")
+                                break
+                if not approval_id:
+                    approval_id = state_store.create_approval(
+                        session_id=target_session,
+                        agent_id=agent_id,
+                        tool_name=ENABLE_SKILL_TOOL_PROPOSAL,
+                        arguments={
+                            "skill_id": clean_id,
+                            "tool_name": tool_name,
+                            "path": f"tools/{filename}",
+                            "effect": effect,
+                            "risk": declared_risk,
+                            "access": list(check.access or []),
+                            "access_warning": warn,
+                            "what": f"Enable tool '{tool_name}' in skill '{clean_id}'",
+                        },
+                    )
+            except Exception:
+                approval_id = None
+
+        approval_hint = (
+            f"An inline approval card (approval_id={approval_id}) has been created in Chat so the operator can approve and enable '{tool_name}' directly."
+            if approval_id
+            else "Operator approval is required before enabling."
+        )
         return {
             "success": True,
             "saved": True,
@@ -309,6 +439,7 @@ async def save_skill_file(
             "auto_enabled": False,
             "enabled": False,
             "approval": spec.get("approval", "disabled"),
+            "approval_id": approval_id,
             "approval_mode": active_mode,
             "effect": effect,
             "mounted": False,
@@ -318,7 +449,7 @@ async def save_skill_file(
             "check": check.to_dict(),
             "message": (
                 f"{check.operator_message()} Saved disabled in skill '{clean_id}' (effect={effect}, "
-                f"approval_mode={active_mode}); operator approval is required before enabling. {warn}".strip()
+                f"approval_mode={active_mode}); {approval_hint} {warn}".strip()
             ),
         }
 

@@ -88,6 +88,55 @@ def test_agora_self_build_contract(tmp_path: Path, monkeypatch):
             assert flagged_body["mounted"] is False
             assert "files" in flagged_body["access"]
             assert "write_audit_log" not in app.state.tool_reg
+
+            # 4. CARD-743: When authored from an agent turn (session_id in tool context), a non-read_only
+            # colocated tool creates an inline `enable_skill_tool` pending approval that enables + mounts on Approve.
+            import asyncio
+
+            from src.application.kernel.tool_registry import _tool_context
+            from src.application.skills.agora_authoring import save_skill_file
+            from src.application.skills.session_skills import get_session_activated_skills
+
+            sess = state_store.create_session(agent_id="autoreiv", title="Inline Approval Session")
+            token = _tool_context.set({"agent_id": "autoreiv", "session_id": sess.id})
+            try:
+                agent_res = asyncio.run(
+                    save_skill_file(
+                        store_mod.get_store(),
+                        "self-built-math",
+                        "tools/write_audit_log.py",
+                        (
+                            '"""Write an audit line to disk."""\n'
+                            "from pathlib import Path\n\n"
+                            "def run(line: str = 'ok') -> dict:\n"
+                            '    return {"written": line}\n'
+                        ),
+                        tool_registry=app.state.tool_reg,
+                        state_store=state_store,
+                    )
+                )
+            finally:
+                _tool_context.reset(token)
+
+            assert agent_res["saved"] is True
+            assert agent_res["enabled"] is False
+            approval_id = agent_res.get("approval_id")
+            assert approval_id, f"Expected approval_id when saving non-read_only tool in session, got: {agent_res}"
+
+            pending = client.get(f"/api/approvals/pending?session_id={sess.id}").json()
+            assert any(p["id"] == approval_id and p["tool_name"] == "enable_skill_tool" for p in pending)
+
+            decide_res = client.post(
+                f"/api/approvals/{approval_id}/decision",
+                json={"decision": "APPROVED", "session_id": sess.id},
+            )
+            assert decide_res.status_code == 200, decide_res.text
+            decide_body = decide_res.json()
+            assert decide_body["status"] == "approved"
+            assert decide_body["resume_chat"] is False
+            assert "write_audit_log" in app.state.tool_reg
+            assert "self-built-math" in get_session_activated_skills(session_id=sess.id)
     finally:
         clear_session_skill_activations()
         store_mod.reset_store()
+

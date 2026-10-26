@@ -248,16 +248,20 @@ async def toggle_skill_colocated_tool(
     request: Request,
 ) -> Dict[str, Any]:
     """Enable (approve current SHA-256 and mount) or disable (unmount) a colocated tool in a skill folder [CARD-687]."""
+    from src.application.skills.agora_authoring import resolve_pending_skill_tool_approvals
     from src.application.skills.agora_loader import disable_skill_tool, enable_skill_tool
     from src.infrastructure.content.store import get_store
 
     tool_reg = _app_tool_registry(request)
+    state_store = getattr(request.app.state, "store", None)
     store = get_store()
     try:
         if body.enabled:
             spec = enable_skill_tool(store, skill_id, tool_name, tool_registry=tool_reg)
+            resolve_pending_skill_tool_approvals(state_store, skill_id, tool_name, decision="APPROVED")
         else:
             spec = disable_skill_tool(store, skill_id, tool_name, tool_registry=tool_reg)
+            resolve_pending_skill_tool_approvals(state_store, skill_id, tool_name, decision="REJECTED")
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:

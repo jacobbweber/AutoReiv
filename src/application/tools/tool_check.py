@@ -19,6 +19,7 @@ check never calls an LLM and never injects secrets.
 from __future__ import annotations
 
 import ast
+import importlib.util
 import json
 import logging
 import re
@@ -311,22 +312,62 @@ def trim_error(text: Any, limit: int = MAX_ERROR_CHARS) -> str:
     return body[:limit]
 
 
+def _module_spec_exists(root: str) -> bool:
+    if root in sys.builtin_module_names:
+        return True
+    try:
+        return importlib.util.find_spec(root) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def _find_missing_imports(code: str) -> Optional[str]:
+    """Return the first imported top-level module that does not exist in this Python environment [CARD-743]."""
+    try:
+        tree = ast.parse(code or "", filename="tool.py")
+    except SyntaxError:
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                root = (alias.name or "").split(".", 1)[0].strip()
+                if root and root != "__future__" and not _module_spec_exists(root):
+                    return root
+        elif isinstance(node, ast.ImportFrom):
+            if getattr(node, "level", 0):
+                continue
+            root = (node.module or "").split(".", 1)[0].strip()
+            if root and root != "__future__" and not _module_spec_exists(root):
+                return root
+    return None
+
+
 def _static_native(code: str) -> tuple[Optional[str], list[str]]:
     try:
         tree = ast.parse(code, filename="tool.py")
     except SyntaxError as exc:
         return f"SyntaxError: {exc.msg} (line {exc.lineno})", []
     if not any(isinstance(node, ast.FunctionDef) and node.name == "run" for node in tree.body):
-        return "code must define a module-level def run(**kwargs)", []
+        return "code must define a module-level def run(...) function with typed parameters", []
     reason = detect_path_safety_violation(code)
     if reason:
         return reason, []
     warnings: list[str] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
-            note = f"uses {node.func.id}() (line {node.lineno})"
-            if note not in warnings:
-                warnings.append(note)
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and func.id in {"exit", "quit"}:
+                return "Do not call sys.exit() or exit() inside a tool; return a dict with an 'error' key instead.", []
+            if (
+                isinstance(func, ast.Attribute)
+                and isinstance(func.value, ast.Name)
+                and ((func.value.id == "sys" and func.attr == "exit") or (func.value.id == "os" and func.attr == "_exit"))
+            ):
+                return "Do not call sys.exit() or exit() inside a tool; return a dict with an 'error' key instead.", []
+            if isinstance(func, ast.Name) and func.id in {"eval", "exec"}:
+                note = f"uses {func.id}() (line {node.lineno})"
+                if note not in warnings:
+                    warnings.append(note)
         if isinstance(node, ast.ExceptHandler) and node.type is None:
             warnings.append(f"bare except (line {node.lineno})")
     return None, warnings
@@ -387,6 +428,16 @@ class ToolCheckService:
             result.access = detect_access(str(code or ""))
             if error:
                 raise _Outcome(STATUS_FAILED, "static", error)
+            missing_mod = _find_missing_imports(str(code or ""))
+            if missing_mod and (
+                result.access or missing_mod == "functions" or missing_mod.startswith("mcp_")
+            ):
+                raise _Outcome(
+                    STATUS_FAILED,
+                    "static",
+                    f"ModuleNotFoundError: No module named '{missing_mod}' "
+                    "(native tools run in an isolated subprocess and cannot import platform or MCP tools)",
+                )
             result.stages.append({"name": "static", "ok": True})
             if result.access:
                 # Flagged code is never executed here, whatever the caller passes.

@@ -4,14 +4,14 @@ Universal Wiki Tools for Document Management, Search & Knowledge Graph [REQ-WIKI
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.kernel.wiki_budget import WIKI_LOOKUP_HINT  # CARD-605
 from src.application.skills.template_scope import NO_FOLDER_MESSAGE, caller_template_scope
-from src.domain.wiki.frontmatter import FrontmatterParser, coerce_string_or_list_of_strings
+from src.application.skills.wiki_note_helpers import create_wiki_note_impl
+from src.domain.wiki.frontmatter import FrontmatterParser
 from src.domain.wiki.store import WikiStore
 
 
@@ -70,167 +70,24 @@ class WikiTools:
         extra_frontmatter: Optional[Dict[str, Any]] = None,
         template: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Create a new markdown note with structured YAML frontmatter inside the wiki.
-        Enforces the One-Door Policy: all new notes land in 00_Inbox/ for staging
-        and automated curation (unless explicitly a resource or operating manual).
-        Supports optional structured template directives [CARD-178, REQ-WIKI-034].
-        """
-        # CARD-598: templates must be authored via wiki_template_create, never wiki_note_create.
-        clean_doc_type = str(document_type or "").strip().lower()
-        extra_fm = dict(extra_frontmatter or {})
-        extra_type = str(extra_fm.get("type") or "").strip().lower()
-        title_lower = str(title or "").strip().lower()
-
-        title_is_template = (
-            title_lower == "template"
-            or title_lower.endswith(" template")
-            or title_lower.endswith("-template")
-            or title_lower.endswith("_template")
-        )
-
-        is_template = (
-            clean_doc_type == "template"
-            or extra_type == "template"
-            or title_is_template
-        )
-        if not is_template and content and content.strip().startswith("---"):
-            try:
-                parsed_meta, _ = FrontmatterParser.parse(content)
-                extra = getattr(parsed_meta, "model_extra", None) or {}
-                if str(extra.get("type") or "").strip().lower() == "template":
-                    is_template = True
-                elif not clean_doc_type and str(getattr(parsed_meta, "document_type", "") or "").lower() == "template":
-                    is_template = True
-            except Exception:
-                pass
-
-        if is_template:
-            clean_slug = re.sub(r"[^a-z0-9\-]", "", title_lower.replace(" ", "-").replace("_", "-"))
-            if clean_slug.endswith("-template"):
-                clean_slug = clean_slug[:-9].rstrip("-")
-            clean_slug = clean_slug or "new-template"
-            return {
-                "success": False,
-                "error": (
-                    f"Templates cannot be created with wiki_note_create. Use wiki_template_create(slug='{clean_slug}', "
-                    f"title='{title}', ...) to author structured templates in this agent's template folder."
-                ),
-            }
-
-        explicit_template = (template or "").strip()
-        effective_template = explicit_template or "zettelkasten-atomic"
-        clean_tags = coerce_string_or_list_of_strings(tags)
-        extra_frontmatter = dict(extra_frontmatter or {})
-        extra_frontmatter.setdefault("template", effective_template)
-        if not content:
-            # CARD-603: an agent uses only templates in its own template folder.
-            scope = caller_template_scope()
-            if scope is None:
-                tmpl = self.store.get_template(effective_template)
-            else:
-                tmpl = self.store.get_template(effective_template, folder=scope.own) if scope.own else None
-            if tmpl:
-                content = tmpl["content"].replace("${TITLE}", title)
-            elif scope is not None and explicit_template:
-                return {"success": False, "error": f"Template '{explicit_template}' not found."}
-
-        vault_root = str(self.store.root_dir.resolve())
-
-        def _enrich(res_dict: Dict[str, Any]) -> Dict[str, Any]:
-            if isinstance(res_dict, dict) and res_dict.get("success"):
-                res_dict["vault_root"] = vault_root
-                res_dict["relative_path"] = res_dict.get("path", "")
-                res_dict["template"] = extra_frontmatter.get("template", effective_template)
-            return res_dict
-
-        if relative_path:
-            safe_target = self.store._resolve_safe_path(relative_path)
-            if safe_target is None:
-                return {"success": False, "error": "Path traversal detected: target path is outside wiki root."}
-
-            rel_lower = relative_path.replace("\\", "/").lower().lstrip("/")
-            # If target attempts to bypass staging and write directly into notes warehouse, enforce One-Door Policy
-            if rel_lower.startswith("01_notes/") or rel_lower.startswith("notes/"):
-                filed = self.store.file_note(
-                    title=title,
-                    content=content,
-                    domain=domain,
-                    topic=topic,
-                    category="inbox",
-                    inbox_priority=inbox_priority,
-                    document_type=document_type,
-                    tags=clean_tags,
-                    summary=summary,
-                    status="inbox",
-                    priority=priority,
-                    extra_meta=extra_frontmatter,
-                )
-                seeded = self._maybe_seed_priming_ledger(
-                    filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
-                    tags=clean_tags,
-                    content=content,
-                    title=title,
-                    topic=topic,
-                )
-                return _enrich(seeded)
-
-            is_resource = rel_lower.startswith("02_resources/") or rel_lower.startswith("resources/")
-            res = self.store.write_note(
-                relative_path=relative_path,
-                content=content,
-                update_frontmatter={
-                    "title": title,
-                    "domain": domain,
-                    "topic": topic,
-                    "document_type": document_type,
-                    "tags": clean_tags,
-                    "summary": summary,
-                    "status": "active" if is_resource else "inbox",
-                    "priority": priority,
-                    **(extra_frontmatter or {}),
-                },
-            )
-            seeded = self._maybe_seed_priming_ledger(
-                {
-                    "success": True,
-                    "path": res["path"],
-                    "title": title,
-                    "category": "resources" if is_resource else "inbox",
-                },
-                tags=clean_tags,
-                content=content,
-                title=title,
-                topic=topic,
-            )
-            return _enrich(seeded)
-
-        # One-Door Policy: all notes without explicit resources categorization land in 00_Inbox/
-        clean_cat = str(category or "inbox").lower().strip()
-        target_category = "resources" if clean_cat in ("resources", "02_resources") else "inbox"
-
-        filed = self.store.file_note(
+        """Create a new markdown note with structured YAML frontmatter inside the wiki."""
+        return create_wiki_note_impl(
+            self,
             title=title,
             content=content,
             domain=domain,
             topic=topic,
-            category=target_category,
+            category=category,
             inbox_priority=inbox_priority,
             document_type=document_type,
-            tags=clean_tags,
+            tags=tags,
             summary=summary,
-            status=status if target_category == "resources" else "inbox",
+            status=status,
             priority=priority,
-            extra_meta=extra_frontmatter,
+            relative_path=relative_path,
+            extra_frontmatter=extra_frontmatter,
+            template=template,
         )
-        seeded = self._maybe_seed_priming_ledger(
-            filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
-            tags=clean_tags,
-            content=content,
-            title=title,
-            topic=topic,
-        )
-        return _enrich(seeded)
 
     def read_wiki_note(
         self,
@@ -324,6 +181,55 @@ class WikiTools:
             tags=tags,
             new_title=new_title,
         )
+
+    def move_wiki_note(
+        self,
+        source_path: Optional[str] = None,
+        destination_path: Optional[str] = None,
+        domain: Optional[str] = None,
+        topic: Optional[str] = None,
+        new_title: Optional[str] = None,
+        update_frontmatter: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Move or rename a note in 00_Inbox/ or 01_Notes/, update its frontmatter, and prune empty source folders [CARD-744]."""
+        src = source_path or kwargs.get("relative_path") or kwargs.get("from_path") or kwargs.get("path")
+        dest = destination_path or kwargs.get("target_path") or kwargs.get("to_path") or kwargs.get("dest_path")
+        dom = domain or kwargs.get("target_domain")
+        top = topic or kwargs.get("target_topic")
+        if not src:
+            return {"success": False, "error": "source_path is required."}
+        if self._hidden_from_caller(src):
+            return {"success": False, "error": f"Note '{src}' not found."}
+        res = self.store.move_note(
+            source_path=src,
+            destination_path=dest,
+            domain=dom,
+            topic=top,
+            new_title=new_title,
+            update_frontmatter=update_frontmatter,
+        )
+        if isinstance(res, dict) and res.get("success"):
+            res["vault_root"] = str(self.store.root_dir.resolve())
+        return res
+
+    def delete_wiki_note(
+        self,
+        relative_path: Optional[str] = None,
+        reason: str = "deleted",
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Permanently delete a note from 00_Inbox/ or 01_Notes/ and prune any now-empty parent topic/domain folders [CARD-744]."""
+        target = relative_path or kwargs.get("path") or kwargs.get("note_path") or kwargs.get("rel_path")
+        if not target:
+            return {"success": False, "error": "relative_path is required."}
+        if self._hidden_from_caller(target):
+            return {"success": False, "error": f"Note '{target}' not found."}
+        res = self.store.remove_note(relative_path=target, reason=reason)
+        if isinstance(res, dict) and res.get("success"):
+            res["vault_root"] = str(self.store.root_dir.resolve())
+            res["relative_path"] = res.get("deleted_path", "")
+        return res
 
     def search_wiki_notes(
         self,
@@ -499,6 +405,8 @@ class WikiTools:
     wiki_note_update = update_wiki_note
     wiki_note_archive = archive_wiki_note
     wiki_note_organize = organize_wiki_note
+    wiki_note_move = move_wiki_note
+    wiki_note_delete = delete_wiki_note
     wiki_note_search = search_wiki_notes
     wiki_note_list = list_wiki_notes
     wiki_note_append = append_wiki_note
@@ -641,6 +549,56 @@ class WikiTools:
                 "required": ["source_path", "target_domain", "target_topic"],
             },
             handler=self.organize_wiki_note,
+        )
+
+        registry.register_tool(
+            name="wiki_note_move",
+            description=(
+                "Move or rename an existing Wiki note under 00_Inbox/ or 01_Notes/, update its domain/topic frontmatter, "
+                "and automatically prune any now-empty source topic or domain folders."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "source_path": {"type": "string", "description": "Relative path of the note to move (e.g. 01_Notes/general/ai/note.md)"},
+                    "destination_path": {
+                        "type": "string",
+                        "description": "Target relative path (e.g. 01_Notes/devops/splunk/note.md). Optional if domain and topic are provided.",
+                    },
+                    "domain": {"type": "string", "description": "Optional destination domain slug"},
+                    "topic": {"type": "string", "description": "Optional destination topic slug"},
+                    "new_title": {"type": "string", "description": "Optional updated title"},
+                    "update_frontmatter": {"type": "object", "description": "Optional frontmatter fields to update"},
+                },
+                "required": ["source_path"],
+            },
+            handler=self.move_wiki_note,
+            risk="write",
+        )
+
+        registry.register_tool(
+            name="wiki_note_delete",
+            description=(
+                "Permanently delete a Wiki note from 00_Inbox/ or 01_Notes/ and automatically prune any now-empty parent "
+                "topic or domain directories (never top-level vault folders). Requires operator HITL confirmation."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "relative_path": {
+                        "type": "string",
+                        "description": "Relative path to the note to delete (e.g. 01_Notes/general/artificial_intelligence/stub.md)",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "default": "deleted",
+                        "description": "Reason for permanently deleting the note",
+                    },
+                },
+                "required": ["relative_path"],
+            },
+            handler=self.delete_wiki_note,
+            risk="destructive",
         )
 
         registry.register_tool(

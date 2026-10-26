@@ -9,6 +9,7 @@ import { modelVisionCell, wireModelVisionToggles } from './settings_model_vision
 import { setupReplyLimits } from './settings_reply_limits.js'; // CARD-574
 import { setupAllowedOrigins } from './settings_allowed_origins.js'; // CARD-602
 import { setupWebSearchSettings } from './settings_web_search.js'; // CARD-719
+import { setupVoiceSettings } from './settings_voice.js'; // optional voice sidecar
 import { initSettingsDataAndBackups } from './settings/data_backup.js';
 import { initSettingsVaultAndRemoteHosts } from './settings/vault_remote.js';
 import { initSettingsUpdates } from './settings/updates.js';
@@ -200,6 +201,7 @@ export function initSettingsStudio(state, callbacks = {}) {
       await loadCredentials();
     }
     setupWebSearchSettings({ state, onCredentialsRefresh: loadCredentials }); // CARD-719
+    setupVoiceSettings();
     try {
       const res = await fetch('/api/settings');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -550,6 +552,7 @@ export function initSettingsStudio(state, callbacks = {}) {
   loadMcpServers();
   loadCredentials().then(() => {
     setupWebSearchSettings({ state, onCredentialsRefresh: loadCredentials });
+    setupVoiceSettings();
   });
   loadRemoteHosts();
   loadSystemVersionInfo();

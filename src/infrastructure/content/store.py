@@ -204,11 +204,15 @@ class _Kind:
         raw_skills = [str(s).strip() for s in (meta.get("skills") or []) if str(s).strip()]
         normalized = [CONSOLIDATED_SKILL_ALIASES.get(s, s) for s in raw_skills]
         consolidated_req = {
-            "capability-authoring", "project-cards", "software-development", "repo-onboarding",
+            "capability-authoring", "mcp-engineering", "project-cards", "software-development", "repo-onboarding",
             "spec-driven-development", "live-journeys", "web-search", "user:*",
         }
         missing_consolidated = not consolidated_req.issubset(set(normalized)) and "*" not in normalized
-        stale_prompt = bool(_STALE_RETIRED_AGENT_PROMPT_RE.search(body or ""))
+        stale_prompt = (
+            bool(_STALE_RETIRED_AGENT_PROMPT_RE.search(body or ""))
+            or 'skill_view(skill_id="mcp-engineering")' not in (body or "")
+            or "wiki_note_move" not in (body or "")
+        )
         if not missing_consolidated and not stale_prompt and normalized == raw_skills:
             return meta, body, based_on
         merged_skills = list(dict.fromkeys(normalized + shipped_skills))

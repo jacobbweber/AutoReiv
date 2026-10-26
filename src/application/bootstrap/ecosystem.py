@@ -230,12 +230,12 @@ def bootstrap_ecosystem(
     memory_tools = AgentMemoryTools(data_dir=data_root)
     memory_tools.register_tools(tool_registry)
 
-    # 12c. Enterprise MCP Engineering Tools [CARD-394]
+    # 12c. Enterprise MCP Engineering Tools [CARD-394, CARD-745]
     mcp_engineering_tools = MCPEngineeringTools(
         state_store=store,
         tool_registry=tool_registry,
         data_dir=data_root,
-        root_resolver=projects_service.selected_or_refuse,
+        root_resolver=projects_service.selected_root,
     )
     mcp_engineering_tools.register_tools(tool_registry)
     agent_registry.mcp_engineering_tools = mcp_engineering_tools

@@ -14,6 +14,8 @@ DEFAULT_HIGH_RISK_TOOLS: tuple[str, ...] = (
     "wiki_note_create",
     "wiki_note_update",
     "wiki_note_organize",
+    "wiki_note_move",
+    "wiki_note_delete",
     "execute_code",
     "write_card",
     "write_spec",

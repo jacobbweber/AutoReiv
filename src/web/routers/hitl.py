@@ -24,6 +24,7 @@ from src.application.orchestration.skill_proposals import (
     SKILL_PROPOSAL_TOOLS,
     apply_skill_proposal_decision,
 )
+from src.application.skills.agora_authoring import ENABLE_SKILL_TOOL_PROPOSAL
 from src.domain.gateway.models import ChatMessage, Role, ToolCall
 from src.domain.hitl.models import ApprovalStatus
 
@@ -81,6 +82,42 @@ def _decide_tool_attachment(request: Request, record: Dict[str, Any], decision: 
     }
 
 
+def _decide_enable_skill_tool(request: Request, record: Dict[str, Any], decision: str) -> Dict[str, Any]:
+    """CARD-743: inline Chat approval to enable and mount a non-read_only colocated Agora tool."""
+    from src.application.skills.agora_loader import disable_skill_tool, enable_skill_tool
+    from src.application.skills.session_skills import record_session_skill_activation
+    from src.infrastructure.content.store import get_store
+
+    args = dict(record.get("arguments") or {})
+    skill_id = str(args.get("skill_id") or "").strip()
+    tool_name = str(args.get("tool_name") or "").strip()
+    base = {"ran": False, "tool_name": ENABLE_SKILL_TOOL_PROPOSAL}
+    tool_reg = getattr(request.app.state, "tool_reg", None) or getattr(request.app.state, "tool_registry", None)
+    if decision not in {"approved", "approve"}:
+        try:
+            if skill_id and tool_name:
+                disable_skill_tool(get_store(), skill_id, tool_name, tool_registry=tool_reg)
+        except Exception:
+            pass
+        return {**base, "output": f"Rejected. Tool '{tool_name}' in skill '{skill_id}' remains disabled."}
+    try:
+        spec = enable_skill_tool(get_store(), skill_id, tool_name, tool_registry=tool_reg)
+        approval_session = str(record.get("session_id") or "").strip()
+        if approval_session and skill_id:
+            record_session_skill_activation(approval_session, skill_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Enabling skill tool %s/%s failed for %s", skill_id, tool_name, record.get("id"))
+        return {**base, "error": f"Accepted, but enabling {tool_name} in '{skill_id}' failed: {exc}"}
+    return {
+        **base,
+        "output": (
+            f"Enabled and mounted '{tool_name}' in skill '{skill_id}'. "
+            f"The skill is active for this session; call `{tool_name}` directly as a tool call on the next message (there is no `run_tool` wrapper)."
+        ),
+        "tool_spec": {k: v for k, v in spec.items() if k != "code"},
+    }
+
+
 @router.post("/api/approvals/{approval_id}/decision")
 async def resolve_approval_endpoint(request: Request, approval_id: str, req: DecisionRequest):
     store = request.app.state.store
@@ -111,9 +148,14 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     remembered_for_project = False
     decision_norm = (req.decision or "").strip().lower()
     # CARD-530 REQ-530-006: propose_* drafts never park the turn; their tool call already has its result.
-    draft_proposal = bool(record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS | {ATTACH_TOOL_PROPOSAL})
+    draft_proposal = bool(
+        record
+        and record.get("tool_name") in SKILL_PROPOSAL_TOOLS | {ATTACH_TOOL_PROPOSAL, ENABLE_SKILL_TOOL_PROPOSAL}
+    )
     if record and record.get("tool_name") == ATTACH_TOOL_PROPOSAL:
         execution = _decide_tool_attachment(request, record, decision_norm)
+    elif record and record.get("tool_name") == ENABLE_SKILL_TOOL_PROPOSAL:
+        execution = _decide_enable_skill_tool(request, record, decision_norm)
     elif record and record.get("tool_name") == PROPOSE_FOLLOWUP_TOOL:
         args = record.get("arguments") or {}
         orch = JobPhaseOrchestrator(store)

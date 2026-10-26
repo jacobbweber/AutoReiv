@@ -81,9 +81,25 @@ def test_oc429_developer_owns_builder_tools_and_agent_builder_is_absent(operator
     assert "propose_skill" in cap_tools
     assert "write_skill_file" in cap_tools
 
+    from src.application.skills.session_skills import record_session_skill_activation
+
+    before_open = {
+        tool.name
+        for tool in client.app.state.kernel._resolve_active_tools(
+            autoreiv,
+            "propose a skill for backups",
+            session_id="sess-oc429",
+        )
+    }
+    assert "skill_view" in before_open
+    assert "propose_skill" not in before_open
+    assert "write_skill_file" not in before_open
+
+    record_session_skill_activation("sess-oc429", "capability-authoring")
     visible = client.app.state.kernel._resolve_active_tools(
         autoreiv,
         "propose a skill for backups",
+        session_id="sess-oc429",
     )
     visible_names = {tool.name for tool in visible}
     assert "propose_skill" in visible_names
