@@ -1,7 +1,8 @@
 /**
  * Optional Talk button (turn-taking voice). Shown only when /api/voice/status says
  * voice is enabled and reachable. Flow: tap to record -> tap again to send ->
- * /api/voice/transcribe -> normal chat send -> reply spoken via /api/voice/speak.
+ * /api/voice/transcribe -> normal chat send -> reply spoken sentence-by-sentence
+ * as it streams (one /api/voice/speak call per chunk, played in order).
  * Tapping while a reply is playing stops playback. Not full duplex.
  */
 import { setComposerText } from './composer.js';
@@ -53,6 +54,7 @@ export function setupVoiceTalk({ state, chatForm, promptInput, showToast = () =>
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = null;
     if (audio) { audio.pause(); audio = null; }
+    resetSpeech();
     speakNext = false;
     setMode('idle');
   }
@@ -90,6 +92,7 @@ export function setupVoiceTalk({ state, chatForm, promptInput, showToast = () =>
       if (!text) { showToast('Did not catch that. Try again.', 'warning'); setMode('idle'); return; }
       if (state.isStreaming || state.sessionBusy) { setComposerText(promptInput, text); showToast('Reply still running; your words are in the box.', 'info'); setMode('idle'); return; }
       setComposerText(promptInput, text);
+      resetSpeech();
       speakNext = autoSpeak;
       setMode(speakNext ? 'waiting' : 'idle');
       if (typeof chatForm.requestSubmit === 'function') chatForm.requestSubmit();
@@ -100,22 +103,84 @@ export function setupVoiceTalk({ state, chatForm, promptInput, showToast = () =>
     }
   }
 
-  async function speak(text) {
+  // Streaming speech: split the growing reply into sentence/clause chunks, synthesize
+  // each via /api/voice/speak (prefetching ahead), and play them strictly in order.
+  let gen = 0; let spokenUpTo = 0; let queue = []; let playing = false; let replyDone = false;
+
+  function resetSpeech() {
+    gen += 1; spokenUpTo = 0; queue = []; playing = false; replyDone = false;
+  }
+
+  function synth(text, myGen) {
+    return fetchFn('/api/voice/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
+      .then((res) => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.blob(); })
+      .then((b) => (myGen === gen ? URL.createObjectURL(b) : null));
+  }
+
+  function enqueue(text) {
     const clean = stripForSpeech(text);
-    if (!clean) { setMode('idle'); return; }
-    setMode('speaking');
-    try {
-      const res = await fetchFn('/api/voice/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: clean }) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const url = URL.createObjectURL(await res.blob());
-      if (mode !== 'speaking') { URL.revokeObjectURL(url); return; }
-      audio = new Audio(url);
-      audio.onended = () => { URL.revokeObjectURL(url); audio = null; setMode('idle'); };
-      await audio.play();
-    } catch (err) {
-      showToast(`Could not play reply: ${err.message}`, 'error');
-      setMode('idle');
+    if (!clean || !/[\p{L}\p{N}]/u.test(clean)) return;
+    const myGen = gen;
+    queue.push({ myGen, p: synth(clean, myGen).catch((err) => { showToast(`Could not speak: ${err.message}`, 'error'); return null; }) });
+    if (mode === 'waiting') setMode('speaking');
+    pump();
+  }
+
+  async function pump() {
+    if (playing) return;
+    playing = true;
+    while (queue.length) {
+      const item = queue.shift();
+      const url = await item.p;
+      if (item.myGen !== gen || mode !== 'speaking') { if (url) URL.revokeObjectURL(url); playing = false; return; }
+      if (!url) continue;
+      await new Promise((resolve) => {
+        audio = new Audio(url);
+        audio.onended = audio.onerror = () => { URL.revokeObjectURL(url); audio = null; resolve(); };
+        audio.play().catch((err) => { showToast(`Could not play reply: ${err.message}`, 'error'); resolve(); });
+      });
+      if (item.myGen !== gen) { playing = false; return; }
     }
+    playing = false;
+    if (replyDone && mode === 'speaking') setMode('idle');
+  }
+
+  // Find the last good break point in the unspoken text. First chunk breaks early
+  // (clause, ~40 chars) for fast first audio; later chunks prefer full sentences.
+  function takeChunks(full, final) {
+    const text = full.slice(spokenUpTo);
+    if (/```/.test(text) && (text.match(/```/g) || []).length % 2 === 1 && !final) {
+      const fence = text.indexOf('```');
+      if (fence > 0) { const head = text.slice(0, fence); spokenUpTo += head.length; enqueue(head); }
+      return;
+    }
+    if (final) { spokenUpTo = full.length; enqueue(text); return; }
+    const minLen = spokenUpTo === 0 ? 20 : 60;
+    const re = /[.!?]+["')\]]*\s+|\n\s*\n|\n[-*\d]|[;:]\s+|,\s+/g;
+    let cut = -1; let m;
+    while ((m = re.exec(text))) {
+      const isSentence = /[.!?\n]/.test(m[0]);
+      const end = m.index + m[0].length;
+      if (end < minLen) continue;
+      if (isSentence || (end >= 120)) cut = end;
+    }
+    if (cut < 0 && text.length > 220) { const sp = text.lastIndexOf(' ', 200); if (sp > 40) cut = sp + 1; }
+    if (cut > 0) { spokenUpTo += cut; enqueue(text.slice(0, cut)); }
+  }
+
+  function onDelta(content) {
+    if (!speakNext && mode !== 'speaking') return;
+    if (spokenUpTo > 4000) return;
+    takeChunks(content || '', false);
+  }
+
+  function onFinal(content) {
+    if (!speakNext && mode !== 'speaking') return;
+    speakNext = false;
+    takeChunks(content || '', true);
+    replyDone = true;
+    if (mode === 'waiting') setMode('idle');
+    else if (!playing && !queue.length && mode === 'speaking') setMode('idle');
   }
 
   btn.addEventListener('click', (e) => {
@@ -125,11 +190,8 @@ export function setupVoiceTalk({ state, chatForm, promptInput, showToast = () =>
     else stopAll();
   });
 
-  window.addEventListener('autoreiv:assistant-reply', (e) => {
-    if (!speakNext) return;
-    speakNext = false;
-    speak(e.detail?.content || '');
-  });
+  window.addEventListener('autoreiv:assistant-delta', (e) => onDelta(e.detail?.content));
+  window.addEventListener('autoreiv:assistant-reply', (e) => onFinal(e.detail?.content));
   window.addEventListener('autoreiv:voice-settings-changed', refresh);
   setMode('idle');
   refresh();

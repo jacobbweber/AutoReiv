@@ -622,6 +622,7 @@ export function initChatStudio(state, callbacks = {}) {
         onToken: (text) => {
           accumulatedContent += text;
           if (streamContentEl) streamContentEl.textContent = accumulatedContent;
+          window.dispatchEvent(new CustomEvent('autoreiv:assistant-delta', { detail: { content: accumulatedContent } })); // optional voice Talk streaming
           maybeAutoscrollMessages();
         },
         onReasoning: (text) => {
