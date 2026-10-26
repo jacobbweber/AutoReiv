@@ -3,6 +3,7 @@
  * Coordinates chat interactions, sessions, message streaming, job chrome, and decomposed submodules.
  */
 
+import { setupVoiceTalk } from './chat/voice_talk.js';
 import { $, isMobile, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
@@ -517,6 +518,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   // Composer paperclip + Enter-to-send on the real template IDs [CARD-469]
   wireComposer(state, { chatForm, promptInput, showToastFn: showToast, onBeforeAttach: () => { closeChatOptionsDrawer(); return ensureSession(); } });
+  setupVoiceTalk({ state, chatForm, promptInput, showToast }); // optional voice sidecar; hidden unless configured
   setupRuntimeModeToggles(state, { approvalToggle, verifyToggle, approvalBadge: $('approvalBadge'), verifyBadge: $('verifyBadge') }); // CARD-470
   setupRunAsJobToggle(state, runAsJobEls); // CARD-572
 
@@ -666,6 +668,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       if (!ownStream.isCurrent(turn)) return; // CARD-488: detached; the chat on screen is another one
       state.messages.push({ role: 'assistant', content: accumulatedContent, reasoning: accumulatedReasoning });
+      window.dispatchEvent(new CustomEvent('autoreiv:assistant-reply', { detail: { content: accumulatedContent } })); // optional voice Talk
       const streamingBadge = streamBubble.querySelector('.text-brand-400.animate-pulse');
       if (streamingBadge) streamingBadge.remove();
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=AutoReiv optional voice sidecar (Whisper STT + Kokoro TTS, CPU)
+After=network-online.target docker.service
+
+[Service]
+Environment=VOICE_HOST=172.17.0.1
+Environment=VOICE_PORT=8790
+ExecStart=/usr/bin/python3 %h/voice/voice_sidecar.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

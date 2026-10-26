@@ -298,6 +298,41 @@
         </div>
 
 
+        <!-- Voice / Talk (optional sidecar) -->
+        <div id="settingsVoiceCard" data-testid="settings-voice-card" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="mic" class="w-4 h-4 text-brand-400"></i>
+                <span class="truncate">Voice / Talk (Optional)</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Point AutoReiv at a voice sidecar (<code class="text-slate-300 font-mono">/stt</code>, <code class="text-slate-300 font-mono">/tts</code>, <code class="text-slate-300 font-mono">/health</code>) to show a Talk button in chat. Leave blank or off and AutoReiv works without voice.</p>
+            </div>
+            <span id="voiceStatusBadge" data-testid="voice-status-badge" class="self-start sm:self-auto px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-white/[0.04] text-slate-300 border border-white/[0.08]">Not configured</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div class="md:col-span-2">
+              <label for="voiceEndpointInput" class="font-medium text-slate-300 block mb-1">Voice Endpoint URL</label>
+              <input id="voiceEndpointInput" data-testid="voice-endpoint-input" type="url" placeholder="http://host.docker.internal:8790" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all" />
+            </div>
+            <div>
+              <label for="voiceNameInput" class="font-medium text-slate-300 block mb-1">Voice (optional)</label>
+              <input id="voiceNameInput" data-testid="voice-name-input" type="text" placeholder="af_heart" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all" />
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex flex-col gap-2 text-slate-300">
+              <label class="flex items-center gap-2"><input id="voiceEnabledToggle" data-testid="voice-enabled-toggle" type="checkbox" class="rounded border-white/20 bg-[#08090c] text-brand-500" /><span>Enable Talk in chat</span></label>
+              <label class="flex items-center gap-2"><input id="voiceAutoSpeakToggle" data-testid="voice-auto-speak-toggle" type="checkbox" checked class="rounded border-white/20 bg-[#08090c] text-brand-500" /><span>Speak replies to voice messages</span></label>
+            </div>
+            <div class="flex items-center gap-3 self-end sm:self-auto">
+              <span id="voiceSettingsStatus" data-testid="voice-settings-status" class="text-[11px] font-medium text-emerald-400 hidden"></span>
+              <button type="button" id="testVoiceSettingsBtn" class="px-3.5 py-1.5 bg-white/[0.06] hover:bg-white/[0.1] text-slate-200 rounded-lg text-xs font-semibold whitespace-nowrap">Test</button>
+              <button type="button" id="saveVoiceSettingsBtn" data-testid="save-voice-settings-btn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm whitespace-nowrap">Save Voice</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Web Search & Direct URL Fetch [CARD-719] -->
         <div id="settingsWebSearchCard" data-testid="settings-web-search-card" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
