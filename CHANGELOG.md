@@ -4,8 +4,13 @@ What changed in each AutoReiv release, newest first.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-26
+
+Optional voice Talk in Chat via a configurable local voice sidecar (Whisper speech-to-text, Kokoro text-to-speech, sentence-by-sentence spoken replies), plus HITL-gated wiki note delete/move, Docker-aware MCP engineering, and M34 dogfooding hardening (`CARD-743`..`CARD-746`).
+
 ### Added
 
+- Added optional voice Talk to Chat: Settings -> Voice / Talk holds a sidecar URL and enable switch, the composer mic only appears when the sidecar is configured, enabled, and healthy, and spoken replies stream sentence by sentence through an ordered TTS queue. The sidecar is not a required dependency.
 - Made `mcp-engineering` Docker- and host-aware (`$AUTOREIV_PROJECTS_DIR` scaffolding, custom tool implementation bodies, host volume mounts, `host.docker.internal` endpoint resolution, and immediate session mounting of `mcp-<name>` companion skills) (`CARD-745`).
 - Added HITL-gated `wiki_note_delete` and `wiki_note_move` tools to `wiki-curation` with automatic pruning of empty parent topic folders (`CARD-744`).
 

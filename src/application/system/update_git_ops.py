@@ -377,7 +377,7 @@ class UpdateGitOpsMixin:
                             return match.group(1)
             except Exception:
                 pass
-        return "1.5.4"
+        return "1.6.0"
 
     def _detect_deployment_mode(self, is_git: bool) -> str:
         if os.environ.get("AUTOREIV_CONTAINER"):
